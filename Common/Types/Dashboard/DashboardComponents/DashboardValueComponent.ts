@@ -9,5 +9,7 @@ export default interface DashboardValueComponent extends BaseComponent {
   arguments: {
     metricQueryConfig?: MetricQueryConfigData | undefined;
     title: string;
+    warningThreshold?: number | undefined;
+    criticalThreshold?: number | undefined;
   };
 }

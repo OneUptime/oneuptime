@@ -55,6 +55,18 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
           label: "Bar Chart",
           value: DashboardChartType.Bar,
         },
+        {
+          label: "Area Chart",
+          value: DashboardChartType.Area,
+        },
+        {
+          label: "Stacked Area Chart",
+          value: DashboardChartType.StackedArea,
+        },
+        {
+          label: "Pie Chart",
+          value: DashboardChartType.Pie,
+        },
       ],
     });
 
@@ -64,6 +76,16 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       required: true,
       type: ComponentInputType.MetricsQueryConfig,
       id: "metricQueryConfig",
+    });
+
+    componentArguments.push({
+      name: "Additional Queries",
+      description:
+        "Add multiple metric queries to overlay on the same chart",
+      required: false,
+      type: ComponentInputType.MetricsQueryConfigs,
+      id: "metricQueryConfigs",
+      isAdvanced: true,
     });
 
     componentArguments.push({
@@ -96,6 +118,26 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       required: false,
       type: ComponentInputType.Text,
       id: "legendUnit",
+    });
+
+    componentArguments.push({
+      name: "Warning Threshold",
+      description:
+        "A horizontal line will be drawn at this value in yellow to indicate a warning level",
+      required: false,
+      type: ComponentInputType.Number,
+      id: "warningThreshold",
+      isAdvanced: true,
+    });
+
+    componentArguments.push({
+      name: "Critical Threshold",
+      description:
+        "A horizontal line will be drawn at this value in red to indicate a critical level",
+      required: false,
+      type: ComponentInputType.Number,
+      id: "criticalThreshold",
+      isAdvanced: true,
     });
 
     return componentArguments;

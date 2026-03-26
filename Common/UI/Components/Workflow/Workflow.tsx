@@ -22,6 +22,7 @@ import React, {
 } from "react";
 import ReactFlow, {
   Background,
+  BackgroundVariant,
   Connection,
   Controls,
   Edge,
@@ -75,9 +76,9 @@ const edgeStyle: React.CSSProperties = {
 };
 
 const selectedEdgeStyle: React.CSSProperties = {
-  strokeWidth: "2px",
-  stroke: "#818cf8",
-  color: "#818cf8",
+  strokeWidth: "2.5px",
+  stroke: "#6366f1",
+  color: "#6366f1",
 };
 
 type GetEdgeDefaultPropsFunction = (selected: boolean) => JSONObject;
@@ -87,9 +88,14 @@ export const getEdgeDefaultProps: GetEdgeDefaultPropsFunction = (
 ): JSONObject => {
   return {
     type: "smoothstep",
+    animated: selected,
     markerEnd: {
-      type: MarkerType.Arrow,
-      color: edgeStyle.color?.toString() || "",
+      type: MarkerType.ArrowClosed,
+      color: selected
+        ? selectedEdgeStyle.color?.toString() || ""
+        : edgeStyle.color?.toString() || "",
+      width: 20,
+      height: 20,
     },
     style: selected ? { ...selectedEdgeStyle } : { ...edgeStyle },
   };
@@ -271,7 +277,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           {
             ...oldEdge,
             markerEnd: {
-              type: MarkerType.Arrow,
+              type: MarkerType.ArrowClosed,
               color: edgeStyle.color?.toString() || "",
             },
             style: edgeStyle,
@@ -398,7 +404,65 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   };
 
   return (
-    <div className="h-[48rem]">
+    <div
+      style={{
+        height: "calc(100vh - 220px)",
+        minHeight: "600px",
+        borderRadius: "8px",
+        overflow: "hidden",
+        border: "1px solid #e2e8f0",
+      }}
+    >
+      <style>
+        {`
+          .react-flow__minimap {
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07) !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+          .react-flow__controls {
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07) !important;
+            overflow: hidden !important;
+          }
+          .react-flow__controls-button {
+            border-bottom: 1px solid #f1f5f9 !important;
+            width: 32px !important;
+            height: 32px !important;
+          }
+          .react-flow__controls-button:hover {
+            background: #f8fafc !important;
+          }
+          .react-flow__controls-button svg {
+            max-width: 14px !important;
+            max-height: 14px !important;
+          }
+          .react-flow__edge:hover .react-flow__edge-path {
+            stroke: #6366f1 !important;
+            stroke-width: 2.5px !important;
+          }
+          .react-flow__handle:hover {
+            transform: scale(1.3) !important;
+          }
+          .react-flow__connection-line {
+            stroke: #6366f1 !important;
+            stroke-width: 2px !important;
+            stroke-dasharray: 5 5 !important;
+          }
+          @keyframes flow-dash {
+            to {
+              stroke-dashoffset: -10;
+            }
+          }
+          .react-flow__edge.animated .react-flow__edge-path {
+            animation: flow-dash 0.5s linear infinite !important;
+            stroke-dasharray: 5 5 !important;
+          }
+        `}
+      </style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -418,10 +482,42 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         nodeTypes={nodeTypes}
         onEdgeUpdateStart={onEdgeUpdateStart}
         onEdgeUpdateEnd={onEdgeUpdateEnd}
+        snapToGrid={true}
+        snapGrid={[16, 16]}
+        connectionLineStyle={{
+          stroke: "#6366f1",
+          strokeWidth: 2,
+          strokeDasharray: "5 5",
+        }}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          style: { ...edgeStyle },
+        }}
       >
-        <MiniMap />
+        <MiniMap
+          nodeStrokeWidth={3}
+          nodeColor={(node: Node) => {
+            if (
+              node.data &&
+              node.data.metadata &&
+              node.data.metadata.componentType === ComponentType.Trigger
+            ) {
+              return "#f59e0b";
+            }
+            return "#6366f1";
+          }}
+          maskColor="rgba(241, 245, 249, 0.7)"
+          style={{
+            backgroundColor: "#ffffff",
+          }}
+        />
         <Controls />
-        <Background color="#111827" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color="#cbd5e1"
+        />
       </ReactFlow>
 
       {showComponentsModal && (

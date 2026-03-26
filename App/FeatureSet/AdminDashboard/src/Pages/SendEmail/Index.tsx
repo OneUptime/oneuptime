@@ -51,9 +51,8 @@ const SendEmail: FunctionComponent = (): ReactElement => {
         throw new Error("Failed to send emails.");
       }
 
-      const data: JSONObject = response.data as JSONObject;
       setSendAllSuccess(
-        `Emails sent successfully. Total users: ${data["totalUsers"]}, Sent: ${data["sentCount"]}, Errors: ${data["errorCount"]}`,
+        "Broadcast email job has been started. Emails will be sent in the background.",
       );
     } catch (err) {
       setSendAllError(API.getFriendlyMessage(err));

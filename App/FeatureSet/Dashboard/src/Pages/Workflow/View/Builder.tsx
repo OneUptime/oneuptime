@@ -13,7 +13,6 @@ import ComponentMetadata, {
   NodeType,
 } from "Common/Types/Workflow/Component";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
@@ -231,11 +230,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           });
 
-          setSaveStatus("Changes Saved.");
+          setSaveStatus("Saved");
         } catch (err) {
           setError(API.getFriendlyMessage(err));
 
-          setSaveStatus("Save Error.");
+          setSaveStatus("Error saving");
         }
 
         if (saveTimeout) {
@@ -250,100 +249,146 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     await loadGraph();
   }, []);
 
+  type GetSaveStatusColorFunction = () => string;
+
+  const getSaveStatusColor: GetSaveStatusColorFunction = (): string => {
+    if (saveStatus === "Saved") {
+      return "#10b981";
+    }
+    if (saveStatus === "Error saving") {
+      return "#ef4444";
+    }
+    return "#94a3b8";
+  };
+
   return (
     <Fragment>
       <>
-        <Card
-          title={"Workflow Builder"}
-          description={"Workflow builder for OneUptime"}
-          rightElement={
-            <div className="flex">
-              <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
-              <div className="hidden md:block">
-                <Button
-                  title="Watch Demo"
-                  icon={IconProp.Play}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  onClick={() => {
-                    Navigation.navigate(
-                      URL.fromString("https://youtu.be/k1-reCQTZnM"),
-                      {
-                        openInNewTab: true,
-                      },
-                    );
-                  }}
-                />
-              </div>
-              <div>
-                <Button
-                  title="Add Component"
-                  icon={IconProp.Add}
-                  onClick={() => {
-                    setShowComponentPickerModal(true);
-                  }}
-                />
-              </div>
-              <div>
-                <Button
-                  title="Run Workflow Manually"
-                  icon={IconProp.Play}
-                  onClick={() => {
-                    setShowRunModal(true);
-                  }}
-                />
-              </div>
-            </div>
-          }
+        {/* Toolbar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0.75rem 1rem",
+            backgroundColor: "#ffffff",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            marginBottom: "0.75rem",
+            boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
+          }}
         >
-          {isLoading ? <ComponentLoader /> : <></>}
-
-          {!isLoading ? (
-            <Workflow
-              workflowId={modelId}
-              showComponentsPickerModal={showComponentPickerModal}
-              onComponentPickerModalUpdate={(value: boolean) => {
-                setShowComponentPickerModal(value);
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.375rem",
               }}
-              initialNodes={nodes}
-              onRunModalUpdate={(value: boolean) => {
-                setShowRunModal(value);
-              }}
-              showRunModal={showRunModal}
-              initialEdges={edges}
-              onWorkflowUpdated={async (
-                nodes: Array<Node>,
-                edges: Array<Edge>,
-              ) => {
-                setNodes(nodes);
-                setEdges(edges);
-                await saveGraph(nodes, edges);
-              }}
-              onRun={async (component: NodeDataProp) => {
-                try {
-                  const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-                    await API.post({
-                      url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
-                        "/manual/run/" + modelId.toString(),
-                      ),
-                      data: {
-                        data: component.arguments,
-                      },
-                    });
+            >
+              <div
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  backgroundColor: getSaveStatusColor(),
+                  transition: "background-color 0.3s ease",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  color: getSaveStatusColor(),
+                  fontWeight: 500,
+                  transition: "color 0.3s ease",
+                }}
+              >
+                {saveStatus || "Ready"}
+              </span>
+            </div>
+          </div>
 
-                  if (result instanceof HTTPErrorResponse) {
-                    throw result;
-                  }
-
-                  setShowRunSuccessConfirmation(true);
-                } catch (err) {
-                  setError(API.getFriendlyMessage(err));
-                }
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <Button
+              title="Add Component"
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              onClick={() => {
+                setShowComponentPickerModal(true);
               }}
             />
-          ) : (
-            <></>
-          )}
-        </Card>
+            <Button
+              title="Run Workflow"
+              icon={IconProp.Play}
+              buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+              onClick={() => {
+                setShowRunModal(true);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Canvas */}
+        {isLoading ? (
+          <div
+            style={{
+              height: "calc(100vh - 280px)",
+              minHeight: "500px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#ffffff",
+              borderRadius: "10px",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <ComponentLoader />
+          </div>
+        ) : (
+          <Workflow
+            workflowId={modelId}
+            showComponentsPickerModal={showComponentPickerModal}
+            onComponentPickerModalUpdate={(value: boolean) => {
+              setShowComponentPickerModal(value);
+            }}
+            initialNodes={nodes}
+            onRunModalUpdate={(value: boolean) => {
+              setShowRunModal(value);
+            }}
+            showRunModal={showRunModal}
+            initialEdges={edges}
+            onWorkflowUpdated={async (
+              nodes: Array<Node>,
+              edges: Array<Edge>,
+            ) => {
+              setNodes(nodes);
+              setEdges(edges);
+              await saveGraph(nodes, edges);
+            }}
+            onRun={async (component: NodeDataProp) => {
+              try {
+                const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                  await API.post({
+                    url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
+                      "/manual/run/" + modelId.toString(),
+                    ),
+                    data: {
+                      data: component.arguments,
+                    },
+                  });
+
+                if (result instanceof HTTPErrorResponse) {
+                  throw result;
+                }
+
+                setShowRunSuccessConfirmation(true);
+              } catch (err) {
+                setError(API.getFriendlyMessage(err));
+              }
+            }}
+          />
+        )}
+
         {error && (
           <ConfirmModal
             title={`Error`}
@@ -358,9 +403,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         {showRunSuccessConfirmation && (
           <ConfirmModal
-            title={`Workflow scheduled to execute`}
-            description={`This workflow is scheduled to execute soon. You can see the status of the run in the Runs and Logs section.`}
-            submitButtonText={"Close"}
+            title={`Workflow Triggered`}
+            description={`Your workflow has been scheduled to execute. Check the Logs tab to monitor the run.`}
+            submitButtonText={"Got it"}
             onSubmit={() => {
               setShowRunSuccessConfirmation(false);
             }}

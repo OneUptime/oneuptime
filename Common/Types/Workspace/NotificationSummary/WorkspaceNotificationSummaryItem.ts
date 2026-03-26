@@ -1,4 +1,5 @@
 enum WorkspaceNotificationSummaryItem {
+  All = "All",
   TotalCount = "Total Count",
   ListWithLinks = "List with Links",
   WhoAcknowledged = "Who Acknowledged",

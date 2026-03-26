@@ -7,9 +7,14 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
-import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import DashboardViewConfig, {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalLabel,
+} from "Common/Types/Dashboard/DashboardViewConfig";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
+import DashboardVariableSelector from "./DashboardVariableSelector";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -23,6 +28,13 @@ export interface ComponentProps {
   startAndEndDate: RangeStartAndEndDateTime;
   onStartAndEndDateChange: (startAndEndDate: RangeStartAndEndDateTime) => void;
   dashboardViewConfig: DashboardViewConfig;
+  autoRefreshInterval: AutoRefreshInterval;
+  onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
+  isRefreshing?: boolean | undefined;
+  variables?: Array<DashboardVariable> | undefined;
+  onVariableValueChange?: ((variableId: string, value: string) => void) | undefined;
+  canResetZoom?: boolean | undefined;
+  onResetZoom?: (() => void) | undefined;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
@@ -34,104 +46,233 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const isSaving: boolean = props.isSaving;
 
+  const hasComponents: boolean = !!(
+    props.dashboardViewConfig &&
+    props.dashboardViewConfig.components &&
+    props.dashboardViewConfig.components.length > 0
+  );
+
   return (
     <div
-      className={`mt-1.5 mb-1.5 ml-1 mr-1 p-1 h-20 pt-5 pb-5 pl-4 pr-4 rounded bg-white border-2 border-gray-100`}
+      className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200"
+      style={{
+        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+      }}
     >
-      <div className="w-full flex justify-between">
-        <div className="text-md font-medium mt-2">
-          {/* Name Component */}
-          {props.dashboardName}
+      {/* Accent top bar */}
+      <div
+        className="h-0.5 rounded-t-lg"
+        style={{
+          background: isEditMode
+            ? "linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)"
+            : "linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)",
+        }}
+      ></div>
+      {/* Top row: Dashboard name + action buttons */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-lg font-semibold text-gray-900 truncate">
+            {props.dashboardName}
+          </h1>
+          {isEditMode && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>
+              Editing
+            </span>
+          )}
+          {hasComponents && !isEditMode && (
+            <span className="text-xs text-gray-400 tabular-nums">
+              {props.dashboardViewConfig.components.length} widget{props.dashboardViewConfig.components.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          {/* Refreshing indicator */}
+          {props.isRefreshing &&
+            props.autoRefreshInterval !== AutoRefreshInterval.OFF && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-blue-600">
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                Refreshing
+              </span>
+            )}
         </div>
+
         {!isSaving && (
-          <div className="flex">
-            {props.dashboardViewConfig &&
-              props.dashboardViewConfig.components &&
-              props.dashboardViewConfig.components.length > 0 && (
-                <div className="mt-1.5">
-                  <RangeStartAndEndDateView
-                    dashboardStartAndEndDate={props.startAndEndDate}
-                    onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
-                      props.onStartAndEndDateChange(startAndEndDate);
+          <div className="flex items-center gap-1.5">
+            {isEditMode ? (
+              <>
+                <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
+                  <MoreMenuItem
+                    text={"Chart"}
+                    icon={IconProp.ChartBar}
+                    key={"add-chart"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Chart);
                     }}
                   />
-                </div>
-              )}
+                  <MoreMenuItem
+                    text={"Value"}
+                    icon={IconProp.Hashtag}
+                    key={"add-value"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Value);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Text"}
+                    icon={IconProp.Text}
+                    key={"add-text"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Text);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Table"}
+                    icon={IconProp.TableCells}
+                    key={"add-table"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Table);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Gauge"}
+                    icon={IconProp.Activity}
+                    key={"add-gauge"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Gauge);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Log Stream"}
+                    icon={IconProp.Logs}
+                    key={"add-log-stream"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.LogStream,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Trace List"}
+                    icon={IconProp.QueueList}
+                    key={"add-trace-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.TraceList,
+                      );
+                    }}
+                  />
+                </MoreMenu>
 
-            {isEditMode ? (
-              <MoreMenu menuIcon={IconProp.Add} text="Add Component">
-                <MoreMenuItem
-                  text={"Add Chart"}
-                  key={"add-chart"}
+                <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                <Button
+                  icon={IconProp.Check}
+                  title="Save"
+                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                  onClick={props.onSaveClick}
+                />
+                <Button
+                  icon={IconProp.Close}
+                  title="Cancel"
+                  buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
                   onClick={() => {
-                    props.onAddComponentClick(DashboardComponentType.Chart);
+                    setShowCancelModal(true);
                   }}
                 />
-                <MoreMenuItem
-                  text={"Add Value"}
-                  key={"add-value"}
-                  onClick={() => {
-                    props.onAddComponentClick(DashboardComponentType.Value);
-                  }}
-                />
-                <MoreMenuItem
-                  text={"Add Text"}
-                  key={"add-text"}
-                  onClick={() => {
-                    props.onAddComponentClick(DashboardComponentType.Text);
-                  }}
-                />
-              </MoreMenu>
+              </>
             ) : (
-              <></>
-            )}
+              <>
+                {/* Reset Zoom button */}
+                {props.canResetZoom && props.onResetZoom && (
+                  <Button
+                    icon={IconProp.Refresh}
+                    title="Reset Zoom"
+                    buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                    onClick={props.onResetZoom}
+                    tooltip="Reset to original time range"
+                  />
+                )}
 
-            {!isEditMode && (
-              <Button
-                icon={IconProp.Expand}
-                buttonStyle={ButtonStyleType.ICON}
-                onClick={props.onFullScreenClick}
-                tooltip="Full Screen"
-              />
-            )}
+                {/* Auto-refresh dropdown */}
+                {hasComponents && (
+                  <MoreMenu
+                    menuIcon={IconProp.Refresh}
+                    text={
+                      props.autoRefreshInterval !== AutoRefreshInterval.OFF
+                        ? getAutoRefreshIntervalLabel(props.autoRefreshInterval)
+                        : ""
+                    }
+                  >
+                    {Object.values(AutoRefreshInterval).map(
+                      (interval: AutoRefreshInterval) => {
+                        return (
+                          <MoreMenuItem
+                            key={interval}
+                            text={getAutoRefreshIntervalLabel(interval)}
+                            onClick={() => {
+                              props.onAutoRefreshIntervalChange(interval);
+                            }}
+                          />
+                        );
+                      },
+                    )}
+                  </MoreMenu>
+                )}
 
-            {!isEditMode && (
-              <Button
-                icon={IconProp.Pencil}
-                title="Edit"
-                buttonStyle={ButtonStyleType.ICON}
-                onClick={props.onEditClick}
-                tooltip="Edit"
-              />
-            )}
+                <Button
+                  icon={IconProp.Expand}
+                  buttonStyle={ButtonStyleType.ICON}
+                  onClick={props.onFullScreenClick}
+                  tooltip="Full Screen"
+                />
 
-            {isEditMode && (
-              <Button
-                icon={IconProp.Check}
-                title="Save"
-                buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                onClick={props.onSaveClick}
-              />
-            )}
-            {isEditMode && (
-              <Button
-                icon={IconProp.Close}
-                title="Cancel"
-                buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                onClick={() => {
-                  setShowCancelModal(true);
-                }}
-              />
+                <div className="w-px h-6 bg-gray-200 mx-0.5"></div>
+
+                <Button
+                  icon={IconProp.Pencil}
+                  title="Edit"
+                  buttonStyle={ButtonStyleType.ICON}
+                  onClick={props.onEditClick}
+                  tooltip="Edit Dashboard"
+                />
+              </>
             )}
           </div>
         )}
+
         {isSaving && (
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <Loader />
-            <div className="ml-2 text-sm text-gray-400">Saving...</div>
+            <span className="text-sm text-gray-500">Saving...</span>
           </div>
         )}
       </div>
+
+      {/* Bottom row: Time range + variables (only when components exist and not in edit mode) */}
+      {hasComponents && !isEditMode && (
+        <div className="flex items-center gap-3 px-5 pb-3 pt-0 flex-wrap">
+          <div>
+            <RangeStartAndEndDateView
+              dashboardStartAndEndDate={props.startAndEndDate}
+              onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                props.onStartAndEndDateChange(startAndEndDate);
+              }}
+            />
+          </div>
+
+          {/* Template variables */}
+          {props.variables &&
+            props.variables.length > 0 &&
+            props.onVariableValueChange && (
+              <>
+                <div className="w-px h-5 bg-gray-200"></div>
+                <DashboardVariableSelector
+                  variables={props.variables}
+                  onVariableValueChange={props.onVariableValueChange}
+                />
+              </>
+            )}
+        </div>
+      )}
 
       {showCancelModal ? (
         <ConfirmModal

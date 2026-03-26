@@ -148,6 +148,8 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
   [PageMap.DASHBOARD_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.DASHBOARD_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
+  [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -1751,6 +1753,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARD_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]
     }`,
   ),
 

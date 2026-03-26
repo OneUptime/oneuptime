@@ -67,6 +67,24 @@ server {
         }
     }
 
+    location /public-dashboard {
+
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass $backend_app;
+        }
+    }
+
     location /status-page-api/ {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
@@ -115,6 +133,39 @@ server {
         proxy_set_header Connection "upgrade";
 
         rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
+        proxy_pass $backend_app;
+    }
+
+    location /public-dashboard-api/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        rewrite ^/public-dashboard-api/(.*)$ /api/dashboard/$1 break;
+        proxy_pass $backend_app;
+    }
+
+    location /public-dashboard {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
         proxy_pass $backend_app;
     }
 
@@ -235,7 +286,40 @@ server {
         proxy_pass $backend_app;
     }
 
+    location /public-dashboard-api/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        rewrite ^/public-dashboard-api/(.*)$ /api/dashboard/$1 break;
+        proxy_pass $backend_app;
+    }
+
     location /status-page {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_pass $backend_app;
+    }
+
+    location /public-dashboard {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
@@ -417,6 +501,23 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Connection "upgrade";
 
         rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
+        proxy_pass $backend_app;
+    }
+
+    location /public-dashboard-api/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        rewrite ^/public-dashboard-api/(.*)$ /api/dashboard/$1 break;
         proxy_pass $backend_app;
     }
 
@@ -670,6 +771,22 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /status-page {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_pass $backend_app;
+    }
+
+    location /public-dashboard {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;

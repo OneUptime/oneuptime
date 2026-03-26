@@ -35,6 +35,7 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "VAPID_SUBJECT",
   "VERSION",
   "STATUS_PAGE_CNAME_RECORD",
+  "DASHBOARD_CNAME_RECORD",
   "ANALYTICS_KEY",
   "ANALYTICS_HOST",
   "GIT_SHA",
@@ -251,6 +252,9 @@ export const ClickhouseHost: Hostname = Hostname.fromString(
 
 export const StatusPageCNameRecord: string =
   process.env["STATUS_PAGE_CNAME_RECORD"] || "";
+
+export const DashboardCNameRecord: string =
+  process.env["DASHBOARD_CNAME_RECORD"] || "";
 
 export const ClickhousePort: Port = new Port(
   process.env["CLICKHOUSE_PORT"] || "8123",

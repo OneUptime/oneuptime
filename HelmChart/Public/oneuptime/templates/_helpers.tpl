@@ -72,6 +72,8 @@ Usage:
   value: {{ ternary "true" "false" $provisionSSL | quote }}
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
+- name: DASHBOARD_CNAME_RECORD
+  value: {{ $.Values.dashboard.cnameRecord | default "" }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
   value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
 - name: LOG_LEVEL

@@ -105,6 +105,7 @@ import SpanService from "./SpanService";
 import StatusPageAnnouncementService from "./StatusPageAnnouncementService";
 import StatusPageAnnouncementTemplateService from "./StatusPageAnnouncementTemplateService";
 import StatusPageCustomFieldService from "./StatusPageCustomFieldService";
+import DashboardDomainService from "./DashboardDomainService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -305,6 +306,7 @@ const services: Array<BaseService> = [
   StatusPageAnnouncementService,
   StatusPageAnnouncementTemplateService,
   StatusPageCustomFieldService,
+  DashboardDomainService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,

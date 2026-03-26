@@ -73,6 +73,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       curve={props.curve}
       syncid={props.sync ? props.syncid : undefined}
       yAxisWidth={60}
+      onValueChange={() => {}}
     />
   );
 };

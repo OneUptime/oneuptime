@@ -218,7 +218,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       required: false,
       defaultValue: false,
       description:
-        "Show uptime percentage for the past 90 days beside this resource on your status page.",
+        "Show uptime percentage beside this resource on your status page. The number of days is configured in Status Page Settings.",
       stepId: "advanced",
     },
     {
@@ -242,7 +242,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       title: "Show Status History Chart",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
-      description: "Show resource status history for the past 90 days. ",
+      description: "Show resource status history chart. The number of days is configured in Status Page Settings.",
       defaultValue: true,
       stepId: "advanced",
     },

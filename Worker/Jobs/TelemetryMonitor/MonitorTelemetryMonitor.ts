@@ -45,6 +45,13 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import {
+  KubernetesResourceBreakdown,
+  KubernetesAffectedResource,
+} from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import { JSONObject } from "Common/Types/JSON";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -428,13 +435,18 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+  let kubernetesResourceBreakdown: KubernetesResourceBreakdown | undefined =
+    undefined;
 
   for (const queryConfig of kubernetesMonitorConfig.metricViewConfig
     .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
     const query: Query<Metric> = {
       projectId: data.projectId,
       time: startAndEndDate,
-      name: queryConfig.metricQueryData.filterData.metricName,
+      name: metricName,
     };
 
     // Start with any user-defined attribute filters
@@ -452,9 +464,9 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       );
     }
 
-    // Add Kubernetes-specific attribute filters
+    // Add Kubernetes-specific attribute filters (ClickHouse stores these with "resource." prefix)
     if (kubernetesMonitorConfig.clusterIdentifier) {
-      attributes["k8s.cluster.name"] =
+      attributes["resource.k8s.cluster.name"] =
         kubernetesMonitorConfig.clusterIdentifier;
     }
 
@@ -463,20 +475,20 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         kubernetesMonitorConfig.resourceFilters;
 
       if (resourceFilters.namespace) {
-        attributes["k8s.namespace.name"] = resourceFilters.namespace;
+        attributes["resource.k8s.namespace.name"] = resourceFilters.namespace;
       }
 
       if (resourceFilters.nodeName) {
-        attributes["k8s.node.name"] = resourceFilters.nodeName;
+        attributes["resource.k8s.node.name"] = resourceFilters.nodeName;
       }
 
       if (resourceFilters.podName) {
-        attributes["k8s.pod.name"] = resourceFilters.podName;
+        attributes["resource.k8s.pod.name"] = resourceFilters.podName;
       }
 
       if (resourceFilters.workloadName && resourceFilters.workloadType) {
         const workloadType: string = resourceFilters.workloadType.toLowerCase();
-        attributes[`k8s.${workloadType}.name`] = resourceFilters.workloadName;
+        attributes[`resource.k8s.${workloadType}.name`] = resourceFilters.workloadName;
       }
     }
 
@@ -511,6 +523,114 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     logger.debug(aggregatedResults);
 
     finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-resource Kubernetes context
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, KubernetesAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+          const podName: string | undefined = metricAttrs[
+            "resource.k8s.pod.name"
+          ] as string | undefined;
+          const namespace: string | undefined = metricAttrs[
+            "resource.k8s.namespace.name"
+          ] as string | undefined;
+          const nodeName: string | undefined = metricAttrs[
+            "resource.k8s.node.name"
+          ] as string | undefined;
+          const containerName: string | undefined = metricAttrs[
+            "resource.k8s.container.name"
+          ] as string | undefined;
+
+          // Detect workload type and name from attributes
+          let workloadType: string | undefined = undefined;
+          let workloadName: string | undefined = undefined;
+
+          if (metricAttrs["resource.k8s.deployment.name"]) {
+            workloadType = "Deployment";
+            workloadName = metricAttrs["resource.k8s.deployment.name"] as string;
+          } else if (metricAttrs["resource.k8s.statefulset.name"]) {
+            workloadType = "StatefulSet";
+            workloadName = metricAttrs["resource.k8s.statefulset.name"] as string;
+          } else if (metricAttrs["resource.k8s.daemonset.name"]) {
+            workloadType = "DaemonSet";
+            workloadName = metricAttrs["resource.k8s.daemonset.name"] as string;
+          } else if (metricAttrs["resource.k8s.job.name"]) {
+            workloadType = "Job";
+            workloadName = metricAttrs["resource.k8s.job.name"] as string;
+          } else if (metricAttrs["resource.k8s.cronjob.name"]) {
+            workloadType = "CronJob";
+            workloadName = metricAttrs["resource.k8s.cronjob.name"] as string;
+          } else if (metricAttrs["resource.k8s.replicaset.name"]) {
+            workloadType = "ReplicaSet";
+            workloadName = metricAttrs["resource.k8s.replicaset.name"] as string;
+          }
+
+          // Build unique key for deduplication
+          const resourceKey: string = [
+            podName || "",
+            namespace || "",
+            nodeName || "",
+            containerName || "",
+            workloadName || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: KubernetesAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              podName: podName || undefined,
+              namespace: namespace || undefined,
+              nodeName: nodeName || undefined,
+              containerName: containerName || undefined,
+              workloadType: workloadType || undefined,
+              workloadName: workloadName || undefined,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef = getKubernetesMetricByMetricName(metricName);
+
+        kubernetesResourceBreakdown = {
+          clusterName: kubernetesMonitorConfig.clusterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch Kubernetes resource breakdown");
+      logger.error(err);
+    }
   }
 
   return {
@@ -519,6 +639,7 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     startAndEndDate: startAndEndDate,
     metricResult: finalResult,
     monitorId: data.monitorId,
+    kubernetesResourceBreakdown: kubernetesResourceBreakdown,
   };
 };
 

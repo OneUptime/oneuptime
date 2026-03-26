@@ -2,10 +2,18 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
 import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
+import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
+import DashboardLogStreamComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
+import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
+import DashboardTableComponent from "./DashboardTableComponent";
+import DashboardGaugeComponent from "./DashboardGaugeComponent";
+import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
+import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -37,6 +45,7 @@ export interface DashboardBaseComponentProps {
   dashboardViewConfig: DashboardViewConfig;
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   metricTypes: Array<MetricType>;
+  refreshTick?: number | undefined;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -61,14 +70,18 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const [topInPx, setTopInPx] = React.useState<number>(0);
   const [leftInPx, setLeftInPx] = React.useState<number>(0);
 
-  let className: string = `relative rounded-md col-span-${widthOfComponent} row-span-${heightOfComponent} p-2 bg-white border-2 border-solid border-gray-100`;
+  let className: string = `relative rounded-lg col-span-${widthOfComponent} row-span-${heightOfComponent} p-3 bg-white border border-gray-200 transition-all duration-200 overflow-hidden`;
 
-  if (props.isEditMode) {
-    className += "  cursor-pointer";
+  if (props.isEditMode && !props.isSelected) {
+    className += " cursor-pointer hover:border-gray-300 hover:shadow-md";
   }
 
   if (props.isSelected && props.isEditMode) {
-    className += " border-2 border-blue-300";
+    className += " !border-blue-400 ring-2 ring-blue-50 shadow-lg shadow-blue-100/50";
+  }
+
+  if (!props.isEditMode) {
+    className += " hover:shadow-md";
   }
 
   const dashboardComponentRef: React.RefObject<HTMLDivElement> =
@@ -292,7 +305,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           window.addEventListener("mousemove", resizeWidth);
           window.addEventListener("mouseup", stopResizeAndMove);
         }}
-        className={`resize-width-element ${resizeCursorIcon} absolute right-0 w-2 h-12 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer`}
+        className={`resize-width-element ${resizeCursorIcon} absolute right-0 w-1.5 h-10 bg-blue-400 hover:bg-blue-500 rounded-full cursor-pointer transition-colors duration-150 opacity-70 hover:opacity-100`}
       ></div>
     );
   };
@@ -320,7 +333,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         onMouseUp={() => {
           stopResizeAndMove();
         }}
-        className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
+        className="move-element cursor-move absolute w-4 h-4 bg-blue-400 hover:bg-blue-500 rounded-full cursor-pointer transition-colors duration-150 opacity-70 hover:opacity-100 shadow-sm"
         onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
         onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
       ></div>
@@ -353,7 +366,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           window.addEventListener("mousemove", resizeHeight);
           window.addEventListener("mouseup", stopResizeAndMove);
         }}
-        className={`resize-height-element ${resizeCursorIcon} absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer`}
+        className={`resize-height-element ${resizeCursorIcon} absolute bottom-0 left-0 w-10 h-1.5 bg-blue-400 hover:bg-blue-500 rounded-full cursor-pointer transition-colors duration-150 opacity-70 hover:opacity-100`}
       ></div>
     );
   };
@@ -373,12 +386,22 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             widthOfComponent +
           (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
         }px`,
+        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
       }}
       key={component.componentId?.toString() || Math.random().toString()}
       ref={dashboardComponentRef}
       onClick={props.onClick}
     >
       {getMoveElement()}
+
+      {/* Component type badge - visible in edit mode */}
+      {props.isEditMode && props.isSelected && (
+        <div className="absolute top-1.5 right-1.5 z-10">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 capitalize">
+            {component.componentType}
+          </span>
+        </div>
+      )}
 
       {component.componentType === DashboardComponentType.Text && (
         <DashboardTextComponent
@@ -402,6 +425,38 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
           component={component as DashboardValueComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.Table && (
+        <DashboardTableComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardTableComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.Gauge && (
+        <DashboardGaugeComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardGaugeComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.LogStream && (
+        <DashboardLogStreamComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardLogStreamComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.TraceList && (
+        <DashboardTraceListComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardTraceListComponentType}
         />
       )}
 

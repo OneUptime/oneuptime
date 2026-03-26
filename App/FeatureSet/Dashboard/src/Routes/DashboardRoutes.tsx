@@ -16,6 +16,10 @@ import DashboardViewDelete from "../Pages/Dashboards/View/Delete";
 
 import DashboardViewSettings from "../Pages/Dashboards/View/Settings";
 
+import DashboardViewAuthenticationSettings from "../Pages/Dashboards/View/AuthenticationSettings";
+
+import DashboardViewCustomDomains from "../Pages/Dashboards/View/CustomDomains";
+
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -71,6 +75,36 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             <DashboardViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS,
+          )}
+          element={
+            <DashboardViewAuthenticationSettings
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS,
+          )}
+          element={
+            <DashboardViewCustomDomains
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS] as Route
+              }
             />
           }
         />

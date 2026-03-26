@@ -1,7 +1,5 @@
 import Icon, { ThickProp } from "../Icon/Icon";
-import Pill from "../Pill/Pill";
 import Tooltip from "../Tooltip/Tooltip";
-import { Green } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
@@ -17,105 +15,268 @@ export interface ComponentProps {
   selected: boolean;
 }
 
+type CategoryColorScheme = {
+  bg: string;
+  border: string;
+  headerBg: string;
+  headerText: string;
+  iconColor: string;
+  selectedBorder: string;
+  selectedShadow: string;
+  handleBg: string;
+  handleBorder: string;
+};
+
+const getCategoryColors = (
+  category: string,
+  componentType: ComponentType,
+): CategoryColorScheme => {
+  if (componentType === ComponentType.Trigger) {
+    return {
+      bg: "#fefce8",
+      border: "#fde68a",
+      headerBg: "linear-gradient(135deg, #f59e0b, #d97706)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#f59e0b",
+      selectedShadow: "0 0 0 3px rgba(245, 158, 11, 0.2)",
+      handleBg: "#f59e0b",
+      handleBorder: "#d97706",
+    };
+  }
+
+  const lowerCategory: string = category.toLowerCase();
+
+  if (lowerCategory.includes("condition") || lowerCategory.includes("logic")) {
+    return {
+      bg: "#faf5ff",
+      border: "#e9d5ff",
+      headerBg: "linear-gradient(135deg, #a855f7, #7c3aed)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#a855f7",
+      selectedShadow: "0 0 0 3px rgba(168, 85, 247, 0.2)",
+      handleBg: "#a855f7",
+      handleBorder: "#7c3aed",
+    };
+  }
+
+  if (lowerCategory.includes("api") || lowerCategory.includes("webhook")) {
+    return {
+      bg: "#eff6ff",
+      border: "#bfdbfe",
+      headerBg: "linear-gradient(135deg, #3b82f6, #2563eb)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#3b82f6",
+      selectedShadow: "0 0 0 3px rgba(59, 130, 246, 0.2)",
+      handleBg: "#3b82f6",
+      handleBorder: "#2563eb",
+    };
+  }
+
+  if (
+    lowerCategory.includes("slack") ||
+    lowerCategory.includes("discord") ||
+    lowerCategory.includes("teams") ||
+    lowerCategory.includes("telegram") ||
+    lowerCategory.includes("email") ||
+    lowerCategory.includes("notification")
+  ) {
+    return {
+      bg: "#ecfdf5",
+      border: "#a7f3d0",
+      headerBg: "linear-gradient(135deg, #10b981, #059669)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#10b981",
+      selectedShadow: "0 0 0 3px rgba(16, 185, 129, 0.2)",
+      handleBg: "#10b981",
+      handleBorder: "#059669",
+    };
+  }
+
+  if (
+    lowerCategory.includes("code") ||
+    lowerCategory.includes("javascript") ||
+    lowerCategory.includes("custom")
+  ) {
+    return {
+      bg: "#fef2f2",
+      border: "#fecaca",
+      headerBg: "linear-gradient(135deg, #ef4444, #dc2626)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#ef4444",
+      selectedShadow: "0 0 0 3px rgba(239, 68, 68, 0.2)",
+      handleBg: "#ef4444",
+      handleBorder: "#dc2626",
+    };
+  }
+
+  if (lowerCategory.includes("json") || lowerCategory.includes("util")) {
+    return {
+      bg: "#f0fdf4",
+      border: "#bbf7d0",
+      headerBg: "linear-gradient(135deg, #22c55e, #16a34a)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#22c55e",
+      selectedShadow: "0 0 0 3px rgba(34, 197, 94, 0.2)",
+      handleBg: "#22c55e",
+      handleBorder: "#16a34a",
+    };
+  }
+
+  if (
+    lowerCategory.includes("schedule") ||
+    lowerCategory.includes("cron") ||
+    lowerCategory.includes("timer")
+  ) {
+    return {
+      bg: "#fff7ed",
+      border: "#fed7aa",
+      headerBg: "linear-gradient(135deg, #f97316, #ea580c)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#f97316",
+      selectedShadow: "0 0 0 3px rgba(249, 115, 22, 0.2)",
+      handleBg: "#f97316",
+      handleBorder: "#ea580c",
+    };
+  }
+
+  // Default / database models
+  return {
+    bg: "#f8fafc",
+    border: "#e2e8f0",
+    headerBg: "linear-gradient(135deg, #6366f1, #4f46e5)",
+    headerText: "#ffffff",
+    iconColor: "#ffffff",
+    selectedBorder: "#6366f1",
+    selectedShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)",
+    handleBg: "#6366f1",
+    handleBorder: "#4f46e5",
+  };
+};
+
+type GetPortPositionFunction = (
+  portCount: number,
+  totalPorts: number,
+  isLabel: boolean,
+) => React.CSSProperties;
+
+const getPortPosition: GetPortPositionFunction = (
+  portCount: number,
+  totalPorts: number,
+  isLabel: boolean,
+): React.CSSProperties => {
+  if (portCount === 1 && totalPorts === 1) {
+    return isLabel ? { left: 120 } : {};
+  }
+
+  if (portCount === 1 && totalPorts === 2) {
+    return { left: isLabel ? 70 : 80 };
+  }
+
+  if (portCount === 2 && totalPorts === 2) {
+    return { left: isLabel ? 170 : 180 };
+  }
+
+  if (portCount === 1 && totalPorts === 3) {
+    return { left: isLabel ? 40 : 50 };
+  }
+
+  if (portCount === 2 && totalPorts === 3) {
+    return isLabel ? { left: 120 } : {};
+  }
+
+  if (portCount === 3 && totalPorts === 3) {
+    return { left: isLabel ? 200 : 210 };
+  }
+
+  return {};
+};
+
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const [isHovering, setIsHovering] = useState<boolean>(false);
 
-  let textColor: string = "#6b7280";
-  let descriptionColor: string = "#6b7280";
+  const colors: CategoryColorScheme = getCategoryColors(
+    props.data.metadata.category || "",
+    props.data.metadata.componentType,
+  );
 
-  if (isHovering) {
-    textColor = "#111827";
-    descriptionColor = "#111827";
-  }
-
-  let componentStyle: React.CSSProperties = {
-    width: "15rem",
-    height: "10rem",
-    padding: "1rem",
-    borderColor: props.selected ? "#6366f1" : textColor,
-    alignItems: "center",
-    borderRadius: "0.25rem",
-    borderWidth: "2px",
-    backgroundColor: "white",
-    display: "inline-block",
-    verticalAlign: "middle",
-    boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-  };
-
-  let handleStyle: React.CSSProperties = {
-    background: "#6b7280",
-    height: "0.75rem",
-    width: "0.75rem",
-  };
-
-  type GetPortPositionFunction = (
-    portCount: number,
-    totalPorts: number,
-    isLabel: boolean,
-  ) => React.CSSProperties;
-
-  const getPortPosition: GetPortPositionFunction = (
-    portCount: number,
-    totalPorts: number,
-    isLabel: boolean,
-  ): React.CSSProperties => {
-    if (portCount === 1 && totalPorts === 1) {
-      return isLabel ? { left: 100 } : {};
-    }
-
-    if (portCount === 1 && totalPorts === 2) {
-      return { left: isLabel ? 70 : 80 };
-    }
-
-    if (portCount === 2 && totalPorts === 2) {
-      return { left: isLabel ? 150 : 160 };
-    }
-
-    if (portCount === 1 && totalPorts === 3) {
-      return { left: isLabel ? 70 : 80 };
-    }
-
-    if (portCount === 2 && totalPorts === 3) {
-      return isLabel ? { left: 100 } : {};
-    }
-
-    if (portCount === 3 && totalPorts === 3) {
-      return { left: isLabel ? 150 : 160 };
-    }
-
-    // default
-    return {};
-  };
-
+  // Placeholder node
   if (props.data.nodeType === NodeType.PlaceholderNode) {
-    handleStyle = {
-      background: "#cbd5e1",
-      height: "0.75rem",
-      width: "0.75rem",
-    };
-
-    componentStyle = {
-      borderStyle: "dashed",
-      width: "15rem",
-      height: "8rem",
-      padding: "1rem",
-      display: "inline-block",
-      alignItems: "center",
-      verticalAlign: "middle",
-      borderColor: isHovering ? "#94a3b8" : "#cbd5e1",
-      borderRadius: "0.25rem",
-      borderWidth: "2px",
-      backgroundColor: "white",
-    };
-
-    textColor = "#cbd5e1";
-    descriptionColor = "#cbd5e1";
-
-    if (isHovering) {
-      textColor = "#94a3b8";
-      descriptionColor = "#94a3b8";
-    }
+    return (
+      <div
+        className="cursor-pointer"
+        onMouseOver={() => {
+          setIsHovering(true);
+        }}
+        onMouseOut={() => {
+          setIsHovering(false);
+        }}
+        style={{
+          width: "16rem",
+          borderRadius: "12px",
+          border: `2px dashed ${isHovering ? "#94a3b8" : "#cbd5e1"}`,
+          backgroundColor: isHovering ? "#f8fafc" : "#ffffff",
+          padding: "1.5rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.75rem",
+          transition: "all 0.2s ease",
+          minHeight: "7rem",
+        }}
+        onClick={() => {
+          if (props.data.onClick) {
+            props.data.onClick(props.data);
+          }
+        }}
+      >
+        <div
+          style={{
+            width: "2.5rem",
+            height: "2.5rem",
+            borderRadius: "50%",
+            backgroundColor: isHovering ? "#e2e8f0" : "#f1f5f9",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s ease",
+          }}
+        >
+          <Icon
+            icon={IconProp.Add}
+            style={{
+              color: isHovering ? "#64748b" : "#94a3b8",
+              width: "1.25rem",
+              height: "1.25rem",
+              transition: "all 0.2s ease",
+            }}
+          />
+        </div>
+        <p
+          style={{
+            color: isHovering ? "#64748b" : "#94a3b8",
+            fontSize: "0.8125rem",
+            fontWeight: 500,
+            textAlign: "center",
+            margin: 0,
+            transition: "all 0.2s ease",
+          }}
+        >
+          {props.data.metadata.description || "Click to add trigger"}
+        </p>
+      </div>
+    );
   }
+
+  // Regular node
+  const hasError: boolean = Boolean(props.data.error);
 
   return (
     <div
@@ -127,8 +288,27 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         setIsHovering(false);
       }}
       style={{
-        ...componentStyle,
-        height: props.data.id ? "12rem" : "10rem",
+        width: "16rem",
+        borderRadius: "12px",
+        border: `2px solid ${
+          hasError
+            ? "#fca5a5"
+            : props.selected
+              ? colors.selectedBorder
+              : isHovering
+                ? colors.selectedBorder
+                : colors.border
+        }`,
+        backgroundColor: "#ffffff",
+        overflow: "visible",
+        boxShadow: props.selected
+          ? colors.selectedShadow
+          : isHovering
+            ? `0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -6px rgba(0, 0, 0, 0.05)`
+            : `0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.05)`,
+        transition: "all 0.2s ease",
+        transform: isHovering ? "translateY(-1px)" : "none",
+        position: "relative",
       }}
       onClick={() => {
         if (props.data.onClick) {
@@ -136,42 +316,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
       }}
     >
-      <div className="flex justify-center">
-        {props.data.metadata.componentType === ComponentType.Trigger &&
-          props.data.nodeType !== NodeType.PlaceholderNode &&
-          !props.data.isPreview && <Pill text="Trigger" color={Green} />}
-      </div>
-      {!props.data.isPreview &&
-        props.data.error &&
-        props.data.nodeType !== NodeType.PlaceholderNode && (
-          <div
-            style={{
-              width: "20px",
-              height: "20px",
-              borderRadius: "100px",
-              color: "#ef4444",
-              position: "absolute",
-              top: "0px",
-              left: "220px",
-              cursor: "pointer",
-            }}
-            onClick={() => {}}
-          >
-            <Icon
-              icon={IconProp.Alert}
-              style={{
-                color: "#ef4444",
-                width: "1rem",
-                height: "1rem",
-                textAlign: "center",
-                margin: "auto",
-                marginTop: "2px",
-              }}
-              thick={ThickProp.Thick}
-            />
-          </div>
-        )}
-
+      {/* In Ports (top handles) */}
       {!props.data.isPreview &&
         props.data.metadata.componentType !== ComponentType.Trigger && (
           <div>
@@ -187,7 +332,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     isConnectable={true}
                     position={Position.Top}
                     style={{
-                      ...handleStyle,
+                      background: colors.handleBg,
+                      height: "10px",
+                      width: "10px",
+                      border: `2px solid ${colors.handleBorder}`,
+                      top: "-5px",
+                      transition: "all 0.15s ease",
                       ...getPortPosition(
                         i + 1,
                         props.data.metadata.inPorts.length,
@@ -200,117 +350,205 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
+      {/* Error indicator */}
+      {!props.data.isPreview && hasError && (
         <div
           style={{
-            margin: "auto",
-            marginTop: props.data.metadata.iconProp ? "0.5rem" : "1rem",
+            position: "absolute",
+            top: "8px",
+            right: "8px",
+            zIndex: 10,
+            width: "22px",
+            height: "22px",
+            borderRadius: "50%",
+            backgroundColor: "#fef2f2",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid #fecaca",
           }}
         >
-          {props.data.metadata.iconProp && (
+          <Icon
+            icon={IconProp.Alert}
+            style={{
+              color: "#ef4444",
+              width: "0.75rem",
+              height: "0.75rem",
+            }}
+            thick={ThickProp.Thick}
+          />
+        </div>
+      )}
+
+      {/* Header bar with gradient */}
+      <div
+        style={{
+          background: colors.headerBg,
+          padding: "0.625rem 0.875rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          borderRadius: "10px 10px 0 0",
+        }}
+      >
+        {props.data.metadata.iconProp && (
+          <div
+            style={{
+              width: "1.75rem",
+              height: "1.75rem",
+              borderRadius: "6px",
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
             <Icon
               icon={props.data.metadata.iconProp}
               style={{
-                color: textColor,
-                width: "1.5rem",
-                height: "1.5rem",
-                textAlign: "center",
-                margin: "auto",
+                color: colors.iconColor,
+                width: "0.875rem",
+                height: "0.875rem",
               }}
             />
-          )}
-          <p
-            style={{
-              color: textColor,
-              fontSize: "0.875rem",
-              lineHeight: "1.25rem",
-              textAlign: "center",
-              marginTop: "6px",
-            }}
-          >
-            {props.data.metadata.title}
-          </p>
-          {!props.data.isPreview && props.data.id && (
-            <p
-              style={{
-                color: descriptionColor,
-                fontSize: "0.875rem",
-                textAlign: "center",
-              }}
-            >
-              ({props.data.id.trim()})
-            </p>
-          )}
-          <p
-            style={{
-              color: descriptionColor,
-              fontSize: "0.775rem",
-              lineHeight: "1.0rem",
-              textAlign: "center",
-              marginTop: "6px",
-            }}
-          >
-            {props.data.metadata.description}
-          </p>
-        </div>
+          </div>
+        )}
+        <span
+          style={{
+            color: colors.headerText,
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {props.data.metadata.title}
+        </span>
       </div>
 
+      {/* Body */}
+      <div
+        style={{
+          padding: "0.75rem 0.875rem",
+          backgroundColor: colors.bg,
+          minHeight: "3rem",
+          borderRadius:
+            !props.data.metadata.outPorts ||
+            props.data.metadata.outPorts.length === 0
+              ? "0 0 10px 10px"
+              : undefined,
+        }}
+      >
+        {/* Component ID badge */}
+        {!props.data.isPreview && props.data.id && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "6px",
+              padding: "0.125rem 0.5rem",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <span
+              style={{
+                color: "#64748b",
+                fontSize: "0.6875rem",
+                fontWeight: 500,
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+              }}
+            >
+              {props.data.id.trim()}
+            </span>
+          </div>
+        )}
+
+        {/* Description */}
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "0.75rem",
+            lineHeight: "1.125rem",
+            margin: 0,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {props.data.metadata.description}
+        </p>
+      </div>
+
+      {/* Out ports section */}
       {!props.data.isPreview &&
-        props.data.nodeType !== NodeType.PlaceholderNode && (
+        props.data.metadata.outPorts &&
+        props.data.metadata.outPorts.length > 0 && (
           <>
-            <div>
-              {props.data.metadata.outPorts &&
-                props.data.metadata.outPorts.length > 0 &&
-                props.data.metadata.outPorts.map((port: Port, i: number) => {
-                  return (
-                    <Handle
-                      key={i}
-                      type="source"
-                      id={port.id}
-                      onConnect={(_params: Connection) => {}}
-                      isConnectable={true}
-                      position={Position.Bottom}
+            {/* Port labels */}
+            <div
+              style={{
+                borderTop: `1px solid ${colors.border}`,
+                padding: "0.375rem 0.875rem",
+                display: "flex",
+                justifyContent:
+                  props.data.metadata.outPorts.length === 1
+                    ? "center"
+                    : "space-between",
+                backgroundColor: "#ffffff",
+                borderRadius: "0 0 10px 10px",
+              }}
+            >
+              {props.data.metadata.outPorts.map((port: Port, i: number) => {
+                return (
+                  <Tooltip key={i} text={port.description || ""}>
+                    <span
                       style={{
-                        ...handleStyle,
-                        ...getPortPosition(
-                          i + 1,
-                          props.data.metadata.outPorts.length,
-                          false,
-                        ),
+                        color: "#94a3b8",
+                        fontSize: "0.6875rem",
+                        fontWeight: 500,
                       }}
-                    />
-                  );
-                })}
+                    >
+                      {port.title}
+                    </span>
+                  </Tooltip>
+                );
+              })}
             </div>
+
+            {/* Bottom handles */}
             <div>
-              {props.data.metadata.outPorts &&
-                props.data.metadata.outPorts.length > 0 &&
-                props.data.metadata.outPorts.map((port: Port, i: number) => {
-                  return (
-                    <Tooltip key={i} text={port.description || ""}>
-                      <div
-                        key={i}
-                        className="text-sm text-gray-400 absolute"
-                        style={{
-                          bottom: "10px",
-                          ...getPortPosition(
-                            i + 1,
-                            props.data.metadata.outPorts.length,
-                            true,
-                          ),
-                        }}
-                      >
-                        {port.title}
-                      </div>
-                    </Tooltip>
-                  );
-                })}
+              {props.data.metadata.outPorts.map((port: Port, i: number) => {
+                return (
+                  <Handle
+                    key={i}
+                    type="source"
+                    id={port.id}
+                    onConnect={(_params: Connection) => {}}
+                    isConnectable={true}
+                    position={Position.Bottom}
+                    style={{
+                      background: colors.handleBg,
+                      height: "10px",
+                      width: "10px",
+                      border: `2px solid ${colors.handleBorder}`,
+                      bottom: "-5px",
+                      transition: "all 0.15s ease",
+                      ...getPortPosition(
+                        i + 1,
+                        props.data.metadata.outPorts.length,
+                        false,
+                      ),
+                    }}
+                  />
+                );
+              })}
             </div>
           </>
         )}

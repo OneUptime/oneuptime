@@ -24,6 +24,8 @@ import {
   StatusPageData,
   getStatusPageData,
 } from "./Utils/StatusPage";
+import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
+import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -43,6 +45,11 @@ const StatusPagePublicPath: string =
   "/usr/src/app/FeatureSet/StatusPage/public";
 const StatusPageViewPath: string =
   "/usr/src/app/FeatureSet/StatusPage/views/index.ejs";
+
+const PublicDashboardPublicPath: string =
+  "/usr/src/app/FeatureSet/PublicDashboard/public";
+const PublicDashboardViewPath: string =
+  "/usr/src/app/FeatureSet/PublicDashboard/views/index.ejs";
 
 interface FrontendConfig {
   routePrefix: string;
@@ -67,6 +74,8 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page-api",
   "/status-page-sso-api",
   "/status-page-identity-api",
+  "/public-dashboard",
+  "/public-dashboard-api",
   "/api",
   "/identity",
   "/notification",
@@ -101,6 +110,7 @@ const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page-api",
   "/status-page-sso-api",
   "/status-page-identity-api",
+  "/public-dashboard-api",
   "/.well-known",
   "/rss",
 ];
@@ -138,6 +148,12 @@ const DashboardFrontendConfig: FrontendConfig = {
   publicPath: DashboardPublicPath,
   indexViewPath: DashboardViewPath,
   primaryHostOnly: true,
+};
+
+const PublicDashboardFrontendConfig: FrontendConfig = {
+  routePrefix: "/public-dashboard",
+  publicPath: PublicDashboardPublicPath,
+  indexViewPath: PublicDashboardViewPath,
 };
 
 const DashboardRootPwaFileMap: Array<{ route: string; file: string }> = [
@@ -397,7 +413,32 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
   );
 };
 
-const registerStatusPageCustomDomainFallback: () => void = (): void => {
+const isDashboardDomain: (hostname: string) => Promise<boolean> = async (
+  hostname: string,
+): Promise<boolean> => {
+  try {
+    const dashboardDomain: DashboardDomain | null =
+      await DashboardDomainService.findOneBy({
+        query: {
+          fullDomain: hostname,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return dashboardDomain !== null;
+  } catch (err) {
+    logger.error("Error checking if domain is a dashboard domain:");
+    logger.error(err);
+    return false;
+  }
+};
+
+const registerCustomDomainFallback: () => void = (): void => {
   app.get(
     "*",
     async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -409,6 +450,20 @@ const registerStatusPageCustomDomainFallback: () => void = (): void => {
         return next();
       }
 
+      // Check if this custom domain belongs to a PublicDashboard.
+      // If so, serve the PublicDashboard SPA instead of StatusPage.
+      const requestHostname: string = getRequestHostname(req);
+
+      if (requestHostname && (await isDashboardDomain(requestHostname))) {
+        return renderFrontendIndexPage({
+          req,
+          res,
+          next,
+          frontendConfig: PublicDashboardFrontendConfig,
+        });
+      }
+
+      // Default: serve StatusPage for custom domains
       return renderFrontendIndexPage({
         req,
         res,
@@ -483,8 +538,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   registerFrontendApp(StatusPageFrontendConfig);
 
+  registerFrontendApp(PublicDashboardFrontendConfig);
+
   registerDashboardRootPwaFiles();
-  registerStatusPageCustomDomainFallback();
+  registerCustomDomainFallback();
   registerDashboardFallbackForPrimaryHost();
 };
 

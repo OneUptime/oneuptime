@@ -1,7 +1,9 @@
 import Project from "./Project";
 import User from "./User";
 import Route from "../../Types/API/Route";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -15,6 +17,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -448,4 +451,147 @@ export default class Dashboard extends BaseModel {
     type: ColumnType.JSON,
   })
   public dashboardViewConfig?: DashboardViewConfig = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Public Dashboard",
+    description: "Is this dashboard public?",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
+  })
+  public isPublicDashboard?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Master Password",
+    description:
+      "Require visitors to enter a master password before viewing a private dashboard.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public enableMasterPassword?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    title: "Master Password",
+    description:
+      "Password required to unlock a private dashboard. This value is stored as a secure hash.",
+    hashed: true,
+    type: TableColumnType.HashedString,
+    placeholder: "Enter a new master password",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public masterPassword?: HashedString = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "IP Whitelist",
+    description:
+      "IP Whitelist for this Dashboard. One IP per line. Only used if the dashboard is private.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Free,
+  })
+  public ipWhitelist?: string = undefined;
 }

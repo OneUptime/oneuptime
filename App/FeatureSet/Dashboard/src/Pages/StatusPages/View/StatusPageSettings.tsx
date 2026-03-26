@@ -273,6 +273,47 @@ const StatusPageDelete: FunctionComponent<
       <CardModelDetail<StatusPage>
         name="Status Page > Settings"
         cardProps={{
+          title: "Uptime History Settings",
+          description:
+            "Configure how many days of uptime history to show on the status page",
+        }}
+        editButtonText="Edit Settings"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              showUptimeHistoryInDays: true,
+            },
+            title: "Show Uptime History (in days)",
+            fieldType: FormFieldSchemaType.Number,
+            required: true,
+            placeholder: "90",
+            validation: {
+              minValue: 1,
+              maxValue: 90,
+            },
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page-uptime-history",
+          fields: [
+            {
+              field: {
+                showUptimeHistoryInDays: true,
+              },
+              fieldType: FieldType.Number,
+              title: "Show Uptime History (in days)",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Settings"
+        cardProps={{
           title: "Subscriber Settings",
           description: "Subscriber Settings for Status Page",
         }}

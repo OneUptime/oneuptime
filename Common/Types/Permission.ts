@@ -76,6 +76,12 @@ enum Permission {
   ReadDashboard = "ReadDashboard",
   EditDashboard = "EditDashboard",
 
+  // Dashboard Domains
+  CreateDashboardDomain = "CreateDashboardDomain",
+  DeleteDashboardDomain = "DeleteDashboardDomain",
+  EditDashboardDomain = "EditDashboardDomain",
+  ReadDashboardDomain = "ReadDashboardDomain",
+
   // Logs
   CreateTelemetryServiceLog = "CreateTelemetryServiceLog",
   DeleteTelemetryServiceLog = "DeleteTelemetryServiceLog",
@@ -1212,6 +1218,44 @@ export class PermissionHelper {
         description: "This permission can read Dashboards of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard Domain permissions.
+      {
+        permission: Permission.CreateDashboardDomain,
+        title: "Create Dashboard Domain",
+        description:
+          "This permission can create Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardDomain,
+        title: "Delete Dashboard Domain",
+        description:
+          "This permission can delete Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardDomain,
+        title: "Edit Dashboard Domain",
+        description:
+          "This permission can edit Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardDomain,
+        title: "Read Dashboard Domain",
+        description:
+          "This permission can read Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Settings,
       },
 

@@ -20,11 +20,11 @@ const BlankDashboardUnitElement: FunctionComponent<ComponentProps> = (
 
   const widthOfUnitInPx: number = heightOfUnitInPx; // its a square
 
-  let className: string = "";
+  let className: string = "transition-all duration-150";
 
   if (props.isEditMode) {
     className +=
-      "border-2 border-gray-100 rounded hover:border-gray-300 hover:bg-gray-100 cursor-pointer";
+      " border border-dashed border-gray-200 rounded-md hover:border-gray-300 hover:bg-blue-50/30 cursor-pointer";
   }
 
   return (

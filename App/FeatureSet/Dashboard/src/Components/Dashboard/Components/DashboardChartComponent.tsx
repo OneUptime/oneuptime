@@ -3,12 +3,10 @@ import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   MetricChartType,
@@ -31,10 +29,24 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
+  // Resolve query configs - support both single and multi-query
+  const resolveQueryConfigs: () => Array<MetricQueryConfigData> = () => {
+    if (
+      props.component.arguments.metricQueryConfigs &&
+      props.component.arguments.metricQueryConfigs.length > 0
+    ) {
+      return props.component.arguments.metricQueryConfigs;
+    }
+    if (props.component.arguments.metricQueryConfig) {
+      return [props.component.arguments.metricQueryConfig];
+    }
+    return [];
+  };
+
+  const queryConfigs: Array<MetricQueryConfigData> = resolveQueryConfigs();
+
   const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [props.component.arguments.metricQueryConfig]
-      : [],
+    queryConfigs: queryConfigs,
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -97,40 +109,71 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes]);
+  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
 
-  const [metricQueryConfig, setMetricQueryConfig] = React.useState<
-    MetricQueryConfigData | undefined
-  >(props.component.arguments.metricQueryConfig);
+  const [prevQueryConfigs, setPrevQueryConfigs] = React.useState<
+    Array<MetricQueryConfigData> | MetricQueryConfigData | undefined
+  >(
+    props.component.arguments.metricQueryConfigs ||
+      props.component.arguments.metricQueryConfig,
+  );
 
   useEffect(() => {
-    // set metricQueryConfig to the new value only if it is different from the previous value
+    const currentConfigs:
+      | Array<MetricQueryConfigData>
+      | MetricQueryConfigData
+      | undefined =
+      props.component.arguments.metricQueryConfigs ||
+      props.component.arguments.metricQueryConfig;
+
     if (
       JSONFunctions.isJSONObjectDifferent(
-        metricQueryConfig || {},
-        props.component.arguments.metricQueryConfig || {},
+        prevQueryConfigs || {},
+        currentConfigs || {},
       )
     ) {
-      setMetricQueryConfig(props.component.arguments.metricQueryConfig);
+      setPrevQueryConfigs(currentConfigs);
       fetchAggregatedResults();
     }
-  }, [props.component.arguments.metricQueryConfig]);
-
-  useEffect(() => {
-    fetchAggregatedResults();
-  }, []);
+  }, [
+    props.component.arguments.metricQueryConfig,
+    props.component.arguments.metricQueryConfigs,
+  ]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    // Skeleton loading for chart
+    return (
+      <div className="w-full h-full flex flex-col p-1 animate-pulse">
+        <div className="h-3 w-28 bg-gray-100 rounded mb-3"></div>
+        <div className="flex-1 flex items-end gap-1 px-2 pb-2">
+          {Array.from({ length: 12 }).map((_: unknown, i: number) => {
+            return (
+              <div
+                key={i}
+                className="flex-1 bg-gray-100 rounded-t"
+                style={{
+                  height: `${20 + Math.random() * 60}%`,
+                  opacity: 0.4 + Math.random() * 0.4,
+                }}
+              ></div>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="m-auto flex flex-col justify-center w-full h-full">
-        <div className="h-7 w-7 text-gray-400 w-full text-center mx-auto">
-          <Icon icon={IconProp.ChartBar} />
+      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+          <div className="h-5 w-5 text-gray-300">
+            <Icon icon={IconProp.ChartBar} />
+          </div>
         </div>
-        <ErrorMessage message={error} />
+        <p className="text-xs text-gray-400 text-center max-w-48">
+          {error}
+        </p>
       </div>
     );
   }
@@ -142,35 +185,57 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     heightOfChart = undefined;
   }
 
-  // add title and description.
-
   type GetMetricChartType = () => MetricChartType;
 
-  // Convert dashboard chart type to metric chart type
   const getMetricChartType: GetMetricChartType = (): MetricChartType => {
     if (props.component.arguments.chartType === DashboardChartType.Bar) {
       return MetricChartType.BAR;
+    }
+    if (
+      props.component.arguments.chartType === DashboardChartType.Area ||
+      props.component.arguments.chartType === DashboardChartType.StackedArea
+    ) {
+      return MetricChartType.AREA;
     }
     return MetricChartType.LINE;
   };
 
   const chartMetricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [
-          {
-            ...props.component.arguments.metricQueryConfig!,
+    queryConfigs: queryConfigs.map(
+      (config: MetricQueryConfigData, index: number) => {
+        // For the first query, apply the chart-level title/description/legend
+        if (index === 0) {
+          return {
+            ...config,
             metricAliasData: {
-              title: props.component.arguments.chartTitle || undefined,
+              title:
+                config.metricAliasData?.title ||
+                props.component.arguments.chartTitle ||
+                undefined,
               description:
-                props.component.arguments.chartDescription || undefined,
-              metricVariable: undefined,
-              legend: props.component.arguments.legendText || undefined,
-              legendUnit: props.component.arguments.legendUnit || undefined,
+                config.metricAliasData?.description ||
+                props.component.arguments.chartDescription ||
+                undefined,
+              metricVariable:
+                config.metricAliasData?.metricVariable || undefined,
+              legend:
+                config.metricAliasData?.legend ||
+                props.component.arguments.legendText ||
+                undefined,
+              legendUnit:
+                config.metricAliasData?.legendUnit ||
+                props.component.arguments.legendUnit ||
+                undefined,
             },
-            chartType: getMetricChartType(),
-          },
-        ]
-      : [],
+            chartType: config.chartType || getMetricChartType(),
+          };
+        }
+        return {
+          ...config,
+          chartType: config.chartType || getMetricChartType(),
+        };
+      },
+    ),
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -178,7 +243,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div>
+    <div className="w-full h-full overflow-hidden">
       <MetricCharts
         metricResults={metricResults}
         metricTypes={props.metricTypes}

@@ -9,6 +9,7 @@ export enum ComponentInputType {
   Number = "Number",
   Decimal = "Decimal",
   MetricsQueryConfig = "MetricsQueryConfig",
+  MetricsQueryConfigs = "MetricsQueryConfigs",
   LongText = "Long Text",
   Dropdown = "Dropdown",
 }

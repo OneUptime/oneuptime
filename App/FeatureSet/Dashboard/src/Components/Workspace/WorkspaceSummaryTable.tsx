@@ -50,6 +50,7 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -322,13 +323,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // Default to all summary items if none selected
+          // Default to "All" if none selected
           if (
             !values.summaryItems ||
             (Array.isArray(values.summaryItems) &&
               values.summaryItems.length === 0)
           ) {
-            values.summaryItems = allSummaryItems;
+            values.summaryItems = [WorkspaceNotificationSummaryItem.All];
           }
 
           if (values.isEnabled === undefined || values.isEnabled === null) {
@@ -493,18 +494,91 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "What to Include",
             description:
-              "Choose which sections appear in the summary. The report will be formatted with headers, statistics, and a detailed list.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: true,
+              "Choose which sections appear in the summary. Select \"All\" to include everything, or pick specific sections.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
             stepId: "content",
-            dropdownOptions: allSummaryItems.map(
-              (item: WorkspaceNotificationSummaryItem) => {
-                return {
-                  label: item,
-                  value: item,
-                };
-              },
-            ),
+            getCustomElement: (
+              value: FormValues<WorkspaceNotificationSummary>,
+              elementProps: CustomElementProps,
+            ): ReactElement => {
+              const currentItems: Array<WorkspaceNotificationSummaryItem> =
+                (value.summaryItems as Array<WorkspaceNotificationSummaryItem>) ||
+                [WorkspaceNotificationSummaryItem.All];
+
+              const isAllSelected: boolean = currentItems.includes(
+                WorkspaceNotificationSummaryItem.All,
+              );
+
+              const individualItems: Array<WorkspaceNotificationSummaryItem> =
+                allSummaryItems.filter(
+                  (item: WorkspaceNotificationSummaryItem) => {
+                    return item !== WorkspaceNotificationSummaryItem.All;
+                  },
+                );
+
+              return (
+                <div className="space-y-2">
+                  <CheckboxElement
+                    title="All"
+                    value={isAllSelected}
+                    onChange={(checked: boolean) => {
+                      if (elementProps.onChange) {
+                        if (checked) {
+                          elementProps.onChange([
+                            WorkspaceNotificationSummaryItem.All,
+                          ]);
+                        } else {
+                          elementProps.onChange([]);
+                        }
+                      }
+                    }}
+                  />
+                  <div className="ml-6 space-y-2">
+                    {individualItems.map(
+                      (item: WorkspaceNotificationSummaryItem) => {
+                        return (
+                          <CheckboxElement
+                            key={item}
+                            title={item}
+                            disabled={isAllSelected}
+                            value={
+                              isAllSelected || currentItems.includes(item)
+                            }
+                            onChange={(checked: boolean) => {
+                              if (elementProps.onChange) {
+                                let newItems: Array<WorkspaceNotificationSummaryItem> =
+                                  currentItems.filter(
+                                    (i: WorkspaceNotificationSummaryItem) => {
+                                      return (
+                                        i !==
+                                          WorkspaceNotificationSummaryItem.All &&
+                                        i !== item
+                                      );
+                                    },
+                                  );
+                                if (checked) {
+                                  newItems.push(item);
+                                }
+                                // If all individual items are selected, switch to "All"
+                                if (
+                                  newItems.length === individualItems.length
+                                ) {
+                                  newItems = [
+                                    WorkspaceNotificationSummaryItem.All,
+                                  ];
+                                }
+                                elementProps.onChange(newItems);
+                              }
+                            }}
+                          />
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              );
+            },
           },
           {
             field: {
@@ -700,12 +774,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
-          onClose={() => {
-            setShowTestSuccessModal(false);
-            setTestSummary(undefined);
-            setShowTestModal(false);
-            setTestError("");
-          }}
           onSubmit={async () => {
             setShowTestSuccessModal(false);
             setTestSummary(undefined);

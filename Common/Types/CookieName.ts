@@ -8,6 +8,7 @@ enum CookieName {
   IsMasterAdmin = "user-is-master-admin",
   ProfilePicID = "user-profile-pic-id",
   StatusPageMasterPassword = "status-page-master-password",
+  DashboardMasterPassword = "dashboard-master-password",
 }
 
 export default CookieName;

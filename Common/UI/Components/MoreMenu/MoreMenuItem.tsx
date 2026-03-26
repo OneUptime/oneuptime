@@ -18,7 +18,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
   return (
     <a
       key={props.key || Math.random()}
-      className={`cursor-pointer group flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 ${props.className}`}
+      className={`cursor-pointer group flex items-center px-3 py-2 mx-1 rounded-md text-sm text-gray-700 hover:text-gray-900 hover:bg-indigo-50 transition-colors duration-100 ${props.className}`}
       role="menuitem"
       onClick={() => {
         props.onClick();
@@ -27,11 +27,11 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       {props.icon && (
         <Icon
           icon={props.icon}
-          className={`mr-3 h-5 w-5 text-gray-400 text-gray-700 hover:text-gray-900 ${props.iconClassName}`}
+          className={`mr-2.5 h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors duration-100 ${props.iconClassName}`}
         />
       )}
-      <div className="flex w-full justify-between">
-        <div>{props.text}</div>
+      <div className="flex w-full justify-between items-center">
+        <div className="font-medium">{props.text}</div>
         <div>{props.rightElement}</div>
       </div>
     </a>
