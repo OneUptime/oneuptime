@@ -40,9 +40,7 @@ export const getPublicDashboardData: (
         req.hostname?.toString() || req.headers["host"]?.toString() || "";
       if (host) {
         dashboardIdOrDomain = host;
-        logger.debug(
-          `Found domain in request headers: ${dashboardIdOrDomain}`,
-        );
+        logger.debug(`Found domain in request headers: ${dashboardIdOrDomain}`);
       }
     }
 

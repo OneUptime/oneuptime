@@ -26,7 +26,10 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import SpanService from "Common/Server/Services/SpanService";
-import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricMonitorResponse, {
+  KubernetesResourceBreakdown,
+  KubernetesAffectedResource,
+} from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
@@ -46,10 +49,9 @@ import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import {
-  KubernetesResourceBreakdown,
-  KubernetesAffectedResource,
-} from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
-import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
+  getKubernetesMetricByMetricName,
+  KubernetesMetricDefinition,
+} from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -488,7 +490,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
       if (resourceFilters.workloadName && resourceFilters.workloadType) {
         const workloadType: string = resourceFilters.workloadType.toLowerCase();
-        attributes[`resource.k8s.${workloadType}.name`] = resourceFilters.workloadName;
+        attributes[`resource.k8s.${workloadType}.name`] =
+          resourceFilters.workloadName;
       }
     }
 
@@ -569,10 +572,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
           if (metricAttrs["resource.k8s.deployment.name"]) {
             workloadType = "Deployment";
-            workloadName = metricAttrs["resource.k8s.deployment.name"] as string;
+            workloadName = metricAttrs[
+              "resource.k8s.deployment.name"
+            ] as string;
           } else if (metricAttrs["resource.k8s.statefulset.name"]) {
             workloadType = "StatefulSet";
-            workloadName = metricAttrs["resource.k8s.statefulset.name"] as string;
+            workloadName = metricAttrs[
+              "resource.k8s.statefulset.name"
+            ] as string;
           } else if (metricAttrs["resource.k8s.daemonset.name"]) {
             workloadType = "DaemonSet";
             workloadName = metricAttrs["resource.k8s.daemonset.name"] as string;
@@ -584,7 +591,9 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
             workloadName = metricAttrs["resource.k8s.cronjob.name"] as string;
           } else if (metricAttrs["resource.k8s.replicaset.name"]) {
             workloadType = "ReplicaSet";
-            workloadName = metricAttrs["resource.k8s.replicaset.name"] as string;
+            workloadName = metricAttrs[
+              "resource.k8s.replicaset.name"
+            ] as string;
           }
 
           // Build unique key for deduplication
@@ -617,7 +626,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
           }
         }
 
-        const metricDef = getKubernetesMetricByMetricName(metricName);
+        const metricDef: KubernetesMetricDefinition | undefined =
+          getKubernetesMetricByMetricName(metricName);
 
         kubernetesResourceBreakdown = {
           clusterName: kubernetesMonitorConfig.clusterIdentifier,

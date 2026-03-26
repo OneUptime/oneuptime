@@ -124,7 +124,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
           </div>
           {Array.from({ length: 5 }).map((_: unknown, i: number) => {
             return (
-              <div key={i} className="flex gap-4" style={{ opacity: 1 - i * 0.15 }}>
+              <div
+                key={i}
+                className="flex gap-4"
+                style={{ opacity: 1 - i * 0.15 }}
+              >
                 <div className="h-3 w-28 bg-gray-50 rounded"></div>
                 <div className="h-3 w-14 bg-gray-50 rounded ml-auto"></div>
               </div>
@@ -185,20 +189,27 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
             <tr>
-              <th className="px-4 py-2.5 font-medium tracking-wider" style={{ width: "45%" }}>
+              <th
+                className="px-4 py-2.5 font-medium tracking-wider"
+                style={{ width: "45%" }}
+              >
                 Timestamp
               </th>
-              <th className="px-4 py-2.5 font-medium tracking-wider text-right" style={{ width: "25%" }}>
+              <th
+                className="px-4 py-2.5 font-medium tracking-wider text-right"
+                style={{ width: "25%" }}
+              >
                 Value
               </th>
-              <th className="px-4 py-2.5 font-medium tracking-wider" style={{ width: "30%" }}>
-              </th>
+              <th
+                className="px-4 py-2.5 font-medium tracking-wider"
+                style={{ width: "30%" }}
+              ></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {displayData.map((item: AggregatedModel, index: number) => {
-              const roundedValue: number =
-                Math.round(item.value * 100) / 100;
+              const roundedValue: number = Math.round(item.value * 100) / 100;
               const barWidth: number =
                 maxDataValue > 0
                   ? (Math.abs(roundedValue) / maxDataValue) * 100

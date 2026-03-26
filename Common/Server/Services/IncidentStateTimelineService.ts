@@ -497,6 +497,7 @@ ${createdItem.rootCause}`,
         await IncidentService.markMonitorsActiveForMonitoring(
           incident.projectId!,
           incident.monitors || [],
+          createdItem.startsAt || undefined,
         );
       }
     }

@@ -248,12 +248,14 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       {/* Filters Section - Collapsible */}
       <CollapsibleSection
         title={
-          props.monitorType === MonitorType.Kubernetes || props.monitorType === MonitorType.Metrics
+          props.monitorType === MonitorType.Kubernetes ||
+          props.monitorType === MonitorType.Metrics
             ? "Alert Rules"
             : "Filters"
         }
         description={
-          props.monitorType === MonitorType.Kubernetes || props.monitorType === MonitorType.Metrics
+          props.monitorType === MonitorType.Kubernetes ||
+          props.monitorType === MonitorType.Metrics
             ? "Define when this alert should trigger based on metric values."
             : "Add criteria for different monitor properties."
         }
@@ -266,12 +268,14 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           <div className="mb-3">
             <FieldLabelElement
               title={
-                props.monitorType === MonitorType.Kubernetes || props.monitorType === MonitorType.Metrics
+                props.monitorType === MonitorType.Kubernetes ||
+                props.monitorType === MonitorType.Metrics
                   ? "Match Condition"
                   : "Filter Condition"
               }
               description={
-                props.monitorType === MonitorType.Kubernetes || props.monitorType === MonitorType.Metrics
+                props.monitorType === MonitorType.Kubernetes ||
+                props.monitorType === MonitorType.Metrics
                   ? "Should all rules match, or just any one of them?"
                   : "Select All if you want all the criteria to be met. Select any if you like any criteria to be met."
               }

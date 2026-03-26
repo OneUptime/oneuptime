@@ -42,15 +42,13 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
   const [selectedDashboardDomain, setSelectedDashboardDomain] =
     useState<DashboardDomain | null>(null);
 
-  const [verifyCnameLoading, setVerifyCnameLoading] =
-    useState<boolean>(false);
+  const [verifyCnameLoading, setVerifyCnameLoading] = useState<boolean>(false);
 
   const [orderSslLoading, setOrderSslLoading] = useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
 
-  const [showOrderSSLModal, setShowOrderSSLModal] =
-    useState<boolean>(false);
+  const [showOrderSSLModal, setShowOrderSSLModal] = useState<boolean>(false);
 
   return (
     <Fragment>
@@ -72,9 +70,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
             description: `Important: Please add a CNAME record pointing to ${DashboardCNameRecord} for these domains for this to work.`,
           }}
           refreshToggle={refreshToggle}
-          onBeforeCreate={(
-            item: DashboardDomain,
-          ): Promise<DashboardDomain> => {
+          onBeforeCreate={(item: DashboardDomain): Promise<DashboardDomain> => {
             if (!props.currentProject || !props.currentProject._id) {
               throw new BadDataException("Project ID cannot be null");
             }
@@ -272,9 +268,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (!item.isCnameVerified) {
                   return (
                     <span>
-                      <span className="font-semibold">
-                        Action Required:
-                      </span>{" "}
+                      <span className="font-semibold">Action Required:</span>{" "}
                       Please add your CNAME record.
                     </span>
                   );
@@ -283,8 +277,8 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (item.isCustomCertificate) {
                   return (
                     <span>
-                      No action is required. Please allow 30 minutes for
-                      the certificate to be provisioned.
+                      No action is required. Please allow 30 minutes for the
+                      certificate to be provisioned.
                     </span>
                   );
                 }
@@ -292,9 +286,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (!item.isSslOrdered) {
                   return (
                     <span>
-                      <span className="font-semibold">
-                        Action Required:
-                      </span>{" "}
+                      <span className="font-semibold">Action Required:</span>{" "}
                       Please order SSL certificate.
                     </span>
                   );
@@ -304,16 +296,16 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                   return (
                     <span>
                       No action is required. This SSL certificate will be
-                      provisioned in 1 hour. If this does not happen.
-                      Please contact support.
+                      provisioned in 1 hour. If this does not happen. Please
+                      contact support.
                     </span>
                   );
                 }
 
                 return (
                   <span>
-                    Certificate Provisioned. We will automatically renew
-                    this certificate. No action required.{" "}
+                    Certificate Provisioned. We will automatically renew this
+                    certificate. No action required.{" "}
                   </span>
                 );
               },
@@ -328,8 +320,8 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
               DashboardCNameRecord ? (
                 <div>
                   <span>
-                    Please add CNAME record to your domain. Details of
-                    the CNAME records are:
+                    Please add CNAME record to your domain. Details of the CNAME
+                    records are:
                   </span>
                   <br />
                   <br />
@@ -356,14 +348,13 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
               ) : (
                 <div>
                   <span>
-                    Custom Domains not enabled for this OneUptime
-                    installation. Please contact your server admin to
-                    enable this feature. To enable this feature, if you
-                    are using Docker compose, the
-                    <b>DASHBOARD_CNAME_RECORD</b> environment variable
-                    must be set when starting the OneUptime cluster. If
-                    you are using Helm and Kubernetes then set
-                    dashboard.cnameRecord in the values.yaml file.
+                    Custom Domains not enabled for this OneUptime installation.
+                    Please contact your server admin to enable this feature. To
+                    enable this feature, if you are using Docker compose, the
+                    <b>DASHBOARD_CNAME_RECORD</b> environment variable must be
+                    set when starting the OneUptime cluster. If you are using
+                    Helm and Kubernetes then set dashboard.cnameRecord in the
+                    values.yaml file.
                   </span>
                 </div>
               )
@@ -381,13 +372,9 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 setVerifyCnameLoading(true);
                 setError("");
 
-                const response:
-                  | HTTPResponse<JSONObject>
-                  | HTTPErrorResponse =
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
                   await API.get<JSONObject>({
-                    url: URL.fromString(
-                      APP_API_URL.toString(),
-                    ).addRoute(
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
                       `/${
                         new DashboardDomain().crudApiPath
                       }/verify-cname/${selectedDashboardDomain?.id?.toString()}`,
@@ -401,9 +388,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowCnameModal(false);
-                setRefreshToggle(
-                  OneUptimeDate.getCurrentDate().toString(),
-                );
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
                 setSelectedDashboardDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));
@@ -420,18 +405,16 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
             description={
               DashboardCNameRecord ? (
                 <div>
-                  Please click on the button below to order SSL for this
-                  domain. We will use LetsEncrypt to order a certificate.
-                  This process is secure and completely free. The
-                  certificate takes 3 hours to provision after its been
-                  ordered.
+                  Please click on the button below to order SSL for this domain.
+                  We will use LetsEncrypt to order a certificate. This process
+                  is secure and completely free. The certificate takes 3 hours
+                  to provision after its been ordered.
                 </div>
               ) : (
                 <div>
                   <span>
-                    Custom Domains not enabled for this OneUptime
-                    installation. Please contact your server admin to
-                    enable this feature.
+                    Custom Domains not enabled for this OneUptime installation.
+                    Please contact your server admin to enable this feature.
                   </span>
                 </div>
               )
@@ -449,13 +432,9 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 setOrderSslLoading(true);
                 setError("");
 
-                const response:
-                  | HTTPResponse<JSONObject>
-                  | HTTPErrorResponse =
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
                   await API.get<JSONObject>({
-                    url: URL.fromString(
-                      APP_API_URL.toString(),
-                    ).addRoute(
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
                       `/${
                         new DashboardDomain().crudApiPath
                       }/order-ssl/${selectedDashboardDomain?.id?.toString()}`,
@@ -469,9 +448,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowOrderSSLModal(false);
-                setRefreshToggle(
-                  OneUptimeDate.getCurrentDate().toString(),
-                );
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
                 setSelectedDashboardDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));

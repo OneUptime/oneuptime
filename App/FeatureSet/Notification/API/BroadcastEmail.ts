@@ -163,8 +163,10 @@ router.post(
         MarkdownContentType.Email,
       );
 
-      // Send response immediately so the request doesn't timeout.
-      // Emails are sent in the background.
+      /*
+       * Send response immediately so the request doesn't timeout.
+       * Emails are sent in the background.
+       */
       Response.sendJsonObjectResponse(req, res, {
         message:
           "Broadcast email job has been started. Emails will be sent in the background.",

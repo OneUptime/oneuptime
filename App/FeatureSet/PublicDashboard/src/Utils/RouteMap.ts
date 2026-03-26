@@ -34,10 +34,7 @@ export class RouteUtil {
     const id: ObjectID = LocalStorage.getItem("dashboardId") as ObjectID;
 
     if (id) {
-      route = tempRoute.addRouteParam(
-        RouteParams.DashboardId,
-        id.toString(),
-      );
+      route = tempRoute.addRouteParam(RouteParams.DashboardId, id.toString());
     }
 
     return tempRoute;

@@ -27,7 +27,10 @@ type CategoryColorScheme = {
   handleBorder: string;
 };
 
-const getCategoryColors = (
+const getCategoryColors: (
+  category: string,
+  componentType: ComponentType,
+) => CategoryColorScheme = (
   category: string,
   componentType: ComponentType,
 ): CategoryColorScheme => {

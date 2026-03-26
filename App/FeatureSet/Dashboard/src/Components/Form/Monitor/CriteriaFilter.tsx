@@ -3,6 +3,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import {
   CheckOn,
   CriteriaFilter,
@@ -35,7 +36,9 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
 }
 
-const isMetricOnlyMonitorType = (monitorType: MonitorType): boolean => {
+const isMetricOnlyMonitorType: (monitorType: MonitorType) => boolean = (
+  monitorType: MonitorType,
+): boolean => {
   return (
     monitorType === MonitorType.Kubernetes ||
     monitorType === MonitorType.Metrics
@@ -88,7 +91,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
   // Auto-select MetricValue for metric-only monitor types (Kubernetes, Metrics)
   useEffect(() => {
-    if (isMetricOnly && criteriaFilter && criteriaFilter.checkOn !== CheckOn.MetricValue) {
+    if (
+      isMetricOnly &&
+      criteriaFilter &&
+      criteriaFilter.checkOn !== CheckOn.MetricValue
+    ) {
       props.onChange?.({
         ...criteriaFilter,
         checkOn: CheckOn.MetricValue,
@@ -145,7 +152,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     });
 
   // Collect metric variables from both metricMonitor and kubernetesMonitor configs
-  const metricViewConfig =
+  const metricViewConfig: MetricsViewConfig | undefined =
     props.monitorStep.data?.metricMonitor?.metricViewConfig ||
     props.monitorStep.data?.kubernetesMonitor?.metricViewConfig;
 
@@ -194,24 +201,26 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
         {/* Hide Filter Type dropdown for metric-only monitors since MetricValue is the only option */}
         {!isMetricOnly && (
-        <div className="">
-          <FieldLabelElement title="Filter Type" />
-          <Dropdown
-            value={checkOnOptions.find((i: DropdownOption) => {
-              return i.value === criteriaFilter?.checkOn;
-            })}
-            options={checkOnOptions}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              props.onChange?.({
-                checkOn: value?.toString() as CheckOn,
-                filterType: undefined,
-                value: undefined,
-                evaluateOverTime: false,
-                evaluateOverTimeOptions: undefined,
-              });
-            }}
-          />
-        </div>
+          <div className="">
+            <FieldLabelElement title="Filter Type" />
+            <Dropdown
+              value={checkOnOptions.find((i: DropdownOption) => {
+                return i.value === criteriaFilter?.checkOn;
+              })}
+              options={checkOnOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                props.onChange?.({
+                  checkOn: value?.toString() as CheckOn,
+                  filterType: undefined,
+                  value: undefined,
+                  evaluateOverTime: false,
+                  evaluateOverTimeOptions: undefined,
+                });
+              }}
+            />
+          </div>
         )}
 
         {criteriaFilter?.checkOn &&
@@ -239,7 +248,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title={isMetricOnly ? "Metric" : "Select Metric Variable"}
-                description={isMetricOnly ? "Which metric query should this alert rule check?" : undefined}
+                description={
+                  isMetricOnly
+                    ? "Which metric query should this alert rule check?"
+                    : undefined
+                }
               />
               <Dropdown
                 value={selectedMetricVariableOption}
@@ -264,7 +277,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title={isMetricOnly ? "Aggregation" : "Select Aggregation"}
-                description={isMetricOnly ? "How to combine multiple data points (e.g. Average, Max, Min)." : undefined}
+                description={
+                  isMetricOnly
+                    ? "How to combine multiple data points (e.g. Average, Max, Min)."
+                    : undefined
+                }
               />
               <Dropdown
                 value={metricAggregationValue}
@@ -385,7 +402,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title={isMetricOnly ? "Condition" : "Filter Condition"}
-                description={isMetricOnly ? "When should this alert trigger?" : undefined}
+                description={
+                  isMetricOnly ? "When should this alert trigger?" : undefined
+                }
               />
               <Dropdown
                 value={filterConditionValue}
@@ -415,7 +434,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               <div className="mt-1">
                 <FieldLabelElement
                   title={isMetricOnly ? "Threshold" : "Value"}
-                  description={isMetricOnly ? "The value to compare against." : undefined}
+                  description={
+                    isMetricOnly ? "The value to compare against." : undefined
+                  }
                 />
                 <Input
                   placeholder={valuePlaceholder}

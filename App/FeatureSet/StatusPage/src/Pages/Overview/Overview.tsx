@@ -126,8 +126,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
   ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
-  const uptimeHistoryDays: number =
-    statusPage?.showUptimeHistoryInDays || 90;
+  const uptimeHistoryDays: number = statusPage?.showUptimeHistoryInDays || 90;
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(

@@ -88,7 +88,8 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
             {component.componentType} Widget
           </span>
           <span className="text-xs text-gray-400">
-            {component.widthInDashboardUnits} x {component.heightInDashboardUnits} units
+            {component.widthInDashboardUnits} x{" "}
+            {component.heightInDashboardUnits} units
           </span>
         </div>
 

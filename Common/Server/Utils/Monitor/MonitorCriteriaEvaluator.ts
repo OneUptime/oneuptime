@@ -682,7 +682,9 @@ ${contextBlock}
     // Cluster context
     const clusterDetails: Array<string> = [];
     clusterDetails.push(`- Cluster: ${breakdown.clusterName}`);
-    clusterDetails.push(`- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`);
+    clusterDetails.push(
+      `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+    );
 
     if (breakdown.attributes["k8s.namespace.name"]) {
       clusterDetails.push(
@@ -695,23 +697,15 @@ ${contextBlock}
     );
 
     // Affected resources
-    if (
-      breakdown.affectedResources &&
-      breakdown.affectedResources.length > 0
-    ) {
+    if (breakdown.affectedResources && breakdown.affectedResources.length > 0) {
       const resourceLines: Array<string> = [];
 
       // Sort by metric value descending (worst first)
       const sortedResources: Array<KubernetesAffectedResource> = [
         ...breakdown.affectedResources,
-      ].sort(
-        (
-          a: KubernetesAffectedResource,
-          b: KubernetesAffectedResource,
-        ) => {
-          return b.metricValue - a.metricValue;
-        },
-      );
+      ].sort((a: KubernetesAffectedResource, b: KubernetesAffectedResource) => {
+        return b.metricValue - a.metricValue;
+      });
 
       // Show top 10 affected resources
       const resourcesToShow: Array<KubernetesAffectedResource> =
@@ -798,9 +792,7 @@ ${contextBlock}
       metricName === "k8s.pod.phase" &&
       breakdown.attributes["k8s.pod.phase"] === "Pending"
     ) {
-      lines.push(
-        `Pods are stuck in Pending phase and unable to be scheduled.`,
-      );
+      lines.push(`Pods are stuck in Pending phase and unable to be scheduled.`);
       lines.push(
         `Common causes: insufficient CPU/memory resources on nodes, node affinity/taint restrictions preventing scheduling, PersistentVolumeClaim pending, or resource quota exceeded.`,
       );
@@ -811,7 +803,7 @@ ${contextBlock}
       }
     } else if (
       metricName === "k8s.node.condition_ready" ||
-      metricName.includes("node") && metricName.includes("condition")
+      (metricName.includes("node") && metricName.includes("condition"))
     ) {
       lines.push(`One or more nodes have transitioned to a NotReady state.`);
       if (topResource.nodeName) {
@@ -827,7 +819,7 @@ ${contextBlock}
       );
     } else if (
       metricName === "k8s.node.cpu.utilization" ||
-      metricName.includes("cpu") && metricName.includes("utilization")
+      (metricName.includes("cpu") && metricName.includes("utilization"))
     ) {
       lines.push(`Node CPU utilization has exceeded the configured threshold.`);
       if (topResource.nodeName) {
@@ -843,7 +835,7 @@ ${contextBlock}
       );
     } else if (
       metricName === "k8s.node.memory.usage" ||
-      metricName.includes("memory") && metricName.includes("usage")
+      (metricName.includes("memory") && metricName.includes("usage"))
     ) {
       lines.push(
         `Node memory utilization has exceeded the configured threshold.`,
@@ -879,7 +871,7 @@ ${contextBlock}
       );
     } else if (
       metricName === "k8s.job.failed_pods" ||
-      metricName.includes("job") && metricName.includes("fail")
+      (metricName.includes("job") && metricName.includes("fail"))
     ) {
       lines.push(`Kubernetes Job has failed pods.`);
       if (topResource.workloadName) {
@@ -916,9 +908,7 @@ ${contextBlock}
       metricName === "k8s.daemonset.misscheduled_nodes" ||
       metricName.includes("daemonset")
     ) {
-      lines.push(
-        `DaemonSet has misscheduled or unavailable nodes.`,
-      );
+      lines.push(`DaemonSet has misscheduled or unavailable nodes.`);
       if (topResource.workloadName) {
         lines.push(
           `DaemonSet \`${topResource.workloadName}\` has **${topResource.metricValue}** misscheduled node(s).`,

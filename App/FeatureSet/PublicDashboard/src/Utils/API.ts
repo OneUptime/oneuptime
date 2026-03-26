@@ -6,8 +6,7 @@ import BaseAPI from "Common/UI/Utils/API/API";
 
 export default class API extends BaseAPI {
   public static override getDefaultHeaders(): Headers {
-    const dashboardId: ObjectID | null =
-      PublicDashboardUtil.getDashboardId();
+    const dashboardId: ObjectID | null = PublicDashboardUtil.getDashboardId();
 
     if (!dashboardId) {
       return {};

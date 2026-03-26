@@ -1023,8 +1023,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
 
-    // Teams adaptive cards have a ~28KB payload limit.
-    // Split message blocks into chunks of 40 to avoid hitting the limit.
+    /*
+     * Teams adaptive cards have a ~28KB payload limit.
+     * Split message blocks into chunks of 40 to avoid hitting the limit.
+     */
     const maxBlocksPerCard: number = 40;
     const allMessageBlocks: Array<WorkspaceMessageBlock> =
       data.workspaceMessagePayload.messageBlocks;

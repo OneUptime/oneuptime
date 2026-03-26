@@ -165,10 +165,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                     {/* Component cards grid */}
                     <div className="grid grid-cols-1 gap-2">
                       {categoryComponents.map(
-                        (
-                          componentMetadata: ComponentMetadata,
-                          j: number,
-                        ) => {
+                        (componentMetadata: ComponentMetadata, j: number) => {
                           const isSelected: boolean =
                             selectedComponentMetadata !== null &&
                             selectedComponentMetadata.id ===
@@ -178,9 +175,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                             <div
                               key={j}
                               onClick={() => {
-                                setSelectedComponentMetadata(
-                                  componentMetadata,
-                                );
+                                setSelectedComponentMetadata(componentMetadata);
                               }}
                               className="cursor-pointer transition-all duration-150"
                               style={{
@@ -219,9 +214,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                 <Icon
                                   icon={componentMetadata.iconProp}
                                   style={{
-                                    color: isSelected
-                                      ? "#ffffff"
-                                      : "#64748b",
+                                    color: isSelected ? "#ffffff" : "#64748b",
                                     width: "1rem",
                                     height: "1rem",
                                   }}
@@ -234,9 +227,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                   style={{
                                     fontSize: "0.8125rem",
                                     fontWeight: 600,
-                                    color: isSelected
-                                      ? "#4338ca"
-                                      : "#1e293b",
+                                    color: isSelected ? "#4338ca" : "#1e293b",
                                     margin: 0,
                                     lineHeight: "1.25rem",
                                   }}
@@ -246,9 +237,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                 <p
                                   style={{
                                     fontSize: "0.75rem",
-                                    color: isSelected
-                                      ? "#6366f1"
-                                      : "#94a3b8",
+                                    color: isSelected ? "#6366f1" : "#94a3b8",
                                     margin: 0,
                                     marginTop: "2px",
                                     lineHeight: "1rem",

@@ -76,8 +76,7 @@ export default class DashboardGaugeComponentUtil extends DashboardBaseComponentU
 
     componentArguments.push({
       name: "Warning Threshold",
-      description:
-        "Values above this threshold will be shown in yellow",
+      description: "Values above this threshold will be shown in yellow",
       required: false,
       type: ComponentInputType.Number,
       id: "warningThreshold",
@@ -86,8 +85,7 @@ export default class DashboardGaugeComponentUtil extends DashboardBaseComponentU
 
     componentArguments.push({
       name: "Critical Threshold",
-      description:
-        "Values above this threshold will be shown in red",
+      description: "Values above this threshold will be shown in red",
       required: false,
       type: ComponentInputType.Number,
       id: "criticalThreshold",
