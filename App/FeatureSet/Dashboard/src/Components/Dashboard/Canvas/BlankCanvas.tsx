@@ -44,8 +44,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
           No widgets yet
         </h3>
         <p className="text-sm text-gray-400 max-w-sm mx-auto">
-          Click <strong className="text-gray-500">Edit</strong> to start adding
-          charts, values, gauges, and more to this dashboard.
+          This dashboard does not have any widgets.
         </p>
       </div>
     );

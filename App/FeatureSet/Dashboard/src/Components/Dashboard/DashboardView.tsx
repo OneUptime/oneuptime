@@ -407,7 +407,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardViewConfig(newDashboardConfig);
         }}
       />
-      <div ref={dashboardCanvasRef} className="px-1 pb-4">
+      <div ref={dashboardCanvasRef} className="px-1 pb-4" style={{ background: "#ffffff" }}>
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
           onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {

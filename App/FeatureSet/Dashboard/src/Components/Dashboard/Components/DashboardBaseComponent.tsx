@@ -1,7 +1,6 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -59,286 +58,319 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   onClick: () => void;
 }
 
-type InteractionMode =
-  | "idle"
-  | "moving"
-  | "resizing-width"
-  | "resizing-height"
-  | "resizing-corner";
-
-interface DragState {
-  mode: InteractionMode;
+// ────────────────────────────────────────────────────────────
+// All mutable drag/resize state lives here, outside React.
+// Nothing in this struct triggers a re-render.
+// ────────────────────────────────────────────────────────────
+interface DragSession {
+  mode: "move" | "resize-w" | "resize-h" | "resize-corner";
   startMouseX: number;
   startMouseY: number;
-  startComponentTop: number;
-  startComponentLeft: number;
-  startComponentWidth: number;
-  startComponentHeight: number;
+  // Snapped values at the START of the gesture (dashboard units)
+  originTop: number;
+  originLeft: number;
+  originWidth: number;
+  originHeight: number;
+  // Live snapped values (updated every mousemove, used on commit)
+  liveTop: number;
+  liveLeft: number;
+  liveWidth: number;
+  liveHeight: number;
 }
 
 const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // ── Derived data ──────────────────────────────────────────
   const component: DashboardBaseComponent =
     props.dashboardViewConfig.components.find(
-      (c: DashboardBaseComponent) => {
-        return c.componentId.toString() === props.componentId.toString();
-      },
+      (c: DashboardBaseComponent) =>
+        c.componentId.toString() === props.componentId.toString(),
     ) as DashboardBaseComponent;
 
   const widthOfComponent: number = component.widthInDashboardUnits;
   const heightOfComponent: number = component.heightInDashboardUnits;
 
-  const [interactionMode, setInteractionMode] =
-    useState<InteractionMode>("idle");
+  // ── Minimal React state (only for hover gating) ───────────
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  // We track "is dragging" in a ref so the mousemove handler never
+  // depends on React state.  A *second* copy in useState lets the
+  // JSX read it for className changes on mount/unmount of the drag.
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  // Refs to hold mutable values the mouse handler reads.
-  // This avoids recreating the handler (and removing/re-adding listeners) on
-  // every render, which was causing the flicker.
-  const dragStateRef: React.MutableRefObject<DragState | null> =
-    useRef<DragState | null>(null);
-  const componentRef: React.MutableRefObject<DashboardBaseComponent> =
-    useRef<DashboardBaseComponent>(component);
-  const propsRef: React.MutableRefObject<ComponentProps> =
-    useRef<ComponentProps>(props);
-  const dashboardComponentRef: React.RefObject<HTMLDivElement> =
+  // ── Refs ──────────────────────────────────────────────────
+  const elRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const tooltipRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const sessionRef: React.MutableRefObject<DragSession | null> =
+    useRef<DragSession | null>(null);
+  // Keep latest props/component available for the imperative handlers.
+  const latestProps: React.MutableRefObject<ComponentProps> =
+    useRef<ComponentProps>(props);
+  const latestComponent: React.MutableRefObject<DashboardBaseComponent> =
+    useRef<DashboardBaseComponent>(component);
+  latestProps.current = props;
+  latestComponent.current = component;
 
-  // Keep refs in sync with latest values on every render.
-  componentRef.current = component;
-  propsRef.current = props;
-
-  const isDraggingOrResizing: boolean = interactionMode !== "idle";
-
-  // Stable handler — never recreated.  Reads everything from refs.
-  const handleMouseMove: (event: MouseEvent) => void = useCallback(
-    (event: MouseEvent): void => {
-      const state: DragState | null = dragStateRef.current;
-
-      if (!state) {
-        return;
-      }
-
-      const currentComponent: DashboardBaseComponent = componentRef.current;
-      const currentProps: ComponentProps = propsRef.current;
-      const unitPx: number = GetDashboardUnitWidthInPx(
-        currentProps.totalCurrentDashboardWidthInPx,
-      );
-      const deltaXInPx: number = event.clientX - state.startMouseX;
-      const deltaYInPx: number = event.clientY - state.startMouseY;
-
-      if (state.mode === "moving") {
-        const deltaXUnits: number = Math.round(deltaXInPx / unitPx);
-        const deltaYUnits: number = Math.round(deltaYInPx / unitPx);
-
-        let newTop: number = state.startComponentTop + deltaYUnits;
-        let newLeft: number = state.startComponentLeft + deltaXUnits;
-
-        // Clamp to bounds
-        const maxLeft: number =
-          DefaultDashboardSize.widthInDashboardUnits -
-          currentComponent.widthInDashboardUnits;
-        const maxTop: number =
-          currentProps.dashboardViewConfig.heightInDashboardUnits -
-          currentComponent.heightInDashboardUnits;
-
-        if (newTop > maxTop) {
-          newTop = maxTop;
-        }
-        if (newLeft > maxLeft) {
-          newLeft = maxLeft;
-        }
-        if (newTop < 0) {
-          newTop = 0;
-        }
-        if (newLeft < 0) {
-          newLeft = 0;
-        }
-
-        // Only update if position actually changed
-        if (
-          newTop !== currentComponent.topInDashboardUnits ||
-          newLeft !== currentComponent.leftInDashboardUnits
-        ) {
-          currentProps.onComponentUpdate({
-            ...currentComponent,
-            topInDashboardUnits: newTop,
-            leftInDashboardUnits: newLeft,
-          });
-        }
-      } else if (state.mode === "resizing-width") {
-        if (!dashboardComponentRef.current) {
-          return;
-        }
-        const rect: DOMRect =
-          dashboardComponentRef.current.getBoundingClientRect();
-        const newWidthPx: number = event.pageX - (window.scrollX + rect.left);
-        let widthUnits: number = GetDashboardComponentWidthInDashboardUnits(
-          currentProps.totalCurrentDashboardWidthInPx,
-          Math.max(newWidthPx, unitPx),
-        );
-
-        if (widthUnits < currentComponent.minWidthInDashboardUnits) {
-          widthUnits = currentComponent.minWidthInDashboardUnits;
-        }
-        if (widthUnits > DefaultDashboardSize.widthInDashboardUnits) {
-          widthUnits = DefaultDashboardSize.widthInDashboardUnits;
-        }
-
-        if (widthUnits !== currentComponent.widthInDashboardUnits) {
-          currentProps.onComponentUpdate({
-            ...currentComponent,
-            widthInDashboardUnits: widthUnits,
-          });
-        }
-      } else if (state.mode === "resizing-height") {
-        if (!dashboardComponentRef.current) {
-          return;
-        }
-        const rect: DOMRect =
-          dashboardComponentRef.current.getBoundingClientRect();
-        const newHeightPx: number = event.pageY - (window.scrollY + rect.top);
-        let heightUnits: number = GetDashboardComponentHeightInDashboardUnits(
-          currentProps.totalCurrentDashboardWidthInPx,
-          Math.max(newHeightPx, unitPx),
-        );
-
-        if (heightUnits < currentComponent.minHeightInDashboardUnits) {
-          heightUnits = currentComponent.minHeightInDashboardUnits;
-        }
-
-        if (heightUnits !== currentComponent.heightInDashboardUnits) {
-          currentProps.onComponentUpdate({
-            ...currentComponent,
-            heightInDashboardUnits: heightUnits,
-          });
-        }
-      } else if (state.mode === "resizing-corner") {
-        if (!dashboardComponentRef.current) {
-          return;
-        }
-        const rect: DOMRect =
-          dashboardComponentRef.current.getBoundingClientRect();
-        const newWidthPx: number = event.pageX - (window.scrollX + rect.left);
-        const newHeightPx: number = event.pageY - (window.scrollY + rect.top);
-
-        let widthUnits: number = GetDashboardComponentWidthInDashboardUnits(
-          currentProps.totalCurrentDashboardWidthInPx,
-          Math.max(newWidthPx, unitPx),
-        );
-        let heightUnits: number = GetDashboardComponentHeightInDashboardUnits(
-          currentProps.totalCurrentDashboardWidthInPx,
-          Math.max(newHeightPx, unitPx),
-        );
-
-        if (widthUnits < currentComponent.minWidthInDashboardUnits) {
-          widthUnits = currentComponent.minWidthInDashboardUnits;
-        }
-        if (widthUnits > DefaultDashboardSize.widthInDashboardUnits) {
-          widthUnits = DefaultDashboardSize.widthInDashboardUnits;
-        }
-        if (heightUnits < currentComponent.minHeightInDashboardUnits) {
-          heightUnits = currentComponent.minHeightInDashboardUnits;
-        }
-
-        if (
-          widthUnits !== currentComponent.widthInDashboardUnits ||
-          heightUnits !== currentComponent.heightInDashboardUnits
-        ) {
-          currentProps.onComponentUpdate({
-            ...currentComponent,
-            widthInDashboardUnits: widthUnits,
-            heightInDashboardUnits: heightUnits,
-          });
-        }
-      }
-    },
-    [], // No dependencies — reads from refs
+  // ── Pixel helpers ─────────────────────────────────────────
+  const unitW: number = GetDashboardUnitWidthInPx(
+    props.totalCurrentDashboardWidthInPx,
+  );
+  const unitH: number = GetDashboardUnitHeightInPx(
+    props.totalCurrentDashboardWidthInPx,
   );
 
-  // Stable handler — never recreated.
-  const handleMouseUp: () => void = useCallback((): void => {
-    dragStateRef.current = null;
-    setInteractionMode("idle");
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
-  }, [handleMouseMove]);
+  // ── Core imperative handlers (stable — no deps) ──────────
 
-  // Clean up listeners if the component unmounts mid-drag.
-  useEffect(() => {
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [handleMouseMove, handleMouseUp]);
-
-  const startInteraction: (
-    event: React.MouseEvent,
-    mode: InteractionMode,
-  ) => void = (event: React.MouseEvent, mode: InteractionMode): void => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const currentComponent: DashboardBaseComponent = componentRef.current;
-
-    dragStateRef.current = {
-      mode,
-      startMouseX: event.clientX,
-      startMouseY: event.clientY,
-      startComponentTop: currentComponent.topInDashboardUnits,
-      startComponentLeft: currentComponent.leftInDashboardUnits,
-      startComponentWidth: currentComponent.widthInDashboardUnits,
-      startComponentHeight: currentComponent.heightInDashboardUnits,
-    };
-
-    setInteractionMode(mode);
-
-    // Attach listeners directly — not via useEffect.
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    document.body.style.userSelect = "none";
-
-    if (mode === "moving") {
-      document.body.style.cursor = "grabbing";
-    } else if (mode === "resizing-width") {
-      document.body.style.cursor = "ew-resize";
-    } else if (mode === "resizing-height") {
-      document.body.style.cursor = "ns-resize";
-    } else if (mode === "resizing-corner") {
-      document.body.style.cursor = "nwse-resize";
+  function updateTooltip(session: DragSession): void {
+    if (!tooltipRef.current) {
+      return;
     }
-  };
-
-  // Build class name
-  let className: string = `relative rounded-lg col-span-${widthOfComponent} row-span-${heightOfComponent} bg-white border overflow-hidden`;
-
-  if (isDraggingOrResizing) {
-    className += " z-50 shadow-2xl ring-2 ring-blue-400/40";
-  } else if (props.isSelected && props.isEditMode) {
-    className += " border-blue-400 ring-2 ring-blue-100 shadow-lg z-10";
-  } else if (props.isEditMode && isHovered) {
-    className +=
-      " border-blue-300 shadow-md z-10 cursor-pointer";
-  } else if (props.isEditMode) {
-    className +=
-      " border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer transition-all duration-200";
-  } else {
-    className +=
-      " border-gray-200 hover:shadow-md transition-shadow duration-200";
+    if (session.mode === "move") {
+      tooltipRef.current.textContent = `${session.liveLeft}, ${session.liveTop}`;
+    } else {
+      tooltipRef.current.textContent = `${session.liveWidth} \u00d7 ${session.liveHeight}`;
+    }
   }
 
+  function onMouseMove(e: MouseEvent): void {
+    const s: DragSession | null = sessionRef.current;
+    if (!s) {
+      return;
+    }
+
+    const p: ComponentProps = latestProps.current;
+    const c: DashboardBaseComponent = latestComponent.current;
+    const uW: number = GetDashboardUnitWidthInPx(
+      p.totalCurrentDashboardWidthInPx,
+    );
+    const uH: number = GetDashboardUnitHeightInPx(
+      p.totalCurrentDashboardWidthInPx,
+    );
+
+    const dxPx: number = e.clientX - s.startMouseX;
+    const dyPx: number = e.clientY - s.startMouseY;
+
+    const el: HTMLDivElement | null = elRef.current;
+    if (!el) {
+      return;
+    }
+
+    if (s.mode === "move") {
+      // Pure CSS transform — no React render
+      el.style.transform = `translate(${dxPx}px, ${dyPx}px) scale(1.01)`;
+      el.style.zIndex = "100";
+
+      // Compute snapped grid position for the tooltip & commit
+      const dxUnits: number = Math.round(dxPx / uW);
+      const dyUnits: number = Math.round(dyPx / uH);
+
+      let newLeft: number = s.originLeft + dxUnits;
+      let newTop: number = s.originTop + dyUnits;
+      const maxLeft: number =
+        DefaultDashboardSize.widthInDashboardUnits - c.widthInDashboardUnits;
+      const maxTop: number =
+        p.dashboardViewConfig.heightInDashboardUnits -
+        c.heightInDashboardUnits;
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+
+      s.liveLeft = newLeft;
+      s.liveTop = newTop;
+
+      updateTooltip(s);
+    } else {
+      // Resize modes — directly set width / height on the DOM element
+      const rect: DOMRect = el.getBoundingClientRect();
+
+      if (s.mode === "resize-w" || s.mode === "resize-corner") {
+        const wPx: number = Math.max(uW, e.pageX - (window.scrollX + rect.left));
+        let wUnits: number = GetDashboardComponentWidthInDashboardUnits(
+          p.totalCurrentDashboardWidthInPx,
+          wPx,
+        );
+        wUnits = Math.max(c.minWidthInDashboardUnits, wUnits);
+        wUnits = Math.min(DefaultDashboardSize.widthInDashboardUnits, wUnits);
+        s.liveWidth = wUnits;
+
+        const newWidthPx: number =
+          uW * wUnits + (SpaceBetweenUnitsInPx - 2) * (wUnits - 1);
+        el.style.width = `${newWidthPx}px`;
+      }
+
+      if (s.mode === "resize-h" || s.mode === "resize-corner") {
+        const hPx: number = Math.max(uH, e.pageY - (window.scrollY + rect.top));
+        let hUnits: number = GetDashboardComponentHeightInDashboardUnits(
+          p.totalCurrentDashboardWidthInPx,
+          hPx,
+        );
+        hUnits = Math.max(c.minHeightInDashboardUnits, hUnits);
+        s.liveHeight = hUnits;
+
+        const newHeightPx: number =
+          uH * hUnits + SpaceBetweenUnitsInPx * (hUnits - 1);
+        el.style.height = `${newHeightPx}px`;
+      }
+
+      updateTooltip(s);
+    }
+  }
+
+  function onMouseUp(): void {
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+
+    const s: DragSession | null = sessionRef.current;
+    const el: HTMLDivElement | null = elRef.current;
+
+    if (el) {
+      el.style.transform = "";
+      el.style.zIndex = "";
+      // Width/height are cleared so React's values take over after commit
+      el.style.width = "";
+      el.style.height = "";
+    }
+
+    sessionRef.current = null;
+    setIsDragging(false);
+
+    if (!s) {
+      return;
+    }
+
+    const c: DashboardBaseComponent = latestComponent.current;
+    const p: ComponentProps = latestProps.current;
+
+    // Build the final component — only the fields that changed
+    const updated: DashboardBaseComponent = { ...c };
+    let changed: boolean = false;
+
+    if (s.mode === "move") {
+      if (
+        s.liveTop !== c.topInDashboardUnits ||
+        s.liveLeft !== c.leftInDashboardUnits
+      ) {
+        updated.topInDashboardUnits = s.liveTop;
+        updated.leftInDashboardUnits = s.liveLeft;
+        changed = true;
+      }
+    } else {
+      if (s.liveWidth !== c.widthInDashboardUnits) {
+        updated.widthInDashboardUnits = s.liveWidth;
+        changed = true;
+      }
+      if (s.liveHeight !== c.heightInDashboardUnits) {
+        updated.heightInDashboardUnits = s.liveHeight;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      p.onComponentUpdate(updated);
+    }
+  }
+
+  // Clean up if component unmounts while dragging
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
+  // ── Start a drag / resize session ─────────────────────────
+  function startSession(
+    e: React.MouseEvent,
+    mode: DragSession["mode"],
+  ): void {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const c: DashboardBaseComponent = latestComponent.current;
+
+    const session: DragSession = {
+      mode,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      originTop: c.topInDashboardUnits,
+      originLeft: c.leftInDashboardUnits,
+      originWidth: c.widthInDashboardUnits,
+      originHeight: c.heightInDashboardUnits,
+      liveTop: c.topInDashboardUnits,
+      liveLeft: c.leftInDashboardUnits,
+      liveWidth: c.widthInDashboardUnits,
+      liveHeight: c.heightInDashboardUnits,
+    };
+
+    sessionRef.current = session;
+    setIsDragging(true);
+
+    // Show initial tooltip value
+    updateTooltip(session);
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+
+    document.body.style.userSelect = "none";
+    if (mode === "move") {
+      document.body.style.cursor = "grabbing";
+    } else if (mode === "resize-w") {
+      document.body.style.cursor = "ew-resize";
+    } else if (mode === "resize-h") {
+      document.body.style.cursor = "ns-resize";
+    } else {
+      document.body.style.cursor = "nwse-resize";
+    }
+  }
+
+  // ── Styling ───────────────────────────────────────────────
   const showHandles: boolean =
-    props.isEditMode && (props.isSelected || isHovered);
+    props.isEditMode && (props.isSelected || isHovered || isDragging);
+
+  let borderClass: string = "border-gray-200";
+  let extraClass: string = "";
+
+  if (isDragging) {
+    borderClass = "border-blue-400";
+    extraClass = "ring-2 ring-blue-400/40 shadow-2xl";
+  } else if (props.isSelected && props.isEditMode) {
+    borderClass = "border-blue-400";
+    extraClass = "ring-2 ring-blue-100 shadow-lg z-10";
+  } else if (props.isEditMode && isHovered) {
+    borderClass = "border-blue-300";
+    extraClass = "shadow-md z-10 cursor-pointer";
+  } else if (props.isEditMode) {
+    extraClass =
+      "hover:border-blue-300 hover:shadow-md cursor-pointer transition-all duration-200";
+  } else {
+    extraClass = "hover:shadow-md transition-shadow duration-200";
+  }
+
+  const className: string = [
+    "relative rounded-lg bg-white border overflow-hidden",
+    `col-span-${widthOfComponent} row-span-${heightOfComponent}`,
+    borderClass,
+    extraClass,
+  ].join(" ");
+
+  // ── Computed sizes (React-controlled, used when NOT dragging) ──
+  const componentHeight: number =
+    unitH * heightOfComponent +
+    SpaceBetweenUnitsInPx * (heightOfComponent - 1);
+
+  const componentWidth: number =
+    unitW * widthOfComponent +
+    (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1);
+
+  // ── Render ────────────────────────────────────────────────
 
   const getMoveHandle: GetReactElementFunction = (): ReactElement => {
     if (!showHandles) {
       return <></>;
     }
-
     return (
       <div
         className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center cursor-grab active:cursor-grabbing"
@@ -348,13 +380,10 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             "linear-gradient(180deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.02) 100%)",
           borderBottom: "1px solid rgba(59,130,246,0.12)",
         }}
-        onMouseDown={(
-          event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-        ) => {
-          startInteraction(event, "moving");
+        onMouseDown={(e: React.MouseEvent) => {
+          startSession(e, "move");
         }}
       >
-        {/* Grip dots pattern */}
         <div className="flex items-center gap-0.5 opacity-40 hover:opacity-70 transition-opacity">
           <svg width="20" height="10" viewBox="0 0 20 10" fill="none">
             <circle cx="4" cy="3" r="1.2" fill="#3b82f6" />
@@ -373,7 +402,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     if (!showHandles) {
       return <></>;
     }
-
     return (
       <div
         className="absolute z-20 group"
@@ -384,10 +412,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           width: "8px",
           cursor: "ew-resize",
         }}
-        onMouseDown={(
-          event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-        ) => {
-          startInteraction(event, "resizing-width");
+        onMouseDown={(e: React.MouseEvent) => {
+          startSession(e, "resize-w");
         }}
       >
         <div
@@ -406,7 +432,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     if (!showHandles) {
       return <></>;
     }
-
     return (
       <div
         className="absolute z-20 group"
@@ -417,10 +442,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           height: "8px",
           cursor: "ns-resize",
         }}
-        onMouseDown={(
-          event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-        ) => {
-          startInteraction(event, "resizing-height");
+        onMouseDown={(e: React.MouseEvent) => {
+          startSession(e, "resize-h");
         }}
       >
         <div
@@ -439,7 +462,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     if (!showHandles) {
       return <></>;
     }
-
     return (
       <div
         className="absolute z-30 group"
@@ -450,14 +472,12 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           height: "16px",
           cursor: "nwse-resize",
         }}
-        onMouseDown={(
-          event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-        ) => {
-          startInteraction(event, "resizing-corner");
+        onMouseDown={(e: React.MouseEvent) => {
+          startSession(e, "resize-corner");
         }}
       >
         <div
-          className="absolute bottom-1 right-1 transition-all duration-150"
+          className="absolute bottom-1 right-1"
           style={{
             width: "8px",
             height: "8px",
@@ -470,53 +490,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // Size tooltip during resize
-  const getSizeTooltip: GetReactElementFunction = (): ReactElement => {
-    if (!isDraggingOrResizing) {
-      return <></>;
-    }
-
-    let label: string = "";
-
-    if (interactionMode === "moving") {
-      label = `${component.leftInDashboardUnits}, ${component.topInDashboardUnits}`;
-    } else {
-      label = `${component.widthInDashboardUnits} \u00d7 ${component.heightInDashboardUnits}`;
-    }
-
-    return (
-      <div
-        className="absolute z-50 pointer-events-none"
-        style={{
-          top: "-32px",
-          left: "50%",
-          transform: "translateX(-50%)",
-        }}
-      >
-        <div
-          className="px-2 py-1 rounded-md text-xs font-mono font-medium text-white whitespace-nowrap"
-          style={{
-            background: "rgba(30, 41, 59, 0.9)",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-    );
-  };
-
-  const componentHeight: number =
-    GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
-      heightOfComponent +
-    SpaceBetweenUnitsInPx * (heightOfComponent - 1);
-
-  const componentWidth: number =
-    GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
-      widthOfComponent +
-    (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1);
-
   return (
     <div
       className={className}
@@ -524,20 +497,19 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         margin: `${MarginForEachUnitInPx}px`,
         height: `${componentHeight}px`,
         width: `${componentWidth}px`,
-        boxShadow: isDraggingOrResizing
-          ? "0 20px 40px -8px rgba(59, 130, 246, 0.15), 0 8px 16px -4px rgba(0, 0, 0, 0.08)"
+        boxShadow: isDragging
+          ? "0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08)"
           : props.isSelected && props.isEditMode
-            ? "0 4px 12px -2px rgba(59, 130, 246, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.04)"
-            : "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
-        transform: isDraggingOrResizing ? "scale(1.01)" : "scale(1)",
-        transition: isDraggingOrResizing
+            ? "0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04)"
+            : "0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03)",
+        // transition is disabled during drag so the transform is instant
+        transition: isDragging
           ? "none"
-          : "box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease",
+          : "box-shadow 0.2s ease, border-color 0.2s ease",
       }}
-      key={component.componentId?.toString() || Math.random().toString()}
-      ref={dashboardComponentRef}
+      ref={elRef}
       onClick={(e: React.MouseEvent) => {
-        if (!isDraggingOrResizing) {
+        if (!isDragging) {
           props.onClick();
         }
         e.stopPropagation();
@@ -546,16 +518,36 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         setIsHovered(true);
       }}
       onMouseLeave={() => {
-        if (!isDraggingOrResizing) {
+        if (!isDragging) {
           setIsHovered(false);
         }
       }}
     >
       {getMoveHandle()}
-      {getSizeTooltip()}
+
+      {/* Tooltip — updated imperatively via ref, never causes a render */}
+      <div
+        className="absolute z-50 pointer-events-none"
+        style={{
+          top: "-32px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: isDragging ? "block" : "none",
+        }}
+      >
+        <div
+          ref={tooltipRef}
+          className="px-2 py-1 rounded-md text-xs font-mono font-medium text-white whitespace-nowrap"
+          style={{
+            background: "rgba(30, 41, 59, 0.9)",
+            backdropFilter: "blur(4px)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          }}
+        />
+      </div>
 
       {/* Component type badge */}
-      {props.isEditMode && (props.isSelected || isHovered) && (
+      {props.isEditMode && (props.isSelected || isHovered) && !isDragging && (
         <div
           className="absolute z-10 pointer-events-none"
           style={{
@@ -568,7 +560,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             style={{
               background: "rgba(241, 245, 249, 0.9)",
               color: "#64748b",
-              backdropFilter: "blur(4px)",
             }}
           >
             {component.componentType}
@@ -576,7 +567,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Component content area */}
+      {/* Component content */}
       <div
         className="w-full h-full"
         style={{

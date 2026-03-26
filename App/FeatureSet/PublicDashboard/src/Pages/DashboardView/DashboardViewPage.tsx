@@ -361,7 +361,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Dashboard Canvas */}
-      <div ref={dashboardCanvasRef} className="mt-3">
+      <div ref={dashboardCanvasRef} className="mt-3" style={{ background: "#ffffff" }}>
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
           onDashboardViewConfigChange={(_config: DashboardViewConfig) => {

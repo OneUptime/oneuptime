@@ -212,16 +212,8 @@ export default class DashboardAPI extends BaseAPI<
             enableMasterPassword: dashboard.enableMasterPassword || false,
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
-            logoFile: dashboard.logoFile
-              ? JSONFunctions.serialize(
-                  dashboard.logoFile as any,
-                )
-              : null,
-            faviconFile: dashboard.faviconFile
-              ? JSONFunctions.serialize(
-                  dashboard.faviconFile as any,
-                )
-              : null,
+            logoFile: DashboardAPI.getFileAsBase64JSONObject(dashboard.logoFile),
+            faviconFile: DashboardAPI.getFileAsBase64JSONObject(dashboard.faviconFile),
           });
         } catch (err) {
           next(err);
@@ -287,11 +279,7 @@ export default class DashboardAPI extends BaseAPI<
             description: dashboard.description || "",
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
-            logoFile: dashboard.logoFile
-              ? JSONFunctions.serialize(
-                  dashboard.logoFile as any,
-                )
-              : null,
+            logoFile: DashboardAPI.getFileAsBase64JSONObject(dashboard.logoFile),
             dashboardViewConfig: dashboard.dashboardViewConfig
               ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
               : null,
@@ -377,5 +365,36 @@ export default class DashboardAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  private static getFileAsBase64JSONObject(
+    file: any,
+  ): { file: string; fileType: string } | null {
+    if (!file || !file.file) {
+      return null;
+    }
+
+    let base64: string;
+    const fileBuffer: any = file.file;
+
+    if (Buffer.isBuffer(fileBuffer)) {
+      base64 = fileBuffer.toString("base64");
+    } else if (
+      fileBuffer &&
+      typeof fileBuffer === "object" &&
+      fileBuffer.value &&
+      fileBuffer.value.data
+    ) {
+      base64 = Buffer.from(fileBuffer.value.data).toString("base64");
+    } else if (typeof fileBuffer === "string") {
+      base64 = fileBuffer;
+    } else {
+      return null;
+    }
+
+    return {
+      file: base64,
+      fileType: (file.fileType as string) || "image/png",
+    };
   }
 }
