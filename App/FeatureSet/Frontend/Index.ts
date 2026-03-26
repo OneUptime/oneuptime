@@ -44,6 +44,11 @@ const StatusPagePublicPath: string =
 const StatusPageViewPath: string =
   "/usr/src/app/FeatureSet/StatusPage/views/index.ejs";
 
+const PublicDashboardPublicPath: string =
+  "/usr/src/app/FeatureSet/PublicDashboard/public";
+const PublicDashboardViewPath: string =
+  "/usr/src/app/FeatureSet/PublicDashboard/views/index.ejs";
+
 interface FrontendConfig {
   routePrefix: string;
   publicPath: string;
@@ -67,6 +72,8 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page-api",
   "/status-page-sso-api",
   "/status-page-identity-api",
+  "/public-dashboard",
+  "/public-dashboard-api",
   "/api",
   "/identity",
   "/notification",
@@ -101,6 +108,7 @@ const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page-api",
   "/status-page-sso-api",
   "/status-page-identity-api",
+  "/public-dashboard-api",
   "/.well-known",
   "/rss",
 ];
@@ -482,6 +490,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   });
 
   registerFrontendApp(StatusPageFrontendConfig);
+
+  registerFrontendApp({
+    routePrefix: "/public-dashboard",
+    publicPath: PublicDashboardPublicPath,
+    indexViewPath: PublicDashboardViewPath,
+  });
 
   registerDashboardRootPwaFiles();
   registerStatusPageCustomDomainFallback();

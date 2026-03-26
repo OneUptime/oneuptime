@@ -144,15 +144,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       );
     });
 
+  // Collect metric variables from both metricMonitor and kubernetesMonitor configs
+  const metricViewConfig =
+    props.monitorStep.data?.metricMonitor?.metricViewConfig ||
+    props.monitorStep.data?.kubernetesMonitor?.metricViewConfig;
+
   let metricVariables: Array<string> =
-    props.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs?.map(
+    metricViewConfig?.queryConfigs?.map(
       (queryConfig: MetricQueryConfigData) => {
         return queryConfig.metricAliasData?.metricVariable || "";
       },
     ) || [];
 
   // push formula variables as well.
-  props.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs?.forEach(
+  metricViewConfig?.formulaConfigs?.forEach(
     (formulaConfig: MetricFormulaConfigData) => {
       metricVariables.push(formulaConfig.metricAliasData.metricVariable || "");
     },

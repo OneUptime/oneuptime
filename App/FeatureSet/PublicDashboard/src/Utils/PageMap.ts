@@ -1,0 +1,13 @@
+enum PageMap {
+  OVERVIEW = "OVERVIEW",
+  NOT_FOUND = "NOT_FOUND",
+  FORBIDDEN = "FORBIDDEN",
+  MASTER_PASSWORD = "MASTER_PASSWORD",
+
+  // Preview routes (accessed via /public-dashboard/:dashboardId)
+  PREVIEW_OVERVIEW = "PREVIEW_OVERVIEW",
+  PREVIEW_FORBIDDEN = "PREVIEW_FORBIDDEN",
+  PREVIEW_MASTER_PASSWORD = "PREVIEW_MASTER_PASSWORD",
+}
+
+export default PageMap;

@@ -54,14 +54,14 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200 overflow-hidden"
+      className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200"
       style={{
         boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
       }}
     >
       {/* Accent top bar */}
       <div
-        className="h-0.5"
+        className="h-0.5 rounded-t-lg"
         style={{
           background: isEditMode
             ? "linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)"
@@ -102,6 +102,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
                   <MoreMenuItem
                     text={"Chart"}
+                    icon={IconProp.ChartBar}
                     key={"add-chart"}
                     onClick={() => {
                       props.onAddComponentClick(DashboardComponentType.Chart);
@@ -109,6 +110,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Value"}
+                    icon={IconProp.Hashtag}
                     key={"add-value"}
                     onClick={() => {
                       props.onAddComponentClick(DashboardComponentType.Value);
@@ -116,6 +118,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Text"}
+                    icon={IconProp.Text}
                     key={"add-text"}
                     onClick={() => {
                       props.onAddComponentClick(DashboardComponentType.Text);
@@ -123,6 +126,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Table"}
+                    icon={IconProp.TableCells}
                     key={"add-table"}
                     onClick={() => {
                       props.onAddComponentClick(DashboardComponentType.Table);
@@ -130,6 +134,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Gauge"}
+                    icon={IconProp.Activity}
                     key={"add-gauge"}
                     onClick={() => {
                       props.onAddComponentClick(DashboardComponentType.Gauge);
@@ -137,6 +142,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Log Stream"}
+                    icon={IconProp.Logs}
                     key={"add-log-stream"}
                     onClick={() => {
                       props.onAddComponentClick(
@@ -146,6 +152,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Trace List"}
+                    icon={IconProp.QueueList}
                     key={"add-trace-list"}
                     onClick={() => {
                       props.onAddComponentClick(
