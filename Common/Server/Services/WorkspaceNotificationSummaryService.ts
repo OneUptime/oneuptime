@@ -822,6 +822,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             ackResolve.push(
               `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
             );
+          } else if (td?.resolvedBy && td?.resolvedAt) {
+            // If not explicitly acknowledged but resolved, ack time = resolve time
+            ackResolve.push(
+              `Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+            );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
           }
@@ -1251,6 +1256,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             ackResolve.push(
               `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
             );
+          } else if (td?.resolvedBy && td?.resolvedAt) {
+            // If not explicitly acknowledged but resolved, ack time = resolve time
+            ackResolve.push(
+              `Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+            );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
           }
@@ -1433,8 +1443,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     let total: number = 0;
     let count: number = 0;
     for (const [, td] of tlMap) {
+      // For ack: if not explicitly acknowledged but resolved, use resolve time as ack time
       const eventTime: Date | undefined =
-        kind === "ack" ? td.ackAt : td.resolvedAt;
+        kind === "ack" ? (td.ackAt || td.resolvedAt) : td.resolvedAt;
       if (eventTime && td.declaredAt) {
         total += OneUptimeDate.getMinutesBetweenTwoDates(
           td.declaredAt,
