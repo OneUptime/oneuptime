@@ -65,6 +65,7 @@ const App: () => JSX.Element = () => {
   const [error, setError] = useState<string | null>(null);
   const [dashboardId, setDashboardId] = useState<ObjectID | null>(null);
   const [dashboardName, setDashboardName] = useState<string>("Dashboard");
+  const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
   type GetIdFunction = () => Promise<ObjectID>;
 
   const getId: GetIdFunction = async (): Promise<ObjectID> => {
@@ -121,11 +122,13 @@ const App: () => JSX.Element = () => {
         const enableMasterPassword: boolean = Boolean(
           response.data["enableMasterPassword"],
         );
-        const isPublicDashboard: boolean = Boolean(
+        const isPublic: boolean = Boolean(
           response.data["isPublicDashboard"],
         );
 
-        if (!isPublicDashboard && enableMasterPassword) {
+        setIsPublicDashboard(isPublic);
+
+        if (isPublic && enableMasterPassword) {
           PublicDashboardUtil.setRequiresMasterPassword(true);
         } else {
           PublicDashboardUtil.setRequiresMasterPassword(false);
@@ -148,6 +151,15 @@ const App: () => JSX.Element = () => {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <ErrorMessage message={error} />
       </div>
+    );
+  }
+
+  // If dashboard is not public, show 404
+  if (!isPublicDashboard) {
+    return (
+      <Suspense fallback={<PageLoader isVisible={true} />}>
+        <NotFoundPage />
+      </Suspense>
     );
   }
 

@@ -243,9 +243,9 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException("Dashboard not found");
           }
 
-          if (dashboard.isPublicDashboard) {
+          if (!dashboard.isPublicDashboard) {
             throw new BadDataException(
-              "This dashboard is already visible to everyone.",
+              "This dashboard is not publicly accessible.",
             );
           }
 

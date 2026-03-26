@@ -87,6 +87,16 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      // If dashboard is not public, deny access
+      if (dashboard && !dashboard.isPublicDashboard) {
+        return {
+          hasReadAccess: false,
+          error: new NotAuthenticatedException(
+            "This dashboard is not available.",
+          ),
+        };
+      }
+
       if (dashboard?.ipWhitelist && dashboard.ipWhitelist.length > 0) {
         const ipWhitelist: Array<string> = dashboard.ipWhitelist?.split("\n");
 
@@ -129,17 +139,11 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
-      if (dashboard && dashboard.isPublicDashboard) {
-        return {
-          hasReadAccess: true,
-        };
-      }
-
       const shouldEnforceMasterPassword: boolean = Boolean(
         dashboard &&
+          dashboard.isPublicDashboard &&
           dashboard.enableMasterPassword &&
-          dashboard.masterPassword &&
-          !dashboard.isPublicDashboard,
+          dashboard.masterPassword,
       );
 
       if (shouldEnforceMasterPassword) {
@@ -162,6 +166,13 @@ export class Service extends DatabaseService<Model> {
           ),
         };
       }
+
+      // Public dashboard without master password - grant access
+      if (dashboard && dashboard.isPublicDashboard) {
+        return {
+          hasReadAccess: true,
+        };
+      }
     } catch (err) {
       logger.error(err);
     }
@@ -169,7 +180,7 @@ export class Service extends DatabaseService<Model> {
     return {
       hasReadAccess: false,
       error: new NotAuthenticatedException(
-        "You do not have access to this dashboard. Please login to view the dashboard.",
+        "You do not have access to this dashboard.",
       ),
     };
   }
