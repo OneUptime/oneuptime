@@ -1,5 +1,4 @@
 import Button, { ButtonStyleType } from "../Button/Button";
-import Divider from "../Divider/Divider";
 import BasicForm from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
@@ -15,6 +14,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import Icon from "../Icon/Icon";
 
 export interface ComponentProps {
   title: string;
@@ -47,7 +47,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       }}
       leftFooterElement={
         <Button
-          title={`Delete ${component.metadata.componentType}`}
+          title={`Delete`}
           icon={IconProp.Trash}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           onClick={() => {
@@ -73,7 +73,40 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             submitButtonType={ButtonStyleType.DANGER}
           />
         )}
-        <div className="mb-3 mt-3">
+
+        {/* Component ID Section */}
+        <div
+          style={{
+            backgroundColor: "#f8fafc",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            padding: "1rem",
+            marginTop: "0.75rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <Icon
+              icon={IconProp.Label}
+              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+            />
+            <span
+              style={{
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                color: "#334155",
+              }}
+            >
+              Identity
+            </span>
+          </div>
           <BasicForm
             hideSubmitButton={true}
             initialValues={{
@@ -91,23 +124,54 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             fields={[
               {
                 title: `${component.metadata.componentType} ID`,
-                description: `${component.metadata.componentType} ID will make it easier for you to connect to other components.`,
+                description: `Unique identifier used to reference this ${component.metadata.componentType.toLowerCase()} from other components.`,
                 field: {
                   id: true,
                 },
-
                 required: true,
-
                 fieldType: FormFieldSchemaType.Text,
               },
             ]}
           />
         </div>
 
+        {/* Documentation Section */}
         {component.metadata.documentationLink && (
-          <div>
-            <Divider />
-
+          <div
+            style={{
+              backgroundColor: "#eff6ff",
+              borderRadius: "10px",
+              border: "1px solid #bfdbfe",
+              padding: "1rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              <Icon
+                icon={IconProp.Book}
+                style={{
+                  color: "#3b82f6",
+                  width: "0.875rem",
+                  height: "0.875rem",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  color: "#1e40af",
+                }}
+              >
+                Documentation
+              </span>
+            </div>
             <DocumentationViewer
               documentationLink={component.metadata.documentationLink}
               workflowId={props.workflowId}
@@ -115,48 +179,133 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <Divider />
-
-        <ArgumentsForm
-          graphComponents={props.graphComponents}
-          workflowId={props.workflowId}
-          component={component}
-          onFormChange={(component: NodeDataProp) => {
-            setComponent({ ...component });
+        {/* Arguments Section */}
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            padding: "1rem",
+            marginBottom: "1rem",
           }}
-          onHasFormValidationErrors={(value: Dictionary<boolean>) => {
-            setHasFormValidationErrors({
-              ...hasFormValidationErrors,
-              ...value,
-            });
-          }}
-        />
-
-        <Divider />
-
-        <div className="mb-3 mt-3">
-          <ComponentPortViewer
-            name="In Ports"
-            description="Here  is a list of inports for this component"
-            ports={component.metadata.inPorts}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <Icon
+              icon={IconProp.Settings}
+              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+            />
+            <span
+              style={{
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                color: "#334155",
+              }}
+            >
+              Configuration
+            </span>
+          </div>
+          <ArgumentsForm
+            graphComponents={props.graphComponents}
+            workflowId={props.workflowId}
+            component={component}
+            onFormChange={(component: NodeDataProp) => {
+              setComponent({ ...component });
+            }}
+            onHasFormValidationErrors={(value: Dictionary<boolean>) => {
+              setHasFormValidationErrors({
+                ...hasFormValidationErrors,
+                ...value,
+              });
+            }}
           />
         </div>
 
-        <Divider />
-
-        <div className="mb-3 mt-3">
+        {/* Ports Section */}
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            padding: "1rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginBottom: "0.25rem",
+            }}
+          >
+            <Icon
+              icon={IconProp.Link}
+              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+            />
+            <span
+              style={{
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                color: "#334155",
+              }}
+            >
+              Connections
+            </span>
+          </div>
+          <ComponentPortViewer
+            name="In Ports"
+            description="Input connections for this component"
+            ports={component.metadata.inPorts}
+          />
           <ComponentPortViewer
             name="Out Ports"
-            description="Here  is a list of outports for this component"
+            description="Output connections from this component"
             ports={component.metadata.outPorts}
           />
         </div>
 
-        <Divider />
-        <div className="mb-3 mt-3">
+        {/* Return Values Section */}
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            padding: "1rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginBottom: "0.25rem",
+            }}
+          >
+            <Icon
+              icon={IconProp.ArrowCircleRight}
+              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+            />
+            <span
+              style={{
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                color: "#334155",
+              }}
+            >
+              Output
+            </span>
+          </div>
           <ComponentReturnValueViewer
             name="Return Values"
-            description="Here  is a list of values that this component returns"
+            description="Values this component produces for downstream use"
             returnValues={component.metadata.returnValues}
           />
         </div>
