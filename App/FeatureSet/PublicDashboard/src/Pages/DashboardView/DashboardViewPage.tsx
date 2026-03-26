@@ -34,12 +34,6 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
-import NavBar from "Common/UI/Components/Navbar/NavBar";
-import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PublicDashboardUtil from "../../Utils/PublicDashboard";
-import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -216,14 +210,6 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
-  const isPreview: boolean = PublicDashboardUtil.isPreviewPage();
-
-  const overviewRoute: Route = RouteUtil.populateRouteParams(
-    isPreview
-      ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-      : (RouteMap[PageMap.OVERVIEW] as Route),
-  );
-
   return (
     <div
       ref={dashboardViewRef}
@@ -233,174 +219,149 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         background: "#fafbfc",
       }}
     >
-      {/* Header and NavBar */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-5">
-        <div className="flex items-center gap-4 mt-5">
-          {logoUrl && (
-            <img
-              src={logoUrl}
-              alt={dashboardName}
-              className="h-10 w-auto object-contain"
-            />
-          )}
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 truncate">
-              {dashboardName}
-            </h1>
-            {pageDescription && (
-              <p className="text-sm text-gray-500 mt-0.5 truncate">
-                {pageDescription}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <NavBar className="bg-white flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5">
-          <NavBarItem
-            id="overview-nav-bar-item"
-            title="Overview"
-            icon={IconProp.CheckCircle}
-            exact={true}
-            route={overviewRoute}
-          />
-        </NavBar>
-      </div>
-
-      {/* Public Dashboard Toolbar */}
+      {/* Header */}
       <div
-        className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200"
+        className="bg-white border-b border-gray-200"
         style={{
-          boxShadow:
-            "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
         }}
       >
-        <div
-          className="h-0.5 rounded-t-lg"
-          style={{
-            background: "linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)",
-          }}
-        ></div>
-        <div className="flex items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-3 min-w-0">
-            {hasComponents && (
-              <span className="text-xs text-gray-400 tabular-nums">
-                {dashboardViewConfig.components.length} widget
-                {dashboardViewConfig.components.length !== 1 ? "s" : ""}
-              </span>
-            )}
-            {isRefreshing &&
-              autoRefreshInterval !== AutoRefreshInterval.OFF && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-blue-600">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-                  Refreshing
-                </span>
+        <div className="max-w-7xl mx-auto px-5 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo + Title + Description */}
+            <div className="flex items-center gap-4 min-w-0">
+              {logoUrl && (
+                <img
+                  src={logoUrl}
+                  alt={dashboardName}
+                  className="h-8 w-auto object-contain flex-shrink-0"
+                />
               )}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {/* Reset Zoom button */}
-            {timeRangeStack.length > 0 && (
-              <Button
-                icon={IconProp.Refresh}
-                title="Reset Zoom"
-                buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                onClick={() => {
-                  const previousRange: RangeStartAndEndDateTime | undefined =
-                    timeRangeStack[0];
-                  if (previousRange) {
-                    setStartAndEndDate(previousRange);
-                    setTimeRangeStack([]);
-                  }
-                }}
-                tooltip="Reset to original time range"
-              />
-            )}
-
-            {/* Auto-refresh dropdown */}
-            {hasComponents && (
-              <MoreMenu
-                menuIcon={IconProp.Refresh}
-                text={
-                  autoRefreshInterval !== AutoRefreshInterval.OFF
-                    ? getAutoRefreshIntervalLabel(autoRefreshInterval)
-                    : ""
-                }
-              >
-                {Object.values(AutoRefreshInterval).map(
-                  (interval: AutoRefreshInterval) => {
-                    return (
-                      <MoreMenuItem
-                        key={interval}
-                        text={getAutoRefreshIntervalLabel(interval)}
-                        onClick={() => {
-                          setAutoRefreshInterval(interval);
-                        }}
-                      />
-                    );
-                  },
+              <div className="min-w-0">
+                <h1 className="text-lg font-semibold text-gray-900 truncate">
+                  {dashboardName}
+                </h1>
+                {pageDescription && (
+                  <p className="text-sm text-gray-500 truncate">
+                    {pageDescription}
+                  </p>
                 )}
-              </MoreMenu>
-            )}
-
-            <Button
-              icon={IconProp.Expand}
-              buttonStyle={ButtonStyleType.ICON}
-              onClick={() => {
-                const canvasElement: HTMLDivElement | null =
-                  dashboardCanvasRef.current;
-
-                if (!canvasElement) {
-                  return;
-                }
-
-                if (canvasElement.requestFullscreen) {
-                  canvasElement.requestFullscreen();
-                }
-              }}
-              tooltip="Full Screen"
-            />
-          </div>
-        </div>
-
-        {/* Bottom row: Time range + variables */}
-        {hasComponents && (
-          <div className="flex items-center gap-3 px-5 pb-3 pt-0 flex-wrap">
-            <div>
-              <RangeStartAndEndDateView
-                dashboardStartAndEndDate={startAndEndDate}
-                onChange={(newRange: RangeStartAndEndDateTime) => {
-                  setTimeRangeStack([...timeRangeStack, startAndEndDate]);
-                  setStartAndEndDate(newRange);
-                }}
-              />
+              </div>
             </div>
 
-            {dashboardVariables.length > 0 && (
-              <>
-                <div className="w-px h-5 bg-gray-200"></div>
-                <DashboardVariableSelector
-                  variables={dashboardVariables}
-                  onVariableValueChange={(
-                    variableId: string,
-                    value: string,
-                  ) => {
-                    setDashboardVariables(
-                      dashboardVariables.map((v: DashboardVariable) => {
-                        if (v.id === variableId) {
-                          return { ...v, currentValue: value };
-                        }
-                        return v;
-                      }),
-                    );
+            {/* Controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isRefreshing &&
+                autoRefreshInterval !== AutoRefreshInterval.OFF && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-blue-600">
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                    Refreshing
+                  </span>
+                )}
+
+              {timeRangeStack.length > 0 && (
+                <Button
+                  icon={IconProp.Refresh}
+                  title="Reset Zoom"
+                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                  onClick={() => {
+                    const previousRange: RangeStartAndEndDateTime | undefined =
+                      timeRangeStack[0];
+                    if (previousRange) {
+                      setStartAndEndDate(previousRange);
+                      setTimeRangeStack([]);
+                    }
+                  }}
+                  tooltip="Reset to original time range"
+                />
+              )}
+
+              {hasComponents && (
+                <MoreMenu
+                  menuIcon={IconProp.Refresh}
+                  text={
+                    autoRefreshInterval !== AutoRefreshInterval.OFF
+                      ? getAutoRefreshIntervalLabel(autoRefreshInterval)
+                      : ""
+                  }
+                >
+                  {Object.values(AutoRefreshInterval).map(
+                    (interval: AutoRefreshInterval) => {
+                      return (
+                        <MoreMenuItem
+                          key={interval}
+                          text={getAutoRefreshIntervalLabel(interval)}
+                          onClick={() => {
+                            setAutoRefreshInterval(interval);
+                          }}
+                        />
+                      );
+                    },
+                  )}
+                </MoreMenu>
+              )}
+
+              <Button
+                icon={IconProp.Expand}
+                buttonStyle={ButtonStyleType.ICON}
+                onClick={() => {
+                  const canvasElement: HTMLDivElement | null =
+                    dashboardCanvasRef.current;
+
+                  if (!canvasElement) {
+                    return;
+                  }
+
+                  if (canvasElement.requestFullscreen) {
+                    canvasElement.requestFullscreen();
+                  }
+                }}
+                tooltip="Full Screen"
+              />
+            </div>
+          </div>
+
+          {/* Time range + variables row */}
+          {hasComponents && (
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <div>
+                <RangeStartAndEndDateView
+                  dashboardStartAndEndDate={startAndEndDate}
+                  onChange={(newRange: RangeStartAndEndDateTime) => {
+                    setTimeRangeStack([...timeRangeStack, startAndEndDate]);
+                    setStartAndEndDate(newRange);
                   }}
                 />
-              </>
-            )}
-          </div>
-        )}
+              </div>
+
+              {dashboardVariables.length > 0 && (
+                <>
+                  <div className="w-px h-5 bg-gray-200"></div>
+                  <DashboardVariableSelector
+                    variables={dashboardVariables}
+                    onVariableValueChange={(
+                      variableId: string,
+                      value: string,
+                    ) => {
+                      setDashboardVariables(
+                        dashboardVariables.map((v: DashboardVariable) => {
+                          if (v.id === variableId) {
+                            return { ...v, currentValue: value };
+                          }
+                          return v;
+                        }),
+                      );
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div ref={dashboardCanvasRef}>
+      {/* Dashboard Canvas */}
+      <div ref={dashboardCanvasRef} className="mt-3">
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
           onDashboardViewConfigChange={(_config: DashboardViewConfig) => {
@@ -423,7 +384,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Footer */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-5 py-5">
+      <div className="max-w-7xl mx-auto px-5 py-5">
         <div className="flex items-center justify-center text-xs text-gray-400">
           <span>Powered by</span>
           <a
