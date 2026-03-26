@@ -4,9 +4,23 @@ import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
+  ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+
+const DataSourceSection: ComponentArgumentSection = {
+  name: "Data Source",
+  description: "Configure which metrics to display in the table",
+  order: 1,
+};
+
+const DisplaySection: ComponentArgumentSection = {
+  name: "Display Options",
+  description: "Customize the table appearance",
+  order: 2,
+  defaultCollapsed: true,
+};
 
 export default class DashboardTableComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardTableComponent {
@@ -40,28 +54,31 @@ export default class DashboardTableComponentUtil extends DashboardBaseComponentU
     > = [];
 
     componentArguments.push({
-      name: "Table Configuration",
-      description: "Please select the metrics to display in the table",
+      name: "Metric Query",
+      description: "Select the metrics to display in the table",
       required: true,
       type: ComponentInputType.MetricsQueryConfig,
       id: "metricQueryConfig",
+      section: DataSourceSection,
     });
 
     componentArguments.push({
-      name: "Table Title",
-      description: "The title of the table",
+      name: "Title",
+      description: "Header shown above the table",
       required: false,
       type: ComponentInputType.Text,
       id: "tableTitle",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Max Rows",
-      description: "Maximum number of rows to display",
+      description: "Maximum number of rows to show",
       required: false,
       type: ComponentInputType.Number,
       id: "maxRows",
       placeholder: "20",
+      section: DisplaySection,
     });
 
     return componentArguments;

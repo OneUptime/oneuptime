@@ -1,5 +1,6 @@
 import {
   ComponentArgument,
+  ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardValueComponent from "../../../Types/Dashboard/DashboardComponents/DashboardValueComponent";
@@ -7,6 +8,19 @@ import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentT
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
+
+const DataSourceSection: ComponentArgumentSection = {
+  name: "Data Source",
+  description: "Configure which metric to display",
+  order: 1,
+};
+
+const ThresholdsSection: ComponentArgumentSection = {
+  name: "Thresholds",
+  description: "Set warning and critical levels",
+  order: 2,
+  defaultCollapsed: true,
+};
 
 export default class DashboardValueComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardValueComponent {
@@ -41,38 +55,40 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
 
     componentArguments.push({
       name: "Title",
-      description: "The title to display",
+      description: "Label shown above the value",
       required: false,
       type: ComponentInputType.Text,
       id: "title",
+      section: DataSourceSection,
     });
 
     componentArguments.push({
-      name: "Value Configuration",
-      description: "Please select the metric to display",
+      name: "Metric Query",
+      description: "Select the metric to display as a value",
       required: true,
       type: ComponentInputType.MetricsQueryConfig,
       id: "metricQueryConfig",
+      section: DataSourceSection,
     });
 
     componentArguments.push({
       name: "Warning Threshold",
-      description:
-        "Values above this threshold will be shown with a yellow background",
+      description: "Yellow background when value exceeds this",
       required: false,
       type: ComponentInputType.Number,
       id: "warningThreshold",
       isAdvanced: true,
+      section: ThresholdsSection,
     });
 
     componentArguments.push({
       name: "Critical Threshold",
-      description:
-        "Values above this threshold will be shown with a red background",
+      description: "Red background when value exceeds this",
       required: false,
       type: ComponentInputType.Number,
       id: "criticalThreshold",
       isAdvanced: true,
+      section: ThresholdsSection,
     });
 
     return componentArguments;

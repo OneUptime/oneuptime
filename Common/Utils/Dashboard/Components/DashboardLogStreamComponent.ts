@@ -4,9 +4,23 @@ import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
+  ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+
+const DisplaySection: ComponentArgumentSection = {
+  name: "Display Options",
+  description: "Configure the widget title and row limit",
+  order: 1,
+};
+
+const FiltersSection: ComponentArgumentSection = {
+  name: "Filters",
+  description: "Narrow down which logs are shown",
+  order: 2,
+  defaultCollapsed: true,
+};
 
 export default class DashboardLogStreamComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardLogStreamComponent {
@@ -35,18 +49,30 @@ export default class DashboardLogStreamComponentUtil extends DashboardBaseCompon
 
     componentArguments.push({
       name: "Title",
-      description: "The title of the log stream widget",
+      description: "Header shown above the log stream",
       required: false,
       type: ComponentInputType.Text,
       id: "title",
+      section: DisplaySection,
     });
 
     componentArguments.push({
-      name: "Severity Filter",
-      description: "Filter logs by severity level",
+      name: "Max Rows",
+      description: "Maximum number of log entries to show",
+      required: false,
+      type: ComponentInputType.Number,
+      id: "maxRows",
+      placeholder: "50",
+      section: DisplaySection,
+    });
+
+    componentArguments.push({
+      name: "Severity",
+      description: "Show only logs of this severity level",
       required: false,
       type: ComponentInputType.Dropdown,
       id: "severityFilter",
+      section: FiltersSection,
       dropdownOptions: [
         { label: "All", value: "" },
         { label: "Trace", value: "Trace" },
@@ -60,30 +86,23 @@ export default class DashboardLogStreamComponentUtil extends DashboardBaseCompon
 
     componentArguments.push({
       name: "Body Contains",
-      description: "Filter logs where the body contains this text",
+      description: "Show only logs containing this text",
       required: false,
       type: ComponentInputType.Text,
       id: "bodyContains",
       placeholder: "Search text...",
+      section: FiltersSection,
     });
 
     componentArguments.push({
       name: "Attribute Filters",
       description:
-        "Filter logs by attributes using @key:value syntax. For example: @k8s.pod.name:my-pod @http.status_code:500",
+        "Filter by attributes, e.g. @k8s.pod.name:my-pod @http.status_code:500",
       required: false,
       type: ComponentInputType.LongText,
       id: "attributeFilterQuery",
       placeholder: "@key:value @another.key:value",
-    });
-
-    componentArguments.push({
-      name: "Max Rows",
-      description: "Maximum number of log entries to display",
-      required: false,
-      type: ComponentInputType.Number,
-      id: "maxRows",
-      placeholder: "50",
+      section: FiltersSection,
     });
 
     return componentArguments;

@@ -1,5 +1,6 @@
 import {
   ComponentArgument,
+  ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardTextComponent from "../../../Types/Dashboard/DashboardComponents/DashboardTextComponent";
@@ -7,6 +8,19 @@ import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentT
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
+
+const ContentSection: ComponentArgumentSection = {
+  name: "Content",
+  description: "The text content to display",
+  order: 1,
+};
+
+const FormattingSection: ComponentArgumentSection = {
+  name: "Formatting",
+  description: "Text style options",
+  order: 2,
+  defaultCollapsed: true,
+};
 
 export default class DashboardTextComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardTextComponent {
@@ -38,48 +52,48 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
 
     componentArguments.push({
       name: "Text",
-      description: "The text to display",
+      description: "The text to display in the widget",
       required: true,
       type: ComponentInputType.LongText,
       id: "text",
       placeholder: "Hello, World!",
+      section: ContentSection,
     });
 
     componentArguments.push({
       name: "Bold",
-      description: "Whether the text should be bold",
+      description: "Make text bold",
       required: false,
       type: ComponentInputType.Boolean,
       id: "isBold",
-      placeholder: "false",
+      section: FormattingSection,
     });
 
     componentArguments.push({
       name: "Italic",
-      description: "Whether the text should be italic",
+      description: "Make text italic",
       required: false,
       type: ComponentInputType.Boolean,
       id: "isItalic",
-      placeholder: "false",
+      section: FormattingSection,
     });
 
     componentArguments.push({
       name: "Underline",
-      description: "Whether the text should be underlined",
+      description: "Underline the text",
       required: false,
       type: ComponentInputType.Boolean,
       id: "isUnderline",
-      placeholder: "false",
+      section: FormattingSection,
     });
 
     componentArguments.push({
       name: "Markdown",
-      description:
-        "Enable markdown rendering (headers, links, lists, code blocks, tables, images)",
+      description: "Render as markdown (headers, links, lists, code, tables)",
       required: false,
       type: ComponentInputType.Boolean,
       id: "isMarkdown",
-      placeholder: "false",
+      section: FormattingSection,
     });
 
     return componentArguments;

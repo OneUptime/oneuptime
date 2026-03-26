@@ -105,6 +105,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement>(null);
   const sessionRef: React.MutableRefObject<DragSession | null> =
     useRef<DragSession | null>(null);
+  const overlayRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
   // Keep latest props/component available for the imperative handlers.
   const latestProps: React.MutableRefObject<ComponentProps> =
     useRef<ComponentProps>(props);
@@ -217,11 +219,33 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
   }
 
+  function removeOverlay(): void {
+    if (overlayRef.current) {
+      overlayRef.current.remove();
+      overlayRef.current = null;
+    }
+  }
+
+  function createOverlay(cursor: string): void {
+    removeOverlay();
+    const overlay: HTMLDivElement = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "9999";
+    overlay.style.cursor = cursor;
+    // Transparent but captures all pointer events, preventing
+    // underlying components from firing mouseEnter/mouseLeave.
+    overlay.style.background = "transparent";
+    document.body.appendChild(overlay);
+    overlayRef.current = overlay;
+  }
+
   function onMouseUp(): void {
     window.removeEventListener("mousemove", onMouseMove);
     window.removeEventListener("mouseup", onMouseUp);
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
+    removeOverlay();
 
     const s: DragSession | null = sessionRef.current;
     const el: HTMLDivElement | null = elRef.current;
@@ -278,6 +302,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
+      removeOverlay();
     };
   }, []);
 
@@ -315,15 +340,18 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     window.addEventListener("mouseup", onMouseUp);
 
     document.body.style.userSelect = "none";
-    if (mode === "move") {
-      document.body.style.cursor = "grabbing";
-    } else if (mode === "resize-w") {
-      document.body.style.cursor = "ew-resize";
+
+    let cursor: string = "grabbing";
+    if (mode === "resize-w") {
+      cursor = "ew-resize";
     } else if (mode === "resize-h") {
-      document.body.style.cursor = "ns-resize";
-    } else {
-      document.body.style.cursor = "nwse-resize";
+      cursor = "ns-resize";
+    } else if (mode === "resize-corner") {
+      cursor = "nwse-resize";
     }
+
+    document.body.style.cursor = cursor;
+    createOverlay(cursor);
   }
 
   // ── Styling ───────────────────────────────────────────────

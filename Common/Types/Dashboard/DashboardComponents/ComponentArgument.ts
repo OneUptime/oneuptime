@@ -14,6 +14,14 @@ export enum ComponentInputType {
   Dropdown = "Dropdown",
 }
 
+export interface ComponentArgumentSection {
+  name: string;
+  description?: string | undefined;
+  icon?: string | undefined;
+  defaultCollapsed?: boolean | undefined;
+  order: number;
+}
+
 export interface ComponentArgument<T extends DashboardBaseComponent> {
   name: string;
   description: string;
@@ -23,4 +31,5 @@ export interface ComponentArgument<T extends DashboardBaseComponent> {
   isAdvanced?: boolean | undefined;
   placeholder?: string | undefined;
   dropdownOptions?: Array<DropdownOption> | undefined;
+  section?: ComponentArgumentSection | undefined;
 }

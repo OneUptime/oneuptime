@@ -4,9 +4,30 @@ import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
+  ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+
+const DataSourceSection: ComponentArgumentSection = {
+  name: "Data Source",
+  description: "Configure which metric to display on the gauge",
+  order: 1,
+};
+
+const DisplaySection: ComponentArgumentSection = {
+  name: "Display Options",
+  description: "Customize the gauge range and appearance",
+  order: 2,
+  defaultCollapsed: true,
+};
+
+const ThresholdsSection: ComponentArgumentSection = {
+  name: "Thresholds",
+  description: "Set warning and critical levels",
+  order: 3,
+  defaultCollapsed: true,
+};
 
 export default class DashboardGaugeComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardGaugeComponent {
@@ -41,55 +62,61 @@ export default class DashboardGaugeComponentUtil extends DashboardBaseComponentU
     > = [];
 
     componentArguments.push({
-      name: "Gauge Configuration",
-      description: "Please select the metric to display on the gauge",
+      name: "Metric Query",
+      description: "Select the metric to display on the gauge",
       required: true,
       type: ComponentInputType.MetricsQueryConfig,
       id: "metricQueryConfig",
+      section: DataSourceSection,
     });
 
     componentArguments.push({
-      name: "Gauge Title",
-      description: "The title of the gauge",
+      name: "Title",
+      description: "Label shown above the gauge",
       required: false,
       type: ComponentInputType.Text,
       id: "gaugeTitle",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Min Value",
-      description: "The minimum value of the gauge",
+      description: "Left end of the gauge scale",
       required: false,
       type: ComponentInputType.Number,
       id: "minValue",
       placeholder: "0",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Max Value",
-      description: "The maximum value of the gauge",
+      description: "Right end of the gauge scale",
       required: false,
       type: ComponentInputType.Number,
       id: "maxValue",
       placeholder: "100",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Warning Threshold",
-      description: "Values above this threshold will be shown in yellow",
+      description: "Yellow zone starts at this value",
       required: false,
       type: ComponentInputType.Number,
       id: "warningThreshold",
       isAdvanced: true,
+      section: ThresholdsSection,
     });
 
     componentArguments.push({
       name: "Critical Threshold",
-      description: "Values above this threshold will be shown in red",
+      description: "Red zone starts at this value",
       required: false,
       type: ComponentInputType.Number,
       id: "criticalThreshold",
       isAdvanced: true,
+      section: ThresholdsSection,
     });
 
     return componentArguments;

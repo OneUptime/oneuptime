@@ -4,10 +4,31 @@ import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
+  ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
+
+const DataSourceSection: ComponentArgumentSection = {
+  name: "Data Source",
+  description: "Configure what data to display on the chart",
+  order: 1,
+};
+
+const DisplaySection: ComponentArgumentSection = {
+  name: "Display Options",
+  description: "Customize the chart appearance",
+  order: 2,
+  defaultCollapsed: true,
+};
+
+const ThresholdsSection: ComponentArgumentSection = {
+  name: "Thresholds",
+  description: "Set warning and critical threshold lines",
+  order: 3,
+  defaultCollapsed: true,
+};
 
 export default class DashboardChartComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardChartComponent {
@@ -42,10 +63,11 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
 
     componentArguments.push({
       name: "Chart Type",
-      description: "Select the type of chart to display",
+      description: "How the data will be visualized",
       required: true,
       type: ComponentInputType.Dropdown,
       id: "chartType",
+      section: DataSourceSection,
       dropdownOptions: [
         {
           label: "Line Chart",
@@ -71,72 +93,78 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
     });
 
     componentArguments.push({
-      name: "Chart Configuration",
-      description: "Please select the metrics to display on the chart",
+      name: "Metric Query",
+      description: "Select the metric and filters for this chart",
       required: true,
       type: ComponentInputType.MetricsQueryConfig,
       id: "metricQueryConfig",
+      section: DataSourceSection,
     });
 
     componentArguments.push({
       name: "Additional Queries",
-      description: "Add multiple metric queries to overlay on the same chart",
+      description: "Overlay more metrics on the same chart",
       required: false,
       type: ComponentInputType.MetricsQueryConfigs,
       id: "metricQueryConfigs",
       isAdvanced: true,
+      section: DataSourceSection,
     });
 
     componentArguments.push({
-      name: "Chart Title",
-      description: "The title of the chart",
+      name: "Title",
+      description: "Displayed above the chart",
       required: false,
       type: ComponentInputType.Text,
       id: "chartTitle",
+      section: DisplaySection,
     });
 
     componentArguments.push({
-      name: "Chart Description",
-      description: "Description of the chart",
+      name: "Description",
+      description: "Subtitle shown below the title",
       required: false,
       type: ComponentInputType.LongText,
       id: "chartDescription",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Legend Text",
-      description: "The text to display in the legend",
+      description: "Label shown in the chart legend",
       required: false,
       type: ComponentInputType.Text,
       id: "legendText",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Legend Unit",
-      description: "The unit to display in the legend",
+      description: 'Unit suffix in the legend (e.g. "ms", "%")',
       required: false,
       type: ComponentInputType.Text,
       id: "legendUnit",
+      section: DisplaySection,
     });
 
     componentArguments.push({
       name: "Warning Threshold",
-      description:
-        "A horizontal line will be drawn at this value in yellow to indicate a warning level",
+      description: "Yellow horizontal line at this value",
       required: false,
       type: ComponentInputType.Number,
       id: "warningThreshold",
       isAdvanced: true,
+      section: ThresholdsSection,
     });
 
     componentArguments.push({
       name: "Critical Threshold",
-      description:
-        "A horizontal line will be drawn at this value in red to indicate a critical level",
+      description: "Red horizontal line at this value",
       required: false,
       type: ComponentInputType.Number,
       id: "criticalThreshold",
       isAdvanced: true,
+      section: ThresholdsSection,
     });
 
     return componentArguments;

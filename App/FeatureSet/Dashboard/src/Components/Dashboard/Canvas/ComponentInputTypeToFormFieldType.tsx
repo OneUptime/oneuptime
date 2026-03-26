@@ -53,6 +53,12 @@ export default class ComponentInputTypeToFormFieldType {
       };
     }
 
+    if (componentInputType === ComponentInputType.MetricsQueryConfigs) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
     if (componentInputType === ComponentInputType.Dropdown) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,

@@ -2,7 +2,6 @@ import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import Divider from "Common/UI/Components/Divider/Divider";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import SideOver from "Common/UI/Components/SideOver/SideOver";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -82,18 +81,16 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {/* Widget type indicator */}
-        <div className="flex items-center gap-2 mb-4 px-1">
-          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 capitalize">
-            {component.componentType} Widget
+        {/* Widget type and size info */}
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 capitalize">
+            {component.componentType}
           </span>
           <span className="text-xs text-gray-400">
             {component.widthInDashboardUnits} x{" "}
             {component.heightInDashboardUnits} units
           </span>
         </div>
-
-        <Divider />
 
         <ArgumentsForm
           component={component}
