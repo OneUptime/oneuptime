@@ -51,13 +51,13 @@ const StatusPageDelete: FunctionComponent<
       />
 
       <CardModelDetail<StatusPage>
-        name="Status Page > Master Password"
+        name="Status Page > Require Master Password"
         cardProps={{
-          title: "Master Password",
+          title: "Require Master Password",
           description:
-            "Rotate the password required to unlock a private status page. This value is stored as a secure hash and cannot be retrieved. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled.",
+            "When enabled, visitors must enter the master password before viewing a private status page. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled.",
         }}
-        editButtonText="Update Master Password"
+        editButtonText="Edit Settings"
         isEditable={true}
         formFields={[
           {
@@ -70,6 +70,35 @@ const StatusPageDelete: FunctionComponent<
             description:
               "When enabled, visitors must enter the master password before viewing a private status page.",
           },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page-enable-master-password",
+          fields: [
+            {
+              field: {
+                enableMasterPassword: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Require Master Password",
+              placeholder: "No",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Update Master Password"
+        cardProps={{
+          title: "Update Master Password",
+          description:
+            "Rotate the password required to unlock a private status page. This value is stored as a secure hash and cannot be retrieved.",
+        }}
+        editButtonText="Update Master Password"
+        isEditable={true}
+        formFields={[
           {
             field: {
               masterPassword: true,
@@ -87,14 +116,6 @@ const StatusPageDelete: FunctionComponent<
           modelType: StatusPage,
           id: "model-detail-status-page-master-password",
           fields: [
-            {
-              field: {
-                enableMasterPassword: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Require Master Password",
-              placeholder: "No",
-            },
             {
               title: "Master Password",
               fieldType: FieldType.Element,

@@ -60,13 +60,13 @@ const DashboardAuthenticationSettings: FunctionComponent<
           <DashboardPreviewLink modelId={modelId} />
 
           <CardModelDetail<Dashboard>
-            name="Dashboard > Master Password"
+            name="Dashboard > Require Master Password"
             cardProps={{
-              title: "Master Password",
+              title: "Require Master Password",
               description:
-                "Rotate the password required to unlock a public dashboard. This value is stored as a secure hash and cannot be retrieved.",
+                "When enabled, visitors must enter the master password before viewing this public dashboard.",
             }}
-            editButtonText="Update Master Password"
+            editButtonText="Edit Settings"
             isEditable={true}
             formFields={[
               {
@@ -79,6 +79,35 @@ const DashboardAuthenticationSettings: FunctionComponent<
                 description:
                   "When enabled, visitors must enter the master password before viewing this public dashboard.",
               },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              modelType: Dashboard,
+              id: "model-detail-dashboard-enable-master-password",
+              fields: [
+                {
+                  field: {
+                    enableMasterPassword: true,
+                  },
+                  fieldType: FieldType.Boolean,
+                  title: "Require Master Password",
+                  placeholder: "No",
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+
+          <CardModelDetail<Dashboard>
+            name="Dashboard > Update Master Password"
+            cardProps={{
+              title: "Update Master Password",
+              description:
+                "Rotate the password required to unlock a public dashboard. This value is stored as a secure hash and cannot be retrieved.",
+            }}
+            editButtonText="Update Master Password"
+            isEditable={true}
+            formFields={[
               {
                 field: {
                   masterPassword: true,
@@ -96,14 +125,6 @@ const DashboardAuthenticationSettings: FunctionComponent<
               modelType: Dashboard,
               id: "model-detail-dashboard-master-password",
               fields: [
-                {
-                  field: {
-                    enableMasterPassword: true,
-                  },
-                  fieldType: FieldType.Boolean,
-                  title: "Require Master Password",
-                  placeholder: "No",
-                },
                 {
                   title: "Master Password",
                   fieldType: FieldType.Element,
