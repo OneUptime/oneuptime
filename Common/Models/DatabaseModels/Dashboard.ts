@@ -1,3 +1,4 @@
+import File from "./File";
 import Project from "./Project";
 import User from "./User";
 import Route from "../../Types/API/Route";
@@ -451,6 +452,216 @@ export default class Dashboard extends BaseModel {
     type: ColumnType.JSON,
   })
   public dashboardViewConfig?: DashboardViewConfig = undefined;
+
+  //// Branding Fields
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Page Title",
+    description:
+      "Title of the public dashboard page. This will be used for SEO and the browser tab.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public pageTitle?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Page Description",
+    description:
+      "Description of the public dashboard page. This will be used for SEO.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public pageDescription?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "logoFileId",
+    type: TableColumnType.Entity,
+    modelType: File,
+    title: "Logo",
+    description: "Dashboard Logo",
+  })
+  @ManyToOne(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "delete",
+    },
+  )
+  @JoinColumn({ name: "logoFileId" })
+  public logoFile?: File = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Logo File ID",
+    description: "Dashboard Logo File ID",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public logoFileId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "faviconFileId",
+    type: TableColumnType.Entity,
+    modelType: File,
+    title: "Favicon",
+    description: "Dashboard Favicon",
+  })
+  @ManyToOne(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "delete",
+    },
+  )
+  @JoinColumn({ name: "faviconFileId" })
+  public faviconFile?: File = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Favicon File ID",
+    description: "Dashboard Favicon File ID",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public faviconFileId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

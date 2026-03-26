@@ -29,6 +29,12 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "View Dashboard",
       "Overview",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_BRANDING, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Branding",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

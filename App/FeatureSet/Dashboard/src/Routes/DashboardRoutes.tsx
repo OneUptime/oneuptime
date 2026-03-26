@@ -18,6 +18,8 @@ import DashboardViewSettings from "../Pages/Dashboards/View/Settings";
 
 import DashboardViewAuthenticationSettings from "../Pages/Dashboards/View/AuthenticationSettings";
 
+import DashboardViewBranding from "../Pages/Dashboards/View/Branding";
+
 import DashboardViewCustomDomains from "../Pages/Dashboards/View/CustomDomains";
 
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
@@ -75,6 +77,18 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             <DashboardViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_BRANDING)}
+          element={
+            <DashboardViewBranding
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARD_VIEW_BRANDING] as Route
+              }
             />
           }
         />

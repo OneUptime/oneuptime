@@ -116,8 +116,31 @@ const App: () => JSX.Element = () => {
 
       if (response.data) {
         const name: string = (response.data["name"] as string) || "Dashboard";
+        const pageTitle: string =
+          (response.data["pageTitle"] as string) || name;
         setDashboardName(name);
-        document.title = name;
+        document.title = pageTitle;
+
+        // Set favicon if available
+        const faviconData: JSONObject | null =
+          (response.data["faviconFile"] as JSONObject) || null;
+        if (faviconData && faviconData["file"]) {
+          const fileData: string = faviconData["file"] as string;
+          const fileType: string =
+            (faviconData["fileType"] as string) || "image/png";
+          const faviconUrl: string = `data:${fileType};base64,${fileData}`;
+
+          let linkElement: HTMLLinkElement | null =
+            document.querySelector('link[rel="icon"]');
+
+          if (!linkElement) {
+            linkElement = document.createElement("link");
+            linkElement.rel = "icon";
+            document.head.appendChild(linkElement);
+          }
+
+          linkElement.href = faviconUrl;
+        }
 
         const enableMasterPassword: boolean = Boolean(
           response.data["enableMasterPassword"],

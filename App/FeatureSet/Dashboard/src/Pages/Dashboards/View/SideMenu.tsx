@@ -41,6 +41,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Branding">
+        <SideMenuItem
+          link={{
+            title: "Branding",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_BRANDING] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Image}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Custom Domains">
         <SideMenuItem
           link={{

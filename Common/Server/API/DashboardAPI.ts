@@ -92,6 +92,8 @@ export default class DashboardAPI extends BaseAPI<
                 _id: true,
                 name: true,
                 description: true,
+                pageTitle: true,
+                pageDescription: true,
               },
               props: {
                 isRoot: true,
@@ -108,9 +110,9 @@ export default class DashboardAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
-            title: dashboard.name || "Dashboard",
+            title: dashboard.pageTitle || dashboard.name || "Dashboard",
             description:
-              dashboard.description || "View dashboard metrics and insights.",
+              dashboard.pageDescription || dashboard.description || "View dashboard metrics and insights.",
           });
         } catch (err) {
           next(err);
@@ -182,6 +184,16 @@ export default class DashboardAPI extends BaseAPI<
                 description: true,
                 isPublicDashboard: true,
                 enableMasterPassword: true,
+                pageTitle: true,
+                pageDescription: true,
+                logoFile: {
+                  file: true,
+                  fileType: true,
+                },
+                faviconFile: {
+                  file: true,
+                  fileType: true,
+                },
               },
               props: {
                 isRoot: true,
@@ -198,6 +210,18 @@ export default class DashboardAPI extends BaseAPI<
             description: dashboard.description || "",
             isPublicDashboard: dashboard.isPublicDashboard || false,
             enableMasterPassword: dashboard.enableMasterPassword || false,
+            pageTitle: dashboard.pageTitle || "",
+            pageDescription: dashboard.pageDescription || "",
+            logoFile: dashboard.logoFile
+              ? JSONFunctions.serialize(
+                  dashboard.logoFile.toJSON() as any,
+                )
+              : null,
+            faviconFile: dashboard.faviconFile
+              ? JSONFunctions.serialize(
+                  dashboard.faviconFile.toJSON() as any,
+                )
+              : null,
           });
         } catch (err) {
           next(err);
@@ -241,6 +265,12 @@ export default class DashboardAPI extends BaseAPI<
                 name: true,
                 description: true,
                 dashboardViewConfig: true,
+                pageTitle: true,
+                pageDescription: true,
+                logoFile: {
+                  file: true,
+                  fileType: true,
+                },
               },
               props: {
                 isRoot: true,
@@ -255,6 +285,13 @@ export default class DashboardAPI extends BaseAPI<
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
             description: dashboard.description || "",
+            pageTitle: dashboard.pageTitle || "",
+            pageDescription: dashboard.pageDescription || "",
+            logoFile: dashboard.logoFile
+              ? JSONFunctions.serialize(
+                  dashboard.logoFile.toJSON() as any,
+                )
+              : null,
             dashboardViewConfig: dashboard.dashboardViewConfig
               ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
               : null,

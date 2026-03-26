@@ -73,6 +73,8 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
 
   const [dashboardTotalWidth, setDashboardTotalWidth] = useState<number>(0);
   const [dashboardName, setDashboardName] = useState<string>("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [pageDescription, setPageDescription] = useState<string>("");
 
   const handleResize: VoidFunction = (): void => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
@@ -123,7 +125,23 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       ) as DashboardViewConfig;
 
       setDashboardViewConfig(config);
-      setDashboardName((response.data["name"] as string) || "Untitled Dashboard");
+      setDashboardName(
+        (response.data["pageTitle"] as string) ||
+          (response.data["name"] as string) ||
+          "Untitled Dashboard",
+      );
+      setPageDescription(
+        (response.data["pageDescription"] as string) || "",
+      );
+
+      // Extract logo data
+      const logoData: JSONObject | null =
+        (response.data["logoFile"] as JSONObject) || null;
+      if (logoData && logoData["file"]) {
+        const fileData: string = logoData["file"] as string;
+        const fileType: string = (logoData["fileType"] as string) || "image/png";
+        setLogoUrl(`data:${fileType};base64,${fileData}`);
+      }
 
       if (config.refreshInterval) {
         setAutoRefreshInterval(config.refreshInterval);
@@ -217,10 +235,24 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     >
       {/* Header and NavBar */}
       <div className="max-w-5xl mx-auto px-3 sm:px-5">
-        <div className="flex items-center justify-between mt-5">
-          <h1 className="text-xl font-semibold text-gray-900 truncate">
-            {dashboardName}
-          </h1>
+        <div className="flex items-center gap-4 mt-5">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={dashboardName}
+              className="h-10 w-auto object-contain"
+            />
+          )}
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 truncate">
+              {dashboardName}
+            </h1>
+            {pageDescription && (
+              <p className="text-sm text-gray-500 mt-0.5 truncate">
+                {pageDescription}
+              </p>
+            )}
+          </div>
         </div>
 
         <NavBar className="bg-white flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5">
