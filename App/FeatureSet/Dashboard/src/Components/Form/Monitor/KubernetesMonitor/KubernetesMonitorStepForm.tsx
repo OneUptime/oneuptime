@@ -221,14 +221,10 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     const clusterIdentifier: string =
       monitorStepKubernetesMonitor.clusterIdentifier;
 
-    if (!clusterIdentifier) {
-      // Just store the template selection, config will be built when cluster is selected
-      return;
-    }
-
     // Get a dummy monitor step from the template to extract the kubernetes config
+    // Build even without a cluster so the metricViewConfig is populated for the METRIC dropdown
     const dummyStep: MonitorStep = template.getMonitorStep({
-      clusterIdentifier,
+      clusterIdentifier: clusterIdentifier || "",
       onlineMonitorStatusId: ObjectID.generate(),
       offlineMonitorStatusId: ObjectID.generate(),
       defaultIncidentSeverityId: ObjectID.generate(),
@@ -240,7 +236,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     if (dummyStep.data?.kubernetesMonitor) {
       props.onChange({
         ...dummyStep.data.kubernetesMonitor,
-        clusterIdentifier,
+        clusterIdentifier: clusterIdentifier || "",
       });
     }
   };

@@ -8,6 +8,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import DashboardPreviewLink from "./DashboardPreviewLink";
 
 const DashboardView: FunctionComponent<
   PageComponentProps
@@ -16,6 +17,7 @@ const DashboardView: FunctionComponent<
 
   return (
     <Fragment>
+      <DashboardPreviewLink modelId={modelId} />
       {/* Dashboard View  */}
       <CardModelDetail<Dashboard>
         name="Dashboard > Dashboard Details"

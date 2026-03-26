@@ -11,6 +11,7 @@ import {
   ProbeIngestRoute,
   IntegrationRoute,
   NotificationRoute,
+  PublicDashboardRoute,
   RealtimeRoute,
   StatusPageApiRoute,
   StatusPageRoute,
@@ -157,6 +158,12 @@ export const DASHBOARD_URL: URL = new URL(
   HTTP_PROTOCOL,
   DASHBOARD_HOSTNAME,
   new Route(DashboardRoute.toString()),
+);
+
+export const PUBLIC_DASHBOARD_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  DASHBOARD_HOSTNAME,
+  new Route(PublicDashboardRoute.toString()),
 );
 
 export const INTEGRATION_URL: URL = new URL(
