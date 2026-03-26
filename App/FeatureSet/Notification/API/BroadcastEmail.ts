@@ -19,6 +19,79 @@ import User from "Common/Models/DatabaseModels/User";
 
 const router: ExpressRouter = Express.getRouter();
 
+const BATCH_SIZE: number = 100;
+
+async function sendBroadcastEmailsInBackground(data: {
+  subject: string;
+  htmlMessage: string;
+}): Promise<void> {
+  let skip: number = 0;
+  let sentCount: number = 0;
+  let errorCount: number = 0;
+  let totalUsers: number = 0;
+
+  try {
+    while (true) {
+      const users: Array<User> = await UserService.findBy({
+        query: {},
+        select: {
+          email: true,
+        },
+        skip: skip,
+        limit: BATCH_SIZE,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (users.length === 0) {
+        break;
+      }
+
+      totalUsers += users.length;
+
+      for (const user of users) {
+        if (!user.email) {
+          continue;
+        }
+
+        try {
+          const mail: EmailMessage = {
+            templateType: EmailTemplateType.SimpleMessage,
+            toEmail: user.email,
+            subject: data.subject,
+            vars: {
+              subject: data.subject,
+              message: data.htmlMessage,
+            },
+            body: "",
+          };
+
+          await MailService.send(mail);
+          sentCount++;
+        } catch (err) {
+          errorCount++;
+          logger.error(
+            `Failed to send broadcast email to ${user.email.toString()}: ${err}`,
+          );
+        }
+      }
+
+      if (users.length < BATCH_SIZE) {
+        break;
+      }
+
+      skip += users.length;
+    }
+
+    logger.info(
+      `Broadcast email completed. Total users: ${totalUsers}, Sent: ${sentCount}, Errors: ${errorCount}`,
+    );
+  } catch (err) {
+    logger.error(`Broadcast email background job failed: ${err}`);
+  }
+}
+
 router.post(
   "/send-test",
   MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
@@ -85,56 +158,24 @@ router.post(
         throw new BadDataException("Message is required");
       }
 
-      const users: Array<User> = await UserService.findAllBy({
-        query: {},
-        select: {
-          email: true,
-        },
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
       const htmlMessage: string = await Markdown.convertToHTML(
         message,
         MarkdownContentType.Email,
       );
 
-      let sentCount: number = 0;
-      let errorCount: number = 0;
+      // Send response immediately so the request doesn't timeout.
+      // Emails are sent in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        message:
+          "Broadcast email job has been started. Emails will be sent in the background.",
+      });
 
-      for (const user of users) {
-        if (!user.email) {
-          continue;
-        }
-
-        try {
-          const mail: EmailMessage = {
-            templateType: EmailTemplateType.SimpleMessage,
-            toEmail: user.email,
-            subject: subject,
-            vars: {
-              subject: subject,
-              message: htmlMessage,
-            },
-            body: "",
-          };
-
-          await MailService.send(mail);
-          sentCount++;
-        } catch (err) {
-          errorCount++;
-          logger.error(
-            `Failed to send broadcast email to ${user.email.toString()}: ${err}`,
-          );
-        }
-      }
-
-      return Response.sendJsonObjectResponse(req, res, {
-        totalUsers: users.length,
-        sentCount: sentCount,
-        errorCount: errorCount,
+      // Process emails in the background after the response is sent.
+      sendBroadcastEmailsInBackground({
+        subject,
+        htmlMessage,
+      }).catch((err: Error) => {
+        logger.error(`Broadcast email background job failed: ${err}`);
       });
     } catch (err) {
       return next(err);
