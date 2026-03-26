@@ -29,6 +29,8 @@ import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
 import WorkspaceNotificationSummaryAPI from "Common/Server/API/WorkspaceNotificationSummaryAPI";
+import DashboardAPI from "Common/Server/API/DashboardAPI";
+import DashboardDomainAPI from "Common/Server/API/DashboardDomainAPI";
 import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
@@ -2071,6 +2073,16 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageDomainAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DashboardAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DashboardDomainAPI().getRouter(),
     );
 
     app.use(

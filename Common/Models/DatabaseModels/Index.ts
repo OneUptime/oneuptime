@@ -224,6 +224,7 @@ import IncidentSla from "./IncidentSla";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
+import DashboardDomain from "./DashboardDomain";
 
 import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
@@ -486,6 +487,7 @@ const AllModelTypes: Array<{
 
   // Dashboards
   Dashboard,
+  DashboardDomain,
 
   MonitorTest,
 

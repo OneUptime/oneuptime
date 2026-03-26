@@ -1,12 +1,27 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
+import CookieUtil from "../Utils/Cookie";
+import { ExpressRequest } from "../Utils/Express";
+import JSONWebToken from "../Utils/JsonWebToken";
+import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import Model from "../../Models/DatabaseModels/Dashboard";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DashboardViewConfigUtil from "../../Utils/Dashboard/DashboardViewConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
+import IP from "../../Types/IP/IP";
+import {
+  DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
+  DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
+} from "../../Types/Dashboard/MasterPassword";
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -45,6 +60,145 @@ export class Service extends DatabaseService<Model> {
       DashboardViewConfigUtil.createDefaultDashboardViewConfig();
 
     return Promise.resolve({ createBy, carryForward: null });
+  }
+
+  public async hasReadAccess(data: {
+    dashboardId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<{
+    hasReadAccess: boolean;
+    error?: NotAuthenticatedException | ForbiddenException;
+  }> {
+    const dashboardId: ObjectID = data.dashboardId;
+    const req: ExpressRequest = data.req;
+
+    try {
+      const dashboard: Model | null = await this.findOneById({
+        id: dashboardId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          isPublicDashboard: true,
+          ipWhitelist: true,
+          enableMasterPassword: true,
+          masterPassword: true,
+        },
+      });
+
+      if (dashboard?.ipWhitelist && dashboard.ipWhitelist.length > 0) {
+        const ipWhitelist: Array<string> = dashboard.ipWhitelist?.split("\n");
+
+        const ipAccessedFrom: string | undefined =
+          req.headers["x-forwarded-for"]?.toString() ||
+          req.headers["x-real-ip"]?.toString() ||
+          req.socket.remoteAddress ||
+          req.ip ||
+          req.ips[0];
+
+        if (!ipAccessedFrom) {
+          logger.error("IP address not found in request.");
+          return {
+            hasReadAccess: false,
+            error: new ForbiddenException(
+              "Unable to verify IP address for dashboard access.",
+            ),
+          };
+        }
+
+        const isIPWhitelisted: boolean = IP.isInWhitelist({
+          ips:
+            ipAccessedFrom?.split(",").map((i: string) => {
+              return i.trim();
+            }) || [],
+          whitelist: ipWhitelist,
+        });
+
+        if (!isIPWhitelisted) {
+          logger.error(
+            `IP address ${ipAccessedFrom} is not whitelisted for dashboard ${dashboardId.toString()}.`,
+          );
+
+          return {
+            hasReadAccess: false,
+            error: new ForbiddenException(
+              `Your IP address ${ipAccessedFrom} is blocked from accessing this dashboard.`,
+            ),
+          };
+        }
+      }
+
+      if (dashboard && dashboard.isPublicDashboard) {
+        return {
+          hasReadAccess: true,
+        };
+      }
+
+      const shouldEnforceMasterPassword: boolean = Boolean(
+        dashboard &&
+          dashboard.enableMasterPassword &&
+          dashboard.masterPassword &&
+          !dashboard.isPublicDashboard,
+      );
+
+      if (shouldEnforceMasterPassword) {
+        const hasValidMasterPassword: boolean =
+          this.hasValidMasterPasswordCookie({
+            req,
+            dashboardId,
+          });
+
+        if (hasValidMasterPassword) {
+          return {
+            hasReadAccess: true,
+          };
+        }
+
+        return {
+          hasReadAccess: false,
+          error: new MasterPasswordRequiredException(
+            DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
+          ),
+        };
+      }
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return {
+      hasReadAccess: false,
+      error: new NotAuthenticatedException(
+        "You do not have access to this dashboard. Please login to view the dashboard.",
+      ),
+    };
+  }
+
+  private hasValidMasterPasswordCookie(data: {
+    req: ExpressRequest;
+    dashboardId: ObjectID;
+  }): boolean {
+    const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
+      data.req,
+      CookieUtil.getDashboardMasterPasswordKey(data.dashboardId),
+    );
+
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const payload: JSONObject = JSONWebToken.decodeJsonPayload(token);
+
+      return (
+        payload["dashboardId"] === data.dashboardId.toString() &&
+        payload["type"] === DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER
+      );
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return false;
   }
 }
 

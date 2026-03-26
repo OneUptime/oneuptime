@@ -41,7 +41,33 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Custom Domains">
+        <SideMenuItem
+          link={{
+            title: "Custom Domains",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Globe}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Authentication",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
+
         <SideMenuItem
           link={{
             title: "Settings",

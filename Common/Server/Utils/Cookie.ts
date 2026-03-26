@@ -12,6 +12,10 @@ import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
 } from "../../Types/StatusPage/MasterPassword";
+import {
+  DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
+  DASHBOARD_MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
+} from "../../Types/Dashboard/MasterPassword";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CookieUtil {
@@ -321,6 +325,50 @@ export default class CookieUtil {
       res,
       CookieUtil.getStatusPageMasterPasswordKey(statusPageId),
     );
+  }
+
+  @CaptureSpan()
+  public static setDashboardMasterPasswordCookie(data: {
+    expressResponse: ExpressResponse;
+    dashboardId: ObjectID;
+  }): void {
+    const expiresInDays: PositiveNumber = new PositiveNumber(
+      DASHBOARD_MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
+    );
+
+    const token: string = JSONWebToken.signJsonPayload(
+      {
+        dashboardId: data.dashboardId.toString(),
+        type: DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
+      },
+      OneUptimeDate.getSecondsInDays(expiresInDays),
+    );
+
+    CookieUtil.setCookie(
+      data.expressResponse,
+      CookieUtil.getDashboardMasterPasswordKey(data.dashboardId),
+      token,
+      {
+        maxAge: OneUptimeDate.getMillisecondsInDays(expiresInDays),
+        httpOnly: true,
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public static removeDashboardMasterPasswordCookie(
+    res: ExpressResponse,
+    dashboardId: ObjectID,
+  ): void {
+    CookieUtil.removeCookie(
+      res,
+      CookieUtil.getDashboardMasterPasswordKey(dashboardId),
+    );
+  }
+
+  @CaptureSpan()
+  public static getDashboardMasterPasswordKey(id: ObjectID): string {
+    return `${CookieName.DashboardMasterPassword}-${id.toString()}`;
   }
 
   // get all cookies with express request
