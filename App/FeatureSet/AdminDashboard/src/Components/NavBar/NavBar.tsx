@@ -21,18 +21,18 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECTS] as Route),
     },
     {
-      id: "settings-nav-bar-item",
-      title: "Settings",
-      icon: IconProp.Settings,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
-    },
-    {
       id: "more-nav-bar-item",
       title: "More",
       icon: IconProp.More,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.MORE_EMAIL] as Route,
       ),
+    },
+    {
+      id: "settings-nav-bar-item",
+      title: "Settings",
+      icon: IconProp.Settings,
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
     },
   ];
 
