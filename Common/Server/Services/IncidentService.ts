@@ -1039,6 +1039,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
               " was created.",
           createdItem.createdStateLog,
           onCreate.createBy.props,
+          createdItem.declaredAt || undefined,
         );
       }
     } catch (error) {
@@ -1693,6 +1694,7 @@ ${incidentSeverity.name}
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
     monitors: Array<Monitor>,
+    startsAt?: Date | undefined,
   ): Promise<void> {
     // resolve all the monitors.
 
@@ -1768,6 +1770,10 @@ ${incidentSeverity.name}
           monitorStatusTimeline.monitorId = monitor.id!;
           monitorStatusTimeline.projectId = projectId!;
           monitorStatusTimeline.monitorStatusId = resolvedMonitorState.id!;
+
+          if (startsAt) {
+            monitorStatusTimeline.startsAt = startsAt;
+          }
 
           await MonitorStatusTimelineService.create({
             data: monitorStatusTimeline,

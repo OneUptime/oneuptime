@@ -1507,6 +1507,7 @@ ${createdItem.description?.trim() || "No description provided."}
     rootCause: string | undefined,
     statusChangeLog: JSONObject | undefined,
     props: DatabaseCommonInteractionProps,
+    startsAt?: Date | undefined,
   ): Promise<void> {
     for (const monitorId of monitorIds) {
       // get last monitor status timeline.
@@ -1550,6 +1551,10 @@ ${createdItem.description?.trim() || "No description provided."}
       }
       if (rootCause) {
         statusTimeline.rootCause = rootCause;
+      }
+
+      if (startsAt) {
+        statusTimeline.startsAt = startsAt;
       }
 
       await MonitorStatusTimelineService.create({
