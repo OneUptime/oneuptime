@@ -14,6 +14,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
+import { queryStringToFilter, LogFilter } from "Common/Types/Log/LogQueryToFilter";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogStreamComponent;
@@ -99,6 +100,21 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
           props.component.arguments.bodyContains.trim();
       }
 
+      // Add attribute filters if set
+      if (
+        props.component.arguments.attributeFilterQuery &&
+        props.component.arguments.attributeFilterQuery.trim() !== ""
+      ) {
+        const parsedFilter: LogFilter = queryStringToFilter(
+          props.component.arguments.attributeFilterQuery.trim(),
+        );
+
+        if (parsedFilter.attributes) {
+          (query as Record<string, unknown>)["attributes"] =
+            parsedFilter.attributes;
+        }
+      }
+
       const listResult: ListResult<Log> =
         await AnalyticsModelAPI.getList<Log>({
           modelType: Log,
@@ -112,6 +128,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
             serviceId: true,
             traceId: true,
             spanId: true,
+            attributes: true,
           },
           sort: {
             time: SortOrder.Descending,
@@ -137,6 +154,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
   }, [
     props.component.arguments.severityFilter,
     props.component.arguments.bodyContains,
+    props.component.arguments.attributeFilterQuery,
     props.component.arguments.maxRows,
   ]);
 

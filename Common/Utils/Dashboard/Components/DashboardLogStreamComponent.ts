@@ -68,6 +68,16 @@ export default class DashboardLogStreamComponentUtil extends DashboardBaseCompon
     });
 
     componentArguments.push({
+      name: "Attribute Filters",
+      description:
+        "Filter logs by attributes using @key:value syntax. For example: @k8s.pod.name:my-pod @http.status_code:500",
+      required: false,
+      type: ComponentInputType.LongText,
+      id: "attributeFilterQuery",
+      placeholder: "@key:value @another.key:value",
+    });
+
+    componentArguments.push({
       name: "Max Rows",
       description: "Maximum number of log entries to display",
       required: false,

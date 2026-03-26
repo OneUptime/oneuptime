@@ -69,7 +69,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
           isEditable={true}
           cardProps={{
             title: "Custom Domains",
-            description: `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
+            description: `Important: Please add a CNAME record pointing to ${StatusPageCNameRecord} for these domains for this to work.`,
           }}
           refreshToggle={refreshToggle}
           onBeforeCreate={(

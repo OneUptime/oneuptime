@@ -9,6 +9,7 @@ export default interface DashboardLogStreamComponent extends BaseComponent {
     title?: string | undefined;
     severityFilter?: string | undefined;
     bodyContains?: string | undefined;
+    attributeFilterQuery?: string | undefined;
     maxRows?: number | undefined;
   };
 }
