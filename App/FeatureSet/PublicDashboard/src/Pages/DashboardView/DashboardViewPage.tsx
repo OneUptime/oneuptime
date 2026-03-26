@@ -34,6 +34,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import NavBar from "Common/UI/Components/Navbar/NavBar";
+import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PublicDashboardUtil from "../../Utils/PublicDashboard";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -193,6 +199,14 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  const isPreview: boolean = PublicDashboardUtil.isPreviewPage();
+
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
+    isPreview
+      ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+      : (RouteMap[PageMap.OVERVIEW] as Route),
+  );
+
   return (
     <div
       ref={dashboardViewRef}
@@ -202,6 +216,27 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         background: "#fafbfc",
       }}
     >
+      {/* Header and NavBar */}
+      <div className="max-w-5xl mx-auto px-3 sm:px-5">
+        <div className="flex items-center justify-between mt-5">
+          <h1 className="text-xl font-semibold text-gray-900 truncate">
+            {dashboardName}
+          </h1>
+        </div>
+
+        <NavBar
+          className="bg-white flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5"
+        >
+          <NavBarItem
+            id="overview-nav-bar-item"
+            title="Overview"
+            icon={IconProp.CheckCircle}
+            exact={true}
+            route={overviewRoute}
+          />
+        </NavBar>
+      </div>
+
       {/* Public Dashboard Toolbar */}
       <div
         className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200"
@@ -219,9 +254,6 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         ></div>
         <div className="flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-lg font-semibold text-gray-900 truncate">
-              {dashboardName}
-            </h1>
             {hasComponents && (
               <span className="text-xs text-gray-400 tabular-nums">
                 {dashboardViewConfig.components.length} widget
@@ -367,6 +399,21 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           refreshTick={refreshTick}
           dashboardVariables={dashboardVariables}
         />
+      </div>
+
+      {/* Footer */}
+      <div className="max-w-5xl mx-auto px-3 sm:px-5 py-5">
+        <div className="flex items-center justify-center text-xs text-gray-400">
+          <span>Powered by</span>
+          <a
+            href="https://oneuptime.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-1 text-gray-500 hover:text-gray-700 font-medium"
+          >
+            OneUptime
+          </a>
+        </div>
       </div>
     </div>
   );
