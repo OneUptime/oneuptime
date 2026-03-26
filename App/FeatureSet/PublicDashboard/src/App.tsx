@@ -10,7 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { lazy, Suspense, useEffect, useState } from "react";
+import React, { lazy, Suspense, useState } from "react";
 import {
   Route as PageRoute,
   Routes,
@@ -65,8 +65,6 @@ const App: () => JSX.Element = () => {
   const [error, setError] = useState<string | null>(null);
   const [dashboardId, setDashboardId] = useState<ObjectID | null>(null);
   const [dashboardName, setDashboardName] = useState<string>("Dashboard");
-  const [isPreview, setIsPreview] = useState<boolean>(false);
-
   type GetIdFunction = () => Promise<ObjectID>;
 
   const getId: GetIdFunction = async (): Promise<ObjectID> => {
@@ -97,11 +95,6 @@ const App: () => JSX.Element = () => {
 
     throw new BadDataException("Dashboard not found for this domain");
   };
-
-  useEffect(() => {
-    const preview: boolean = PublicDashboardUtil.isPreviewPage();
-    setIsPreview(preview);
-  }, []);
 
   useAsyncEffect(async () => {
     try {

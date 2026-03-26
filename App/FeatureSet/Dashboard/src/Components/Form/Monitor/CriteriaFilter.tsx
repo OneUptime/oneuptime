@@ -3,6 +3,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import {
   CheckOn,
   CriteriaFilter,
@@ -35,7 +36,9 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
 }
 
-const isMetricOnlyMonitorType = (monitorType: MonitorType): boolean => {
+const isMetricOnlyMonitorType: (monitorType: MonitorType) => boolean = (
+  monitorType: MonitorType,
+): boolean => {
   return (
     monitorType === MonitorType.Kubernetes ||
     monitorType === MonitorType.Metrics
@@ -149,7 +152,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     });
 
   // Collect metric variables from both metricMonitor and kubernetesMonitor configs
-  const metricViewConfig =
+  const metricViewConfig: MetricsViewConfig | undefined =
     props.monitorStep.data?.metricMonitor?.metricViewConfig ||
     props.monitorStep.data?.kubernetesMonitor?.metricViewConfig;
 

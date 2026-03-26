@@ -29,13 +29,13 @@ interface SparklineProps {
 }
 
 const Sparkline: FunctionComponent<SparklineProps> = (
-  sparklineProps: SparklineProps,
+  props: SparklineProps,
 ): ReactElement => {
-  if (sparklineProps.data.length < 2) {
+  if (props.data.length < 2) {
     return <></>;
   }
 
-  const dataPoints: Array<number> = sparklineProps.data;
+  const dataPoints: Array<number> = props.data;
   const minVal: number = Math.min(...dataPoints);
   const maxVal: number = Math.max(...dataPoints);
   const range: number = maxVal - minVal || 1;
@@ -45,12 +45,11 @@ const Sparkline: FunctionComponent<SparklineProps> = (
     .map((value: number, index: number) => {
       const x: number =
         padding +
-        (index / (dataPoints.length - 1)) *
-          (sparklineProps.width - padding * 2);
+        (index / (dataPoints.length - 1)) * (props.width - padding * 2);
       const y: number =
-        sparklineProps.height -
+        props.height -
         padding -
-        ((value - minVal) / range) * (sparklineProps.height - padding * 2);
+        ((value - minVal) / range) * (props.height - padding * 2);
       return `${x},${y}`;
     })
     .join(" ");
@@ -60,21 +59,21 @@ const Sparkline: FunctionComponent<SparklineProps> = (
   const lastX: number =
     padding +
     ((dataPoints.length - 1) / (dataPoints.length - 1)) *
-      (sparklineProps.width - padding * 2);
-  const fillPoints: string = `${firstX},${sparklineProps.height} ${points} ${lastX},${sparklineProps.height}`;
+      (props.width - padding * 2);
+  const fillPoints: string = `${firstX},${props.height} ${points} ${lastX},${props.height}`;
 
   return (
     <svg
-      width={sparklineProps.width}
-      height={sparklineProps.height}
-      viewBox={`0 0 ${sparklineProps.width} ${sparklineProps.height}`}
+      width={props.width}
+      height={props.height}
+      viewBox={`0 0 ${props.width} ${props.height}`}
       className="overflow-visible"
     >
-      <polygon points={fillPoints} fill={sparklineProps.fillColor} />
+      <polygon points={fillPoints} fill={props.fillColor} />
       <polyline
         points={points}
         fill="none"
-        stroke={sparklineProps.color}
+        stroke={props.color}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"

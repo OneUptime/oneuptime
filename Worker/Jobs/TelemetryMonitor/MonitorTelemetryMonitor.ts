@@ -26,7 +26,10 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import SpanService from "Common/Server/Services/SpanService";
-import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricMonitorResponse, {
+  KubernetesResourceBreakdown,
+  KubernetesAffectedResource,
+} from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
@@ -46,10 +49,9 @@ import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import {
-  KubernetesResourceBreakdown,
-  KubernetesAffectedResource,
-} from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
-import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
+  getKubernetesMetricByMetricName,
+  KubernetesMetricDefinition,
+} from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -624,7 +626,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
           }
         }
 
-        const metricDef = getKubernetesMetricByMetricName(metricName);
+        const metricDef: KubernetesMetricDefinition | undefined =
+          getKubernetesMetricByMetricName(metricName);
 
         kubernetesResourceBreakdown = {
           clusterName: kubernetesMonitorConfig.clusterIdentifier,
