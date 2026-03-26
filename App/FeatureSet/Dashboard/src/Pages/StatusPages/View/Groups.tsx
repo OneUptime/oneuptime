@@ -116,7 +116,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             required: false,
             defaultValue: false,
             description:
-              "Show uptime percentage for the past 90 days beside this group on your status page.",
+              "Show uptime percentage beside this group on your status page. The number of days is configured in Status Page Settings.",
             stepId: "advanced",
           },
           {
