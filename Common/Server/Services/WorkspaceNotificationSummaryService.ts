@@ -241,6 +241,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     items: Array<WorkspaceNotificationSummaryItem>,
     item: WorkspaceNotificationSummaryItem,
   ): boolean {
+    if (items.includes(WorkspaceNotificationSummaryItem.All)) {
+      return true;
+    }
     return items.includes(item);
   }
 
