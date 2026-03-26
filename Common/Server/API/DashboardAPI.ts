@@ -18,7 +18,6 @@ import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
-import File from "../../Models/DatabaseModels/File";
 import { EncryptionSecret } from "../EnvironmentConfig";
 import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard/MasterPassword";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -215,16 +214,12 @@ export default class DashboardAPI extends BaseAPI<
             pageDescription: dashboard.pageDescription || "",
             logoFile: dashboard.logoFile
               ? JSONFunctions.serialize(
-                  dashboard.logoFile instanceof File
-                    ? (dashboard.logoFile.toJSON() as any)
-                    : (dashboard.logoFile as any),
+                  dashboard.logoFile as any,
                 )
               : null,
             faviconFile: dashboard.faviconFile
               ? JSONFunctions.serialize(
-                  dashboard.faviconFile instanceof File
-                    ? (dashboard.faviconFile.toJSON() as any)
-                    : (dashboard.faviconFile as any),
+                  dashboard.faviconFile as any,
                 )
               : null,
           });
@@ -294,9 +289,7 @@ export default class DashboardAPI extends BaseAPI<
             pageDescription: dashboard.pageDescription || "",
             logoFile: dashboard.logoFile
               ? JSONFunctions.serialize(
-                  dashboard.logoFile instanceof File
-                    ? (dashboard.logoFile.toJSON() as any)
-                    : (dashboard.logoFile as any),
+                  dashboard.logoFile as any,
                 )
               : null,
             dashboardViewConfig: dashboard.dashboardViewConfig

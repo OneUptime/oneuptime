@@ -24,7 +24,7 @@ const BlankDashboardUnitElement: FunctionComponent<ComponentProps> = (
 
   if (props.isEditMode) {
     className +=
-      " border border-dashed border-gray-200 rounded-md hover:border-gray-300 hover:bg-blue-50/30 cursor-pointer";
+      " rounded-md cursor-pointer";
   }
 
   return (
@@ -38,6 +38,8 @@ const BlankDashboardUnitElement: FunctionComponent<ComponentProps> = (
         width: widthOfUnitInPx + "px",
         height: heightOfUnitInPx + "px",
         margin: MarginForEachUnitInPx + "px",
+        border: props.isEditMode ? "1px dashed rgba(203, 213, 225, 0.5)" : "none",
+        borderRadius: "6px",
       }}
     ></div>
   );

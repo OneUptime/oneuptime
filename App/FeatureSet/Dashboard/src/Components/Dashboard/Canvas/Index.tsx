@@ -139,9 +139,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
     const width: number = DefaultDashboardSize.widthInDashboardUnits;
 
-    const canvasClassName: string = props.isEditMode
-      ? `grid grid-cols-${width}`
-      : `grid grid-cols-${width}`;
+    const canvasClassName: string = `grid grid-cols-${width}`;
 
     return (
       <div
@@ -151,11 +149,15 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           props.isEditMode
             ? {
                 backgroundImage:
-                  "radial-gradient(circle, #d1d5db 0.8px, transparent 0.8px)",
+                  "radial-gradient(circle, rgba(148, 163, 184, 0.3) 0.8px, transparent 0.8px)",
                 backgroundSize: "20px 20px",
-                borderRadius: "8px",
+                borderRadius: "12px",
+                padding: "4px",
+                border: "1px dashed rgba(148, 163, 184, 0.25)",
               }
-            : {}
+            : {
+                padding: "4px",
+              }
         }
       >
         {finalRenderedComponents}

@@ -5,12 +5,19 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const [showPasswordModal, setShowPasswordModal] = useState<boolean>(false);
+  const [refreshMasterPassword, setRefreshMasterPassword] = useState<boolean>(false);
+  const [isMasterPasswordSet, setIsMasterPasswordSet] = useState<boolean>(false);
 
   return (
     <Fragment>
@@ -51,14 +58,25 @@ const StatusPageDelete: FunctionComponent<
       />
 
       <CardModelDetail<StatusPage>
-        name="Status Page > Require Master Password"
+        name="Status Page > Master Password"
         cardProps={{
-          title: "Require Master Password",
+          title: "Master Password",
           description:
-            "When enabled, visitors must enter the master password before viewing a private status page. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled.",
+            "When enabled, visitors must enter the master password before viewing a private status page. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled. This value is stored as a secure hash and cannot be retrieved.",
+          buttons: [
+            {
+              title: isMasterPasswordSet ? "Update Master Password" : "Set Master Password",
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setShowPasswordModal(true);
+              },
+              icon: IconProp.Lock,
+            },
+          ],
         }}
         editButtonText="Edit Settings"
         isEditable={true}
+        refresher={refreshMasterPassword}
         formFields={[
           {
             field: {
@@ -84,56 +102,59 @@ const StatusPageDelete: FunctionComponent<
               title: "Require Master Password",
               placeholder: "No",
             },
+            {
+              field: {
+                masterPassword: true,
+              },
+              title: "Master Password",
+              fieldType: FieldType.HiddenText,
+              placeholder: "Not Set",
+            },
           ],
           modelId: modelId,
+          onItemLoaded: (item: StatusPage) => {
+            setIsMasterPasswordSet(Boolean(item.masterPassword));
+          },
         }}
       />
 
-      <CardModelDetail<StatusPage>
-        name="Status Page > Update Master Password"
-        cardProps={{
-          title: "Update Master Password",
-          description:
-            "Rotate the password required to unlock a private status page. This value is stored as a secure hash and cannot be retrieved.",
-        }}
-        editButtonText="Update Master Password"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              masterPassword: true,
-            },
-            title: "Master Password",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            placeholder: "Enter a new master password",
-            description:
-              "Updating this value immediately replaces the existing master password.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-master-password",
-          fields: [
-            {
-              title: "Master Password",
-              fieldType: FieldType.Element,
-              placeholder: "Hidden",
-              getElement: (): ReactElement => {
-                return (
-                  <p className="text-sm text-gray-500">
-                    For security reasons, the current master password is never
-                    displayed. Use the update button to set a new password at
-                    any time.
-                  </p>
-                );
+      {showPasswordModal && (
+        <ModelFormModal<StatusPage>
+          title={isMasterPasswordSet ? "Update Master Password" : "Set Master Password"}
+          onClose={() => {
+            setShowPasswordModal(false);
+          }}
+          submitButtonText="Save"
+          onSuccess={() => {
+            setShowPasswordModal(false);
+            setRefreshMasterPassword(!refreshMasterPassword);
+            setIsMasterPasswordSet(true);
+          }}
+          name="Status Page > Master Password"
+          modelType={StatusPage}
+          formProps={{
+            id: "edit-status-page-master-password-from",
+            fields: [
+              {
+                field: {
+                  masterPassword: true,
+                },
+                title: "Master Password",
+                fieldType: FormFieldSchemaType.Password,
+                required: true,
+                placeholder: "Enter a new master password",
+                description:
+                  "Updating this value immediately replaces the existing master password.",
               },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+            ],
+            name: "Status Page > Master Password",
+            formType: FormType.Update,
+            modelType: StatusPage,
+            steps: [],
+          }}
+          modelIdToEdit={modelId}
+        />
+      )}
 
       <CardModelDetail<StatusPage>
         name="Status Page > IP Whitelist"

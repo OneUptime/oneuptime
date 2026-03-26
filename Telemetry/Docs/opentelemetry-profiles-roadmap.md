@@ -53,6 +53,8 @@ Add the profiles proto files to `Telemetry/ProtoFiles/OTel/v1/`:
 - `profiles.proto` — Core profiles data model (from `opentelemetry/proto/profiles/v1development/profiles.proto`)
 - `profiles_service.proto` — ProfilesService with `Export` RPC
 
+**Important:** The proto package is `opentelemetry.proto.profiles.v1development` (not `v1`). This `v1development` path will change to `v1` when Profiles reaches GA. Plan for this migration (see Risks section).
+
 The OTLP Profiles format uses a **deduplicated stack representation** where each unique callstack is stored once, with dictionary tables for common entities (functions, locations, mappings). Key message types:
 
 ```protobuf
@@ -79,17 +81,38 @@ message ProfileContainer {
   // ...attributes, dropped_attributes_count
 }
 
+// NOTE: ProfilesDictionary is batch-scoped (shared across all profiles
+// in a ProfilesData message), NOT per-profile. The ingestion service
+// must pass the dictionary context when processing individual profiles.
+message ProfilesDictionary {
+  repeated string string_table = 1;
+  repeated Mapping mapping_table = 2;
+  repeated Location location_table = 3;
+  repeated Function function_table = 4;
+  repeated Link link_table = 5;
+  // ...
+}
+
 message Profile {
-  // Dictionary tables for deduplication
   repeated ValueType sample_type = 1;
   repeated Sample sample = 2;
-  repeated Location location = 4;
-  repeated Function function = 5;
-  repeated Mapping mapping = 3;
-  repeated AttributeUnit attribute_units = 15;
-  repeated Link link_table = 16;
-  repeated string string_table = 6;
-  // ...
+  int64 time_unix_nano = 3;
+  int64 duration_nano = 4;
+  ValueType period_type = 5;
+  int64 period = 6;
+  bytes profile_id = 7;
+  repeated int32 attribute_indices = 8;
+  uint32 dropped_attributes_count = 9;
+  string original_payload_format = 10;  // e.g., "pprofext"
+  bytes original_payload = 11;          // raw pprof bytes for round-tripping
+}
+
+message Sample {
+  int32 stack_index = 1;
+  repeated int64 values = 2;
+  repeated int32 attribute_indices = 3;
+  int32 link_index = 4;
+  repeated int64 timestamps_unix_nano = 5;  // NOTE: repeated — multiple timestamps per sample
 }
 ```
 
