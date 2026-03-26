@@ -20,6 +20,9 @@ import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
 import { EncryptionSecret } from "../EnvironmentConfig";
 import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard/MasterPassword";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import JSONFunctions from "../../Types/JSONFunctions";
 
 export default class DashboardAPI extends BaseAPI<
   Dashboard,
@@ -195,6 +198,66 @@ export default class DashboardAPI extends BaseAPI<
             description: dashboard.description || "",
             isPublicDashboard: dashboard.isPublicDashboard || false,
             enableMasterPassword: dashboard.enableMasterPassword || false,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // Public view-config endpoint - returns dashboard view config for the public viewer
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/view-config/:dashboardId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const dashboardId: ObjectID = new ObjectID(
+            req.params["dashboardId"] as string,
+          );
+
+          // Check read access (handles public check, IP whitelist, master password)
+          const accessResult: {
+            hasReadAccess: boolean;
+            error?: NotAuthenticatedException | ForbiddenException;
+          } = await DashboardService.hasReadAccess({
+            dashboardId,
+            req,
+          });
+
+          if (!accessResult.hasReadAccess) {
+            throw (
+              accessResult.error ||
+              new BadDataException("Access denied to this dashboard.")
+            );
+          }
+
+          const dashboard: Dashboard | null =
+            await DashboardService.findOneById({
+              id: dashboardId,
+              select: {
+                _id: true,
+                name: true,
+                description: true,
+                dashboardViewConfig: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!dashboard) {
+            throw new NotFoundException("Dashboard not found");
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            _id: dashboard._id?.toString() || "",
+            name: dashboard.name || "Dashboard",
+            description: dashboard.description || "",
+            dashboardViewConfig: dashboard.dashboardViewConfig
+              ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
+              : null,
           });
         } catch (err) {
           next(err);

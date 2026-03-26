@@ -13,11 +13,12 @@ import DashboardViewConfig, {
   getAutoRefreshIntervalInMs,
   getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
-import { ObjectType } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "../../Utils/API";
+import { PUBLIC_DASHBOARD_API_URL } from "../../Utils/Config";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
@@ -104,28 +105,25 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
 
   const fetchDashboardViewConfig: PromiseVoidFunction =
     async (): Promise<void> => {
-      const dashboard: Dashboard | null = await ModelAPI.getItem({
-        modelType: Dashboard,
-        id: props.dashboardId,
-        select: {
-          dashboardViewConfig: true,
-          name: true,
-          description: true,
-        },
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+        url: URL.fromString(PUBLIC_DASHBOARD_API_URL.toString()).addRoute(
+          `/view-config/${props.dashboardId.toString()}`,
+        ),
+        data: {},
       });
 
-      if (!dashboard) {
+      if (response.isFailure() || !response.data) {
         setError("Dashboard not found");
         return;
       }
 
       const config: DashboardViewConfig = JSONFunctions.deserializeValue(
-        dashboard.dashboardViewConfig ||
+        response.data["dashboardViewConfig"] ||
           DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
       ) as DashboardViewConfig;
 
       setDashboardViewConfig(config);
-      setDashboardName(dashboard.name || "Untitled Dashboard");
+      setDashboardName((response.data["name"] as string) || "Untitled Dashboard");
 
       if (config.refreshInterval) {
         setAutoRefreshInterval(config.refreshInterval);
