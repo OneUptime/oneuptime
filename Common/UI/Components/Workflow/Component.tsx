@@ -300,7 +300,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 : colors.border
         }`,
         backgroundColor: "#ffffff",
-        overflow: "hidden",
+        overflow: "visible",
         boxShadow: props.selected
           ? colors.selectedShadow
           : isHovering
@@ -388,6 +388,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
+          borderRadius: "10px 10px 0 0",
         }}
       >
         {props.data.metadata.iconProp && (
@@ -434,6 +435,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           padding: "0.75rem 0.875rem",
           backgroundColor: colors.bg,
           minHeight: "3rem",
+          borderRadius:
+            !props.data.metadata.outPorts ||
+            props.data.metadata.outPorts.length === 0
+              ? "0 0 10px 10px"
+              : undefined,
         }}
       >
         {/* Component ID badge */}
@@ -496,6 +502,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     ? "center"
                     : "space-between",
                 backgroundColor: "#ffffff",
+                borderRadius: "0 0 10px 10px",
               }}
             >
               {props.data.metadata.outPorts.map((port: Port, i: number) => {
