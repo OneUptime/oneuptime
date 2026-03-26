@@ -224,8 +224,7 @@ export default class DashboardDomain extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Dashboard,
     title: "Dashboard",
-    description:
-      "Relation to Dashboard Resource in which this object belongs",
+    description: "Relation to Dashboard Resource in which this object belongs",
   })
   @ManyToOne(
     () => {

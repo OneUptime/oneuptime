@@ -32,7 +32,9 @@ export interface ComponentProps {
   onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
   isRefreshing?: boolean | undefined;
   variables?: Array<DashboardVariable> | undefined;
-  onVariableValueChange?: ((variableId: string, value: string) => void) | undefined;
+  onVariableValueChange?:
+    | ((variableId: string, value: string) => void)
+    | undefined;
   canResetZoom?: boolean | undefined;
   onResetZoom?: (() => void) | undefined;
 }
@@ -46,17 +48,18 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const isSaving: boolean = props.isSaving;
 
-  const hasComponents: boolean = !!(
+  const hasComponents: boolean = Boolean(
     props.dashboardViewConfig &&
-    props.dashboardViewConfig.components &&
-    props.dashboardViewConfig.components.length > 0
+      props.dashboardViewConfig.components &&
+      props.dashboardViewConfig.components.length > 0,
   );
 
   return (
     <div
       className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200"
       style={{
-        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+        boxShadow:
+          "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
       }}
     >
       {/* Accent top bar */}
@@ -82,7 +85,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           )}
           {hasComponents && !isEditMode && (
             <span className="text-xs text-gray-400 tabular-nums">
-              {props.dashboardViewConfig.components.length} widget{props.dashboardViewConfig.components.length !== 1 ? "s" : ""}
+              {props.dashboardViewConfig.components.length} widget
+              {props.dashboardViewConfig.components.length !== 1 ? "s" : ""}
             </span>
           )}
           {/* Refreshing indicator */}

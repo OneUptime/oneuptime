@@ -95,7 +95,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           >
             <Icon
               icon={IconProp.Label}
-              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+              style={{
+                color: "#64748b",
+                width: "0.875rem",
+                height: "0.875rem",
+              }}
             />
             <span
               style={{
@@ -199,7 +203,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           >
             <Icon
               icon={IconProp.Settings}
-              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+              style={{
+                color: "#64748b",
+                width: "0.875rem",
+                height: "0.875rem",
+              }}
             />
             <span
               style={{
@@ -247,7 +255,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           >
             <Icon
               icon={IconProp.Link}
-              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+              style={{
+                color: "#64748b",
+                width: "0.875rem",
+                height: "0.875rem",
+              }}
             />
             <span
               style={{
@@ -291,7 +303,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
           >
             <Icon
               icon={IconProp.ArrowCircleRight}
-              style={{ color: "#64748b", width: "0.875rem", height: "0.875rem" }}
+              style={{
+                color: "#64748b",
+                width: "0.875rem",
+                height: "0.875rem",
+              }}
             />
             <span
               style={{

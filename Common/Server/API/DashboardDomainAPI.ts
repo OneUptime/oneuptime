@@ -29,11 +29,7 @@ export default class DashboardDomainAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/verify-cname/:id`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!DashboardCNameRecord) {
             return Response.sendErrorResponse(
@@ -101,8 +97,9 @@ export default class DashboardDomainAPI extends BaseAPI<
             );
           }
 
-          const isValid: boolean =
-            await DashboardDomainService.isCnameValid(domain.fullDomain!);
+          const isValid: boolean = await DashboardDomainService.isCnameValid(
+            domain.fullDomain!,
+          );
 
           if (!isValid) {
             return Response.sendErrorResponse(
@@ -125,11 +122,7 @@ export default class DashboardDomainAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/order-ssl/:id`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!DashboardCNameRecord) {
             return Response.sendErrorResponse(
@@ -230,9 +223,7 @@ export default class DashboardDomainAPI extends BaseAPI<
 
           await DashboardDomainService.orderCert(domain);
 
-          logger.debug(
-            "SSL Provisioned for domain - " + domain.fullDomain,
-          );
+          logger.debug("SSL Provisioned for domain - " + domain.fullDomain);
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (e) {

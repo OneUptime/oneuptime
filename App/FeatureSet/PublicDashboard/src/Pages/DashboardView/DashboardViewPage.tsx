@@ -33,7 +33,6 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
-import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import NavBar from "Common/UI/Components/Navbar/NavBar";
 import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
 import PageMap from "../../Utils/PageMap";
@@ -97,10 +96,10 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const hasComponents: boolean = !!(
+  const hasComponents: boolean = Boolean(
     dashboardViewConfig &&
-    dashboardViewConfig.components &&
-    dashboardViewConfig.components.length > 0
+      dashboardViewConfig.components &&
+      dashboardViewConfig.components.length > 0,
   );
 
   const fetchDashboardViewConfig: PromiseVoidFunction =
@@ -159,7 +158,9 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   // Auto-refresh
   const triggerRefresh: () => void = useCallback(() => {
     setIsRefreshing(true);
-    setRefreshTick((prev: number) => prev + 1);
+    setRefreshTick((prev: number) => {
+      return prev + 1;
+    });
     setTimeout(() => {
       setIsRefreshing(false);
     }, 500);
@@ -224,9 +225,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           </h1>
         </div>
 
-        <NavBar
-          className="bg-white flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5"
-        >
+        <NavBar className="bg-white flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5">
           <NavBarItem
             id="overview-nav-bar-item"
             title="Overview"
@@ -248,8 +247,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         <div
           className="h-0.5 rounded-t-lg"
           style={{
-            background:
-              "linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)",
+            background: "linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)",
           }}
         ></div>
         <div className="flex items-center justify-between px-5 py-3">
@@ -341,10 +339,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
               <RangeStartAndEndDateView
                 dashboardStartAndEndDate={startAndEndDate}
                 onChange={(newRange: RangeStartAndEndDateTime) => {
-                  setTimeRangeStack([
-                    ...timeRangeStack,
-                    startAndEndDate,
-                  ]);
+                  setTimeRangeStack([...timeRangeStack, startAndEndDate]);
                   setStartAndEndDate(newRange);
                 }}
               />
@@ -360,14 +355,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                     value: string,
                   ) => {
                     setDashboardVariables(
-                      dashboardVariables.map(
-                        (v: DashboardVariable) => {
-                          if (v.id === variableId) {
-                            return { ...v, currentValue: value };
-                          }
-                          return v;
-                        },
-                      ),
+                      dashboardVariables.map((v: DashboardVariable) => {
+                        if (v.id === variableId) {
+                          return { ...v, currentValue: value };
+                        }
+                        return v;
+                      }),
                     );
                   }}
                 />
@@ -390,9 +383,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           }}
           dashboardTotalWidth={dashboardTotalWidth}
           startAndEndDate={startAndEndDate}
-          onStartAndEndDateChange={(
-            newRange: RangeStartAndEndDateTime,
-          ) => {
+          onStartAndEndDateChange={(newRange: RangeStartAndEndDateTime) => {
             setTimeRangeStack([...timeRangeStack, startAndEndDate]);
             setStartAndEndDate(newRange);
           }}

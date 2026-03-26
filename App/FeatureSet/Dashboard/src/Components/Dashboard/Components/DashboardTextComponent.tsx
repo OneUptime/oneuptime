@@ -19,7 +19,10 @@ const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   const textClassName: string = `flex items-center justify-center h-full text-gray-800 leading-snug ${props.component.arguments.isBold ? "font-semibold" : "font-normal"} ${props.component.arguments.isItalic ? "italic" : ""} ${props.component.arguments.isUnderline ? "underline decoration-gray-300 underline-offset-4" : ""}`;
-  const textHeightInxPx: number = Math.min(props.dashboardComponentHeightInPx * 0.35, 64);
+  const textHeightInxPx: number = Math.min(
+    props.dashboardComponentHeightInPx * 0.35,
+    64,
+  );
 
   return (
     <div className="h-full px-2">

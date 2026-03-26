@@ -80,8 +80,7 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
 
     componentArguments.push({
       name: "Additional Queries",
-      description:
-        "Add multiple metric queries to overlay on the same chart",
+      description: "Add multiple metric queries to overlay on the same chart",
       required: false,
       type: ComponentInputType.MetricsQueryConfigs,
       id: "metricQueryConfigs",

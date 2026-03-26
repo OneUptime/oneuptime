@@ -34,11 +34,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/seo/:dashboardIdOrDomain`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardIdOrDomain: string = req.params[
             "dashboardIdOrDomain"
@@ -46,10 +42,7 @@ export default class DashboardAPI extends BaseAPI<
 
           let dashboardId: ObjectID | null = null;
 
-          if (
-            dashboardIdOrDomain &&
-            dashboardIdOrDomain.includes(".")
-          ) {
+          if (dashboardIdOrDomain && dashboardIdOrDomain.includes(".")) {
             // This is a domain - resolve to dashboard ID
             const dashboardDomain: DashboardDomain | null =
               await DashboardDomainService.findOneBy({
@@ -114,8 +107,7 @@ export default class DashboardAPI extends BaseAPI<
             _id: dashboard._id?.toString() || "",
             title: dashboard.name || "Dashboard",
             description:
-              dashboard.description ||
-              "View dashboard metrics and insights.",
+              dashboard.description || "View dashboard metrics and insights.",
           });
         } catch (err) {
           next(err);
@@ -125,20 +117,12 @@ export default class DashboardAPI extends BaseAPI<
 
     // Domain resolution endpoint
     this.router.post(
-      `${new this.entityType()
-        .getCrudApiPath()
-        ?.toString()}/domain`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.body["domain"]) {
-            throw new BadDataException(
-              "domain is required in request body",
-            );
+            throw new BadDataException("domain is required in request body");
           }
 
           const domain: string = req.body["domain"] as string;
@@ -160,9 +144,7 @@ export default class DashboardAPI extends BaseAPI<
             });
 
           if (!dashboardDomain) {
-            throw new BadDataException(
-              "No dashboard found with this domain",
-            );
+            throw new BadDataException("No dashboard found with this domain");
           }
 
           const objectId: ObjectID = dashboardDomain.dashboardId!;
@@ -182,11 +164,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/metadata/:dashboardId`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
             req.params["dashboardId"] as string,
@@ -214,11 +192,9 @@ export default class DashboardAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
-            description:
-              dashboard.description || "",
+            description: dashboard.description || "",
             isPublicDashboard: dashboard.isPublicDashboard || false,
-            enableMasterPassword:
-              dashboard.enableMasterPassword || false,
+            enableMasterPassword: dashboard.enableMasterPassword || false,
           });
         } catch (err) {
           next(err);
@@ -231,11 +207,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/master-password/:dashboardId`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.params["dashboardId"]) {
             throw new BadDataException("Dashboard ID not found");
@@ -277,10 +249,7 @@ export default class DashboardAPI extends BaseAPI<
             );
           }
 
-          if (
-            !dashboard.enableMasterPassword ||
-            !dashboard.masterPassword
-          ) {
+          if (!dashboard.enableMasterPassword || !dashboard.masterPassword) {
             throw new BadDataException(
               "Master password has not been configured for this dashboard.",
             );

@@ -171,9 +171,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.ChartBar} />
           </div>
         </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">
-          {error}
-        </p>
+        <p className="text-xs text-gray-400 text-center max-w-48">{error}</p>
       </div>
     );
   }

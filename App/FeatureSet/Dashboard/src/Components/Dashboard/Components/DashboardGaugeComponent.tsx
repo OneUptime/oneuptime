@@ -21,8 +21,9 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const [metricResults, setMetricResults] = React.useState<
     Array<AggregatedResult>
   >([]);
-  const [aggregationType, setAggregationType] =
-    React.useState<AggregationType>(AggregationType.Avg);
+  const [aggregationType, setAggregationType] = React.useState<AggregationType>(
+    AggregationType.Avg,
+  );
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -132,8 +133,18 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-          <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
+          <svg
+            className="w-5 h-5 text-gray-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z"
+            />
           </svg>
         </div>
         <p className="text-xs text-gray-400 text-center max-w-40">{error}</p>
@@ -152,8 +163,18 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-          <svg className="w-5 h-5 text-emerald-300" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
+          <svg
+            className="w-5 h-5 text-emerald-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z"
+            />
           </svg>
         </div>
         <p className="text-xs font-medium text-gray-500">
@@ -211,10 +232,7 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
 
   // Determine color based on thresholds
   let gaugeColor: string = "#10b981"; // green
-  if (
-    criticalThreshold !== undefined &&
-    aggregatedValue >= criticalThreshold
-  ) {
+  if (criticalThreshold !== undefined && aggregatedValue >= criticalThreshold) {
     gaugeColor = "#ef4444"; // red
   } else if (
     warningThreshold !== undefined &&
@@ -322,7 +340,9 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
             <stop offset="50%" stopColor={gaugeColor} stopOpacity="0.85" />
             <stop offset="100%" stopColor={gaugeColor} stopOpacity="1" />
           </linearGradient>
-          <filter id={`gauge-glow-${props.componentId?.toString() || "default"}`}>
+          <filter
+            id={`gauge-glow-${props.componentId?.toString() || "default"}`}
+          >
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -350,21 +370,19 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
           />
         )}
         {/* Threshold markers */}
-        {thresholdMarkers.map(
-          (marker: ThresholdMarker, index: number) => {
-            return (
-              <circle
-                key={index}
-                cx={marker.x}
-                cy={marker.y}
-                r={3}
-                fill={marker.color}
-                stroke="white"
-                strokeWidth={1.5}
-              />
-            );
-          },
-        )}
+        {thresholdMarkers.map((marker: ThresholdMarker, index: number) => {
+          return (
+            <circle
+              key={index}
+              cx={marker.x}
+              cy={marker.y}
+              r={3}
+              fill={marker.color}
+              stroke="white"
+              strokeWidth={1.5}
+            />
+          );
+        })}
         {/* Needle tip dot at current position */}
         {percentage > 0 && (
           <circle
@@ -407,10 +425,16 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
         className="flex justify-between w-full px-2 mt-0.5"
         style={{ maxWidth: `${gaugeSize + 10}px` }}
       >
-        <span className="text-gray-300 tabular-nums" style={{ fontSize: "10px" }}>
+        <span
+          className="text-gray-300 tabular-nums"
+          style={{ fontSize: "10px" }}
+        >
           {minValue}
         </span>
-        <span className="text-gray-300 tabular-nums" style={{ fontSize: "10px" }}>
+        <span
+          className="text-gray-300 tabular-nums"
+          style={{ fontSize: "10px" }}
+        >
           {maxValue}
         </span>
       </div>

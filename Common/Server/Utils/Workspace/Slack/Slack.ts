@@ -1140,11 +1140,7 @@ export default class SlackUtil extends WorkspaceBase {
             blocks: blocks,
           });
         } else {
-          for (
-            let i: number = 0;
-            i < blocks.length;
-            i += maxBlocksPerMessage
-          ) {
+          for (let i: number = 0; i < blocks.length; i += maxBlocksPerMessage) {
             const chunk: Array<JSONObject> = blocks.slice(
               i,
               i + maxBlocksPerMessage,

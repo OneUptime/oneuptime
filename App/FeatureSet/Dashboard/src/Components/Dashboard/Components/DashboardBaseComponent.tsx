@@ -77,7 +77,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   if (props.isSelected && props.isEditMode) {
-    className += " !border-blue-400 ring-2 ring-blue-50 shadow-lg shadow-blue-100/50";
+    className +=
+      " !border-blue-400 ring-2 ring-blue-50 shadow-lg shadow-blue-100/50";
   }
 
   if (!props.isEditMode) {
@@ -386,7 +387,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             widthOfComponent +
           (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
         }px`,
-        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+        boxShadow:
+          "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
       }}
       key={component.componentId?.toString() || Math.random().toString()}
       ref={dashboardComponentRef}

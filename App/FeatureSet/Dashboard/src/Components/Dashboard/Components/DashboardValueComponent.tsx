@@ -302,10 +302,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const criticalThreshold: number | undefined =
     props.component.arguments.criticalThreshold;
 
-  if (
-    criticalThreshold !== undefined &&
-    aggregatedValue >= criticalThreshold
-  ) {
+  if (criticalThreshold !== undefined && aggregatedValue >= criticalThreshold) {
     valueColorClass = "text-red-600";
     bgStyle = {
       background:
@@ -393,8 +390,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
         <span
           className="text-gray-400 font-normal"
           style={{
-            fontSize:
-              valueHeightInPx > 0 ? `${valueHeightInPx * 0.3}px` : "",
+            fontSize: valueHeightInPx > 0 ? `${valueHeightInPx * 0.3}px` : "",
           }}
         >
           {unit ? ` ${unit}` : ""}
@@ -407,7 +403,9 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
           className={`flex items-center gap-0.5 mt-0.5 ${
             trendDirection === "up" ? "text-emerald-500" : "text-red-500"
           }`}
-          style={{ fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px` }}
+          style={{
+            fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
+          }}
         >
           <span>{trendDirection === "up" ? "\u2191" : "\u2193"}</span>
           <span className="font-medium tabular-nums">

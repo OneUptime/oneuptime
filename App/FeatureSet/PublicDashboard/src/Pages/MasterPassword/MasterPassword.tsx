@@ -150,10 +150,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
             maxPrimaryButtonWidth={true}
             isLoading={isSubmitting}
             error={formError || undefined}
-            onSubmit={(
-              values: JSONObject,
-              onSubmitSuccessful?: () => void,
-            ) => {
+            onSubmit={(values: JSONObject, onSubmitSuccessful?: () => void) => {
               void handleFormSubmit(values, onSubmitSuccessful);
             }}
             footer={<></>}

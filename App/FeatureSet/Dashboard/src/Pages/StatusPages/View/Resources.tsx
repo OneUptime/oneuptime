@@ -242,7 +242,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       title: "Show Status History Chart",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
-      description: "Show resource status history chart. The number of days is configured in Status Page Settings.",
+      description:
+        "Show resource status history chart. The number of days is configured in Status Page Settings.",
       defaultValue: true,
       stepId: "advanced",
     },

@@ -200,8 +200,7 @@ export const SubscriptionPlans: Array<SubscriptionPlan> =
 export const StatusPageCNameRecord: string =
   env("STATUS_PAGE_CNAME_RECORD") || "";
 
-export const DashboardCNameRecord: string =
-  env("DASHBOARD_CNAME_RECORD") || "";
+export const DashboardCNameRecord: string = env("DASHBOARD_CNAME_RECORD") || "";
 
 export const AnalyticsKey: string = env("ANALYTICS_KEY") || "";
 export const AnalyticsHost: string = env("ANALYTICS_HOST");

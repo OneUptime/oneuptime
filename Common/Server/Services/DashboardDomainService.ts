@@ -34,9 +34,7 @@ export class Service extends DatabaseService<DashboardDomain> {
     const domain: DomainModel | null = await DomainService.findOneBy({
       query: {
         _id:
-          createBy.data.domainId?.toString() ||
-          createBy.data.domain?._id ||
-          "",
+          createBy.data.domainId?.toString() || createBy.data.domain?._id || "",
       },
       select: { domain: true, isVerified: true },
       props: {
@@ -175,9 +173,7 @@ export class Service extends DatabaseService<DashboardDomain> {
             },
           });
 
-          logger.debug(
-            "SSL ordered for domain: " + dashboardDomain.fullDomain,
-          );
+          logger.debug("SSL ordered for domain: " + dashboardDomain.fullDomain);
 
           await this.updateOneById({
             id: dashboardDomain.id!,
@@ -308,9 +304,7 @@ export class Service extends DatabaseService<DashboardDomain> {
 
       const token: string = dashboardDomain.cnameVerificationToken!;
 
-      logger.debug(
-        "Checking for CNAME " + fullDomain + " with token " + token,
-      );
+      logger.debug("Checking for CNAME " + fullDomain + " with token " + token);
 
       try {
         const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -643,9 +637,7 @@ export class Service extends DatabaseService<DashboardDomain> {
         try {
           await this.orderCert(domain);
         } catch (err) {
-          logger.error(
-            "Cannot order cert for domain: " + domain.fullDomain,
-          );
+          logger.error("Cannot order cert for domain: " + domain.fullDomain);
           logger.error(err);
         }
       }

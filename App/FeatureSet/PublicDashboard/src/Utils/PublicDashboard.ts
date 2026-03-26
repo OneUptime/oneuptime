@@ -23,7 +23,8 @@ export default class PublicDashboardUtil {
   }
 
   public static setRequiresMasterPassword(value: boolean): void {
-    const storageKey: string = PublicDashboardUtil.getRequiresMasterPasswordStorageKey();
+    const storageKey: string =
+      PublicDashboardUtil.getRequiresMasterPasswordStorageKey();
     LocalStorage.setItem(storageKey, value);
 
     if (!value) {
@@ -32,7 +33,8 @@ export default class PublicDashboardUtil {
   }
 
   public static requiresMasterPassword(): boolean {
-    const storageKey: string = PublicDashboardUtil.getRequiresMasterPasswordStorageKey();
+    const storageKey: string =
+      PublicDashboardUtil.getRequiresMasterPasswordStorageKey();
     return Boolean(LocalStorage.getItem(storageKey));
   }
 

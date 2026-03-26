@@ -488,7 +488,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
       if (resourceFilters.workloadName && resourceFilters.workloadType) {
         const workloadType: string = resourceFilters.workloadType.toLowerCase();
-        attributes[`resource.k8s.${workloadType}.name`] = resourceFilters.workloadName;
+        attributes[`resource.k8s.${workloadType}.name`] =
+          resourceFilters.workloadName;
       }
     }
 
@@ -569,10 +570,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
           if (metricAttrs["resource.k8s.deployment.name"]) {
             workloadType = "Deployment";
-            workloadName = metricAttrs["resource.k8s.deployment.name"] as string;
+            workloadName = metricAttrs[
+              "resource.k8s.deployment.name"
+            ] as string;
           } else if (metricAttrs["resource.k8s.statefulset.name"]) {
             workloadType = "StatefulSet";
-            workloadName = metricAttrs["resource.k8s.statefulset.name"] as string;
+            workloadName = metricAttrs[
+              "resource.k8s.statefulset.name"
+            ] as string;
           } else if (metricAttrs["resource.k8s.daemonset.name"]) {
             workloadType = "DaemonSet";
             workloadName = metricAttrs["resource.k8s.daemonset.name"] as string;
@@ -584,7 +589,9 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
             workloadName = metricAttrs["resource.k8s.cronjob.name"] as string;
           } else if (metricAttrs["resource.k8s.replicaset.name"]) {
             workloadType = "ReplicaSet";
-            workloadName = metricAttrs["resource.k8s.replicaset.name"] as string;
+            workloadName = metricAttrs[
+              "resource.k8s.replicaset.name"
+            ] as string;
           }
 
           // Build unique key for deduplication

@@ -4,7 +4,6 @@ import RouteParams from "./Utils/RouteParams";
 import PublicDashboardUtil from "./Utils/PublicDashboard";
 import { PUBLIC_DASHBOARD_API_URL } from "./Utils/Config";
 import API from "./Utils/API";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -42,13 +41,12 @@ const MasterPassword: React.LazyExoticComponent<
   });
 });
 
-const NotFoundPage: React.LazyExoticComponent<
-  AllPagesModule["NotFoundPage"]
-> = lazy(() => {
-  return import("./Pages/AllPages").then((m: AllPagesModule) => {
-    return { default: m.NotFoundPage };
+const NotFoundPage: React.LazyExoticComponent<AllPagesModule["NotFoundPage"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.NotFoundPage };
+    });
   });
-});
 
 const ForbiddenPage: React.LazyExoticComponent<
   AllPagesModule["ForbiddenPage"]
@@ -123,8 +121,7 @@ const App: () => JSX.Element = () => {
       });
 
       if (response.data) {
-        const name: string =
-          (response.data["name"] as string) || "Dashboard";
+        const name: string = (response.data["name"] as string) || "Dashboard";
         setDashboardName(name);
         document.title = name;
 

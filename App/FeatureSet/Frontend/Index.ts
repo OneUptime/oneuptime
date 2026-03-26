@@ -450,8 +450,10 @@ const registerCustomDomainFallback: () => void = (): void => {
         return next();
       }
 
-      // Check if this custom domain belongs to a PublicDashboard.
-      // If so, serve the PublicDashboard SPA instead of StatusPage.
+      /*
+       * Check if this custom domain belongs to a PublicDashboard.
+       * If so, serve the PublicDashboard SPA instead of StatusPage.
+       */
       const requestHostname: string = getRequestHostname(req);
 
       if (requestHostname && (await isDashboardDomain(requestHostname))) {

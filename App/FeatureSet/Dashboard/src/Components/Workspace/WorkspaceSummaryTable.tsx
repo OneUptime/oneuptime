@@ -494,7 +494,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "What to Include",
             description:
-              "Choose which sections appear in the summary. Select \"All\" to include everything, or pick specific sections.",
+              'Choose which sections appear in the summary. Select "All" to include everything, or pick specific sections.',
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             stepId: "content",
@@ -503,8 +503,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               elementProps: CustomElementProps,
             ): ReactElement => {
               const currentItems: Array<WorkspaceNotificationSummaryItem> =
-                (value.summaryItems as Array<WorkspaceNotificationSummaryItem>) ||
-                [WorkspaceNotificationSummaryItem.All];
+                (value.summaryItems as Array<WorkspaceNotificationSummaryItem>) || [
+                  WorkspaceNotificationSummaryItem.All,
+                ];
 
               const isAllSelected: boolean = currentItems.includes(
                 WorkspaceNotificationSummaryItem.All,
@@ -542,9 +543,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                             key={item}
                             title={item}
                             disabled={isAllSelected}
-                            value={
-                              isAllSelected || currentItems.includes(item)
-                            }
+                            value={isAllSelected || currentItems.includes(item)}
                             onChange={(checked: boolean) => {
                               if (elementProps.onChange) {
                                 let newItems: Array<WorkspaceNotificationSummaryItem> =

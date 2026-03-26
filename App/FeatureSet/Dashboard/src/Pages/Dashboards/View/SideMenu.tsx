@@ -59,9 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Authentication",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS
-              ] as Route,
+              RouteMap[PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS] as Route,
               { modelId: props.modelId },
             ),
           }}

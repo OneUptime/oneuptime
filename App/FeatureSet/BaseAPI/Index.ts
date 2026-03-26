@@ -2075,10 +2075,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       new StatusPageDomainAPI().getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new DashboardAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new DashboardAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

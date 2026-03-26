@@ -278,7 +278,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+          >
             <div
               style={{
                 display: "flex",

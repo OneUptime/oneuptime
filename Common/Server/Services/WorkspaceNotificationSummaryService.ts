@@ -1448,7 +1448,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     for (const [, td] of tlMap) {
       // For ack: if not explicitly acknowledged but resolved, use resolve time as ack time
       const eventTime: Date | undefined =
-        kind === "ack" ? (td.ackAt || td.resolvedAt) : td.resolvedAt;
+        kind === "ack" ? td.ackAt || td.resolvedAt : td.resolvedAt;
       if (eventTime && td.declaredAt) {
         total += OneUptimeDate.getMinutesBetweenTwoDates(
           td.declaredAt,

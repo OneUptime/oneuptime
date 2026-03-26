@@ -14,7 +14,10 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
-import { queryStringToFilter, LogFilter } from "Common/Types/Log/LogQueryToFilter";
+import {
+  queryStringToFilter,
+  LogFilter,
+} from "Common/Types/Log/LogQueryToFilter";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogStreamComponent;
@@ -31,13 +34,21 @@ const getSeverityColor: (severity: string) => SeverityColor = (
 ): SeverityColor => {
   const lower: string = severity.toLowerCase();
   if (lower === "fatal") {
-    return { dot: "bg-purple-500", text: "text-purple-700", bg: "bg-purple-50" };
+    return {
+      dot: "bg-purple-500",
+      text: "text-purple-700",
+      bg: "bg-purple-50",
+    };
   }
   if (lower === "error") {
     return { dot: "bg-red-500", text: "text-red-700", bg: "bg-red-50" };
   }
   if (lower === "warning") {
-    return { dot: "bg-yellow-500", text: "text-yellow-700", bg: "bg-yellow-50" };
+    return {
+      dot: "bg-yellow-500",
+      text: "text-yellow-700",
+      bg: "bg-yellow-50",
+    };
   }
   if (lower === "information") {
     return { dot: "bg-blue-500", text: "text-blue-700", bg: "bg-blue-50" };
@@ -115,26 +126,25 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         }
       }
 
-      const listResult: ListResult<Log> =
-        await AnalyticsModelAPI.getList<Log>({
-          modelType: Log,
-          query: query,
-          limit: maxRows,
-          skip: 0,
-          select: {
-            time: true,
-            severityText: true,
-            body: true,
-            serviceId: true,
-            traceId: true,
-            spanId: true,
-            attributes: true,
-          },
-          sort: {
-            time: SortOrder.Descending,
-          },
-          requestOptions: {},
-        });
+      const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
+        modelType: Log,
+        query: query,
+        limit: maxRows,
+        skip: 0,
+        select: {
+          time: true,
+          severityText: true,
+          body: true,
+          serviceId: true,
+          traceId: true,
+          spanId: true,
+          attributes: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        requestOptions: {},
+      });
 
       setLogs(listResult.data);
       setError("");
