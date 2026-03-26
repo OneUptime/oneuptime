@@ -2659,6 +2659,47 @@ export default class StatusPage extends BaseModel {
       Permission.EditProjectStatusPage,
     ],
   })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Show Uptime History In Days",
+    description:
+      "How many days of uptime history should be shown on the status page? Maximum is 90 days.",
+    defaultValue: 90,
+  })
+  @Column({
+    type: ColumnType.Number,
+    default: 90,
+    nullable: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Free,
+    create: PlanType.Free,
+  })
+  public showUptimeHistoryInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
   @Index()
   @TableColumn({
     type: TableColumnType.ShortText,

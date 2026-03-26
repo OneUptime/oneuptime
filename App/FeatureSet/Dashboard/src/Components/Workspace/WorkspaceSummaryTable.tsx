@@ -774,12 +774,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
-          onClose={() => {
-            setShowTestSuccessModal(false);
-            setTestSummary(undefined);
-            setShowTestModal(false);
-            setTestError("");
-          }}
           onSubmit={async () => {
             setShowTestSuccessModal(false);
             setTestSummary(undefined);

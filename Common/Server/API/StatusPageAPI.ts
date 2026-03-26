@@ -4448,6 +4448,7 @@ export default class StatusPageAPI extends BaseAPI<
         showIncidentsOnStatusPage: true,
         showEpisodesOnStatusPage: true,
         showScheduledMaintenanceEventsOnStatusPage: true,
+        showUptimeHistoryInDays: true,
       },
       props: {
         isRoot: true,
