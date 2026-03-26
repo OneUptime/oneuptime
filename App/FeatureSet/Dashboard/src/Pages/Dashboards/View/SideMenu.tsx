@@ -52,9 +52,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Image}
         />
-      </SideMenuSection>
 
-      <SideMenuSection title="Custom Domains">
         <SideMenuItem
           link={{
             title: "Custom Domains",
