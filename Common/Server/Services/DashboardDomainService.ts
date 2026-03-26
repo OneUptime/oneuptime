@@ -19,7 +19,7 @@ import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
 import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { StatusPageCNameRecord } from "../EnvironmentConfig";
+import { DashboardCNameRecord } from "../EnvironmentConfig";
 import Domain from "../Types/Domain";
 
 export class Service extends DatabaseService<DashboardDomain> {
@@ -367,7 +367,7 @@ export class Service extends DatabaseService<DashboardDomain> {
       }
 
       try {
-        if (StatusPageCNameRecord) {
+        if (DashboardCNameRecord) {
           const cnameRecords: Array<string> = await Domain.getCnameRecords({
             domain: fullDomain,
           });
@@ -379,7 +379,7 @@ export class Service extends DatabaseService<DashboardDomain> {
 
           if (!cnameRecord) {
             logger.debug(
-              `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
+              `No CNAME record found for ${fullDomain}. Expected record: ${DashboardCNameRecord}`,
             );
             await this.updateCnameStatusForDashboardDomain({
               domain: fullDomain,
@@ -391,10 +391,10 @@ export class Service extends DatabaseService<DashboardDomain> {
           if (
             cnameRecord &&
             cnameRecord.trim().toLocaleLowerCase() ===
-              StatusPageCNameRecord.trim().toLocaleLowerCase()
+              DashboardCNameRecord.trim().toLocaleLowerCase()
           ) {
             logger.debug(
-              `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`,
+              `CNAME record for ${fullDomain} matches the expected record: ${DashboardCNameRecord}`,
             );
 
             await this.updateCnameStatusForDashboardDomain({
@@ -406,7 +406,7 @@ export class Service extends DatabaseService<DashboardDomain> {
           }
 
           logger.debug(
-            `CNAME record for ${fullDomain} is ${cnameRecord} and it does not match the expected record: ${StatusPageCNameRecord}`,
+            `CNAME record for ${fullDomain} is ${cnameRecord} and it does not match the expected record: ${DashboardCNameRecord}`,
           );
         }
       } catch (err) {

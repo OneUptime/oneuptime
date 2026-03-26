@@ -324,6 +324,14 @@ alerts:
 statusPage:
   cnameRecord:
 
+# If you would like to attach public dashboards to custom domains use this setting.
+# Works the same way as statusPage.cnameRecord but for dashboards.
+# For example, if you want dashboard.yourcompany.com to show a public dashboard:
+# 1. Set the dashboard.cnameRecord to "oneuptime.yourcompany.com"
+# 2. Create CNAME record in your DNS provider with the name "dashboard.yourcompany.com" and value "oneuptime.yourcompany.com"
+dashboard:
+  cnameRecord:
+
 probes:
   one:
     name: "Probe"

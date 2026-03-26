@@ -1,4 +1,4 @@
-import { StatusPageCNameRecord } from "../EnvironmentConfig";
+import { DashboardCNameRecord } from "../EnvironmentConfig";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import DashboardDomainService, {
   Service as DashboardDomainServiceType,
@@ -35,7 +35,7 @@ export default class DashboardDomainAPI extends BaseAPI<
         next: NextFunction,
       ) => {
         try {
-          if (!StatusPageCNameRecord) {
+          if (!DashboardCNameRecord) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -131,7 +131,7 @@ export default class DashboardDomainAPI extends BaseAPI<
         next: NextFunction,
       ) => {
         try {
-          if (!StatusPageCNameRecord) {
+          if (!DashboardCNameRecord) {
             return Response.sendErrorResponse(
               req,
               res,

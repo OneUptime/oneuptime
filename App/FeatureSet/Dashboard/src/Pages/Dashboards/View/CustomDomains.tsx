@@ -12,7 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL, StatusPageCNameRecord } from "Common/UI/Config";
+import { APP_API_URL, DashboardCNameRecord } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -69,7 +69,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
           isEditable={true}
           cardProps={{
             title: "Custom Domains",
-            description: `Important: Please add a CNAME record pointing to ${StatusPageCNameRecord} for these domains for this to work.`,
+            description: `Important: Please add a CNAME record pointing to ${DashboardCNameRecord} for these domains for this to work.`,
           }}
           refreshToggle={refreshToggle}
           onBeforeCreate={(
@@ -325,7 +325,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
           <ConfirmModal
             title={`Add CNAME`}
             description={
-              StatusPageCNameRecord ? (
+              DashboardCNameRecord ? (
                 <div>
                   <span>
                     Please add CNAME record to your domain. Details of
@@ -344,7 +344,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                   <br />
                   <span>
                     <b>Content: </b>
-                    {StatusPageCNameRecord}
+                    {DashboardCNameRecord}
                   </span>
                   <br />
                   <br />
@@ -360,10 +360,10 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                     installation. Please contact your server admin to
                     enable this feature. To enable this feature, if you
                     are using Docker compose, the
-                    <b>STATUS_PAGE_CNAME_RECORD</b> environment variable
+                    <b>DASHBOARD_CNAME_RECORD</b> environment variable
                     must be set when starting the OneUptime cluster. If
                     you are using Helm and Kubernetes then set
-                    statusPage.cnameRecord in the values.yaml file.
+                    dashboard.cnameRecord in the values.yaml file.
                   </span>
                 </div>
               )
@@ -418,7 +418,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
           <ConfirmModal
             title={`Order Free SSL Certificate for this Dashboard`}
             description={
-              StatusPageCNameRecord ? (
+              DashboardCNameRecord ? (
                 <div>
                   Please click on the button below to order SSL for this
                   domain. We will use LetsEncrypt to order a certificate.
