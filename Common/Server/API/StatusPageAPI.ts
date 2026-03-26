@@ -1443,7 +1443,33 @@ export default class StatusPageAPI extends BaseAPI<
             req: req,
           });
 
-          const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
+          // First fetch the status page to get the configured uptime history days
+          const statusPageForDays: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId.toString(),
+              },
+              select: {
+                showUptimeHistoryInDays: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          let uptimeHistoryDays: number =
+            statusPageForDays?.showUptimeHistoryInDays || 90;
+
+          if (uptimeHistoryDays > 90) {
+            uptimeHistoryDays = 90;
+          }
+
+          if (uptimeHistoryDays < 1) {
+            uptimeHistoryDays = 1;
+          }
+
+          const startDate: Date =
+            OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
           const endDate: Date = OneUptimeDate.getCurrentDate();
 
           const {

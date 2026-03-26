@@ -28,6 +28,9 @@ pids+=($!)
 npm run watch-frontend:status-page &
 pids+=($!)
 
+npm run watch-frontend:public-dashboard &
+pids+=($!)
+
 npm run dev:api &
 pids+=($!)
 

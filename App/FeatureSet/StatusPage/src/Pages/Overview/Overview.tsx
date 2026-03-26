@@ -126,7 +126,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
   ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
-  const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
+  const uptimeHistoryDays: number =
+    statusPage?.showUptimeHistoryInDays || 90;
+  const startDate: Date = OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
     null,
@@ -493,6 +495,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               showCurrentStatus={resource.showCurrentStatus}
               uptimeGraphHeight={10}
               defaultBarColor={statusPage?.defaultBarColor || Green}
+              uptimeHistoryDays={uptimeHistoryDays}
             />,
           );
         }
@@ -548,6 +551,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               showCurrentStatus={resource.showCurrentStatus}
               uptimeGraphHeight={10}
               defaultBarColor={statusPage?.defaultBarColor || Green}
+              uptimeHistoryDays={uptimeHistoryDays}
             />,
           );
         }

@@ -30,6 +30,7 @@ export interface ComponentProps {
   statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
   downtimeMonitorStatuses: Array<MonitorStatus>;
   defaultBarColor: Color;
+  uptimeHistoryDays?: number | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -143,7 +144,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       {/* Time labels: Visible on all screen sizes */}
       {props.showHistoryChart && (
         <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between flex">
-          <div>90 days ago</div>
+          <div>{props.uptimeHistoryDays || 90} days ago</div>
           <div>Today</div>
         </div>
       )}
