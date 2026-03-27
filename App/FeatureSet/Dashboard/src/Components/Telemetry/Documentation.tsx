@@ -67,7 +67,7 @@ const languages: Array<LanguageOption> = [
   { key: "angular", label: "Angular (Browser)", shortLabel: "Angular" },
 ];
 
-type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd";
+type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd" | "alloy";
 
 interface IntegrationOption {
   key: IntegrationMethod;
@@ -698,6 +698,300 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"`;
 }
 
+// --- Profile-specific snippets ---
+
+const profileLanguages: Array<Language> = [
+  "node",
+  "python",
+  "go",
+  "java",
+  "dotnet",
+  "ruby",
+  "rust",
+];
+
+function getProfileInstallSnippet(lang: Language): {
+  code: string;
+  language: string;
+} {
+  switch (lang) {
+    case "node":
+      return {
+        code: `npm install @pyroscope/nodejs`,
+        language: "bash",
+      };
+    case "python":
+      return {
+        code: `pip install pyroscope-io`,
+        language: "bash",
+      };
+    case "go":
+      return {
+        code: `go get github.com/grafana/pyroscope-go`,
+        language: "bash",
+      };
+    case "java":
+      return {
+        code: `<!-- Add to pom.xml -->
+<dependency>
+  <groupId>io.pyroscope</groupId>
+  <artifactId>agent</artifactId>
+  <version>2.1.2</version>
+</dependency>
+
+# Or download the Java agent JAR:
+curl -L -o pyroscope.jar \\
+  https://github.com/grafana/pyroscope-java/releases/latest/download/pyroscope.jar`,
+        language: "bash",
+      };
+    case "dotnet":
+      return {
+        code: `dotnet add package Pyroscope
+
+# Download the native profiler library:
+curl -s -L https://github.com/grafana/pyroscope-dotnet/releases/download/v0.13.0-pyroscope/pyroscope.0.13.0-glibc-x86_64.tar.gz | tar xvz -C .`,
+        language: "bash",
+      };
+    case "ruby":
+      return {
+        code: `bundle add pyroscope`,
+        language: "bash",
+      };
+    case "rust":
+      return {
+        code: `cargo add pyroscope pyroscope_pprofrs`,
+        language: "bash",
+      };
+    default:
+      return {
+        code: `# Profiling SDK not available for this language.\n# Use Grafana Alloy (eBPF) for zero-code profiling instead.`,
+        language: "bash",
+      };
+  }
+}
+
+function getProfileConfigSnippet(lang: Language): {
+  code: string;
+  language: string;
+} {
+  switch (lang) {
+    case "node":
+      return {
+        code: `const Pyroscope = require('@pyroscope/nodejs');
+
+Pyroscope.init({
+  serverAddress: '<YOUR_ONEUPTIME_OTLP_URL>',
+  appName: 'my-service',
+  tags: {
+    region: process.env.REGION || 'default',
+  },
+  authToken: '<YOUR_ONEUPTIME_TOKEN>',
+});
+
+Pyroscope.start();`,
+        language: "javascript",
+      };
+    case "python":
+      return {
+        code: `import pyroscope
+
+pyroscope.configure(
+    application_name="my-service",
+    server_address="<YOUR_ONEUPTIME_OTLP_URL>",
+    sample_rate=100,
+    tags={
+        "region": "us-east-1",
+    },
+    auth_token="<YOUR_ONEUPTIME_TOKEN>",
+)`,
+        language: "python",
+      };
+    case "go":
+      return {
+        code: `package main
+
+import (
+    "os"
+    "runtime"
+
+    "github.com/grafana/pyroscope-go"
+)
+
+func main() {
+    // Enable mutex and block profiling
+    runtime.SetMutexProfileFraction(5)
+    runtime.SetBlockProfileRate(5)
+
+    pyroscope.Start(pyroscope.Config{
+        ApplicationName: "my-service",
+        ServerAddress:   "<YOUR_ONEUPTIME_OTLP_URL>",
+        AuthToken:       os.Getenv("ONEUPTIME_TOKEN"),
+        Tags:            map[string]string{"hostname": os.Getenv("HOSTNAME")},
+        ProfileTypes: []pyroscope.ProfileType{
+            pyroscope.ProfileCPU,
+            pyroscope.ProfileAllocObjects,
+            pyroscope.ProfileAllocSpace,
+            pyroscope.ProfileInuseObjects,
+            pyroscope.ProfileInuseSpace,
+            pyroscope.ProfileGoroutines,
+            pyroscope.ProfileMutexCount,
+            pyroscope.ProfileMutexDuration,
+            pyroscope.ProfileBlockCount,
+            pyroscope.ProfileBlockDuration,
+        },
+    })
+
+    // Your application code here
+}`,
+        language: "go",
+      };
+    case "java":
+      return {
+        code: `// Option 1: Start from code
+import io.pyroscope.javaagent.PyroscopeAgent;
+import io.pyroscope.javaagent.config.Config;
+import io.pyroscope.javaagent.EventType;
+import io.pyroscope.http.Format;
+
+PyroscopeAgent.start(
+    new Config.Builder()
+        .setApplicationName("my-service")
+        .setProfilingEvent(EventType.ITIMER)
+        .setFormat(Format.JFR)
+        .setServerAddress("<YOUR_ONEUPTIME_OTLP_URL>")
+        .setAuthToken("<YOUR_ONEUPTIME_TOKEN>")
+        .build()
+);
+
+// Option 2: Attach as Java agent (no code changes)
+// java -javaagent:pyroscope.jar \\
+//   -Dpyroscope.application.name=my-service \\
+//   -Dpyroscope.server.address=<YOUR_ONEUPTIME_OTLP_URL> \\
+//   -Dpyroscope.auth.token=<YOUR_ONEUPTIME_TOKEN> \\
+//   -jar my-app.jar`,
+        language: "java",
+      };
+    case "dotnet":
+      return {
+        code: `# Set environment variables before running your .NET application:
+export PYROSCOPE_APPLICATION_NAME=my-service
+export PYROSCOPE_SERVER_ADDRESS=<YOUR_ONEUPTIME_OTLP_URL>
+export PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN>
+export PYROSCOPE_PROFILING_ENABLED=1
+export CORECLR_ENABLE_PROFILING=1
+export CORECLR_PROFILER={BD1A650D-AC5D-4896-B64F-D6FA25D6B26A}
+export CORECLR_PROFILER_PATH=./Pyroscope.Profiler.Native.so
+export LD_PRELOAD=./Pyroscope.Linux.ApiWrapper.x64.so
+
+# Then run your application:
+dotnet run`,
+        language: "bash",
+      };
+    case "ruby":
+      return {
+        code: `# config/initializers/pyroscope.rb
+require 'pyroscope'
+
+Pyroscope.configure do |config|
+  config.application_name = "my-service"
+  config.server_address   = "<YOUR_ONEUPTIME_OTLP_URL>"
+  config.auth_token       = "<YOUR_ONEUPTIME_TOKEN>"
+  config.tags = {
+    "hostname" => ENV["HOSTNAME"],
+    "region"   => ENV.fetch("REGION", "default"),
+  }
+end`,
+        language: "ruby",
+      };
+    case "rust":
+      return {
+        code: `use pyroscope::PyroscopeAgent;
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let pprof_config = PprofConfig::new().sample_rate(100);
+    let backend_impl = pprof_backend(pprof_config);
+
+    let agent = PyroscopeAgent::builder(
+            "<YOUR_ONEUPTIME_OTLP_URL>", "my-service"
+        )
+        .backend(backend_impl)
+        .auth_token("<YOUR_ONEUPTIME_TOKEN>".to_string())
+        .tags([("hostname", "localhost")].to_vec())
+        .build()?;
+
+    let agent_running = agent.start()?;
+
+    // Your application code here
+
+    let agent_ready = agent_running.stop()?;
+    agent_ready.shutdown();
+
+    Ok(())
+}`,
+        language: "rust",
+      };
+    default:
+      return {
+        code: `# Profiling SDK not available for this language.\n# Use Grafana Alloy (eBPF) for zero-code profiling instead.`,
+        language: "bash",
+      };
+  }
+}
+
+function getAlloyEbpfSnippet(): string {
+  return `# alloy-config.alloy
+# Grafana Alloy eBPF-based profiling — no code changes required.
+# Supports: Go, Rust, C/C++, Java, Python, Ruby, PHP, Node.js, .NET
+
+discovery.process "all" {
+  refresh_interval = "60s"
+}
+
+discovery.relabel "alloy_profiles" {
+  targets = discovery.process.all.targets
+
+  rule {
+    action       = "replace"
+    source_labels = ["__meta_process_exe"]
+    target_label  = "service_name"
+  }
+}
+
+pyroscope.ebpf "default" {
+  targets    = discovery.relabel.alloy_profiles.output
+  forward_to = [pyroscope.write.oneuptime.receiver]
+
+  collect_interval = "15s"
+  sample_rate      = 97
+}
+
+pyroscope.write "oneuptime" {
+  endpoint {
+    url = "<YOUR_ONEUPTIME_OTLP_URL>"
+    headers = {
+      "x-oneuptime-token" = "<YOUR_ONEUPTIME_TOKEN>",
+    }
+  }
+}`;
+}
+
+function getAlloyDockerSnippet(): string {
+  return `# docker-compose.yml
+services:
+  alloy:
+    image: grafana/alloy:latest
+    privileged: true
+    pid: host
+    volumes:
+      - ./alloy-config.alloy:/etc/alloy/config.alloy
+      - /proc:/proc:ro
+      - /sys:/sys:ro
+    command:
+      - run
+      - /etc/alloy/config.alloy`;
+}
+
 // --- FluentBit snippets ---
 
 function getFluentBitSnippet(): string {
@@ -788,7 +1082,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
   const [selectedMethod, setSelectedMethod] =
-    useState<IntegrationMethod>("opentelemetry");
+    useState<IntegrationMethod>(props.telemetryType === "profiles" ? "alloy" : "opentelemetry");
 
   // Token management state
   const [ingestionKeys, setIngestionKeys] = useState<
@@ -802,6 +1096,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const telemetryType: TelemetryType = props.telemetryType || "logs";
 
   const showLogCollectors: boolean = telemetryType === "logs";
+  const isProfiles: boolean = telemetryType === "profiles";
 
   // Compute OTLP URL and host
   const httpProtocol: string =
@@ -864,6 +1159,23 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const otlpHostValue: string = otlpHost;
 
   const integrationMethods: Array<IntegrationOption> = useMemo(() => {
+    if (isProfiles) {
+      return [
+        {
+          key: "alloy" as IntegrationMethod,
+          label: "Grafana Alloy (eBPF)",
+          description:
+            "Recommended. Zero-code profiling for all languages on Linux using eBPF.",
+        },
+        {
+          key: "opentelemetry" as IntegrationMethod,
+          label: "Language SDK",
+          description:
+            "In-process profiling using Pyroscope SDKs for fine-grained control.",
+        },
+      ];
+    }
+
     const methods: Array<IntegrationOption> = [
       {
         key: "opentelemetry",
@@ -886,7 +1198,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     }
 
     return methods;
-  }, [showLogCollectors]);
+  }, [showLogCollectors, isProfiles]);
 
   const titleForType: Record<TelemetryType, string> = {
     logs: "Log Ingestion Setup",
@@ -909,12 +1221,18 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {
+    if (isProfiles) {
+      return getProfileInstallSnippet(selectedLanguage);
+    }
     return getOtelInstallSnippet(selectedLanguage);
-  }, [selectedLanguage]);
+  }, [selectedLanguage, isProfiles]);
 
   const configSnippet: { code: string; language: string } = useMemo(() => {
+    if (isProfiles) {
+      return getProfileConfigSnippet(selectedLanguage);
+    }
     return getOtelConfigSnippet(selectedLanguage);
-  }, [selectedLanguage]);
+  }, [selectedLanguage, isProfiles]);
 
   const handleLanguageSelect: (lang: Language) => void = useCallback(
     (lang: Language) => {
@@ -1109,13 +1427,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   // Language selector
   const renderLanguageSelector: () => ReactElement = (): ReactElement => {
+    const availableLanguages: Array<LanguageOption> = isProfiles
+      ? languages.filter((l: LanguageOption) => {
+          return profileLanguages.includes(l.key);
+        })
+      : languages;
+
     return (
       <div className="mb-6">
         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
           Select Language
         </label>
         <div className="flex flex-wrap gap-1.5">
-          {languages.map((lang: LanguageOption) => {
+          {availableLanguages.map((lang: LanguageOption) => {
             const isSelected: boolean = selectedLanguage === lang.key;
             return (
               <button
@@ -1199,11 +1523,17 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           {renderStep(
             2,
             "Install Dependencies",
-            `Install the OpenTelemetry SDK and exporters for ${
-              languages.find((l: LanguageOption) => {
-                return l.key === selectedLanguage;
-              })?.label || selectedLanguage
-            }.`,
+            isProfiles
+              ? `Install the Pyroscope profiling SDK for ${
+                  languages.find((l: LanguageOption) => {
+                    return l.key === selectedLanguage;
+                  })?.label || selectedLanguage
+                }.`
+              : `Install the OpenTelemetry SDK and exporters for ${
+                  languages.find((l: LanguageOption) => {
+                    return l.key === selectedLanguage;
+                  })?.label || selectedLanguage
+                }.`,
             <CodeBlock
               code={installSnippet.code}
               language={installSnippet.language}
@@ -1212,8 +1542,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Configure the SDK",
-            "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
+            isProfiles ? "Configure the Profiler" : "Configure the SDK",
+            isProfiles
+              ? "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent."
+              : "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
             <CodeBlock
               code={replacePlaceholders(
                 configSnippet.code,
@@ -1223,23 +1555,25 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               )}
               language={configSnippet.language}
             />,
+            isProfiles ? true : false,
           )}
 
-          {renderStep(
-            4,
-            "Set Environment Variables (Alternative)",
-            "You can also configure OpenTelemetry via environment variables instead of code.",
-            <CodeBlock
-              code={replacePlaceholders(
-                getEnvVarSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-              )}
-              language="bash"
-            />,
-            true,
-          )}
+          {!isProfiles &&
+            renderStep(
+              4,
+              "Set Environment Variables (Alternative)",
+              "You can also configure OpenTelemetry via environment variables instead of code.",
+              <CodeBlock
+                code={replacePlaceholders(
+                  getEnvVarSnippet(),
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                )}
+                language="bash"
+              />,
+              true,
+            )}
         </div>
       </div>
     );
@@ -1353,12 +1687,71 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // Grafana Alloy eBPF content (for profiles)
+  const renderAlloyContent: () => ReactElement = (): ReactElement => {
+    return (
+      <div>
+        <div className="mt-2">
+          {renderStep(
+            1,
+            "Get Your Ingestion Credentials",
+            "Select an existing ingestion key or create a new one. These credentials authenticate your profiling data.",
+            renderTokenStepContent(),
+          )}
+
+          {renderStep(
+            2,
+            "Create Alloy Configuration",
+            "Create an Alloy configuration file that uses eBPF to collect CPU profiles from all processes on your Linux host — no code changes required. Supports Go, Rust, C/C++, Java, Python, Ruby, PHP, Node.js, and .NET.",
+            <CodeBlock
+              code={replacePlaceholders(
+                getAlloyEbpfSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="hcl"
+            />,
+          )}
+
+          {renderStep(
+            3,
+            "Run with Docker",
+            "Run Grafana Alloy as a privileged Docker container with access to the host PID namespace.",
+            <CodeBlock
+              code={replacePlaceholders(
+                getAlloyDockerSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="yaml"
+            />,
+          )}
+
+          {renderStep(
+            4,
+            "Run Alloy",
+            "Or run Alloy directly on the host.",
+            <CodeBlock
+              code="alloy run alloy-config.alloy"
+              language="bash"
+            />,
+            true,
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderActiveContent: () => ReactElement = (): ReactElement => {
     switch (selectedMethod) {
       case "fluentbit":
         return renderFluentBitContent();
       case "fluentd":
         return renderFluentdContent();
+      case "alloy":
+        return renderAlloyContent();
       default:
         return renderOpenTelemetryContent();
     }

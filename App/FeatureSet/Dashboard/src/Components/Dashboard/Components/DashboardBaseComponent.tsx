@@ -378,7 +378,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   const className: string = [
-    "relative rounded-lg bg-white border overflow-hidden",
+    "relative rounded-xl bg-white border overflow-hidden",
     `col-span-${widthOfComponent} row-span-${heightOfComponent}`,
     borderClass,
     extraClass,
@@ -529,7 +529,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           ? "0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08)"
           : props.isSelected && props.isEditMode
             ? "0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04)"
-            : "0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03)",
+            : "0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04)",
         // transition is disabled during drag so the transform is instant
         transition: isDragging
           ? "none"

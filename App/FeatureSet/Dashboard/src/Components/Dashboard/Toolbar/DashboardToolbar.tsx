@@ -277,12 +277,12 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div className="mx-1 mt-3 mb-2">
+    <div className="mx-3 mt-3 mb-3">
       <div
-        className="rounded-xl bg-white border border-gray-200/60"
+        className="rounded-2xl bg-white border border-gray-200/60"
         style={{
           boxShadow:
-            "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+            "0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04)",
         }}
       >
         {/* Main toolbar row */}

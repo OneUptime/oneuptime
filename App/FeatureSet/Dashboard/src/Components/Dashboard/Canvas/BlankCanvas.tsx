@@ -21,7 +21,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
 
   if (!props.isEditMode && props.dashboardViewConfig.components.length === 0) {
     return (
-      <div className="mx-3 mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 text-center py-20 px-10">
+      <div className="mx-3 mt-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 text-center py-20 px-10" style={{ boxShadow: "0 2px 8px -2px rgba(0, 0, 0, 0.06)" }}>
         <div
           className="mx-auto w-14 h-14 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-4"
           style={{ boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04)" }}
@@ -60,7 +60,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
               backgroundImage:
                 "linear-gradient(to right, rgba(203, 213, 225, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(203, 213, 225, 0.3) 1px, transparent 1px)",
               backgroundSize: "20px 20px",
-              borderRadius: "8px",
+              borderRadius: "16px",
             }
           : {}
       }
