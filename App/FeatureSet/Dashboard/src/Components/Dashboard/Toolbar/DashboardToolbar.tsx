@@ -189,7 +189,11 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
       {/* Trigger: countdown circle when active, refresh icon when not */}
       <button
         type="button"
-        className="flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-gray-50 transition-colors cursor-pointer"
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border ${
+          props.isAutoRefreshActive
+            ? "bg-indigo-50/50 border-indigo-100 hover:bg-indigo-50"
+            : "bg-gray-50 border-gray-200/60 hover:bg-gray-100"
+        }`}
         onClick={() => {
           setIsOpen(!isOpen);
         }}
@@ -198,16 +202,19 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
         {props.isAutoRefreshActive && props.autoRefreshMs ? (
           <CountdownCircle
             durationMs={props.autoRefreshMs}
-            size={24}
+            size={20}
             strokeWidth={2}
             label={getAutoRefreshIntervalLabel(props.autoRefreshInterval)}
             isRefreshing={props.isRefreshing}
           />
         ) : (
-          <Icon
-            icon={IconProp.Refresh}
-            className="w-4 h-4 text-gray-400"
-          />
+          <>
+            <Icon
+              icon={IconProp.Refresh}
+              className="w-3.5 h-3.5 text-gray-500"
+            />
+            <span className="text-xs text-gray-500">Auto-refresh</span>
+          </>
         )}
       </button>
 
@@ -333,8 +340,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   }}
                 />
 
-                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
-
                 {/* Auto-refresh section */}
                 <AutoRefreshDropdown
                   autoRefreshInterval={props.autoRefreshInterval}
@@ -346,25 +351,34 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   }
                 />
 
-                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
-
                 {/* Reset Zoom button */}
                 {props.canResetZoom && props.onResetZoom && (
-                  <>
-                    <Button
-                      icon={IconProp.Refresh}
-                      title="Reset Zoom"
-                      buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      onClick={props.onResetZoom}
-                      tooltip="Reset to original time range"
-                    />
-                    <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
-                  </>
+                  <Button
+                    icon={IconProp.Refresh}
+                    title="Reset Zoom"
+                    buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                    buttonSize={ButtonSize.Small}
+                    onClick={props.onResetZoom}
+                    tooltip="Reset to original time range"
+                  />
                 )}
 
                 {/* More menu: Edit + Full Screen */}
-                <MoreMenu menuIcon={IconProp.More}>
+                <MoreMenu
+                  menuIcon={IconProp.EllipsisHorizontal}
+                  elementToBeShownInsteadOfButton={
+                    <button
+                      type="button"
+                      className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="More options"
+                    >
+                      <Icon
+                        icon={IconProp.EllipsisHorizontal}
+                        className="w-4 h-4 text-gray-500"
+                      />
+                    </button>
+                  }
+                >
                   <MoreMenuItem
                     text={"Edit Dashboard"}
                     icon={IconProp.Pencil}

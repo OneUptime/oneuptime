@@ -123,7 +123,20 @@ const MoreMenu: React.ForwardRefExoticComponent<
         )}
 
         {props.elementToBeShownInsteadOfButton && (
-          <div>{props.elementToBeShownInsteadOfButton}</div>
+          <div
+            onClick={() => {
+              setIsComponentVisible(!isDropdownVisible);
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                setIsComponentVisible(!isDropdownVisible);
+              }
+            }}
+          >
+            {props.elementToBeShownInsteadOfButton}
+          </div>
         )}
 
         {isComponentVisible && (
