@@ -191,6 +191,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/external-status-page-monitor",
       },
       {
+        title: "Server / VM Monitor",
+        url: "/docs/monitor/server-monitor",
+      },
+      {
+        title: "SNMP Monitor",
+        url: "/docs/monitor/snmp-monitor",
+      },
+      {
         title: "JavaScript Expressions",
         url: "/docs/monitor/javascript-expression",
       },
