@@ -1336,6 +1336,94 @@ ${incident.remediationNotes || "No remediation notes provided."}
           });
         }
 
+        // emit postmortem completion time metric when postmortemPostedAt is set
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemPostedAt",
+          ) &&
+          updatedIncidentData["postmortemPostedAt"]
+        ) {
+          try {
+            const postmortemPostedAt: Date = updatedIncidentData[
+              "postmortemPostedAt"
+            ] as Date;
+
+            // find the resolved state timeline to calculate time from resolution to postmortem
+            const resolvedTimeline: IncidentStateTimeline | null =
+              await IncidentStateTimelineService.findOneBy({
+                query: {
+                  incidentId: incidentId,
+                },
+                select: {
+                  startsAt: true,
+                  incidentState: {
+                    isResolvedState: true,
+                  },
+                },
+                sort: {
+                  startsAt: SortOrder.Ascending,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            // only emit if the incident has been resolved
+            if (resolvedTimeline?.incidentState?.isResolvedState && resolvedTimeline.startsAt) {
+              const postmortemMetric: Metric = new Metric();
+              postmortemMetric.projectId = projectId;
+              postmortemMetric.serviceId = incidentId;
+              postmortemMetric.serviceType = ServiceType.Incident;
+              postmortemMetric.name =
+                IncidentMetricType.PostmortemCompletionTime;
+              postmortemMetric.value =
+                OneUptimeDate.getDifferenceInSeconds(
+                  postmortemPostedAt,
+                  resolvedTimeline.startsAt,
+                );
+              postmortemMetric.attributes = {
+                incidentId: incidentId.toString(),
+                projectId: projectId.toString(),
+              };
+              postmortemMetric.attributeKeys =
+                TelemetryUtil.getAttributeKeys(postmortemMetric.attributes);
+              postmortemMetric.time = postmortemPostedAt;
+              postmortemMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+                postmortemMetric.time,
+              );
+              postmortemMetric.metricPointType = MetricPointType.Sum;
+
+              await MetricService.create({
+                data: postmortemMetric,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+              const postmortemMetricType: MetricType = new MetricType();
+              postmortemMetricType.name =
+                IncidentMetricType.PostmortemCompletionTime;
+              postmortemMetricType.description =
+                "Time from incident resolution to postmortem publication";
+              postmortemMetricType.unit = "seconds";
+
+              TelemetryUtil.indexMetricNameServiceNameMap({
+                metricNameServiceNameMap: {
+                  [postmortemMetricType.name]: postmortemMetricType,
+                },
+                projectId: projectId,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+          } catch (metricError) {
+            logger.error(
+              `Failed to emit postmortem completion time metric: ${metricError}`,
+            );
+          }
+        }
+
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
@@ -1467,6 +1555,60 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
+              );
+            }
+
+            // emit severity change metric
+            try {
+              const severityChangeMetric: Metric = new Metric();
+              severityChangeMetric.projectId = projectId;
+              severityChangeMetric.serviceId = incidentId;
+              severityChangeMetric.serviceType = ServiceType.Incident;
+              severityChangeMetric.name = IncidentMetricType.SeverityChange;
+              severityChangeMetric.value = 1;
+              severityChangeMetric.attributes = {
+                incidentId: incidentId.toString(),
+                projectId: projectId.toString(),
+                newIncidentSeverityId:
+                  incidentSeverity._id?.toString() || "",
+                newIncidentSeverityName:
+                  incidentSeverity.name?.toString() || "",
+              };
+              severityChangeMetric.attributeKeys =
+                TelemetryUtil.getAttributeKeys(
+                  severityChangeMetric.attributes,
+                );
+              severityChangeMetric.time = OneUptimeDate.getCurrentDate();
+              severityChangeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+                severityChangeMetric.time,
+              );
+              severityChangeMetric.metricPointType = MetricPointType.Sum;
+
+              await MetricService.create({
+                data: severityChangeMetric,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+              const severityChangeMetricType: MetricType = new MetricType();
+              severityChangeMetricType.name =
+                IncidentMetricType.SeverityChange;
+              severityChangeMetricType.description =
+                "Count of incident severity changes";
+              severityChangeMetricType.unit = "";
+
+              TelemetryUtil.indexMetricNameServiceNameMap({
+                metricNameServiceNameMap: {
+                  [severityChangeMetricType.name]: severityChangeMetricType,
+                },
+                projectId: projectId,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            } catch (metricError) {
+              logger.error(
+                `Failed to emit severity change metric: ${metricError}`,
               );
             }
           }
@@ -1965,6 +2107,77 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident Project ID not found");
     }
 
+    // fetch owner users and teams for metric attributes
+    const ownerUsers: Array<IncidentOwnerUser> =
+      await IncidentOwnerUserService.findBy({
+        query: {
+          incidentId: data.incidentId,
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const ownerTeams: Array<IncidentOwnerTeam> =
+      await IncidentOwnerTeamService.findBy({
+        query: {
+          incidentId: data.incidentId,
+        },
+        select: {
+          _id: true,
+          team: {
+            _id: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const ownerUserIds: Array<string> = ownerUsers
+      .map((ownerUser: IncidentOwnerUser) => {
+        return ownerUser.user?._id?.toString();
+      })
+      .filter((id: string | undefined) => {
+        return Boolean(id);
+      }) as Array<string>;
+
+    const ownerUserNames: Array<string> = ownerUsers
+      .map((ownerUser: IncidentOwnerUser) => {
+        return ownerUser.user?.name?.toString();
+      })
+      .filter((name: string | undefined) => {
+        return Boolean(name);
+      }) as Array<string>;
+
+    const ownerTeamIds: Array<string> = ownerTeams
+      .map((ownerTeam: IncidentOwnerTeam) => {
+        return ownerTeam.team?._id?.toString();
+      })
+      .filter((id: string | undefined) => {
+        return Boolean(id);
+      }) as Array<string>;
+
+    const ownerTeamNames: Array<string> = ownerTeams
+      .map((ownerTeam: IncidentOwnerTeam) => {
+        return ownerTeam.team?.name?.toString();
+      })
+      .filter((name: string | undefined) => {
+        return Boolean(name);
+      }) as Array<string>;
+
     // get incident state timeline
 
     const incidentStateTimelines: Array<IncidentStateTimeline> =
@@ -1976,8 +2189,10 @@ ${incidentSeverity.name}
           projectId: true,
           incidentStateId: true,
           incidentState: {
+            name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            isCreatedState: true,
           },
           startsAt: true,
           endsAt: true,
@@ -2019,14 +2234,8 @@ ${incidentSeverity.name}
 
     const metricTypesMap: Dictionary<MetricType> = {};
 
-    const incidentCountMetric: Metric = new Metric();
-
-    incidentCountMetric.projectId = incident.projectId;
-    incidentCountMetric.serviceId = incident.id!;
-    incidentCountMetric.serviceType = ServiceType.Incident;
-    incidentCountMetric.name = IncidentMetricType.IncidentCount;
-    incidentCountMetric.value = 1;
-    incidentCountMetric.attributes = {
+    // common attributes shared by all incident metrics
+    const baseMetricAttributes: JSONObject = {
       incidentId: data.incidentId.toString(),
       projectId: incident.projectId.toString(),
       monitorIds:
@@ -2039,7 +2248,20 @@ ${incidentSeverity.name}
         }) || [],
       incidentSeverityId: incident.incidentSeverity?._id?.toString(),
       incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+      ownerUserIds: ownerUserIds,
+      ownerUserNames: ownerUserNames,
+      ownerTeamIds: ownerTeamIds,
+      ownerTeamNames: ownerTeamNames,
     };
+
+    const incidentCountMetric: Metric = new Metric();
+
+    incidentCountMetric.projectId = incident.projectId;
+    incidentCountMetric.serviceId = incident.id!;
+    incidentCountMetric.serviceType = ServiceType.Incident;
+    incidentCountMetric.name = IncidentMetricType.IncidentCount;
+    incidentCountMetric.value = 1;
+    incidentCountMetric.attributes = { ...baseMetricAttributes };
     incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
       incidentCountMetric.attributes,
     );
@@ -2086,20 +2308,7 @@ ${incidentSeverity.name}
           ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
-        timeToAcknowledgeMetric.attributes = {
-          incidentId: data.incidentId.toString(),
-          projectId: incident.projectId.toString(),
-          monitorIds:
-            incident.monitors?.map((monitor: Monitor) => {
-              return monitor._id?.toString();
-            }) || [],
-          monitorNames:
-            incident.monitors?.map((monitor: Monitor) => {
-              return monitor.name?.toString();
-            }) || [],
-          incidentSeverityId: incident.incidentSeverity?._id?.toString(),
-          incidentSeverityName: incident.incidentSeverity?.name?.toString(),
-        };
+        timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
         timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           timeToAcknowledgeMetric.attributes,
         );
@@ -2152,20 +2361,7 @@ ${incidentSeverity.name}
             OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
-        timeToResolveMetric.attributes = {
-          incidentId: data.incidentId.toString(),
-          projectId: incident.projectId.toString(),
-          monitorIds:
-            incident.monitors?.map((monitor: Monitor) => {
-              return monitor._id?.toString();
-            }) || [],
-          monitorNames:
-            incident.monitors?.map((monitor: Monitor) => {
-              return monitor.name?.toString();
-            }) || [],
-          incidentSeverityId: incident.incidentSeverity?._id?.toString(),
-          incidentSeverityName: incident.incidentSeverity?.name?.toString(),
-        };
+        timeToResolveMetric.attributes = { ...baseMetricAttributes };
         timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           timeToResolveMetric.attributes,
         );
@@ -2213,20 +2409,7 @@ ${incidentSeverity.name}
         incidentEndsAt,
         incidentStartsAt,
       );
-      incidentDurationMetric.attributes = {
-        incidentId: data.incidentId.toString(),
-        projectId: incident.projectId.toString(),
-        monitorIds:
-          incident.monitors?.map((monitor: Monitor) => {
-            return monitor._id?.toString();
-          }) || [],
-        monitorNames:
-          incident.monitors?.map((monitor: Monitor) => {
-            return monitor.name?.toString();
-          }) || [],
-        incidentSeverityId: incident.incidentSeverity?._id?.toString(),
-        incidentSeverityName: incident.incidentSeverity?.name?.toString(),
-      };
+      incidentDurationMetric.attributes = { ...baseMetricAttributes };
       incidentDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
         incidentDurationMetric.attributes,
       );
@@ -2251,6 +2434,63 @@ ${incidentSeverity.name}
 
       // add to map.
       metricTypesMap[incidentDurationMetric.name] = metricType;
+    }
+
+    // time-in-state metrics — emit one metric per state transition that has a completed duration
+    for (const timeline of incidentStateTimelines) {
+      if (!timeline.startsAt || !timeline.endsAt) {
+        continue;
+      }
+
+      const stateName: string =
+        timeline.incidentState?.name?.toString() || "Unknown";
+
+      const timeInStateMetric: Metric = new Metric();
+
+      timeInStateMetric.projectId = incident.projectId;
+      timeInStateMetric.serviceId = incident.id!;
+      timeInStateMetric.serviceType = ServiceType.Incident;
+      timeInStateMetric.name = IncidentMetricType.TimeInState;
+      timeInStateMetric.value = OneUptimeDate.getDifferenceInSeconds(
+        timeline.endsAt,
+        timeline.startsAt,
+      );
+      timeInStateMetric.attributes = {
+        ...baseMetricAttributes,
+        incidentStateName: stateName,
+        incidentStateId: timeline.incidentStateId?.toString(),
+        isCreatedState:
+          timeline.incidentState?.isCreatedState?.toString() || "false",
+        isAcknowledgedState:
+          timeline.incidentState?.isAcknowledgedState?.toString() || "false",
+        isResolvedState:
+          timeline.incidentState?.isResolvedState?.toString() || "false",
+      };
+      timeInStateMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        timeInStateMetric.attributes,
+      );
+
+      timeInStateMetric.time = timeline.startsAt;
+      timeInStateMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        timeInStateMetric.time,
+      );
+      timeInStateMetric.metricPointType = MetricPointType.Sum;
+
+      itemsToSave.push(timeInStateMetric);
+    }
+
+    // add metric type for time-in-state to map (only once)
+    if (
+      incidentStateTimelines.some((t: IncidentStateTimeline) => {
+        return t.startsAt && t.endsAt;
+      })
+    ) {
+      const timeInStateMetricType: MetricType = new MetricType();
+      timeInStateMetricType.name = IncidentMetricType.TimeInState;
+      timeInStateMetricType.description =
+        "Time spent in each incident state (e.g. Created, Investigating, Acknowledged)";
+      timeInStateMetricType.unit = "seconds";
+      metricTypesMap[timeInStateMetricType.name] = timeInStateMetricType;
     }
 
     await MetricService.createMany({
