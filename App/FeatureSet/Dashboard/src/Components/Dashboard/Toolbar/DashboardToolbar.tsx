@@ -213,7 +213,7 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
               icon={IconProp.Refresh}
               className="w-3.5 h-3.5 text-gray-500"
             />
-            <span className="text-xs text-gray-500">Auto-refresh</span>
+            <span className="text-xs text-gray-500">Auto-refresh: Off</span>
           </>
         )}
       </button>
