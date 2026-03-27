@@ -74,6 +74,8 @@ import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import ProjectUserProfileService from "./ProjectUserProfileService";
+import ProfileService from "./ProfileService";
+import ProfileSampleService from "./ProfileSampleService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
@@ -433,6 +435,8 @@ export const AnalyticsServices: Array<
   MetricService,
   ExceptionInstanceService,
   MonitorLogService,
+  ProfileService,
+  ProfileSampleService,
 ];
 
 export default services;
