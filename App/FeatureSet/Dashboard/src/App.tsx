@@ -92,6 +92,15 @@ const ExceptionsRoutes: React.LazyExoticComponent<
     };
   });
 });
+const ProfilesRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ProfilesRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.ProfilesRoutes,
+    };
+  });
+});
 const IncidentsRoutes: React.LazyExoticComponent<
   AllRoutesModule["IncidentsRoutes"]
 > = lazy(() => {
@@ -505,6 +514,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.TRACES_ROOT]?.toString() || ""}
             element={<TracesRoutes {...commonPageProps} />}
+          />
+
+          {/* Profiles */}
+          <PageRoute
+            path={RouteMap[PageMap.PROFILES_ROOT]?.toString() || ""}
+            element={<ProfilesRoutes {...commonPageProps} />}
           />
 
           {/* Monitors */}

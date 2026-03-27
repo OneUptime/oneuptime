@@ -133,6 +133,13 @@ export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES_DOCUMENTATION]: "documentation",
 };
 
+// Profiles product routes
+export const ProfilesRoutePath: Dictionary<string> = {
+  [PageMap.PROFILES]: "",
+  [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
+  [PageMap.PROFILES_DOCUMENTATION]: "documentation",
+};
+
 export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS]: "unresolved",
   [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
@@ -2279,6 +2286,27 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TRACES_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
       TracesRoutePath[PageMap.TRACES_DOCUMENTATION]
+    }`,
+  ),
+
+  // Profiles Product Routes
+  [PageMap.PROFILES_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/*`,
+  ),
+
+  [PageMap.PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles`,
+  ),
+
+  [PageMap.PROFILE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILE_VIEW]
+    }`,
+  ),
+
+  [PageMap.PROFILES_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_DOCUMENTATION]
     }`,
   ),
 

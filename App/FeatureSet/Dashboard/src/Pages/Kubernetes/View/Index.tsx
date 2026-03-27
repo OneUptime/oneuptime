@@ -880,6 +880,11 @@ const KubernetesClusterOverview: FunctionComponent<
                           <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
                             {pod.name}
                           </span>
+                          {pod.namespace && (
+                            <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                              {pod.namespace}
+                            </span>
+                          )}
                         </div>
                         <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
                           {KubernetesResourceUtils.formatCpuValue(
@@ -887,13 +892,8 @@ const KubernetesClusterOverview: FunctionComponent<
                           )}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 pl-6">
-                        {pod.namespace && (
-                          <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                            {pod.namespace}
-                          </span>
-                        )}
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                      <div className="pl-6">
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
                           <div
                             className={`h-1.5 rounded-full transition-all duration-300 ${
                               pct > 80
@@ -970,6 +970,11 @@ const KubernetesClusterOverview: FunctionComponent<
                           <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
                             {pod.name}
                           </span>
+                          {pod.namespace && (
+                            <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                              {pod.namespace}
+                            </span>
+                          )}
                         </div>
                         <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
                           {KubernetesResourceUtils.formatMemoryValue(
@@ -977,13 +982,8 @@ const KubernetesClusterOverview: FunctionComponent<
                           )}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 pl-6">
-                        {pod.namespace && (
-                          <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                            {pod.namespace}
-                          </span>
-                        )}
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                      <div className="pl-6">
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
                           <div
                             className={`h-1.5 rounded-full transition-all duration-300 ${
                               memPercent > 85

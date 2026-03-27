@@ -110,6 +110,12 @@ export interface ComponentProps {
   allMonitorSteps: MonitorSteps;
   probes: Array<Probe>;
   monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
+  // IDs needed for Kubernetes template criteria
+  onlineMonitorStatusId?: ObjectID | undefined;
+  offlineMonitorStatusId?: ObjectID | undefined;
+  defaultIncidentSeverityId?: ObjectID | undefined;
+  defaultAlertSeverityId?: ObjectID | undefined;
+  monitorName?: string | undefined;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -760,6 +766,15 @@ return {
               monitorStep.setKubernetesMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
           />
         </Card>
       )}

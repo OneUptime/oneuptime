@@ -23,7 +23,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Protocol from "Common/Types/API/Protocol";
 
-export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions";
+export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions" | "profiles";
 
 export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
@@ -893,6 +893,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     metrics: "Metrics Ingestion Setup",
     traces: "Trace Ingestion Setup",
     exceptions: "Exception Tracking Setup",
+    profiles: "Profiles Ingestion Setup",
   };
 
   const descriptionForType: Record<TelemetryType, string> = {
@@ -903,6 +904,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       "Send distributed traces from your application to OneUptime using OpenTelemetry SDKs.",
     exceptions:
       "Capture and track exceptions from your application using OpenTelemetry SDKs.",
+    profiles:
+      "Send continuous profiling data from your application to OneUptime using OpenTelemetry SDKs.",
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {

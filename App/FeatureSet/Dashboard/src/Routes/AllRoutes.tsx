@@ -3,6 +3,7 @@ export { default as LogsRoutes } from "./LogsRoutes";
 export { default as MetricsRoutes } from "./MetricsRoutes";
 export { default as TracesRoutes } from "./TracesRoutes";
 export { default as ExceptionsRoutes } from "./ExceptionsRoutes";
+export { default as ProfilesRoutes } from "./ProfilesRoutes";
 
 // Incident management
 export { default as IncidentsRoutes } from "./IncidentsRoutes";

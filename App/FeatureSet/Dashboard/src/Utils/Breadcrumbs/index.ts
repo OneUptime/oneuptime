@@ -15,3 +15,4 @@ export * from "./KubernetesBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";
+export * from "./ProfilesBreadcrumbs";

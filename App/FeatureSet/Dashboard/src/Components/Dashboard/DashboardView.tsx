@@ -274,7 +274,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         width: `calc(100% - ${sideBarWidth}px)`,
         background: isEditMode
           ? "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)"
-          : "#fafbfc",
+          : "#f8f9fb",
       }}
     >
       <DashboardToolbar

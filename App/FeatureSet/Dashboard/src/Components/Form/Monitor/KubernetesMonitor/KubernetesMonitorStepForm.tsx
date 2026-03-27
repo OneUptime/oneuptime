@@ -34,6 +34,7 @@ import {
   buildKubernetesMonitorConfig,
 } from "Common/Types/Monitor/KubernetesAlertTemplates";
 import { KubernetesMetricDefinition } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import Navigation from "Common/UI/Utils/Navigation";
 
 export type KubernetesFormMode = "quick" | "custom" | "advanced";
@@ -43,9 +44,16 @@ export interface ComponentProps {
   onChange: (
     monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor,
   ) => void;
+  onMonitorCriteriaChange?: ((criteria: MonitorCriteria) => void) | undefined;
   onModeChange?: ((mode: KubernetesFormMode) => void) | undefined;
   initialTemplateId?: string | undefined;
   initialClusterId?: string | undefined;
+  // These IDs are needed to build proper criteria from templates
+  onlineMonitorStatusId?: ObjectID | undefined;
+  offlineMonitorStatusId?: ObjectID | undefined;
+  defaultIncidentSeverityId?: ObjectID | undefined;
+  defaultAlertSeverityId?: ObjectID | undefined;
+  monitorName?: string | undefined;
 }
 
 const resourceScopeOptions: Array<DropdownOption> = [
@@ -222,24 +230,39 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       monitorStepKubernetesMonitor.clusterIdentifier;
 
     /*
-     * Get a dummy monitor step from the template to extract the kubernetes config
-     * Build even without a cluster so the metricViewConfig is populated for the METRIC dropdown
+     * Use real monitor status and severity IDs if available,
+     * so the template criteria are properly configured
      */
-    const dummyStep: MonitorStep = template.getMonitorStep({
+    const onlineMonitorStatusId: ObjectID =
+      props.onlineMonitorStatusId || ObjectID.generate();
+    const offlineMonitorStatusId: ObjectID =
+      props.offlineMonitorStatusId || ObjectID.generate();
+    const defaultIncidentSeverityId: ObjectID =
+      props.defaultIncidentSeverityId || ObjectID.generate();
+    const defaultAlertSeverityId: ObjectID =
+      props.defaultAlertSeverityId || ObjectID.generate();
+    const monitorName: string = props.monitorName || template.name;
+
+    const templateStep: MonitorStep = template.getMonitorStep({
       clusterIdentifier: clusterIdentifier || "",
-      onlineMonitorStatusId: ObjectID.generate(),
-      offlineMonitorStatusId: ObjectID.generate(),
-      defaultIncidentSeverityId: ObjectID.generate(),
-      defaultAlertSeverityId: ObjectID.generate(),
-      monitorName: template.name,
+      onlineMonitorStatusId,
+      offlineMonitorStatusId,
+      defaultIncidentSeverityId,
+      defaultAlertSeverityId,
+      monitorName,
     });
 
     // Extract the kubernetes monitor config
-    if (dummyStep.data?.kubernetesMonitor) {
+    if (templateStep.data?.kubernetesMonitor) {
       props.onChange({
-        ...dummyStep.data.kubernetesMonitor,
+        ...templateStep.data.kubernetesMonitor,
         clusterIdentifier: clusterIdentifier || "",
       });
+    }
+
+    // Also apply the template's criteria (alert rules, thresholds, incidents, etc.)
+    if (templateStep.data?.monitorCriteria && props.onMonitorCriteriaChange) {
+      props.onMonitorCriteriaChange(templateStep.data.monitorCriteria);
     }
   };
 

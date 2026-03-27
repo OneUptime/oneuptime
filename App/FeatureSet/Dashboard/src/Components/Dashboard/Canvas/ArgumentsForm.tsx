@@ -264,106 +264,90 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       }
 
       return (
-        <div className="mt-3">
-          <CollapsibleSection
-            title="Additional Queries"
-            description="Overlay more metric series on the same chart"
-            variant="bordered"
-            defaultCollapsed={multiQueryConfigs.length === 0}
-          >
-            <div>
-              {multiQueryConfigs.length === 0 && (
-                <p className="text-sm text-gray-400 mb-3">
-                  No additional queries yet. Add one to overlay multiple metrics
-                  on the same chart.
-                </p>
-              )}
+        <div className="mt-4">
+          {multiQueryConfigs.map(
+            (queryConfig: MetricQueryConfigData, index: number) => {
+              return (
+                <div
+                  key={index}
+                  className="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Query {index + 2}
+                    </span>
+                    <Button
+                      title="Remove"
+                      buttonSize={ButtonSize.Small}
+                      buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                      icon={IconProp.Trash}
+                      onClick={() => {
+                        const updated: Array<MetricQueryConfigData> = [
+                          ...multiQueryConfigs,
+                        ];
+                        updated.splice(index, 1);
+                        setMultiQueryConfigs(updated);
+                        setComponent({
+                          ...component,
+                          arguments: {
+                            ...((component.arguments as JSONObject) || {}),
+                            metricQueryConfigs: updated as any,
+                          },
+                        });
+                      }}
+                    />
+                  </div>
+                  <MetricQueryConfig
+                    data={queryConfig}
+                    metricTypes={props.metrics.metricTypes}
+                    telemetryAttributes={props.metrics.telemetryAttributes}
+                    hideCard={true}
+                    onChange={(data: MetricQueryConfigData) => {
+                      const updated: Array<MetricQueryConfigData> = [
+                        ...multiQueryConfigs,
+                      ];
+                      updated[index] = data;
+                      setMultiQueryConfigs(updated);
+                      setComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          metricQueryConfigs: updated as any,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              );
+            },
+          )}
 
-              {multiQueryConfigs.map(
-                (queryConfig: MetricQueryConfigData, index: number) => {
-                  return (
-                    <div
-                      key={index}
-                      className="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          Query {index + 2}
-                        </span>
-                        <Button
-                          title="Remove"
-                          buttonSize={ButtonSize.Small}
-                          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                          icon={IconProp.Trash}
-                          onClick={() => {
-                            const updated: Array<MetricQueryConfigData> = [
-                              ...multiQueryConfigs,
-                            ];
-                            updated.splice(index, 1);
-                            setMultiQueryConfigs(updated);
-                            setComponent({
-                              ...component,
-                              arguments: {
-                                ...((component.arguments as JSONObject) || {}),
-                                metricQueryConfigs: updated as any,
-                              },
-                            });
-                          }}
-                        />
-                      </div>
-                      <MetricQueryConfig
-                        data={queryConfig}
-                        metricTypes={props.metrics.metricTypes}
-                        telemetryAttributes={props.metrics.telemetryAttributes}
-                        hideCard={true}
-                        onChange={(data: MetricQueryConfigData) => {
-                          const updated: Array<MetricQueryConfigData> = [
-                            ...multiQueryConfigs,
-                          ];
-                          updated[index] = data;
-                          setMultiQueryConfigs(updated);
-                          setComponent({
-                            ...component,
-                            arguments: {
-                              ...((component.arguments as JSONObject) || {}),
-                              metricQueryConfigs: updated as any,
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                  );
+          <Button
+            title="Add Query"
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            icon={IconProp.Add}
+            onClick={() => {
+              const newQuery: MetricQueryConfigData = {
+                metricQueryData: {
+                  filterData: {},
+                  groupBy: undefined,
                 },
-              )}
-
-              <Button
-                title="Add Query"
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                icon={IconProp.Add}
-                onClick={() => {
-                  const newQuery: MetricQueryConfigData = {
-                    metricQueryData: {
-                      filterData: {},
-                      groupBy: undefined,
-                    },
-                  };
-                  const updated: Array<MetricQueryConfigData> = [
-                    ...multiQueryConfigs,
-                    newQuery,
-                  ];
-                  setMultiQueryConfigs(updated);
-                  setComponent({
-                    ...component,
-                    arguments: {
-                      ...((component.arguments as JSONObject) || {}),
-                      metricQueryConfigs: updated as any,
-                    },
-                  });
-                }}
-              />
-            </div>
-          </CollapsibleSection>
+              };
+              const updated: Array<MetricQueryConfigData> = [
+                ...multiQueryConfigs,
+                newQuery,
+              ];
+              setMultiQueryConfigs(updated);
+              setComponent({
+                ...component,
+                arguments: {
+                  ...((component.arguments as JSONObject) || {}),
+                  metricQueryConfigs: updated as any,
+                },
+              });
+            }}
+          />
         </div>
       );
     };
@@ -392,18 +376,19 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 variant="bordered"
                 defaultCollapsed={shouldCollapse}
               >
-                <div>{renderSectionForm(sectionGroup)}</div>
+                <div>
+                  {renderSectionForm(sectionGroup)}
+                  {/* Render multi-query UI inside the Data Source section */}
+                  {sectionGroup.section.name === "Data Source" &&
+                    renderMultiQuerySection()}
+                </div>
               </CollapsibleSection>
-
-              {/* Render multi-query section after the Data Source section */}
-              {sectionGroup.section.name === "Data Source" &&
-                renderMultiQuerySection()}
             </div>
           );
         },
       )}
 
-      {/* If no Data Source section but has multi-query, render at end */}
+      {/* If no Data Source section exists, render multi-query at end */}
       {!sectionGroups.some(
         (g: SectionGroup) => g.section.name === "Data Source",
       ) && renderMultiQuerySection()}
