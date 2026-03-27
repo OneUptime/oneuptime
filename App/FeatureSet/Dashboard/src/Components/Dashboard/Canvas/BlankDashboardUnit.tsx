@@ -38,7 +38,7 @@ const BlankDashboardUnitElement: FunctionComponent<ComponentProps> = (
         width: widthOfUnitInPx + "px",
         height: heightOfUnitInPx + "px",
         margin: MarginForEachUnitInPx + "px",
-        border: props.isEditMode ? "1px dashed rgba(203, 213, 225, 0.5)" : "none",
+        border: props.isEditMode ? "1px solid rgba(203, 213, 225, 0.4)" : "none",
         borderRadius: "6px",
       }}
     ></div>

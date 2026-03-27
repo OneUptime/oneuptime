@@ -58,7 +58,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
         props.isEditMode
           ? {
               backgroundImage:
-                "radial-gradient(circle, #d1d5db 0.8px, transparent 0.8px)",
+                "linear-gradient(to right, rgba(203, 213, 225, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(203, 213, 225, 0.3) 1px, transparent 1px)",
               backgroundSize: "20px 20px",
               borderRadius: "8px",
             }
