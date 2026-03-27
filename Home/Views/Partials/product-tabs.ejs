@@ -20,13 +20,15 @@
                 <option value="exceptions">Exceptions</option>
                 <option value="workflows">Workflows</option>
                 <option value="dashboards">Dashboards</option>
+                <option value="kubernetes">Kubernetes</option>
+                <option value="profiles">Profiles</option>
                 <option value="ai-agent">AI Agent</option>
             </select>
           </div>
 
         <div class="hidden sm:block">
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex justify-center flex-wrap gap-x-4 gap-y-2" aria-label="Product feature tabs" role="tablist">
+            <div class="">
+                <nav class="-mb-px flex justify-center flex-wrap gap-x-8 gap-y-4 max-w-5xl mx-auto px-6" aria-label="Product feature tabs" role="tablist">
                     <!-- Status Pages - Emerald -->
                     <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
                         class="tab-status-pages-button tab-1-button cursor-pointer border-gray-500 text-gray-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
@@ -136,11 +138,34 @@
                         </span>
                         <span>Dashboards</span>
                     </button>
+                    <!-- Kubernetes - Cyan -->
+                    <button type="button" onclick="showTab('kubernetes')" id="tab-kubernetes" role="tab" aria-selected="false" aria-controls="panel-kubernetes"
+                        class="tab-kubernetes-button tab-11-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Kubernetes - monitor Kubernetes clusters and workloads">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-cyan-50 ring-1 ring-cyan-200 mr-2">
+                            <svg class="icon-tab-11 text-cyan-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <polygon stroke-linecap="round" stroke-linejoin="round" points="12,2.5 19.43,6.08 21.26,14.11 15.95,20.64 8.05,20.56 2.74,14.27 4.57,6.22"></polygon>
+                                <circle cx="12" cy="12" r="2.2" stroke-linecap="round" stroke-linejoin="round"></circle>
+                                <line x1="12" y1="9.8" x2="12" y2="4" stroke-linecap="round"></line>
+                            </svg>
+                        </span>
+                        <span>Kubernetes</span>
+                    </button>
+                    <!-- Profiles - Rose -->
+                    <button type="button" onclick="showTab('profiles')" id="tab-profiles" role="tab" aria-selected="false" aria-controls="panel-profiles"
+                        class="tab-profiles-button tab-12-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Profiles - CPU and memory profiling with flamegraphs">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2">
+                            <svg class="icon-tab-12 text-rose-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z"></path>
+                            </svg>
+                        </span>
+                        <span>Profiles</span>
+                    </button>
                     <!-- AI Agent - Violet -->
                     <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent"
-                        class="tab-ai-agent-button tab-11-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
+                        class="tab-ai-agent-button tab-13-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2">
-                            <svg class="icon-tab-11 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <svg class="icon-tab-13 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
                             </svg>
                         </span>
@@ -922,8 +947,148 @@
         </div>
     </div>
 
-    <!-- AI Agent Tab Panel -->
+    <!-- Kubernetes Tab Panel -->
     <div class="mt-10 tab-11" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Full visibility into your Kubernetes clusters. Know what's running and what's broken.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Monitor pods, deployments, and services</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Real-time cluster health and resource usage</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Alerts on pod crashes and restart loops</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with any Kubernetes distribution</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-cyan-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Integrated with logs, metrics, and traces</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 sm:mt-16 lg:mt-0 lg:col-span-2">
+                <div
+                    class="pl-4 -mr-48 sm:pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
+                    <img loading="lazy" class="w-full ring-1 ring-gray-300 rounded-xl shadow-xl lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none"
+                        src="/img/kubernetes.png"
+                        alt="Kubernetes monitoring dashboard screenshot">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profiles Tab Panel -->
+    <div class="mt-10 tab-12" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Find performance bottlenecks with CPU and memory profiling. See exactly where time is spent.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">CPU and memory flamegraphs</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Identify hot code paths and memory leaks</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Continuous profiling in production</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">OpenTelemetry native profiling support</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Compare profiles across deployments</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 sm:mt-16 lg:mt-0 lg:col-span-2">
+                <div
+                    class="pl-4 -mr-48 sm:pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
+                    <img loading="lazy" class="w-full ring-1 ring-gray-300 rounded-xl shadow-xl lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none"
+                        src="/img/profiles.png"
+                        alt="Profiles flamegraph dashboard screenshot">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Agent Tab Panel -->
+    <div class="mt-10 tab-13" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
@@ -1001,7 +1166,7 @@
 
 <script>
     // Semantic tab slugs in desired order
-    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','ai-agent'];
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','kubernetes','profiles','ai-agent'];
     let currentActiveTab = 'status-pages';
 
 

@@ -143,7 +143,7 @@
         <div class="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <!-- Logs -->
         <a href="/product/logs-management" class="feature-card group relative bg-white rounded-2xl p-6 ring-1 ring-gray-200 hover:ring-amber-300 hover:shadow-lg hover:shadow-amber-100/50">
           <div class="feature-icon-wrapper flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200 mb-4">
@@ -221,6 +221,55 @@
           <div class="flex flex-wrap gap-1.5">
             <span class="replaces-tag inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600">Sentry</span>
             <span class="replaces-tag inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600">Bugsnag</span>
+          </div>
+          <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+            </svg>
+          </div>
+        </a>
+
+        <!-- Kubernetes -->
+        <a href="/product/kubernetes" class="feature-card group relative bg-white rounded-2xl p-6 ring-1 ring-gray-200 hover:ring-cyan-300 hover:shadow-lg hover:shadow-cyan-100/50">
+          <div class="feature-icon-wrapper flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200 mb-4">
+            <svg class="h-6 w-6 text-cyan-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <polygon stroke-linecap="round" stroke-linejoin="round" points="12,2.5 19.43,6.08 21.26,14.11 15.95,20.64 8.05,20.56 2.74,14.27 4.57,6.22"></polygon>
+              <circle cx="12" cy="12" r="2.2" stroke-linecap="round" stroke-linejoin="round"></circle>
+              <line x1="12" y1="9.8" x2="12" y2="4" stroke-linecap="round"></line>
+              <line x1="14.12" y1="10.24" x2="17.54" y2="6.64" stroke-linecap="round"></line>
+              <line x1="14.14" y1="12.49" x2="19.31" y2="13.67" stroke-linecap="round"></line>
+              <line x1="13.12" y1="14.0" x2="15.12" y2="18.82" stroke-linecap="round"></line>
+              <line x1="10.88" y1="14.0" x2="8.88" y2="18.76" stroke-linecap="round"></line>
+              <line x1="9.86" y1="12.49" x2="4.69" y2="13.79" stroke-linecap="round"></line>
+              <line x1="9.88" y1="10.24" x2="6.46" y2="6.53" stroke-linecap="round"></line>
+            </svg>
+          </div>
+          <h4 class="text-base font-semibold text-gray-900 mb-2">Kubernetes</h4>
+          <p class="text-sm text-gray-500 mb-4 leading-relaxed">Monitor Kubernetes clusters, pods, and workloads in real-time.</p>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="replaces-tag inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600">Lens</span>
+            <span class="replaces-tag inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600">K9s</span>
+          </div>
+          <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+            </svg>
+          </div>
+        </a>
+
+        <!-- Profiles -->
+        <a href="/product/profiles" class="feature-card group relative bg-white rounded-2xl p-6 ring-1 ring-gray-200 hover:ring-rose-300 hover:shadow-lg hover:shadow-rose-100/50">
+          <div class="feature-icon-wrapper flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200 mb-4">
+            <svg class="h-6 w-6 text-rose-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z"></path>
+            </svg>
+          </div>
+          <h4 class="text-base font-semibold text-gray-900 mb-2">Profiles</h4>
+          <p class="text-sm text-gray-500 mb-4 leading-relaxed">CPU and memory profiling with flamegraphs for performance optimization.</p>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="replaces-tag inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600">Pyroscope</span>
+            <span class="replaces-tag inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600">pprof</span>
           </div>
           <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
