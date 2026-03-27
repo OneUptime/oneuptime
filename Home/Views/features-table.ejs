@@ -2,6 +2,8 @@
     /* Feature Card Styles - Enhanced */
     .feature-card-wrapper {
         position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
     }
     .feature-card-wrapper::before {
         content: '';
@@ -58,6 +60,12 @@
 
     .feature-glow-indigo-wrapper::before { background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.12) 0%, rgb(99 102 241 / 0.04) 40%, transparent 70%); }
     .feature-glow-indigo:hover { box-shadow: 0 0 0 2px rgb(99 102 241 / 0.3), 0 20px 40px -12px rgb(99 102 241 / 0.25); }
+
+    .feature-glow-teal-wrapper::before { background: radial-gradient(ellipse at center, rgb(20 184 166 / 0.12) 0%, rgb(20 184 166 / 0.04) 40%, transparent 70%); }
+    .feature-glow-teal:hover { box-shadow: 0 0 0 2px rgb(20 184 166 / 0.3), 0 20px 40px -12px rgb(20 184 166 / 0.25); }
+
+    .feature-glow-cyan-wrapper::before { background: radial-gradient(ellipse at center, rgb(6 182 212 / 0.12) 0%, rgb(6 182 212 / 0.04) 40%, transparent 70%); }
+    .feature-glow-cyan:hover { box-shadow: 0 0 0 2px rgb(6 182 212 / 0.3), 0 20px 40px -12px rgb(6 182 212 / 0.25); }
 
     .feature-list-item {
         display: flex;
@@ -157,234 +165,242 @@
                 </div>
             </div>
 
-            <!-- Feature Cards Grid -->
-            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-
-                <!-- Status Page - Emerald -->
-                <div class="feature-card-wrapper feature-glow-emerald-wrapper">
-                    <a href="/product/status-page" class="feature-card feature-glow-emerald group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 ring-1 ring-emerald-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-emerald-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Status Page</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Beautiful, customizable status pages that build trust with your customers.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Unlimited pages & subscribers</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Public & private status pages</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Custom domains & branding</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Email, SMS & webhook alerts</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Scheduled maintenance</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-emerald-600 font-medium">Replaces Statuspage, Instatus</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
+            <!-- Feature Cards Carousel -->
+            <div class="relative">
+                <!-- Navigation Buttons -->
+                <div class="flex items-center justify-end gap-2 mb-6">
+                    <button onclick="scrollEssentialsCarousel(-1)" id="essentials-prev" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 ring-1 ring-gray-200 text-gray-400 cursor-not-allowed transition-all" disabled>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button onclick="scrollEssentialsCarousel(1)" id="essentials-next" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 ring-1 ring-gray-300 text-gray-600 transition-all hover:bg-gray-300">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    </button>
                 </div>
 
-                <!-- Incidents - Rose -->
-                <div class="feature-card-wrapper feature-glow-rose-wrapper">
-                    <a href="/product/incident-management" class="feature-card feature-glow-rose group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 ring-1 ring-rose-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-rose-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                                </svg>
-                            </div>
+                <!-- Carousel Track -->
+                <div class="overflow-hidden rounded-2xl" id="essentials-carousel-viewport">
+                    <div class="flex gap-8 transition-transform duration-500 ease-in-out" id="essentials-carousel-track">
+
+                        <!-- Status Page - Emerald -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-emerald-wrapper">
+                            <a href="/product/status-page" class="feature-card feature-glow-emerald group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 ring-1 ring-emerald-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-emerald-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Status Page</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Beautiful, customizable status pages that build trust with your customers.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Unlimited pages & subscribers</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Public & private status pages</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Custom domains & branding</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Email, SMS & webhook alerts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Scheduled maintenance</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-emerald-600 font-medium">Replaces Statuspage, Instatus</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
                         </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Incident Management</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Detect, triage, and resolve incidents faster with automated workflows and clear ownership.</p>
+
+                        <!-- Incidents - Rose -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-rose-wrapper">
+                            <a href="/product/incident-management" class="feature-card feature-glow-rose group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 ring-1 ring-rose-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-rose-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Incident Management</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Detect, triage, and resolve incidents faster with automated workflows and clear ownership.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Automatic incident detection</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Slack & Teams integration</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Custom workflows</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Severity levels & escalation</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Blameless postmortems</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-rose-600 font-medium">Replaces Incident.io, FireHydrant</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
                         </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Automatic incident detection</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Slack & Teams integration</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Custom workflows</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Severity levels & escalation</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Blameless postmortems</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-rose-600 font-medium">Replaces Incident.io, FireHydrant</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
+
+                        <!-- Monitoring - Blue -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-blue-wrapper">
+                            <a href="/product/uptime-monitoring" class="feature-card feature-glow-blue group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 ring-1 ring-blue-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-blue-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Uptime Monitoring</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Know when your services go down before your customers do. Monitor from any global locations.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">HTTP, TCP, UDP, DNS, ICMP</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Multi-step API monitoring</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">User journey monitoring</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Container, VM & Kubernetes</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">SSL certificate monitoring</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-blue-600 font-medium">Replaces Pingdom, UptimeRobot</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
                         </div>
-                    </a>
+
+                        <!-- On-Call - Stone -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-stone-wrapper">
+                            <a href="/product/on-call" class="feature-card feature-glow-stone group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-stone-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-stone-50 to-stone-100 ring-1 ring-stone-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-stone-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">On-Call Scheduling</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Get the right person notified at the right time. Fair rotations, smart escalations, zero burnout.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Call, SMS, Push + More</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Multi-tier escalation policies</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Flexible rotation schedules</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">User Vacation and OOO Policy</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Slack and Teams Integration</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-stone-600 font-medium">Replaces PagerDuty, Opsgenie</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Maintenance - Teal -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-teal-wrapper">
+                            <a href="/product/scheduled-maintenance" class="feature-card feature-glow-teal group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-teal-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 ring-1 ring-teal-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-teal-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Maintenance</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Plan downtime before it plans itself. Keep users informed, not surprised.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Maintenance windows with start & end</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Auto-notify subscribers</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Status page integration</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Suppress alerts during maintenance</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Recurring maintenance schedules</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-teal-600 font-medium">Built-in, no extra tools needed</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                    </div>
                 </div>
 
-                <!-- Monitoring - Blue -->
-                <div class="feature-card-wrapper feature-glow-blue-wrapper">
-                    <a href="/product/uptime-monitoring" class="feature-card feature-glow-blue group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 ring-1 ring-blue-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-blue-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Uptime Monitoring</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Know when your services go down before your customers do. Monitor from any global locations.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">HTTP, TCP, UDP, DNS, ICMP</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Multi-step API monitoring</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">User journey monitoring</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Container, VM & Kubernetes</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">SSL certificate monitoring</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-blue-600 font-medium">Replaces Pingdom, UptimeRobot</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- On-Call - Stone -->
-                <div class="feature-card-wrapper feature-glow-stone-wrapper">
-                    <a href="/product/on-call" class="feature-card feature-glow-stone group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-stone-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-stone-50 to-stone-100 ring-1 ring-stone-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-stone-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">On-Call Scheduling</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Get the right person notified at the right time. Fair rotations, smart escalations, zero burnout.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Call, SMS, Push + More</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Multi-tier escalation policies</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Flexible rotation schedules</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">User Vacation and OOO Policy</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Slack and Teams Integration</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-stone-600 font-medium">Replaces PagerDuty, Opsgenie</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Scheduled Maintenance - Teal -->
-                <div class="feature-card-wrapper feature-glow-teal-wrapper">
-                    <a href="/product/scheduled-maintenance" class="feature-card feature-glow-teal group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-teal-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 ring-1 ring-teal-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-teal-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Maintenance</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Plan downtime before it plans itself. Keep users informed, not surprised.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Maintenance windows with start & end</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Auto-notify subscribers</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Status page integration</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Suppress alerts during maintenance</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Recurring maintenance schedules</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-teal-600 font-medium">Built-in, no extra tools needed</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
-                </div>
+                <!-- Progress Dots -->
+                <div class="flex items-center justify-center gap-2 mt-8" id="essentials-dots"></div>
             </div>
+
+            <script>
+            (function() {
+                const track = document.getElementById('essentials-carousel-track');
+                const viewport = document.getElementById('essentials-carousel-viewport');
+                const prevBtn = document.getElementById('essentials-prev');
+                const nextBtn = document.getElementById('essentials-next');
+                const dotsContainer = document.getElementById('essentials-dots');
+                const cards = track.children;
+                let currentIndex = 0;
+
+                function getVisibleCount() {
+                    if (window.innerWidth >= 1024) return 4;
+                    if (window.innerWidth >= 640) return 2;
+                    return 1;
+                }
+
+                function getMaxIndex() {
+                    return Math.max(0, cards.length - getVisibleCount());
+                }
+
+                function updateCarousel() {
+                    const visibleCount = getVisibleCount();
+                    const gap = 32; // gap-8 = 2rem = 32px
+                    const cardWidth = (viewport.offsetWidth - gap * (visibleCount - 1)) / visibleCount;
+                    const offset = currentIndex * (cardWidth + gap);
+                    track.style.transform = 'translateX(-' + offset + 'px)';
+
+                    // Update buttons
+                    const maxIdx = getMaxIndex();
+                    prevBtn.disabled = currentIndex === 0;
+                    prevBtn.classList.toggle('cursor-not-allowed', currentIndex === 0);
+                    prevBtn.classList.toggle('text-gray-400', currentIndex === 0);
+                    prevBtn.classList.toggle('bg-gray-100', currentIndex === 0);
+                    prevBtn.classList.toggle('bg-gray-200', currentIndex !== 0);
+                    prevBtn.classList.toggle('text-gray-600', currentIndex !== 0);
+                    prevBtn.classList.toggle('hover:bg-gray-300', currentIndex !== 0);
+
+                    nextBtn.disabled = currentIndex >= maxIdx;
+                    nextBtn.classList.toggle('cursor-not-allowed', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('text-gray-400', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('bg-gray-100', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('bg-gray-200', currentIndex < maxIdx);
+                    nextBtn.classList.toggle('ring-1', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('ring-gray-200', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('ring-gray-300', currentIndex < maxIdx);
+                    nextBtn.classList.toggle('text-gray-600', currentIndex < maxIdx);
+                    nextBtn.classList.toggle('hover:bg-gray-300', currentIndex < maxIdx);
+
+                    // Update dots
+                    const totalPages = maxIdx + 1;
+                    dotsContainer.innerHTML = '';
+                    for (let i = 0; i < totalPages; i++) {
+                        const dot = document.createElement('button');
+                        dot.className = 'h-2 rounded-full transition-all duration-300 ' + (i === currentIndex ? 'w-6 bg-gray-400' : 'w-2 bg-gray-200 hover:bg-gray-300');
+                        dot.onclick = function() { currentIndex = i; updateCarousel(); };
+                        dotsContainer.appendChild(dot);
+                    }
+                }
+
+                window.scrollEssentialsCarousel = function(dir) {
+                    const maxIdx = getMaxIndex();
+                    currentIndex = Math.max(0, Math.min(maxIdx, currentIndex + dir));
+                    updateCarousel();
+                };
+
+                window.addEventListener('resize', function() {
+                    currentIndex = Math.min(currentIndex, getMaxIndex());
+                    updateCarousel();
+                });
+
+                updateCarousel();
+            })();
+            </script>
         </div>
     </div>
 </div>
@@ -429,193 +445,272 @@
                 </div>
             </div>
 
-            <!-- Feature Cards Grid -->
-            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-
-                <!-- Logs - Amber -->
-                <div class="feature-card-wrapper feature-glow-amber-wrapper">
-                    <a href="/product/logs-management" class="feature-card feature-glow-amber group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-amber-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-amber-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Log Management</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Centralize, search, and analyze logs from all your services at any scale.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">OpenTelemetry support</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Lightning-fast full-text search</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Real-time log tailing</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Log-based alerting rules</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Any source, stack, or app</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-amber-600 font-medium">Replaces Splunk, Datadog Logs</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
+            <!-- Feature Cards Carousel -->
+            <div class="relative">
+                <div class="flex items-center justify-end gap-2 mb-6">
+                    <button onclick="scrollObservabilityCarousel(-1)" id="observability-prev" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 ring-1 ring-gray-200 text-gray-400 cursor-not-allowed transition-all" disabled>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button onclick="scrollObservabilityCarousel(1)" id="observability-next" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 ring-1 ring-gray-300 text-gray-600 transition-all hover:bg-gray-300">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    </button>
                 </div>
 
-                <!-- Metrics - Purple -->
-                <div class="feature-card-wrapper feature-glow-purple-wrapper">
-                    <a href="/product/metrics" class="feature-card feature-glow-purple group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-purple-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 ring-1 ring-purple-200">
-                                <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20"></path>
-                                </svg>
-                            </div>
+                <div class="overflow-hidden rounded-2xl" id="observability-carousel-viewport">
+                    <div class="flex gap-8 transition-transform duration-500 ease-in-out" id="observability-carousel-track">
+
+                        <!-- Logs - Amber -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-amber-wrapper">
+                            <a href="/product/logs-management" class="feature-card feature-glow-amber group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-amber-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-amber-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Log Management</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Centralize, search, and analyze logs from all your services at any scale.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">OpenTelemetry support</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Lightning-fast full-text search</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Real-time log tailing</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Log-based alerting rules</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Any source, stack, or app</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-amber-600 font-medium">Replaces Splunk, Datadog Logs</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
                         </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Metrics</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Track system and application performance with high-resolution metrics.</p>
+
+                        <!-- Traces - Yellow -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-yellow-wrapper">
+                            <a href="/product/traces" class="feature-card feature-glow-yellow group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 ring-1 ring-yellow-200">
+                                        <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                            <rect x="2" y="3" width="20" height="4" rx="0.5"></rect>
+                                            <rect x="2" y="10" width="10" height="4" rx="0.5"></rect>
+                                            <rect x="2" y="17" width="5" height="4" rx="0.5"></rect>
+                                            <rect x="17" y="17" width="5" height="4" rx="0.5"></rect>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Distributed Traces</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Follow requests across your stack. See where time is spent and what's causing slowdowns.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">End-to-end request tracing</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Auto-generated service maps</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Span-level analysis</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Latency percentile tracking</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Trace microservices</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-yellow-600 font-medium">Replaces Jaeger, Zipkin</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
                         </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">OpenTelemetry & Prometheus</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Custom application metrics</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Metric monitoring</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Threshold & anomaly alerts</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Visualize in dashboards</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-purple-600 font-medium">Replaces Datadog, Prometheus</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
+
+                        <!-- Exceptions - Orange -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-orange-wrapper">
+                            <a href="/product/exceptions" class="feature-card feature-glow-orange group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-orange-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 ring-1 ring-orange-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-orange-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Error Tracking</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Capture, group, and track every exception. Get the context you need to fix bugs faster.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Full stack traces with context</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Intelligent error grouping</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Release & deployment tracking</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Issue assignment & workflows</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">AI-powered auto-fix</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-orange-600 font-medium">Replaces Sentry, Bugsnag</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
                         </div>
-                    </a>
+
+                        <!-- Kubernetes - Cyan -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-cyan-wrapper">
+                            <a href="/product/kubernetes" class="feature-card feature-glow-cyan group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-cyan-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 ring-1 ring-cyan-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-cyan-600">
+                                            <polygon stroke-linecap="round" stroke-linejoin="round" points="12,2.5 19.43,6.08 21.26,14.11 15.95,20.64 8.05,20.56 2.74,14.27 4.57,6.22"></polygon>
+                                            <circle cx="12" cy="12" r="2.2" stroke-linecap="round" stroke-linejoin="round"></circle>
+                                            <line x1="12" y1="9.8" x2="12" y2="4" stroke-linecap="round"></line>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Kubernetes</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Monitor Kubernetes clusters, pods, and workloads in real-time with full visibility.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Cluster & node monitoring</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Pod & container metrics</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Deployment tracking</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Resource utilization alerts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Namespace-level insights</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-cyan-600 font-medium">Replaces Lens, K9s</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Profiles - Rose -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-rose-wrapper">
+                            <a href="/product/profiles" class="feature-card feature-glow-rose group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 ring-1 ring-rose-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-rose-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Profiling</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">CPU and memory profiling with flamegraphs to find and fix performance bottlenecks.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">CPU & memory flamegraphs</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Continuous profiling</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Compare profiles over time</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Language-agnostic support</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Correlate with traces & logs</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-rose-600 font-medium">Replaces Pyroscope, pprof</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Metrics - Purple -->
+                        <div class="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] flex-shrink-0 feature-card-wrapper feature-glow-purple-wrapper">
+                            <a href="/product/metrics" class="feature-card feature-glow-purple group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-purple-300 h-full">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 ring-1 ring-purple-200">
+                                        <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Metrics</h3>
+                                    <p class="mt-2 text-sm text-gray-600 leading-relaxed">Track system and application performance with high-resolution metrics.</p>
+                                </div>
+                                <ul class="mt-5 space-y-3 flex-1">
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">OpenTelemetry & Prometheus</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Custom application metrics</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Metric monitoring</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Threshold & anomaly alerts</span></li>
+                                    <li class="feature-list-item"><%- include('./Partials/tick-icon') %><span class="text-sm text-gray-600">Visualize in dashboards</span></li>
+                                </ul>
+                                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <p class="text-xs text-purple-600 font-medium">Replaces Datadog, Prometheus</p>
+                                    <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                </div>
+                            </a>
+                        </div>
+
+                    </div>
                 </div>
 
-                <!-- Traces - Yellow -->
-                <div class="feature-card-wrapper feature-glow-yellow-wrapper">
-                    <a href="/product/traces" class="feature-card feature-glow-yellow group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 ring-1 ring-yellow-200">
-                                <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                    <rect x="2" y="3" width="20" height="4" rx="0.5"></rect>
-                                    <rect x="2" y="10" width="10" height="4" rx="0.5"></rect>
-                                    <rect x="2" y="17" width="5" height="4" rx="0.5"></rect>
-                                    <rect x="17" y="17" width="5" height="4" rx="0.5"></rect>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Distributed Traces</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Follow requests across your stack. See where time is spent and what's causing slowdowns.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">End-to-end request tracing</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Auto-generated service maps</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Span-level analysis</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Latency percentile tracking</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Trace microservices</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-yellow-600 font-medium">Replaces Jaeger, Zipkin</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Exceptions - Orange -->
-                <div class="feature-card-wrapper feature-glow-orange-wrapper">
-                    <a href="/product/exceptions" class="feature-card feature-glow-orange group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-orange-300 h-full">
-                        <div class="flex items-start justify-between">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 ring-1 ring-orange-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-orange-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Error Tracking</h3>
-                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Capture, group, and track every exception. Get the context you need to fix bugs faster.</p>
-                        </div>
-                        <ul class="mt-5 space-y-3 flex-1">
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Full stack traces with context</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Intelligent error grouping</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Release & deployment tracking</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">Issue assignment & workflows</span>
-                            </li>
-                            <li class="feature-list-item">
-                                <%- include('./Partials/tick-icon') %>
-                                <span class="text-sm text-gray-600">AI-powered auto-fix</span>
-                            </li>
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="text-xs text-orange-600 font-medium">Replaces Sentry, Bugsnag</p>
-                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
-                        </div>
-                    </a>
-                </div>
+                <div class="flex items-center justify-center gap-2 mt-8" id="observability-dots"></div>
             </div>
+
+            <script>
+            (function() {
+                const track = document.getElementById('observability-carousel-track');
+                const viewport = document.getElementById('observability-carousel-viewport');
+                const prevBtn = document.getElementById('observability-prev');
+                const nextBtn = document.getElementById('observability-next');
+                const dotsContainer = document.getElementById('observability-dots');
+                const cards = track.children;
+                let currentIndex = 0;
+
+                function getVisibleCount() {
+                    if (window.innerWidth >= 1024) return 4;
+                    if (window.innerWidth >= 640) return 2;
+                    return 1;
+                }
+
+                function getMaxIndex() {
+                    return Math.max(0, cards.length - getVisibleCount());
+                }
+
+                function updateCarousel() {
+                    const visibleCount = getVisibleCount();
+                    const gap = 32;
+                    const cardWidth = (viewport.offsetWidth - gap * (visibleCount - 1)) / visibleCount;
+                    const offset = currentIndex * (cardWidth + gap);
+                    track.style.transform = 'translateX(-' + offset + 'px)';
+
+                    const maxIdx = getMaxIndex();
+                    prevBtn.disabled = currentIndex === 0;
+                    prevBtn.classList.toggle('cursor-not-allowed', currentIndex === 0);
+                    prevBtn.classList.toggle('text-gray-400', currentIndex === 0);
+                    prevBtn.classList.toggle('bg-gray-100', currentIndex === 0);
+                    prevBtn.classList.toggle('bg-gray-200', currentIndex !== 0);
+                    prevBtn.classList.toggle('text-gray-600', currentIndex !== 0);
+                    prevBtn.classList.toggle('hover:bg-gray-300', currentIndex !== 0);
+
+                    nextBtn.disabled = currentIndex >= maxIdx;
+                    nextBtn.classList.toggle('cursor-not-allowed', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('text-gray-400', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('bg-gray-100', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('bg-gray-200', currentIndex < maxIdx);
+                    nextBtn.classList.toggle('ring-1', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('ring-gray-200', currentIndex >= maxIdx);
+                    nextBtn.classList.toggle('ring-gray-300', currentIndex < maxIdx);
+                    nextBtn.classList.toggle('text-gray-600', currentIndex < maxIdx);
+                    nextBtn.classList.toggle('hover:bg-gray-300', currentIndex < maxIdx);
+
+                    const totalPages = maxIdx + 1;
+                    dotsContainer.innerHTML = '';
+                    for (let i = 0; i < totalPages; i++) {
+                        const dot = document.createElement('button');
+                        dot.className = 'h-2 rounded-full transition-all duration-300 ' + (i === currentIndex ? 'w-6 bg-gray-400' : 'w-2 bg-gray-200 hover:bg-gray-300');
+                        dot.onclick = function() { currentIndex = i; updateCarousel(); };
+                        dotsContainer.appendChild(dot);
+                    }
+                }
+
+                window.scrollObservabilityCarousel = function(dir) {
+                    const maxIdx = getMaxIndex();
+                    currentIndex = Math.max(0, Math.min(maxIdx, currentIndex + dir));
+                    updateCarousel();
+                };
+
+                window.addEventListener('resize', function() {
+                    currentIndex = Math.min(currentIndex, getMaxIndex());
+                    updateCarousel();
+                });
+
+                updateCarousel();
+            })();
+            </script>
         </div>
     </div>
 </div>
