@@ -1,7 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
-import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
+import DefaultDashboardSize, {
+  GetDashboardUnitWidthInPx,
+  SpaceBetweenUnitsInPx,
+} from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import BlankDashboardUnitElement from "./BlankDashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
@@ -34,6 +37,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
 
+  const gap: number = SpaceBetweenUnitsInPx;
+  const unitSize: number = GetDashboardUnitWidthInPx(
+    props.currentTotalDashboardWidthInPx,
+  );
+
   const renderComponents: GetReactElementFunction = (): ReactElement => {
     const canvasHeight: number =
       props.dashboardViewConfig.heightInDashboardUnits ||
@@ -52,7 +60,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       grid[row] = new Array(canvasWidth).fill(null);
     }
 
-    let maxHeightInDashboardUnits: number = 0; // max height of the grid
+    let maxHeightInDashboardUnits: number = 0;
 
     // Place components in the grid
     allComponents.forEach((component: DashboardBaseComponent) => {
@@ -106,16 +114,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
         if (!component) {
           if (!props.isEditMode && i >= maxHeightInDashboardUnits) {
-            // if we are not in edit mode, we should not render blank units
             continue;
           }
 
-          // render a blank unit
           renderedComponents.push(
             <BlankDashboardUnitElement
-              currentTotalDashboardWidthInPx={
-                props.currentTotalDashboardWidthInPx
-              }
               isEditMode={props.isEditMode}
               key={`blank-unit-${i}-${j}`}
               onClick={() => {
@@ -128,8 +131,6 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       }
     }
 
-    // remove nulls from the renderedComponents array
-
     const finalRenderedComponents: Array<ReactElement> =
       renderedComponents.filter(
         (component: ReactElement | null): component is ReactElement => {
@@ -137,29 +138,27 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         },
       );
 
-    const width: number = DefaultDashboardSize.widthInDashboardUnits;
-
-    const canvasClassName: string = `grid grid-cols-${width}`;
-
     return (
       <div
         ref={dashboardCanvasRef}
-        className={canvasClassName}
-        style={
-          props.isEditMode
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${canvasWidth}, 1fr)`,
+          gap: `${gap}px`,
+          gridAutoRows: `${unitSize}px`,
+          borderRadius: "16px",
+          ...(props.isEditMode
             ? {
                 backgroundImage:
                   "radial-gradient(circle, rgba(148, 163, 184, 0.3) 0.8px, transparent 0.8px)",
                 backgroundSize: "20px 20px",
-                borderRadius: "16px",
                 padding: "8px",
                 border: "1px dashed rgba(148, 163, 184, 0.25)",
               }
             : {
                 padding: "8px",
-                borderRadius: "16px",
-              }
-        }
+              }),
+        }}
       >
         {finalRenderedComponents}
       </div>
@@ -208,18 +207,21 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       props.selectedComponentId?.toString() === componentId.toString();
 
     const component: DashboardBaseComponent | undefined =
-      props.dashboardViewConfig.components.find((c: DashboardBaseComponent) => {
-        return c.componentId.toString() === componentId.toString();
-      });
+      props.dashboardViewConfig.components.find(
+        (c: DashboardBaseComponent) => {
+          return c.componentId.toString() === componentId.toString();
+        },
+      );
 
-    const currentUnitSizeInPx: number =
-      props.currentTotalDashboardWidthInPx / 12;
+    const w: number = component?.widthInDashboardUnits || 0;
+    const h: number = component?.heightInDashboardUnits || 0;
+
+    // Compute pixel dimensions for child component rendering (charts, etc.)
+    const widthOfComponentInPx: number =
+      unitSize * w + gap * (w - 1);
 
     const heightOfComponentInPx: number =
-      currentUnitSizeInPx * (component?.heightInDashboardUnits || 0);
-
-    const widthOfComponentInPx: number =
-      currentUnitSizeInPx * (component?.widthInDashboardUnits || 0);
+      unitSize * h + gap * (h - 1);
 
     return (
       <DashboardBaseComponentElement
@@ -232,7 +234,9 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         dashboardComponentHeightInPx={heightOfComponentInPx}
         metricTypes={props.metrics.metricTypes}
         dashboardStartAndEndDate={props.dashboardStartAndEndDate}
-        dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}
+        dashboardCanvasWidthInPx={
+          dashboardCanvasRef.current?.clientWidth || 0
+        }
         dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}
         dashboardCanvasLeftInPx={dashboardCanvasRef.current?.clientLeft || 0}
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
@@ -244,7 +248,6 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         isSelected={isSelected}
         refreshTick={props.refreshTick}
         onClick={() => {
-          // component is selected
           props.onComponentSelected(componentId);
         }}
       />
@@ -274,7 +277,6 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           description="Edit the settings of this component"
           dashboardViewConfig={props.dashboardViewConfig}
           onClose={() => {
-            // unselect this component.
             props.onComponentUnselected();
           }}
           onComponentDelete={() => {

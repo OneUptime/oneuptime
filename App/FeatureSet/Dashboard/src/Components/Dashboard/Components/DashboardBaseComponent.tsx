@@ -25,7 +25,6 @@ import DefaultDashboardSize, {
   GetDashboardComponentWidthInDashboardUnits,
   GetDashboardUnitHeightInPx,
   GetDashboardUnitWidthInPx,
-  MarginForEachUnitInPx,
   SpaceBetweenUnitsInPx,
 } from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -93,9 +92,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
   // ── Minimal React state (only for hover gating) ───────────
   const [isHovered, setIsHovered] = useState<boolean>(false);
-  // We track "is dragging" in a ref so the mousemove handler never
-  // depends on React state.  A *second* copy in useState lets the
-  // JSX read it for className changes on mount/unmount of the drag.
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // ── Refs ──────────────────────────────────────────────────
@@ -107,21 +103,12 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     useRef<DragSession | null>(null);
   const overlayRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
-  // Keep latest props/component available for the imperative handlers.
   const latestProps: React.MutableRefObject<ComponentProps> =
     useRef<ComponentProps>(props);
   const latestComponent: React.MutableRefObject<DashboardBaseComponent> =
     useRef<DashboardBaseComponent>(component);
   latestProps.current = props;
   latestComponent.current = component;
-
-  // ── Pixel helpers ─────────────────────────────────────────
-  const unitW: number = GetDashboardUnitWidthInPx(
-    props.totalCurrentDashboardWidthInPx,
-  );
-  const unitH: number = GetDashboardUnitHeightInPx(
-    props.totalCurrentDashboardWidthInPx,
-  );
 
   // ── Core imperative handlers (stable — no deps) ──────────
 
@@ -150,6 +137,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const uH: number = GetDashboardUnitHeightInPx(
       p.totalCurrentDashboardWidthInPx,
     );
+    const g: number = SpaceBetweenUnitsInPx;
 
     const dxPx: number = e.clientX - s.startMouseX;
     const dyPx: number = e.clientY - s.startMouseY;
@@ -160,11 +148,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     if (s.mode === "move") {
-      // Pure CSS transform — no React render
       el.style.transform = `translate(${dxPx}px, ${dyPx}px) scale(1.01)`;
       el.style.zIndex = "100";
 
-      // Compute snapped grid position for the tooltip & commit
       const dxUnits: number = Math.round(dxPx / uW);
       const dyUnits: number = Math.round(dyPx / uH);
 
@@ -183,26 +169,33 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
       updateTooltip(s);
     } else {
-      // Resize modes — directly set width / height on the DOM element
       const rect: DOMRect = el.getBoundingClientRect();
 
       if (s.mode === "resize-w" || s.mode === "resize-corner") {
-        const wPx: number = Math.max(uW, e.pageX - (window.scrollX + rect.left));
+        const wPx: number = Math.max(
+          uW,
+          e.pageX - (window.scrollX + rect.left),
+        );
         let wUnits: number = GetDashboardComponentWidthInDashboardUnits(
           p.totalCurrentDashboardWidthInPx,
           wPx,
         );
         wUnits = Math.max(c.minWidthInDashboardUnits, wUnits);
-        wUnits = Math.min(DefaultDashboardSize.widthInDashboardUnits, wUnits);
+        wUnits = Math.min(
+          DefaultDashboardSize.widthInDashboardUnits,
+          wUnits,
+        );
         s.liveWidth = wUnits;
 
-        const newWidthPx: number =
-          uW * wUnits + (SpaceBetweenUnitsInPx - 2) * (wUnits - 1);
+        const newWidthPx: number = uW * wUnits + g * (wUnits - 1);
         el.style.width = `${newWidthPx}px`;
       }
 
       if (s.mode === "resize-h" || s.mode === "resize-corner") {
-        const hPx: number = Math.max(uH, e.pageY - (window.scrollY + rect.top));
+        const hPx: number = Math.max(
+          uH,
+          e.pageY - (window.scrollY + rect.top),
+        );
         let hUnits: number = GetDashboardComponentHeightInDashboardUnits(
           p.totalCurrentDashboardWidthInPx,
           hPx,
@@ -210,8 +203,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         hUnits = Math.max(c.minHeightInDashboardUnits, hUnits);
         s.liveHeight = hUnits;
 
-        const newHeightPx: number =
-          uH * hUnits + SpaceBetweenUnitsInPx * (hUnits - 1);
+        const newHeightPx: number = uH * hUnits + g * (hUnits - 1);
         el.style.height = `${newHeightPx}px`;
       }
 
@@ -233,8 +225,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     overlay.style.inset = "0";
     overlay.style.zIndex = "9999";
     overlay.style.cursor = cursor;
-    // Transparent but captures all pointer events, preventing
-    // underlying components from firing mouseEnter/mouseLeave.
     overlay.style.background = "transparent";
     document.body.appendChild(overlay);
     overlayRef.current = overlay;
@@ -253,7 +243,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     if (el) {
       el.style.transform = "";
       el.style.zIndex = "";
-      // Width/height are cleared so React's values take over after commit
       el.style.width = "";
       el.style.height = "";
     }
@@ -268,7 +257,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const c: DashboardBaseComponent = latestComponent.current;
     const p: ComponentProps = latestProps.current;
 
-    // Build the final component — only the fields that changed
     const updated: DashboardBaseComponent = { ...c };
     let changed: boolean = false;
 
@@ -297,7 +285,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
   }
 
-  // Clean up if component unmounts while dragging
   useEffect(() => {
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
@@ -333,7 +320,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     sessionRef.current = session;
     setIsDragging(true);
 
-    // Show initial tooltip value
     updateTooltip(session);
 
     window.addEventListener("mousemove", onMouseMove);
@@ -379,19 +365,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
   const className: string = [
     "relative rounded-xl bg-white border overflow-hidden",
-    `col-span-${widthOfComponent} row-span-${heightOfComponent}`,
     borderClass,
     extraClass,
   ].join(" ");
-
-  // ── Computed sizes (React-controlled, used when NOT dragging) ──
-  const componentHeight: number =
-    unitH * heightOfComponent +
-    SpaceBetweenUnitsInPx * (heightOfComponent - 1);
-
-  const componentWidth: number =
-    unitW * widthOfComponent +
-    (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1);
 
   // ── Render ────────────────────────────────────────────────
 
@@ -522,15 +498,13 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     <div
       className={className}
       style={{
-        margin: `${MarginForEachUnitInPx}px`,
-        height: `${componentHeight}px`,
-        width: `${componentWidth}px`,
+        gridColumn: `span ${widthOfComponent}`,
+        gridRow: `span ${heightOfComponent}`,
         boxShadow: isDragging
           ? "0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08)"
           : props.isSelected && props.isEditMode
             ? "0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04)"
             : "0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04)",
-        // transition is disabled during drag so the transform is instant
         transition: isDragging
           ? "none"
           : "box-shadow 0.2s ease, border-color 0.2s ease",

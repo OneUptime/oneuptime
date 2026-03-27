@@ -6,7 +6,6 @@ export interface ComponentProps {
   rowNumber: number;
   onClick: (top: number, left: number) => void;
   isEditMode: boolean;
-  totalCurrentDashboardWidthInPx: number;
 }
 
 const BlankRowElement: FunctionComponent<ComponentProps> = (
@@ -20,9 +19,6 @@ const BlankRowElement: FunctionComponent<ComponentProps> = (
         (_: number, index: number) => {
           return (
             <BlankDashboardUnitElement
-              currentTotalDashboardWidthInPx={
-                props.totalCurrentDashboardWidthInPx
-              }
               key={props.rowNumber + "-" + index}
               isEditMode={props.isEditMode}
               onClick={() => {
