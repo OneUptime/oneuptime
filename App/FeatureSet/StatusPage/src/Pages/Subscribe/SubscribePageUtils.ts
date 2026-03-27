@@ -7,4 +7,6 @@ export interface SubscribePageProps extends PageComponentProps {
   enableMicrosoftTeamsSubscribers: boolean;
   allowSubscribersToChooseResources: boolean;
   allowSubscribersToChooseEventTypes: boolean;
+  defaultSubscribeToAllResources: boolean;
+  defaultSubscribeToAllEventTypes: boolean;
 }

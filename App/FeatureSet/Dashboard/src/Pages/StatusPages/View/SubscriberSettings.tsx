@@ -272,6 +272,26 @@ const StatusPageSubscriberSettings: FunctionComponent<
           },
           {
             field: {
+              defaultSubscribeToAllResources: true,
+            },
+            title: "Subscribe to All Resources by Default",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder:
+              "Should the 'Subscribe to All Resources' checkbox be checked by default for new subscribers?",
+          },
+          {
+            field: {
+              defaultSubscribeToAllEventTypes: true,
+            },
+            title: "Subscribe to All Event Types by Default",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder:
+              "Should the 'Subscribe to All Event Types' checkbox be checked by default for new subscribers?",
+          },
+          {
+            field: {
               subscriberTimezones: true,
             },
             title: "Subscriber Timezones",
@@ -305,6 +325,24 @@ const StatusPageSubscriberSettings: FunctionComponent<
               title: "Allow Subscribers to Choose Event Types",
               description:
                 "Can subscribers choose which event types they want to subscribe to (like Incidents, Announcements or Scheduled Events)?",
+            },
+            {
+              field: {
+                defaultSubscribeToAllResources: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Subscribe to All Resources by Default",
+              description:
+                "Should the 'Subscribe to All Resources' checkbox be checked by default for new subscribers?",
+            },
+            {
+              field: {
+                defaultSubscribeToAllEventTypes: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Subscribe to All Event Types by Default",
+              description:
+                "Should the 'Subscribe to All Event Types' checkbox be checked by default for new subscribers?",
             },
             {
               field: {

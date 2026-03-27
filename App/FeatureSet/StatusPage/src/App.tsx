@@ -202,6 +202,16 @@ const App: () => JSX.Element = () => {
     setAllowSubscriberToChooseEventTypes,
   ] = useState<boolean>(false);
 
+  const [
+    defaultSubscribeToAllResources,
+    setDefaultSubscribeToAllResources,
+  ] = useState<boolean>(true);
+
+  const [
+    defaultSubscribeToAllEventTypes,
+    setDefaultSubscribeToAllEventTypes,
+  ] = useState<boolean>(true);
+
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
   const [enableSlackSubscribers, setenableSlackSubscribers] =
@@ -313,10 +323,24 @@ const App: () => JSX.Element = () => {
             "statusPage.allowSubscribersToChooseEventTypes",
           ) as boolean;
 
+        const defaultSubscribeToAllResources: boolean =
+          (JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.defaultSubscribeToAllResources",
+          ) as boolean) ?? true;
+
+        const defaultSubscribeToAllEventTypes: boolean =
+          (JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.defaultSubscribeToAllEventTypes",
+          ) as boolean) ?? true;
+
         setAllowSubscribersToChooseResources(allowSubscribersToChooseResources);
         setAllowSubscriberToChooseEventTypes(
           allowSubscribersToChooseEventTypes,
         );
+        setDefaultSubscribeToAllResources(defaultSubscribeToAllResources);
+        setDefaultSubscribeToAllEventTypes(defaultSubscribeToAllEventTypes);
 
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableSlackSubscribers(enableSlackSubscribers);
@@ -533,6 +557,12 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
+                }
               />
             }
           />
@@ -557,6 +587,12 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
+                }
               />
             }
           />
@@ -580,6 +616,12 @@ const App: () => JSX.Element = () => {
                 enableSlackSubscribers={enableSlackSubscribers}
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
+                }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
                 }
               />
             }
@@ -617,6 +659,12 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
+                }
               />
             }
           />
@@ -640,6 +688,12 @@ const App: () => JSX.Element = () => {
                 enableSlackSubscribers={enableSlackSubscribers}
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
+                }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
                 }
               />
             }
@@ -679,6 +733,12 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
+                }
               />
             }
           />
@@ -707,6 +767,12 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
+                }
               />
             }
           />
@@ -731,6 +797,12 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
+                }
               />
             }
           />
@@ -754,6 +826,12 @@ const App: () => JSX.Element = () => {
                 enableSlackSubscribers={enableSlackSubscribers}
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
+                }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
                 }
               />
             }
@@ -783,6 +861,12 @@ const App: () => JSX.Element = () => {
                 enableSlackSubscribers={enableSlackSubscribers}
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
+                }
+                defaultSubscribeToAllResources={
+                  defaultSubscribeToAllResources
+                }
+                defaultSubscribeToAllEventTypes={
+                  defaultSubscribeToAllEventTypes
                 }
               />
             }

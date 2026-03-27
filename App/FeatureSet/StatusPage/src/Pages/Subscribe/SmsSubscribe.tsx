@@ -106,7 +106,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         "Select this option if you want to subscribe to all resources.",
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
-      defaultValue: true,
+      defaultValue: props.defaultSubscribeToAllResources,
     });
 
     fields.push({
@@ -134,7 +134,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         "Select this option if you want to subscribe to all event types.",
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
-      defaultValue: true,
+      defaultValue: props.defaultSubscribeToAllEventTypes,
     });
 
     fields.push({
