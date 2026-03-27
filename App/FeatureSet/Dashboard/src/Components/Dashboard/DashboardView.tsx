@@ -102,6 +102,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   };
 
   const [dashboardName, setDashboardName] = useState<string>("");
+  const [dashboardDescription, setDashboardDescription] = useState<string>("");
 
   const handleResize: VoidFunction = (): void => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
@@ -173,6 +174,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
       setDashboardViewConfig(config);
       setDashboardName(dashboard.name || "Untitled Dashboard");
+      setDashboardDescription(dashboard.description || "");
 
       // Restore saved auto-refresh interval
       if (config.refreshInterval) {
@@ -298,6 +300,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         dashboardViewConfig={dashboardViewConfig}
         dashboardName={dashboardName}
+        dashboardDescription={dashboardDescription}
         isSaving={isSaving}
         onSaveClick={() => {
           // Save auto-refresh interval with the config
