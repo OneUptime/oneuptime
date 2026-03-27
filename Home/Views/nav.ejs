@@ -183,6 +183,17 @@
                               <p class="text-xs text-gray-500">Cluster & pod observability</p>
                             </div>
                           </a>
+
+                          <!-- Profiles - Rose -->
+                          <a href="/product/profiles" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-rose-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
+                              <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Profiles</p>
+                              <p class="text-xs text-gray-500">CPU & memory profiling</p>
+                            </div>
+                          </a>
                         </div>
                       </div>
 
@@ -832,6 +843,14 @@
                 <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">Kubernetes</span>
+            </a>
+
+            <!-- Profiles - Rose -->
+            <a href="/product/profiles" class="flex items-center gap-3 rounded-xl p-3 hover:bg-rose-50 ring-1 ring-transparent hover:ring-rose-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200">
+                <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Profiles</span>
             </a>
 
             <!-- Workflows - Sky -->

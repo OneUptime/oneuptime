@@ -438,6 +438,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/profiles": {
+    title:
+      "Continuous Profiling | CPU, Memory & Allocation Profiling | OneUptime",
+    description:
+      "Continuous profiling for production applications. CPU, memory, and allocation profiling with flamegraphs, function-level analysis, and diff comparison. OpenTelemetry native. Open source.",
+    canonicalPath: "/product/profiles",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Profiles", url: "/product/profiles" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Continuous Profiling",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Continuous profiling for production applications with flamegraphs, function-level analysis, and diff comparison.",
+      features: [
+        "CPU profiling",
+        "Memory profiling",
+        "Allocation profiling",
+        "Interactive flamegraphs",
+        "Function-level analysis",
+        "Diff comparison",
+        "Trace and span correlation",
+        "Multi-language support",
+        "OpenTelemetry native",
+        "Timeline view",
+        "Profile monitoring",
+      ],
+    },
+  },
+
   "/product/scheduled-maintenance": {
     title: "Scheduled Maintenance | Plan & Communicate Downtime | OneUptime",
     description:

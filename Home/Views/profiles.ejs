@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Continuous Profiling - CPU, Memory & Allocation Profiling</title>
+  <meta name="description"
+    content="Continuous profiling for production applications. CPU, memory, and allocation profiling with flamegraphs, function-level analysis, and diff comparison. OpenTelemetry native. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="profiles-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - rose color -->
+      <div id="profiles-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(225, 29, 72, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(225, 29, 72, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-rose-600 mb-4">OpenTelemetry Native Continuous Profiling</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Find performance bottlenecks in production code
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Continuous profiling with flamegraphs, function-level analysis, and diff comparison. Pinpoint exactly which functions consume CPU, allocate memory, or block threads.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>CPU profiling</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Memory profiling</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Flamegraphs</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Diff analysis</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Profiling dashboard mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Profiling Dashboard Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <svg class="h-4 w-4 text-rose-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700 font-semibold">CPU Profile - api-server</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 rounded-md text-xs font-medium text-rose-600 border border-rose-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                        CPU Profile
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Samples</div>
+                          <div class="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">12.4K</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                          <span class="text-[10px] text-emerald-600 font-medium">Collecting</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Functions</div>
+                          <div class="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">847</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="text-[10px] text-gray-500 font-medium">unique frames</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Duration</div>
+                          <div class="w-6 h-6 rounded-md bg-purple-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">4.2s</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="text-[10px] text-gray-500 font-medium">total CPU time</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Top Function</div>
+                          <div class="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-sm font-bold text-gray-900 truncate">json.Marshal</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-amber-400 h-1.5 rounded-full" style="width: 34%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Goroutines</div>
+                          <div class="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">234</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-violet-400 h-1.5 rounded-full" style="width: 47%"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Flamegraph mockup -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-5">
+                      <div class="flex items-center justify-between mb-4">
+                        <div>
+                          <div class="text-sm font-semibold text-gray-800">Flamegraph</div>
+                          <div class="text-[10px] text-gray-400 mt-0.5">CPU time by call stack</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="px-2 py-0.5 bg-rose-50 rounded text-[10px] font-medium text-rose-600 border border-rose-200">CPU</span>
+                          <span class="px-2 py-0.5 bg-gray-50 rounded text-[10px] font-medium text-gray-500 border border-gray-200">Memory</span>
+                          <span class="px-2 py-0.5 bg-gray-50 rounded text-[10px] font-medium text-gray-500 border border-gray-200">Goroutine</span>
+                        </div>
+                      </div>
+                      <!-- SVG Flamegraph -->
+                      <div class="space-y-0.5">
+                        <!-- Root -->
+                        <div class="w-full h-6 bg-rose-400 rounded-sm flex items-center px-2">
+                          <span class="text-[10px] text-white font-medium truncate">root (100%)</span>
+                        </div>
+                        <!-- Level 1 -->
+                        <div class="flex gap-0.5">
+                          <div class="h-6 bg-orange-400 rounded-sm flex items-center px-2" style="width: 62%">
+                            <span class="text-[10px] text-white font-medium truncate">net/http.(*Server).Serve (62%)</span>
+                          </div>
+                          <div class="h-6 bg-cyan-400 rounded-sm flex items-center px-2" style="width: 28%">
+                            <span class="text-[10px] text-white font-medium truncate">runtime.gcBgMarkWorker (28%)</span>
+                          </div>
+                          <div class="h-6 bg-gray-300 rounded-sm flex items-center px-2" style="width: 10%">
+                            <span class="text-[10px] text-gray-600 font-medium truncate">other</span>
+                          </div>
+                        </div>
+                        <!-- Level 2 -->
+                        <div class="flex gap-0.5">
+                          <div class="h-6 bg-orange-300 rounded-sm flex items-center px-2" style="width: 34%">
+                            <span class="text-[10px] text-white font-medium truncate">handleRequest (34%)</span>
+                          </div>
+                          <div class="h-6 bg-yellow-400 rounded-sm flex items-center px-2" style="width: 28%">
+                            <span class="text-[10px] text-white font-medium truncate">middleware.Auth (28%)</span>
+                          </div>
+                          <div class="h-6 bg-cyan-300 rounded-sm flex items-center px-2" style="width: 18%">
+                            <span class="text-[10px] text-white font-medium truncate">runtime.scanobject (18%)</span>
+                          </div>
+                          <div class="h-6 bg-cyan-200 rounded-sm flex items-center px-2" style="width: 10%">
+                            <span class="text-[10px] text-gray-600 font-medium truncate">markBits</span>
+                          </div>
+                          <div class="h-6 bg-gray-200 rounded-sm" style="width: 10%"></div>
+                        </div>
+                        <!-- Level 3 -->
+                        <div class="flex gap-0.5">
+                          <div class="h-6 bg-red-400 rounded-sm flex items-center px-2" style="width: 22%">
+                            <span class="text-[10px] text-white font-medium truncate">json.Marshal (22%)</span>
+                          </div>
+                          <div class="h-6 bg-orange-200 rounded-sm flex items-center px-2" style="width: 12%">
+                            <span class="text-[10px] text-gray-700 font-medium truncate">db.Query</span>
+                          </div>
+                          <div class="h-6 bg-yellow-300 rounded-sm flex items-center px-2" style="width: 18%">
+                            <span class="text-[10px] text-gray-700 font-medium truncate">crypto/tls.(*Conn).Read</span>
+                          </div>
+                          <div class="h-6 bg-yellow-200 rounded-sm flex items-center px-2" style="width: 10%">
+                            <span class="text-[10px] text-gray-600 font-medium truncate">jwt.Parse</span>
+                          </div>
+                          <div class="h-6 bg-gray-200 rounded-sm" style="width: 38%"></div>
+                        </div>
+                        <!-- Level 4 -->
+                        <div class="flex gap-0.5">
+                          <div class="h-6 bg-red-300 rounded-sm flex items-center px-2" style="width: 14%">
+                            <span class="text-[10px] text-white font-medium truncate">reflect.Value (14%)</span>
+                          </div>
+                          <div class="h-6 bg-red-200 rounded-sm flex items-center px-2" style="width: 8%">
+                            <span class="text-[10px] text-gray-700 font-medium truncate">encode</span>
+                          </div>
+                          <div class="h-6 bg-gray-200 rounded-sm" style="width: 78%"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Function list table -->
+                    <div class="grid grid-cols-2 gap-3">
+                      <!-- Top Functions -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Top Functions by Self Time</span>
+                          <span class="text-[10px] text-gray-400">847 total</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                              <span class="text-xs font-mono text-gray-700">json.Marshal</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <span class="text-[10px] text-gray-500">self: 22%</span>
+                              <span class="text-[10px] text-gray-400">total: 34%</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span class="text-xs font-mono text-gray-700">runtime.scanobject</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <span class="text-[10px] text-gray-500">self: 18%</span>
+                              <span class="text-[10px] text-gray-400">total: 18%</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                              <span class="text-xs font-mono text-gray-700">crypto/tls.Read</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <span class="text-[10px] text-gray-500">self: 12%</span>
+                              <span class="text-[10px] text-gray-400">total: 18%</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">db.Query</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                              <span class="text-[10px] text-gray-500">self: 8%</span>
+                              <span class="text-[10px] text-gray-400">total: 12%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Profile Types -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Profile Types</span>
+                          <span class="text-[10px] text-gray-400">6 types</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                              <span class="text-xs font-medium text-gray-700">CPU</span>
+                            </div>
+                            <span class="text-[10px] text-gray-500">4,231 samples</span>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                              <span class="text-xs font-medium text-gray-700">Wall</span>
+                            </div>
+                            <span class="text-[10px] text-gray-500">3,847 samples</span>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-medium text-gray-700">Alloc Objects</span>
+                            </div>
+                            <span class="text-[10px] text-gray-500">2,156 samples</span>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+                              <span class="text-xs font-medium text-gray-700">Alloc Space</span>
+                            </div>
+                            <span class="text-[10px] text-gray-500">1,890 samples</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-rose-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Start profiling your applications in minutes
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Add the OpenTelemetry profiling SDK to your application and get instant visibility into performance bottlenecks.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-rose-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-rose-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-rose-600 ring-2 ring-rose-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Add SDK</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Add the OpenTelemetry profiling SDK to your application with a few lines of code.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-rose-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-rose-600 ring-2 ring-rose-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Collect Profiles</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Profiles are continuously collected with minimal overhead and sent to OneUptime via OTLP.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-rose-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-rose-600 ring-2 ring-rose-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">View Flamegraphs</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Explore interactive flamegraphs to visualize CPU, memory, and allocation hotspots.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-rose-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-rose-600 ring-2 ring-rose-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Optimize</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Use diff analysis to compare profiles before and after changes to verify improvements.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-4 py-1.5 text-sm font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20 mb-6">
+            <svg class="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+            </svg>
+            <span class="text-sm font-medium text-rose-700">Why OneUptime for Profiling</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Continuous profiling built for production
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            From CPU hotspots to memory leaks, OneUptime provides deep visibility into every function call in your production applications.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Flamegraphs -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-rose-600 uppercase tracking-wide">Interactive Flamegraphs</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Visualize exactly where time is spent</h3>
+              <p class="mt-4 text-lg text-gray-600">Interactive flamegraphs let you zoom into any call stack to understand exactly which functions consume the most CPU time, allocate the most memory, or block the longest.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Zoom and navigate call stacks
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Color-coded by frame type (kernel, native, JVM, Go, Python)
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Self time vs total time analysis
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Flamegraph Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Flamegraph - CPU Profile</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-0.5">
+                      <div class="w-full h-7 bg-rose-500 rounded-sm flex items-center px-2">
+                        <span class="text-[10px] text-white font-medium">root (100%) - 4.2s CPU</span>
+                      </div>
+                      <div class="flex gap-0.5">
+                        <div class="h-7 bg-orange-400 rounded-sm flex items-center px-2" style="width: 65%">
+                          <span class="text-[10px] text-white font-medium truncate">http.Serve</span>
+                        </div>
+                        <div class="h-7 bg-cyan-500 rounded-sm flex items-center px-2" style="width: 35%">
+                          <span class="text-[10px] text-white font-medium truncate">runtime.gc</span>
+                        </div>
+                      </div>
+                      <div class="flex gap-0.5">
+                        <div class="h-7 bg-red-400 rounded-sm flex items-center px-2" style="width: 35%">
+                          <span class="text-[10px] text-white font-medium truncate">json.Marshal</span>
+                        </div>
+                        <div class="h-7 bg-yellow-400 rounded-sm flex items-center px-2" style="width: 30%">
+                          <span class="text-[10px] text-white font-medium truncate">auth.Verify</span>
+                        </div>
+                        <div class="h-7 bg-teal-400 rounded-sm flex items-center px-2" style="width: 20%">
+                          <span class="text-[10px] text-white font-medium truncate">scan</span>
+                        </div>
+                        <div class="h-7 bg-gray-300 rounded-sm" style="width: 15%"></div>
+                      </div>
+                      <div class="flex gap-0.5">
+                        <div class="h-7 bg-red-300 rounded-sm flex items-center px-1" style="width: 20%">
+                          <span class="text-[10px] text-white font-medium truncate">reflect</span>
+                        </div>
+                        <div class="h-7 bg-red-200 rounded-sm flex items-center px-1" style="width: 15%">
+                          <span class="text-[10px] text-gray-600 font-medium truncate">encode</span>
+                        </div>
+                        <div class="h-7 bg-gray-200 rounded-sm" style="width: 65%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Diff Analysis -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Diff Flamegraph Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Diff Comparison</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <!-- Diff header -->
+                    <div class="flex items-center justify-between mb-4">
+                      <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600 border border-blue-200">
+                          Baseline: 2h ago
+                        </span>
+                        <span class="text-xs text-gray-400">vs</span>
+                        <span class="flex items-center gap-1 px-2 py-1 bg-rose-50 rounded text-xs text-rose-600 border border-rose-200">
+                          Current
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Diff results -->
+                    <div class="space-y-2">
+                      <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs font-mono text-gray-900">json.Marshal</span>
+                          <span class="text-xs font-bold text-red-600">+45% CPU</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                          <div class="bg-red-400 h-1.5 rounded-full" style="width: 78%"></div>
+                        </div>
+                      </div>
+                      <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs font-mono text-gray-900">db.Query</span>
+                          <span class="text-xs font-bold text-red-600">+23% CPU</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                          <div class="bg-red-300 h-1.5 rounded-full" style="width: 55%"></div>
+                        </div>
+                      </div>
+                      <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs font-mono text-gray-900">auth.Verify</span>
+                          <span class="text-xs font-bold text-emerald-600">-31% CPU</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                          <div class="bg-emerald-400 h-1.5 rounded-full" style="width: 32%"></div>
+                        </div>
+                      </div>
+                      <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs font-mono text-gray-900">runtime.gc</span>
+                          <span class="text-xs font-bold text-gray-500">~0% CPU</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                          <div class="bg-gray-400 h-1.5 rounded-full" style="width: 28%"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-rose-600 uppercase tracking-wide">Diff Analysis</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Compare profiles before and after changes</h3>
+              <p class="mt-4 text-lg text-gray-600">Compare two time ranges side by side to see exactly which functions got faster or slower. Verify that your optimization actually worked before shipping to production.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Baseline vs comparison time ranges
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Per-function regression detection
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Validate optimization impact
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Function-level Analysis -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-rose-600 uppercase tracking-wide">Function-level Analysis</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Drill down to the exact function</h3>
+              <p class="mt-4 text-lg text-gray-600">See a sortable table of every function in your profile with self time, total time, and sample counts. Quickly identify which functions are the biggest resource consumers.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Self time vs total time breakdown
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Sort by any metric column
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Source file and line number resolution
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Function List Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Function List</span>
+                    </div>
+                  </div>
+                  <div class="overflow-hidden">
+                    <!-- Table header -->
+                    <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 grid grid-cols-4 gap-2">
+                      <span class="text-[10px] font-semibold text-gray-500 col-span-2">Function</span>
+                      <span class="text-[10px] font-semibold text-gray-500 text-right">Self</span>
+                      <span class="text-[10px] font-semibold text-gray-500 text-right">Total</span>
+                    </div>
+                    <!-- Rows -->
+                    <div class="divide-y divide-gray-100">
+                      <div class="px-4 py-2.5 grid grid-cols-4 gap-2 items-center bg-rose-50">
+                        <div class="col-span-2 flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-sm bg-red-500"></span>
+                          <span class="text-xs font-mono text-gray-900 truncate">json.Marshal</span>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-right">920ms</span>
+                        <span class="text-xs text-gray-500 text-right">1.4s</span>
+                      </div>
+                      <div class="px-4 py-2.5 grid grid-cols-4 gap-2 items-center">
+                        <div class="col-span-2 flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-sm bg-cyan-500"></span>
+                          <span class="text-xs font-mono text-gray-700 truncate">runtime.scanobject</span>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-right">756ms</span>
+                        <span class="text-xs text-gray-500 text-right">756ms</span>
+                      </div>
+                      <div class="px-4 py-2.5 grid grid-cols-4 gap-2 items-center">
+                        <div class="col-span-2 flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-sm bg-yellow-500"></span>
+                          <span class="text-xs font-mono text-gray-700 truncate">crypto/tls.Read</span>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-right">504ms</span>
+                        <span class="text-xs text-gray-500 text-right">756ms</span>
+                      </div>
+                      <div class="px-4 py-2.5 grid grid-cols-4 gap-2 items-center">
+                        <div class="col-span-2 flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-sm bg-orange-500"></span>
+                          <span class="text-xs font-mono text-gray-700 truncate">reflect.Value.call</span>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-right">420ms</span>
+                        <span class="text-xs text-gray-500 text-right">920ms</span>
+                      </div>
+                      <div class="px-4 py-2.5 grid grid-cols-4 gap-2 items-center">
+                        <div class="col-span-2 flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-sm bg-emerald-500"></span>
+                          <span class="text-xs font-mono text-gray-700 truncate">db.(*DB).Query</span>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-900 text-right">336ms</span>
+                        <span class="text-xs text-gray-500 text-right">504ms</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Multi-language Support -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Language Support Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Supported Languages</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-cyan-50 rounded-lg border border-cyan-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+                          <span class="text-sm font-bold text-cyan-700">Go</span>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900">Go</div>
+                          <div class="text-xs text-gray-500">CPU, Memory, Goroutine, Contention</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center">
+                          <span class="text-sm font-bold text-yellow-700">Py</span>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900">Python</div>
+                          <div class="text-xs text-gray-500">CPU, Wall, Memory allocation</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                          <span class="text-sm font-bold text-orange-700">Jv</span>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900">Java / JVM</div>
+                          <div class="text-xs text-gray-500">CPU, Heap, Thread lock</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <span class="text-sm font-bold text-blue-700">JS</span>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900">Node.js</div>
+                          <div class="text-xs text-gray-500">CPU, Heap allocation</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-rose-600 uppercase tracking-wide">Multi-language</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Profile any language, any runtime</h3>
+              <p class="mt-4 text-lg text-gray-600">Built on OpenTelemetry, OneUptime supports profiling for Go, Java, Python, Node.js, .NET, Rust, and more. One unified platform for all your services regardless of the language.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Go, Java, Python, Node.js, .NET, Rust, C++
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  CPU, Memory, Wall, Goroutine, Contention profile types
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Unified view across polyglot services
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-4 py-1.5 text-sm font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20 mb-6">
+            <svg class="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-rose-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need for continuous profiling
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for production profiling with enterprise-grade features.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: OpenTelemetry Native -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Built on the OpenTelemetry profiling signal. Use standard OTLP to send profiles from any language runtime.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Low Overhead -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Low Overhead</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Continuous profiling with minimal performance impact. Safe to run in production 24/7 without affecting your application.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Trace Correlation -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Trace & Span Correlation</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Link profiles to traces and spans. Jump from a slow trace directly to the CPU profile to understand exactly why it was slow.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Timeline View -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Timeline View</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">See how profile distributions change over time. Quickly spot when a regression was introduced and correlate with deployments.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Profile Monitoring -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Profile Monitoring</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Set up monitors on profile counts and patterns. Get alerted when profiling data stops flowing or anomalies are detected.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Enterprise Compliance -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Enterprise Compliance</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">SOC 2/3, ISO, GDPR, HIPAA compliant. Data residency options. Self-hosted or cloud deployment.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('profiles-hero-section');
+      const gridGlow = document.getElementById('profiles-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>
