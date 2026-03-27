@@ -168,7 +168,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.maxRows,
   ]);
 
-  if (isLoading) {
+  if (isLoading && logs.length === 0) {
     return (
       <div className="h-full flex flex-col animate-pulse">
         <div className="h-3 w-24 bg-gray-100 rounded mb-3"></div>
@@ -208,7 +208,13 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="h-full overflow-auto flex flex-col">
+    <div
+      className="h-full overflow-auto flex flex-col"
+      style={{
+        opacity: isLoading ? 0.5 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+    >
       {props.component.arguments.title && (
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">

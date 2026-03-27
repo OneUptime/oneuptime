@@ -111,8 +111,8 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     }
   }, [props.component.arguments.metricQueryConfig]);
 
-  if (isLoading) {
-    // Skeleton loading for gauge
+  if (isLoading && metricResults.length === 0) {
+    // Skeleton loading for gauge - only on initial load
     return (
       <div className="w-full h-full flex flex-col items-center justify-center animate-pulse">
         <div className="h-3 w-20 bg-gray-100 rounded mb-3"></div>
@@ -318,7 +318,13 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const percentDisplay: number = Math.round(percentage * 100);
 
   return (
-    <div className="w-full text-center h-full flex flex-col items-center justify-center">
+    <div
+      className="w-full text-center h-full flex flex-col items-center justify-center"
+      style={{
+        opacity: isLoading ? 0.5 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+    >
       {props.component.arguments.gaugeTitle && (
         <div
           style={{

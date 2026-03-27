@@ -177,8 +177,8 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     }
   }, [props.component.arguments.metricQueryConfig]);
 
-  if (isLoading) {
-    // Skeleton loading state
+  if (isLoading && metricResults.length === 0) {
+    // Skeleton loading state - only on initial load
     return (
       <div className="w-full h-full flex flex-col items-center justify-center rounded-md animate-pulse">
         <div className="h-3 w-16 bg-gray-100 rounded mb-3"></div>
@@ -359,7 +359,11 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   return (
     <div
       className="w-full h-full flex flex-col items-center justify-center rounded-md relative overflow-hidden"
-      style={bgStyle}
+      style={{
+        ...bgStyle,
+        opacity: isLoading ? 0.5 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
     >
       {/* Title */}
       <div className="flex items-center gap-1.5 mb-0.5">

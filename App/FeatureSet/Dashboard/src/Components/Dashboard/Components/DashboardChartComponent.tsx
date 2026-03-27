@@ -140,8 +140,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.metricQueryConfigs,
   ]);
 
-  if (isLoading) {
-    // Skeleton loading for chart
+  if (isLoading && metricResults.length === 0) {
+    // Skeleton loading for chart - only on initial load
     return (
       <div className="w-full h-full flex flex-col p-1 animate-pulse">
         <div className="h-3 w-28 bg-gray-100 rounded mb-3"></div>
@@ -241,7 +241,13 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="w-full h-full overflow-hidden">
+    <div
+      className="w-full h-full overflow-hidden"
+      style={{
+        opacity: isLoading ? 0.5 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+    >
       <MetricCharts
         metricResults={metricResults}
         metricTypes={props.metricTypes}

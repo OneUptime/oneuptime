@@ -112,8 +112,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     }
   }, [props.component.arguments.metricQueryConfig]);
 
-  if (isLoading) {
-    // Skeleton loading for table
+  if (isLoading && metricResults.length === 0) {
+    // Skeleton loading for table - only on initial load
     return (
       <div className="h-full flex flex-col animate-pulse">
         <div className="h-3 w-24 bg-gray-100 rounded mb-3"></div>
@@ -174,7 +174,13 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
       : 1;
 
   return (
-    <div className="h-full overflow-auto flex flex-col">
+    <div
+      className="h-full overflow-auto flex flex-col"
+      style={{
+        opacity: isLoading ? 0.5 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+    >
       {props.component.arguments.tableTitle && (
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
