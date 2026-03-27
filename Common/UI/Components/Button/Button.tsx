@@ -193,7 +193,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.ICON) {
-    buttonStyleCssClass = `rounded-md bg-white text-gray-600 ${
+    buttonStyleCssClass = `rounded-md bg-transparent text-gray-600 ${
       disabled ? "hover:text-gray-900" : ""
     }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
   }

@@ -1,5 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
@@ -55,36 +55,33 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div
-      className="mx-4 mt-3 mb-2 rounded-lg bg-white border border-gray-100"
-      style={{
-        boxShadow:
-          "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
-      }}
-    >
+    <div className="mx-4 mt-2 mb-1">
       {/* Single row: Dashboard name + time range + variables + action buttons */}
-      <div className="flex items-center justify-between px-4 py-2.5">
-        <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-          <h1 className="text-sm font-semibold text-gray-800 truncate">
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="text-sm font-semibold text-gray-700 truncate">
             {props.dashboardName}
           </h1>
           {isEditMode && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1"></span>
+            <span className="inline-flex items-center px-1.5 py-px rounded-full text-xs font-medium bg-blue-50 text-blue-600 animate-pulse">
+              <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span>
               Editing
             </span>
           )}
-          {hasComponents && !isEditMode && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-gray-400">
-              {props.dashboardViewConfig.components.length} widget
-              {props.dashboardViewConfig.components.length !== 1 ? "s" : ""}
-            </span>
-          )}
+          {/* Refreshing indicator */}
+          {props.isRefreshing &&
+            props.autoRefreshInterval !== AutoRefreshInterval.OFF && (
+              <span className="inline-flex items-center gap-1 text-xs text-blue-600">
+                <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span>
+                Refreshing
+              </span>
+            )}
+        </div>
 
-          {/* Time range + variables inline (only when components exist and not in edit mode) */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Time range + variables (only when components exist and not in edit mode) */}
           {hasComponents && !isEditMode && (
             <>
-              <div className="w-px h-4 bg-gray-200"></div>
               <RangeStartAndEndDateView
                 dashboardStartAndEndDate={props.startAndEndDate}
                 onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
@@ -97,7 +94,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 props.variables.length > 0 &&
                 props.onVariableValueChange && (
                   <>
-                    <div className="w-px h-4 bg-gray-200"></div>
+                    <div className="w-px h-3.5 bg-gray-200"></div>
                     <DashboardVariableSelector
                       variables={props.variables}
                       onVariableValueChange={props.onVariableValueChange}
@@ -107,18 +104,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             </>
           )}
 
-          {/* Refreshing indicator */}
-          {props.isRefreshing &&
-            props.autoRefreshInterval !== AutoRefreshInterval.OFF && (
-              <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-                Refreshing
-              </span>
-            )}
-        </div>
-
         {!isSaving && (
-          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {isEditMode ? (
               <>
                 <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
@@ -209,27 +196,33 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Refresh}
                     title="Reset Zoom"
                     buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                    buttonSize={ButtonSize.Small}
                     onClick={props.onResetZoom}
                     tooltip="Reset to original time range"
                   />
                 )}
 
-                {/* Auto-refresh dropdown */}
-                {hasComponents && (
-                  <MoreMenu
-                    menuIcon={IconProp.Refresh}
-                    text={
-                      props.autoRefreshInterval !== AutoRefreshInterval.OFF
-                        ? getAutoRefreshIntervalLabel(props.autoRefreshInterval)
-                        : ""
-                    }
-                  >
-                    {Object.values(AutoRefreshInterval).map(
+                <MoreMenu menuIcon={IconProp.More}>
+                  <MoreMenuItem
+                    text={"Edit Dashboard"}
+                    icon={IconProp.Pencil}
+                    key={"edit"}
+                    onClick={props.onEditClick}
+                  />
+                  <MoreMenuItem
+                    text={"Full Screen"}
+                    icon={IconProp.Expand}
+                    key={"fullscreen"}
+                    onClick={props.onFullScreenClick}
+                  />
+                  {hasComponents &&
+                    Object.values(AutoRefreshInterval).map(
                       (interval: AutoRefreshInterval) => {
                         return (
                           <MoreMenuItem
                             key={interval}
                             text={getAutoRefreshIntervalLabel(interval)}
+                            icon={IconProp.Refresh}
                             onClick={() => {
                               props.onAutoRefreshIntervalChange(interval);
                             }}
@@ -237,25 +230,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                         );
                       },
                     )}
-                  </MoreMenu>
-                )}
-
-                <Button
-                  icon={IconProp.Expand}
-                  buttonStyle={ButtonStyleType.ICON}
-                  onClick={props.onFullScreenClick}
-                  tooltip="Full Screen"
-                />
-
-                <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-
-                <Button
-                  icon={IconProp.Pencil}
-                  title="Edit"
-                  buttonStyle={ButtonStyleType.ICON}
-                  onClick={props.onEditClick}
-                  tooltip="Edit Dashboard"
-                />
+                </MoreMenu>
               </>
             )}
           </div>
@@ -267,6 +242,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             <span className="text-sm text-gray-500">Saving...</span>
           </div>
         )}
+        </div>
       </div>
 
       {showCancelModal ? (
