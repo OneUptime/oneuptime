@@ -158,7 +158,7 @@
             </div>
 
             <!-- Feature Cards Grid -->
-            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
 
                 <!-- Status Page - Emerald -->
                 <div class="feature-card-wrapper feature-glow-emerald-wrapper">
@@ -333,6 +333,51 @@
                         </ul>
                         <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
                             <p class="text-xs text-stone-600 font-medium">Replaces PagerDuty, Opsgenie</p>
+                            <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Scheduled Maintenance - Teal -->
+                <div class="feature-card-wrapper feature-glow-teal-wrapper">
+                    <a href="/product/scheduled-maintenance" class="feature-card feature-glow-teal group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-inset ring-gray-200 transition-all hover:ring-teal-300 h-full">
+                        <div class="flex items-start justify-between">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 ring-1 ring-teal-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 text-teal-600">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Scheduled Maintenance</h3>
+                            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Plan downtime before it plans itself. Keep users informed, not surprised.</p>
+                        </div>
+                        <ul class="mt-5 space-y-3 flex-1">
+                            <li class="feature-list-item">
+                                <%- include('./Partials/tick-icon') %>
+                                <span class="text-sm text-gray-600">Maintenance windows with start & end</span>
+                            </li>
+                            <li class="feature-list-item">
+                                <%- include('./Partials/tick-icon') %>
+                                <span class="text-sm text-gray-600">Auto-notify subscribers</span>
+                            </li>
+                            <li class="feature-list-item">
+                                <%- include('./Partials/tick-icon') %>
+                                <span class="text-sm text-gray-600">Status page integration</span>
+                            </li>
+                            <li class="feature-list-item">
+                                <%- include('./Partials/tick-icon') %>
+                                <span class="text-sm text-gray-600">Suppress alerts during maintenance</span>
+                            </li>
+                            <li class="feature-list-item">
+                                <%- include('./Partials/tick-icon') %>
+                                <span class="text-sm text-gray-600">Recurring maintenance schedules</span>
+                            </li>
+                        </ul>
+                        <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                            <p class="text-xs text-teal-600 font-medium">Built-in, no extra tools needed</p>
                             <svg class="h-4 w-4 text-gray-400 learn-more-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                             </svg>

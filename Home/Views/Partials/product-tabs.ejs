@@ -23,6 +23,7 @@
                 <option value="kubernetes">Kubernetes</option>
                 <option value="profiles">Profiles</option>
                 <option value="ai-agent">AI Agent</option>
+                <option value="scheduled-maintenance">Scheduled Maintenance</option>
             </select>
           </div>
 
@@ -31,7 +32,7 @@
                 <nav class="-mb-px flex justify-center flex-wrap gap-x-8 gap-y-4 max-w-5xl mx-auto px-6" aria-label="Product feature tabs" role="tablist">
                     <!-- Status Pages - Emerald -->
                     <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
-                        class="tab-status-pages-button tab-1-button cursor-pointer border-gray-500 text-gray-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
+                        class="tab-status-pages-button tab-1-button cursor-pointer bg-gray-100 text-gray-900 shadow-sm ring-1 ring-gray-200 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="0" aria-label="Status Pages - communicates service availability to users">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-200 mr-2">
                             <svg class="icon-tab-1 text-emerald-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -41,7 +42,7 @@
                     </button>
                     <!-- Monitoring - Blue -->
                     <button type="button" onclick="showTab('monitoring')" id="tab-monitoring" role="tab" aria-selected="false" aria-controls="panel-monitoring"
-                        class="tab-monitoring-button tab-2-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
+                        class="tab-monitoring-button tab-2-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-200 mr-2">
                             <svg class="icon-tab-2 text-blue-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
@@ -51,7 +52,7 @@
                     </button>
                     <!-- Incidents - Rose -->
                     <button type="button" onclick="showTab('incidents')" id="tab-incidents" role="tab" aria-selected="false" aria-controls="panel-incidents"
-                        class="tab-incidents-button tab-3-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
+                        class="tab-incidents-button tab-3-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon-tab-3 text-rose-600 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -61,7 +62,7 @@
                     </button>
                     <!-- On-Call - Stone -->
                     <button type="button" onclick="showTab('on-call')" id="tab-on-call" role="tab" aria-selected="false" aria-controls="panel-on-call"
-                        class="tab-on-call-button tab-4-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
+                        class="tab-on-call-button tab-4-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-stone-100 ring-1 ring-stone-200 mr-2">
                             <svg class="icon-tab-4 text-stone-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
@@ -71,7 +72,7 @@
                     </button>
                     <!-- Logs - Amber -->
                     <button type="button" onclick="showTab('logs')" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs"
-                        class="tab-logs-button tab-5-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
+                        class="tab-logs-button tab-5-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Logs - centralized log management and analytics">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 ring-1 ring-amber-200 mr-2">
                             <svg class="icon-tab-5 text-amber-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
@@ -81,7 +82,7 @@
                     </button>
                     <!-- Metrics - Purple -->
                     <button type="button" onclick="showTab('metrics')" id="tab-metrics" role="tab" aria-selected="false" aria-controls="panel-metrics"
-                        class="tab-metrics-button tab-6-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Metrics - application and infrastructure metrics">
+                        class="tab-metrics-button tab-6-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Metrics - application and infrastructure metrics">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 ring-1 ring-purple-200 mr-2">
                             <svg class="icon-tab-6 text-purple-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7" />
@@ -92,7 +93,7 @@
                     </button>
                     <!-- Traces - Yellow -->
                     <button type="button" onclick="showTab('traces')" id="tab-traces" role="tab" aria-selected="false" aria-controls="panel-traces"
-                        class="tab-traces-button tab-7-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Traces - distributed request tracing">
+                        class="tab-traces-button tab-7-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Traces - distributed request tracing">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-yellow-50 ring-1 ring-yellow-200 mr-2">
                             <svg class="icon-tab-7 text-yellow-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <rect x="2" y="3" width="20" height="4" rx="0.5" />
@@ -105,7 +106,7 @@
                     </button>
                     <!-- Exceptions - Orange -->
                     <button type="button" onclick="showTab('exceptions')" id="tab-exceptions" role="tab" aria-selected="false" aria-controls="panel-exceptions"
-                        class="tab-exceptions-button tab-8-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Exceptions - error tracking and debugging">
+                        class="tab-exceptions-button tab-8-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Exceptions - error tracking and debugging">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-orange-50 ring-1 ring-orange-200 mr-2">
                             <svg class="icon-tab-8 text-orange-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <ellipse cx="12" cy="14" rx="5" ry="6" />
@@ -116,7 +117,7 @@
                     </button>
                     <!-- Workflows - Sky -->
                     <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows"
-                        class="tab-workflows-button tab-9-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
+                        class="tab-workflows-button tab-9-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-sky-50 ring-1 ring-sky-200 mr-2">
                             <svg class="icon-tab-9 text-sky-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="transform: rotate(180deg)">
                                 <rect x="3" y="3" width="6" height="4" rx="1" stroke-width="1.5" />
@@ -129,7 +130,7 @@
                     </button>
                     <!-- Dashboards - Indigo -->
                     <button type="button" onclick="showTab('dashboards')" id="tab-dashboards" role="tab" aria-selected="false" aria-controls="panel-dashboards"
-                        class="tab-dashboards-button tab-10-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Dashboards - custom data visualizations">
+                        class="tab-dashboards-button tab-10-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Dashboards - custom data visualizations">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 ring-1 ring-indigo-200 mr-2">
                             <svg class="icon-tab-10 text-indigo-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
@@ -140,7 +141,7 @@
                     </button>
                     <!-- Kubernetes - Cyan -->
                     <button type="button" onclick="showTab('kubernetes')" id="tab-kubernetes" role="tab" aria-selected="false" aria-controls="panel-kubernetes"
-                        class="tab-kubernetes-button tab-11-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Kubernetes - monitor Kubernetes clusters and workloads">
+                        class="tab-kubernetes-button tab-11-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Kubernetes - monitor Kubernetes clusters and workloads">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-cyan-50 ring-1 ring-cyan-200 mr-2">
                             <svg class="icon-tab-11 text-cyan-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <polygon stroke-linecap="round" stroke-linejoin="round" points="12,2.5 19.43,6.08 21.26,14.11 15.95,20.64 8.05,20.56 2.74,14.27 4.57,6.22"></polygon>
@@ -152,7 +153,7 @@
                     </button>
                     <!-- Profiles - Rose -->
                     <button type="button" onclick="showTab('profiles')" id="tab-profiles" role="tab" aria-selected="false" aria-controls="panel-profiles"
-                        class="tab-profiles-button tab-12-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Profiles - CPU and memory profiling with flamegraphs">
+                        class="tab-profiles-button tab-12-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Profiles - CPU and memory profiling with flamegraphs">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2">
                             <svg class="icon-tab-12 text-rose-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"></path>
@@ -163,7 +164,7 @@
                     </button>
                     <!-- AI Agent - Violet -->
                     <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent"
-                        class="tab-ai-agent-button tab-13-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
+                        class="tab-ai-agent-button tab-13-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
                         <span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2">
                             <svg class="icon-tab-13 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
@@ -171,11 +172,22 @@
                         </span>
                         <span>AI Agent</span>
                     </button>
+                    <!-- Scheduled Maintenance - Teal -->
+                    <button type="button" onclick="showTab('scheduled-maintenance')" id="tab-scheduled-maintenance" role="tab" aria-selected="false" aria-controls="panel-scheduled-maintenance"
+                        class="tab-scheduled-maintenance-button tab-14-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Scheduled Maintenance - plan and communicate maintenance windows">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-50 ring-1 ring-teal-200 mr-2">
+                            <svg class="icon-tab-14 text-teal-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
+                            </svg>
+                        </span>
+                        <span>Scheduled Maintenance</span>
+                    </button>
                 </nav>
             </div>
         </div>
     </div>
 
+    <div class="max-w-5xl mx-auto mt-10 mb-0 border-t border-gray-200"></div>
 
     <div class="mt-10 tab-1">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
@@ -1161,12 +1173,85 @@
         </div>
     </div>
 
+    <div class="mt-10 tab-14" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Plan downtime before it plans itself. Keep users informed, not surprised.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Schedule maintenance windows with start and end times</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-notify subscribers before maintenance begins</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Show maintenance events on your status page automatically</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Suppress alerts during planned maintenance windows</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Set up recurring maintenance for regular update windows</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/scheduled-maintenance"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-teal-600 font-medium">Planned downtime that builds trust instead of breaking it.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/scheduled-maintenance.png" alt="OneUptime Scheduled Maintenance dashboard showing maintenance windows and notifications">
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 
 <script>
     // Semantic tab slugs in desired order
-    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','kubernetes','profiles','ai-agent'];
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','kubernetes','profiles','ai-agent','scheduled-maintenance'];
     let currentActiveTab = 'status-pages';
 
 
@@ -1183,13 +1268,11 @@
 
         const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}-button`);
         if (button) {
-            button.classList.remove('border-gray-500', 'text-gray-600');
-            button.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
+            button.classList.remove('bg-gray-100', 'text-gray-900', 'shadow-sm', 'ring-1', 'ring-gray-200');
+            button.classList.add('text-gray-500', 'hover:bg-gray-100', 'hover:text-gray-700');
             button.setAttribute('aria-selected','false');
             button.setAttribute('tabindex','-1');
         }
-        const icon = document.querySelector(`.icon-tab-${TAB_ORDER.indexOf(tab)+1}`) || document.querySelector(`.icon-tab-${tab}`);
-        if (icon) { icon.classList.remove('text-gray-500'); icon.classList.add('text-gray-400'); }
     }
 
     function showTab(tab) {
@@ -1203,15 +1286,12 @@
 
         const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${numericIndex}-button`);
         if (button) {
-            button.classList.remove('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
-            button.classList.add('border-gray-500', 'text-gray-600');
+            button.classList.remove('text-gray-500', 'hover:bg-gray-100', 'hover:text-gray-700');
+            button.classList.add('bg-gray-100', 'text-gray-900', 'shadow-sm', 'ring-1', 'ring-gray-200');
             button.setAttribute('aria-selected','true');
             button.setAttribute('tabindex','0');
             button.focus();
         }
-
-        const icon = document.querySelector(`.icon-tab-${numericIndex}`) || document.querySelector(`.icon-tab-${tab}`);
-        if (icon) { icon.classList.remove('text-gray-400'); icon.classList.add('text-gray-500'); }
 
         currentActiveTab = tab;
         if (history.replaceState) { history.replaceState(null, '', `#tab-${tab}`); }
