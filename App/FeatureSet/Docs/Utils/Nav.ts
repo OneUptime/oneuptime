@@ -175,12 +175,40 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/api-monitor",
       },
       {
+        title: "Ping Monitor",
+        url: "/docs/monitor/ping-monitor",
+      },
+      {
+        title: "IP Monitor",
+        url: "/docs/monitor/ip-monitor",
+      },
+      {
+        title: "Port Monitor",
+        url: "/docs/monitor/port-monitor",
+      },
+      {
+        title: "DNS Monitor",
+        url: "/docs/monitor/dns-monitor",
+      },
+      {
+        title: "SSL Certificate Monitor",
+        url: "/docs/monitor/ssl-certificate-monitor",
+      },
+      {
+        title: "Domain Monitor",
+        url: "/docs/monitor/domain-monitor",
+      },
+      {
         title: "Custom Code Monitor",
         url: "/docs/monitor/custom-code-monitor",
       },
       {
         title: "Synthetic Monitor",
         url: "/docs/monitor/synthetic-monitor",
+      },
+      {
+        title: "Incoming Request Monitor",
+        url: "/docs/monitor/incoming-request-monitor",
       },
       {
         title: "Incoming Email Monitor",
@@ -197,6 +225,34 @@ const DocsNav: NavGroup[] = [
       {
         title: "SNMP Monitor",
         url: "/docs/monitor/snmp-monitor",
+      },
+      {
+        title: "Kubernetes Monitor",
+        url: "/docs/monitor/kubernetes-monitor",
+      },
+      {
+        title: "Logs Monitor",
+        url: "/docs/monitor/logs-monitor",
+      },
+      {
+        title: "Metrics Monitor",
+        url: "/docs/monitor/metrics-monitor",
+      },
+      {
+        title: "Traces Monitor",
+        url: "/docs/monitor/traces-monitor",
+      },
+      {
+        title: "Exceptions Monitor",
+        url: "/docs/monitor/exceptions-monitor",
+      },
+      {
+        title: "Profiles Monitor",
+        url: "/docs/monitor/profiles-monitor",
+      },
+      {
+        title: "Manual Monitor",
+        url: "/docs/monitor/manual-monitor",
       },
       {
         title: "JavaScript Expressions",
