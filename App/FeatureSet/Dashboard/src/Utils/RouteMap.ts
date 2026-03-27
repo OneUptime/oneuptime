@@ -2301,9 +2301,7 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/profiles/*`,
   ),
 
-  [PageMap.PROFILES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/profiles`,
-  ),
+  [PageMap.PROFILES]: new Route(`/dashboard/${RouteParams.ProjectID}/profiles`),
 
   [PageMap.PROFILE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/${

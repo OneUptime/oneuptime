@@ -1380,17 +1380,17 @@ ${incident.remediationNotes || "No remediation notes provided."}
               postmortemMetric.serviceType = ServiceType.Incident;
               postmortemMetric.name =
                 IncidentMetricType.PostmortemCompletionTime;
-              postmortemMetric.value =
-                OneUptimeDate.getDifferenceInSeconds(
-                  postmortemPostedAt,
-                  resolvedTimeline.startsAt,
-                );
+              postmortemMetric.value = OneUptimeDate.getDifferenceInSeconds(
+                postmortemPostedAt,
+                resolvedTimeline.startsAt,
+              );
               postmortemMetric.attributes = {
                 incidentId: incidentId.toString(),
                 projectId: projectId.toString(),
               };
-              postmortemMetric.attributeKeys =
-                TelemetryUtil.getAttributeKeys(postmortemMetric.attributes);
+              postmortemMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+                postmortemMetric.attributes,
+              );
               postmortemMetric.time = postmortemPostedAt;
               postmortemMetric.timeUnixNano = OneUptimeDate.toUnixNano(
                 postmortemMetric.time,
@@ -1572,15 +1572,12 @@ ${incidentSeverity.name}
               severityChangeMetric.attributes = {
                 incidentId: incidentId.toString(),
                 projectId: projectId.toString(),
-                newIncidentSeverityId:
-                  incidentSeverity._id?.toString() || "",
+                newIncidentSeverityId: incidentSeverity._id?.toString() || "",
                 newIncidentSeverityName:
                   incidentSeverity.name?.toString() || "",
               };
               severityChangeMetric.attributeKeys =
-                TelemetryUtil.getAttributeKeys(
-                  severityChangeMetric.attributes,
-                );
+                TelemetryUtil.getAttributeKeys(severityChangeMetric.attributes);
               severityChangeMetric.time = OneUptimeDate.getCurrentDate();
               severityChangeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
                 severityChangeMetric.time,
@@ -1595,8 +1592,7 @@ ${incidentSeverity.name}
               });
 
               const severityChangeMetricType: MetricType = new MetricType();
-              severityChangeMetricType.name =
-                IncidentMetricType.SeverityChange;
+              severityChangeMetricType.name = IncidentMetricType.SeverityChange;
               severityChangeMetricType.description =
                 "Count of incident severity changes";
               severityChangeMetricType.unit = "";

@@ -82,8 +82,7 @@ interface ParsedFrame {
 // --- Service ---
 
 export class ProfileAggregationService {
-  private static readonly TABLE_NAME: string =
-    AnalyticsTableName.ProfileSample;
+  private static readonly TABLE_NAME: string = AnalyticsTableName.ProfileSample;
   private static readonly DEFAULT_FUNCTION_LIST_LIMIT: number = 50;
   private static readonly MAX_SAMPLE_FETCH: number = 50000;
 
@@ -124,8 +123,10 @@ export class ProfileAggregationService {
     };
 
     for (const row of rows) {
-      const stacktrace: Array<string> = (row["stacktrace"] as Array<string>) || [];
-      const frameTypes: Array<string> = (row["frameTypes"] as Array<string>) || [];
+      const stacktrace: Array<string> =
+        (row["stacktrace"] as Array<string>) || [];
+      const frameTypes: Array<string> =
+        (row["frameTypes"] as Array<string>) || [];
       const value: number = Number(row["value"] || 0);
 
       if (stacktrace.length === 0) {
@@ -144,15 +145,13 @@ export class ProfileAggregationService {
 
         // Find or create child
         let childNode: ProfileFlamegraphNode | undefined =
-          currentNode.children.find(
-            (child: ProfileFlamegraphNode): boolean => {
-              return (
-                child.functionName === frame.functionName &&
-                child.fileName === frame.fileName &&
-                child.lineNumber === frame.lineNumber
-              );
-            },
-          );
+          currentNode.children.find((child: ProfileFlamegraphNode): boolean => {
+            return (
+              child.functionName === frame.functionName &&
+              child.fileName === frame.fileName &&
+              child.lineNumber === frame.lineNumber
+            );
+          });
 
         if (!childNode) {
           childNode = {
@@ -214,8 +213,10 @@ export class ProfileAggregationService {
     > = new Map();
 
     for (const row of rows) {
-      const stacktrace: Array<string> = (row["stacktrace"] as Array<string>) || [];
-      const frameTypes: Array<string> = (row["frameTypes"] as Array<string>) || [];
+      const stacktrace: Array<string> =
+        (row["stacktrace"] as Array<string>) || [];
+      const frameTypes: Array<string> =
+        (row["frameTypes"] as Array<string>) || [];
       const value: number = Number(row["value"] || 0);
 
       if (stacktrace.length === 0) {
@@ -232,7 +233,7 @@ export class ProfileAggregationService {
         const key: string = `${frame.functionName}@${frame.fileName}:${frame.lineNumber}`;
         const isLeaf: boolean = i === stacktrace.length - 1;
 
-        let entry = functionMap.get(key);
+        let entry: FunctionListItem | undefined = functionMap.get(key);
 
         if (!entry) {
           entry = {
@@ -264,7 +265,7 @@ export class ProfileAggregationService {
     const sortBy: string = request.sortBy || "selfValue";
     const items: Array<FunctionListItem> = Array.from(functionMap.values());
 
-    items.sort((a, b) => {
+    items.sort((a: FunctionListItem, b: FunctionListItem) => {
       if (sortBy === "totalValue") {
         return b.totalValue - a.totalValue;
       }
@@ -322,10 +323,15 @@ export class ProfileAggregationService {
     const comparisonValue: number = comparison?.totalValue || 0;
     const delta: number = comparisonValue - baselineValue;
     const deltaPercent: number =
-      baselineValue > 0 ? (delta / baselineValue) * 100 : comparisonValue > 0 ? 100 : 0;
+      baselineValue > 0
+        ? (delta / baselineValue) * 100
+        : comparisonValue > 0
+          ? 100
+          : 0;
 
     const node: DiffFlamegraphNode = {
-      functionName: baseline?.functionName || comparison?.functionName || "(root)",
+      functionName:
+        baseline?.functionName || comparison?.functionName || "(root)",
       fileName: baseline?.fileName || comparison?.fileName || "",
       lineNumber: baseline?.lineNumber || comparison?.lineNumber || 0,
       baselineValue,
@@ -370,16 +376,17 @@ export class ProfileAggregationService {
         comparisonChildren.get(key) || null;
 
       node.children.push(
-        ProfileAggregationService.mergeDiffTrees(baselineChild, comparisonChild),
+        ProfileAggregationService.mergeDiffTrees(
+          baselineChild,
+          comparisonChild,
+        ),
       );
     }
 
     // Sort children by comparison value descending
-    node.children.sort(
-      (a: DiffFlamegraphNode, b: DiffFlamegraphNode) => {
-        return b.comparisonValue - a.comparisonValue;
-      },
-    );
+    node.children.sort((a: DiffFlamegraphNode, b: DiffFlamegraphNode) => {
+      return b.comparisonValue - a.comparisonValue;
+    });
 
     return node;
   }

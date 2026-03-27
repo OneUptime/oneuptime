@@ -55,8 +55,8 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
       setIsLoading(true);
       setError("");
 
-      const result: ListResult<ProfileSample> =
-        await AnalyticsModelAPI.getList({
+      const result: ListResult<ProfileSample> = await AnalyticsModelAPI.getList(
+        {
           modelType: ProfileSample,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -74,7 +74,8 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
           sort: {
             value: SortOrder.Descending,
           },
-        });
+        },
+      );
 
       setSamples(result.data || []);
     } catch (err) {
@@ -113,8 +114,7 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
         const frameType: string =
           i < frameTypes.length ? frameTypes[i]! : "unknown";
 
-        let child: FlamegraphNode | undefined =
-          currentNode.children.get(frame);
+        let child: FlamegraphNode | undefined = currentNode.children.get(frame);
 
         if (!child) {
           const parsed: ParsedStackFrame = ProfileUtil.parseStackFrame(frame);
@@ -326,24 +326,18 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
 
       <div className="mb-3 flex flex-wrap items-center space-x-4 text-xs text-gray-600">
         <span className="font-medium">Frame Types:</span>
-        {[
-          "kernel",
-          "native",
-          "jvm",
-          "cpython",
-          "go",
-          "v8js",
-          "unknown",
-        ].map((type: string) => {
-          return (
-            <span key={type} className="flex items-center space-x-1">
-              <span
-                className={`inline-block w-3 h-3 rounded ${ProfileUtil.getFrameTypeColor(type)}`}
-              />
-              <span>{type}</span>
-            </span>
-          );
-        })}
+        {["kernel", "native", "jvm", "cpython", "go", "v8js", "unknown"].map(
+          (type: string) => {
+            return (
+              <span key={type} className="flex items-center space-x-1">
+                <span
+                  className={`inline-block w-3 h-3 rounded ${ProfileUtil.getFrameTypeColor(type)}`}
+                />
+                <span>{type}</span>
+              </span>
+            );
+          },
+        )}
       </div>
 
       <div
@@ -365,9 +359,7 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
           {tooltip.fileName && (
             <div className="text-gray-300">{tooltip.fileName}</div>
           )}
-          <div className="mt-1">
-            Self: {tooltip.selfValue.toLocaleString()}
-          </div>
+          <div className="mt-1">Self: {tooltip.selfValue.toLocaleString()}</div>
           <div>Total: {tooltip.totalValue.toLocaleString()}</div>
         </div>
       )}

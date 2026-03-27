@@ -124,16 +124,15 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           (response.data["name"] as string) ||
           "Untitled Dashboard",
       );
-      setPageDescription(
-        (response.data["pageDescription"] as string) || "",
-      );
+      setPageDescription((response.data["pageDescription"] as string) || "");
 
       // Extract logo data
       const logoData: JSONObject | null =
         (response.data["logoFile"] as JSONObject) || null;
       if (logoData && logoData["file"]) {
         const fileData: string = logoData["file"] as string;
-        const fileType: string = (logoData["fileType"] as string) || "image/png";
+        const fileType: string =
+          (logoData["fileType"] as string) || "image/png";
         setLogoUrl(`data:${fileType};base64,${fileData}`);
       }
 
@@ -361,7 +360,11 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Dashboard Canvas */}
-      <div ref={dashboardCanvasRef} className="mt-3" style={{ background: "#ffffff" }}>
+      <div
+        ref={dashboardCanvasRef}
+        className="mt-3"
+        style={{ background: "#ffffff" }}
+      >
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
           onDashboardViewConfigChange={(_config: DashboardViewConfig) => {

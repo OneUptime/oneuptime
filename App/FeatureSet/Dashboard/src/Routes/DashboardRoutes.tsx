@@ -86,9 +86,7 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           element={
             <DashboardViewBranding
               {...props}
-              pageRoute={
-                RouteMap[PageMap.DASHBOARD_VIEW_BRANDING] as Route
-              }
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_BRANDING] as Route}
             />
           }
         />

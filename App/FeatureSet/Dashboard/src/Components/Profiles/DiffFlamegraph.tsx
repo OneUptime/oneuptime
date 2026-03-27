@@ -18,7 +18,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 
 export interface DiffFlamegraphProps {
-  projectId: ObjectID;
   baselineStartTime: Date;
   baselineEndTime: Date;
   comparisonStartTime: Date;
@@ -62,45 +61,45 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   const [zoomStack, setZoomStack] = useState<Array<DiffFlamegraphNode>>([]);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
-  const loadDiffFlamegraph: () => Promise<void> =
-    async (): Promise<void> => {
-      try {
-        setIsLoading(true);
-        setError("");
+  const loadDiffFlamegraph: () => Promise<void> = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/profiles/diff-flamegraph",
-            ),
-            data: {
-              baselineStartTime: props.baselineStartTime.toISOString(),
-              baselineEndTime: props.baselineEndTime.toISOString(),
-              comparisonStartTime: props.comparisonStartTime.toISOString(),
-              comparisonEndTime: props.comparisonEndTime.toISOString(),
-              serviceIds: props.serviceIds?.map((id: ObjectID) => {
-                return id.toString();
-              }),
-              profileType: props.profileType,
-            },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/profiles/diff-flamegraph",
+          ),
+          data: {
+            baselineStartTime: props.baselineStartTime.toISOString(),
+            baselineEndTime: props.baselineEndTime.toISOString(),
+            comparisonStartTime: props.comparisonStartTime.toISOString(),
+            comparisonEndTime: props.comparisonEndTime.toISOString(),
+            serviceIds: props.serviceIds?.map((id: ObjectID) => {
+              return id.toString();
+            }),
+            profileType: props.profileType,
+          },
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        });
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const data: DiffFlamegraphNode =
-          response.data["diffFlamegraph"] as unknown as DiffFlamegraphNode;
-        setRootNode(data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
       }
-    };
+
+      const data: DiffFlamegraphNode = response.data[
+        "diffFlamegraph"
+      ] as unknown as DiffFlamegraphNode;
+      setRootNode(data);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     void loadDiffFlamegraph();
@@ -179,7 +178,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
     );
   }
 
-  if (!activeRoot || (activeRoot.baselineValue === 0 && activeRoot.comparisonValue === 0)) {
+  if (
+    !activeRoot ||
+    (activeRoot.baselineValue === 0 && activeRoot.comparisonValue === 0)
+  ) {
     return (
       <div className="p-8 text-center text-gray-500">
         No profile data found in the selected time ranges.
@@ -269,7 +271,13 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
           const currentOffset: number = offsetFraction + childOffset;
           childOffset += childWidth;
 
-          return renderNode(child, maxValue, depth + 1, currentOffset, childWidth);
+          return renderNode(
+            child,
+            maxValue,
+            depth + 1,
+            currentOffset,
+            childWidth,
+          );
         })}
       </React.Fragment>
     );

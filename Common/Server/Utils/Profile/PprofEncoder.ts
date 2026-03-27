@@ -86,10 +86,10 @@ export default class PprofEncoder {
     const locations: Array<PprofLocation> = [];
     const locationIndex: Map<string, number> = new Map();
 
-    const getOrCreateFunction: (
+    const getOrCreateFunction: (name: string, fileName: string) => number = (
       name: string,
       fileName: string,
-    ) => number = (name: string, fileName: string): number => {
+    ): number => {
       const key: string = `${name}@${fileName}`;
       const existing: number | undefined = functionIndex.get(key);
       if (existing !== undefined) {

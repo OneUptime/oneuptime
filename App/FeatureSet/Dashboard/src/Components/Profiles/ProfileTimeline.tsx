@@ -88,12 +88,7 @@ const ProfileTimeline: FunctionComponent<ProfileTimelineProps> = (
 
   useEffect(() => {
     void loadProfiles();
-  }, [
-    props.startTime,
-    props.endTime,
-    props.serviceIds,
-    props.profileType,
-  ]);
+  }, [props.startTime, props.endTime, props.serviceIds, props.profileType]);
 
   const buckets: Array<TimelineBucket> = useMemo(() => {
     const start: number = props.startTime.getTime();

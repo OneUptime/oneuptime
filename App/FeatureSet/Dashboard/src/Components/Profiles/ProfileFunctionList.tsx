@@ -51,8 +51,8 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
       setIsLoading(true);
       setError("");
 
-      const result: ListResult<ProfileSample> =
-        await AnalyticsModelAPI.getList({
+      const result: ListResult<ProfileSample> = await AnalyticsModelAPI.getList(
+        {
           modelType: ProfileSample,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -70,7 +70,8 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
           sort: {
             value: SortOrder.Descending,
           },
-        });
+        },
+      );
 
       setSamples(result.data || []);
     } catch (err) {

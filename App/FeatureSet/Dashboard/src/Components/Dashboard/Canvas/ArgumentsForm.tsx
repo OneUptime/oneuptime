@@ -63,11 +63,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   const [multiQueryConfigs, setMultiQueryConfigs] = useState<
     Array<MetricQueryConfigData>
   >(
-    (
-      ((props.component?.arguments as JSONObject)?.[
-        "metricQueryConfigs"
-      ] as unknown as Array<MetricQueryConfigData>) || []
-    ),
+    ((props.component?.arguments as JSONObject)?.[
+      "metricQueryConfigs"
+    ] as unknown as Array<MetricQueryConfigData>) || [],
   );
 
   useEffect(() => {
@@ -89,55 +87,55 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     DashboardComponentsUtil.getComponentSettingsArguments(componentType);
 
   // Group arguments by section
-  const groupArgumentsBySections: () => Array<SectionGroup> = (): Array<SectionGroup> => {
-    const sectionMap: Map<string, SectionGroup> = new Map();
-    const unsectionedArgs: Array<ComponentArgument<DashboardBaseComponent>> =
-      [];
+  const groupArgumentsBySections: () => Array<SectionGroup> =
+    (): Array<SectionGroup> => {
+      const sectionMap: Map<string, SectionGroup> = new Map();
+      const unsectionedArgs: Array<ComponentArgument<DashboardBaseComponent>> =
+        [];
 
-    for (const arg of componentArguments) {
-      // Skip MetricsQueryConfigs - we render it as a custom multi-query UI
-      if (arg.type === ComponentInputType.MetricsQueryConfigs) {
-        continue;
-      }
-
-      if (arg.section) {
-        const key: string = arg.section.name;
-        if (!sectionMap.has(key)) {
-          sectionMap.set(key, {
-            section: arg.section,
-            args: [],
-          });
+      for (const arg of componentArguments) {
+        // Skip MetricsQueryConfigs - we render it as a custom multi-query UI
+        if (arg.type === ComponentInputType.MetricsQueryConfigs) {
+          continue;
         }
-        sectionMap.get(key)!.args.push(arg);
-      } else {
-        unsectionedArgs.push(arg);
+
+        if (arg.section) {
+          const key: string = arg.section.name;
+          if (!sectionMap.has(key)) {
+            sectionMap.set(key, {
+              section: arg.section,
+              args: [],
+            });
+          }
+          sectionMap.get(key)!.args.push(arg);
+        } else {
+          unsectionedArgs.push(arg);
+        }
       }
-    }
 
-    const groups: Array<SectionGroup> = [];
+      const groups: Array<SectionGroup> = [];
 
-    // Add unsectioned args as a "General" section if they exist
-    if (unsectionedArgs.length > 0) {
-      groups.push({
-        section: {
-          name: "General",
-          order: 0,
-        },
-        args: unsectionedArgs,
+      // Add unsectioned args as a "General" section if they exist
+      if (unsectionedArgs.length > 0) {
+        groups.push({
+          section: {
+            name: "General",
+            order: 0,
+          },
+          args: unsectionedArgs,
+        });
+      }
+
+      // Sort sections by order
+      const sortedSections: Array<SectionGroup> = Array.from(
+        sectionMap.values(),
+      ).sort((a: SectionGroup, b: SectionGroup) => {
+        return a.section.order - b.section.order;
       });
-    }
+      groups.push(...sortedSections);
 
-    // Sort sections by order
-    const sortedSections: Array<SectionGroup> = Array.from(
-      sectionMap.values(),
-    ).sort(
-      (a: SectionGroup, b: SectionGroup) =>
-        a.section.order - b.section.order,
-    );
-    groups.push(...sortedSections);
-
-    return groups;
-  };
+      return groups;
+    };
 
   type GetMetricsQueryConfigFormFunction = (
     arg: ComponentArgument<DashboardBaseComponent>,
@@ -192,9 +190,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return undefined;
   };
 
-  const renderSectionForm: (
+  const renderSectionForm: (sectionGroup: SectionGroup) => ReactElement = (
     sectionGroup: SectionGroup,
-  ) => ReactElement = (sectionGroup: SectionGroup): ReactElement => {
+  ): ReactElement => {
     const sectionKey: string = sectionGroup.section.name;
 
     return (
@@ -247,14 +245,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
   // Check if this component has a MetricsQueryConfigs argument
   const hasMultiQueryArg: boolean = componentArguments.some(
-    (arg: ComponentArgument<DashboardBaseComponent>) =>
-      arg.type === ComponentInputType.MetricsQueryConfigs,
+    (arg: ComponentArgument<DashboardBaseComponent>) => {
+      return arg.type === ComponentInputType.MetricsQueryConfigs;
+    },
   );
 
   const multiQueryArg: ComponentArgument<DashboardBaseComponent> | undefined =
     componentArguments.find(
-      (arg: ComponentArgument<DashboardBaseComponent>) =>
-        arg.type === ComponentInputType.MetricsQueryConfigs,
+      (arg: ComponentArgument<DashboardBaseComponent>) => {
+        return arg.type === ComponentInputType.MetricsQueryConfigs;
+      },
     );
 
   const renderMultiQuerySection: () => ReactElement | null =
@@ -357,41 +357,36 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   return (
     <div className="mb-3 mt-1">
       {componentArguments && componentArguments.length === 0 && (
-        <ErrorMessage
-          message={"This component does not take any arguments."}
-        />
+        <ErrorMessage message={"This component does not take any arguments."} />
       )}
-      {sectionGroups.map(
-        (sectionGroup: SectionGroup, index: number) => {
-          const isFirstSection: boolean = index === 0;
-          const shouldCollapse: boolean =
-            !isFirstSection &&
-            (sectionGroup.section.defaultCollapsed ?? false);
+      {sectionGroups.map((sectionGroup: SectionGroup, index: number) => {
+        const isFirstSection: boolean = index === 0;
+        const shouldCollapse: boolean =
+          !isFirstSection && (sectionGroup.section.defaultCollapsed ?? false);
 
-          return (
-            <div key={sectionGroup.section.name} className="mt-3">
-              <CollapsibleSection
-                title={sectionGroup.section.name}
-                description={sectionGroup.section.description}
-                variant="bordered"
-                defaultCollapsed={shouldCollapse}
-              >
-                <div>
-                  {renderSectionForm(sectionGroup)}
-                  {/* Render multi-query UI inside the Data Source section */}
-                  {sectionGroup.section.name === "Data Source" &&
-                    renderMultiQuerySection()}
-                </div>
-              </CollapsibleSection>
-            </div>
-          );
-        },
-      )}
+        return (
+          <div key={sectionGroup.section.name} className="mt-3">
+            <CollapsibleSection
+              title={sectionGroup.section.name}
+              description={sectionGroup.section.description}
+              variant="bordered"
+              defaultCollapsed={shouldCollapse}
+            >
+              <div>
+                {renderSectionForm(sectionGroup)}
+                {/* Render multi-query UI inside the Data Source section */}
+                {sectionGroup.section.name === "Data Source" &&
+                  renderMultiQuerySection()}
+              </div>
+            </CollapsibleSection>
+          </div>
+        );
+      })}
 
       {/* If no Data Source section exists, render multi-query at end */}
-      {!sectionGroups.some(
-        (g: SectionGroup) => g.section.name === "Data Source",
-      ) && renderMultiQuerySection()}
+      {!sectionGroups.some((g: SectionGroup) => {
+        return g.section.name === "Data Source";
+      }) && renderMultiQuerySection()}
     </div>
   );
 };

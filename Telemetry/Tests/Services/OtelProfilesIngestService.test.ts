@@ -354,8 +354,16 @@ describe("OtelProfilesIngestService", () => {
   describe("buildProfileRow", () => {
     test("builds profile row with all fields", () => {
       const row: JSONObject = service["buildProfileRow"]({
-        projectId: { toString: () => "proj-123" },
-        serviceId: { toString: () => "svc-456" },
+        projectId: {
+          toString: () => {
+            return "proj-123";
+          },
+        },
+        serviceId: {
+          toString: () => {
+            return "svc-456";
+          },
+        },
         profileId: "profile-789",
         traceId: "trace-abc",
         spanId: "span-def",
@@ -401,8 +409,16 @@ describe("OtelProfilesIngestService", () => {
   describe("buildSampleRow", () => {
     test("builds sample row with all fields", () => {
       const row: JSONObject = service["buildSampleRow"]({
-        projectId: { toString: () => "proj-123" },
-        serviceId: { toString: () => "svc-456" },
+        projectId: {
+          toString: () => {
+            return "proj-123";
+          },
+        },
+        serviceId: {
+          toString: () => {
+            return "svc-456";
+          },
+        },
         profileId: "profile-789",
         traceId: "trace-abc",
         spanId: "span-def",

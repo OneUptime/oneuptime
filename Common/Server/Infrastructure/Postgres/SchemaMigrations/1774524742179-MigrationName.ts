@@ -12,13 +12,9 @@ export class MigrationName1774524742179 implements MigrationInterface {
       `ALTER TABLE "Dashboard" ADD "pageDescription" text`,
     );
 
-    await queryRunner.query(
-      `ALTER TABLE "Dashboard" ADD "logoFileId" uuid`,
-    );
+    await queryRunner.query(`ALTER TABLE "Dashboard" ADD "logoFileId" uuid`);
 
-    await queryRunner.query(
-      `ALTER TABLE "Dashboard" ADD "faviconFileId" uuid`,
-    );
+    await queryRunner.query(`ALTER TABLE "Dashboard" ADD "faviconFileId" uuid`);
 
     // Add foreign key constraints for file relations
     await queryRunner.query(
@@ -43,16 +39,12 @@ export class MigrationName1774524742179 implements MigrationInterface {
       `ALTER TABLE "Dashboard" DROP COLUMN "faviconFileId"`,
     );
 
-    await queryRunner.query(
-      `ALTER TABLE "Dashboard" DROP COLUMN "logoFileId"`,
-    );
+    await queryRunner.query(`ALTER TABLE "Dashboard" DROP COLUMN "logoFileId"`);
 
     await queryRunner.query(
       `ALTER TABLE "Dashboard" DROP COLUMN "pageDescription"`,
     );
 
-    await queryRunner.query(
-      `ALTER TABLE "Dashboard" DROP COLUMN "pageTitle"`,
-    );
+    await queryRunner.query(`ALTER TABLE "Dashboard" DROP COLUMN "pageTitle"`);
   }
 }

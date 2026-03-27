@@ -7,7 +7,6 @@ import ProfileFlamegraph from "../../../Components/Profiles/ProfileFlamegraph";
 import ProfileFunctionList from "../../../Components/Profiles/ProfileFunctionList";
 import ProfileTypeSelector from "../../../Components/Profiles/ProfileTypeSelector";
 import DiffFlamegraph from "../../../Components/Profiles/DiffFlamegraph";
-import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 
 const ProfileViewPage: FunctionComponent<
@@ -50,7 +49,6 @@ const ProfileViewPage: FunctionComponent<
             earlier period, comparison is the more recent period.
           </p>
           <DiffFlamegraph
-            projectId={ProjectUtil.getCurrentProjectId()!}
             baselineStartTime={twoHoursAgo}
             baselineEndTime={oneHourAgo}
             comparisonStartTime={oneHourAgo}

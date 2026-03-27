@@ -75,14 +75,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   const [probes, setProbes] = React.useState<Array<Probe>>([]);
 
   // IDs needed for Kubernetes template criteria
-  const [onlineMonitorStatusId, setOnlineMonitorStatusId] =
-    React.useState<ObjectID | undefined>(undefined);
-  const [offlineMonitorStatusId, setOfflineMonitorStatusId] =
-    React.useState<ObjectID | undefined>(undefined);
+  const [onlineMonitorStatusId, setOnlineMonitorStatusId] = React.useState<
+    ObjectID | undefined
+  >(undefined);
+  const [offlineMonitorStatusId, setOfflineMonitorStatusId] = React.useState<
+    ObjectID | undefined
+  >(undefined);
   const [defaultIncidentSeverityId, setDefaultIncidentSeverityId] =
     React.useState<ObjectID | undefined>(undefined);
-  const [defaultAlertSeverityId, setDefaultAlertSeverityId] =
-    React.useState<ObjectID | undefined>(undefined);
+  const [defaultAlertSeverityId, setDefaultAlertSeverityId] = React.useState<
+    ObjectID | undefined
+  >(undefined);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();
@@ -191,8 +194,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         );
 
         // Use the first (highest priority) severity as default for templates
-        if (incidentSeverityList.data.length > 0 && incidentSeverityList.data[0]?._id) {
-          setDefaultIncidentSeverityId(new ObjectID(incidentSeverityList.data[0]._id));
+        if (
+          incidentSeverityList.data.length > 0 &&
+          incidentSeverityList.data[0]?._id
+        ) {
+          setDefaultIncidentSeverityId(
+            new ObjectID(incidentSeverityList.data[0]._id),
+          );
         }
       }
 
@@ -207,8 +215,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         );
 
         // Use the first (highest priority) severity as default for templates
-        if (alertSeverityList.data.length > 0 && alertSeverityList.data[0]?._id) {
-          setDefaultAlertSeverityId(new ObjectID(alertSeverityList.data[0]._id));
+        if (
+          alertSeverityList.data.length > 0 &&
+          alertSeverityList.data[0]?._id
+        ) {
+          setDefaultAlertSeverityId(
+            new ObjectID(alertSeverityList.data[0]._id),
+          );
         }
       }
 

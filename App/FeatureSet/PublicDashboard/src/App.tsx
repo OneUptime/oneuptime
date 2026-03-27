@@ -145,9 +145,7 @@ const App: () => JSX.Element = () => {
         const enableMasterPassword: boolean = Boolean(
           response.data["enableMasterPassword"],
         );
-        const isPublic: boolean = Boolean(
-          response.data["isPublicDashboard"],
-        );
+        const isPublic: boolean = Boolean(response.data["isPublicDashboard"]);
 
         setIsPublicDashboard(isPublic);
 

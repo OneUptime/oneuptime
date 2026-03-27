@@ -112,7 +112,9 @@ export default class DashboardAPI extends BaseAPI<
             _id: dashboard._id?.toString() || "",
             title: dashboard.pageTitle || dashboard.name || "Dashboard",
             description:
-              dashboard.pageDescription || dashboard.description || "View dashboard metrics and insights.",
+              dashboard.pageDescription ||
+              dashboard.description ||
+              "View dashboard metrics and insights.",
           });
         } catch (err) {
           next(err);
@@ -212,8 +214,12 @@ export default class DashboardAPI extends BaseAPI<
             enableMasterPassword: dashboard.enableMasterPassword || false,
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
-            logoFile: DashboardAPI.getFileAsBase64JSONObject(dashboard.logoFile),
-            faviconFile: DashboardAPI.getFileAsBase64JSONObject(dashboard.faviconFile),
+            logoFile: DashboardAPI.getFileAsBase64JSONObject(
+              dashboard.logoFile,
+            ),
+            faviconFile: DashboardAPI.getFileAsBase64JSONObject(
+              dashboard.faviconFile,
+            ),
           });
         } catch (err) {
           next(err);
@@ -279,7 +285,9 @@ export default class DashboardAPI extends BaseAPI<
             description: dashboard.description || "",
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
-            logoFile: DashboardAPI.getFileAsBase64JSONObject(dashboard.logoFile),
+            logoFile: DashboardAPI.getFileAsBase64JSONObject(
+              dashboard.logoFile,
+            ),
             dashboardViewConfig: dashboard.dashboardViewConfig
               ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
               : null,

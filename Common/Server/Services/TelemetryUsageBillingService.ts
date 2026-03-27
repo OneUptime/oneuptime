@@ -271,8 +271,7 @@ export class Service extends DatabaseService<Model> {
             });
 
           const totalProfileCount: number = profileCount.toNumber();
-          const totalProfileSampleCount: number =
-            profileSampleCount.toNumber();
+          const totalProfileSampleCount: number = profileSampleCount.toNumber();
 
           if (totalProfileCount <= 0 && totalProfileSampleCount <= 0) {
             continue;

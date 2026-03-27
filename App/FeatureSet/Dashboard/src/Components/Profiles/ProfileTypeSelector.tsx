@@ -34,15 +34,13 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
           props.onChange(value === "" ? undefined : value);
         }}
       >
-        {profileTypeOptions.map(
-          (option: ProfileTypeOption, index: number) => {
-            return (
-              <option key={index} value={option.value || ""}>
-                {option.label}
-              </option>
-            );
-          },
-        )}
+        {profileTypeOptions.map((option: ProfileTypeOption, index: number) => {
+          return (
+            <option key={index} value={option.value || ""}>
+              {option.label}
+            </option>
+          );
+        })}
       </select>
     </div>
   );

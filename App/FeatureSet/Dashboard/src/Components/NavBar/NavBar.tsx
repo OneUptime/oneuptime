@@ -127,9 +127,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     {
       title: "Profiles",
       description: "CPU and memory profiling.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.PROFILES] as Route,
-      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILES] as Route),
       activeRoute: RouteMap[PageMap.PROFILES],
       icon: IconProp.Fire,
       iconColor: "red",

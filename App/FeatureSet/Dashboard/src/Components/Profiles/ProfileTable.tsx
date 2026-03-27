@@ -212,21 +212,16 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           query={query}
           showViewIdButton={true}
           noItemsMessage={
-            props.noItemsMessage
-              ? props.noItemsMessage
-              : "No profiles found."
+            props.noItemsMessage ? props.noItemsMessage : "No profiles found."
           }
           showRefreshButton={true}
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
           onViewPage={(profile: Profile) => {
             return Promise.resolve(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PROFILE_VIEW]!,
-                {
-                  modelId: profile.profileId!,
-                },
-              ),
+              RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILE_VIEW]!, {
+                modelId: profile.profileId!,
+              }),
             );
           }}
           filters={[
@@ -302,8 +297,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 const telemetryService: Service | undefined =
                   telemetryServices.find((service: Service) => {
                     return (
-                      service.id?.toString() ===
-                      profile.serviceId?.toString()
+                      service.id?.toString() === profile.serviceId?.toString()
                     );
                   });
 

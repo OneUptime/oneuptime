@@ -5,7 +5,12 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -16,8 +21,10 @@ const StatusPageDelete: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showPasswordModal, setShowPasswordModal] = useState<boolean>(false);
-  const [refreshMasterPassword, setRefreshMasterPassword] = useState<boolean>(false);
-  const [isMasterPasswordSet, setIsMasterPasswordSet] = useState<boolean>(false);
+  const [refreshMasterPassword, setRefreshMasterPassword] =
+    useState<boolean>(false);
+  const [isMasterPasswordSet, setIsMasterPasswordSet] =
+    useState<boolean>(false);
 
   return (
     <Fragment>
@@ -65,7 +72,9 @@ const StatusPageDelete: FunctionComponent<
             "When enabled, visitors must enter the master password before viewing a private status page. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled. This value is stored as a secure hash and cannot be retrieved.",
           buttons: [
             {
-              title: isMasterPasswordSet ? "Update Master Password" : "Set Master Password",
+              title: isMasterPasswordSet
+                ? "Update Master Password"
+                : "Set Master Password",
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
                 setShowPasswordModal(true);
@@ -107,9 +116,7 @@ const StatusPageDelete: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (): ReactElement => {
                 return (
-                  <p>
-                    {isMasterPasswordSet ? "Password is set." : "Not set."}
-                  </p>
+                  <p>{isMasterPasswordSet ? "Password is set." : "Not set."}</p>
                 );
               },
             },
@@ -123,7 +130,11 @@ const StatusPageDelete: FunctionComponent<
 
       {showPasswordModal && (
         <ModelFormModal<StatusPage>
-          title={isMasterPasswordSet ? "Update Master Password" : "Set Master Password"}
+          title={
+            isMasterPasswordSet
+              ? "Update Master Password"
+              : "Set Master Password"
+          }
           onClose={() => {
             setShowPasswordModal(false);
           }}

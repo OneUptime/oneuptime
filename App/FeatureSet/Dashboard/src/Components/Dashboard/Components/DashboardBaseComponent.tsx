@@ -57,10 +57,12 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   onClick: () => void;
 }
 
-// ────────────────────────────────────────────────────────────
-// All mutable drag/resize state lives here, outside React.
-// Nothing in this struct triggers a re-render.
-// ────────────────────────────────────────────────────────────
+/*
+ * ────────────────────────────────────────────────────────────
+ * All mutable drag/resize state lives here, outside React.
+ * Nothing in this struct triggers a re-render.
+ * ────────────────────────────────────────────────────────────
+ */
 interface DragSession {
   mode: "move" | "resize-w" | "resize-h" | "resize-corner";
   startMouseX: number;
@@ -82,10 +84,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // ── Derived data ──────────────────────────────────────────
   const component: DashboardBaseComponent =
-    props.dashboardViewConfig.components.find(
-      (c: DashboardBaseComponent) =>
-        c.componentId.toString() === props.componentId.toString(),
-    ) as DashboardBaseComponent;
+    props.dashboardViewConfig.components.find((c: DashboardBaseComponent) => {
+      return c.componentId.toString() === props.componentId.toString();
+    }) as DashboardBaseComponent;
 
   const widthOfComponent: number = component.widthInDashboardUnits;
   const heightOfComponent: number = component.heightInDashboardUnits;
@@ -95,8 +96,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // ── Refs ──────────────────────────────────────────────────
-  const elRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
+  const elRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const tooltipRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const sessionRef: React.MutableRefObject<DragSession | null> =
@@ -159,8 +159,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       const maxLeft: number =
         DefaultDashboardSize.widthInDashboardUnits - c.widthInDashboardUnits;
       const maxTop: number =
-        p.dashboardViewConfig.heightInDashboardUnits -
-        c.heightInDashboardUnits;
+        p.dashboardViewConfig.heightInDashboardUnits - c.heightInDashboardUnits;
       newLeft = Math.max(0, Math.min(newLeft, maxLeft));
       newTop = Math.max(0, Math.min(newTop, maxTop));
 
@@ -181,10 +180,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           wPx,
         );
         wUnits = Math.max(c.minWidthInDashboardUnits, wUnits);
-        wUnits = Math.min(
-          DefaultDashboardSize.widthInDashboardUnits,
-          wUnits,
-        );
+        wUnits = Math.min(DefaultDashboardSize.widthInDashboardUnits, wUnits);
         s.liveWidth = wUnits;
 
         const newWidthPx: number = uW * wUnits + g * (wUnits - 1);
@@ -192,10 +188,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       }
 
       if (s.mode === "resize-h" || s.mode === "resize-corner") {
-        const hPx: number = Math.max(
-          uH,
-          e.pageY - (window.scrollY + rect.top),
-        );
+        const hPx: number = Math.max(uH, e.pageY - (window.scrollY + rect.top));
         let hUnits: number = GetDashboardComponentHeightInDashboardUnits(
           p.totalCurrentDashboardWidthInPx,
           hPx,
@@ -294,10 +287,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   }, []);
 
   // ── Start a drag / resize session ─────────────────────────
-  function startSession(
-    e: React.MouseEvent,
-    mode: DragSession["mode"],
-  ): void {
+  function startSession(e: React.MouseEvent, mode: DragSession["mode"]): void {
     e.preventDefault();
     e.stopPropagation();
 

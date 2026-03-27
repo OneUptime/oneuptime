@@ -42,9 +42,7 @@ export class MonitorStepProfileMonitorUtil {
       monitorStepProfileMonitor.profileTypes &&
       monitorStepProfileMonitor.profileTypes.length > 0
     ) {
-      query.profileType = new Includes(
-        monitorStepProfileMonitor.profileTypes,
-      );
+      query.profileType = new Includes(monitorStepProfileMonitor.profileTypes);
     }
 
     if (monitorStepProfileMonitor.profileType) {

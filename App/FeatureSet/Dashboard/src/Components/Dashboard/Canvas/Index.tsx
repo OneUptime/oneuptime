@@ -207,21 +207,17 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       props.selectedComponentId?.toString() === componentId.toString();
 
     const component: DashboardBaseComponent | undefined =
-      props.dashboardViewConfig.components.find(
-        (c: DashboardBaseComponent) => {
-          return c.componentId.toString() === componentId.toString();
-        },
-      );
+      props.dashboardViewConfig.components.find((c: DashboardBaseComponent) => {
+        return c.componentId.toString() === componentId.toString();
+      });
 
     const w: number = component?.widthInDashboardUnits || 0;
     const h: number = component?.heightInDashboardUnits || 0;
 
     // Compute pixel dimensions for child component rendering (charts, etc.)
-    const widthOfComponentInPx: number =
-      unitSize * w + gap * (w - 1);
+    const widthOfComponentInPx: number = unitSize * w + gap * (w - 1);
 
-    const heightOfComponentInPx: number =
-      unitSize * h + gap * (h - 1);
+    const heightOfComponentInPx: number = unitSize * h + gap * (h - 1);
 
     return (
       <DashboardBaseComponentElement
@@ -234,9 +230,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         dashboardComponentHeightInPx={heightOfComponentInPx}
         metricTypes={props.metrics.metricTypes}
         dashboardStartAndEndDate={props.dashboardStartAndEndDate}
-        dashboardCanvasWidthInPx={
-          dashboardCanvasRef.current?.clientWidth || 0
-        }
+        dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}
         dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}
         dashboardCanvasLeftInPx={dashboardCanvasRef.current?.clientLeft || 0}
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}

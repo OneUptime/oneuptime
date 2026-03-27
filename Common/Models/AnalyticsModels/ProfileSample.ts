@@ -221,8 +221,8 @@ export default class ProfileSample extends AnalyticsBaseModel {
       },
     });
 
-    const stacktraceHashColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
+    const stacktraceHashColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
         key: "stacktraceHash",
         title: "Stacktrace Hash",
         description: "Hash of stacktrace for grouping",
@@ -250,7 +250,8 @@ export default class ProfileSample extends AnalyticsBaseModel {
           ],
           update: [],
         },
-      });
+      },
+    );
 
     const frameTypesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "frameTypes",

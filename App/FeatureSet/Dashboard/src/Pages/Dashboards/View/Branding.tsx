@@ -72,8 +72,7 @@ const DashboardBranding: FunctionComponent<
         name="Dashboard > Branding > Logo"
         cardProps={{
           title: "Logo",
-          description:
-            "Logo will be displayed on the public dashboard header.",
+          description: "Logo will be displayed on the public dashboard header.",
         }}
         isEditable={true}
         editButtonText={"Edit Logo"}

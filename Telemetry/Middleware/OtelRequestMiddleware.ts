@@ -33,8 +33,7 @@ const ProfilesProto: protobuf.Root = protobuf.loadSync(
 const LogsData: protobuf.Type = LogsProto.lookupType("LogsData");
 const TracesData: protobuf.Type = TracesProto.lookupType("TracesData");
 const MetricsData: protobuf.Type = MetricsProto.lookupType("MetricsData");
-const ProfilesData: protobuf.Type =
-  ProfilesProto.lookupType("ProfilesData");
+const ProfilesData: protobuf.Type = ProfilesProto.lookupType("ProfilesData");
 
 export default class OpenTelemetryRequestMiddleware {
   @CaptureSpan()

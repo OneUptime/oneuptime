@@ -1,5 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonSize, ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -64,8 +67,9 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
   const startTimeRef: React.MutableRefObject<number> = useRef<number>(
     Date.now(),
   );
-  const animationFrameRef: React.MutableRefObject<number | null> =
-    useRef<number | null>(null);
+  const animationFrameRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
 
   const animate: () => void = useCallback(() => {
     const elapsed: number = Date.now() - startTimeRef.current;
@@ -110,7 +114,10 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
 
   return (
     <div className="flex items-center gap-1.5">
-      <div className="relative" style={{ width: props.size, height: props.size }}>
+      <div
+        className="relative"
+        style={{ width: props.size, height: props.size }}
+      >
         <svg
           width={props.size}
           height={props.size}
@@ -139,13 +146,13 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
             className="transition-none"
           />
         </svg>
-        <div
-          className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600"
-        >
+        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600">
           {remainingSec}
         </div>
       </div>
-      <span className="text-[11px] text-gray-500 font-medium">{props.label}</span>
+      <span className="text-[11px] text-gray-500 font-medium">
+        {props.label}
+      </span>
     </div>
   );
 };
@@ -230,9 +237,7 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
                   type="button"
                   key={interval}
                   className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 ${
-                    isSelected
-                      ? "text-indigo-600 font-medium"
-                      : "text-gray-700"
+                    isSelected ? "text-indigo-600 font-medium" : "text-gray-700"
                   }`}
                   onClick={() => {
                     props.onAutoRefreshIntervalChange(interval);

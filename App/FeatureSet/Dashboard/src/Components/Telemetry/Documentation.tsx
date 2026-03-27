@@ -23,7 +23,12 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Protocol from "Common/Types/API/Protocol";
 
-export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions" | "profiles";
+export type TelemetryType =
+  | "logs"
+  | "metrics"
+  | "traces"
+  | "exceptions"
+  | "profiles";
 
 export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
@@ -1081,8 +1086,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
-  const [selectedMethod, setSelectedMethod] =
-    useState<IntegrationMethod>(props.telemetryType === "profiles" ? "alloy" : "opentelemetry");
+  const [selectedMethod, setSelectedMethod] = useState<IntegrationMethod>(
+    props.telemetryType === "profiles" ? "alloy" : "opentelemetry",
+  );
 
   // Token management state
   const [ingestionKeys, setIngestionKeys] = useState<
@@ -1555,7 +1561,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               )}
               language={configSnippet.language}
             />,
-            isProfiles ? true : false,
+            Boolean(isProfiles),
           )}
 
           {!isProfiles &&
@@ -1733,10 +1739,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             4,
             "Run Alloy",
             "Or run Alloy directly on the host.",
-            <CodeBlock
-              code="alloy run alloy-config.alloy"
-              language="bash"
-            />,
+            <CodeBlock code="alloy run alloy-config.alloy" language="bash" />,
             true,
           )}
         </div>

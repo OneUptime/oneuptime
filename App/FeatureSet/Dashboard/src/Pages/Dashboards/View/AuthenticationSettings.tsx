@@ -5,7 +5,12 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import DashboardPreviewLink from "./DashboardPreviewLink";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -18,8 +23,10 @@ const DashboardAuthenticationSettings: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
   const [showPasswordModal, setShowPasswordModal] = useState<boolean>(false);
-  const [refreshMasterPassword, setRefreshMasterPassword] = useState<boolean>(false);
-  const [isMasterPasswordSet, setIsMasterPasswordSet] = useState<boolean>(false);
+  const [refreshMasterPassword, setRefreshMasterPassword] =
+    useState<boolean>(false);
+  const [isMasterPasswordSet, setIsMasterPasswordSet] =
+    useState<boolean>(false);
 
   return (
     <Fragment>
@@ -74,7 +81,9 @@ const DashboardAuthenticationSettings: FunctionComponent<
                 "When enabled, visitors must enter the master password before viewing this public dashboard. This value is stored as a secure hash and cannot be retrieved.",
               buttons: [
                 {
-                  title: isMasterPasswordSet ? "Update Master Password" : "Set Master Password",
+                  title: isMasterPasswordSet
+                    ? "Update Master Password"
+                    : "Set Master Password",
                   buttonStyle: ButtonStyleType.NORMAL,
                   onClick: () => {
                     setShowPasswordModal(true);
@@ -132,7 +141,11 @@ const DashboardAuthenticationSettings: FunctionComponent<
 
           {showPasswordModal && (
             <ModelFormModal<Dashboard>
-              title={isMasterPasswordSet ? "Update Master Password" : "Set Master Password"}
+              title={
+                isMasterPasswordSet
+                  ? "Update Master Password"
+                  : "Set Master Password"
+              }
               onClose={() => {
                 setShowPasswordModal(false);
               }}

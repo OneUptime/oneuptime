@@ -203,9 +203,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               ] as JSONArray;
 
               if (!profileContainers || !Array.isArray(profileContainers)) {
-                logger.warn(
-                  "Invalid profiles format, skipping scope profile",
-                );
+                logger.warn("Invalid profiles format, skipping scope profile");
                 continue;
               }
 
@@ -224,23 +222,26 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   const dataRetentionInDays: number =
                     serviceDictionary[serviceName]!.dataRententionInDays;
 
-                  const profileId: string = this.convertBase64ToHexSafe(
-                    (profileContainer as JSONObject)["profileId"] as
-                      | string
-                      | undefined,
-                  ) || ObjectID.generate().toString();
+                  const profileId: string =
+                    this.convertBase64ToHexSafe(
+                      (profileContainer as JSONObject)["profileId"] as
+                        | string
+                        | undefined,
+                    ) || ObjectID.generate().toString();
 
                   const startTime: ParsedUnixNano = this.safeParseUnixNano(
-                    (profileContainer as JSONObject)[
-                      "startTimeUnixNano"
-                    ] as string | number | undefined,
+                    (profileContainer as JSONObject)["startTimeUnixNano"] as
+                      | string
+                      | number
+                      | undefined,
                     "profile startTimeUnixNano",
                   );
 
                   const endTime: ParsedUnixNano = this.safeParseUnixNano(
-                    (profileContainer as JSONObject)[
-                      "endTimeUnixNano"
-                    ] as string | number | undefined,
+                    (profileContainer as JSONObject)["endTimeUnixNano"] as
+                      | string
+                      | number
+                      | undefined,
                     "profile endTimeUnixNano",
                   );
 
@@ -320,8 +321,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     }
 
                     // Extract period type
-                    const periodTypeObj: JSONObject | undefined =
-                      profile["periodType"] as JSONObject | undefined;
+                    const periodTypeObj: JSONObject | undefined = profile[
+                      "periodType"
+                    ] as JSONObject | undefined;
                     if (periodTypeObj) {
                       const periodTypeIndex: number =
                         (periodTypeObj["type"] as number) || 0;
@@ -387,8 +389,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           linkIndex >= 0 &&
                           linkIndex < linkTable.length
                         ) {
-                          const link: JSONObject =
-                            linkTable[linkIndex] as JSONObject;
+                          const link: JSONObject = linkTable[
+                            linkIndex
+                          ] as JSONObject;
                           traceId = this.convertBase64ToHexSafe(
                             link["traceId"] as string | undefined,
                           );
@@ -424,13 +427,14 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         // Resolve sample-level labels from attribute_indices
                         const sampleLabels: Dictionary<string> = {};
                         const sampleAttributeIndices: Array<number> =
-                          (sampleObj["attributeIndices"] as Array<number>) || [];
+                          (sampleObj["attributeIndices"] as Array<number>) ||
+                          [];
                         for (const attrIdx of sampleAttributeIndices) {
                           if (attrIdx >= 0 && attrIdx < attributeTable.length) {
-                            const attr: JSONObject =
-                              attributeTable[attrIdx] as JSONObject;
-                            const key: string =
-                              (attr["key"] as string) || "";
+                            const attr: JSONObject = attributeTable[
+                              attrIdx
+                            ] as JSONObject;
+                            const key: string = (attr["key"] as string) || "";
                             const val: JSONObject =
                               (attr["value"] as JSONObject) || {};
                             sampleLabels[key] =
@@ -476,8 +480,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     let profileTraceId: string = "";
                     let profileSpanId: string = "";
                     if (linkTable.length > 0) {
-                      const firstLink: JSONObject =
-                        linkTable[0] as JSONObject;
+                      const firstLink: JSONObject = linkTable[0] as JSONObject;
                       profileTraceId = this.convertBase64ToHexSafe(
                         firstLink["traceId"] as string | undefined,
                       );
@@ -574,9 +577,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     const frameTypes: Array<string> = [];
 
     // Try stack_index first (newer format)
-    const stackIndex: number | undefined = data.sample[
-      "stackIndex"
-    ] as number | undefined;
+    const stackIndex: number | undefined = data.sample["stackIndex"] as
+      | number
+      | undefined;
 
     let locationIndices: Array<number> = [];
 
@@ -586,14 +589,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       stackIndex < data.stackTable.length
     ) {
       const stack: JSONObject = data.stackTable[stackIndex] as JSONObject;
-      locationIndices =
-        (stack["locationIndices"] as Array<number>) || [];
+      locationIndices = (stack["locationIndices"] as Array<number>) || [];
     } else {
       // Fall back to locations_start_index + locations_length (older format)
       const startIndex: number =
         (data.sample["locationsStartIndex"] as number) || 0;
-      const length: number =
-        (data.sample["locationsLength"] as number) || 0;
+      const length: number = (data.sample["locationsLength"] as number) || 0;
       if (length > 0) {
         for (let i: number = startIndex; i < startIndex + length; i++) {
           locationIndices.push(i);
@@ -608,24 +609,22 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         continue;
       }
 
-      const location: JSONObject =
-        data.locationTable[locationIndex] as JSONObject;
+      const location: JSONObject = data.locationTable[
+        locationIndex
+      ] as JSONObject;
       const lines: JSONArray = (location["line"] as JSONArray) || [];
 
       // Resolve frame type from location type_index
       let locFrameType: string = "unknown";
-      const typeIndex: number | undefined = location[
-        "typeIndex"
-      ] as number | undefined;
+      const typeIndex: number | undefined = location["typeIndex"] as
+        | number
+        | undefined;
       if (typeIndex !== undefined && typeIndex >= 0) {
         // type_index refers to attribute_table entry with key "profile.frame.type"
         if (typeIndex < data.attributeTable.length) {
-          const attr: JSONObject =
-            data.attributeTable[typeIndex] as JSONObject;
-          const val: JSONObject =
-            (attr["value"] as JSONObject) || {};
-          locFrameType =
-            (val["stringValue"] as string) || "unknown";
+          const attr: JSONObject = data.attributeTable[typeIndex] as JSONObject;
+          const val: JSONObject = (attr["value"] as JSONObject) || {};
+          locFrameType = (val["stringValue"] as string) || "unknown";
         }
       }
 
@@ -639,19 +638,16 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         // Handle inline frames: each line in location.lines expands to a frame
         for (const lineObj of lines) {
           const line: JSONObject = lineObj as JSONObject;
-          const functionIndex: number =
-            (line["functionIndex"] as number) || 0;
+          const functionIndex: number = (line["functionIndex"] as number) || 0;
 
           let functionName: string = "<unknown>";
           let fileName: string = "";
           let lineNumber: number = 0;
 
-          if (
-            functionIndex >= 0 &&
-            functionIndex < data.functionTable.length
-          ) {
-            const func: JSONObject =
-              data.functionTable[functionIndex] as JSONObject;
+          if (functionIndex >= 0 && functionIndex < data.functionTable.length) {
+            const func: JSONObject = data.functionTable[
+              functionIndex
+            ] as JSONObject;
             const nameIndex: number = (func["name"] as number) || 0;
             const fileIndex: number = (func["filename"] as number) || 0;
 
