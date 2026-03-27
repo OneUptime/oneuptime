@@ -1350,19 +1350,22 @@ ${incident.remediationNotes || "No remediation notes provided."}
             ] as Date;
 
             // find the resolved state timeline to calculate time from resolution to postmortem
+            const resolvedStateId: ObjectID =
+              await IncidentStateTimelineService.getResolvedStateIdForProject(
+                projectId,
+              );
+
             const resolvedTimeline: IncidentStateTimeline | null =
               await IncidentStateTimelineService.findOneBy({
                 query: {
                   incidentId: incidentId,
+                  incidentStateId: resolvedStateId,
                 },
                 select: {
                   startsAt: true,
-                  incidentState: {
-                    isResolvedState: true,
-                  },
                 },
                 sort: {
-                  startsAt: SortOrder.Ascending,
+                  startsAt: SortOrder.Descending,
                 },
                 props: {
                   isRoot: true,
@@ -1370,7 +1373,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
               });
 
             // only emit if the incident has been resolved
-            if (resolvedTimeline?.incidentState?.isResolvedState && resolvedTimeline.startsAt) {
+            if (resolvedTimeline && resolvedTimeline.startsAt) {
               const postmortemMetric: Metric = new Metric();
               postmortemMetric.projectId = projectId;
               postmortemMetric.serviceId = incidentId;

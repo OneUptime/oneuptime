@@ -56,34 +56,61 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="mx-4 mt-4 mb-3 rounded-xl bg-white border border-gray-100"
+      className="mx-4 mt-3 mb-2 rounded-lg bg-white border border-gray-100"
       style={{
         boxShadow:
-          "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+          "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
       }}
     >
-      {/* Top row: Dashboard name + action buttons */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-base font-semibold text-gray-800 truncate">
+      {/* Single row: Dashboard name + time range + variables + action buttons */}
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+          <h1 className="text-sm font-semibold text-gray-800 truncate">
             {props.dashboardName}
           </h1>
           {isEditMode && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1"></span>
               Editing
             </span>
           )}
           {hasComponents && !isEditMode && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium text-gray-500 bg-gray-50">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-gray-400">
               {props.dashboardViewConfig.components.length} widget
               {props.dashboardViewConfig.components.length !== 1 ? "s" : ""}
             </span>
           )}
+
+          {/* Time range + variables inline (only when components exist and not in edit mode) */}
+          {hasComponents && !isEditMode && (
+            <>
+              <div className="w-px h-4 bg-gray-200"></div>
+              <RangeStartAndEndDateView
+                dashboardStartAndEndDate={props.startAndEndDate}
+                onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                  props.onStartAndEndDateChange(startAndEndDate);
+                }}
+              />
+
+              {/* Template variables */}
+              {props.variables &&
+                props.variables.length > 0 &&
+                props.onVariableValueChange && (
+                  <>
+                    <div className="w-px h-4 bg-gray-200"></div>
+                    <DashboardVariableSelector
+                      variables={props.variables}
+                      onVariableValueChange={props.onVariableValueChange}
+                    />
+                  </>
+                )}
+            </>
+          )}
+
           {/* Refreshing indicator */}
           {props.isRefreshing &&
             props.autoRefreshInterval !== AutoRefreshInterval.OFF && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-blue-600">
+              <span className="inline-flex items-center gap-1 text-xs text-blue-600">
                 <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
                 Refreshing
               </span>
@@ -91,7 +118,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         </div>
 
         {!isSaving && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
             {isEditMode ? (
               <>
                 <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
@@ -157,7 +184,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                 </MoreMenu>
 
-                <div className="w-px h-6 bg-gray-200 mx-1"></div>
+                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 
                 <Button
                   icon={IconProp.Check}
@@ -220,7 +247,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   tooltip="Full Screen"
                 />
 
-                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
 
                 <Button
                   icon={IconProp.Pencil}
@@ -241,35 +268,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
-
-      {/* Bottom row: Time range + variables (only when components exist and not in edit mode) */}
-      {hasComponents && !isEditMode && (
-        <div className="flex items-center gap-3 px-5 pb-4 pt-0 flex-wrap border-t border-gray-50">
-          <div className="pt-3">
-            <RangeStartAndEndDateView
-              dashboardStartAndEndDate={props.startAndEndDate}
-              onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
-                props.onStartAndEndDateChange(startAndEndDate);
-              }}
-            />
-          </div>
-
-          {/* Template variables */}
-          {props.variables &&
-            props.variables.length > 0 &&
-            props.onVariableValueChange && (
-              <>
-                <div className="w-px h-5 bg-gray-200 mt-3"></div>
-                <div className="pt-3">
-                  <DashboardVariableSelector
-                    variables={props.variables}
-                    onVariableValueChange={props.onVariableValueChange}
-                  />
-                </div>
-              </>
-            )}
-        </div>
-      )}
 
       {showCancelModal ? (
         <ConfirmModal

@@ -672,6 +672,14 @@
             "averageExceptionRowSizeInBytes": {
               "type": "integer",
               "minimum": 1
+            },
+            "averageProfileRowSizeInBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "averageProfileSampleRowSizeInBytes": {
+              "type": "integer",
+              "minimum": 1
             }
           },
           "additionalProperties": false

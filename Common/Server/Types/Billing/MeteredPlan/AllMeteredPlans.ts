@@ -26,11 +26,18 @@ export const TracesDataIngestMetredPlan: TelemetryMeteredPlanType =
     unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
   });
 
+export const ProfilesDataIngestMeteredPlan: TelemetryMeteredPlanType =
+  new TelemetryMeteredPlanType({
+    productType: ProductType.Profiles,
+    unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
+  });
+
 const AllMeteredPlans: Array<ServerMeteredPlan> = [
   ActiveMonitoringMeteredPlan,
   LogDataIngestMeteredPlan,
   MetricsDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
+  ProfilesDataIngestMeteredPlan,
 ];
 
 export class MeteredPlanUtil {
@@ -44,6 +51,8 @@ export class MeteredPlanUtil {
       return MetricsDataIngestMeteredPlan;
     } else if (productType === ProductType.Traces) {
       return TracesDataIngestMetredPlan;
+    } else if (productType === ProductType.Profiles) {
+      return ProfilesDataIngestMeteredPlan;
     } else if (productType === ProductType.ActiveMonitoring) {
       return ActiveMonitoringMeteredPlan;
     }

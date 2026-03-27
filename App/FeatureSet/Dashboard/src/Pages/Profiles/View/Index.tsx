@@ -1,18 +1,35 @@
 import PageComponentProps from "../../PageComponentProps";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import ProfileFlamegraph from "../../../Components/Profiles/ProfileFlamegraph";
+import ProfileFunctionList from "../../../Components/Profiles/ProfileFunctionList";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const profileId: string = Navigation.getLastParamAsString(0);
 
+  const tabs: Array<Tab> = [
+    {
+      name: "Flamegraph",
+      children: <ProfileFlamegraph profileId={profileId} />,
+    },
+    {
+      name: "Function List",
+      children: <ProfileFunctionList profileId={profileId} />,
+    },
+  ];
+
+  const handleTabChange: (tab: Tab) => void = (_tab: Tab): void => {
+    // Tab content is rendered by the Tabs component via children
+  };
+
   return (
-    <InfoCard
-      title={`Profile: ${profileId}`}
-      value="Profile flamegraph visualization will be available here. This view will show CPU, memory, and allocation hotspots as an interactive flamegraph with function-level detail."
-    />
+    <div>
+      <Tabs tabs={tabs} onTabChange={handleTabChange} />
+    </div>
   );
 };
 

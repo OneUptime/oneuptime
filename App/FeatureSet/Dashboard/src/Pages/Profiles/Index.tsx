@@ -12,7 +12,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import ProfileTable from "../../Components/Profiles/ProfileTable";
 
 const ProfilesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -62,12 +62,7 @@ const ProfilesPage: FunctionComponent<PageComponentProps> = (
     return <TelemetryDocumentation telemetryType="profiles" />;
   }
 
-  return (
-    <InfoCard
-      title="Profiles"
-      value="Continuous profiling data from your services will appear here. Profiles help you understand CPU, memory, and allocation hotspots in your applications. Use the OpenTelemetry eBPF profiler agent or async-profiler with OTLP export to send profiling data."
-    />
-  );
+  return <ProfileTable />;
 };
 
 export default ProfilesPage;

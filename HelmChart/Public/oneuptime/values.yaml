@@ -275,6 +275,8 @@ billing:
     averageLogRowSizeInBytes: 1024
     averageMetricRowSizeInBytes: 1024
     averageExceptionRowSizeInBytes: 1024
+    averageProfileRowSizeInBytes: 1024
+    averageProfileSampleRowSizeInBytes: 512
 
 subscriptionPlan:
   basic:

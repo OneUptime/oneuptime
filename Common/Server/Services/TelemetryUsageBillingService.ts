@@ -16,6 +16,8 @@ import SpanService from "./SpanService";
 import LogService from "./LogService";
 import MetricService from "./MetricService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
+import ProfileService from "./ProfileService";
+import ProfileSampleService from "./ProfileSampleService";
 import AnalyticsQueryHelper from "../Types/AnalyticsDatabase/QueryHelper";
 import DiskSize from "../../Types/DiskSize";
 import logger from "../Utils/Logger";
@@ -26,6 +28,8 @@ import {
   AverageLogRowSizeInBytes,
   AverageMetricRowSizeInBytes,
   AverageExceptionRowSizeInBytes,
+  AverageProfileRowSizeInBytes,
+  AverageProfileSampleRowSizeInBytes,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -81,7 +85,14 @@ export class Service extends DatabaseService<Model> {
     const averageExceptionRowSizeInBytes: number =
       this.getAverageExceptionRowSize();
 
-    if (data.productType !== ProductType.Traces && averageRowSizeInBytes <= 0) {
+    const averageProfileSampleRowSizeInBytes: number =
+      this.getAverageProfileSampleRowSize();
+
+    if (
+      data.productType !== ProductType.Traces &&
+      data.productType !== ProductType.Profiles &&
+      averageRowSizeInBytes <= 0
+    ) {
       return;
     }
 
@@ -89,6 +100,14 @@ export class Service extends DatabaseService<Model> {
       data.productType === ProductType.Traces &&
       averageRowSizeInBytes <= 0 &&
       averageExceptionRowSizeInBytes <= 0
+    ) {
+      return;
+    }
+
+    if (
+      data.productType === ProductType.Profiles &&
+      averageRowSizeInBytes <= 0 &&
+      averageProfileSampleRowSizeInBytes <= 0
     ) {
       return;
     }
@@ -223,6 +242,45 @@ export class Service extends DatabaseService<Model> {
           }
 
           estimatedBytes = totalRowCount * averageRowSizeInBytes;
+        } else if (data.productType === ProductType.Profiles) {
+          const profileCount: PositiveNumber = await ProfileService.countBy({
+            query: {
+              projectId: data.projectId,
+              serviceId: service.id,
+              startTime: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
+            },
+            skip: 0,
+            limit: LIMIT_INFINITY,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          const profileSampleCount: PositiveNumber =
+            await ProfileSampleService.countBy({
+              query: {
+                projectId: data.projectId,
+                serviceId: service.id,
+                time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
+              },
+              skip: 0,
+              limit: LIMIT_INFINITY,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          const totalProfileCount: number = profileCount.toNumber();
+          const totalProfileSampleCount: number =
+            profileSampleCount.toNumber();
+
+          if (totalProfileCount <= 0 && totalProfileSampleCount <= 0) {
+            continue;
+          }
+
+          estimatedBytes =
+            totalProfileCount * averageRowSizeInBytes +
+            totalProfileSampleCount * averageProfileSampleRowSizeInBytes;
         }
       } catch (error) {
         logger.error(
@@ -268,7 +326,8 @@ export class Service extends DatabaseService<Model> {
     if (
       data.productType !== ProductType.Traces &&
       data.productType !== ProductType.Metrics &&
-      data.productType !== ProductType.Logs
+      data.productType !== ProductType.Logs &&
+      data.productType !== ProductType.Profiles
     ) {
       throw new BadDataException(
         "This product type is not a telemetry product type.",
@@ -370,7 +429,8 @@ export class Service extends DatabaseService<Model> {
     if (
       productType !== ProductType.Traces &&
       productType !== ProductType.Logs &&
-      productType !== ProductType.Metrics
+      productType !== ProductType.Metrics &&
+      productType !== ProductType.Profiles
     ) {
       return fallbackSize;
     }
@@ -380,6 +440,7 @@ export class Service extends DatabaseService<Model> {
         [ProductType.Traces]: AverageSpanRowSizeInBytes,
         [ProductType.Logs]: AverageLogRowSizeInBytes,
         [ProductType.Metrics]: AverageMetricRowSizeInBytes,
+        [ProductType.Profiles]: AverageProfileRowSizeInBytes,
       }[productType] ?? fallbackSize;
 
     if (!Number.isFinite(value) || value <= 0) {
@@ -401,6 +462,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     return AverageExceptionRowSizeInBytes;
+  }
+
+  private getAverageProfileSampleRowSize(): number {
+    const fallbackSize: number = 512;
+
+    if (!Number.isFinite(AverageProfileSampleRowSizeInBytes)) {
+      return fallbackSize;
+    }
+
+    if (AverageProfileSampleRowSizeInBytes <= 0) {
+      return fallbackSize;
+    }
+
+    return AverageProfileSampleRowSizeInBytes;
   }
 }
 

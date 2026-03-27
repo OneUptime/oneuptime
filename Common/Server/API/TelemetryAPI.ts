@@ -23,6 +23,12 @@ import LogAggregationService, {
   AnalyticsTopItem,
   AnalyticsTableRow,
 } from "../Services/LogAggregationService";
+import ProfileAggregationService, {
+  FlamegraphRequest,
+  FunctionListRequest,
+  FunctionListItem,
+  ProfileFlamegraphNode,
+} from "../Services/ProfileAggregationService";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -709,5 +715,165 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
 
   return 1440;
 }
+
+// --- Profile Get Attributes Endpoint ---
+
+router.post(
+  "/telemetry/profiles/get-attributes",
+  UserMiddleware.getUserMiddleware,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributes(req, res, next, TelemetryType.Profile);
+  },
+);
+
+// --- Profile Flamegraph Endpoint ---
+
+router.post(
+  "/telemetry/profiles/flamegraph",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const profileId: string | undefined = body["profileId"]
+        ? (body["profileId"] as string)
+        : undefined;
+
+      const startTime: Date | undefined = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : undefined;
+
+      const endTime: Date | undefined = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : undefined;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileType: string | undefined = body["profileType"]
+        ? (body["profileType"] as string)
+        : undefined;
+
+      if (!profileId && !startTime) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Either profileId or startTime must be provided",
+          ),
+        );
+      }
+
+      const request: FlamegraphRequest = {
+        projectId: databaseProps.tenantId,
+        profileId,
+        startTime,
+        endTime,
+        serviceIds,
+        profileType,
+      };
+
+      const flamegraph: ProfileFlamegraphNode =
+        await ProfileAggregationService.getFlamegraph(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        flamegraph: flamegraph as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Function List Endpoint ---
+
+router.post(
+  "/telemetry/profiles/function-list",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileType: string | undefined = body["profileType"]
+        ? (body["profileType"] as string)
+        : undefined;
+
+      const limit: number | undefined = body["limit"]
+        ? (body["limit"] as number)
+        : undefined;
+
+      const sortBy: "selfValue" | "totalValue" | "sampleCount" | undefined =
+        body["sortBy"]
+          ? (body["sortBy"] as "selfValue" | "totalValue" | "sampleCount")
+          : undefined;
+
+      const request: FunctionListRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        serviceIds,
+        profileType,
+        limit,
+        sortBy,
+      };
+
+      const functions: Array<FunctionListItem> =
+        await ProfileAggregationService.getFunctionList(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        functions: functions as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
 
 export default router;

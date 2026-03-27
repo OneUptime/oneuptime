@@ -1,0 +1,281 @@
+{
+  "resourceProfiles": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "my-go-service"
+            }
+          },
+          {
+            "key": "host.name",
+            "value": {
+              "stringValue": "prod-server-01"
+            }
+          },
+          {
+            "key": "process.runtime.name",
+            "value": {
+              "stringValue": "go"
+            }
+          },
+          {
+            "key": "process.runtime.version",
+            "value": {
+              "stringValue": "go1.22.0"
+            }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": {
+              "stringValue": "opentelemetry"
+            }
+          },
+          {
+            "key": "telemetry.sdk.language",
+            "value": {
+              "stringValue": "go"
+            }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": {
+              "stringValue": "1.28.0"
+            }
+          }
+        ]
+      },
+      "scopeProfiles": [
+        {
+          "scope": {
+            "name": "otel-profiling-go",
+            "version": "0.5.0"
+          },
+          "profiles": [
+            {
+              "profileId": "qg7PaWLjuqLhWlwvlHRU9A==",
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000030000000000",
+              "attributes": [
+                {
+                  "key": "profiling.data.type",
+                  "value": {
+                    "stringValue": "cpu"
+                  }
+                }
+              ],
+              "originalPayloadFormat": "pprofext",
+              "profile": {
+                "stringTable": [
+                  "",
+                  "cpu",
+                  "nanoseconds",
+                  "samples",
+                  "count",
+                  "main.handleRequest",
+                  "/app/main.go",
+                  "net/http.(*conn).serve",
+                  "/usr/local/go/src/net/http/server.go",
+                  "runtime.goexit",
+                  "/usr/local/go/src/runtime/asm_amd64.s",
+                  "main.processData",
+                  "/app/processor.go",
+                  "encoding/json.Marshal",
+                  "/usr/local/go/src/encoding/json/encode.go",
+                  "runtime.mallocgc",
+                  "/usr/local/go/src/runtime/malloc.go",
+                  "main.queryDatabase",
+                  "/app/db.go",
+                  "database/sql.(*DB).QueryContext",
+                  "/usr/local/go/src/database/sql/sql.go"
+                ],
+                "sampleType": [
+                  {
+                    "type": 1,
+                    "unit": 2
+                  },
+                  {
+                    "type": 3,
+                    "unit": 4
+                  }
+                ],
+                "periodType": {
+                  "type": 1,
+                  "unit": 2
+                },
+                "period": 10000000,
+                "functionTable": [
+                  {
+                    "name": 5,
+                    "filename": 6
+                  },
+                  {
+                    "name": 7,
+                    "filename": 8
+                  },
+                  {
+                    "name": 9,
+                    "filename": 10
+                  },
+                  {
+                    "name": 11,
+                    "filename": 12
+                  },
+                  {
+                    "name": 13,
+                    "filename": 14
+                  },
+                  {
+                    "name": 15,
+                    "filename": 16
+                  },
+                  {
+                    "name": 17,
+                    "filename": 18
+                  },
+                  {
+                    "name": 19,
+                    "filename": 20
+                  }
+                ],
+                "locationTable": [
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 0,
+                        "line": 42
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 1,
+                        "line": 1960
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 2,
+                        "line": 1700
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 3,
+                        "line": 88
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 4,
+                        "line": 160
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 5,
+                        "line": 905
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 6,
+                        "line": 55
+                      }
+                    ]
+                  },
+                  {
+                    "line": [
+                      {
+                        "functionIndex": 7,
+                        "line": 1612
+                      }
+                    ]
+                  }
+                ],
+                "stackTable": [
+                  {
+                    "locationIndices": [0, 1, 2]
+                  },
+                  {
+                    "locationIndices": [3, 4, 0, 1, 2]
+                  },
+                  {
+                    "locationIndices": [5, 3, 0, 1, 2]
+                  },
+                  {
+                    "locationIndices": [6, 7, 0, 1, 2]
+                  }
+                ],
+                "linkTable": [
+                  {
+                    "traceId": "qg7PaWLjuqLhWlwvlHRU9A==",
+                    "spanId": "r+N4WZXXfP4="
+                  }
+                ],
+                "attributeTable": [
+                  {
+                    "key": "profile.frame.type",
+                    "value": {
+                      "stringValue": "go"
+                    }
+                  },
+                  {
+                    "key": "thread.name",
+                    "value": {
+                      "stringValue": "main"
+                    }
+                  }
+                ],
+                "sample": [
+                  {
+                    "stackIndex": 0,
+                    "value": [50000000, 5],
+                    "timestampsUnixNano": ["1700000005000000000"],
+                    "linkIndex": 0,
+                    "attributeIndices": [0, 1]
+                  },
+                  {
+                    "stackIndex": 1,
+                    "value": [120000000, 12],
+                    "timestampsUnixNano": ["1700000010000000000"],
+                    "linkIndex": 0,
+                    "attributeIndices": [0]
+                  },
+                  {
+                    "stackIndex": 2,
+                    "value": [30000000, 3],
+                    "timestampsUnixNano": ["1700000015000000000"],
+                    "linkIndex": 0,
+                    "attributeIndices": [0]
+                  },
+                  {
+                    "stackIndex": 3,
+                    "value": [80000000, 8],
+                    "timestampsUnixNano": ["1700000020000000000"],
+                    "linkIndex": 0,
+                    "attributeIndices": [0]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "schemaUrl": "https://opentelemetry.io/schemas/1.21.0"
+    }
+  ]
+}

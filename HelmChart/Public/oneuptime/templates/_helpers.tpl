@@ -544,6 +544,12 @@ Usage:
 - name: AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageExceptionRowSizeInBytes | quote }}
 
+- name: AVERAGE_PROFILE_ROW_SIZE_IN_BYTES
+  value: {{ $.Values.billing.telemetry.averageProfileRowSizeInBytes | quote }}
+
+- name: AVERAGE_PROFILE_SAMPLE_ROW_SIZE_IN_BYTES
+  value: {{ $.Values.billing.telemetry.averageProfileSampleRowSizeInBytes | quote }}
+
 {{- include "oneuptime.env.oneuptimeSecret" . }}
 {{- end }}
 

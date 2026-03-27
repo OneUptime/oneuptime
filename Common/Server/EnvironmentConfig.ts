@@ -427,6 +427,14 @@ export const AverageMetricRowSizeInBytes: number = parsePositiveNumberFromEnv(
 export const AverageExceptionRowSizeInBytes: number =
   parsePositiveNumberFromEnv("AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES", 1024);
 
+export const AverageProfileRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_PROFILE_ROW_SIZE_IN_BYTES",
+  1024,
+);
+
+export const AverageProfileSampleRowSizeInBytes: number =
+  parsePositiveNumberFromEnv("AVERAGE_PROFILE_SAMPLE_ROW_SIZE_IN_BYTES", 512);
+
 export const SlackAppClientId: string | null =
   process.env["SLACK_APP_CLIENT_ID"] || null;
 export const SlackAppClientSecret: string | null =
