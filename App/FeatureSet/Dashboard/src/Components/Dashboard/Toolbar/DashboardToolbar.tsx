@@ -150,6 +150,104 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
   );
 };
 
+interface AutoRefreshDropdownProps {
+  autoRefreshInterval: AutoRefreshInterval;
+  autoRefreshMs: number | null;
+  isAutoRefreshActive: boolean;
+  isRefreshing: boolean;
+  onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
+}
+
+const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
+  props: AutoRefreshDropdownProps,
+): ReactElement => {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const dropdownRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClickOutside: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative inline-block" ref={dropdownRef}>
+      {/* Trigger: countdown circle when active, refresh icon when not */}
+      <button
+        type="button"
+        className="flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-gray-50 transition-colors cursor-pointer"
+        onClick={() => {
+          setIsOpen(!isOpen);
+        }}
+        title="Auto-refresh settings"
+      >
+        {props.isAutoRefreshActive && props.autoRefreshMs ? (
+          <CountdownCircle
+            durationMs={props.autoRefreshMs}
+            size={24}
+            strokeWidth={2}
+            label={getAutoRefreshIntervalLabel(props.autoRefreshInterval)}
+            isRefreshing={props.isRefreshing}
+          />
+        ) : (
+          <Icon
+            icon={IconProp.Refresh}
+            className="w-4 h-4 text-gray-400"
+          />
+        )}
+      </button>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1">
+          {Object.values(AutoRefreshInterval).map(
+            (interval: AutoRefreshInterval) => {
+              const isSelected: boolean =
+                interval === props.autoRefreshInterval;
+              return (
+                <button
+                  type="button"
+                  key={interval}
+                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                    isSelected
+                      ? "text-indigo-600 font-medium"
+                      : "text-gray-700"
+                  }`}
+                  onClick={() => {
+                    props.onAutoRefreshIntervalChange(interval);
+                    setIsOpen(false);
+                  }}
+                >
+                  <span className="w-4 text-center">
+                    {isSelected ? "\u2713" : ""}
+                  </span>
+                  {interval === AutoRefreshInterval.OFF
+                    ? "Auto-refresh Off"
+                    : `Refresh every ${getAutoRefreshIntervalLabel(interval)}`}
+                </button>
+              );
+            },
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -172,7 +270,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div className="mx-4 mt-4 mb-3">
+    <div className="mx-1 mt-3 mb-2">
       <div
         className="rounded-xl bg-white border border-gray-200/60"
         style={{
@@ -238,52 +336,15 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 
                 {/* Auto-refresh section */}
-                <div className="flex items-center">
-                  {isAutoRefreshActive && autoRefreshMs ? (
-                    <div className="flex items-center gap-1.5 mr-1">
-                      <CountdownCircle
-                        durationMs={autoRefreshMs}
-                        size={24}
-                        strokeWidth={2}
-                        label={getAutoRefreshIntervalLabel(
-                          props.autoRefreshInterval,
-                        )}
-                        isRefreshing={props.isRefreshing || false}
-                      />
-                    </div>
-                  ) : null}
-
-                  <MoreMenu
-                    menuIcon={IconProp.Refresh}
-                    text={
-                      isAutoRefreshActive
-                        ? ""
-                        : ""
-                    }
-                  >
-                    {Object.values(AutoRefreshInterval).map(
-                      (interval: AutoRefreshInterval) => {
-                        const isSelected: boolean =
-                          interval === props.autoRefreshInterval;
-                        return (
-                          <MoreMenuItem
-                            key={interval}
-                            text={
-                              (isSelected ? "\u2713 " : "   ") +
-                              (interval === AutoRefreshInterval.OFF
-                                ? "Auto-refresh Off"
-                                : `Refresh every ${getAutoRefreshIntervalLabel(interval)}`)
-                            }
-                            icon={IconProp.Refresh}
-                            onClick={() => {
-                              props.onAutoRefreshIntervalChange(interval);
-                            }}
-                          />
-                        );
-                      },
-                    )}
-                  </MoreMenu>
-                </div>
+                <AutoRefreshDropdown
+                  autoRefreshInterval={props.autoRefreshInterval}
+                  autoRefreshMs={autoRefreshMs}
+                  isAutoRefreshActive={isAutoRefreshActive}
+                  isRefreshing={props.isRefreshing || false}
+                  onAutoRefreshIntervalChange={
+                    props.onAutoRefreshIntervalChange
+                  }
+                />
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 

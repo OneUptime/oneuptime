@@ -159,6 +159,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           dashboardViewConfig: true,
           name: true,
           description: true,
+          pageTitle: true,
+          pageDescription: true,
         },
       });
 
@@ -173,8 +175,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       ) as DashboardViewConfig;
 
       setDashboardViewConfig(config);
-      setDashboardName(dashboard.name || "Untitled Dashboard");
-      setDashboardDescription(dashboard.description || "");
+      setDashboardName(
+        dashboard.pageTitle || dashboard.name || "Untitled Dashboard",
+      );
+      setDashboardDescription(
+        dashboard.pageDescription || dashboard.description || "",
+      );
 
       // Restore saved auto-refresh interval
       if (config.refreshInterval) {
