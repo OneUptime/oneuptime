@@ -1,4 +1,4 @@
-import Button, { ButtonStyleType } from "../Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -12,6 +12,7 @@ export interface CardButtonSchema {
   isLoading?: undefined | boolean;
   className?: string | undefined;
   shortcutKey?: undefined | ShortcutKey;
+  buttonSize?: ButtonSize | undefined;
 }
 
 export interface ComponentProps {
@@ -59,21 +60,21 @@ const Card: FunctionComponent<ComponentProps> = (
               </div>
               {(props.rightElement ||
                 (props.buttons && props.buttons.length > 0)) && (
-                <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0">
+                <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center">
                   {props.rightElement && (
                     <div className="mb-2 md:mb-0 md:mr-3">
                       {props.rightElement}
                     </div>
                   )}
                   {props.buttons && props.buttons.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {props.buttons.map(
                         (
                           button: CardButtonSchema | ReactElement,
                           i: number,
                         ) => {
                           return (
-                            <div key={i}>
+                            <div key={i} className="flex items-center">
                               {React.isValidElement(button) ? button : null}
                               {React.isValidElement(button) ? null : (
                                 <Button
@@ -81,6 +82,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                   title={(button as CardButtonSchema).title}
                                   buttonStyle={
                                     (button as CardButtonSchema).buttonStyle
+                                  }
+                                  buttonSize={
+                                    (button as CardButtonSchema).buttonSize
                                   }
                                   className={
                                     (button as CardButtonSchema).className

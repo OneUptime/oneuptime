@@ -19,7 +19,7 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import { ButtonStyleType } from "../Button/Button";
+import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
   ComponentProps as CardComponentProps,
@@ -1045,7 +1045,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       headerbuttons.push({
         title: "View Documentation",
         icon: IconProp.Book,
-        buttonStyle: ButtonStyleType.OUTLINE,
+        buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+        buttonSize: ButtonSize.Small,
         className: "hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
@@ -1061,7 +1062,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         title: "",
         icon: IconProp.Help,
         buttonStyle: ButtonStyleType.ICON,
-        className: "py-0 pr-0 pl-1 mt-1",
+        buttonSize: ButtonSize.Small,
+        className: "",
         onClick: () => {
           setShowHelpModal(true);
         },
@@ -1073,7 +1075,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       headerbuttons.push({
         title: "Watch Demo",
         icon: IconProp.Play,
-        buttonStyle: ButtonStyleType.OUTLINE,
+        buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+        buttonSize: ButtonSize.Small,
         className: "hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.videoLink!, {
@@ -1109,8 +1112,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         title: `${props.createVerb || "Create"} ${
           props.singularName || model.singularName
         }`,
-        buttonStyle: ButtonStyleType.NORMAL,
-        className: showFilterButton || props.showRefreshButton ? "mr-1" : "",
+        buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+        buttonSize: ButtonSize.Small,
+        className: "",
         onClick: () => {
           setModalType(ModalType.Create);
           setShowModal(true);
@@ -1122,10 +1126,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     if (props.showRefreshButton) {
       headerbuttons.push({
         ...getRefreshButton(),
-        className: showFilterButton
-          ? "p-1 px-1 pr-0 pl-0 py-0 mt-1"
-          : "py-0 pr-0 pl-1 mt-1",
-
+        buttonSize: ButtonSize.Small,
+        className: "",
         onClick: async () => {
           await fetchItems();
         },
@@ -1137,7 +1139,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       headerbuttons.push({
         title: "",
         buttonStyle: ButtonStyleType.ICON,
-        className: "py-0 pr-0 pl-1 mt-1",
+        buttonSize: ButtonSize.Small,
+        className: "",
         onClick: () => {
           setQuery({});
           setShowFilterModal(true);
