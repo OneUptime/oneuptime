@@ -133,6 +133,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Graph}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Profiles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_PROFILES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Fire}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

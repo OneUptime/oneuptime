@@ -23,6 +23,7 @@ enum MonitorType {
   Metrics = "Metrics",
   Traces = "Traces",
   Exceptions = "Exceptions",
+  Profiles = "Profiles",
 
   // Network device monitoring
   SNMP = "SNMP",
@@ -94,6 +95,7 @@ export class MonitorTypeHelper {
           MonitorType.Metrics,
           MonitorType.Traces,
           MonitorType.Exceptions,
+          MonitorType.Profiles,
         ],
       },
       {
@@ -109,6 +111,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Metrics ||
       monitorType === MonitorType.Traces ||
       monitorType === MonitorType.Exceptions ||
+      monitorType === MonitorType.Profiles ||
       monitorType === MonitorType.Kubernetes
     );
   }
@@ -237,6 +240,13 @@ export class MonitorTypeHelper {
         icon: IconProp.Heartbeat,
       },
       {
+        monitorType: MonitorType.Profiles,
+        title: "Profiles",
+        description:
+          "This monitor type lets you monitor continuous profiling data from any source.",
+        icon: IconProp.Fire,
+      },
+      {
         monitorType: MonitorType.SNMP,
         title: "SNMP",
         description:
@@ -333,6 +343,7 @@ export class MonitorTypeHelper {
       MonitorType.Metrics,
       MonitorType.Traces,
       MonitorType.Exceptions,
+      MonitorType.Profiles,
       MonitorType.SNMP,
       MonitorType.DNS,
       MonitorType.Domain,

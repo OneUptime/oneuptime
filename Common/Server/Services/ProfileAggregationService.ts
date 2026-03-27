@@ -48,6 +48,31 @@ export interface FunctionListRequest {
   sortBy?: "selfValue" | "totalValue" | "sampleCount";
 }
 
+export interface DiffFlamegraphRequest {
+  projectId: ObjectID;
+  baselineStartTime: Date;
+  baselineEndTime: Date;
+  comparisonStartTime: Date;
+  comparisonEndTime: Date;
+  serviceIds?: Array<ObjectID>;
+  profileType?: string;
+}
+
+export interface DiffFlamegraphNode {
+  functionName: string;
+  fileName: string;
+  lineNumber: number;
+  baselineValue: number;
+  comparisonValue: number;
+  delta: number;
+  deltaPercent: number;
+  selfBaselineValue: number;
+  selfComparisonValue: number;
+  selfDelta: number;
+  children: DiffFlamegraphNode[];
+  frameType: string;
+}
+
 interface ParsedFrame {
   functionName: string;
   fileName: string;
@@ -255,6 +280,108 @@ export class ProfileAggregationService {
       request.limit ?? ProfileAggregationService.DEFAULT_FUNCTION_LIST_LIMIT;
 
     return items.slice(0, limit);
+  }
+
+  /**
+   * Build a diff flamegraph comparing two time ranges.
+   * Returns a tree where each node has baseline/comparison values and deltas.
+   */
+  @CaptureSpan()
+  public static async getDiffFlamegraph(
+    request: DiffFlamegraphRequest,
+  ): Promise<DiffFlamegraphNode> {
+    const baselineTree: ProfileFlamegraphNode =
+      await ProfileAggregationService.getFlamegraph({
+        projectId: request.projectId,
+        startTime: request.baselineStartTime,
+        endTime: request.baselineEndTime,
+        serviceIds: request.serviceIds,
+        profileType: request.profileType,
+      });
+
+    const comparisonTree: ProfileFlamegraphNode =
+      await ProfileAggregationService.getFlamegraph({
+        projectId: request.projectId,
+        startTime: request.comparisonStartTime,
+        endTime: request.comparisonEndTime,
+        serviceIds: request.serviceIds,
+        profileType: request.profileType,
+      });
+
+    return ProfileAggregationService.mergeDiffTrees(
+      baselineTree,
+      comparisonTree,
+    );
+  }
+
+  private static mergeDiffTrees(
+    baseline: ProfileFlamegraphNode | null,
+    comparison: ProfileFlamegraphNode | null,
+  ): DiffFlamegraphNode {
+    const baselineValue: number = baseline?.totalValue || 0;
+    const comparisonValue: number = comparison?.totalValue || 0;
+    const delta: number = comparisonValue - baselineValue;
+    const deltaPercent: number =
+      baselineValue > 0 ? (delta / baselineValue) * 100 : comparisonValue > 0 ? 100 : 0;
+
+    const node: DiffFlamegraphNode = {
+      functionName: baseline?.functionName || comparison?.functionName || "(root)",
+      fileName: baseline?.fileName || comparison?.fileName || "",
+      lineNumber: baseline?.lineNumber || comparison?.lineNumber || 0,
+      baselineValue,
+      comparisonValue,
+      delta,
+      deltaPercent,
+      selfBaselineValue: baseline?.selfValue || 0,
+      selfComparisonValue: comparison?.selfValue || 0,
+      selfDelta: (comparison?.selfValue || 0) - (baseline?.selfValue || 0),
+      children: [],
+      frameType: baseline?.frameType || comparison?.frameType || "",
+    };
+
+    // Merge children by matching on functionName + fileName + lineNumber
+    const baselineChildren: Map<string, ProfileFlamegraphNode> = new Map();
+    const comparisonChildren: Map<string, ProfileFlamegraphNode> = new Map();
+
+    if (baseline) {
+      for (const child of baseline.children) {
+        const key: string = `${child.functionName}@${child.fileName}:${child.lineNumber}`;
+        baselineChildren.set(key, child);
+      }
+    }
+
+    if (comparison) {
+      for (const child of comparison.children) {
+        const key: string = `${child.functionName}@${child.fileName}:${child.lineNumber}`;
+        comparisonChildren.set(key, child);
+      }
+    }
+
+    // All unique child keys
+    const allKeys: Set<string> = new Set([
+      ...baselineChildren.keys(),
+      ...comparisonChildren.keys(),
+    ]);
+
+    for (const key of allKeys) {
+      const baselineChild: ProfileFlamegraphNode | null =
+        baselineChildren.get(key) || null;
+      const comparisonChild: ProfileFlamegraphNode | null =
+        comparisonChildren.get(key) || null;
+
+      node.children.push(
+        ProfileAggregationService.mergeDiffTrees(baselineChild, comparisonChild),
+      );
+    }
+
+    // Sort children by comparison value descending
+    node.children.sort(
+      (a: DiffFlamegraphNode, b: DiffFlamegraphNode) => {
+        return b.comparisonValue - a.comparisonValue;
+      },
+    );
+
+    return node;
   }
 
   // --- Query builders ---

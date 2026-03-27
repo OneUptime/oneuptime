@@ -44,19 +44,15 @@ The Profiles implementation should follow this exact same pattern for consistenc
 
 ## Phase 1: Protocol & Ingestion Layer ✅ COMPLETE
 
-**Status**: HTTP endpoint, TelemetryType enum, middleware chain, and queue processing are all implemented.
+**Status**: HTTP endpoint, gRPC service, TelemetryType enum, middleware chain, queue processing, and OTel Collector pipeline are all implemented.
 
 **Implemented in:**
 - HTTP endpoint `POST /otlp/v1/profiles`: `Telemetry/API/OTelIngest.ts`
+- gRPC ProfilesService/Export: `Telemetry/GrpcServer.ts`
 - TelemetryType.Profile enum: `Common/Types/Telemetry/TelemetryType.ts`
 - Queue service: `Telemetry/Services/Queue/ProfilesQueueService.ts`
 - Queue handler: `Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts`
-
-### Remaining Items
-
-- **1.4 Register gRPC Service** — `ProfilesService/Export` RPC handler not yet registered in `Telemetry/GrpcServer.ts`
-- **1.5 Update OTel Collector Config** — No `profiles` pipeline in `OTelCollector/otel-collector-config.template.yaml` yet
-- **1.6 Helm Chart Updates** — `TELEMETRY_PROFILE_FLUSH_BATCH_SIZE` env var and KEDA autoscaling updates not yet applied
+- OTel Collector profiles pipeline: `OTelCollector/otel-collector-config.template.yaml`
 
 ---
 
@@ -84,112 +80,90 @@ The Profiles implementation should follow this exact same pattern for consistenc
 
 ---
 
-## Phase 4: Query API ✅ MOSTLY COMPLETE
+## Phase 4: Query API ✅ COMPLETE
 
-**Status**: Flamegraph aggregation and function list queries are implemented with tree-building algorithm, filtering by projectId/profileId/serviceId/time ranges/profile type, and a 50K sample limit per query.
+**Status**: Flamegraph aggregation, function list, diff flamegraph, and pprof export queries are all implemented.
 
 **Implemented in:**
-- ProfileAggregationService (417 lines): `Common/Server/Services/ProfileAggregationService.ts`
+- ProfileAggregationService: `Common/Server/Services/ProfileAggregationService.ts`
   - `getFlamegraph()` — Aggregated flamegraph tree from samples
   - `getFunctionList()` — Top functions by selfValue, totalValue, or sampleCount
+  - `getDiffFlamegraph()` — Differential flamegraph comparing two time ranges
+- API endpoints in `Common/Server/API/TelemetryAPI.ts`:
+  - `POST /telemetry/profiles/flamegraph`
+  - `POST /telemetry/profiles/function-list`
+  - `POST /telemetry/profiles/diff-flamegraph`
+  - `GET /telemetry/profiles/:profileId/pprof`
 - CRUD routes for profile/profile-sample: `App/FeatureSet/BaseAPI/Index.ts`
-
-### Remaining Items
-
-- **Diff flamegraph endpoint** — `GET /profiles/diff` for comparing two time ranges not yet implemented
-- **Cross-signal correlation queries** — Dedicated endpoints for querying profiles by `traceId`/`spanId` (e.g., "View Profile" button on trace detail page)
+- pprof encoder: `Common/Server/Utils/Profile/PprofEncoder.ts`
 
 ---
 
-## Phase 5: Frontend — Profiles UI ✅ MOSTLY COMPLETE
+## Phase 5: Frontend — Profiles UI ✅ COMPLETE
 
-**Status**: Core pages (listing, detail view, layout, side menu, documentation) and key components (flamegraph, function list, profiles table) are implemented.
+**Status**: All pages, components, cross-signal integration, and service-level profiles tab are implemented.
 
 **Implemented in:**
 - Pages: `App/FeatureSet/Dashboard/src/Pages/Profiles/` (Index, View/Index, Layout, SideMenu, Documentation)
-- Components: `App/FeatureSet/Dashboard/src/Components/Profiles/` (ProfileFlamegraph, ProfileFunctionList, ProfileTable)
-
-### Remaining Items
-
-- **DiffFlameGraph component** — Side-by-side or differential flamegraph comparing two time ranges
-- **ProfileTimeline component** — Timeline showing profile sample density over time
-- **ProfileTypeSelector component** — Dropdown to select profile type (CPU, heap, goroutine, etc.)
-- **Frame type color coding** — Color-code flamegraph frames by `profile.frame.type` (kernel=red/orange, native=blue, managed=green shades)
-- **5.4 Cross-Signal Integration**:
-  - Trace Detail Page: Add "Profile" tab/button on `TraceExplorer.tsx` linking to flamegraph by `traceId`
-  - Span Detail: Inline flamegraph when profile samples exist for a `spanId`
-  - Service Overview: "Profiles" tab on service detail page with aggregated flamegraphs
-
----
-
-## Phase 6: Production Hardening
-
-**Goal**: Make the implementation production-ready.
-
-### 6.1 Data Retention & Billing
-
-- Add `profileRetentionInDays` to service-level settings (alongside existing `retainTelemetryDataForDays`)
-- Add billing metering for profile sample ingestion (samples/month) via `TableBillingAccessControl`
-- Apply TTL rules on ClickHouse tables using `retentionDate DELETE` pattern
-
-### 6.2 Performance Optimization
-
-- **Materialized Views**: Pre-aggregate top functions per service per hour for fast dashboard loading
-- **Sampling**: For high-volume services, support server-side downsampling of profile data
-- **Compression**: Apply `ZSTD(3)` codec on `stacktrace`, `labels`, and `originalPayload` columns
-- **Query Caching**: Cache aggregated flamegraph results for repeated time ranges
-
-### 6.3 Symbolization Pipeline
-
-**This is a significant piece of work.** Symbolization is NOT yet standardized in the OTel Profiles spec. OneUptime needs its own strategy:
-
-1. **Store build IDs at ingestion**: Persist `process.executable.build_id.gnu`, `.go`, `.htlhash` attributes from mappings
-2. **Accept symbol uploads**: Provide an API endpoint where users can upload debug symbols (DWARF, PDB, source maps) keyed by build ID
-3. **Deferred symbolization**: When symbols are uploaded, re-symbolize existing unsymbolized frames in ClickHouse by matching `buildId` + address
-4. **Symbol storage**: Store uploaded symbols in object storage (S3/MinIO), indexed by build ID hash
-
-This can be deferred to a later release — the eBPF agent handles on-target symbolization for Go, and many runtimes (JVM, CPython, V8) provide symbol info at collection time. Native/kernel frames are the main gap.
-
-### 6.4 Alerting & Monitoring Integration
-
-Following the existing pattern in `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts`:
-- Add `MonitorStepProfileMonitor` configuration type
-- Add `ProfileMonitorResponse` response type
-- Add `MonitorType.Profiles` to the monitor type enum
-- Enable alerting on profile metrics (e.g., "alert when function X exceeds Y% of CPU")
-- Surface profile data in incident timelines
-
-### 6.5 pprof Export
-
-- Add `GET /profiles/:profileId/pprof` endpoint that converts stored data back to pprof format
-- If `original_payload` was stored, return it directly (lossless)
-- Otherwise, reconstruct pprof from denormalized data
-- Enables users to download and analyze profiles with existing tools (go tool pprof, etc.)
-
-### 6.6 Conformance Validation
-
-Integrate the OTel `profcheck` conformance checker tool into CI to validate that OneUptime correctly accepts and processes compliant profiles. This catches regressions when upgrading proto definitions.
-
-### Estimated Effort: 3-4 weeks
+- Components: `App/FeatureSet/Dashboard/src/Components/Profiles/`
+  - ProfileFlamegraph — Interactive flamegraph with frame type color coding and zoom
+  - ProfileFunctionList — Top functions table with sorting
+  - ProfileTable — Profiles listing with service/type/attribute filters
+  - ProfileTypeSelector — Dropdown filter for profile types (cpu, wall, alloc_objects, etc.)
+  - ProfileTimeline — Bar chart showing profile sample density over time
+  - DiffFlamegraph — Differential flamegraph comparing two time ranges (red=regression, green=improvement)
+- Frame type color coding: `App/FeatureSet/Dashboard/src/Utils/ProfileUtil.ts`
+- Cross-Signal Integration:
+  - "View Profiles for this Trace" link in TraceExplorer span tooltips
+  - Service > Profiles tab: `App/FeatureSet/Dashboard/src/Pages/Service/View/Profiles.tsx`
+  - Route and side menu wiring for service-level profiles view
 
 ---
 
-## Phase 7: Documentation & Launch
+## Phase 6: Production Hardening ✅ MOSTLY COMPLETE
 
-### 7.1 User-Facing Docs
+**Status**: Data retention, billing, compression, alerting, and pprof export are implemented. Symbolization pipeline and conformance validation are deferred.
 
-Add `App/FeatureSet/Docs/Content/telemetry/profiles.md`:
-- How to instrument your application for continuous profiling
-- Configuring the OTel eBPF profiler agent
-- Configuring async-profiler (Java) with OTLP export
-- Viewing profiles in OneUptime
-- Cross-signal correlation (profiles + traces)
+### 6.1 Data Retention & Billing ✅ COMPLETE
+- TTL via `retentionDate DELETE` on both Profile and ProfileSample tables
+- Billing metering in `Common/Server/Services/TelemetryUsageBillingService.ts`
+- ZSTD compression on text columns, bloom filter skip indexes
 
-### 7.2 Example Data
+### 6.2 Performance Optimization — Partially done
+- **Compression**: ✅ ZSTD(3) codec applied on stacktrace, labels columns
+- **Materialized Views**: ❌ Deferred — pre-aggregate top functions per service per hour
+- **Sampling**: ❌ Deferred — server-side downsampling for high-volume services
+- **Query Caching**: ❌ Deferred — cache aggregated flamegraph results
 
-Add `Telemetry/Docs/profileData.example.json` with a sample OTLP Profiles payload.
+### 6.3 Symbolization Pipeline — ❌ Deferred (Future Work)
+Symbolization is NOT yet standardized in the OTel Profiles spec. The eBPF agent handles on-target symbolization for Go, and many runtimes provide symbol info at collection time. A dedicated symbolization pipeline (symbol uploads, deferred re-symbolization, object storage) can be added in a future release.
 
-### Estimated Effort: 1 week
+### 6.4 Alerting & Monitoring Integration ✅ COMPLETE
+**Implemented in:**
+- `MonitorType.Profiles` added to enum: `Common/Types/Monitor/MonitorType.ts`
+- `CheckOn.ProfileCount` added: `Common/Types/Monitor/CriteriaFilter.ts`
+- `ProfileMonitorResponse`: `Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse.ts`
+- `ProfileMonitorCriteria`: `Common/Server/Utils/Monitor/Criteria/ProfileMonitorCriteria.ts`
+- `MonitorStep` updated with `profileMonitor` field: `Common/Types/Monitor/MonitorStep.ts`
+- `MonitorCriteriaEvaluator` wired for Profiles: `Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts`
+- `monitorProfile()` function: `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts`
+
+### 6.5 pprof Export ✅ COMPLETE
+**Implemented in:**
+- `GET /telemetry/profiles/:profileId/pprof`: `Common/Server/API/TelemetryAPI.ts`
+- PprofEncoder utility: `Common/Server/Utils/Profile/PprofEncoder.ts`
+- Reconstructs pprof-compatible JSON from denormalized data, gzip compressed
+
+### 6.6 Conformance Validation — ❌ Deferred (Future Work)
+Integrate OTel `profcheck` tool into CI once core profiling features stabilize.
+
+---
+
+## Phase 7: Documentation & Launch ✅ COMPLETE
+
+### 7.1 User-Facing Docs ✅ COMPLETE
+- Comprehensive profiles documentation: `App/FeatureSet/Docs/Content/telemetry/profiles.md`
+- Covers: profile types, setup instructions, instrumentation guides (Alloy, async-profiler, Go pprof, py-spy), OTel Collector config, features, and data retention
 
 ---
 
@@ -197,15 +171,15 @@ Add `Telemetry/Docs/profileData.example.json` with a sample OTLP Profiles payloa
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Protocol & Ingestion Layer | ✅ Complete (gRPC, OTel Collector config, Helm chart remaining) |
+| 1 | Protocol & Ingestion Layer | ✅ Complete |
 | 2 | Data Model & ClickHouse Storage | ✅ Complete |
 | 3 | Ingestion Service | ✅ Complete |
-| 4 | Query API | ✅ Mostly complete (diff flamegraph, cross-signal endpoints remaining) |
-| 5 | Frontend — Profiles UI | ✅ Mostly complete (diff view, timeline, color coding, cross-signal integration remaining) |
-| 6 | Production Hardening | ❌ Not started |
-| 7 | Documentation & Launch | ❌ Not started |
+| 4 | Query API | ✅ Complete |
+| 5 | Frontend — Profiles UI | ✅ Complete |
+| 6 | Production Hardening | ✅ Mostly complete (symbolization + conformance deferred) |
+| 7 | Documentation & Launch | ✅ Complete |
 
-**Remaining work is primarily:** Phase 1 gaps (gRPC/Helm), Phase 4-5 advanced features (diff flamegraphs, cross-signal integration, frame type color coding), and all of Phases 6-7 (symbolization, alerting, pprof export, conformance, docs).
+**Remaining future work:** Symbolization pipeline (symbol uploads, deferred re-symbolization), materialized views for performance, server-side downsampling, query caching, and OTel profcheck CI integration.
 
 ---
 

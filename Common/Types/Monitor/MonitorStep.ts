@@ -26,6 +26,9 @@ import MonitorStepMetricMonitor, {
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "./MonitorStepExceptionMonitor";
+import MonitorStepProfileMonitor, {
+  MonitorStepProfileMonitorUtil,
+} from "./MonitorStepProfileMonitor";
 import MonitorStepSnmpMonitor, {
   MonitorStepSnmpMonitorUtil,
 } from "./MonitorStepSnmpMonitor";
@@ -82,6 +85,9 @@ export interface MonitorStepType {
   // Exception monitor
   exceptionMonitor?: MonitorStepExceptionMonitor | undefined;
 
+  // Profile monitor
+  profileMonitor?: MonitorStepProfileMonitor | undefined;
+
   // SNMP monitor
   snmpMonitor?: MonitorStepSnmpMonitor | undefined;
 
@@ -121,6 +127,7 @@ export default class MonitorStep extends DatabaseProperty {
       traceMonitor: undefined,
       metricMonitor: undefined,
       exceptionMonitor: undefined,
+      profileMonitor: undefined,
       snmpMonitor: undefined,
       dnsMonitor: undefined,
       domainMonitor: undefined,
@@ -156,6 +163,7 @@ export default class MonitorStep extends DatabaseProperty {
       traceMonitor: undefined,
       metricMonitor: undefined,
       exceptionMonitor: undefined,
+      profileMonitor: undefined,
       snmpMonitor: undefined,
       dnsMonitor: undefined,
       domainMonitor: undefined,
@@ -248,6 +256,13 @@ export default class MonitorStep extends DatabaseProperty {
     exceptionMonitor: MonitorStepExceptionMonitor,
   ): MonitorStep {
     this.data!.exceptionMonitor = exceptionMonitor;
+    return this;
+  }
+
+  public setProfileMonitor(
+    profileMonitor: MonitorStepProfileMonitor,
+  ): MonitorStep {
+    this.data!.profileMonitor = profileMonitor;
     return this;
   }
 
@@ -473,6 +488,12 @@ export default class MonitorStep extends DatabaseProperty {
                   MonitorStepExceptionMonitorUtil.getDefault(),
               )
             : undefined,
+          profileMonitor: this.data.profileMonitor
+            ? MonitorStepProfileMonitorUtil.toJSON(
+                this.data.profileMonitor ||
+                  MonitorStepProfileMonitorUtil.getDefault(),
+              )
+            : undefined,
           snmpMonitor: this.data.snmpMonitor
             ? MonitorStepSnmpMonitorUtil.toJSON(this.data.snmpMonitor)
             : undefined,
@@ -594,6 +615,9 @@ export default class MonitorStep extends DatabaseProperty {
       exceptionMonitor: json["exceptionMonitor"]
         ? (json["exceptionMonitor"] as JSONObject)
         : undefined,
+      profileMonitor: json["profileMonitor"]
+        ? (json["profileMonitor"] as JSONObject)
+        : undefined,
       snmpMonitor: json["snmpMonitor"]
         ? (json["snmpMonitor"] as JSONObject)
         : undefined,
@@ -633,6 +657,7 @@ export default class MonitorStep extends DatabaseProperty {
         logMonitor: Zod.any().optional(),
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),
+        profileMonitor: Zod.any().optional(),
         snmpMonitor: Zod.any().optional(),
         dnsMonitor: Zod.any().optional(),
         domainMonitor: Zod.any().optional(),

@@ -4,6 +4,10 @@ import SpanViewer from "../Span/SpanViewer";
 import FlameGraph from "./FlameGraph";
 import TraceServiceMap from "./TraceServiceMap";
 import ServiceElement from "..//Service/ServiceElement";
+import Navigation from "Common/UI/Utils/Navigation";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SpanUtil, {
   DivisibilityFactor,
@@ -346,6 +350,22 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 })}
               </div>
             </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-gray-200">
+            <button
+              className="text-blue-600 hover:text-blue-800 text-[11px] font-medium"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                const profilesRoute: Route = RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.PROFILES] as Route,
+                );
+                Navigation.navigate(profilesRoute, {
+                  openInNewTab: true,
+                });
+              }}
+            >
+              View Profiles for this Trace
+            </button>
           </div>
         </div>
       </div>

@@ -45,6 +45,12 @@ import MonitorStepExceptionMonitor, {
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import ProfileMonitorResponse from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
+import MonitorStepProfileMonitor, {
+  MonitorStepProfileMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepProfileMonitor";
+import ProfileService from "Common/Server/Services/ProfileService";
+import Profile from "Common/Models/AnalyticsModels/Profile";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
@@ -72,6 +78,7 @@ RunCron(
           MonitorType.Traces,
           MonitorType.Metrics,
           MonitorType.Exceptions,
+          MonitorType.Profiles,
           MonitorType.Kubernetes,
         ]),
         telemetryMonitorNextMonitorAt:
@@ -231,6 +238,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Exceptions) {
     return monitorException({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Profiles) {
+    return monitorProfile({
       monitorStep,
       monitorId,
       projectId,
@@ -409,6 +424,48 @@ const monitorException: MonitorExceptionFunction = async (data: {
     exceptionQuery: JSONFunctions.anyObjectToJSONObject(
       analyticsQuery,
     ) as Query<ExceptionInstance>,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorProfileFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<ProfileMonitorResponse>;
+
+const monitorProfile: MonitorProfileFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<ProfileMonitorResponse> => {
+  const profileMonitorConfig: MonitorStepProfileMonitor | undefined =
+    data.monitorStep.data?.profileMonitor;
+
+  if (!profileMonitorConfig) {
+    throw new BadDataException("Profile monitor config is missing");
+  }
+
+  const analyticsQuery: Query<Profile> =
+    MonitorStepProfileMonitorUtil.toQuery(profileMonitorConfig);
+
+  analyticsQuery.projectId = data.projectId;
+
+  const profileCount: PositiveNumber = await ProfileService.countBy({
+    query: analyticsQuery,
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  return {
+    projectId: data.projectId,
+    profileCount: profileCount.toNumber(),
+    profileQuery: JSONFunctions.anyObjectToJSONObject(
+      analyticsQuery,
+    ) as Query<Profile>,
     monitorId: data.monitorId,
   };
 };

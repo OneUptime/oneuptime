@@ -19,6 +19,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 export interface ProfileFunctionListProps {
   profileId: string;
+  profileType?: string | undefined;
 }
 
 interface FunctionRow {
@@ -56,6 +57,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             profileId: props.profileId,
+            ...(props.profileType ? { profileType: props.profileType } : {}),
           },
           select: {
             stacktrace: true,
@@ -80,7 +82,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
 
   useEffect(() => {
     void loadSamples();
-  }, [props.profileId]);
+  }, [props.profileId, props.profileType]);
 
   const functionRows: Array<FunctionRow> = useMemo(() => {
     const functionMap: Map<

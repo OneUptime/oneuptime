@@ -102,3 +102,7 @@ service:
       receivers: [otlp]
       processors: []
       exporters: [otlphttp]
+    profiles:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]

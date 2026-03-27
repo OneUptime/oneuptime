@@ -45,6 +45,9 @@ export enum CheckOn {
   // Exception monitors.
   ExceptionCount = "Exception Count",
 
+  // Profile monitors.
+  ProfileCount = "Profile Count",
+
   // Metric Monitors.
   MetricValue = "Metric Value",
 

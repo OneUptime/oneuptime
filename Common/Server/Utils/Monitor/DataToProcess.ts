@@ -6,6 +6,7 @@ import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResp
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ProfileMonitorResponse from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 
 type DataToProcess =
   | ProbeMonitorResponse
@@ -15,6 +16,7 @@ type DataToProcess =
   | LogMonitorResponse
   | TraceMonitorResponse
   | MetricMonitorResponse
-  | ExceptionMonitorResponse;
+  | ExceptionMonitorResponse
+  | ProfileMonitorResponse;
 
 export default DataToProcess;

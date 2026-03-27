@@ -19,6 +19,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 export interface ProfileFlamegraphProps {
   profileId: string;
+  profileType?: string | undefined;
 }
 
 interface FlamegraphNode {
@@ -60,6 +61,7 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             profileId: props.profileId,
+            ...(props.profileType ? { profileType: props.profileType } : {}),
           },
           select: {
             stacktrace: true,
@@ -84,7 +86,7 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
 
   useEffect(() => {
     void loadSamples();
-  }, [props.profileId]);
+  }, [props.profileId, props.profileType]);
 
   const rootNode: FlamegraphNode = useMemo(() => {
     const root: FlamegraphNode = {

@@ -49,6 +49,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
 };
 
@@ -1473,6 +1474,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_PROFILES]
     }`,
   ),
 

@@ -24,6 +24,8 @@ import ServiceViewTraces from "../Pages/Service/View/Traces";
 
 import ServiceViewMetrics from "../Pages/Service/View/Metrics";
 
+import ServiceViewProfiles from "../Pages/Service/View/Profiles";
+
 import ServiceViewDelete from "../Pages/Service/View/Delete";
 
 import ServiceViewSettings from "../Pages/Service/View/Settings";
@@ -150,6 +152,16 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewMetrics
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_METRICS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_PROFILES)}
+          element={
+            <ServiceViewProfiles
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_PROFILES] as Route}
             />
           }
         />

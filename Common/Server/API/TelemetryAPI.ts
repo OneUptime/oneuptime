@@ -28,7 +28,18 @@ import ProfileAggregationService, {
   FunctionListRequest,
   FunctionListItem,
   ProfileFlamegraphNode,
+  DiffFlamegraphRequest,
+  DiffFlamegraphNode,
 } from "../Services/ProfileAggregationService";
+import PprofEncoder, {
+  PprofProfile,
+  PprofSample,
+} from "../Utils/Profile/PprofEncoder";
+import Profile from "../../Models/AnalyticsModels/Profile";
+import ProfileSample from "../../Models/AnalyticsModels/ProfileSample";
+import ProfileService from "../Services/ProfileService";
+import ProfileSampleService from "../Services/ProfileSampleService";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -869,6 +880,225 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         functions: functions as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile pprof Export Endpoint ---
+
+router.get(
+  "/telemetry/profiles/:profileId/pprof",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const profileId: string | undefined = req.params["profileId"];
+
+      if (!profileId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("profileId is required"),
+        );
+      }
+
+      // Fetch profile metadata
+      const profiles: Array<Profile> = (
+        await ProfileService.findBy({
+          query: {
+            projectId: databaseProps.tenantId,
+            profileId: profileId,
+          },
+          select: {
+            profileId: true,
+            profileType: true,
+            unit: true,
+            periodType: true,
+            period: true,
+            startTime: true,
+            endTime: true,
+            durationNano: true,
+          },
+          limit: 1,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).data;
+
+      if (!profiles[0]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Profile not found"),
+        );
+      }
+
+      const profile: Profile = profiles[0];
+
+      // Fetch profile samples
+      const samplesResult: Array<ProfileSample> = (
+        await ProfileSampleService.findBy({
+          query: {
+            projectId: databaseProps.tenantId,
+            profileId: profileId,
+          },
+          select: {
+            stacktrace: true,
+            value: true,
+            labels: true,
+          },
+          limit: 50000,
+          skip: 0,
+          sort: {
+            value: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      ).data;
+
+      const pprofSamples: Array<PprofSample> = samplesResult.map(
+        (sample: ProfileSample): PprofSample => {
+          return {
+            stacktrace: sample.stacktrace || [],
+            value: sample.value || 0,
+            labels: sample.labels as JSONObject | undefined,
+          };
+        },
+      );
+
+      const pprofProfile: PprofProfile = {
+        profileId: profile.profileId || profileId,
+        profileType: profile.profileType || "cpu",
+        unit: profile.unit || "nanoseconds",
+        periodType: profile.periodType || "cpu",
+        period: profile.period || 0,
+        startTimeNanos: profile.startTime
+          ? new Date(profile.startTime).getTime() * 1000000
+          : 0,
+        endTimeNanos: profile.endTime
+          ? new Date(profile.endTime).getTime() * 1000000
+          : 0,
+        durationNanos: profile.durationNano || 0,
+        samples: pprofSamples,
+      };
+
+      const compressed: Buffer =
+        await PprofEncoder.encodeAndCompress(pprofProfile);
+
+      res.setHeader("Content-Type", "application/x-protobuf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=profile-${profileId}.pb.gz`,
+      );
+      res.setHeader("Content-Length", compressed.length.toString());
+      res.send(compressed);
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Diff Flamegraph Endpoint ---
+
+router.post(
+  "/telemetry/profiles/diff-flamegraph",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const baselineStartTime: Date | undefined = body["baselineStartTime"]
+        ? OneUptimeDate.fromString(body["baselineStartTime"] as string)
+        : undefined;
+
+      const baselineEndTime: Date | undefined = body["baselineEndTime"]
+        ? OneUptimeDate.fromString(body["baselineEndTime"] as string)
+        : undefined;
+
+      const comparisonStartTime: Date | undefined = body["comparisonStartTime"]
+        ? OneUptimeDate.fromString(body["comparisonStartTime"] as string)
+        : undefined;
+
+      const comparisonEndTime: Date | undefined = body["comparisonEndTime"]
+        ? OneUptimeDate.fromString(body["comparisonEndTime"] as string)
+        : undefined;
+
+      if (
+        !baselineStartTime ||
+        !baselineEndTime ||
+        !comparisonStartTime ||
+        !comparisonEndTime
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "baselineStartTime, baselineEndTime, comparisonStartTime, and comparisonEndTime are all required",
+          ),
+        );
+      }
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileType: string | undefined = body["profileType"]
+        ? (body["profileType"] as string)
+        : undefined;
+
+      const request: DiffFlamegraphRequest = {
+        projectId: databaseProps.tenantId,
+        baselineStartTime,
+        baselineEndTime,
+        comparisonStartTime,
+        comparisonEndTime,
+        serviceIds,
+        profileType,
+      };
+
+      const diffFlamegraph: DiffFlamegraphNode =
+        await ProfileAggregationService.getDiffFlamegraph(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        diffFlamegraph: diffFlamegraph as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);
