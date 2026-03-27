@@ -402,6 +402,9 @@ import SpanService, {
 import ProfileService, {
   ProfileService as ProfileServiceType,
 } from "Common/Server/Services/ProfileService";
+import ProfileSampleService, {
+  ProfileSampleService as ProfileSampleServiceType,
+} from "Common/Server/Services/ProfileSampleService";
 import StatusPageAnnouncementAPI from "Common/Server/API/StatusPageAnnouncementAPI";
 import StatusPageCustomFieldService, {
   Service as StatusPageCustomFieldServiceType,
@@ -506,6 +509,7 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
+import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
@@ -1295,6 +1299,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAnalyticsAPI<Profile, ProfileServiceType>(
         Profile,
         ProfileService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<ProfileSample, ProfileSampleServiceType>(
+        ProfileSample,
+        ProfileSampleService,
       ).getRouter(),
     );
 
