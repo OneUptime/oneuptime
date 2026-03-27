@@ -1,0 +1,275 @@
+// Copyright 2024, OpenTelemetry Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package opentelemetry.proto.profiles.v1development;
+
+import "./common.proto";
+import "./resource.proto";
+
+option csharp_namespace = "OpenTelemetry.Proto.Profiles.V1Development";
+option java_multiple_files = true;
+option java_package = "io.opentelemetry.proto.profiles.v1development";
+option java_outer_classname = "ProfilesProto";
+option go_package = "go.opentelemetry.io/proto/otlp/profiles/v1development";
+
+// ProfilesData represents the profiles data that can be stored in a persistent storage,
+// OR can be embedded by other protocols that transfer OTLP profiles data but do
+// not implement the OTLP protocol.
+message ProfilesData {
+  // An array of ResourceProfiles.
+  repeated ResourceProfiles resource_profiles = 1;
+}
+
+// A collection of ScopeProfiles from a Resource.
+message ResourceProfiles {
+  reserved 1000;
+
+  // The resource for the profiles in this message.
+  opentelemetry.proto.resource.v1.Resource resource = 1;
+
+  // A list of ScopeProfiles that originate from a resource.
+  repeated ScopeProfiles scope_profiles = 2;
+
+  // The Schema URL.
+  string schema_url = 3;
+}
+
+// A collection of ProfileContainers produced by an InstrumentationScope.
+message ScopeProfiles {
+  // The instrumentation scope information for the profiles in this message.
+  opentelemetry.proto.common.v1.InstrumentationScope scope = 1;
+
+  // A list of ProfileContainers that originate from an instrumentation scope.
+  repeated ProfileContainer profiles = 2;
+
+  // The Schema URL.
+  string schema_url = 3;
+}
+
+// A ProfileContainer represents a single profile along with metadata.
+message ProfileContainer {
+  // A unique identifier for a profile.
+  bytes profile_id = 1;
+
+  // start_time_unix_nano is the start time of the profile.
+  fixed64 start_time_unix_nano = 2;
+
+  // end_time_unix_nano is the end time of the profile.
+  fixed64 end_time_unix_nano = 3;
+
+  // attributes is a collection of key/value pairs.
+  repeated opentelemetry.proto.common.v1.KeyValue attributes = 4;
+
+  // dropped_attributes_count is the number of attributes that were discarded.
+  uint32 dropped_attributes_count = 5;
+
+  // Specifies format of the original payload. Common values are defined in semantic conventions.
+  string original_payload_format = 6;
+
+  // Original payload can be stored in this field.
+  bytes original_payload = 7;
+
+  // The profile data.
+  Profile profile = 8;
+}
+
+// Provides additional context for a profile.
+message Profile {
+  // A description of the profile.
+  repeated ValueType sample_type = 1;
+
+  // The set of samples recorded in this profile.
+  repeated Sample sample = 2;
+
+  // Time of collection (UTC) represented as nanoseconds past the epoch.
+  fixed64 time_unix_nano = 3;
+
+  // Duration of the profile, if a duration makes sense.
+  fixed64 duration_nano = 4;
+
+  // The kind of events between sampled occurrences.
+  ValueType period_type = 5;
+
+  // The number of events between sampled occurrences.
+  int64 period = 6;
+
+  // Free-form text associated to the profile.
+  repeated int64 comment = 7; // Indices into string table.
+
+  // A common table for strings referenced by various messages.
+  repeated string string_table = 8;
+
+  // Index into the string table of the type of the preferred sample value.
+  int64 default_sample_type = 9;
+
+  // References to locations in the location_table.
+  repeated Location location_table = 10;
+
+  // Useful program location
+  repeated Function function_table = 11;
+
+  // Mapping from address to the mapped entry.
+  repeated Mapping mapping_table = 12;
+
+  // References to links in the link_table.
+  repeated Link link_table = 13;
+
+  // References to stacks in the stack_table.
+  repeated Stack stack_table = 14;
+
+  // Lookup table for attributes.
+  repeated opentelemetry.proto.common.v1.KeyValue attribute_table = 15;
+
+  // Represents a mapping between Attribute Keys and Units.
+  repeated AttributeUnit attribute_units = 16;
+
+  // dropped_attributes_count is the number of attributes that were discarded.
+  uint32 dropped_attributes_count = 17;
+}
+
+// ValueType describes the semantics and measurement units of a value.
+message ValueType {
+  int64 type = 1; // Index into string table.
+  int64 unit = 2; // Index into string table.
+  AggregationTemporality aggregation_temporality = 3;
+}
+
+// Specifies the method of aggregating metric values.
+enum AggregationTemporality {
+  AGGREGATION_TEMPORALITY_UNSPECIFIED = 0;
+  AGGREGATION_TEMPORALITY_DELTA = 1;
+  AGGREGATION_TEMPORALITY_CUMULATIVE = 2;
+}
+
+// Each Sample records values encountered in some program context.
+message Sample {
+  // The index into the stack_table for the callstack of this sample.
+  int32 locations_start_index = 1;
+
+  // locations_length limits the number of locations to use from the stack starting from locations_start_index.
+  int32 locations_length = 2;
+
+  // The index into the stack_table for the stack of this sample.
+  int32 stack_index = 3;
+
+  // The type and unit of each value is defined by the corresponding
+  // entry in Profile.sample_type.
+  repeated int64 value = 4;
+
+  // References to attributes in Profile.attribute_table.
+  repeated int32 attribute_indices = 5;
+
+  // Reference to link in Profile.link_table.
+  int32 link_index = 6;
+
+  // Timestamps associated with the sample.
+  repeated fixed64 timestamps_unix_nano = 7;
+}
+
+// Provides the mapping between a function name and its address/binary.
+message Mapping {
+  // Address at which the binary (or DLL) is loaded into memory.
+  uint64 memory_start = 1;
+
+  // The limit of the address range occupied by this mapping.
+  uint64 memory_limit = 2;
+
+  // Offset in the binary that corresponds to the first mapped address.
+  uint64 file_offset = 3;
+
+  // The object this entry is loaded from.
+  int64 filename = 4; // Index into string table
+
+  // References to attributes in Profile.attribute_table.
+  repeated int32 attribute_indices = 5;
+
+  // If true, the mapping was not able to be identified.
+  bool has_functions = 6;
+  bool has_filenames = 7;
+  bool has_line_numbers = 8;
+  bool has_inline_frames = 9;
+}
+
+// Describes function and line number information.
+message Location {
+  // Reference to mapping in Profile.mapping_table.
+  int32 mapping_index = 1;
+
+  // The instruction address for this location.
+  uint64 address = 2;
+
+  // Multiple line indicates this location has inlined functions.
+  repeated Line line = 3;
+
+  // If true, this location address has NOT been resolved to a function and source.
+  bool is_folded = 4;
+
+  // Type of frame (kernel, native, jvm, cpython, go, v8js, etc.).
+  int32 type_index = 5;
+
+  // References to attributes in Profile.attribute_table.
+  repeated int32 attribute_indices = 6;
+}
+
+// Details a specific line in a source code, linked to a function.
+message Line {
+  // Reference to function in Profile.function_table.
+  int32 function_index = 1;
+
+  // Line number in source code.
+  int64 line = 2;
+
+  // Column number in source code.
+  int64 column = 3;
+}
+
+// Describes a function, including its human-readable name.
+message Function {
+  // Name of the function, in human-readable form.
+  int64 name = 1; // Index into string table
+
+  // Name of the function, as identified by the system.
+  int64 system_name = 2; // Index into string table
+
+  // Source file containing the function.
+  int64 filename = 3; // Index into string table
+
+  // Line number in source file.
+  int64 start_line = 4;
+}
+
+// A pointer from a profile Sample to a trace Span.
+message Link {
+  // A unique identifier of a trace.
+  bytes trace_id = 1;
+
+  // A unique identifier for the linked span.
+  bytes span_id = 2;
+}
+
+// A Stack is a collection of location references.
+message Stack {
+  // References to locations in the location_table.
+  repeated int32 location_indices = 1;
+}
+
+// Defines the mapping between an attribute key and its unit.
+message AttributeUnit {
+  // Index into string table for the attribute key.
+  int64 attribute_key = 1;
+  // Index into string table for the unit.
+  int64 unit = 2;
+}

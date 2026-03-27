@@ -25,10 +25,16 @@ const MetricsProto: protobuf.Root = protobuf.loadSync(
   "/usr/src/app/ProtoFiles/OTel/v1/metrics.proto",
 );
 
+const ProfilesProto: protobuf.Root = protobuf.loadSync(
+  "/usr/src/app/ProtoFiles/OTel/v1/profiles.proto",
+);
+
 // Lookup the message type
 const LogsData: protobuf.Type = LogsProto.lookupType("LogsData");
 const TracesData: protobuf.Type = TracesProto.lookupType("TracesData");
 const MetricsData: protobuf.Type = MetricsProto.lookupType("MetricsData");
+const ProfilesData: protobuf.Type =
+  ProfilesProto.lookupType("ProfilesData");
 
 export default class OpenTelemetryRequestMiddleware {
   @CaptureSpan()
@@ -69,6 +75,13 @@ export default class OpenTelemetryRequestMiddleware {
           req.body = JSON.parse(Buffer.from(req.body).toString("utf-8"));
         }
         productType = ProductType.Metrics;
+      } else if (req.url.includes("/otlp/v1/profiles")) {
+        if (isProtobuf) {
+          req.body = ProfilesData.decode(req.body);
+        } else if (req.body instanceof Uint8Array) {
+          req.body = JSON.parse(Buffer.from(req.body).toString("utf-8"));
+        }
+        productType = ProductType.Profiles;
       } else {
         throw new BadRequestException("Invalid URL: " + req.baseUrl);
       }

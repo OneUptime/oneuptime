@@ -48,6 +48,16 @@ export const TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE: number = parseBatchSize(
   500,
 );
 
+export const TELEMETRY_PROFILE_FLUSH_BATCH_SIZE: number = parseBatchSize(
+  "TELEMETRY_PROFILE_FLUSH_BATCH_SIZE",
+  500,
+);
+
+export const TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE: number = parseBatchSize(
+  "TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE",
+  500,
+);
+
 /*
  * Some telemetry batches can be large and take >30s (BullMQ default lock) to process.
  * Allow configuring a longer lock duration (in ms) to avoid premature stall detection.

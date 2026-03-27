@@ -130,6 +130,12 @@ enum Permission {
   EditTelemetryServiceMetrics = "EditTelemetryServiceMetrics",
   ReadTelemetryServiceMetrics = "ReadTelemetryServiceMetrics",
 
+  // Profiles
+  CreateTelemetryServiceProfiles = "CreateTelemetryServiceProfiles",
+  DeleteTelemetryServiceProfiles = "DeleteTelemetryServiceProfiles",
+  EditTelemetryServiceProfiles = "EditTelemetryServiceProfiles",
+  ReadTelemetryServiceProfiles = "ReadTelemetryServiceProfiles",
+
   // Billing Permissions (Owner Permission)
   ManageProjectBilling = "ManageProjectBilling",
 
@@ -4740,6 +4746,43 @@ export class PermissionHelper {
         title: "Read Telemetry Service Metrics",
         description:
           "This permission can read Telemetry Service Metrics of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateTelemetryServiceProfiles,
+        title: "Create Telemetry Service Profiles",
+        description:
+          "This permission can create Telemetry Service Profiles this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteTelemetryServiceProfiles,
+        title: "Delete Telemetry Service Profiles",
+        description:
+          "This permission can delete Telemetry Service Profiles of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditTelemetryServiceProfiles,
+        title: "Edit Telemetry Service Profiles",
+        description:
+          "This permission can edit Telemetry Service Profiles of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadTelemetryServiceProfiles,
+        title: "Read Telemetry Service Profiles",
+        description:
+          "This permission can read Telemetry Service Profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,

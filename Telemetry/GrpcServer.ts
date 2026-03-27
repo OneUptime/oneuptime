@@ -10,6 +10,7 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TracesQueueService from "./Services/Queue/TracesQueueService";
 import LogsQueueService from "./Services/Queue/LogsQueueService";
 import MetricsQueueService from "./Services/Queue/MetricsQueueService";
+import ProfilesQueueService from "./Services/Queue/ProfilesQueueService";
 
 const GRPC_PORT: number = 4317;
 
@@ -162,11 +163,23 @@ export function startGrpcServer(): void {
     },
   );
 
+  const profilesServiceDef: protoLoader.PackageDefinition =
+    protoLoader.loadSync(path.join(PROTO_DIR, "profiles_service.proto"), {
+      keepCase: false,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+      includeDirs: [PROTO_DIR],
+    });
+
   const traceProto: grpc.GrpcObject =
     grpc.loadPackageDefinition(traceServiceDef);
   const logsProto: grpc.GrpcObject = grpc.loadPackageDefinition(logsServiceDef);
   const metricsProto: grpc.GrpcObject =
     grpc.loadPackageDefinition(metricsServiceDef);
+  const profilesProto: grpc.GrpcObject =
+    grpc.loadPackageDefinition(profilesServiceDef);
 
   type ProtoServiceDef = {
     service: grpc.ServiceDefinition;
@@ -213,6 +226,17 @@ export function startGrpcServer(): void {
     "MetricsService",
   );
 
+  const profilesServiceDefinition: grpc.ServiceDefinition =
+    getServiceDefinition(
+      profilesProto,
+      "opentelemetry",
+      "proto",
+      "collector",
+      "profiles",
+      "v1development",
+      "ProfilesService",
+    );
+
   const server: grpc.Server = new grpc.Server({
     "grpc.max_receive_message_length": 50 * 1024 * 1024, // 50MB
   });
@@ -246,6 +270,17 @@ export function startGrpcServer(): void {
         callback,
         ProductType.Metrics,
         MetricsQueueService.addMetricIngestJob.bind(MetricsQueueService),
+      );
+    },
+  });
+
+  server.addService(profilesServiceDefinition, {
+    Export: (call: GrpcCall, callback: GrpcCallback): void => {
+      handleExport(
+        call,
+        callback,
+        ProductType.Profiles,
+        ProfilesQueueService.addProfileIngestJob.bind(ProfilesQueueService),
       );
     },
   });

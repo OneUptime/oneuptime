@@ -5,6 +5,7 @@ import {
 import OtelLogsIngestService from "../../Services/OtelLogsIngestService";
 import OtelTracesIngestService from "../../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../../Services/OtelMetricsIngestService";
+import OtelProfilesIngestService from "../../Services/OtelProfilesIngestService";
 import SyslogIngestService from "../../Services/SyslogIngestService";
 import FluentLogsIngestService from "../../Services/FluentLogsIngestService";
 import {
@@ -76,6 +77,20 @@ QueueWorker.getWorker(
           await OtelMetricsIngestService.processMetricsFromQueue(mockRequest);
           logger.debug(
             `Successfully processed metrics for project: ${jobData.projectId}`,
+          );
+          break;
+        }
+
+        case TelemetryType.Profiles: {
+          const mockRequest: TelemetryRequest = {
+            projectId: new ObjectID(jobData.projectId!.toString()),
+            body: jobData.requestBody!,
+            headers: jobData.requestHeaders!,
+          } as TelemetryRequest;
+
+          await OtelProfilesIngestService.processProfilesFromQueue(mockRequest);
+          logger.debug(
+            `Successfully processed profiles for project: ${jobData.projectId}`,
           );
           break;
         }

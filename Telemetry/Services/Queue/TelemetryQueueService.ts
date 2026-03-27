@@ -9,6 +9,7 @@ export enum TelemetryType {
   Logs = "logs",
   Traces = "traces",
   Metrics = "metrics",
+  Profiles = "profiles",
   Syslog = "syslog",
   FluentLogs = "fluentlogs",
   ProbeIngest = "probe-ingest",
@@ -89,6 +90,10 @@ export interface MetricsIngestJobData extends TelemetryIngestJobData {
   type: TelemetryType.Metrics;
 }
 
+export interface ProfilesIngestJobData extends TelemetryIngestJobData {
+  type: TelemetryType.Profiles;
+}
+
 export interface SyslogIngestJobData extends TelemetryIngestJobData {
   type: TelemetryType.Syslog;
 }
@@ -134,6 +139,12 @@ export default class TelemetryQueueService {
 
   public static async addMetricIngestJob(req: TelemetryRequest): Promise<void> {
     return this.addTelemetryIngestJob(req, TelemetryType.Metrics);
+  }
+
+  public static async addProfileIngestJob(
+    req: TelemetryRequest,
+  ): Promise<void> {
+    return this.addTelemetryIngestJob(req, TelemetryType.Profiles);
   }
 
   public static async addFluentLogIngestJob(

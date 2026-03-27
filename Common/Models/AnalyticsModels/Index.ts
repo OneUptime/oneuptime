@@ -4,6 +4,8 @@ import Metric from "./Metric";
 import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
 import MonitorLog from "./MonitorLog";
+import Profile from "./Profile";
+import ProfileSample from "./ProfileSample";
 
 const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Log,
@@ -11,6 +13,8 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Metric,
   ExceptionInstance,
   MonitorLog,
+  Profile,
+  ProfileSample,
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};

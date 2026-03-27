@@ -10,6 +10,7 @@ import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware"
 import OtelTracesIngestService from "../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../Services/OtelMetricsIngestService";
 import OtelLogsIngestService from "../Services/OtelLogsIngestService";
+import OtelProfilesIngestService from "../Services/OtelProfilesIngestService";
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import { JSONObject } from "Common/Types/JSON";
@@ -58,6 +59,19 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     return OtelLogsIngestService.ingestLogs(req, res, next);
+  },
+);
+
+router.post(
+  "/otlp/v1/profiles",
+  OpenTelemetryRequestMiddleware.getProductType,
+  TelemetryIngest.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return OtelProfilesIngestService.ingestProfiles(req, res, next);
   },
 );
 
