@@ -1,6 +1,13 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonSize, ButtonStyleType } from "Common/UI/Components/Button/Button";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -9,6 +16,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import DashboardViewConfig, {
   AutoRefreshInterval,
+  getAutoRefreshIntervalInMs,
   getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
@@ -41,6 +49,107 @@ export interface ComponentProps {
   onResetZoom?: (() => void) | undefined;
 }
 
+interface CountdownCircleProps {
+  durationMs: number;
+  size: number;
+  strokeWidth: number;
+  label: string;
+  isRefreshing: boolean;
+}
+
+const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
+  props: CountdownCircleProps,
+): ReactElement => {
+  const [progress, setProgress] = useState<number>(0);
+  const startTimeRef: React.MutableRefObject<number> = useRef<number>(
+    Date.now(),
+  );
+  const animationFrameRef: React.MutableRefObject<number | null> =
+    useRef<number | null>(null);
+
+  const animate: () => void = useCallback(() => {
+    const elapsed: number = Date.now() - startTimeRef.current;
+    const newProgress: number = Math.min(elapsed / props.durationMs, 1);
+    setProgress(newProgress);
+
+    if (newProgress < 1) {
+      animationFrameRef.current = requestAnimationFrame(animate);
+    } else {
+      // Reset when complete
+      startTimeRef.current = Date.now();
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+  }, [props.durationMs]);
+
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [props.durationMs, animate]);
+
+  // Reset on refresh
+  useEffect(() => {
+    if (props.isRefreshing) {
+      startTimeRef.current = Date.now();
+    }
+  }, [props.isRefreshing]);
+
+  const radius: number = (props.size - props.strokeWidth) / 2;
+  const circumference: number = 2 * Math.PI * radius;
+  const strokeDashoffset: number = circumference * (1 - progress);
+  const center: number = props.size / 2;
+
+  // Calculate remaining seconds
+  const remainingMs: number = props.durationMs * (1 - progress);
+  const remainingSec: number = Math.ceil(remainingMs / 1000);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="relative" style={{ width: props.size, height: props.size }}>
+        <svg
+          width={props.size}
+          height={props.size}
+          className="transform -rotate-90"
+        >
+          {/* Background circle */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke="#e5e7eb"
+            strokeWidth={props.strokeWidth}
+          />
+          {/* Progress circle */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth={props.strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-none"
+          />
+        </svg>
+        <div
+          className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600"
+        >
+          {remainingSec}
+        </div>
+      </div>
+      <span className="text-[11px] text-gray-500 font-medium">{props.label}</span>
+    </div>
+  );
+};
+
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -56,6 +165,12 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
       props.dashboardViewConfig.components.length > 0,
   );
 
+  const isAutoRefreshActive: boolean =
+    props.autoRefreshInterval !== AutoRefreshInterval.OFF;
+  const autoRefreshMs: number | null = getAutoRefreshIntervalInMs(
+    props.autoRefreshInterval,
+  );
+
   return (
     <div className="mx-4 mt-4 mb-3">
       <div
@@ -66,7 +181,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         }}
       >
         {/* Main toolbar row */}
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-2.5">
           {/* Left: Icon + Title + Description */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -86,13 +201,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     Editing
                   </span>
                 )}
-                {props.isRefreshing &&
-                  props.autoRefreshInterval !== AutoRefreshInterval.OFF && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-blue-500">
-                      <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span>
-                      Refreshing
-                    </span>
-                  )}
               </div>
               {props.dashboardDescription && !isEditMode && (
                 <p className="text-xs text-gray-400 truncate mt-0.5 max-w-md">
@@ -102,8 +210,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             </div>
           </div>
 
-          {/* Right: Time range + Variables + Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Right: Time range + Auto-refresh + Variables + Actions */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Time range + variables (view mode only) */}
             {hasComponents && !isEditMode && (
               <>
@@ -116,7 +224,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                         variables={props.variables}
                         onVariableValueChange={props.onVariableValueChange}
                       />
-                      <div className="w-px h-4 bg-gray-200"></div>
+                      <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
                     </>
                   )}
 
@@ -126,152 +234,177 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     props.onStartAndEndDateChange(startAndEndDate);
                   }}
                 />
+
+                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+
+                {/* Auto-refresh section */}
+                <div className="flex items-center">
+                  {isAutoRefreshActive && autoRefreshMs ? (
+                    <div className="flex items-center gap-1.5 mr-1">
+                      <CountdownCircle
+                        durationMs={autoRefreshMs}
+                        size={24}
+                        strokeWidth={2}
+                        label={getAutoRefreshIntervalLabel(
+                          props.autoRefreshInterval,
+                        )}
+                        isRefreshing={props.isRefreshing || false}
+                      />
+                    </div>
+                  ) : null}
+
+                  <MoreMenu
+                    menuIcon={IconProp.Refresh}
+                    text={
+                      isAutoRefreshActive
+                        ? ""
+                        : ""
+                    }
+                  >
+                    {Object.values(AutoRefreshInterval).map(
+                      (interval: AutoRefreshInterval) => {
+                        const isSelected: boolean =
+                          interval === props.autoRefreshInterval;
+                        return (
+                          <MoreMenuItem
+                            key={interval}
+                            text={
+                              (isSelected ? "\u2713 " : "   ") +
+                              (interval === AutoRefreshInterval.OFF
+                                ? "Auto-refresh Off"
+                                : `Refresh every ${getAutoRefreshIntervalLabel(interval)}`)
+                            }
+                            icon={IconProp.Refresh}
+                            onClick={() => {
+                              props.onAutoRefreshIntervalChange(interval);
+                            }}
+                          />
+                        );
+                      },
+                    )}
+                  </MoreMenu>
+                </div>
+
+                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+
+                {/* Reset Zoom button */}
+                {props.canResetZoom && props.onResetZoom && (
+                  <>
+                    <Button
+                      icon={IconProp.Refresh}
+                      title="Reset Zoom"
+                      buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      onClick={props.onResetZoom}
+                      tooltip="Reset to original time range"
+                    />
+                    <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                  </>
+                )}
+
+                {/* More menu: Edit + Full Screen */}
+                <MoreMenu menuIcon={IconProp.More}>
+                  <MoreMenuItem
+                    text={"Edit Dashboard"}
+                    icon={IconProp.Pencil}
+                    key={"edit"}
+                    onClick={props.onEditClick}
+                  />
+                  <MoreMenuItem
+                    text={"Full Screen"}
+                    icon={IconProp.Expand}
+                    key={"fullscreen"}
+                    onClick={props.onFullScreenClick}
+                  />
+                </MoreMenu>
               </>
             )}
 
-            {/* Action buttons */}
-            {!isSaving && (
-              <>
-                {isEditMode ? (
-                  <div className="flex items-center gap-1">
-                    <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
-                      <MoreMenuItem
-                        text={"Chart"}
-                        icon={IconProp.ChartBar}
-                        key={"add-chart"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.Chart,
-                          );
-                        }}
-                      />
-                      <MoreMenuItem
-                        text={"Value"}
-                        icon={IconProp.Hashtag}
-                        key={"add-value"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.Value,
-                          );
-                        }}
-                      />
-                      <MoreMenuItem
-                        text={"Text"}
-                        icon={IconProp.Text}
-                        key={"add-text"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.Text,
-                          );
-                        }}
-                      />
-                      <MoreMenuItem
-                        text={"Table"}
-                        icon={IconProp.TableCells}
-                        key={"add-table"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.Table,
-                          );
-                        }}
-                      />
-                      <MoreMenuItem
-                        text={"Gauge"}
-                        icon={IconProp.Activity}
-                        key={"add-gauge"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.Gauge,
-                          );
-                        }}
-                      />
-                      <MoreMenuItem
-                        text={"Log Stream"}
-                        icon={IconProp.Logs}
-                        key={"add-log-stream"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.LogStream,
-                          );
-                        }}
-                      />
-                      <MoreMenuItem
-                        text={"Trace List"}
-                        icon={IconProp.QueueList}
-                        key={"add-trace-list"}
-                        onClick={() => {
-                          props.onAddComponentClick(
-                            DashboardComponentType.TraceList,
-                          );
-                        }}
-                      />
-                    </MoreMenu>
+            {/* Edit mode actions */}
+            {!isSaving && isEditMode && (
+              <div className="flex items-center gap-1">
+                <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
+                  <MoreMenuItem
+                    text={"Chart"}
+                    icon={IconProp.ChartBar}
+                    key={"add-chart"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Chart);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Value"}
+                    icon={IconProp.Hashtag}
+                    key={"add-value"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Value);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Text"}
+                    icon={IconProp.Text}
+                    key={"add-text"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Text);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Table"}
+                    icon={IconProp.TableCells}
+                    key={"add-table"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Table);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Gauge"}
+                    icon={IconProp.Activity}
+                    key={"add-gauge"}
+                    onClick={() => {
+                      props.onAddComponentClick(DashboardComponentType.Gauge);
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Log Stream"}
+                    icon={IconProp.Logs}
+                    key={"add-log-stream"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.LogStream,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Trace List"}
+                    icon={IconProp.QueueList}
+                    key={"add-trace-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.TraceList,
+                      );
+                    }}
+                  />
+                </MoreMenu>
 
-                    <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 
-                    <Button
-                      icon={IconProp.Check}
-                      title="Save"
-                      buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      onClick={props.onSaveClick}
-                    />
-                    <Button
-                      icon={IconProp.Close}
-                      title="Cancel"
-                      buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      onClick={() => {
-                        setShowCancelModal(true);
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-0.5">
-                    {/* Reset Zoom button */}
-                    {props.canResetZoom && props.onResetZoom && (
-                      <Button
-                        icon={IconProp.Refresh}
-                        title="Reset Zoom"
-                        buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                        buttonSize={ButtonSize.Small}
-                        onClick={props.onResetZoom}
-                        tooltip="Reset to original time range"
-                      />
-                    )}
-
-                    <MoreMenu menuIcon={IconProp.More}>
-                      <MoreMenuItem
-                        text={"Edit Dashboard"}
-                        icon={IconProp.Pencil}
-                        key={"edit"}
-                        onClick={props.onEditClick}
-                      />
-                      <MoreMenuItem
-                        text={"Full Screen"}
-                        icon={IconProp.Expand}
-                        key={"fullscreen"}
-                        onClick={props.onFullScreenClick}
-                      />
-                      {hasComponents &&
-                        Object.values(AutoRefreshInterval).map(
-                          (interval: AutoRefreshInterval) => {
-                            return (
-                              <MoreMenuItem
-                                key={interval}
-                                text={getAutoRefreshIntervalLabel(interval)}
-                                icon={IconProp.Refresh}
-                                onClick={() => {
-                                  props.onAutoRefreshIntervalChange(interval);
-                                }}
-                              />
-                            );
-                          },
-                        )}
-                    </MoreMenu>
-                  </div>
-                )}
-              </>
+                <Button
+                  icon={IconProp.Check}
+                  title="Save"
+                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={props.onSaveClick}
+                />
+                <Button
+                  icon={IconProp.Close}
+                  title="Cancel"
+                  buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    setShowCancelModal(true);
+                  }}
+                />
+              </div>
             )}
 
             {isSaving && (
