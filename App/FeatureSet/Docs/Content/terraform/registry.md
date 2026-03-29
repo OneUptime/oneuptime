@@ -68,7 +68,7 @@ Using a provider version that doesn't match your OneUptime installation can resu
 
 ### Method 2: API
 ```bash
-curl https://your-oneuptime-instance.com/api/status | jq '.version'
+curl https://your-oneuptime-instance.com/api/version | jq '.version'
 ```
 
 ### Method 3: Docker
