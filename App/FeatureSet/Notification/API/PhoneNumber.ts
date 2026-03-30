@@ -14,6 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import Permission from "Common/Types/Permission";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -33,6 +34,14 @@ router.post(
   "/search",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncomingCallPolicy,
+    ],
+  }),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -159,6 +168,14 @@ router.post(
   "/list-owned",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncomingCallPolicy,
+    ],
+  }),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -244,6 +261,14 @@ router.post(
   "/assign-existing",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncomingCallPolicy,
+    ],
+  }),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -394,6 +419,14 @@ router.post(
   "/purchase",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncomingCallPolicy,
+    ],
+  }),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -539,6 +572,14 @@ router.delete(
   "/release/:incomingCallPolicyId",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncomingCallPolicy,
+    ],
+  }),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const incomingCallPolicyId: ObjectID | undefined = req.params[

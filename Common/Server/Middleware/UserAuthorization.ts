@@ -26,8 +26,11 @@ import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
-import {
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import Permission, {
+  PermissionHelper,
   UserGlobalAccessPermission,
+  UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
@@ -358,6 +361,74 @@ export default class UserMiddleware {
     }
 
     return next();
+  }
+
+  public static requirePermission(data: {
+    permissions: Array<Permission>;
+  }): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+
+      // Master admins bypass permission checks
+      if (oneuptimeRequest.userType === UserType.MasterAdmin) {
+        return next();
+      }
+
+      const tenantId: ObjectID | undefined = oneuptimeRequest.tenantId;
+
+      if (!tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "Project ID is required to access this resource.",
+          ),
+        );
+      }
+
+      const userTenantPermission: UserTenantAccessPermission | undefined =
+        oneuptimeRequest.userTenantAccessPermission?.[tenantId.toString()];
+
+      if (!userTenantPermission) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "You do not have permission to access this project.",
+          ),
+        );
+      }
+
+      const userPermissions: Array<Permission> =
+        userTenantPermission.permissions.map(
+          (p: UserPermission) => p.permission,
+        );
+
+      if (
+        !PermissionHelper.doesPermissionsIntersect(
+          userPermissions,
+          data.permissions,
+        )
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "You do not have the required permission to perform this action.",
+          ),
+        );
+      }
+
+      return next();
+    };
   }
 
   @CaptureSpan()
