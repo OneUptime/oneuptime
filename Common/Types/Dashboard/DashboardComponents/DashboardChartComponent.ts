@@ -4,12 +4,6 @@ import DashboardComponentType from "../DashboardComponentType";
 import DashboardChartType from "../Chart/ChartType";
 import BaseComponent from "./DashboardBaseComponent";
 
-export interface ChartThreshold {
-  value: number;
-  label?: string | undefined;
-  color?: string | undefined;
-}
-
 export default interface DashboardChartComponent extends BaseComponent {
   componentType: DashboardComponentType.Chart;
   componentId: ObjectID;
@@ -19,7 +13,5 @@ export default interface DashboardChartComponent extends BaseComponent {
     chartTitle?: string | undefined;
     chartDescription?: string | undefined;
     chartType?: DashboardChartType | undefined;
-    warningThreshold?: number | undefined;
-    criticalThreshold?: number | undefined;
   };
 }

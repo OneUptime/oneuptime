@@ -23,13 +23,6 @@ const DisplaySection: ComponentArgumentSection = {
   defaultCollapsed: true,
 };
 
-const ThresholdsSection: ComponentArgumentSection = {
-  name: "Thresholds",
-  description: "Set warning and critical threshold lines",
-  order: 3,
-  defaultCollapsed: true,
-};
-
 export default class DashboardChartComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardChartComponent {
     return {
@@ -134,27 +127,6 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       type: ComponentInputType.LongText,
       id: "chartDescription",
       section: DisplaySection,
-    });
-
-
-    componentArguments.push({
-      name: "Warning Threshold",
-      description: "Yellow horizontal line at this value",
-      required: false,
-      type: ComponentInputType.Number,
-      id: "warningThreshold",
-      isAdvanced: true,
-      section: ThresholdsSection,
-    });
-
-    componentArguments.push({
-      name: "Critical Threshold",
-      description: "Red horizontal line at this value",
-      required: false,
-      type: ComponentInputType.Number,
-      id: "criticalThreshold",
-      isAdvanced: true,
-      section: ThresholdsSection,
     });
 
     return componentArguments;

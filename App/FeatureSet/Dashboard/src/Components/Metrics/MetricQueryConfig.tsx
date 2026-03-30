@@ -11,6 +11,7 @@ import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
@@ -34,22 +35,28 @@ export interface ComponentProps {
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const defaultAliasData: MetricAliasData = {
+    metricVariable: undefined,
+    title: undefined,
+    description: undefined,
+    legend: undefined,
+    legendUnit: undefined,
+  };
+
   const getContent: GetReactElementFunction = (): ReactElement => {
     return (
       <div>
-        {props.data?.metricAliasData && (
-          <MetricAlias
-            data={props.data?.metricAliasData || {}}
-            onDataChanged={(data: MetricAliasData) => {
-              props.onBlur?.();
-              props.onFocus?.();
-              if (props.onChange) {
-                props.onChange({ ...props.data, metricAliasData: data });
-              }
-            }}
-            isFormula={false}
-          />
-        )}
+        <MetricAlias
+          data={props.data?.metricAliasData || defaultAliasData}
+          onDataChanged={(data: MetricAliasData) => {
+            props.onBlur?.();
+            props.onFocus?.();
+            if (props.onChange) {
+              props.onChange({ ...props.data, metricAliasData: data });
+            }
+          }}
+          isFormula={false}
+        />
         {props.data?.metricQueryData && (
           <MetricQuery
             data={props.data?.metricQueryData || {}}
@@ -68,6 +75,42 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             onAttributesRetry={props.onAttributesRetry}
           />
         )}
+        <div className="flex space-x-3 mt-2">
+          <div className="w-1/2">
+            <Input
+              value={props.data?.warningThreshold?.toString() || ""}
+              type={InputType.NUMBER}
+              onChange={(value: string) => {
+                props.onBlur?.();
+                props.onFocus?.();
+                if (props.onChange) {
+                  props.onChange({
+                    ...props.data,
+                    warningThreshold: value ? Number(value) : undefined,
+                  });
+                }
+              }}
+              placeholder="Warning Threshold"
+            />
+          </div>
+          <div className="w-1/2">
+            <Input
+              value={props.data?.criticalThreshold?.toString() || ""}
+              type={InputType.NUMBER}
+              onChange={(value: string) => {
+                props.onBlur?.();
+                props.onFocus?.();
+                if (props.onChange) {
+                  props.onChange({
+                    ...props.data,
+                    criticalThreshold: value ? Number(value) : undefined,
+                  });
+                }
+              }}
+              placeholder="Critical Threshold"
+            />
+          </div>
+        </div>
         {props.onRemove && (
           <div className="-ml-3">
             <Button
