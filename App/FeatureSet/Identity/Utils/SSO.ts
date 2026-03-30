@@ -81,6 +81,12 @@ export default class SSOUtil {
       throw new BadRequestException("SAML Assertion not found");
     }
 
+    if (samlAssertion.length !== 1) {
+      throw new BadRequestException(
+        "Expected exactly one Assertion in SAML Response",
+      );
+    }
+
     const samlSubject: JSONArray =
       ((samlAssertion[0] as JSONObject)["saml2:Subject"] as JSONArray) ||
       ((samlAssertion[0] as JSONObject)["saml:Subject"] as JSONArray) ||
@@ -155,6 +161,10 @@ export default class SSOUtil {
       (payload["Assertion"] as JSONArray);
 
     if (!samlAssertion || samlAssertion.length === 0) {
+      return null;
+    }
+
+    if (samlAssertion.length !== 1) {
       return null;
     }
 
@@ -240,6 +250,12 @@ export default class SSOUtil {
 
     if (!samlAssertion || samlAssertion.length === 0) {
       throw new BadRequestException("SAML Assertion not found");
+    }
+
+    if (samlAssertion.length !== 1) {
+      throw new BadRequestException(
+        "Expected exactly one Assertion in SAML Response",
+      );
     }
 
     const samlSubject: JSONArray =
