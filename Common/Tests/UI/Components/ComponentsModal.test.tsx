@@ -85,7 +85,7 @@ describe("ComponentsModal", () => {
         categories={mockedCategories}
       />,
     );
-    expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search components...")).toBeInTheDocument();
   });
 
   it("should display categories and components", () => {
@@ -133,10 +133,10 @@ describe("ComponentsModal", () => {
     for (const [idx, comp] of mockedComponents.entries()) {
       // simulate selecting a component
       fireEvent.click(screen.getByText(comp.title));
-      expect(screen.getByText("Create")).not.toBeDisabled();
+      expect(screen.getByText("Add to Workflow")).not.toBeDisabled();
 
       // simulate submitting
-      fireEvent.click(screen.getByText("Create"));
+      fireEvent.click(screen.getByText("Add to Workflow"));
 
       // check if onComponentClick was called with the selected component's metadata
       expect(mockOnComponentClick).toHaveBeenNthCalledWith(idx + 1, comp);
@@ -155,7 +155,7 @@ describe("ComponentsModal", () => {
     );
     expect(
       screen.getByText(
-        "No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like. If you are an enterprise customer, feel free to talk to us and we will build it for you.",
+        "No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like.",
       ),
     ).toBeInTheDocument();
   });
@@ -185,12 +185,12 @@ describe("ComponentsModal", () => {
         categories={mockedCategories}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
       target: { value: "Non-existent Ccmponent" },
     });
     expect(
       screen.getByText(
-        "No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like. If you are an enterprise customer, feel free to talk to us and we will build it for you.",
+        "No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like.",
       ),
     ).toBeInTheDocument();
   });
@@ -205,7 +205,7 @@ describe("ComponentsModal", () => {
         categories={mockedCategories}
       />,
     );
-    const submitButton: HTMLElement = screen.getByText("Create");
+    const submitButton: HTMLElement = screen.getByText("Add to Workflow");
     expect(submitButton).toBeDisabled();
   });
 
@@ -221,7 +221,7 @@ describe("ComponentsModal", () => {
     );
     for (const comp of mockedComponents) {
       fireEvent.click(screen.getByText(comp.title));
-      const submitButton: HTMLElement = screen.getByText("Create");
+      const submitButton: HTMLElement = screen.getByText("Add to Workflow");
       expect(submitButton).not.toBeDisabled();
     }
   });
@@ -244,7 +244,7 @@ describe("ComponentsModal", () => {
         0,
         comp.title.length - comp.title.length / 2,
       );
-      fireEvent.change(screen.getByPlaceholderText("Search..."), {
+      fireEvent.change(screen.getByPlaceholderText("Search components..."), {
         target: { value: partialTitle },
       });
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -271,7 +271,7 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(screen.getByPlaceholderText("Search..."), {
+      fireEvent.change(screen.getByPlaceholderText("Search components..."), {
         target: { value: comp.description },
       });
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -298,7 +298,7 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(screen.getByPlaceholderText("Search..."), {
+      fireEvent.change(screen.getByPlaceholderText("Search components..."), {
         target: { value: comp.category },
       });
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -325,7 +325,7 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      const searchInput: HTMLElement = screen.getByPlaceholderText("Search...");
+      const searchInput: HTMLElement = screen.getByPlaceholderText("Search components...");
       fireEvent.change(searchInput, { target: { value: comp.title } });
       fireEvent.change(searchInput, { target: { value: "" } }); // clear search
 
@@ -358,7 +358,7 @@ describe("ComponentsModal", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
       target: { value: commonWord },
     });
     componentsWithCommonWord.forEach((comp: ComponentMetadata) => {
@@ -385,7 +385,7 @@ describe("ComponentsModal", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
       target: { value: partialDescription },
     });
     expect(
@@ -413,7 +413,7 @@ describe("ComponentsModal", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
       target: { value: commonCategory },
     });
     componentsInCommonCategory.forEach((comp: ComponentMetadata) => {
