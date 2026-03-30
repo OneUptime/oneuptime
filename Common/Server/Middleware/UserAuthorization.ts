@@ -337,6 +337,30 @@ export default class UserMiddleware {
   }
 
   @CaptureSpan()
+  public static async requireUserAuthentication(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+
+    if (
+      !oneuptimeRequest.userType ||
+      oneuptimeRequest.userType === UserType.Public
+    ) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new NotAuthenticatedException(
+          "Authentication required. Please log in to access this resource.",
+        ),
+      );
+    }
+
+    return next();
+  }
+
+  @CaptureSpan()
   public static async getUserTenantAccessPermissionWithTenantId(data: {
     req: ExpressRequest;
     tenantId: ObjectID;

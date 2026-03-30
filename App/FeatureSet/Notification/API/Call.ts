@@ -16,6 +16,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 
 const router: ExpressRouter = Express.getRouter();
@@ -60,6 +61,8 @@ router.post(
 
 router.post(
   "/test",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body;

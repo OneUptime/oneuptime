@@ -13,6 +13,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -30,6 +31,8 @@ const router: ExpressRouter = Express.getRouter();
 // Search available phone numbers
 router.post(
   "/search",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -154,6 +157,8 @@ router.post(
 // List owned phone numbers (already purchased in Twilio account)
 router.post(
   "/list-owned",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -237,6 +242,8 @@ router.post(
 // Assign an existing phone number to a policy
 router.post(
   "/assign-existing",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -385,6 +392,8 @@ router.post(
 // Purchase a phone number
 router.post(
   "/purchase",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -528,6 +537,8 @@ router.post(
 // Release a phone number
 router.delete(
   "/release/:incomingCallPolicyId",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const incomingCallPolicyId: ObjectID | undefined = req.params[

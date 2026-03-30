@@ -12,6 +12,7 @@ import {
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import WhatsAppAuthorization from "Common/Server/Middleware/WhatsAppAuthorization";
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
@@ -443,6 +444,8 @@ router.post(
 
 router.post(
   "/test",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
