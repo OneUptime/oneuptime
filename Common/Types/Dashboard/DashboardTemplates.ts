@@ -32,21 +32,21 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     type: DashboardTemplateType.Monitor,
     name: "Monitor Dashboard",
     description:
-      "Pre-configured with response time, uptime, and throughput widgets.",
+      "Response time, uptime, error rate, throughput charts, health gauges, and logs.",
     icon: IconProp.Heartbeat,
   },
   {
     type: DashboardTemplateType.Incident,
     name: "Incident Dashboard",
     description:
-      "Track active incidents, MTTR, MTTA, and view recent logs.",
+      "MTTR/MTTA gauges, incident trends, severity breakdown, duration tables, logs, and traces.",
     icon: IconProp.Alert,
   },
   {
     type: DashboardTemplateType.Kubernetes,
     name: "Kubernetes Dashboard",
     description:
-      "Monitor CPU, memory, pod count, and resource usage over time.",
+      "CPU/memory gauges, pod and node metrics, network I/O, restart trends, and cluster logs.",
     icon: IconProp.Kubernetes,
   },
 ];
@@ -169,8 +169,102 @@ function createLogStreamComponent(data: {
   };
 }
 
+function createGaugeComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  minValue?: number;
+  maxValue?: number;
+  warningThreshold?: number;
+  criticalThreshold?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.Gauge,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 3,
+    arguments: {
+      gaugeTitle: data.title,
+      minValue: data.minValue ?? 0,
+      maxValue: data.maxValue ?? 100,
+      warningThreshold: data.warningThreshold,
+      criticalThreshold: data.criticalThreshold,
+      metricQueryConfig: {
+        metricQueryData: {
+          filterData: {},
+          groupBy: undefined,
+        },
+      },
+    },
+  };
+}
+
+function createTableComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.Table,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      tableTitle: data.title,
+      maxRows: data.maxRows ?? 20,
+      metricQueryConfig: {
+        metricQueryData: {
+          filterData: {},
+          groupBy: undefined,
+        },
+      },
+    },
+  };
+}
+
+function createTraceListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.TraceList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
 function createMonitorDashboardConfig(): DashboardViewConfig {
   const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
     createTextComponent({
       text: "Monitor Dashboard",
       top: 0,
@@ -179,9 +273,24 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
       height: 1,
       isBold: true,
     }),
-    createValueComponent({ title: "Response Time", top: 1, left: 0, width: 4 }),
-    createValueComponent({ title: "Uptime %", top: 1, left: 4, width: 4 }),
-    createValueComponent({ title: "Error Rate", top: 1, left: 8, width: 4 }),
+
+    // Row 1: Key metric values
+    createValueComponent({
+      title: "Response Time",
+      top: 1,
+      left: 0,
+      width: 3,
+    }),
+    createValueComponent({ title: "Uptime %", top: 1, left: 3, width: 3 }),
+    createValueComponent({ title: "Error Rate", top: 1, left: 6, width: 3 }),
+    createValueComponent({
+      title: "Request Count",
+      top: 1,
+      left: 9,
+      width: 3,
+    }),
+
+    // Row 2-4: Charts row
     createChartComponent({
       title: "Response Time Over Time",
       chartType: DashboardChartType.Line,
@@ -198,47 +307,70 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 3,
     }),
-  ];
 
-  return {
-    _type: ObjectType.DashboardViewConfig,
-    components,
-    heightInDashboardUnits: Math.max(
-      DashboardSize.heightInDashboardUnits,
-      5,
-    ),
-  };
-}
-
-function createIncidentDashboardConfig(): DashboardViewConfig {
-  const components: Array<DashboardBaseComponent> = [
+    // Row 5: Section header
     createTextComponent({
-      text: "Incident Dashboard",
-      top: 0,
+      text: "Health & Errors",
+      top: 5,
       left: 0,
       width: 12,
       height: 1,
       isBold: true,
     }),
-    createValueComponent({
-      title: "Active Incidents",
-      top: 1,
+
+    // Row 6-8: Gauges and error chart
+    createGaugeComponent({
+      title: "Uptime",
+      top: 6,
       left: 0,
-      width: 4,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 99,
+      criticalThreshold: 95,
     }),
-    createValueComponent({ title: "MTTR", top: 1, left: 4, width: 4 }),
-    createValueComponent({ title: "MTTA", top: 1, left: 8, width: 4 }),
+    createGaugeComponent({
+      title: "Error Rate",
+      top: 6,
+      left: 3,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 5,
+      criticalThreshold: 10,
+    }),
     createChartComponent({
-      title: "Incidents Over Time",
-      chartType: DashboardChartType.Line,
-      top: 2,
+      title: "Error Rate Over Time",
+      chartType: DashboardChartType.Bar,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 9: Section header
+    createTextComponent({
+      text: "Details",
+      top: 9,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 10-12: Table and logs
+    createTableComponent({
+      title: "Monitors by Response Time",
+      top: 10,
       left: 0,
       width: 6,
       height: 3,
     }),
     createLogStreamComponent({
       title: "Recent Logs",
-      top: 2,
+      top: 10,
       left: 6,
       width: 6,
       height: 3,
@@ -250,13 +382,183 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
     components,
     heightInDashboardUnits: Math.max(
       DashboardSize.heightInDashboardUnits,
-      5,
+      13,
+    ),
+  };
+}
+
+function createIncidentDashboardConfig(): DashboardViewConfig {
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Incident Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 1: Key incident metrics
+    createValueComponent({
+      title: "Active Incidents",
+      top: 1,
+      left: 0,
+      width: 3,
+    }),
+    createValueComponent({ title: "MTTR", top: 1, left: 3, width: 3 }),
+    createValueComponent({ title: "MTTA", top: 1, left: 6, width: 3 }),
+    createValueComponent({
+      title: "Incident Count",
+      top: 1,
+      left: 9,
+      width: 3,
+    }),
+
+    // Row 2-4: Incident trends
+    createChartComponent({
+      title: "Incidents Over Time",
+      chartType: DashboardChartType.Bar,
+      top: 2,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createChartComponent({
+      title: "Incident Duration Over Time",
+      chartType: DashboardChartType.Line,
+      top: 2,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Response Performance",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 6-8: Gauges for MTTR/MTTA and resolution chart
+    createGaugeComponent({
+      title: "MTTR (minutes)",
+      top: 6,
+      left: 0,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 120,
+      warningThreshold: 60,
+      criticalThreshold: 90,
+    }),
+    createGaugeComponent({
+      title: "MTTA (minutes)",
+      top: 6,
+      left: 3,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 60,
+      warningThreshold: 15,
+      criticalThreshold: 30,
+    }),
+    createChartComponent({
+      title: "MTTR and MTTA Over Time",
+      chartType: DashboardChartType.Area,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 9: Section header
+    createTextComponent({
+      text: "Breakdown & Analysis",
+      top: 9,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 10-12: Severity breakdown and time in state
+    createChartComponent({
+      title: "Incidents by Severity",
+      chartType: DashboardChartType.Pie,
+      top: 10,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createChartComponent({
+      title: "Time in State",
+      chartType: DashboardChartType.StackedArea,
+      top: 10,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 13: Section header
+    createTextComponent({
+      text: "Incident Details",
+      top: 13,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 14-16: Table, traces, and logs
+    createTableComponent({
+      title: "Incidents by Duration",
+      top: 14,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createTableComponent({
+      title: "Postmortem Completion Time",
+      top: 14,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 17-19: Logs and traces
+    createLogStreamComponent({
+      title: "Recent Incident Logs",
+      top: 17,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createTraceListComponent({
+      title: "Recent Traces",
+      top: 17,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    heightInDashboardUnits: Math.max(
+      DashboardSize.heightInDashboardUnits,
+      20,
     ),
   };
 }
 
 function createKubernetesDashboardConfig(): DashboardViewConfig {
   const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
     createTextComponent({
       text: "Kubernetes Dashboard",
       top: 0,
@@ -265,14 +567,24 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       height: 1,
       isBold: true,
     }),
-    createValueComponent({ title: "CPU Usage", top: 1, left: 0, width: 4 }),
+
+    // Row 1: Key cluster metrics
+    createValueComponent({ title: "CPU Usage", top: 1, left: 0, width: 3 }),
     createValueComponent({
       title: "Memory Usage",
       top: 1,
-      left: 4,
-      width: 4,
+      left: 3,
+      width: 3,
     }),
-    createValueComponent({ title: "Pod Count", top: 1, left: 8, width: 4 }),
+    createValueComponent({ title: "Pod Count", top: 1, left: 6, width: 3 }),
+    createValueComponent({
+      title: "Node Count",
+      top: 1,
+      left: 9,
+      width: 3,
+    }),
+
+    // Row 2-4: Resource usage charts
     createChartComponent({
       title: "CPU Usage Over Time",
       chartType: DashboardChartType.Line,
@@ -289,6 +601,92 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 3,
     }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Resource Health",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 6-8: Gauges and pod chart
+    createGaugeComponent({
+      title: "CPU Utilization",
+      top: 6,
+      left: 0,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+    }),
+    createGaugeComponent({
+      title: "Memory Utilization",
+      top: 6,
+      left: 3,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+    }),
+    createChartComponent({
+      title: "Pod Count Over Time",
+      chartType: DashboardChartType.StackedArea,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 9: Section header
+    createTextComponent({
+      text: "Workload Details",
+      top: 9,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 10-12: Network, restarts, and table
+    createChartComponent({
+      title: "Network I/O",
+      chartType: DashboardChartType.Area,
+      top: 10,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createChartComponent({
+      title: "Pod Restarts Over Time",
+      chartType: DashboardChartType.Bar,
+      top: 10,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+
+    // Row 13-15: Table and logs
+    createTableComponent({
+      title: "Pods by Resource Usage",
+      top: 13,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createLogStreamComponent({
+      title: "Cluster Logs",
+      top: 13,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
   ];
 
   return {
@@ -296,7 +694,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     components,
     heightInDashboardUnits: Math.max(
       DashboardSize.heightInDashboardUnits,
-      5,
+      16,
     ),
   };
 }
