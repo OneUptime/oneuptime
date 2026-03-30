@@ -328,7 +328,18 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             buttonStyle={ButtonStyleType.OUTLINE}
             icon={IconProp.Add}
             onClick={() => {
+              const variableIndex: number = multiQueryConfigs.length + 1; // +1 because primary query is "a"
+              const variableLetter: string = String.fromCharCode(
+                97 + variableIndex,
+              ); // b, c, d, ...
               const newQuery: MetricQueryConfigData = {
+                metricAliasData: {
+                  metricVariable: variableLetter,
+                  title: undefined,
+                  description: undefined,
+                  legend: undefined,
+                  legendUnit: undefined,
+                },
                 metricQueryData: {
                   filterData: {},
                   groupBy: undefined,

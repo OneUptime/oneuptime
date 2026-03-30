@@ -44,6 +44,13 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       minWidthInDashboardUnits: 6,
       arguments: {
         metricQueryConfig: {
+          metricAliasData: {
+            metricVariable: "a",
+            title: undefined,
+            description: undefined,
+            legend: undefined,
+            legendUnit: undefined,
+          },
           metricQueryData: {
             filterData: {},
             groupBy: undefined,
@@ -129,23 +136,6 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       section: DisplaySection,
     });
 
-    componentArguments.push({
-      name: "Legend Text",
-      description: "Label shown in the chart legend",
-      required: false,
-      type: ComponentInputType.Text,
-      id: "legendText",
-      section: DisplaySection,
-    });
-
-    componentArguments.push({
-      name: "Legend Unit",
-      description: 'Unit suffix in the legend (e.g. "ms", "%")',
-      required: false,
-      type: ComponentInputType.Text,
-      id: "legendUnit",
-      section: DisplaySection,
-    });
 
     componentArguments.push({
       name: "Warning Threshold",

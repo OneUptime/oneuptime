@@ -18,8 +18,6 @@ export default interface DashboardChartComponent extends BaseComponent {
     metricQueryConfigs?: Array<MetricQueryConfigData> | undefined;
     chartTitle?: string | undefined;
     chartDescription?: string | undefined;
-    legendText?: string | undefined;
-    legendUnit?: string | undefined;
     chartType?: DashboardChartType | undefined;
     warningThreshold?: number | undefined;
     criticalThreshold?: number | undefined;

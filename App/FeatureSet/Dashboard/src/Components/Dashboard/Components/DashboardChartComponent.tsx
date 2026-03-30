@@ -201,35 +201,24 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const chartMetricViewData: MetricViewData = {
     queryConfigs: queryConfigs.map(
       (config: MetricQueryConfigData, index: number) => {
-        // For the first query, apply the chart-level title/description/legend
-        if (index === 0) {
-          return {
-            ...config,
-            metricAliasData: {
-              title:
-                config.metricAliasData?.title ||
-                props.component.arguments.chartTitle ||
-                undefined,
-              description:
-                config.metricAliasData?.description ||
-                props.component.arguments.chartDescription ||
-                undefined,
-              metricVariable:
-                config.metricAliasData?.metricVariable || undefined,
-              legend:
-                config.metricAliasData?.legend ||
-                props.component.arguments.legendText ||
-                undefined,
-              legendUnit:
-                config.metricAliasData?.legendUnit ||
-                props.component.arguments.legendUnit ||
-                undefined,
-            },
-            chartType: config.chartType || getMetricChartType(),
-          };
-        }
         return {
           ...config,
+          metricAliasData: {
+            metricVariable:
+              config.metricAliasData?.metricVariable || undefined,
+            title:
+              (index === 0
+                ? config.metricAliasData?.title ||
+                  props.component.arguments.chartTitle
+                : config.metricAliasData?.title) || undefined,
+            description:
+              (index === 0
+                ? config.metricAliasData?.description ||
+                  props.component.arguments.chartDescription
+                : config.metricAliasData?.description) || undefined,
+            legend: config.metricAliasData?.legend || undefined,
+            legendUnit: config.metricAliasData?.legendUnit || undefined,
+          },
           chartType: config.chartType || getMetricChartType(),
         };
       },

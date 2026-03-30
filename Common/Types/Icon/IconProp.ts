@@ -321,6 +321,7 @@ enum IconProp {
   UserIcon = "UserIcon",
   XCircle = "XCircle",
   Kubernetes = "Kubernetes",
+  Gauge = "Gauge",
 }
 
 export default IconProp;

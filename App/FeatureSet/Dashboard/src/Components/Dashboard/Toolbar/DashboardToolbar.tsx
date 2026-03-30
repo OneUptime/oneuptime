@@ -438,7 +438,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Gauge"}
-                    icon={IconProp.Activity}
+                    icon={IconProp.Gauge}
                     key={"add-gauge"}
                     onClick={() => {
                       props.onAddComponentClick(DashboardComponentType.Gauge);
@@ -456,7 +456,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                   <MoreMenuItem
                     text={"Trace List"}
-                    icon={IconProp.QueueList}
+                    icon={IconProp.Waterfall}
                     key={"add-trace-list"}
                     onClick={() => {
                       props.onAddComponentClick(

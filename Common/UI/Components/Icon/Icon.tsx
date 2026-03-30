@@ -2784,6 +2784,43 @@ const Icon: FunctionComponent<ComponentProps> = ({
         {spokes}
       </>,
     );
+  } else if (icon === IconProp.Gauge) {
+    // Gauge/speedometer icon — semicircular meter with needle
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 21c-4.97 0-9-4.03-9-9"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M5.636 7.636l1.414 1.414"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 5v2"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M18.364 7.636l-1.414 1.414"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 12l-3.5-3.5"
+        />
+        <circle cx="12" cy="12" r="1.5" />
+      </>,
+    );
   }
 
   return <></>;
