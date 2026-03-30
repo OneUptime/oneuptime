@@ -1113,7 +1113,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           props.singularName || model.singularName
         }`,
         buttonStyle: ButtonStyleType.NORMAL,
-        buttonSize: ButtonSize.Small,
+        buttonSize: ButtonSize.Normal,
         className: "",
         onClick: () => {
           setModalType(ModalType.Create);
