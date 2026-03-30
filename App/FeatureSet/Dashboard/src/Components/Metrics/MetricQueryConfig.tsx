@@ -64,6 +64,43 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               props.onBlur?.();
               props.onFocus?.();
               if (props.onChange) {
+                const selectedMetricName: string | undefined =
+                  data.filterData?.metricName?.toString();
+                const previousMetricName: string | undefined =
+                  props.data?.metricQueryData?.filterData?.metricName?.toString();
+
+                // If metric changed, prefill legend and unit from MetricType
+                if (
+                  selectedMetricName &&
+                  selectedMetricName !== previousMetricName
+                ) {
+                  const metricType: MetricType | undefined =
+                    props.metricTypes.find((m: MetricType) => {
+                      return m.name === selectedMetricName;
+                    });
+
+                  if (metricType) {
+                    const currentAlias: MetricAliasData =
+                      props.data.metricAliasData || defaultAliasData;
+
+                    props.onChange({
+                      ...props.data,
+                      metricQueryData: data,
+                      metricAliasData: {
+                        ...currentAlias,
+                        legend: currentAlias.legend || metricType.name || "",
+                        legendUnit:
+                          currentAlias.legendUnit || metricType.unit || "",
+                        description:
+                          currentAlias.description ||
+                          metricType.description ||
+                          "",
+                      },
+                    });
+                    return;
+                  }
+                }
+
                 props.onChange({ ...props.data, metricQueryData: data });
               }
             }}
