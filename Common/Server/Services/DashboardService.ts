@@ -55,9 +55,15 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    // make sure dashboard config is empty.
-    createBy.data.dashboardViewConfig =
-      DashboardViewConfigUtil.createDefaultDashboardViewConfig();
+    // use default empty config only if no template config was provided.
+    if (
+      !createBy.data.dashboardViewConfig ||
+      !createBy.data.dashboardViewConfig.components ||
+      createBy.data.dashboardViewConfig.components.length === 0
+    ) {
+      createBy.data.dashboardViewConfig =
+        DashboardViewConfigUtil.createDefaultDashboardViewConfig();
+    }
 
     return Promise.resolve({ createBy, carryForward: null });
   }

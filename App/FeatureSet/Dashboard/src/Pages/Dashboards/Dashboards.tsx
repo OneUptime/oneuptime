@@ -27,16 +27,19 @@ import {
 } from "Common/Types/Dashboard/DashboardTemplates";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import { JSONObject } from "Common/Types/JSON";
-import Card from "Common/UI/Components/Card/Card";
+import IconProp from "Common/Types/Icon/IconProp";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTemplate, setSelectedTemplate] =
     useState<DashboardTemplateType | null>(null);
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+  const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
 
   const handleTemplateClick: (type: DashboardTemplateType) => void =
     useCallback((type: DashboardTemplateType): void => {
       setSelectedTemplate(type);
+      setShowTemplateModal(false);
       setShowCreateForm(true);
     }, []);
 
@@ -56,28 +59,34 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         },
       ]}
     >
-      <Card
-        title="Create from Template"
-        description="Choose a template to quickly get started with a pre-configured dashboard."
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {DashboardTemplates.map(
-            (template: DashboardTemplate): ReactElement => {
-              return (
-                <DashboardTemplateCard
-                  key={template.type}
-                  title={template.name}
-                  description={template.description}
-                  icon={template.icon}
-                  onClick={() => {
-                    handleTemplateClick(template.type);
-                  }}
-                />
-              );
-            },
-          )}
-        </div>
-      </Card>
+      {showTemplateModal && (
+        <Modal
+          title="Create from Template"
+          description="Choose a template to quickly get started with a pre-configured dashboard."
+          onClose={() => {
+            setShowTemplateModal(false);
+          }}
+          modalWidth={ModalWidth.Large}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {DashboardTemplates.map(
+              (template: DashboardTemplate): ReactElement => {
+                return (
+                  <DashboardTemplateCard
+                    key={template.type}
+                    title={template.name}
+                    description={template.description}
+                    icon={template.icon}
+                    onClick={() => {
+                      handleTemplateClick(template.type);
+                    }}
+                  />
+                );
+              },
+            )}
+          </div>
+        </Modal>
+      )}
 
       <ModelTable<Dashboard>
         modelType={Dashboard}
@@ -92,6 +101,15 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Dashboards",
           description: "Here is a list of dashboards for this project.",
+          buttons: [
+            {
+              title: "Create from Template",
+              onClick: () => {
+                setShowTemplateModal(true);
+              },
+              icon: IconProp.Template,
+            },
+          ],
         }}
         showViewIdButton={true}
         noItemsMessage={"No dashboards found."}
