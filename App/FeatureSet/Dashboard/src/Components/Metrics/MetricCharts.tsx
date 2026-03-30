@@ -19,6 +19,8 @@ import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -39,7 +41,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       props.metricViewData.startAndEndDate?.startValue &&
       props.metricViewData.startAndEndDate?.endValue
     ) {
-      // if these are less than a day then we can use time
       const hourDifference: number = OneUptimeDate.getHoursBetweenTwoDates(
         props.metricViewData.startAndEndDate.startValue as Date,
         props.metricViewData.startAndEndDate.endValue as Date,
@@ -69,7 +70,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         continue;
       }
 
-      let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
+      let xAxisAggregationType: XAxisAggregateType =
+        XAxisAggregateType.Average;
 
       if (
         queryConfig.metricQueryData.filterData.aggegationType ===
@@ -112,10 +114,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         for (const item of props.metricResults[index]!.data) {
           const series: ChartSeries = queryConfig.getSeries(item);
           const seriesName: string = series.title;
-
-          //check if the series already exists if it does then add the data to the existing series
-
-          // if it does not exist then create a new series and add the data to it
 
           const existingSeries: SeriesPoint | undefined = chartSeries.find(
             (s: SeriesPoint) => {
@@ -170,6 +168,42 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         chartType = ChartType.AREA;
       }
 
+      // Resolve the unit for formatting
+      const metricType: MetricType | undefined = props.metricTypes.find(
+        (m: MetricType) => {
+          return (
+            m.name === queryConfig.metricQueryData.filterData.metricName
+          );
+        },
+      );
+      const unit: string =
+        queryConfig.metricAliasData?.legendUnit || metricType?.unit || "";
+
+      // Build reference lines from thresholds
+      const referenceLines: Array<ChartReferenceLineProps> = [];
+
+      if (
+        queryConfig.warningThreshold !== undefined &&
+        queryConfig.warningThreshold !== null
+      ) {
+        referenceLines.push({
+          value: queryConfig.warningThreshold,
+          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit)}`,
+          color: "#f59e0b", // amber
+        });
+      }
+
+      if (
+        queryConfig.criticalThreshold !== undefined &&
+        queryConfig.criticalThreshold !== null
+      ) {
+        referenceLines.push({
+          value: queryConfig.criticalThreshold,
+          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit)}`,
+          color: "#ef4444", // red
+        });
+      }
+
       const chart: Chart = {
         id: index.toString(),
         type: chartType,
@@ -197,8 +231,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             },
           },
           yAxis: {
-            // legend is the unit of the metric
-            legend: queryConfig.metricAliasData?.legendUnit || "",
+            legend: unit,
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
@@ -206,15 +239,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   return queryConfig.yAxisValueFormatter(value);
                 }
 
-                const metricType: MetricType | undefined =
-                  props.metricTypes.find((m: MetricType) => {
-                    return (
-                      m.name ===
-                      queryConfig.metricQueryData.filterData.metricName
-                    );
-                  });
-
-                return `${value} ${queryConfig.metricAliasData?.legendUnit || metricType?.unit || ""}`;
+                return ValueFormatter.formatValue(value, unit);
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",
@@ -223,6 +248,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
+          referenceLines:
+            referenceLines.length > 0 ? referenceLines : undefined,
         },
       };
 

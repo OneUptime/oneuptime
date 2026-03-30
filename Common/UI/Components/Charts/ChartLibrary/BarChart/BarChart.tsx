@@ -11,11 +11,13 @@ import {
   Label,
   BarChart as RechartsBarChart,
   Legend as RechartsLegend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
 import type { AxisDomain } from "recharts/types/util/types";
 
 import {
@@ -646,6 +648,7 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void;
   customTooltip?: React.ComponentType<TooltipProps>;
   syncid?: string | undefined;
+  referenceLines?: Array<ChartReferenceLineProps> | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -1010,6 +1013,32 @@ const BarChart: React.ForwardRefExoticComponent<
                 />
               );
             })}
+            {props.referenceLines?.map(
+              (
+                refLine: ChartReferenceLineProps,
+                refIndex: number,
+              ) => {
+                return (
+                  <ReferenceLine
+                    key={`ref-${refIndex}`}
+                    y={refLine.value}
+                    stroke={refLine.color}
+                    strokeDasharray={refLine.strokeDasharray || "4 4"}
+                    strokeWidth={1.5}
+                  >
+                    {refLine.label && (
+                      <Label
+                        value={refLine.label}
+                        position="insideTopRight"
+                        fill={refLine.color}
+                        fontSize={11}
+                        fontWeight={500}
+                      />
+                    )}
+                  </ReferenceLine>
+                );
+              },
+            )}
           </RechartsBarChart>
         </ResponsiveContainer>
       </div>

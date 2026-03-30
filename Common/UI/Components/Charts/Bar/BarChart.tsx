@@ -5,6 +5,7 @@ import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import DataPointUtil from "../Utils/DataPoint";
+import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 
 export interface ComponentProps {
   data: Array<SeriesPoint>;
@@ -12,6 +13,7 @@ export interface ComponentProps {
   yAxis: YAxis;
   sync: boolean;
   heightInPx?: number | undefined;
+  referenceLines?: Array<ChartReferenceLineProps> | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -70,6 +72,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       yAxisWidth={60}
       syncid={props.sync ? props.syncid : undefined}
       onValueChange={() => {}}
+      referenceLines={props.referenceLines}
     />
   );
 };

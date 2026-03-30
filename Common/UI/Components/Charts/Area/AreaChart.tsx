@@ -6,6 +6,7 @@ import YAxis from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import DataPointUtil from "../Utils/DataPoint";
+import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 
 export interface ComponentProps {
   data: Array<SeriesPoint>;
@@ -14,6 +15,7 @@ export interface ComponentProps {
   curve: ChartCurve;
   sync: boolean;
   heightInPx?: number | undefined;
+  referenceLines?: Array<ChartReferenceLineProps> | undefined;
 }
 
 export interface AreaInternalProps extends ComponentProps {
@@ -75,6 +77,7 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
       syncid={props.sync ? props.syncid : undefined}
       yAxisWidth={60}
       onValueChange={() => {}}
+      referenceLines={props.referenceLines}
     />
   );
 };

@@ -16,18 +16,29 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="space-y-3">
-        <div className="flex space-x-3 items-start">
-          {!props.isFormula && props.data.metricVariable && (
-            <div className="bg-indigo-500 h-9 rounded w-9 min-w-9 p-3 pt-2 mt-5 font-medium text-white text-center text-sm">
-              {props.data.metricVariable}
-            </div>
-          )}
-          {props.isFormula && (
-            <div className="bg-indigo-500 h-9 p-2 pt-2.5 rounded w-9 min-w-9 mt-5 font-bold text-white">
-              <Icon thick={ThickProp.Thick} icon={IconProp.ChevronRight} />
-            </div>
-          )}
-          <div className="flex-1">
+        {/* Variable badge row */}
+        {((!props.isFormula && props.data.metricVariable) ||
+          props.isFormula) && (
+          <div className="flex items-center space-x-2">
+            {!props.isFormula && props.data.metricVariable && (
+              <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-xs font-semibold text-white">
+                {props.data.metricVariable}
+              </div>
+            )}
+            {props.isFormula && (
+              <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-white">
+                <Icon thick={ThickProp.Thick} icon={IconProp.ChevronRight} />
+              </div>
+            )}
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              Display Settings
+            </span>
+          </div>
+        )}
+
+        {/* Title and Description */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Title
             </label>
@@ -40,10 +51,10 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                   title: value,
                 });
               }}
-              placeholder="Title..."
+              placeholder="Chart title..."
             />
           </div>
-          <div className="flex-1">
+          <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Description
             </label>
@@ -56,12 +67,14 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                   description: value,
                 });
               }}
-              placeholder="Description..."
+              placeholder="Chart description..."
             />
           </div>
         </div>
-        <div className="flex space-x-3">
-          <div className="flex-1">
+
+        {/* Legend and Unit */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Legend
             </label>
@@ -74,10 +87,10 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                   legend: value,
                 });
               }}
-              placeholder="Legend (e.g. Response Time)"
+              placeholder="e.g. Response Time"
             />
           </div>
-          <div className="w-1/3">
+          <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Unit
             </label>
@@ -90,7 +103,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                   legendUnit: value,
                 });
               }}
-              placeholder="Unit (e.g. ms)"
+              placeholder="e.g. bytes, ms, %"
             />
           </div>
         </div>

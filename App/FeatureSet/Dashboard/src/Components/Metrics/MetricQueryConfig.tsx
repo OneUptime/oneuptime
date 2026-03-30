@@ -45,18 +45,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
   const getContent: GetReactElementFunction = (): ReactElement => {
     return (
-      <div>
-        <MetricAlias
-          data={props.data?.metricAliasData || defaultAliasData}
-          onDataChanged={(data: MetricAliasData) => {
-            props.onBlur?.();
-            props.onFocus?.();
-            if (props.onChange) {
-              props.onChange({ ...props.data, metricAliasData: data });
-            }
-          }}
-          isFormula={false}
-        />
+      <div className="space-y-4">
+        {/* Metric query selection — always on top */}
         {props.data?.metricQueryData && (
           <MetricQuery
             data={props.data?.metricQueryData || {}}
@@ -69,7 +59,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 const previousMetricName: string | undefined =
                   props.data?.metricQueryData?.filterData?.metricName?.toString();
 
-                // If metric changed, prefill legend and unit from MetricType
+                // If metric changed, prefill all alias fields from MetricType
                 if (
                   selectedMetricName &&
                   selectedMetricName !== previousMetricName
@@ -88,13 +78,10 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                       metricQueryData: data,
                       metricAliasData: {
                         ...currentAlias,
-                        legend: currentAlias.legend || metricType.name || "",
-                        legendUnit:
-                          currentAlias.legendUnit || metricType.unit || "",
-                        description:
-                          currentAlias.description ||
-                          metricType.description ||
-                          "",
+                        title: metricType.name || "",
+                        description: metricType.description || "",
+                        legend: metricType.name || "",
+                        legendUnit: metricType.unit || "",
                       },
                     });
                     return;
@@ -112,7 +99,24 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             onAttributesRetry={props.onAttributesRetry}
           />
         )}
-        <div className="flex space-x-3 mt-3">
+
+        {/* Display settings — title, description, legend, unit */}
+        <div className="border-t border-gray-200 pt-3">
+          <MetricAlias
+            data={props.data?.metricAliasData || defaultAliasData}
+            onDataChanged={(data: MetricAliasData) => {
+              props.onBlur?.();
+              props.onFocus?.();
+              if (props.onChange) {
+                props.onChange({ ...props.data, metricAliasData: data });
+              }
+            }}
+            isFormula={false}
+          />
+        </div>
+
+        {/* Thresholds */}
+        <div className="flex space-x-3">
           <div className="flex-1">
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Warning Threshold
@@ -154,8 +158,10 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
+
+        {/* Remove button */}
         {props.onRemove && (
-          <div className="-ml-3">
+          <div>
             <Button
               title={"Remove"}
               onClick={() => {
