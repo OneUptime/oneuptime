@@ -84,6 +84,17 @@ spec:
 
 
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cleanup-service-account
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    appname: oneuptime
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
