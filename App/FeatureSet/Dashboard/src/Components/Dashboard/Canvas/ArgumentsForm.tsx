@@ -156,13 +156,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       componentProps: CustomElementProps,
     ) => {
       return (
-        <MetricQueryConfig
-          {...componentProps}
-          data={value[arg.id] as MetricQueryConfigData}
-          metricTypes={props.metrics.metricTypes}
-          telemetryAttributes={props.metrics.telemetryAttributes}
-          hideCard={true}
-        />
+        <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+          <div className="mb-2">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Query 1
+            </span>
+          </div>
+          <MetricQueryConfig
+            {...componentProps}
+            data={value[arg.id] as MetricQueryConfigData}
+            metricTypes={props.metrics.metricTypes}
+            telemetryAttributes={props.metrics.telemetryAttributes}
+            hideCard={true}
+          />
+        </div>
       );
     };
   };

@@ -75,8 +75,11 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             onAttributesRetry={props.onAttributesRetry}
           />
         )}
-        <div className="flex space-x-3 mt-2">
-          <div className="w-1/2">
+        <div className="flex space-x-3 mt-3">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Warning Threshold
+            </label>
             <Input
               value={props.data?.warningThreshold?.toString() || ""}
               type={InputType.NUMBER}
@@ -90,10 +93,13 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   });
                 }
               }}
-              placeholder="Warning Threshold"
+              placeholder="e.g. 80"
             />
           </div>
-          <div className="w-1/2">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Critical Threshold
+            </label>
             <Input
               value={props.data?.criticalThreshold?.toString() || ""}
               type={InputType.NUMBER}
@@ -107,7 +113,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   });
                 }
               }}
-              placeholder="Critical Threshold"
+              placeholder="e.g. 95"
             />
           </div>
         </div>
