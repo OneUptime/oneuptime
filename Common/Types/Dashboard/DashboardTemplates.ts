@@ -33,7 +33,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     name: "Monitor Dashboard",
     description:
       "Pre-configured with response time, uptime, and throughput widgets.",
-    icon: IconProp.Activity,
+    icon: IconProp.Heartbeat,
   },
   {
     type: DashboardTemplateType.Incident,
