@@ -221,13 +221,13 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
 
   const renderNode: (
     node: DiffFlamegraphNode,
-    parentMax: number,
+    _parentMax: number,
     depth: number,
     offsetFraction: number,
     widthFraction: number,
   ) => ReactElement | null = (
     node: DiffFlamegraphNode,
-    parentMax: number,
+    _parentMax: number,
     depth: number,
     offsetFraction: number,
     widthFraction: number,

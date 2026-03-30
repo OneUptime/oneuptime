@@ -795,11 +795,11 @@ router.post(
 
       const request: FlamegraphRequest = {
         projectId: databaseProps.tenantId,
-        profileId,
-        startTime,
-        endTime,
-        serviceIds,
-        profileType,
+        ...(profileId !== undefined && { profileId }),
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+        ...(serviceIds !== undefined && { serviceIds }),
+        ...(profileType !== undefined && { profileType }),
       };
 
       const flamegraph: ProfileFlamegraphNode =
@@ -869,10 +869,10 @@ router.post(
         projectId: databaseProps.tenantId,
         startTime,
         endTime,
-        serviceIds,
-        profileType,
-        limit,
-        sortBy,
+        ...(serviceIds !== undefined && { serviceIds }),
+        ...(profileType !== undefined && { profileType }),
+        ...(limit !== undefined && { limit }),
+        ...(sortBy !== undefined && { sortBy }),
       };
 
       const functions: Array<FunctionListItem> =
@@ -920,7 +920,7 @@ router.get(
       }
 
       // Fetch profile metadata
-      const profiles: Array<Profile> = (
+      const profiles: Array<Profile> =
         await ProfileService.findBy({
           query: {
             projectId: databaseProps.tenantId,
@@ -941,8 +941,7 @@ router.get(
           props: {
             isRoot: true,
           },
-        })
-      ).data;
+        });
 
       if (!profiles[0]) {
         return Response.sendErrorResponse(
@@ -955,7 +954,7 @@ router.get(
       const profile: Profile = profiles[0];
 
       // Fetch profile samples
-      const samplesResult: Array<ProfileSample> = (
+      const samplesResult: Array<ProfileSample> =
         await ProfileSampleService.findBy({
           query: {
             projectId: databaseProps.tenantId,
@@ -974,8 +973,7 @@ router.get(
           props: {
             isRoot: true,
           },
-        })
-      ).data;
+        });
 
       const pprofSamples: Array<PprofSample> = samplesResult.map(
         (sample: ProfileSample): PprofSample => {
@@ -1090,8 +1088,8 @@ router.post(
         baselineEndTime,
         comparisonStartTime,
         comparisonEndTime,
-        serviceIds,
-        profileType,
+        ...(serviceIds !== undefined && { serviceIds }),
+        ...(profileType !== undefined && { profileType }),
       };
 
       const diffFlamegraph: DiffFlamegraphNode =

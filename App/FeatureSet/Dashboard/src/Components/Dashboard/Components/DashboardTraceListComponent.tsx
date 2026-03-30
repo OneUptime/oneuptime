@@ -247,7 +247,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
               const durationNano: number =
                 (span.durationUnixNano as number) || 0;
               const startTime: Date | undefined = span.startTime
-                ? OneUptimeDate.fromString(span.startTime as string)
+                ? OneUptimeDate.fromString(span.startTime as unknown as string)
                 : undefined;
 
               return (

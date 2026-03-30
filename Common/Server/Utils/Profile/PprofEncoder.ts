@@ -208,11 +208,11 @@ export default class PprofEncoder {
     profile: PprofProfile,
   ): Promise<Buffer> {
     const pprofData: PprofProto = PprofEncoder.encode(profile);
-    const jsonBytes: Buffer = Buffer.from(JSON.stringify(pprofData), "utf-8");
+    const jsonString: string = JSON.stringify(pprofData);
 
     return new Promise<Buffer>(
       (resolve: (value: Buffer) => void, reject: (reason: Error) => void) => {
-        zlib.gzip(jsonBytes, (err: Error | null, result: Buffer) => {
+        zlib.gzip(jsonString, (err: Error | null, result: Buffer) => {
           if (err) {
             reject(err);
           } else {

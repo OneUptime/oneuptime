@@ -143,6 +143,7 @@ RunCron(
         | TraceMonitorResponse
         | MetricMonitorResponse
         | ExceptionMonitorResponse
+        | ProfileMonitorResponse
       >
     > = [];
 
@@ -179,6 +180,7 @@ RunCron(
       | TraceMonitorResponse
       | MetricMonitorResponse
       | ExceptionMonitorResponse
+      | ProfileMonitorResponse
     > = await Promise.all(monitorResponses);
 
     for (const response of responses) {
@@ -197,6 +199,7 @@ type MonitorTelemetryMonitorFunction = (data: {
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
+  | ProfileMonitorResponse
 >;
 
 const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
@@ -209,6 +212,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
+  | ProfileMonitorResponse
 > => {
   const { monitorStep, monitorType, monitorId, projectId } = data;
 

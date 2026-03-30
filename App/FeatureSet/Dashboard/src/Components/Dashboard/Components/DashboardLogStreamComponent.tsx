@@ -233,7 +233,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
             const colors: SeverityColor = getSeverityColor(severity);
             const body: string = (log.body as string) || "";
             const time: Date | undefined = log.time
-              ? OneUptimeDate.fromString(log.time as string)
+              ? OneUptimeDate.fromString(log.time as unknown as string)
               : undefined;
 
             return (
