@@ -68,14 +68,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
         gridTemplateColumns: `repeat(${width}, 1fr)`,
         gap: `${gap}px`,
         gridAutoRows: `${unitSize}px`,
-        ...(props.isEditMode
-          ? {
-              backgroundImage:
-                "linear-gradient(to right, rgba(203, 213, 225, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(203, 213, 225, 0.3) 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-              borderRadius: "16px",
-            }
-          : {}),
+        borderRadius: "16px",
       }}
     >
       {Array.from(Array(height).keys()).map((_: number, index: number) => {

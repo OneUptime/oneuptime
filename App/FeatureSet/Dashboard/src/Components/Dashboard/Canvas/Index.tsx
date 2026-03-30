@@ -147,17 +147,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           gap: `${gap}px`,
           gridAutoRows: `${unitSize}px`,
           borderRadius: "16px",
-          ...(props.isEditMode
-            ? {
-                backgroundImage:
-                  "radial-gradient(circle, rgba(148, 163, 184, 0.3) 0.8px, transparent 0.8px)",
-                backgroundSize: "20px 20px",
-                padding: "8px",
-                border: "1px dashed rgba(148, 163, 184, 0.25)",
-              }
-            : {
-                padding: "8px",
-              }),
+          padding: "8px",
         }}
       >
         {finalRenderedComponents}
