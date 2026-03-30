@@ -29,18 +29,22 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-  // Resolve query configs - support both single and multi-query
+  // Resolve query configs - combine primary query with additional queries
   const resolveQueryConfigs: () => Array<MetricQueryConfigData> = () => {
+    const configs: Array<MetricQueryConfigData> = [];
+
+    if (props.component.arguments.metricQueryConfig) {
+      configs.push(props.component.arguments.metricQueryConfig);
+    }
+
     if (
       props.component.arguments.metricQueryConfigs &&
       props.component.arguments.metricQueryConfigs.length > 0
     ) {
-      return props.component.arguments.metricQueryConfigs;
+      configs.push(...props.component.arguments.metricQueryConfigs);
     }
-    if (props.component.arguments.metricQueryConfig) {
-      return [props.component.arguments.metricQueryConfig];
-    }
-    return [];
+
+    return configs;
   };
 
   const queryConfigs: Array<MetricQueryConfigData> = resolveQueryConfigs();
