@@ -63,7 +63,7 @@ interface MetricConfig {
   legendUnit?: string;
 }
 
-function buildMetricQueryConfig(config: MetricConfig): object {
+function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
   return {
     metricAliasData: {
       metricVariable: "a",
@@ -82,7 +82,7 @@ function buildMetricQueryConfig(config: MetricConfig): object {
   };
 }
 
-function buildMetricQueryData(config: MetricConfig): object {
+function buildMetricQueryData(config: MetricConfig): Record<string, unknown> {
   return {
     metricQueryData: {
       filterData: {
@@ -497,10 +497,7 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
-    heightInDashboardUnits: Math.max(
-      DashboardSize.heightInDashboardUnits,
-      13,
-    ),
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 13),
   };
 }
 
@@ -739,10 +736,7 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
-    heightInDashboardUnits: Math.max(
-      DashboardSize.heightInDashboardUnits,
-      20,
-    ),
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 20),
   };
 }
 
@@ -950,10 +944,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
-    heightInDashboardUnits: Math.max(
-      DashboardSize.heightInDashboardUnits,
-      16,
-    ),
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 16),
   };
 }
 

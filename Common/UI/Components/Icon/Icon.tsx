@@ -2803,11 +2803,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
           strokeLinejoin="round"
           d="M5.636 7.636l1.414 1.414"
         />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 5v2"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v2" />
         <path
           strokeLinecap="round"
           strokeLinejoin="round"

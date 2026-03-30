@@ -108,9 +108,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
 
-  const [telemetryAttributes, setTelemetryAttributes] = useState<
-    Array<string>
-  >([]);
+  const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
+    [],
+  );
   const [telemetryAttributesLoaded, setTelemetryAttributesLoaded] =
     useState<boolean>(false);
   const [telemetryAttributesLoading, setTelemetryAttributesLoading] =
@@ -456,9 +456,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         {!isMetricResultsLoading && !metricResultsError && (
           <div
-            className={
-              props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4"
-            }
+            className={props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4"}
           >
             <MetricCharts
               hideCard={props.hideCardInCharts}

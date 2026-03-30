@@ -1014,10 +1014,7 @@ const BarChart: React.ForwardRefExoticComponent<
               );
             })}
             {props.referenceLines?.map(
-              (
-                refLine: ChartReferenceLineProps,
-                refIndex: number,
-              ) => {
+              (refLine: ChartReferenceLineProps, refIndex: number) => {
                 return (
                   <ReferenceLine
                     key={`ref-${refIndex}`}

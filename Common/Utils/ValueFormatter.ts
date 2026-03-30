@@ -1,5 +1,7 @@
-// Human-friendly value formatting for metric units.
-// Converts raw values like 1048576 bytes → "1 MB", 3661 seconds → "1.02 hr", etc.
+/*
+ * Human-friendly value formatting for metric units.
+ * Converts raw values like 1048576 bytes → "1 MB", 3661 seconds → "1.02 hr", etc.
+ */
 
 export interface FormattedValue {
   value: string; // e.g. "1.5"
@@ -135,10 +137,12 @@ function formatNumber(value: number): string {
 }
 
 export default class ValueFormatter {
-  // Format a value with a unit into a human-friendly string.
-  // e.g. formatValue(1048576, "bytes") → "1 MB"
-  // e.g. formatValue(3661, "seconds") → "1.02 hr"
-  // e.g. formatValue(42, "%") → "42 %"  (passthrough for unknown units)
+  /*
+   * Format a value with a unit into a human-friendly string.
+   * e.g. formatValue(1048576, "bytes") → "1 MB"
+   * e.g. formatValue(3661, "seconds") → "1.02 hr"
+   * e.g. formatValue(42, "%") → "42 %"  (passthrough for unknown units)
+   */
   public static formatValue(value: number, unit: string): string {
     if (!unit || unit.trim() === "") {
       return formatNumber(value);

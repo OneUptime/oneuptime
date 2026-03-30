@@ -182,9 +182,9 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   const numberOfCharts: number = queryConfigs.length || 1;
   // Account for widget-level header and per-chart overhead (title + legend + padding)
-  const hasWidgetHeader: boolean = !!(
+  const hasWidgetHeader: boolean = Boolean(
     props.component.arguments.chartTitle ||
-    props.component.arguments.chartDescription
+      props.component.arguments.chartDescription,
   );
   const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
   // Each chart section: pt-5(20) + title(20) + legend(24) + pb-4(16) = ~80px overhead
@@ -215,22 +215,19 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   const chartMetricViewData: MetricViewData = {
-    queryConfigs: queryConfigs.map(
-      (config: MetricQueryConfigData) => {
-        return {
-          ...config,
-          metricAliasData: {
-            metricVariable:
-              config.metricAliasData?.metricVariable || undefined,
-            title: config.metricAliasData?.title || undefined,
-            description: config.metricAliasData?.description || undefined,
-            legend: config.metricAliasData?.legend || undefined,
-            legendUnit: config.metricAliasData?.legendUnit || undefined,
-          },
-          chartType: config.chartType || getMetricChartType(),
-        };
-      },
-    ),
+    queryConfigs: queryConfigs.map((config: MetricQueryConfigData) => {
+      return {
+        ...config,
+        metricAliasData: {
+          metricVariable: config.metricAliasData?.metricVariable || undefined,
+          title: config.metricAliasData?.title || undefined,
+          description: config.metricAliasData?.description || undefined,
+          legend: config.metricAliasData?.legend || undefined,
+          legendUnit: config.metricAliasData?.legendUnit || undefined,
+        },
+        chartType: config.chartType || getMetricChartType(),
+      };
+    }),
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),

@@ -7,7 +7,6 @@ import React, {
   useState,
 } from "react";
 import DashboardCanvas from "../../Components/DashboardCanvas";
-import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import DashboardViewConfig, {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
@@ -370,19 +369,21 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           onDashboardViewConfigChange={(_config: DashboardViewConfig) => {
             // Read-only in public view
           }}
-          dashboardMode={DashboardMode.View}
+          isEditMode={false}
           selectedComponentId={null}
-          onComponentSelected={(_id: ObjectID | null) => {
+          onComponentSelected={(_id: ObjectID) => {
             // No selection in public view
           }}
-          dashboardTotalWidth={dashboardTotalWidth}
-          startAndEndDate={startAndEndDate}
-          onStartAndEndDateChange={(newRange: RangeStartAndEndDateTime) => {
-            setTimeRangeStack([...timeRangeStack, startAndEndDate]);
-            setStartAndEndDate(newRange);
+          onComponentUnselected={() => {
+            // No unselection in public view
+          }}
+          currentTotalDashboardWidthInPx={dashboardTotalWidth}
+          dashboardStartAndEndDate={startAndEndDate}
+          metrics={{
+            metricTypes: [],
+            telemetryAttributes: [],
           }}
           refreshTick={refreshTick}
-          dashboardVariables={dashboardVariables}
         />
       </div>
 

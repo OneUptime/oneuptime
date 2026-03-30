@@ -17,18 +17,19 @@ const DashboardVariableSelector: FunctionComponent<ComponentProps> = (
             <label className="text-xs font-medium text-gray-500">
               {variable.name}:
             </label>
-            {variable.options && variable.options.length > 0 ? (
+            {variable.customListValues ? (
               <select
                 className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700"
-                value={variable.currentValue || variable.defaultValue || ""}
+                value={variable.selectedValue || variable.defaultValue || ""}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  props.onVariableValueChange(variable.id!, e.target.value);
+                  props.onVariableValueChange(variable.id, e.target.value);
                 }}
               >
-                {variable.options.map((option: string) => {
+                {variable.customListValues.split(",").map((option: string) => {
+                  const trimmedOption: string = option.trim();
                   return (
-                    <option key={option} value={option}>
-                      {option}
+                    <option key={trimmedOption} value={trimmedOption}>
+                      {trimmedOption}
                     </option>
                   );
                 })}
@@ -37,9 +38,9 @@ const DashboardVariableSelector: FunctionComponent<ComponentProps> = (
               <input
                 type="text"
                 className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 w-24"
-                value={variable.currentValue || variable.defaultValue || ""}
+                value={variable.selectedValue || variable.defaultValue || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  props.onVariableValueChange(variable.id!, e.target.value);
+                  props.onVariableValueChange(variable.id, e.target.value);
                 }}
               />
             )}

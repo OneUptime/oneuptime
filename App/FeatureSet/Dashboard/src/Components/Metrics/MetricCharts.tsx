@@ -70,8 +70,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         continue;
       }
 
-      let xAxisAggregationType: XAxisAggregateType =
-        XAxisAggregateType.Average;
+      let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
 
       if (
         queryConfig.metricQueryData.filterData.aggegationType ===
@@ -171,9 +170,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       // Resolve the unit for formatting
       const metricType: MetricType | undefined = props.metricTypes.find(
         (m: MetricType) => {
-          return (
-            m.name === queryConfig.metricQueryData.filterData.metricName
-          );
+          return m.name === queryConfig.metricQueryData.filterData.metricName;
         },
       );
       const unit: string =

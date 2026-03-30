@@ -60,7 +60,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         },
       ]}
     >
-      {showTemplateModal && (
+      {showTemplateModal ? (
         <Modal
           title="Create from Template"
           description="Choose a template to quickly get started with a pre-configured dashboard."
@@ -87,6 +87,8 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )}
           </div>
         </Modal>
+      ) : (
+        <></>
       )}
 
       <ModelTable<Dashboard>
@@ -138,8 +140,14 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "Description",
           },
         ]}
-        onBeforeCreate={async (item: Dashboard, _miscDataProps: JSONObject): Promise<Dashboard> => {
-          if (selectedTemplate && selectedTemplate !== DashboardTemplateType.Blank) {
+        onBeforeCreate={async (
+          item: Dashboard,
+          _miscDataProps: JSONObject,
+        ): Promise<Dashboard> => {
+          if (
+            selectedTemplate &&
+            selectedTemplate !== DashboardTemplateType.Blank
+          ) {
             const templateConfig: DashboardViewConfig | null =
               getTemplateConfig(selectedTemplate);
             if (templateConfig) {

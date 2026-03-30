@@ -63,9 +63,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
     "Avg";
 
   // Remove a single attribute filter
-  const handleRemoveAttribute: (key: string) => void = (
-    key: string,
-  ): void => {
+  const handleRemoveAttribute: (key: string) => void = (key: string): void => {
     if (!attributes) {
       return;
     }
@@ -187,51 +185,52 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const getAttributeChips: () => ReactElement | null = (): ReactElement | null => {
-    if (!attributes || activeAttributeCount === 0) {
-      return null;
-    }
+  const getAttributeChips: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!attributes || activeAttributeCount === 0) {
+        return null;
+      }
 
-    return (
-      <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
-        <span className="text-xs text-gray-400 font-medium mr-1">
-          Filtered by:
-        </span>
-        {Object.entries(attributes).map(
-          ([key, value]: [string, string | number | boolean]) => {
-            return (
-              <span
-                key={key}
-                className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
-              >
-                <span className="font-medium text-indigo-500">{key}:</span>
-                <span>{String(value)}</span>
-                <button
-                  type="button"
-                  className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
-                  onClick={() => {
-                    handleRemoveAttribute(key);
-                  }}
-                  title={`Remove ${key}: ${String(value)}`}
+      return (
+        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
+          <span className="text-xs text-gray-400 font-medium mr-1">
+            Filtered by:
+          </span>
+          {Object.entries(attributes).map(
+            ([key, value]: [string, string | number | boolean]) => {
+              return (
+                <span
+                  key={key}
+                  className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
                 >
-                  <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
-                </button>
-              </span>
-            );
-          },
-        )}
-        {activeAttributeCount > 1 && (
-          <button
-            type="button"
-            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-            onClick={handleClearAllAttributes}
-          >
-            Clear all
-          </button>
-        )}
-      </div>
-    );
-  };
+                  <span className="font-medium text-indigo-500">{key}:</span>
+                  <span>{String(value)}</span>
+                  <button
+                    type="button"
+                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
+                    onClick={() => {
+                      handleRemoveAttribute(key);
+                    }}
+                    title={`Remove ${key}: ${String(value)}`}
+                  >
+                    <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              );
+            },
+          )}
+          {activeAttributeCount > 1 && (
+            <button
+              type="button"
+              className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              onClick={handleClearAllAttributes}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      );
+    };
 
   const getContent: () => ReactElement = (): ReactElement => {
     return (
@@ -352,9 +351,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                         Warning Threshold
                       </label>
                       <Input
-                        value={
-                          props.data?.warningThreshold?.toString() || ""
-                        }
+                        value={props.data?.warningThreshold?.toString() || ""}
                         type={InputType.NUMBER}
                         onChange={(value: string) => {
                           props.onBlur?.();
@@ -376,9 +373,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                         Critical Threshold
                       </label>
                       <Input
-                        value={
-                          props.data?.criticalThreshold?.toString() || ""
-                        }
+                        value={props.data?.criticalThreshold?.toString() || ""}
                         type={InputType.NUMBER}
                         onChange={(value: string) => {
                           props.onBlur?.();
