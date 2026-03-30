@@ -85,7 +85,9 @@ describe("ComponentsModal", () => {
         categories={mockedCategories}
       />,
     );
-    expect(screen.getByPlaceholderText("Search components...")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Search components..."),
+    ).toBeInTheDocument();
   });
 
   it("should display categories and components", () => {
@@ -325,7 +327,9 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      const searchInput: HTMLElement = screen.getByPlaceholderText("Search components...");
+      const searchInput: HTMLElement = screen.getByPlaceholderText(
+        "Search components...",
+      );
       fireEvent.change(searchInput, { target: { value: comp.title } });
       fireEvent.change(searchInput, { target: { value: "" } }); // clear search
 

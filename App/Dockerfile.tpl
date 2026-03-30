@@ -72,6 +72,10 @@ WORKDIR /usr/src/app/FeatureSet/StatusPage
 COPY ./App/FeatureSet/StatusPage/package*.json /usr/src/app/FeatureSet/StatusPage/
 RUN npm install
 
+WORKDIR /usr/src/app/FeatureSet/PublicDashboard
+COPY ./App/FeatureSet/PublicDashboard/package*.json /usr/src/app/FeatureSet/PublicDashboard/
+RUN npm install
+
 WORKDIR /usr/src/app
 
 # Expose ports.
@@ -89,6 +93,7 @@ COPY ./App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
 COPY ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
 COPY ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
 COPY ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
+COPY ./App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
 # Bundle frontend source
 RUN npm run build-frontends:prod
 # Bundle app source
