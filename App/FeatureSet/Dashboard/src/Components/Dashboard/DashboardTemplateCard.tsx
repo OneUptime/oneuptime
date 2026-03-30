@@ -24,12 +24,10 @@ const DashboardTemplateCard: FunctionComponent<ComponentProps> = (
         }
       }}
     >
-      <div className="flex items-center mb-2">
-        <div className="flex-shrink-0 mr-3 text-indigo-500">
-          <Icon icon={props.icon} size={SizeProp.Large} />
-        </div>
-        <h3 className="text-sm font-semibold text-gray-900">{props.title}</h3>
+      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 mb-3">
+        <Icon icon={props.icon} size={SizeProp.Large} className="text-indigo-500 h-5 w-5" />
       </div>
+      <h3 className="text-sm font-semibold text-gray-900 mb-1">{props.title}</h3>
       <p className="text-xs text-gray-500 leading-relaxed">
         {props.description}
       </p>
