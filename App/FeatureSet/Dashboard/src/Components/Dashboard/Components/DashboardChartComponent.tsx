@@ -180,8 +180,9 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const numberOfCharts: number = queryConfigs.length || 1;
   let heightOfChart: number | undefined =
-    (props.dashboardComponentHeightInPx || 0) - 100;
+    ((props.dashboardComponentHeightInPx || 0) - 100) / numberOfCharts;
 
   if (heightOfChart < 0) {
     heightOfChart = undefined;
@@ -235,7 +236,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="w-full h-full overflow-hidden"
+      className="w-full h-full overflow-auto"
       style={{
         opacity: isLoading ? 0.5 : 1,
         transition: "opacity 0.2s ease-in-out",
