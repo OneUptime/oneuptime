@@ -1112,7 +1112,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         title: `${props.createVerb || "Create"} ${
           props.singularName || model.singularName
         }`,
-        buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+        buttonStyle: ButtonStyleType.NORMAL,
         buttonSize: ButtonSize.Small,
         className: "",
         onClick: () => {
