@@ -367,37 +367,39 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     tooltip="Reset to original time range"
                   />
                 )}
-
-                {/* More menu: Edit + Full Screen */}
-                <MoreMenu
-                  menuIcon={IconProp.EllipsisHorizontal}
-                  elementToBeShownInsteadOfButton={
-                    <button
-                      type="button"
-                      className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
-                      title="More options"
-                    >
-                      <Icon
-                        icon={IconProp.EllipsisHorizontal}
-                        className="w-4 h-4 text-gray-500"
-                      />
-                    </button>
-                  }
-                >
-                  <MoreMenuItem
-                    text={"Edit Dashboard"}
-                    icon={IconProp.Pencil}
-                    key={"edit"}
-                    onClick={props.onEditClick}
-                  />
-                  <MoreMenuItem
-                    text={"Full Screen"}
-                    icon={IconProp.Expand}
-                    key={"fullscreen"}
-                    onClick={props.onFullScreenClick}
-                  />
-                </MoreMenu>
               </>
+            )}
+
+            {/* More menu: Edit + Full Screen (always visible in view mode) */}
+            {!isEditMode && (
+              <MoreMenu
+                menuIcon={IconProp.EllipsisHorizontal}
+                elementToBeShownInsteadOfButton={
+                  <button
+                    type="button"
+                    className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="More options"
+                  >
+                    <Icon
+                      icon={IconProp.EllipsisHorizontal}
+                      className="w-4 h-4 text-gray-500"
+                    />
+                  </button>
+                }
+              >
+                <MoreMenuItem
+                  text={"Edit Dashboard"}
+                  icon={IconProp.Pencil}
+                  key={"edit"}
+                  onClick={props.onEditClick}
+                />
+                <MoreMenuItem
+                  text={"Full Screen"}
+                  icon={IconProp.Expand}
+                  key={"fullscreen"}
+                  onClick={props.onFullScreenClick}
+                />
+              </MoreMenu>
             )}
 
             {/* Edit mode actions */}

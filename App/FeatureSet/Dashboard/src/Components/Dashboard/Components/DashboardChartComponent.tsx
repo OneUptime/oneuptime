@@ -239,7 +239,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="w-full h-full overflow-auto"
+      className="w-full h-full overflow-hidden flex flex-col"
       style={{
         opacity: isLoading ? 0.5 : 1,
         transition: "opacity 0.2s ease-in-out",
@@ -247,7 +247,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     >
       {(props.component.arguments.chartTitle ||
         props.component.arguments.chartDescription) && (
-        <div className="px-2 pt-2 pb-1">
+        <div className="px-2 pt-2 pb-1 flex-shrink-0">
           {props.component.arguments.chartTitle && (
             <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
               {props.component.arguments.chartTitle}
@@ -260,13 +260,15 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
-      <MetricCharts
-        metricResults={metricResults}
-        metricTypes={props.metricTypes}
-        metricViewData={chartMetricViewData}
-        hideCard={true}
-        heightInPx={heightOfChart}
-      />
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <MetricCharts
+          metricResults={metricResults}
+          metricTypes={props.metricTypes}
+          metricViewData={chartMetricViewData}
+          hideCard={true}
+          heightInPx={heightOfChart}
+        />
+      </div>
     </div>
   );
 };
