@@ -204,7 +204,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
     buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE
   ) {
-    buttonStyleCssClass = `flex border border-gray-300 rounded background-very-light-Gray500-on-hover md:text-sm ml-1`;
+    buttonStyleCssClass = `flex btn-outline-secondary background-very-light-Gray500-on-hover md:text-sm ml-1`;
 
     if (buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE) {
       buttonStyleCssClass += ` hover:text-red-500`;
