@@ -181,10 +181,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   const numberOfCharts: number = queryConfigs.length || 1;
+  // Each chart section in ChartGroup has ~60px overhead for title + padding
+  const perChartOverhead: number = 60;
   let heightOfChart: number | undefined =
-    ((props.dashboardComponentHeightInPx || 0) - 100) / numberOfCharts;
+    ((props.dashboardComponentHeightInPx || 0) -
+      numberOfCharts * perChartOverhead) /
+    numberOfCharts;
 
-  if (heightOfChart < 0) {
+  if (heightOfChart < 50) {
     heightOfChart = undefined;
   }
 
