@@ -21,7 +21,9 @@ const BlankDashboardUnitElement: FunctionComponent<ComponentProps> = (
         props.onClick();
       }}
       style={{
-        border: "none",
+        border: props.isEditMode
+          ? "1px solid rgba(203, 213, 225, 0.4)"
+          : "none",
         borderRadius: "6px",
       }}
     />
