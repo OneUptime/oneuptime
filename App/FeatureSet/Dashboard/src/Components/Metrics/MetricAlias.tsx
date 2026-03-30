@@ -8,6 +8,7 @@ export interface ComponentProps {
   data: MetricAliasData;
   isFormula: boolean;
   onDataChanged: (data: MetricAliasData) => void;
+  hideVariableBadge?: boolean | undefined;
 }
 
 const MetricAlias: FunctionComponent<ComponentProps> = (
@@ -16,25 +17,26 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="space-y-3">
-        {/* Variable badge row */}
-        {((!props.isFormula && props.data.metricVariable) ||
-          props.isFormula) && (
-          <div className="flex items-center space-x-2">
-            {!props.isFormula && props.data.metricVariable && (
-              <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-xs font-semibold text-white">
-                {props.data.metricVariable}
-              </div>
-            )}
-            {props.isFormula && (
-              <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-white">
-                <Icon thick={ThickProp.Thick} icon={IconProp.ChevronRight} />
-              </div>
-            )}
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-              Display Settings
-            </span>
-          </div>
-        )}
+        {/* Variable badge row — hidden when parent already shows it */}
+        {!props.hideVariableBadge &&
+          ((!props.isFormula && props.data.metricVariable) ||
+            props.isFormula) && (
+            <div className="flex items-center space-x-2">
+              {!props.isFormula && props.data.metricVariable && (
+                <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-xs font-semibold text-white">
+                  {props.data.metricVariable}
+                </div>
+              )}
+              {props.isFormula && (
+                <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-white">
+                  <Icon thick={ThickProp.Thick} icon={IconProp.ChevronRight} />
+                </div>
+              )}
+              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                Display Settings
+              </span>
+            </div>
+          )}
 
         {/* Title and Description */}
         <div className="grid grid-cols-2 gap-3">

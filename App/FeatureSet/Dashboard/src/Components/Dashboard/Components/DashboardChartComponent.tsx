@@ -209,22 +209,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   const chartMetricViewData: MetricViewData = {
     queryConfigs: queryConfigs.map(
-      (config: MetricQueryConfigData, index: number) => {
+      (config: MetricQueryConfigData) => {
         return {
           ...config,
           metricAliasData: {
             metricVariable:
               config.metricAliasData?.metricVariable || undefined,
-            title:
-              (index === 0
-                ? config.metricAliasData?.title ||
-                  props.component.arguments.chartTitle
-                : config.metricAliasData?.title) || undefined,
-            description:
-              (index === 0
-                ? config.metricAliasData?.description ||
-                  props.component.arguments.chartDescription
-                : config.metricAliasData?.description) || undefined,
+            title: config.metricAliasData?.title || undefined,
+            description: config.metricAliasData?.description || undefined,
             legend: config.metricAliasData?.legend || undefined,
             legendUnit: config.metricAliasData?.legendUnit || undefined,
           },
@@ -246,6 +238,21 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         transition: "opacity 0.2s ease-in-out",
       }}
     >
+      {(props.component.arguments.chartTitle ||
+        props.component.arguments.chartDescription) && (
+        <div className="px-2 pt-2 pb-1">
+          {props.component.arguments.chartTitle && (
+            <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
+              {props.component.arguments.chartTitle}
+            </h3>
+          )}
+          {props.component.arguments.chartDescription && (
+            <p className="mt-0.5 text-xs text-gray-400">
+              {props.component.arguments.chartDescription}
+            </p>
+          )}
+        </div>
+      )}
       <MetricCharts
         metricResults={metricResults}
         metricTypes={props.metricTypes}

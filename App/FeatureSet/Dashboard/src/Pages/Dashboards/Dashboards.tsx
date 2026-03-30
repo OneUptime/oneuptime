@@ -11,10 +11,35 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useState,
+} from "react";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
+import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
+import {
+  DashboardTemplates,
+  DashboardTemplateType,
+  getTemplateConfig,
+  DashboardTemplate,
+} from "Common/Types/Dashboard/DashboardTemplates";
+import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import { JSONObject } from "Common/Types/JSON";
+import Card from "Common/UI/Components/Card/Card";
 
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<DashboardTemplateType | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+
+  const handleTemplateClick: (type: DashboardTemplateType) => void =
+    useCallback((type: DashboardTemplateType): void => {
+      setSelectedTemplate(type);
+      setShowCreateForm(true);
+    }, []);
+
   return (
     <Page
       title={"Dashboards"}
@@ -31,6 +56,29 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         },
       ]}
     >
+      <Card
+        title="Create from Template"
+        description="Choose a template to quickly get started with a pre-configured dashboard."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {DashboardTemplates.map(
+            (template: DashboardTemplate): ReactElement => {
+              return (
+                <DashboardTemplateCard
+                  key={template.type}
+                  title={template.name}
+                  description={template.description}
+                  icon={template.icon}
+                  onClick={() => {
+                    handleTemplateClick(template.type);
+                  }}
+                />
+              );
+            },
+          )}
+        </div>
+      </Card>
+
       <ModelTable<Dashboard>
         modelType={Dashboard}
         id="dashboard-table"
@@ -40,6 +88,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isCreateable={true}
         name="Dashboards"
         isViewable={true}
+        showCreateForm={showCreateForm}
         cardProps={{
           title: "Dashboards",
           description: "Here is a list of dashboards for this project.",
@@ -69,6 +118,18 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "Description",
           },
         ]}
+        onBeforeCreate={async (item: Dashboard, _miscDataProps: JSONObject): Promise<Dashboard> => {
+          if (selectedTemplate && selectedTemplate !== DashboardTemplateType.Blank) {
+            const templateConfig: DashboardViewConfig | null =
+              getTemplateConfig(selectedTemplate);
+            if (templateConfig) {
+              item.dashboardViewConfig = templateConfig;
+            }
+          }
+          setSelectedTemplate(null);
+          setShowCreateForm(false);
+          return item;
+        }}
         saveFilterProps={{
           tableId: "all-dashboards-table",
         }}

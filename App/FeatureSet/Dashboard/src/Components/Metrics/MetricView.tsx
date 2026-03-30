@@ -12,13 +12,11 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Text from "Common/Types/Text";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import StartAndEndDate, {
   StartAndEndDateType,
 } from "Common/UI/Components/Date/StartAndEndDate";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Card from "Common/UI/Components/Card/Card";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import API from "Common/UI/Utils/API/API";
@@ -34,6 +32,7 @@ import MetricCharts from "./MetricCharts";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -109,9 +108,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
 
-  const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
-    [],
-  );
+  const [telemetryAttributes, setTelemetryAttributes] = useState<
+    Array<string>
+  >([]);
   const [telemetryAttributesLoaded, setTelemetryAttributesLoaded] =
     useState<boolean>(false);
   const [telemetryAttributesLoading, setTelemetryAttributesLoading] =
@@ -305,29 +304,33 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Time range selector */}
         {!props.hideStartAndEndDate && (
-          <div className="mb-5">
-            <Card>
-              <div className="-mt-5">
-                <FieldLabelElement title="Start and End Time" required={true} />
-                <StartAndEndDate
-                  type={StartAndEndDateType.DateTime}
-                  value={props.data.startAndEndDate || undefined}
-                  onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
-                    if (props.onChange) {
-                      props.onChange({
-                        ...props.data,
-                        startAndEndDate: startAndEndDate,
-                      });
-                    }
-                  }}
-                />
+          <Card>
+            <div className="-mt-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Time Range
+                </span>
               </div>
-            </Card>
-          </div>
+              <StartAndEndDate
+                type={StartAndEndDateType.DateTime}
+                value={props.data.startAndEndDate || undefined}
+                onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
+                  if (props.onChange) {
+                    props.onChange({
+                      ...props.data,
+                      startAndEndDate: startAndEndDate,
+                    });
+                  }
+                }}
+              />
+            </div>
+          </Card>
         )}
 
+        {/* Query configs */}
         {!props.hideQueryElements && (
           <div className="space-y-3">
             {props.data.queryConfigs.map(
@@ -382,104 +385,91 @@ const MetricView: FunctionComponent<ComponentProps> = (
             )}
           </div>
         )}
-      </div>
 
-      {!props.hideQueryElements && (
-        <div className="space-y-3">
+        {/* Formula configs and Add buttons */}
+        {!props.hideQueryElements && (
           <div className="space-y-3">
-            {props.data.formulaConfigs.map(
-              (formulaConfig: MetricFormulaConfigData, index: number) => {
-                return (
-                  <MetricGraphConfig
-                    key={index}
-                    onDataChanged={(data: MetricFormulaConfigData) => {
-                      const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                        ...props.data.formulaConfigs,
-                      ];
-                      newGraphConfigs[index] = data;
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          formulaConfigs: newGraphConfigs,
-                        });
-                      }
-                    }}
-                    data={formulaConfig}
-                    onRemove={() => {
-                      const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                        ...props.data.formulaConfigs,
-                      ];
-                      newGraphConfigs.splice(index, 1);
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          formulaConfigs: newGraphConfigs,
-                        });
-                      }
-                    }}
-                  />
-                );
-              },
-            )}
-          </div>
-          <div>
-            <div className="flex -ml-3 mt-8 justify-between w-full">
-              <div>
-                <Button
-                  title="Add Metric"
-                  buttonSize={ButtonSize.Small}
-                  onClick={() => {
-                    if (props.onChange) {
-                      props.onChange({
-                        ...props.data,
-                        queryConfigs: [
-                          ...props.data.queryConfigs,
-                          getEmptyQueryConfigData(),
-                        ],
-                      });
-                    }
-                  }}
-                />
-                {/* <Button
-              title="Add Formula"
-              buttonSize={ButtonSize.Small}
-              onClick={() => {
-                setMetricViewData({
-                  ...metricViewData,
-                  formulaConfigs: [
-                    ...metricViewData.formulaConfigs,
-                    getEmptyFormulaConfigData(),
-                  ],
-                });
-              }}
-            /> */}
+            {props.data.formulaConfigs.length > 0 && (
+              <div className="space-y-3">
+                {props.data.formulaConfigs.map(
+                  (formulaConfig: MetricFormulaConfigData, index: number) => {
+                    return (
+                      <MetricGraphConfig
+                        key={index}
+                        onDataChanged={(data: MetricFormulaConfigData) => {
+                          const newGraphConfigs: Array<MetricFormulaConfigData> =
+                            [...props.data.formulaConfigs];
+                          newGraphConfigs[index] = data;
+                          if (props.onChange) {
+                            props.onChange({
+                              ...props.data,
+                              formulaConfigs: newGraphConfigs,
+                            });
+                          }
+                        }}
+                        data={formulaConfig}
+                        onRemove={() => {
+                          const newGraphConfigs: Array<MetricFormulaConfigData> =
+                            [...props.data.formulaConfigs];
+                          newGraphConfigs.splice(index, 1);
+                          if (props.onChange) {
+                            props.onChange({
+                              ...props.data,
+                              formulaConfigs: newGraphConfigs,
+                            });
+                          }
+                        }}
+                      />
+                    );
+                  },
+                )}
               </div>
+            )}
+
+            {/* Add metric button */}
+            <div className="flex items-center">
+              <Button
+                title="Add Metric"
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                icon={IconProp.Add}
+                onClick={() => {
+                  if (props.onChange) {
+                    props.onChange({
+                      ...props.data,
+                      queryConfigs: [
+                        ...props.data.queryConfigs,
+                        getEmptyQueryConfigData(),
+                      ],
+                    });
+                  }
+                }}
+              />
             </div>
           </div>
-          <HorizontalRule />
-        </div>
-      )}
+        )}
 
-      {isMetricResultsLoading && <ComponentLoader />}
+        {/* Chart results */}
+        {isMetricResultsLoading && <ComponentLoader />}
 
-      {metricResultsError && <ErrorMessage message={metricResultsError} />}
+        {metricResultsError && <ErrorMessage message={metricResultsError} />}
 
-      {!isMetricResultsLoading && !metricResultsError && (
-        <div
-          className={
-            props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4 mt-3"
-          }
-        >
-          {/** charts */}
-          <MetricCharts
-            hideCard={props.hideCardInCharts}
-            metricResults={metricResults}
-            metricTypes={metricTypes}
-            metricViewData={props.data}
-            chartCssClass={props.chartCssClass}
-          />
-        </div>
-      )}
+        {!isMetricResultsLoading && !metricResultsError && (
+          <div
+            className={
+              props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4"
+            }
+          >
+            <MetricCharts
+              hideCard={props.hideCardInCharts}
+              metricResults={metricResults}
+              metricTypes={metricTypes}
+              metricViewData={props.data}
+              chartCssClass={props.chartCssClass}
+            />
+          </div>
+        )}
+      </div>
 
       {showCannotRemoveOneRemainingQueryError ? (
         <ConfirmModal
