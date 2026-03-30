@@ -28,6 +28,7 @@ import {
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -104,10 +105,11 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           buttons: [
             {
               title: "Create from Template",
+              buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {
                 setShowTemplateModal(true);
               },
-              icon: IconProp.Template,
+              icon: IconProp.Add,
             },
           ],
         }}
