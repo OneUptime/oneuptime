@@ -296,8 +296,12 @@ export class ProfileAggregationService {
         projectId: request.projectId,
         startTime: request.baselineStartTime,
         endTime: request.baselineEndTime,
-        ...(request.serviceIds !== undefined && { serviceIds: request.serviceIds }),
-        ...(request.profileType !== undefined && { profileType: request.profileType }),
+        ...(request.serviceIds !== undefined && {
+          serviceIds: request.serviceIds,
+        }),
+        ...(request.profileType !== undefined && {
+          profileType: request.profileType,
+        }),
       });
 
     const comparisonTree: ProfileFlamegraphNode =
@@ -305,8 +309,12 @@ export class ProfileAggregationService {
         projectId: request.projectId,
         startTime: request.comparisonStartTime,
         endTime: request.comparisonEndTime,
-        ...(request.serviceIds !== undefined && { serviceIds: request.serviceIds }),
-        ...(request.profileType !== undefined && { profileType: request.profileType }),
+        ...(request.serviceIds !== undefined && {
+          serviceIds: request.serviceIds,
+        }),
+        ...(request.profileType !== undefined && {
+          profileType: request.profileType,
+        }),
       });
 
     return ProfileAggregationService.mergeDiffTrees(

@@ -2235,7 +2235,10 @@ export default class StatusPageAPI extends BaseAPI<
               IncidentStateTimeline,
             ),
             statusPage: (() => {
-              const statusPageJson: JSONObject = BaseModel.toJSONObject(statusPage, StatusPage);
+              const statusPageJson: JSONObject = BaseModel.toJSONObject(
+                statusPage,
+                StatusPage,
+              );
               delete statusPageJson["projectId"];
               return statusPageJson;
             })(),

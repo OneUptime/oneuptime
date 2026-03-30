@@ -408,9 +408,9 @@ export default class UserMiddleware {
       }
 
       const userPermissions: Array<Permission> =
-        userTenantPermission.permissions.map(
-          (p: UserPermission) => p.permission,
-        );
+        userTenantPermission.permissions.map((p: UserPermission) => {
+          return p.permission;
+        });
 
       if (
         !PermissionHelper.doesPermissionsIntersect(

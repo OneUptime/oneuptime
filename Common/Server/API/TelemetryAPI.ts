@@ -920,28 +920,27 @@ router.get(
       }
 
       // Fetch profile metadata
-      const profiles: Array<Profile> =
-        await ProfileService.findBy({
-          query: {
-            projectId: databaseProps.tenantId,
-            profileId: profileId,
-          },
-          select: {
-            profileId: true,
-            profileType: true,
-            unit: true,
-            periodType: true,
-            period: true,
-            startTime: true,
-            endTime: true,
-            durationNano: true,
-          },
-          limit: 1,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+      const profiles: Array<Profile> = await ProfileService.findBy({
+        query: {
+          projectId: databaseProps.tenantId,
+          profileId: profileId,
+        },
+        select: {
+          profileId: true,
+          profileType: true,
+          unit: true,
+          periodType: true,
+          period: true,
+          startTime: true,
+          endTime: true,
+          durationNano: true,
+        },
+        limit: 1,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
       if (!profiles[0]) {
         return Response.sendErrorResponse(
