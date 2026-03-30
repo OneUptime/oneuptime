@@ -6,6 +6,9 @@ import DashboardChartType from "./Chart/ChartType";
 import ObjectID from "../ObjectID";
 import DashboardBaseComponent from "./DashboardComponents/DashboardBaseComponent";
 import IconProp from "../Icon/IconProp";
+import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import IncidentMetricType from "../Incident/IncidentMetricType";
+import MonitorMetricType from "../Monitor/MonitorMetricType";
 
 export enum DashboardTemplateType {
   Blank = "Blank",
@@ -51,6 +54,48 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
   },
 ];
 
+// -- Metric query config helpers --
+
+interface MetricConfig {
+  metricName: string;
+  aggregationType: MetricsAggregationType;
+  legend?: string;
+  legendUnit?: string;
+}
+
+function buildMetricQueryConfig(config: MetricConfig): object {
+  return {
+    metricAliasData: {
+      metricVariable: "a",
+      title: undefined,
+      description: undefined,
+      legend: config.legend ?? undefined,
+      legendUnit: config.legendUnit ?? undefined,
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: config.metricName,
+        aggegationType: config.aggregationType,
+      },
+      groupBy: undefined,
+    },
+  };
+}
+
+function buildMetricQueryData(config: MetricConfig): object {
+  return {
+    metricQueryData: {
+      filterData: {
+        metricName: config.metricName,
+        aggegationType: config.aggregationType,
+      },
+      groupBy: undefined,
+    },
+  };
+}
+
+// -- Component factory helpers --
+
 function createTextComponent(data: {
   text: string;
   top: number;
@@ -84,6 +129,7 @@ function createValueComponent(data: {
   top: number;
   left: number;
   width: number;
+  metricConfig?: MetricConfig;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -97,12 +143,14 @@ function createValueComponent(data: {
     minWidthInDashboardUnits: 1,
     arguments: {
       title: data.title,
-      metricQueryConfig: {
-        metricQueryData: {
-          filterData: {},
-          groupBy: undefined,
-        },
-      },
+      metricQueryConfig: data.metricConfig
+        ? buildMetricQueryData(data.metricConfig)
+        : {
+            metricQueryData: {
+              filterData: {},
+              groupBy: undefined,
+            },
+          },
     },
   };
 }
@@ -114,6 +162,7 @@ function createChartComponent(data: {
   left: number;
   width: number;
   height: number;
+  metricConfig?: MetricConfig;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -128,19 +177,21 @@ function createChartComponent(data: {
     arguments: {
       chartTitle: data.title,
       chartType: data.chartType,
-      metricQueryConfig: {
-        metricAliasData: {
-          metricVariable: "a",
-          title: undefined,
-          description: undefined,
-          legend: undefined,
-          legendUnit: undefined,
-        },
-        metricQueryData: {
-          filterData: {},
-          groupBy: undefined,
-        },
-      },
+      metricQueryConfig: data.metricConfig
+        ? buildMetricQueryConfig(data.metricConfig)
+        : {
+            metricAliasData: {
+              metricVariable: "a",
+              title: undefined,
+              description: undefined,
+              legend: undefined,
+              legendUnit: undefined,
+            },
+            metricQueryData: {
+              filterData: {},
+              groupBy: undefined,
+            },
+          },
     },
   };
 }
@@ -179,6 +230,7 @@ function createGaugeComponent(data: {
   maxValue?: number;
   warningThreshold?: number;
   criticalThreshold?: number;
+  metricConfig?: MetricConfig;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -196,12 +248,14 @@ function createGaugeComponent(data: {
       maxValue: data.maxValue ?? 100,
       warningThreshold: data.warningThreshold,
       criticalThreshold: data.criticalThreshold,
-      metricQueryConfig: {
-        metricQueryData: {
-          filterData: {},
-          groupBy: undefined,
-        },
-      },
+      metricQueryConfig: data.metricConfig
+        ? buildMetricQueryData(data.metricConfig)
+        : {
+            metricQueryData: {
+              filterData: {},
+              groupBy: undefined,
+            },
+          },
     },
   };
 }
@@ -213,6 +267,7 @@ function createTableComponent(data: {
   width: number;
   height: number;
   maxRows?: number;
+  metricConfig?: MetricConfig;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -227,12 +282,14 @@ function createTableComponent(data: {
     arguments: {
       tableTitle: data.title,
       maxRows: data.maxRows ?? 20,
-      metricQueryConfig: {
-        metricQueryData: {
-          filterData: {},
-          groupBy: undefined,
-        },
-      },
+      metricQueryConfig: data.metricConfig
+        ? buildMetricQueryData(data.metricConfig)
+        : {
+            metricQueryData: {
+              filterData: {},
+              groupBy: undefined,
+            },
+          },
     },
   };
 }
@@ -262,6 +319,8 @@ function createTraceListComponent(data: {
   };
 }
 
+// -- Dashboard configs --
+
 function createMonitorDashboardConfig(): DashboardViewConfig {
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
@@ -280,17 +339,46 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
       top: 1,
       left: 0,
       width: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "ms",
+      },
     }),
-    createValueComponent({ title: "Uptime %", top: 1, left: 3, width: 3 }),
-    createValueComponent({ title: "Error Rate", top: 1, left: 6, width: 3 }),
     createValueComponent({
-      title: "Request Count",
+      title: "Uptime %",
+      top: 1,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.IsOnline,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "%",
+      },
+    }),
+    createValueComponent({
+      title: "Error Rate",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseStatusCode,
+        aggregationType: MetricsAggregationType.Count,
+      },
+    }),
+    createValueComponent({
+      title: "Execution Time",
       top: 1,
       left: 9,
       width: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ExecutionTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "ms",
+      },
     }),
 
-    // Row 2-4: Charts row
+    // Row 2-4: Charts
     createChartComponent({
       title: "Response Time Over Time",
       chartType: DashboardChartType.Line,
@@ -298,14 +386,26 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Avg Response Time",
+        legendUnit: "ms",
+      },
     }),
     createChartComponent({
-      title: "Request Throughput",
+      title: "Uptime Over Time",
       chartType: DashboardChartType.Area,
       top: 2,
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.IsOnline,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Online Status",
+        legendUnit: "%",
+      },
     }),
 
     // Row 5: Section header
@@ -320,34 +420,47 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
 
     // Row 6-8: Gauges and error chart
     createGaugeComponent({
-      title: "Uptime",
+      title: "CPU Usage",
       top: 6,
       left: 0,
       width: 3,
       height: 3,
       minValue: 0,
       maxValue: 100,
-      warningThreshold: 99,
-      criticalThreshold: 95,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+      metricConfig: {
+        metricName: MonitorMetricType.CPUUsagePercent,
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createGaugeComponent({
-      title: "Error Rate",
+      title: "Memory Usage",
       top: 6,
       left: 3,
       width: 3,
       height: 3,
       minValue: 0,
       maxValue: 100,
-      warningThreshold: 5,
-      criticalThreshold: 10,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+      metricConfig: {
+        metricName: MonitorMetricType.MemoryUsagePercent,
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createChartComponent({
-      title: "Error Rate Over Time",
+      title: "Status Code Over Time",
       chartType: DashboardChartType.Bar,
       top: 6,
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseStatusCode,
+        aggregationType: MetricsAggregationType.Count,
+        legend: "Status Codes",
+      },
     }),
 
     // Row 9: Section header
@@ -362,11 +475,15 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
 
     // Row 10-12: Table and logs
     createTableComponent({
-      title: "Monitors by Response Time",
+      title: "Response Time Breakdown",
       top: 10,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createLogStreamComponent({
       title: "Recent Logs",
@@ -401,18 +518,47 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
 
     // Row 1: Key incident metrics
     createValueComponent({
-      title: "Active Incidents",
+      title: "Incident Count",
       top: 1,
       left: 0,
       width: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.IncidentCount,
+        aggregationType: MetricsAggregationType.Sum,
+      },
     }),
-    createValueComponent({ title: "MTTR", top: 1, left: 3, width: 3 }),
-    createValueComponent({ title: "MTTA", top: 1, left: 6, width: 3 }),
     createValueComponent({
-      title: "Incident Count",
+      title: "MTTR",
+      top: 1,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.TimeToResolve,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "min",
+      },
+    }),
+    createValueComponent({
+      title: "MTTA",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.TimeToAcknowledge,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "min",
+      },
+    }),
+    createValueComponent({
+      title: "Avg Duration",
       top: 1,
       left: 9,
       width: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.IncidentDuration,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "min",
+      },
     }),
 
     // Row 2-4: Incident trends
@@ -423,6 +569,11 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.IncidentCount,
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Incidents",
+      },
     }),
     createChartComponent({
       title: "Incident Duration Over Time",
@@ -431,6 +582,12 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.IncidentDuration,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Avg Duration",
+        legendUnit: "min",
+      },
     }),
 
     // Row 5: Section header
@@ -454,6 +611,10 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       maxValue: 120,
       warningThreshold: 60,
       criticalThreshold: 90,
+      metricConfig: {
+        metricName: IncidentMetricType.TimeToResolve,
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createGaugeComponent({
       title: "MTTA (minutes)",
@@ -465,6 +626,10 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       maxValue: 60,
       warningThreshold: 15,
       criticalThreshold: 30,
+      metricConfig: {
+        metricName: IncidentMetricType.TimeToAcknowledge,
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createChartComponent({
       title: "MTTR and MTTA Over Time",
@@ -473,6 +638,12 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.TimeToResolve,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "MTTR",
+        legendUnit: "min",
+      },
     }),
 
     // Row 9: Section header
@@ -487,12 +658,17 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
 
     // Row 10-12: Severity breakdown and time in state
     createChartComponent({
-      title: "Incidents by Severity",
+      title: "Severity Changes Over Time",
       chartType: DashboardChartType.Pie,
       top: 10,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.SeverityChange,
+        aggregationType: MetricsAggregationType.Count,
+        legend: "Severity Changes",
+      },
     }),
     createChartComponent({
       title: "Time in State",
@@ -501,6 +677,12 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.TimeInState,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Time in State",
+        legendUnit: "min",
+      },
     }),
 
     // Row 13: Section header
@@ -513,13 +695,17 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 14-16: Table, traces, and logs
+    // Row 14-16: Tables
     createTableComponent({
       title: "Incidents by Duration",
       top: 14,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.IncidentDuration,
+        aggregationType: MetricsAggregationType.Max,
+      },
     }),
     createTableComponent({
       title: "Postmortem Completion Time",
@@ -527,6 +713,10 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: IncidentMetricType.PostmortemCompletionTime,
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
 
     // Row 17-19: Logs and traces
@@ -569,19 +759,47 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     }),
 
     // Row 1: Key cluster metrics
-    createValueComponent({ title: "CPU Usage", top: 1, left: 0, width: 3 }),
+    createValueComponent({
+      title: "CPU Usage",
+      top: 1,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: "k8s.pod.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "%",
+      },
+    }),
     createValueComponent({
       title: "Memory Usage",
       top: 1,
       left: 3,
       width: 3,
+      metricConfig: {
+        metricName: "k8s.pod.memory.usage",
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "bytes",
+      },
     }),
-    createValueComponent({ title: "Pod Count", top: 1, left: 6, width: 3 }),
     createValueComponent({
-      title: "Node Count",
+      title: "Pod Count",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: "k8s.pod.phase",
+        aggregationType: MetricsAggregationType.Sum,
+      },
+    }),
+    createValueComponent({
+      title: "Node Ready",
       top: 1,
       left: 9,
       width: 3,
+      metricConfig: {
+        metricName: "k8s.node.condition_ready",
+        aggregationType: MetricsAggregationType.Sum,
+      },
     }),
 
     // Row 2-4: Resource usage charts
@@ -592,6 +810,12 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "k8s.pod.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU Utilization",
+        legendUnit: "%",
+      },
     }),
     createChartComponent({
       title: "Memory Usage Over Time",
@@ -600,6 +824,12 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "k8s.pod.memory.usage",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Memory Usage",
+        legendUnit: "bytes",
+      },
     }),
 
     // Row 5: Section header
@@ -623,6 +853,10 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       maxValue: 100,
       warningThreshold: 70,
       criticalThreshold: 90,
+      metricConfig: {
+        metricName: "k8s.node.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createGaugeComponent({
       title: "Memory Utilization",
@@ -634,6 +868,10 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       maxValue: 100,
       warningThreshold: 70,
       criticalThreshold: 90,
+      metricConfig: {
+        metricName: "k8s.node.memory.usage",
+        aggregationType: MetricsAggregationType.Avg,
+      },
     }),
     createChartComponent({
       title: "Pod Count Over Time",
@@ -642,6 +880,11 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "k8s.pod.phase",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Pods",
+      },
     }),
 
     // Row 9: Section header
@@ -654,7 +897,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 10-12: Network, restarts, and table
+    // Row 10-12: Network, restarts
     createChartComponent({
       title: "Network I/O",
       chartType: DashboardChartType.Area,
@@ -662,23 +905,38 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "k8s.pod.network.io",
+        aggregationType: MetricsAggregationType.Sum,
+        legend: "Network I/O",
+        legendUnit: "bytes",
+      },
     }),
     createChartComponent({
-      title: "Pod Restarts Over Time",
+      title: "Container Restarts Over Time",
       chartType: DashboardChartType.Bar,
       top: 10,
       left: 6,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "k8s.container.restarts",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Restarts",
+      },
     }),
 
     // Row 13-15: Table and logs
     createTableComponent({
-      title: "Pods by Resource Usage",
+      title: "Deployment Replicas",
       top: 13,
       left: 0,
       width: 6,
       height: 3,
+      metricConfig: {
+        metricName: "k8s.deployment.available_replicas",
+        aggregationType: MetricsAggregationType.Min,
+      },
     }),
     createLogStreamComponent({
       title: "Cluster Logs",
