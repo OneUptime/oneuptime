@@ -1,6 +1,7 @@
 import QueueWorkflow from "../Services/QueueWorkflow";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -15,9 +16,17 @@ export default class ManualAPI {
   public constructor() {
     this.router = Express.getRouter();
 
-    this.router.get(`/run/:workflowId`, this.manuallyRunWorkflow);
+    this.router.get(
+      `/run/:workflowId`,
+      UserMiddleware.getUserMiddleware,
+      this.manuallyRunWorkflow,
+    );
 
-    this.router.post(`/run/:workflowId`, this.manuallyRunWorkflow);
+    this.router.post(
+      `/run/:workflowId`,
+      UserMiddleware.getUserMiddleware,
+      this.manuallyRunWorkflow,
+    );
   }
 
   public async manuallyRunWorkflow(
