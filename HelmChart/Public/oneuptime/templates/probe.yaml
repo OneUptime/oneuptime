@@ -120,6 +120,10 @@ spec:
             - name: DISABLE_TELEMETRY
               value: {{ $val.disableTelemetryCollection | quote }}
             {{- end }}
+            {{- if $val.enableProfiling }}
+            - name: ENABLE_PROFILING
+              value: {{ $val.enableProfiling | quote }}
+            {{- end }}
             {{- if and $val.proxy $val.proxy.httpProxyUrl }}
             - name: HTTP_PROXY_URL
               value: {{ $val.proxy.httpProxyUrl | squote }}

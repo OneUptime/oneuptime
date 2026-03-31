@@ -110,6 +110,8 @@ spec:
               value: {{ $.Values.telemetry.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.telemetry.disableTelemetryCollection | quote }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.telemetry.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.telemetry.concurrency | squote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}

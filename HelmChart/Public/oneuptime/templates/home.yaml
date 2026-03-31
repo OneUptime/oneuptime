@@ -105,6 +105,8 @@ spec:
               value: {{ $.Values.home.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.home.disableTelemetryCollection | quote }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.home.enableProfiling | quote }}
           ports:
             - containerPort: {{ $.Values.home.ports.http }}
               protocol: TCP

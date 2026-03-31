@@ -105,6 +105,8 @@ spec:
               value: {{ $.Values.worker.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.worker.disableTelemetryCollection | quote }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.worker.enableProfiling | quote }}
             - name: WORKER_CONCURRENCY
               value: {{ $.Values.worker.concurrency | squote }}
           ports:

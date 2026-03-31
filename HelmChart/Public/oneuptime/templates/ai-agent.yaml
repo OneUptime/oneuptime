@@ -94,6 +94,10 @@ spec:
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.aiAgent.disableTelemetryCollection | quote }}
             {{- end }}
+            {{- if $.Values.aiAgent.enableProfiling }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.aiAgent.enableProfiling | quote }}
+            {{- end }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.aiAgent.ports.http }}

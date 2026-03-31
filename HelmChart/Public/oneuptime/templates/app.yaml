@@ -116,6 +116,8 @@ spec:
               value: {{ $.Values.billing.callDefaultValueInCentsPerMinute | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.app.disableTelemetryCollection | quote }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.app.enableProfiling | quote }}
 
           ports:
             - containerPort: {{ $.Values.app.ports.http }}

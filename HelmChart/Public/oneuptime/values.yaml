@@ -396,6 +396,7 @@ probes:
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
+    enableProfiling: false
     disableAutoscaler: false
     ports:
       http: 3874
@@ -469,6 +470,7 @@ testServer:
   replicaCount: 1
   enabled: false
   disableTelemetryCollection: false
+  enableProfiling: false
   disableAutoscaler: false
   ports:
     http: 3800
@@ -634,6 +636,7 @@ home:
   enabled: false
   replicaCount: 1
   disableTelemetryCollection: false
+  enableProfiling: false
   disableAutoscaler: false
   ports:
     http: 1444
@@ -647,6 +650,7 @@ worker:
   enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
+  enableProfiling: false
   disableAutoscaler: false
   concurrency: 100
   workflowTimeoutInMs: 5000
@@ -672,6 +676,7 @@ app:
   enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
+  enableProfiling: false
   disableAutoscaler: false
   ports:
     http: 3002
@@ -684,6 +689,7 @@ telemetry:
   enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
+  enableProfiling: false
   disableAutoscaler: false
   # Max concurrent telemetry jobs processed by each pod
   concurrency: 100
@@ -713,6 +719,7 @@ aiAgent:
   enabled: false
   replicaCount: 1
   disableTelemetryCollection: false
+  enableProfiling: false
   disableAutoscaler: false
   # AI Agent ID from OneUptime dashboard (required when enabled)
   id:
