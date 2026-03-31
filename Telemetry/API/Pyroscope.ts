@@ -24,8 +24,10 @@ const setProfilesProductType: RequestHandler = (
   next();
 };
 
-// Map Authorization: Bearer <token> to x-oneuptime-token header
-// Pyroscope SDKs use authToken which sends Authorization: Bearer
+/*
+ * Map Authorization: Bearer <token> to x-oneuptime-token header
+ * Pyroscope SDKs use authToken which sends Authorization: Bearer
+ */
 const mapBearerTokenMiddleware: RequestHandler = (
   req: ExpressRequest,
   _res: ExpressResponse,

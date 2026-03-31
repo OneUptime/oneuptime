@@ -28,9 +28,7 @@ class AlertMetricTypeUtil {
     ];
   }
 
-  public static getTitleByAlertMetricType(
-    metricType: AlertMetricType,
-  ): string {
+  public static getTitleByAlertMetricType(metricType: AlertMetricType): string {
     switch (metricType) {
       case AlertMetricType.AlertCount:
         return "Alert Count";

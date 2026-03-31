@@ -9,7 +9,12 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -24,7 +29,6 @@ import {
   NodeType,
 } from "Common/Types/Workflow/Component";
 import { useAsyncEffect } from "use-async-effect";
-import { Node } from "reactflow";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -45,10 +49,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         requestOptions: {},
       });
 
-      if (
-        workflow?.graph &&
-        (workflow.graph as JSONObject)["nodes"]
-      ) {
+      if (workflow?.graph && (workflow.graph as JSONObject)["nodes"]) {
         const nodes: Array<JSONObject> = (workflow.graph as JSONObject)[
           "nodes"
         ] as Array<JSONObject>;
@@ -66,7 +67,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }
         }
       }
-    } catch (_err) {
+    } catch {
       // ignore - just don't show the webhook section
     }
   }, []);

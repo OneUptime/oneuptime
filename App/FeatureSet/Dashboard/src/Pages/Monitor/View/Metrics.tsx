@@ -5,7 +5,13 @@ import MonitorAlertMetrics from "../../../Components/Monitor/MonitorAlertMetrics
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -21,7 +27,7 @@ const MonitorMetrics: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [_currentTab, setCurrentTab] = useState<Tab | null>(null);
+  const [, setCurrentTab] = useState<Tab | null>(null);
   const [monitorType, setMonitorType] = useState<MonitorType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");

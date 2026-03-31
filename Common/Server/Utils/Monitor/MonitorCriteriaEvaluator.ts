@@ -724,10 +724,7 @@ ${contextBlock}
           return r.metricValue > 0;
         })
         .sort(
-          (
-            a: KubernetesAffectedResource,
-            b: KubernetesAffectedResource,
-          ) => {
+          (a: KubernetesAffectedResource, b: KubernetesAffectedResource) => {
             return b.metricValue - a.metricValue;
           },
         );
@@ -742,19 +739,29 @@ ${contextBlock}
 
       // Determine which columns are present across all resources
       const hasNamespace: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => r.namespace,
+        (r: KubernetesAffectedResource) => {
+          return r.namespace;
+        },
       );
       const hasWorkload: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => r.workloadType && r.workloadName,
+        (r: KubernetesAffectedResource) => {
+          return r.workloadType && r.workloadName;
+        },
       );
       const hasPod: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => r.podName,
+        (r: KubernetesAffectedResource) => {
+          return r.podName;
+        },
       );
       const hasContainer: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => r.containerName,
+        (r: KubernetesAffectedResource) => {
+          return r.containerName;
+        },
       );
       const hasNode: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => r.nodeName,
+        (r: KubernetesAffectedResource) => {
+          return r.nodeName;
+        },
       );
 
       // Build table header
@@ -778,9 +785,11 @@ ${contextBlock}
       headerCells.push("Value");
 
       const headerRow: string = `| ${headerCells.join(" | ")} |`;
-      const separatorRow: string = `| ${headerCells.map(() => {
-        return "---";
-      }).join(" | ")} |`;
+      const separatorRow: string = `| ${headerCells
+        .map(() => {
+          return "---";
+        })
+        .join(" | ")} |`;
 
       resourceLines.push(headerRow);
       resourceLines.push(separatorRow);
@@ -792,9 +801,7 @@ ${contextBlock}
           cells.push(resource.namespace ? `\`${resource.namespace}\`` : "-");
         }
         if (hasWorkload) {
-          cells.push(
-            resource.workloadType ? `${resource.workloadType}` : "-",
-          );
+          cells.push(resource.workloadType ? `${resource.workloadType}` : "-");
           cells.push(
             resource.workloadName ? `\`${resource.workloadName}\`` : "-",
           );
@@ -849,8 +856,7 @@ ${contextBlock}
           const logAttributes: Record<string, string> = {};
 
           if (breakdown.clusterName) {
-            logAttributes["resource.k8s.cluster.name"] =
-              breakdown.clusterName;
+            logAttributes["resource.k8s.cluster.name"] = breakdown.clusterName;
           }
 
           if (topResource.podName) {
@@ -868,8 +874,10 @@ ${contextBlock}
           }
 
           const now: Date = OneUptimeDate.getCurrentDate();
-          const fifteenMinutesAgo: Date =
-            OneUptimeDate.addRemoveMinutes(now, -15);
+          const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
+            now,
+            -15,
+          );
 
           const logs: Array<JSONObject> =
             await LogAggregationService.getExportLogs({
@@ -882,9 +890,7 @@ ${contextBlock}
 
           if (logs.length > 0) {
             const logLines: Array<string> = logs.map((log: JSONObject) => {
-              const timestamp: string = log["time"]
-                ? String(log["time"])
-                : "";
+              const timestamp: string = log["time"] ? String(log["time"]) : "";
               const severity: string = log["severityText"]
                 ? String(log["severityText"])
                 : "INFO";
@@ -897,9 +903,7 @@ ${contextBlock}
             );
           }
         } catch (err) {
-          logger.error(
-            "Failed to fetch container logs for root cause context",
-          );
+          logger.error("Failed to fetch container logs for root cause context");
           logger.error(err);
         }
       }

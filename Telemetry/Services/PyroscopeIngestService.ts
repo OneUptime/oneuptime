@@ -87,13 +87,10 @@ export default class PyroscopeIngestService {
       );
 
       // Extract pprof data from request
-      const pprofBuffer: Buffer | null =
-        this.extractPprofFromRequest(req);
+      const pprofBuffer: Buffer | null = this.extractPprofFromRequest(req);
 
       if (!pprofBuffer || pprofBuffer.length === 0) {
-        throw new BadRequestException(
-          "No profile data found in request body.",
-        );
+        throw new BadRequestException("No profile data found in request body.");
       }
 
       // Decompress if gzipped
@@ -116,17 +113,17 @@ export default class PyroscopeIngestService {
       // Respond immediately and queue for async processing
       Response.sendEmptySuccessResponse(req, res);
 
-      await ProfilesQueueService.addProfileIngestJob(
-        req as TelemetryRequest,
-      );
+      await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
     } catch (err) {
       return next(err);
     }
   }
 
   private static parseAppName(name: string): string {
-    // Pyroscope name format: "appName.profileType{label1=value1,label2=value2}"
-    // Extract just the app name part (before the first '{' or '.')
+    /*
+     * Pyroscope name format: "appName.profileType{label1=value1,label2=value2}"
+     * Extract just the app name part (before the first '{' or '.')
+     */
     const braceIndex: number = name.indexOf("{");
     if (braceIndex >= 0) {
       name = name.substring(0, braceIndex);
@@ -166,10 +163,9 @@ export default class PyroscopeIngestService {
     if (files && files.length > 0) {
       // Find the 'profile' field
       const profileFile: { fieldname: string; buffer: Buffer } | undefined =
-        files.find(
-          (f: { fieldname: string; buffer: Buffer }) =>
-            f.fieldname === "profile",
-        );
+        files.find((f: { fieldname: string; buffer: Buffer }) => {
+          return f.fieldname === "profile";
+        });
 
       if (profileFile) {
         return profileFile.buffer;
@@ -195,17 +191,17 @@ export default class PyroscopeIngestService {
     // Check for gzip magic bytes (0x1f, 0x8b)
     if (data.length >= 2 && data[0] === 0x1f && data[1] === 0x8b) {
       return new Promise<Buffer>(
-        (
-          resolve: (value: Buffer) => void,
-          reject: (reason: Error) => void,
-        ) => {
-          zlib.gunzip(data as unknown as Uint8Array, (err: Error | null, result: Buffer) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(result);
-            }
-          });
+        (resolve: (value: Buffer) => void, reject: (reason: Error) => void) => {
+          zlib.gunzip(
+            data as unknown as Uint8Array,
+            (err: Error | null, result: Buffer) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(result);
+              }
+            },
+          );
         },
       );
     }
@@ -305,7 +301,9 @@ export default class PyroscopeIngestService {
 
       // Convert values to strings
       const values: Array<string> = (sample.value || []).map(
-        (v: number | string) => v.toString(),
+        (v: number | string) => {
+          return v.toString();
+        },
       );
 
       otlpSamples.push({
@@ -317,10 +315,12 @@ export default class PyroscopeIngestService {
 
     // Build sample types
     const sampleType: Array<JSONObject> = (pprofData.sampleType || []).map(
-      (st: PprofValueType) => ({
-        type: st.type,
-        unit: st.unit,
-      }),
+      (st: PprofValueType) => {
+        return {
+          type: st.type,
+          unit: st.unit,
+        };
+      },
     );
 
     // Build period type
@@ -330,8 +330,9 @@ export default class PyroscopeIngestService {
 
     // Generate profile ID
     const profileId: string = ObjectID.generate().toString();
-    const profileIdBase64: string =
-      Buffer.from(profileId, "hex").toString("base64");
+    const profileIdBase64: string = Buffer.from(profileId, "hex").toString(
+      "base64",
+    );
 
     return {
       resourceProfiles: [

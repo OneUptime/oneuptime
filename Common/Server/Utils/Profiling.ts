@@ -1,8 +1,5 @@
 import Pyroscope from "@pyroscope/nodejs";
-import {
-  DisableTelemetry,
-  EnableProfiling,
-} from "../EnvironmentConfig";
+import { DisableTelemetry, EnableProfiling } from "../EnvironmentConfig";
 import logger from "./Logger";
 
 export default class Profiling {
@@ -54,9 +51,11 @@ export default class Profiling {
   }
 
   private static getServerAddress(): string | undefined {
-    // Use the OTLP endpoint base URL as the Pyroscope server address.
-    // The Pyroscope SDK will append /ingest to this URL.
-    // The Telemetry service has a Pyroscope-compatible /ingest endpoint.
+    /*
+     * Use the OTLP endpoint base URL as the Pyroscope server address.
+     * The Pyroscope SDK will append /ingest to this URL.
+     * The Telemetry service has a Pyroscope-compatible /ingest endpoint.
+     */
     const endpoint: string | undefined =
       process.env["OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT"];
 
@@ -77,8 +76,10 @@ export default class Profiling {
   }
 
   private static getAuthToken(): string | undefined {
-    // Extract the OneUptime token from OTLP headers
-    // Format: "x-oneuptime-token=<value>;other-header=value"
+    /*
+     * Extract the OneUptime token from OTLP headers
+     * Format: "x-oneuptime-token=<value>;other-header=value"
+     */
     const headersStr: string | undefined =
       process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"];
 

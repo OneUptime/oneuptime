@@ -1088,9 +1088,7 @@ ${alertSeverity.name}
         return globalConfig.monitorMetricRetentionInDays;
       }
     } catch (error) {
-      logger.error(
-        "Error fetching metric retention config, using default:",
-      );
+      logger.error("Error fetching metric retention config, using default:");
       logger.error(error);
     }
 
