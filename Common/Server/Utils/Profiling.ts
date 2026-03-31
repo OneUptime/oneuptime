@@ -1,14 +1,10 @@
 import Pyroscope from "@pyroscope/nodejs";
-import { DisableTelemetry, EnableProfiling } from "../EnvironmentConfig";
+import { EnableProfiling } from "../EnvironmentConfig";
 import logger from "./Logger";
 
 export default class Profiling {
   public static init(data: { serviceName: string }): void {
     if (!EnableProfiling) {
-      return;
-    }
-
-    if (DisableTelemetry) {
       return;
     }
 
