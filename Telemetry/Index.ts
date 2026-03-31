@@ -2,6 +2,7 @@ import OTelIngestAPI from "./API/OTelIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
+import PyroscopeAPI from "./API/Pyroscope";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
@@ -38,6 +39,7 @@ app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
 app.use(TELEMETRY_PREFIXES, MetricsAPI);
 app.use(TELEMETRY_PREFIXES, SyslogAPI);
 app.use(TELEMETRY_PREFIXES, FluentAPI);
+app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
 
 /*
  * ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]
