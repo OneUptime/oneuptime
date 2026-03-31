@@ -724,40 +724,90 @@ ${contextBlock}
       const resourcesToShow: Array<KubernetesAffectedResource> =
         sortedResources.slice(0, 10);
 
-      for (const resource of resourcesToShow) {
-        const details: Array<string> = [];
+      // Determine which columns are present across all resources
+      const hasNamespace: boolean = resourcesToShow.some(
+        (r: KubernetesAffectedResource) => r.namespace,
+      );
+      const hasWorkload: boolean = resourcesToShow.some(
+        (r: KubernetesAffectedResource) => r.workloadType && r.workloadName,
+      );
+      const hasPod: boolean = resourcesToShow.some(
+        (r: KubernetesAffectedResource) => r.podName,
+      );
+      const hasContainer: boolean = resourcesToShow.some(
+        (r: KubernetesAffectedResource) => r.containerName,
+      );
+      const hasNode: boolean = resourcesToShow.some(
+        (r: KubernetesAffectedResource) => r.nodeName,
+      );
 
-        if (resource.namespace) {
-          details.push(`Namespace: \`${resource.namespace}\``);
+      // Build table header
+      const headerCells: Array<string> = [];
+      if (hasNamespace) {
+        headerCells.push("Namespace");
+      }
+      if (hasWorkload) {
+        headerCells.push("Workload Type");
+        headerCells.push("Workload");
+      }
+      if (hasPod) {
+        headerCells.push("Pod");
+      }
+      if (hasContainer) {
+        headerCells.push("Container");
+      }
+      if (hasNode) {
+        headerCells.push("Node");
+      }
+      headerCells.push("Value");
+
+      const headerRow: string = `| ${headerCells.join(" | ")} |`;
+      const separatorRow: string = `| ${headerCells.map(() => {
+        return "---";
+      }).join(" | ")} |`;
+
+      resourceLines.push(headerRow);
+      resourceLines.push(separatorRow);
+
+      for (const resource of resourcesToShow) {
+        const cells: Array<string> = [];
+
+        if (hasNamespace) {
+          cells.push(resource.namespace ? `\`${resource.namespace}\`` : "-");
         }
-        if (resource.workloadType && resource.workloadName) {
-          details.push(
-            `${resource.workloadType}: \`${resource.workloadName}\``,
+        if (hasWorkload) {
+          cells.push(
+            resource.workloadType ? `${resource.workloadType}` : "-",
+          );
+          cells.push(
+            resource.workloadName ? `\`${resource.workloadName}\`` : "-",
           );
         }
-        if (resource.podName) {
-          details.push(`Pod: \`${resource.podName}\``);
+        if (hasPod) {
+          cells.push(resource.podName ? `\`${resource.podName}\`` : "-");
         }
-        if (resource.containerName) {
-          details.push(`Container: \`${resource.containerName}\``);
+        if (hasContainer) {
+          cells.push(
+            resource.containerName ? `\`${resource.containerName}\`` : "-",
+          );
         }
-        if (resource.nodeName) {
-          details.push(`Node: \`${resource.nodeName}\``);
+        if (hasNode) {
+          cells.push(resource.nodeName ? `\`${resource.nodeName}\`` : "-");
         }
 
-        details.push(`Value: **${resource.metricValue}**`);
+        cells.push(`**${resource.metricValue}**`);
 
-        resourceLines.push(`- ${details.join(" | ")}`);
+        resourceLines.push(`| ${cells.join(" | ")} |`);
       }
 
       if (sortedResources.length > 10) {
         resourceLines.push(
-          `- ... and ${sortedResources.length - 10} more affected resources`,
+          `\n*... and ${sortedResources.length - 10} more affected resources*`,
         );
       }
 
       sections.push(
-        `\n\n**Affected Resources** (${sortedResources.length} total)\n${resourceLines.join("\n")}`,
+        `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
       );
 
       // Add root cause analysis based on metric type
