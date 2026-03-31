@@ -607,7 +607,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }
 
     return (
-      <div className="row">
+      <div className="row" id={props.id}>
         <div className="col-lg-1">
           <div>
             {props.title && (
