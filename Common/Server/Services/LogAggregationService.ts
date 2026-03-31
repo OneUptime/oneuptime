@@ -676,6 +676,7 @@ export class LogAggregationService {
     bodySearchText?: string | undefined;
     traceIds?: Array<string> | undefined;
     spanIds?: Array<string> | undefined;
+    attributes?: Record<string, string> | undefined;
   }): Promise<Array<JSONObject>> {
     const maxLimit: number = Math.min(request.limit || 10000, 10000);
 

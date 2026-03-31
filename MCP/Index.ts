@@ -9,6 +9,7 @@ import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Profiling from "Common/Server/Utils/Profiling";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import "ejs";
 
@@ -72,6 +73,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     // Initialize telemetry
     Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
+    // Initialize profiling (opt-in via ENABLE_PROFILING env var)
+    Profiling.init({
       serviceName: APP_NAME,
     });
 

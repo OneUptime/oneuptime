@@ -21,6 +21,7 @@ import logger from "Common/Server/Utils/Logger";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Profiling from "Common/Server/Utils/Profiling";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
 import { TELEMETRY_CONCURRENCY } from "./Config";
 import type { StatusAPIOptions } from "Common/Server/API/StatusAPI";
@@ -76,6 +77,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Initialize telemetry
     Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
+    // Initialize profiling (opt-in via ENABLE_PROFILING env var)
+    Profiling.init({
       serviceName: APP_NAME,
     });
 

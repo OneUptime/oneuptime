@@ -31,6 +31,8 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricService from "./MetricService";
+import GlobalConfigService from "./GlobalConfigService";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../Types/Date";
 import Metric, {
   MetricPointType,
@@ -1060,6 +1062,41 @@ ${alertSeverity.name}
     });
   }
 
+  private static readonly DEFAULT_METRIC_RETENTION_DAYS: number = 180;
+
+  private async getMetricRetentionDays(): Promise<number> {
+    try {
+      const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+          query: {
+            _id: ObjectID.getZeroObjectID().toString(),
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            monitorMetricRetentionInDays: true,
+          },
+        });
+
+      if (
+        globalConfig &&
+        globalConfig.monitorMetricRetentionInDays !== undefined &&
+        globalConfig.monitorMetricRetentionInDays !== null &&
+        globalConfig.monitorMetricRetentionInDays > 0
+      ) {
+        return globalConfig.monitorMetricRetentionInDays;
+      }
+    } catch (error) {
+      logger.error(
+        "Error fetching metric retention config, using default:",
+      );
+      logger.error(error);
+    }
+
+    return Service.DEFAULT_METRIC_RETENTION_DAYS;
+  }
+
   @CaptureSpan()
   public async refreshAlertMetrics(data: { alertId: ObjectID }): Promise<void> {
     const alert: Model | null = await this.findOneById({
@@ -1130,6 +1167,12 @@ ${alertSeverity.name}
     const itemsToSave: Array<Metric> = [];
     const metricTypesMap: Dictionary<MetricType> = {};
 
+    const metricRetentionDays: number = await this.getMetricRetentionDays();
+    const alertMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      metricRetentionDays,
+    );
+
     // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
     const alertStartsAt: Date =
       firstAlertStateTimeline?.startsAt ||
@@ -1160,6 +1203,7 @@ ${alertSeverity.name}
       alertCountMetric.time,
     );
     alertCountMetric.metricPointType = MetricPointType.Sum;
+    alertCountMetric.retentionDate = alertMetricRetentionDate;
 
     itemsToSave.push(alertCountMetric);
 
@@ -1214,6 +1258,7 @@ ${alertSeverity.name}
           timeToAcknowledgeMetric.time,
         );
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+        timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
 
         itemsToSave.push(timeToAcknowledgeMetric);
 
@@ -1270,6 +1315,7 @@ ${alertSeverity.name}
           timeToResolveMetric.time,
         );
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
+        timeToResolveMetric.retentionDate = alertMetricRetentionDate;
 
         itemsToSave.push(timeToResolveMetric);
 
@@ -1319,6 +1365,7 @@ ${alertSeverity.name}
         alertDurationMetric.time,
       );
       alertDurationMetric.metricPointType = MetricPointType.Sum;
+      alertDurationMetric.retentionDate = alertMetricRetentionDate;
 
       itemsToSave.push(alertDurationMetric);
 

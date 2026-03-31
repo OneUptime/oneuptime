@@ -16,6 +16,15 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import UUID from "Common/Utils/UUID";
+import ComponentID from "Common/Types/Workflow/ComponentID";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  ComponentType,
+  NodeDataProp,
+  NodeType,
+} from "Common/Types/Workflow/Component";
+import { useAsyncEffect } from "use-async-effect";
+import { Node } from "reactflow";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -23,6 +32,44 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useState<boolean>(false);
   const [refresher, setRefresher] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [isWebhookTrigger, setIsWebhookTrigger] = useState<boolean>(false);
+
+  useAsyncEffect(async () => {
+    try {
+      const workflow: Workflow | null = await ModelAPI.getItem({
+        modelType: Workflow,
+        id: modelId,
+        select: {
+          graph: true,
+        },
+        requestOptions: {},
+      });
+
+      if (
+        workflow?.graph &&
+        (workflow.graph as JSONObject)["nodes"]
+      ) {
+        const nodes: Array<JSONObject> = (workflow.graph as JSONObject)[
+          "nodes"
+        ] as Array<JSONObject>;
+
+        for (const node of nodes) {
+          const nodeData: NodeDataProp = node["data"] as any;
+
+          if (
+            nodeData.componentType === ComponentType.Trigger &&
+            nodeData.nodeType === NodeType.Node &&
+            nodeData.metadataId === ComponentID.Webhook
+          ) {
+            setIsWebhookTrigger(true);
+            break;
+          }
+        }
+      }
+    } catch (_err) {
+      // ignore - just don't show the webhook section
+    }
+  }, []);
 
   const resetSecretKey: () => void = (): void => {
     setShowResetConfirmation(false);
@@ -44,46 +91,48 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-      <CardModelDetail<Workflow>
-        name="Workflow > Webhook Secret Key"
-        cardProps={{
-          title: "Webhook Secret Key",
-          description:
-            "This secret key is used to trigger this workflow via webhook. Use this key in the webhook URL instead of the workflow ID for security. You can reset this key if it is compromised.",
-          buttons: [
-            {
-              title: "Reset Secret Key",
-              buttonStyle: ButtonStyleType.DANGER_OUTLINE,
-              onClick: () => {
-                setShowResetConfirmation(true);
+      {isWebhookTrigger && (
+        <CardModelDetail<Workflow>
+          name="Workflow > Webhook Secret Key"
+          cardProps={{
+            title: "Webhook Secret Key",
+            description:
+              "This secret key is used to trigger this workflow via webhook. Use this key in the webhook URL instead of the workflow ID for security. You can reset this key if it is compromised.",
+            buttons: [
+              {
+                title: "Reset Secret Key",
+                buttonStyle: ButtonStyleType.DANGER_OUTLINE,
+                onClick: () => {
+                  setShowResetConfirmation(true);
+                },
+                icon: IconProp.Refresh,
               },
-              icon: IconProp.Refresh,
-            },
-          ],
-        }}
-        isEditable={false}
-        refresher={refresher}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Workflow,
-          id: "model-detail-workflow-webhook-secret",
-          fields: [
-            {
-              field: {
-                webhookSecretKey: true,
+            ],
+          }}
+          isEditable={false}
+          refresher={refresher}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: Workflow,
+            id: "model-detail-workflow-webhook-secret",
+            fields: [
+              {
+                field: {
+                  webhookSecretKey: true,
+                },
+                fieldType: FieldType.HiddenText,
+                title: "Webhook Secret Key",
+                placeholder:
+                  "No secret key generated yet. Save the workflow to generate one.",
+                opts: {
+                  isCopyable: true,
+                },
               },
-              fieldType: FieldType.HiddenText,
-              title: "Webhook Secret Key",
-              placeholder:
-                "No secret key generated yet. Save the workflow to generate one.",
-              opts: {
-                isCopyable: true,
-              },
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+            ],
+            modelId: modelId,
+          }}
+        />
+      )}
 
       {showResetConfirmation && (
         <ConfirmModal

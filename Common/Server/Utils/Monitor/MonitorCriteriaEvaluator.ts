@@ -1,4 +1,5 @@
 import logger from "../Logger";
+import LogAggregationService from "../../Services/LogAggregationService";
 import VMUtil from "../VM/VMAPI";
 import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
@@ -116,7 +117,7 @@ export default class MonitorCriteriaEvaluator {
 `;
 
         const contextBlock: string | null =
-          MonitorCriteriaEvaluator.buildRootCauseContext({
+          await MonitorCriteriaEvaluator.buildRootCauseContext({
             dataToProcess: input.dataToProcess,
             monitorStep: input.monitorStep,
             monitor: input.monitor,
@@ -557,14 +558,16 @@ ${contextBlock}
     return null;
   }
 
-  private static buildRootCauseContext(input: {
+  private static async buildRootCauseContext(input: {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
-  }): string | null {
+  }): Promise<string | null> {
     // Handle Kubernetes monitors with rich resource context
     if (input.monitor.monitorType === MonitorType.Kubernetes) {
-      return MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(input);
+      return await MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(
+        input,
+      );
     }
 
     const requestDetails: Array<string> = [];
@@ -675,11 +678,11 @@ ${contextBlock}
     return sections.join("\n");
   }
 
-  private static buildKubernetesRootCauseContext(input: {
+  private static async buildKubernetesRootCauseContext(input: {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
-  }): string | null {
+  }): Promise<string | null> {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -730,7 +733,7 @@ ${contextBlock}
         );
 
       if (sortedResources.length === 0) {
-        continue;
+        return sections.join("\n");
       }
 
       // Show top 10 affected resources
@@ -832,6 +835,73 @@ ${contextBlock}
 
       if (analysis) {
         sections.push(`\n\n**Root Cause Analysis**\n${analysis}`);
+      }
+
+      // Fetch recent container logs for the top affected resource during CrashLoopBackOff
+      if (
+        (breakdown.metricName === "k8s.container.restarts" ||
+          breakdown.metricName.includes("restart")) &&
+        input.monitor.projectId
+      ) {
+        const topResource: KubernetesAffectedResource = resourcesToShow[0]!;
+
+        try {
+          const logAttributes: Record<string, string> = {};
+
+          if (breakdown.clusterName) {
+            logAttributes["resource.k8s.cluster.name"] =
+              breakdown.clusterName;
+          }
+
+          if (topResource.podName) {
+            logAttributes["resource.k8s.pod.name"] = topResource.podName;
+          }
+
+          if (topResource.containerName) {
+            logAttributes["resource.k8s.container.name"] =
+              topResource.containerName;
+          }
+
+          if (topResource.namespace) {
+            logAttributes["resource.k8s.namespace.name"] =
+              topResource.namespace;
+          }
+
+          const now: Date = OneUptimeDate.getCurrentDate();
+          const fifteenMinutesAgo: Date =
+            OneUptimeDate.addRemoveMinutes(now, -15);
+
+          const logs: Array<JSONObject> =
+            await LogAggregationService.getExportLogs({
+              projectId: input.monitor.projectId,
+              startTime: fifteenMinutesAgo,
+              endTime: now,
+              limit: 50,
+              attributes: logAttributes,
+            });
+
+          if (logs.length > 0) {
+            const logLines: Array<string> = logs.map((log: JSONObject) => {
+              const timestamp: string = log["time"]
+                ? String(log["time"])
+                : "";
+              const severity: string = log["severityText"]
+                ? String(log["severityText"])
+                : "INFO";
+              const body: string = log["body"] ? String(log["body"]) : "";
+              return `\`${timestamp}\` **${severity}** ${body}`;
+            });
+
+            sections.push(
+              `\n\n**Recent Container Logs** (${topResource.podName || "unknown pod"} / ${topResource.containerName || "unknown container"}, last 15 minutes)\n\n${logLines.join("\n\n")}`,
+            );
+          }
+        } catch (err) {
+          logger.error(
+            "Failed to fetch container logs for root cause context",
+          );
+          logger.error(err);
+        }
       }
     }
 

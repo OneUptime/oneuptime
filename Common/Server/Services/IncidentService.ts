@@ -36,6 +36,8 @@ import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTime
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import MetricService from "./MetricService";
+import GlobalConfigService from "./GlobalConfigService";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
 import Metric, {
   MetricPointType,
@@ -1396,6 +1398,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
                 postmortemMetric.time,
               );
               postmortemMetric.metricPointType = MetricPointType.Sum;
+              const postmortemRetentionDays: number =
+                await this.getMetricRetentionDays();
+              postmortemMetric.retentionDate = OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                postmortemRetentionDays,
+              );
 
               await MetricService.create({
                 data: postmortemMetric,
@@ -1583,6 +1591,12 @@ ${incidentSeverity.name}
                 severityChangeMetric.time,
               );
               severityChangeMetric.metricPointType = MetricPointType.Sum;
+              const severityRetentionDays: number =
+                await this.getMetricRetentionDays();
+              severityChangeMetric.retentionDate = OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                severityRetentionDays,
+              );
 
               await MetricService.create({
                 data: severityChangeMetric,
@@ -2075,6 +2089,41 @@ ${incidentSeverity.name}
     });
   }
 
+  private static readonly DEFAULT_METRIC_RETENTION_DAYS: number = 180;
+
+  private async getMetricRetentionDays(): Promise<number> {
+    try {
+      const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+          query: {
+            _id: ObjectID.getZeroObjectID().toString(),
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            monitorMetricRetentionInDays: true,
+          },
+        });
+
+      if (
+        globalConfig &&
+        globalConfig.monitorMetricRetentionInDays !== undefined &&
+        globalConfig.monitorMetricRetentionInDays !== null &&
+        globalConfig.monitorMetricRetentionInDays > 0
+      ) {
+        return globalConfig.monitorMetricRetentionInDays;
+      }
+    } catch (error) {
+      logger.error(
+        "Error fetching metric retention config, using default:",
+      );
+      logger.error(error);
+    }
+
+    return Service.DEFAULT_METRIC_RETENTION_DAYS;
+  }
+
   @CaptureSpan()
   public async refreshIncidentMetrics(data: {
     incidentId: ObjectID;
@@ -2223,6 +2272,12 @@ ${incidentSeverity.name}
 
     const itemsToSave: Array<Metric> = [];
 
+    const metricRetentionDays: number = await this.getMetricRetentionDays();
+    const incidentMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      metricRetentionDays,
+    );
+
     // now we need to create new metrics for this incident - TimeToAcknowledge, TimeToResolve, IncidentCount, IncidentDuration
 
     const incidentStartsAt: Date =
@@ -2270,6 +2325,7 @@ ${incidentSeverity.name}
       incidentCountMetric.time,
     );
     incidentCountMetric.metricPointType = MetricPointType.Sum;
+    incidentCountMetric.retentionDate = incidentMetricRetentionDate;
 
     itemsToSave.push(incidentCountMetric);
 
@@ -2321,6 +2377,7 @@ ${incidentSeverity.name}
           timeToAcknowledgeMetric.time,
         );
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+        timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
 
         itemsToSave.push(timeToAcknowledgeMetric);
 
@@ -2374,6 +2431,7 @@ ${incidentSeverity.name}
           timeToResolveMetric.time,
         );
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
+        timeToResolveMetric.retentionDate = incidentMetricRetentionDate;
 
         itemsToSave.push(timeToResolveMetric);
 
@@ -2422,6 +2480,7 @@ ${incidentSeverity.name}
         incidentDurationMetric.time,
       );
       incidentDurationMetric.metricPointType = MetricPointType.Sum;
+      incidentDurationMetric.retentionDate = incidentMetricRetentionDate;
 
       itemsToSave.push(incidentDurationMetric);
 
@@ -2474,6 +2533,7 @@ ${incidentSeverity.name}
         timeInStateMetric.time,
       );
       timeInStateMetric.metricPointType = MetricPointType.Sum;
+      timeInStateMetric.retentionDate = incidentMetricRetentionDate;
 
       itemsToSave.push(timeInStateMetric);
     }

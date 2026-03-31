@@ -1,6 +1,5 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
-import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
@@ -26,18 +25,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
     // Auto-generate webhook secret key for new workflows.
-    if (!createBy.data.webhookSecretKey) {
-      createBy.data.webhookSecretKey = UUID.generate();
+    if (!createdItem.webhookSecretKey && createdItem._id) {
+      const secretKey: string = UUID.generate();
+
+      await this.updateOneById({
+        id: new ObjectID(createdItem._id),
+        data: {
+          webhookSecretKey: secretKey,
+        } as any,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      createdItem.webhookSecretKey = secretKey;
     }
 
-    return {
-      createBy,
-      carryForward: null,
-    };
+    return createdItem;
   }
 
   @CaptureSpan()

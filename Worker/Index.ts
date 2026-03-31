@@ -5,6 +5,7 @@ import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Profiling from "Common/Server/Utils/Profiling";
 import Realtime from "Common/Server/Utils/Realtime";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
@@ -20,6 +21,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Initialize telemetry
     Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
+    // Initialize profiling (opt-in via ENABLE_PROFILING env var)
+    Profiling.init({
       serviceName: APP_NAME,
     });
 

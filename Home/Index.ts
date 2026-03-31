@@ -4,6 +4,7 @@ import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Profiling from "Common/Server/Utils/Profiling";
 import "ejs";
 
 const APP_NAME: string = "home";
@@ -12,6 +13,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     // Initialize telemetry
     Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
+    // Initialize profiling (opt-in via ENABLE_PROFILING env var)
+    Profiling.init({
       serviceName: APP_NAME,
     });
 

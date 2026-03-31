@@ -223,6 +223,7 @@ services:
             <<: *common-runtime-variables
             PORT: ${TEST_SERVER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_TEST_SERVER}
         logging:
             driver: "local"
             options:
@@ -242,6 +243,7 @@ services:
             SMS_HIGH_RISK_COST_IN_CENTS: ${SMS_HIGH_RISK_COST_IN_CENTS}
             CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE: ${CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_APP}
         logging:
             driver: "local"
             options:
@@ -267,6 +269,7 @@ services:
             <<: *common-runtime-variables
             PORT: ${WORKER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_WORKER}
             WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
         logging:
             driver: "local"
@@ -290,6 +293,7 @@ services:
             NODE_ENV: ${ENVIRONMENT}
             LOG_LEVEL: ${LOG_LEVEL}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_PROBE}
             OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
             OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
         logging:
@@ -314,6 +318,7 @@ services:
             NODE_ENV: ${ENVIRONMENT}
             LOG_LEVEL: ${LOG_LEVEL}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_PROBE}
             OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
             OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
         logging:
@@ -329,6 +334,7 @@ services:
             AI_AGENT_KEY: ${AI_AGENT_KEY}
             ONEUPTIME_URL: ${AI_AGENT_ONEUPTIME_URL}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_AI_AGENT}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_AI_AGENT}
             PORT: ${AI_AGENT_PORT}
         logging:
             driver: "local"
@@ -361,6 +367,7 @@ services:
             <<: *common-runtime-variables
             PORT: ${TELEMETRY_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
+            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_TELEMETRY}
             # Max concurrent telemetry jobs the worker will process
             TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
             REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}

@@ -406,6 +406,9 @@ export const IpWhitelist: string = process.env["IP_WHITELIST"] || "";
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
+export const EnableProfiling: boolean =
+  process.env["ENABLE_PROFILING"] === "true";
+
 export const IsEnterpriseEdition: boolean =
   process.env["IS_ENTERPRISE_EDITION"] === "true";
 

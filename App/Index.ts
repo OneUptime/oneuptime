@@ -15,6 +15,7 @@ import logger from "Common/Server/Utils/Logger";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Profiling from "Common/Server/Utils/Profiling";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 
@@ -24,6 +25,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     // Initialize telemetry
     Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
+    // Initialize profiling (opt-in via ENABLE_PROFILING env var)
+    Profiling.init({
       serviceName: APP_NAME,
     });
 

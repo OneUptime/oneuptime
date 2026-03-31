@@ -46,18 +46,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  if (MonitorTypeHelper.doesMonitorTypeHaveGraphs(props.monitorType)) {
-    overviewItems.push({
-      link: {
-        title: "Metrics",
-        to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route,
-          { modelId: props.modelId },
-        ),
-      },
-      icon: IconProp.Graph,
-    });
-  }
+  overviewItems.push({
+    link: {
+      title: "Metrics",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route,
+        { modelId: props.modelId },
+      ),
+    },
+    icon: IconProp.Graph,
+  });
 
   overviewItems.push({
     link: {
