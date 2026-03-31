@@ -50,7 +50,7 @@ export default class Profiling {
     /*
      * Use the OTLP endpoint base URL as the Pyroscope server address.
      * The Pyroscope SDK will append /ingest to this URL.
-     * The Telemetry service has a Pyroscope-compatible /ingest endpoint.
+     * The final URL will be /pyroscope/ingest, routed by nginx to the telemetry service.
      */
     const endpoint: string | undefined =
       process.env["OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT"];
@@ -59,7 +59,8 @@ export default class Profiling {
       return undefined;
     }
 
-    // Strip /otlp suffix if present, since Pyroscope SDK appends /ingest
+    // Strip /otlp suffix if present and append /pyroscope
+    // The Pyroscope SDK appends /ingest, so the final URL will be /pyroscope/ingest
     let baseUrl: string = endpoint;
     if (baseUrl.endsWith("/otlp")) {
       baseUrl = baseUrl.substring(0, baseUrl.length - 5);
@@ -68,7 +69,7 @@ export default class Profiling {
       baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
 
-    return baseUrl;
+    return `${baseUrl}/pyroscope`;
   }
 
   private static getAuthToken(): string | undefined {

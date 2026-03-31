@@ -559,6 +559,18 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass $backend_telemetry;
     }
 
+    # Pyroscope profiling ingestion endpoint
+    location /pyroscope {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass $backend_telemetry;
+    }
+
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_otel_grpc grpc://${SERVER_TELEMETRY_HOSTNAME}:4317;

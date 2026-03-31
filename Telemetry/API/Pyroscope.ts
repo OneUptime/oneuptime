@@ -59,20 +59,5 @@ router.post(
   },
 );
 
-// Also mount at /ingest for Pyroscope SDKs that use serverAddress without a subpath
-router.post(
-  "/ingest",
-  MultipartFormDataMiddleware,
-  mapBearerTokenMiddleware,
-  setProfilesProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    return PyroscopeIngestService.ingestPyroscopeProfile(req, res, next);
-  },
-);
 
 export default router;

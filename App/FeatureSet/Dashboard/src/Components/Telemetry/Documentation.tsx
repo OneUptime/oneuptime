@@ -1114,7 +1114,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     ? `${httpProtocol}://${HOST}/otlp`
     : "<YOUR_ONEUPTIME_URL>";
   const pyroscopeUrl: string = HOST
-    ? `${httpProtocol}://${HOST}`
+    ? `${httpProtocol}://${HOST}/pyroscope`
     : "<YOUR_ONEUPTIME_PYROSCOPE_URL>";
 
   // Fetch ingestion keys on mount
