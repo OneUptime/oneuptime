@@ -1,6 +1,7 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
-import { OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
 import Protocol from "../../Types/API/Protocol";
@@ -17,10 +18,26 @@ import {
 import API from "../../Utils/API";
 import Model from "../../Models/DatabaseModels/Workflow";
 import logger from "../Utils/Logger";
+import UUID from "../../Utils/UUID";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    // Auto-generate webhook secret key for new workflows.
+    if (!createBy.data.webhookSecretKey) {
+      createBy.data.webhookSecretKey = UUID.generate();
+    }
+
+    return {
+      createBy,
+      carryForward: null,
+    };
   }
 
   @CaptureSpan()

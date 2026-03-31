@@ -111,6 +111,7 @@ export interface ComponentProps {
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
+  webhookSecretKey?: string | undefined;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -562,6 +563,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             return node.data as NodeDataProp;
           })}
           workflowId={props.workflowId}
+          webhookSecretKey={props.webhookSecretKey}
           component={selectedNodeData}
           title={
             selectedNodeData && selectedNodeData.metadata.title

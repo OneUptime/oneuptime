@@ -13,6 +13,8 @@ import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import WebhookComponents from "../../../../Types/Workflow/Components/Webhook";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import WorkflowService from "../../../Services/WorkflowService";
+import Workflow from "../../../../Models/DatabaseModels/Workflow";
 
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {
@@ -54,7 +56,7 @@ export default class WebhookTrigger extends TriggerCode {
   @CaptureSpan()
   public override async init(props: InitProps): Promise<void> {
     props.router.get(
-      `/trigger/:workflowId`,
+      `/trigger/:secretkey`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.initTrigger(req, res, props);
@@ -65,7 +67,7 @@ export default class WebhookTrigger extends TriggerCode {
     );
 
     props.router.post(
-      `/trigger/:workflowId`,
+      `/trigger/:secretkey`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.initTrigger(req, res, props);
@@ -82,12 +84,33 @@ export default class WebhookTrigger extends TriggerCode {
     res: ExpressResponse,
     props: InitProps,
   ): Promise<void> {
-    /// Run Graph.
+    const secretKey: string = req.params["secretkey"] as string;
 
-    // check if this workflow has the trigger enabled.
+    if (!secretKey) {
+      throw new BadDataException("Secret key is required to trigger workflow.");
+    }
+
+    // Look up the workflow by webhook secret key.
+    const workflow: Workflow | null = await WorkflowService.findOneBy({
+      query: {
+        webhookSecretKey: secretKey,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!workflow || !workflow._id) {
+      throw new BadDataException(
+        "Workflow not found for the provided secret key.",
+      );
+    }
 
     const executeWorkflow: ExecuteWorkflowType = {
-      workflowId: new ObjectID(req.params["workflowId"] as string),
+      workflowId: new ObjectID(workflow._id),
       returnValues: {
         "request-headers": req.headers,
         "request-params": req.query,

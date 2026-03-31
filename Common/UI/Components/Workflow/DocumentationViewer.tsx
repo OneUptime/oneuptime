@@ -14,6 +14,7 @@ import useAsyncEffect from "use-async-effect";
 export interface ComponentProps {
   documentationLink: Route;
   workflowId: ObjectID;
+  webhookSecretKey?: string | undefined;
 }
 
 const DocumentationViewer: FunctionComponent<ComponentProps> = (
@@ -30,6 +31,10 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
   ): string => {
     text = text.replace("{{serverUrl}}", HOME_URL.toString());
     text = text.replace("{{workflowId}}", props.workflowId.toString());
+    text = text.replace(
+      "{{webhookSecretKey}}",
+      props.webhookSecretKey || "Loading...",
+    );
 
     return text;
   };

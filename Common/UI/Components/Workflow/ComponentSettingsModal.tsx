@@ -25,6 +25,7 @@ export interface ComponentProps {
   component: NodeDataProp;
   graphComponents: Array<NodeDataProp>;
   workflowId: ObjectID;
+  webhookSecretKey?: string | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -179,6 +180,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             <DocumentationViewer
               documentationLink={component.metadata.documentationLink}
               workflowId={props.workflowId}
+              webhookSecretKey={props.webhookSecretKey}
             />
           </div>
         )}

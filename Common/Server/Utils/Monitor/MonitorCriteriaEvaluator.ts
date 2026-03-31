@@ -713,12 +713,25 @@ ${contextBlock}
     if (breakdown.affectedResources && breakdown.affectedResources.length > 0) {
       const resourceLines: Array<string> = [];
 
-      // Sort by metric value descending (worst first)
+      // Sort by metric value descending (worst first) and filter out zero-value resources
       const sortedResources: Array<KubernetesAffectedResource> = [
         ...breakdown.affectedResources,
-      ].sort((a: KubernetesAffectedResource, b: KubernetesAffectedResource) => {
-        return b.metricValue - a.metricValue;
-      });
+      ]
+        .filter((r: KubernetesAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort(
+          (
+            a: KubernetesAffectedResource,
+            b: KubernetesAffectedResource,
+          ) => {
+            return b.metricValue - a.metricValue;
+          },
+        );
+
+      if (sortedResources.length === 0) {
+        continue;
+      }
 
       // Show top 10 affected resources
       const resourcesToShow: Array<KubernetesAffectedResource> =

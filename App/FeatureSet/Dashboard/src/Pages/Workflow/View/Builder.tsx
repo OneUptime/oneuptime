@@ -46,6 +46,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [nodes, setNodes] = useState<Array<Node>>([]);
   const [edges, setEdges] = useState<Array<Edge>>([]);
   const [error, setError] = useState<string>("");
+  const [webhookSecretKey, setWebhookSecretKey] = useState<string>("");
 
   const [showRunSuccessConfirmation, setShowRunSuccessConfirmation] =
     useState<boolean>(false);
@@ -63,11 +64,16 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id: modelId,
         select: {
           graph: true,
+          webhookSecretKey: true,
         },
         requestOptions: {},
       });
 
       if (workflow) {
+        if (workflow.webhookSecretKey) {
+          setWebhookSecretKey(workflow.webhookSecretKey);
+        }
+
         const allComponents: {
           components: Array<ComponentMetadata>;
           categories: Array<ComponentCategory>;
@@ -349,6 +355,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ) : (
           <Workflow
             workflowId={modelId}
+            webhookSecretKey={webhookSecretKey}
             showComponentsPickerModal={showComponentPickerModal}
             onComponentPickerModalUpdate={(value: boolean) => {
               setShowComponentPickerModal(value);

@@ -527,6 +527,35 @@ export default class Workflow extends BaseModel {
   })
   public triggerArguments?: JSONObject = undefined;
 
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadWorkflow,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Webhook Secret Key",
+    description:
+      "Secret key used to trigger this workflow via webhook. Use this instead of the workflow ID for security.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public webhookSecretKey?: string = undefined;
+
   // This is a BullMQ job key that is used to schedule job for this workflow. This is used internally to remove existing job.
   @ColumnAccessControl({
     create: [],
