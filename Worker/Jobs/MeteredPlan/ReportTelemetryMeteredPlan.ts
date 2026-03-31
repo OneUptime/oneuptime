@@ -12,6 +12,7 @@ import {
   LogDataIngestMeteredPlan,
   MetricsDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
+  ProfilesDataIngestMeteredPlan,
 } from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -73,6 +74,12 @@ RunCron(
 
           await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
             project.id!,
+          );
+
+          await Sleep.sleep(1000);
+
+          await ProfilesDataIngestMeteredPlan.reportQuantityToBillingProvider(
+            project.id,
           );
 
           await Sleep.sleep(1000);
