@@ -1,0 +1,95 @@
+import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
+import { Page, expect, test, Response } from "@playwright/test";
+import URL from "Common/Types/API/URL";
+import Faker from "Common/Utils/Faker";
+
+test.describe("Project Creation", () => {
+  test("should be able to create a new project", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Register a new user first
+    let pageResult: Response | null = await page.goto(
+      URL.fromString(BASE_URL.toString())
+        .addRoute("/accounts/register")
+        .toString(),
+    );
+
+    while (pageResult?.status() === 504 || pageResult?.status() === 502) {
+      try {
+        pageResult = await page.reload();
+      } catch {
+        pageResult = await page.goto(
+          URL.fromString(BASE_URL.toString())
+            .addRoute("/accounts/register")
+            .toString(),
+        );
+      }
+    }
+
+    await page.getByTestId("email").click();
+    await page.getByTestId("email").fill(Faker.generateEmail().toString());
+    await page.getByTestId("email").press("Tab");
+    await page.getByTestId("name").fill("E2E Test User");
+    await page.getByTestId("name").press("Tab");
+
+    if (IS_BILLING_ENABLED) {
+      await page.getByTestId("companyName").fill("E2E Test Company");
+      await page.getByTestId("companyName").press("Tab");
+      await page.getByTestId("companyPhoneNumber").fill("+1234567890");
+      await page.getByTestId("companyPhoneNumber").press("Tab");
+    }
+
+    await page.getByTestId("password").fill("sample");
+    await page.getByTestId("password").press("Tab");
+    await page.getByTestId("confirmPassword").fill("sample");
+    await page.getByTestId("Sign Up").click();
+
+    await page.waitForURL(
+      URL.fromString(BASE_URL.toString())
+        .addRoute("/dashboard/welcome")
+        .toString(),
+    );
+
+    // Click the "Create New Project" button
+    await page.getByTestId("create-new-project-button").click();
+
+    // Wait for the project creation modal to appear
+    await page.getByTestId("modal").waitFor({ state: "visible" });
+
+    // Fill in the project name
+    const projectName: string =
+      "E2E Test Project " + Faker.generateName().toString();
+    await page
+      .locator("#create-project-from input[type='text']")
+      .first()
+      .fill(projectName);
+
+    if (IS_BILLING_ENABLED) {
+      // Click "Next" to go to the plan selection step
+      await page.getByTestId("modal-footer-submit-button").click();
+
+      // Select the first available plan
+      await page
+        .locator("[data-testid^='card-select-option-']")
+        .first()
+        .click();
+
+      // Submit the form to create the project
+      await page.getByTestId("modal-footer-submit-button").click();
+    } else {
+      // Submit the form to create the project
+      await page.getByTestId("modal-footer-submit-button").click();
+    }
+
+    // Wait for navigation to the project dashboard
+    await page.waitForURL(/\/dashboard\/[a-f0-9-]+/, {
+      timeout: 30000,
+    });
+
+    // Verify we are on the project dashboard
+    const url: string = page.url();
+    expect(url).toMatch(/\/dashboard\/[a-f0-9-]+/);
+  });
+});

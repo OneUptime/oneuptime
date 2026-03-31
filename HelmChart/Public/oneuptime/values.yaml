@@ -235,6 +235,8 @@ clickhouse:
         <!-- Disable processors_profile_log entirely — it was 536 GiB and is not needed -->
         <processors_profile_log remove="1" />
 
+        <allow_no_password>0</allow_no_password>
+        <allow_implicit_no_password>0</allow_implicit_no_password>
         <users>
             <${CLICKHOUSE_USER}>
                 <password>${CLICKHOUSE_PASSWORD}</password>
