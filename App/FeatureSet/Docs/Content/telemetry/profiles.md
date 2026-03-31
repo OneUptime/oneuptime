@@ -72,7 +72,7 @@ pyroscope.ebpf "default" {
 
 pyroscope.write "oneuptime" {
   endpoint {
-    url = "https://oneuptime.com/otlp/v1/profiles"
+    url = "https://oneuptime.com"
     headers = {
       "x-oneuptime-token" = "YOUR_ONEUPTIME_SERVICE_TOKEN",
     }

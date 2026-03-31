@@ -86,9 +86,11 @@ function replacePlaceholders(
   otlpUrl: string,
   otlpHost: string,
   token: string,
+  pyroscopeUrl: string,
 ): string {
   return code
-    .replace(/<YOUR_ONEUPTIME_OTLP_URL>/g, otlpUrl)
+    .replace(/<YOUR_ONEUPTIME_URL>/g, otlpUrl)
+    .replace(/<YOUR_ONEUPTIME_PYROSCOPE_URL>/g, pyroscopeUrl)
     .replace(/<YOUR_ONEUPTIME_OTLP_HOST>/g, otlpHost)
     .replace(/<YOUR_ONEUPTIME_TOKEN>/g, token);
 }
@@ -261,19 +263,19 @@ import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 const sdk = new NodeSDK({
   serviceName: 'my-service',
   traceExporter: new OTLPTraceExporter({
-    url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+    url: '<YOUR_ONEUPTIME_URL>/v1/traces',
     headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
   }),
   metricReader: new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({
-      url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/metrics',
+      url: '<YOUR_ONEUPTIME_URL>/v1/metrics',
       headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
     }),
   }),
   logRecordProcessors: [
     new BatchLogRecordProcessor(
       new OTLPLogExporter({
-        url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/logs',
+        url: '<YOUR_ONEUPTIME_URL>/v1/logs',
         headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
       })
     ),
@@ -303,7 +305,7 @@ trace_provider = TracerProvider(resource=resource)
 trace_provider.add_span_processor(
     BatchSpanProcessor(
         OTLPSpanExporter(
-            endpoint="<YOUR_ONEUPTIME_OTLP_URL>",
+            endpoint="<YOUR_ONEUPTIME_URL>",
             headers={"x-oneuptime-token": "<YOUR_ONEUPTIME_TOKEN>"},
         )
     )
@@ -313,7 +315,7 @@ trace.set_tracer_provider(trace_provider)
 # Metrics
 metric_reader = PeriodicExportingMetricReader(
     OTLPMetricExporter(
-        endpoint="<YOUR_ONEUPTIME_OTLP_URL>",
+        endpoint="<YOUR_ONEUPTIME_URL>",
         headers={"x-oneuptime-token": "<YOUR_ONEUPTIME_TOKEN>"},
     )
 )
@@ -363,7 +365,7 @@ func initTracer() (*sdktrace.TracerProvider, error) {
         code: `# Run your Java application with the OpenTelemetry agent:
 java -javaagent:opentelemetry-javaagent.jar \\
   -Dotel.service.name=my-service \\
-  -Dotel.exporter.otlp.endpoint=<YOUR_ONEUPTIME_OTLP_URL> \\
+  -Dotel.exporter.otlp.endpoint=<YOUR_ONEUPTIME_URL> \\
   -Dotel.exporter.otlp.headers="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>" \\
   -Dotel.exporter.otlp.protocol=http/protobuf \\
   -Dotel.metrics.exporter=otlp \\
@@ -393,7 +395,7 @@ builder.Services.AddOpenTelemetry()
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options => {
-            options.Endpoint = new Uri("<YOUR_ONEUPTIME_OTLP_URL>");
+            options.Endpoint = new Uri("<YOUR_ONEUPTIME_URL>");
             options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
             options.Protocol = OtlpExportProtocol.HttpProtobuf;
         })
@@ -402,7 +404,7 @@ builder.Services.AddOpenTelemetry()
         .SetResourceBuilder(resourceBuilder)
         .AddAspNetCoreInstrumentation()
         .AddOtlpExporter(options => {
-            options.Endpoint = new Uri("<YOUR_ONEUPTIME_OTLP_URL>");
+            options.Endpoint = new Uri("<YOUR_ONEUPTIME_URL>");
             options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
             options.Protocol = OtlpExportProtocol.HttpProtobuf;
         })
@@ -412,7 +414,7 @@ builder.Services.AddOpenTelemetry()
 builder.Logging.AddOpenTelemetry(logging => {
     logging.SetResourceBuilder(resourceBuilder);
     logging.AddOtlpExporter(options => {
-        options.Endpoint = new Uri("<YOUR_ONEUPTIME_OTLP_URL>");
+        options.Endpoint = new Uri("<YOUR_ONEUPTIME_URL>");
         options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
         options.Protocol = OtlpExportProtocol.HttpProtobuf;
     });
@@ -440,7 +442,7 @@ fn init_tracer() -> sdktrace::TracerProvider {
 
     let exporter = opentelemetry_otlp::new_exporter()
         .http()
-        .with_endpoint("<YOUR_ONEUPTIME_OTLP_URL>")
+        .with_endpoint("<YOUR_ONEUPTIME_URL>")
         .with_headers(headers);
 
     opentelemetry_otlp::new_pipeline()
@@ -471,7 +473,7 @@ use OpenTelemetry\\SemConv\\ResourceAttributes;
 use OpenTelemetry\\Contrib\\Otlp\\HttpTransportFactory;
 
 $transport = (new HttpTransportFactory())->create(
-    '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+    '<YOUR_ONEUPTIME_URL>/v1/traces',
     'application/x-protobuf',
     ['x-oneuptime-token' => '<YOUR_ONEUPTIME_TOKEN>']
 );
@@ -503,7 +505,7 @@ OpenTelemetry::SDK.configure do |c|
   c.add_span_processor(
     OpenTelemetry::SDK::Trace::Export::BatchSpanProcessor.new(
       OpenTelemetry::Exporter::OTLP::Exporter.new(
-        endpoint: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+        endpoint: '<YOUR_ONEUPTIME_URL>/v1/traces',
         headers: { 'x-oneuptime-token' => '<YOUR_ONEUPTIME_TOKEN>' }
       )
     )
@@ -523,7 +525,7 @@ config :opentelemetry,
 
 config :opentelemetry_exporter,
   otlp_protocol: :http_protobuf,
-  otlp_endpoint: "<YOUR_ONEUPTIME_OTLP_URL>",
+  otlp_endpoint: "<YOUR_ONEUPTIME_URL>",
   otlp_headers: [{"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"}]
 
 # In application.ex, add to children:
@@ -545,7 +547,7 @@ namespace otlp = opentelemetry::exporter::otlp;
 
 void initTracer() {
     otlp::OtlpHttpExporterOptions opts;
-    opts.url = "<YOUR_ONEUPTIME_OTLP_URL>/v1/traces";
+    opts.url = "<YOUR_ONEUPTIME_URL>/v1/traces";
     opts.http_headers = {{"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"}};
 
     auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
@@ -573,7 +575,7 @@ import OtlpHttpSpanExporting
 
 func initTracer() {
     let exporter = OtlpHttpSpanExporter(
-        endpoint: URL(string: "<YOUR_ONEUPTIME_OTLP_URL>/v1/traces")!,
+        endpoint: URL(string: "<YOUR_ONEUPTIME_URL>/v1/traces")!,
         config: OtlpConfiguration(
             headers: [("x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>")]
         )
@@ -614,7 +616,7 @@ const provider = new WebTracerProvider({
 provider.addSpanProcessor(
   new BatchSpanProcessor(
     new OTLPTraceExporter({
-      url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+      url: '<YOUR_ONEUPTIME_URL>/v1/traces',
       headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
     })
   )
@@ -664,7 +666,7 @@ const provider = new WebTracerProvider({
 provider.addSpanProcessor(
   new BatchSpanProcessor(
     new OTLPTraceExporter({
-      url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+      url: '<YOUR_ONEUPTIME_URL>/v1/traces',
       headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
     })
   )
@@ -698,7 +700,7 @@ registerInstrumentations({
 function getEnvVarSnippet(): string {
   return `# Alternatively, configure via environment variables (works with any language):
 export OTEL_SERVICE_NAME="my-service"
-export OTEL_EXPORTER_OTLP_ENDPOINT="<YOUR_ONEUPTIME_OTLP_URL>"
+export OTEL_EXPORTER_OTLP_ENDPOINT="<YOUR_ONEUPTIME_URL>"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"`;
 }
@@ -785,7 +787,7 @@ function getProfileConfigSnippet(lang: Language): {
         code: `const Pyroscope = require('@pyroscope/nodejs');
 
 Pyroscope.init({
-  serverAddress: '<YOUR_ONEUPTIME_OTLP_URL>',
+  serverAddress: '<YOUR_ONEUPTIME_PYROSCOPE_URL>',
   appName: 'my-service',
   tags: {
     region: process.env.REGION || 'default',
@@ -802,7 +804,7 @@ Pyroscope.start();`,
 
 pyroscope.configure(
     application_name="my-service",
-    server_address="<YOUR_ONEUPTIME_OTLP_URL>",
+    server_address="<YOUR_ONEUPTIME_PYROSCOPE_URL>",
     sample_rate=100,
     tags={
         "region": "us-east-1",
@@ -829,7 +831,7 @@ func main() {
 
     pyroscope.Start(pyroscope.Config{
         ApplicationName: "my-service",
-        ServerAddress:   "<YOUR_ONEUPTIME_OTLP_URL>",
+        ServerAddress:   "<YOUR_ONEUPTIME_PYROSCOPE_URL>",
         AuthToken:       os.Getenv("ONEUPTIME_TOKEN"),
         Tags:            map[string]string{"hostname": os.Getenv("HOSTNAME")},
         ProfileTypes: []pyroscope.ProfileType{
@@ -863,7 +865,7 @@ PyroscopeAgent.start(
         .setApplicationName("my-service")
         .setProfilingEvent(EventType.ITIMER)
         .setFormat(Format.JFR)
-        .setServerAddress("<YOUR_ONEUPTIME_OTLP_URL>")
+        .setServerAddress("<YOUR_ONEUPTIME_PYROSCOPE_URL>")
         .setAuthToken("<YOUR_ONEUPTIME_TOKEN>")
         .build()
 );
@@ -871,7 +873,7 @@ PyroscopeAgent.start(
 // Option 2: Attach as Java agent (no code changes)
 // java -javaagent:pyroscope.jar \\
 //   -Dpyroscope.application.name=my-service \\
-//   -Dpyroscope.server.address=<YOUR_ONEUPTIME_OTLP_URL> \\
+//   -Dpyroscope.server.address=<YOUR_ONEUPTIME_PYROSCOPE_URL> \\
 //   -Dpyroscope.auth.token=<YOUR_ONEUPTIME_TOKEN> \\
 //   -jar my-app.jar`,
         language: "java",
@@ -880,7 +882,7 @@ PyroscopeAgent.start(
       return {
         code: `# Set environment variables before running your .NET application:
 export PYROSCOPE_APPLICATION_NAME=my-service
-export PYROSCOPE_SERVER_ADDRESS=<YOUR_ONEUPTIME_OTLP_URL>
+export PYROSCOPE_SERVER_ADDRESS=<YOUR_ONEUPTIME_PYROSCOPE_URL>
 export PYROSCOPE_AUTH_TOKEN=<YOUR_ONEUPTIME_TOKEN>
 export PYROSCOPE_PROFILING_ENABLED=1
 export CORECLR_ENABLE_PROFILING=1
@@ -899,7 +901,7 @@ require 'pyroscope'
 
 Pyroscope.configure do |config|
   config.application_name = "my-service"
-  config.server_address   = "<YOUR_ONEUPTIME_OTLP_URL>"
+  config.server_address   = "<YOUR_ONEUPTIME_PYROSCOPE_URL>"
   config.auth_token       = "<YOUR_ONEUPTIME_TOKEN>"
   config.tags = {
     "hostname" => ENV["HOSTNAME"],
@@ -918,7 +920,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let backend_impl = pprof_backend(pprof_config);
 
     let agent = PyroscopeAgent::builder(
-            "<YOUR_ONEUPTIME_OTLP_URL>", "my-service"
+            "<YOUR_ONEUPTIME_PYROSCOPE_URL>", "my-service"
         )
         .backend(backend_impl)
         .auth_token("<YOUR_ONEUPTIME_TOKEN>".to_string())
@@ -973,7 +975,7 @@ pyroscope.ebpf "default" {
 
 pyroscope.write "oneuptime" {
   endpoint {
-    url = "<YOUR_ONEUPTIME_OTLP_URL>"
+    url = "<YOUR_ONEUPTIME_PYROSCOPE_URL>"
     headers = {
       "x-oneuptime-token" = "<YOUR_ONEUPTIME_TOKEN>",
     }
@@ -1110,7 +1112,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const otlpHost: string = HOST ? HOST : "<YOUR_ONEUPTIME_OTLP_HOST>";
   const otlpUrl: string = HOST
     ? `${httpProtocol}://${HOST}/otlp`
-    : "<YOUR_ONEUPTIME_OTLP_URL>";
+    : "<YOUR_ONEUPTIME_URL>";
+  const pyroscopeUrl: string = HOST
+    ? `${httpProtocol}://${HOST}`
+    : "<YOUR_ONEUPTIME_PYROSCOPE_URL>";
 
   // Fetch ingestion keys on mount
   useEffect(() => {
@@ -1558,6 +1563,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language={configSnippet.language}
             />,
@@ -1575,6 +1581,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   otlpUrlValue,
                   otlpHostValue,
                   tokenValue,
+                  pyroscopeUrl,
                 )}
                 language="bash"
               />,
@@ -1607,6 +1614,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language="yaml"
             />,
@@ -1622,6 +1630,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language="yaml"
             />,
@@ -1661,6 +1670,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language="yaml"
             />,
@@ -1676,6 +1686,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language="yaml"
             />,
@@ -1715,6 +1726,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language="hcl"
             />,
@@ -1730,6 +1742,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 otlpUrlValue,
                 otlpHostValue,
                 tokenValue,
+                pyroscopeUrl,
               )}
               language="yaml"
             />,
