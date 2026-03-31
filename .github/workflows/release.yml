@@ -1636,6 +1636,8 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
 
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
       - name: Build archive
         env:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
@@ -1654,6 +1656,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            PROVISIONING_PROFILE="${{ env.PROFILE_UUID }}" \
             MARKETING_VERSION=${{ needs.read-version.outputs.major_minor }} \
             CURRENT_PROJECT_VERSION=${{ needs.generate-build-number.outputs.build_number }}
 
