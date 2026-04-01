@@ -937,8 +937,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for changelog generation
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -979,7 +977,7 @@ jobs:
           gpg --export-secret-keys >~/.gnupg/secring.gpg
           echo "GPG key exported successfully"
 
-      - name: Generate Terraform provider
+      - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
 
