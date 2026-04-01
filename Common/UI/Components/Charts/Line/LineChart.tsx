@@ -32,13 +32,8 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   });
 
   useEffect(() => {
-    if (!props.data || props.data.length === 0) {
-      setRecords([]);
-      return;
-    }
-
     const records: Array<ChartDataPoint> = DataPointUtil.getChartDataPoints({
-      seriesPoints: props.data,
+      seriesPoints: props.data || [],
       xAxis: props.xAxis,
       yAxis: props.yAxis,
     });
@@ -58,45 +53,41 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       return series.data.length === 0;
     });
 
-  if (hasNoData) {
-    return (
-      <div
-        className={`flex items-center justify-center ${className}`}
-        style={style}
-      >
-        <p className="text-sm text-gray-400">No data available</p>
-      </div>
-    );
-  }
-
   return (
-    <LineChart
-      className={className}
-      style={style}
-      data={records}
-      tickGap={1}
-      index={"Time"}
-      categories={categories}
-      colors={[
-        "indigo",
-        "rose",
-        "emerald",
-        "amber",
-        "cyan",
-        "gray",
-        "pink",
-        "lime",
-        "fuchsia",
-      ]}
-      valueFormatter={props.yAxis.options.formatter || undefined}
-      showTooltip={true}
-      connectNulls={true}
-      curve={props.curve}
-      syncid={props.sync ? props.syncid : undefined}
-      yAxisWidth={60}
-      onValueChange={() => {}}
-      referenceLines={props.referenceLines}
-    />
+    <div className="relative">
+      <LineChart
+        className={className}
+        style={style}
+        data={records}
+        tickGap={1}
+        index={"Time"}
+        categories={categories}
+        colors={[
+          "indigo",
+          "rose",
+          "emerald",
+          "amber",
+          "cyan",
+          "gray",
+          "pink",
+          "lime",
+          "fuchsia",
+        ]}
+        valueFormatter={props.yAxis.options.formatter || undefined}
+        showTooltip={true}
+        connectNulls={true}
+        curve={props.curve}
+        syncid={props.sync ? props.syncid : undefined}
+        yAxisWidth={60}
+        onValueChange={() => {}}
+        referenceLines={props.referenceLines}
+      />
+      {hasNoData && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-sm text-gray-400">No data available</p>
+        </div>
+      )}
+    </div>
   );
 };
 
