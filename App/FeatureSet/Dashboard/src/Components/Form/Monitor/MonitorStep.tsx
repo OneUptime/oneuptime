@@ -257,7 +257,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   if (props.monitorType === MonitorType.CustomJavaScriptCode) {
     codeEditorPlaceholder = `
 // You can use axios, http modules here.
-await axios.get('https://example.com');
+const response = await axios.get('https://example.com');
+
+// To capture custom metrics, use oneuptime.captureMetric(name, value, attributes)
+// These metrics can be charted on dashboards via the Metric Explorer.
+oneuptime.captureMetric('api.response.time', response.data.latency);
+oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
+    region: 'us-east-1'
+});
 
 // when you want to return a value, use return statement with data as a prop.
 
@@ -275,6 +282,7 @@ return {
 // - page: Playwright Page object to interact with the browser
 // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
 // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
+// - oneuptime.captureMetric: Capture custom metrics for dashboards
 
 await page.goto('https://playwright.dev/');
 
@@ -286,6 +294,11 @@ const screenshots = {};
 
 screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
+// To capture custom metrics, use oneuptime.captureMetric(name, value, attributes)
+// These metrics can be charted on dashboards via the Metric Explorer.
+const startTime = Date.now();
+await page.waitForSelector('h1');
+oneuptime.captureMetric('page.load.time', Date.now() - startTime);
 
 // To log data, use console.log
 console.log('Hello World');

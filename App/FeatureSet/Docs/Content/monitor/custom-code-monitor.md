@@ -4,7 +4,7 @@ Custom Code Monitor allows you to write custom scripts to monitor your applicati
 
 #### Example
 
-The following example shows how to use a Synthetic Monitor:
+The following example shows how to use a Custom Code Monitor:
 
 ```javascript
 // You can use axios module.
@@ -50,10 +50,49 @@ console.log(stringSecret);
 ```
 
 
+### Custom Metrics
+
+You can capture custom metrics from your script using the `oneuptime.captureMetric()` function. These metrics are stored in OneUptime and can be charted on dashboards using the Metric Explorer.
+
+```javascript
+oneuptime.captureMetric(name, value, attributes);
+```
+
+- `name` (string, required): The metric name (e.g. `"api.response.time"`). It will be stored with a `custom.monitor.` prefix automatically.
+- `value` (number, required): The numeric metric value.
+- `attributes` (object, optional): Key-value pairs for additional context.
+
+#### Example
+
+```javascript
+const response = await axios.get('https://api.example.com/health');
+
+// Capture a simple metric
+oneuptime.captureMetric('api.response.time', response.data.latency);
+
+// Capture a metric with attributes
+oneuptime.captureMetric('api.queue.depth', response.data.queueDepth, {
+    region: 'us-east-1',
+    environment: 'production'
+});
+
+return {
+    data: response.data
+};
+```
+
+Once captured, these metrics appear in the Metric Explorer under names like `custom.monitor.api.response.time`. You can add them to dashboard charts, set up alerts, and filter by monitor, probe, or any custom attributes you provided.
+
+**Limits:**
+- Maximum 100 metrics per script execution.
+- Metric names are limited to 200 characters.
+- Values must be numeric.
+
 ### Modules available in the script
 - `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
 - `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
 - `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
+- `oneuptime.captureMetric`: You can use this to capture custom metrics from your script. See the Custom Metrics section above.
 - `http`: You can use this module to make HTTP requests. It is a built-in Node.js module that provides an HTTP client and server.
 - `https`: You can use this module to make HTTPS requests. It is a built-in Node.js module that provides an HTTPS client and server.
 

@@ -103,11 +103,54 @@ let booleanSecret = {{monitorSecrets.BooleanSecret}};
 console.log(stringSecret); 
 ```
 
+### Custom Metrics
+
+You can capture custom metrics from your script using the `oneuptime.captureMetric()` function. These metrics are stored in OneUptime and can be charted on dashboards using the Metric Explorer.
+
+```javascript
+oneuptime.captureMetric(name, value, attributes);
+```
+
+- `name` (string, required): The metric name (e.g. `"dashboard.load.time"`). It will be stored with a `custom.monitor.` prefix automatically.
+- `value` (number, required): The numeric metric value.
+- `attributes` (object, optional): Key-value pairs for additional context.
+
+#### Example
+
+```javascript
+await page.goto('https://app.example.com');
+
+const startTime = Date.now();
+await page.waitForSelector('#dashboard-loaded');
+const loadTime = Date.now() - startTime;
+
+// Capture page load time as a custom metric
+oneuptime.captureMetric('dashboard.load.time', loadTime, {
+    page: 'dashboard'
+});
+
+const screenshots = {};
+screenshots['dashboard'] = await page.screenshot();
+
+return {
+    data: { loadTime },
+    screenshots: screenshots
+};
+```
+
+Once captured, these metrics appear in the Metric Explorer under names like `custom.monitor.dashboard.load.time`. You can add them to dashboard charts, set up alerts, and filter by monitor, probe, browser type, screen size, or any custom attributes you provided.
+
+**Limits:**
+- Maximum 100 metrics per script execution.
+- Metric names are limited to 200 characters.
+- Values must be numeric.
+
 ### Modules available in the script
 - `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots. You can access the browser context via `page.context()` if needed (for example, to create a new page or deal with popups).
 - `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
 - `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
 - `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
+- `oneuptime.captureMetric`: You can use this to capture custom metrics from your script. See the Custom Metrics section above.
 - `http`: You can use this module to make HTTP requests. It is a built-in Node.js module that provides an HTTP client and server.
 - `https`: You can use this module to make HTTPS requests. It is a built-in Node.js module that provides an HTTPS client and server.
 
