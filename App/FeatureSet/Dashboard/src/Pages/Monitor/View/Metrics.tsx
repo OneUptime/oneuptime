@@ -1,5 +1,6 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import MonitorMetricsElement from "../../../Components/Monitor/MonitorMetrics";
+import MonitorCustomMetrics from "../../../Components/Monitor/MonitorCustomMetrics";
 import MonitorIncidentMetrics from "../../../Components/Monitor/MonitorIncidentMetrics";
 import MonitorAlertMetrics from "../../../Components/Monitor/MonitorAlertMetrics";
 import PageComponentProps from "../../PageComponentProps";
@@ -68,6 +69,16 @@ const MonitorMetrics: FunctionComponent<
     tabs.push({
       name: "Monitor Metrics",
       children: <MonitorMetricsElement monitorId={modelId} />,
+    });
+  }
+
+  if (
+    monitorType === MonitorType.CustomJavaScriptCode ||
+    monitorType === MonitorType.SyntheticMonitor
+  ) {
+    tabs.push({
+      name: "Custom Metrics",
+      children: <MonitorCustomMetrics monitorId={modelId} />,
     });
   }
 

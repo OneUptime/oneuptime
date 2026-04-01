@@ -554,6 +554,12 @@ export default class MonitorMetricUtil {
       ...syntheticCustomMetrics,
     ].slice(0, 100);
 
+    if (allCustomMetrics.length > 0) {
+      logger.debug(
+        `${data.monitorId.toString()} - Processing ${allCustomMetrics.length} custom metrics`,
+      );
+    }
+
     const reservedAttributeKeys: Set<string> = new Set([
       "monitorId",
       "projectId",

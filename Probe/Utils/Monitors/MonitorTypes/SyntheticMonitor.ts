@@ -182,6 +182,12 @@ export default class SyntheticMonitor {
       scriptResult.logMessages = result.logMessages;
       scriptResult.capturedMetrics = result.capturedMetrics || [];
 
+      if (scriptResult.capturedMetrics.length > 0) {
+        logger.debug(
+          `Synthetic Monitor - Captured ${scriptResult.capturedMetrics.length} custom metrics`,
+        );
+      }
+
       if (result.returnValue?.screenshots) {
         if (!scriptResult.screenshots) {
           scriptResult.screenshots = {};

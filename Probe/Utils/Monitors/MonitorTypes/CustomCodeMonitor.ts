@@ -63,6 +63,12 @@ export default class CustomCodeMonitor {
         scriptResult.logMessages = result.logMessages;
         scriptResult.capturedMetrics = result.capturedMetrics || [];
 
+        if (scriptResult.capturedMetrics.length > 0) {
+          logger.debug(
+            `Custom Code Monitor ${options.monitorId?.toString()} - Captured ${scriptResult.capturedMetrics.length} custom metrics`,
+          );
+        }
+
         scriptResult.result = result?.returnValue?.data;
       } catch (err) {
         logger.error(err);
