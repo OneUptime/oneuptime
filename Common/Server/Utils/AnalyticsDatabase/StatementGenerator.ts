@@ -208,6 +208,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       )}')`;
     }
 
+    if (column.type === TableColumnType.DateTime64 && value instanceof Date) {
+      value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toClickhouseDateTime64(
+        value as Date,
+      )}')`;
+    }
+
     if (column.type === TableColumnType.Number) {
       if (typeof value === "string") {
         value = parseInt(value);
