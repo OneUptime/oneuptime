@@ -1,3 +1,4 @@
+import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import axios, { AxiosResponse } from "axios";
@@ -310,6 +311,9 @@ export default class VMRunner {
     const MAX_LOG_BYTES: number = 1_000_000; // 1MB cap
     let totalLogBytes: number = 0;
 
+    const capturedMetrics: CapturedMetric[] = [];
+    const MAX_METRICS: number = 100;
+
     // Track timer handles so we can clean them up after execution
     type TimerHandle = ReturnType<typeof setTimeout>;
     const pendingTimeouts: TimerHandle[] = [];
@@ -398,6 +402,47 @@ export default class VMRunner {
       proxyCache,
     );
 
+    sandbox["oneuptime"] = createSandboxProxy(
+      {
+        captureMetric: (
+          name: unknown,
+          value: unknown,
+          attributes?: unknown,
+        ): void => {
+          if (typeof name !== "string" || name.length === 0) {
+            return;
+          }
+          if (typeof value !== "number" || isNaN(value)) {
+            return;
+          }
+          if (capturedMetrics.length >= MAX_METRICS) {
+            return;
+          }
+          const metric: CapturedMetric = {
+            name: name.substring(0, 200),
+            value: value,
+          };
+          if (attributes && typeof attributes === "object") {
+            const safeAttrs: JSONObject = {};
+            for (const [k, v] of Object.entries(
+              attributes as Record<string, unknown>,
+            )) {
+              if (
+                typeof v === "string" ||
+                typeof v === "number" ||
+                typeof v === "boolean"
+              ) {
+                safeAttrs[k] = String(v);
+              }
+            }
+            metric.attributes = safeAttrs;
+          }
+          capturedMetrics.push(metric);
+        },
+      },
+      proxyCache,
+    );
+
     // Wrap any additional context (e.g. Playwright browser/page objects)
     if (options.context) {
       for (const key of Object.keys(options.context)) {
@@ -450,6 +495,7 @@ export default class VMRunner {
       return {
         returnValue: deepUnwrapProxies(returnVal),
         logMessages,
+        capturedMetrics,
       };
     } finally {
       // Clean up any lingering timers to prevent resource leaks
@@ -474,6 +520,8 @@ export default class VMRunner {
     const timeout: number = options.timeout || 5000;
 
     const logMessages: string[] = [];
+    const capturedMetrics: CapturedMetric[] = [];
+    const MAX_METRICS: number = 100;
 
     const isolate: ivm.Isolate = new ivm.Isolate({ memoryLimit: 128 });
 
@@ -497,6 +545,45 @@ export default class VMRunner {
           try { return typeof v === 'object' ? JSON.stringify(v) : String(v); }
           catch(_) { return String(v); }
         }))};
+      `);
+
+      // oneuptime.captureMetric - fire-and-forget callback
+      await jail.set(
+        "_captureMetric",
+        new ivm.Callback(
+          (name: string, value: string, attributesJson?: string) => {
+            if (capturedMetrics.length >= MAX_METRICS) {
+              return;
+            }
+            const numValue: number = Number(value);
+            if (isNaN(numValue)) {
+              return;
+            }
+            const metric: CapturedMetric = {
+              name: String(name).substring(0, 200),
+              value: numValue,
+            };
+            if (attributesJson) {
+              try {
+                metric.attributes = JSON.parse(attributesJson) as JSONObject;
+              } catch {
+                // ignore invalid JSON
+              }
+            }
+            capturedMetrics.push(metric);
+          },
+        ),
+      );
+
+      await context.eval(`
+        const oneuptime = {
+          captureMetric: (name, value, attributes) => {
+            if (typeof name !== 'string' || name.length === 0) return;
+            if (typeof value !== 'number' || isNaN(value)) return;
+            const attrJson = attributes ? JSON.stringify(attributes) : undefined;
+            _captureMetric(String(name), String(value), attrJson);
+          }
+        };
       `);
 
       // args - deep copy into isolate
@@ -961,6 +1048,7 @@ export default class VMRunner {
       return {
         returnValue,
         logMessages,
+        capturedMetrics,
       };
     } finally {
       if (!isolate.isDisposed) {

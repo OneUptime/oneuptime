@@ -13,6 +13,7 @@ import MetricType from "../../../Models/DatabaseModels/MetricType";
 import BasicInfrastructureMetrics from "../../../Types/Infrastructure/BasicMetrics";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
+import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -531,6 +532,91 @@ export default class MonitorMetricUtil {
 
       metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] =
         metricType;
+    }
+
+    // Process custom metrics from Custom Code and Synthetic Monitor responses
+    const customCodeMetrics: CapturedMetric[] =
+      (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
+        ?.capturedMetrics || [];
+
+    const syntheticCustomMetrics: CapturedMetric[] = [];
+    const syntheticResponsesForMetrics: Array<SyntheticMonitorResponse> =
+      (data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse ||
+      [];
+    for (const resp of syntheticResponsesForMetrics) {
+      if (resp.capturedMetrics) {
+        syntheticCustomMetrics.push(...resp.capturedMetrics);
+      }
+    }
+
+    const allCustomMetrics: CapturedMetric[] = [
+      ...customCodeMetrics,
+      ...syntheticCustomMetrics,
+    ].slice(0, 100);
+
+    const reservedAttributeKeys: Set<string> = new Set([
+      "monitorId",
+      "projectId",
+      "monitorName",
+      "probeName",
+      "probeId",
+    ]);
+
+    for (const customMetric of allCustomMetrics) {
+      if (
+        !customMetric.name ||
+        typeof customMetric.name !== "string" ||
+        typeof customMetric.value !== "number" ||
+        isNaN(customMetric.value)
+      ) {
+        continue;
+      }
+
+      const prefixedName: string = `custom.monitor.${customMetric.name}`;
+
+      const extraAttributes: JSONObject = {
+        isCustomMetric: "true",
+      };
+
+      if ((data.dataToProcess as ProbeMonitorResponse).probeId) {
+        extraAttributes["probeId"] = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString();
+      }
+
+      if (customMetric.attributes) {
+        for (const [key, val] of Object.entries(customMetric.attributes)) {
+          if (typeof val === "string" && !reservedAttributeKeys.has(key)) {
+            extraAttributes[key] = val;
+          }
+        }
+      }
+
+      const attributes: JSONObject = this.buildMonitorMetricAttributes({
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        extraAttributes: extraAttributes,
+      });
+
+      const metricRow: JSONObject = await this.buildMonitorMetricRow({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        metricName: prefixedName,
+        value: customMetric.value,
+        attributes: attributes,
+        metricPointType: MetricPointType.Gauge,
+      });
+
+      metricRows.push(metricRow);
+
+      const metricType: MetricType = new MetricType();
+      metricType.name = prefixedName;
+      metricType.description = `Custom metric: ${customMetric.name}`;
+      metricType.unit = "";
+
+      metricNameServiceNameMap[prefixedName] = metricType;
     }
 
     if (metricRows.length > 0) {

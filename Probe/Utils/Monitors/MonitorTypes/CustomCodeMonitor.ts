@@ -24,6 +24,7 @@ export default class CustomCodeMonitor {
 
     const scriptResult: CustomCodeMonitorResponse = {
       logMessages: [],
+      capturedMetrics: [],
       scriptError: undefined,
       result: undefined,
 
@@ -60,6 +61,7 @@ export default class CustomCodeMonitor {
         scriptResult.executionTimeInMS = executionTimeInMS;
 
         scriptResult.logMessages = result.logMessages;
+        scriptResult.capturedMetrics = result.capturedMetrics || [];
 
         scriptResult.result = result?.returnValue?.data;
       } catch (err) {

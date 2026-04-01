@@ -127,6 +127,7 @@ export default class SyntheticMonitor {
 
     const scriptResult: SyntheticMonitorResponse = {
       logMessages: [],
+      capturedMetrics: [],
       scriptError: undefined,
       result: undefined,
       screenshots: {},
@@ -179,6 +180,7 @@ export default class SyntheticMonitor {
       scriptResult.executionTimeInMS = executionTimeInMS;
 
       scriptResult.logMessages = result.logMessages;
+      scriptResult.capturedMetrics = result.capturedMetrics || [];
 
       if (result.returnValue?.screenshots) {
         if (!scriptResult.screenshots) {
