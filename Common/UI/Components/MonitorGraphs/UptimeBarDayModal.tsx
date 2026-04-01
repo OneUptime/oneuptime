@@ -7,9 +7,7 @@ export interface ComponentProps {
   date: Date;
   incidents: Array<UptimeBarTooltipIncident>;
   onClose: () => void;
-  onIncidentClick?:
-    | ((incidentId: string) => void)
-    | undefined;
+  onIncidentClick?: ((incidentId: string) => void) | undefined;
 }
 
 const UptimeBarDayModal: FunctionComponent<ComponentProps> = (

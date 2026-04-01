@@ -2169,8 +2169,10 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
-          // Fetch all incidents (active + resolved) in the timeline date range
-          // for the uptime bar tooltip and click-through
+          /*
+           * Fetch all incidents (active + resolved) in the timeline date range
+           * for the uptime bar tooltip and click-through
+           */
           let timelineIncidents: Array<Incident> = [];
           if (
             monitorsOnStatusPage.length > 0 &&

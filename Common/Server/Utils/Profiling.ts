@@ -59,8 +59,10 @@ export default class Profiling {
       return undefined;
     }
 
-    // Strip /otlp suffix if present and append /pyroscope
-    // The Pyroscope SDK appends /ingest, so the final URL will be /pyroscope/ingest
+    /*
+     * Strip /otlp suffix if present and append /pyroscope
+     * The Pyroscope SDK appends /ingest, so the final URL will be /pyroscope/ingest
+     */
     let baseUrl: string = endpoint;
     if (baseUrl.endsWith("/otlp")) {
       baseUrl = baseUrl.substring(0, baseUrl.length - 5);

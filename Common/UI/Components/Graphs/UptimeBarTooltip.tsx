@@ -16,9 +16,7 @@ export interface ComponentProps {
   hasEvents: boolean;
   statusDurations: Array<StatusDuration>;
   incidents: Array<UptimeBarTooltipIncident>;
-  onIncidentClick?:
-    | ((incidentId: string) => void)
-    | undefined;
+  onIncidentClick?: ((incidentId: string) => void) | undefined;
 }
 
 const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
@@ -170,25 +168,23 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                 backgroundColor: "#e5e7eb",
               }}
             >
-              {sortedDurations.map(
-                (status: StatusDuration, index: number) => {
-                  const widthPercent: number =
-                    (status.seconds / totalSeconds) * 100;
-                  if (widthPercent < 0.5) {
-                    return null;
-                  }
-                  return (
-                    <div
-                      key={index}
-                      style={{
-                        width: `${widthPercent}%`,
-                        height: "100%",
-                        backgroundColor: status.color.toString(),
-                      }}
-                    />
-                  );
-                },
-              )}
+              {sortedDurations.map((status: StatusDuration, index: number) => {
+                const widthPercent: number =
+                  (status.seconds / totalSeconds) * 100;
+                if (widthPercent < 0.5) {
+                  return null;
+                }
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      width: `${widthPercent}%`,
+                      height: "100%",
+                      backgroundColor: status.color.toString(),
+                    }}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div
@@ -261,9 +257,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         >
           {sortedDurations.map((status: StatusDuration, index: number) => {
             const pct: number =
-              totalSeconds > 0
-                ? (status.seconds / totalSeconds) * 100
-                : 0;
+              totalSeconds > 0 ? (status.seconds / totalSeconds) * 100 : 0;
             return (
               <div
                 key={index}
@@ -384,8 +378,9 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
             </span>
           </div>
 
-          {props.incidents.slice(0, 3).map(
-            (incident: UptimeBarTooltipIncident) => {
+          {props.incidents
+            .slice(0, 3)
+            .map((incident: UptimeBarTooltipIncident) => {
               const isClickable: boolean = Boolean(props.onIncidentClick);
 
               return (
@@ -410,14 +405,16 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                   }}
                   onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                     if (isClickable) {
-                      (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                        "#f3f4f6";
+                      (
+                        e.currentTarget as HTMLDivElement
+                      ).style.backgroundColor = "#f3f4f6";
                     }
                   }}
                   onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
                     if (isClickable) {
-                      (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                        "#fafafa";
+                      (
+                        e.currentTarget as HTMLDivElement
+                      ).style.backgroundColor = "#fafafa";
                     }
                   }}
                 >
@@ -495,8 +492,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                         style={{
                           fontSize: "9px",
                           fontWeight: 600,
-                          color:
-                            incident.currentIncidentState.color.toString(),
+                          color: incident.currentIncidentState.color.toString(),
                           backgroundColor:
                             incident.currentIncidentState.color.toString() +
                             "14",
@@ -526,8 +522,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                   </div>
                 </div>
               );
-            },
-          )}
+            })}
 
           {props.incidents.length > 3 && (
             <div

@@ -2286,28 +2286,28 @@ ${incidentSeverity.name}
 
     const metricTypesMap: Dictionary<MetricType> = {};
 
-    // common attributes shared by all incident metrics
-    // All values must be strings for ClickHouse Map(String, String) storage.
-    // Arrays are joined as comma-separated strings.
+    /*
+     * common attributes shared by all incident metrics
+     * All values must be strings for ClickHouse Map(String, String) storage.
+     * Arrays are joined as comma-separated strings.
+     */
     const baseMetricAttributes: JSONObject = {
       incidentId: data.incidentId.toString(),
       projectId: incident.projectId.toString(),
-      monitorIds:
-        (
-          incident.monitors
-            ?.map((monitor: Monitor) => {
-              return monitor._id?.toString();
-            })
-            .filter(Boolean) || []
-        ).join(", "),
-      monitorNames:
-        (
-          incident.monitors
-            ?.map((monitor: Monitor) => {
-              return monitor.name?.toString();
-            })
-            .filter(Boolean) || []
-        ).join(", "),
+      monitorIds: (
+        incident.monitors
+          ?.map((monitor: Monitor) => {
+            return monitor._id?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      monitorNames: (
+        incident.monitors
+          ?.map((monitor: Monitor) => {
+            return monitor.name?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
       incidentSeverityId: incident.incidentSeverity?._id?.toString(),
       incidentSeverityName: incident.incidentSeverity?.name?.toString(),
       ownerUserIds: ownerUserIds.join(", "),

@@ -92,33 +92,35 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
 
   const getQueryConfigs: () => Array<MetricQueryConfigData> =
     (): Array<MetricQueryConfigData> => {
-      return customMetricNames.map((metricName: string): MetricQueryConfigData => {
-        const displayName: string = metricName.replace("custom.monitor.", "");
+      return customMetricNames.map(
+        (metricName: string): MetricQueryConfigData => {
+          const displayName: string = metricName.replace("custom.monitor.", "");
 
-        return {
-          metricAliasData: {
-            metricVariable: metricName,
-            title: displayName,
-            description: `Custom metric: ${displayName}`,
-            legend: displayName,
-            legendUnit: "",
-          },
-          metricQueryData: {
-            filterData: {
-              metricName: metricName,
-              attributes: {
-                monitorId: props.monitorId.toString(),
-                projectId:
-                  ProjectUtil.getCurrentProjectId()?.toString() || "",
+          return {
+            metricAliasData: {
+              metricVariable: metricName,
+              title: displayName,
+              description: `Custom metric: ${displayName}`,
+              legend: displayName,
+              legendUnit: "",
+            },
+            metricQueryData: {
+              filterData: {
+                metricName: metricName,
+                attributes: {
+                  monitorId: props.monitorId.toString(),
+                  projectId:
+                    ProjectUtil.getCurrentProjectId()?.toString() || "",
+                },
+                aggegationType: AggregationType.Avg,
               },
-              aggegationType: AggregationType.Avg,
+              groupBy: {
+                attributes: true,
+              },
             },
-            groupBy: {
-              attributes: true,
-            },
-          },
-        };
-      });
+          };
+        },
+      );
     };
 
   const [metricViewData, setMetricViewData] = useState<MetricViewData>({
@@ -132,9 +134,8 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (customMetricNames.length > 0) {
       setMetricViewData({
-        startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
-          timeRange,
-        ),
+        startAndEndDate:
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange),
         queryConfigs: getQueryConfigs(),
         formulaConfigs: [],
       });

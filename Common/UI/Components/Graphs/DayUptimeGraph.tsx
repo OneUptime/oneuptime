@@ -33,9 +33,7 @@ export interface ComponentProps {
   onBarClick?:
     | ((date: Date, incidents: Array<UptimeBarTooltipIncident>) => void)
     | undefined;
-  onIncidentClick?:
-    | ((incidentId: string) => void)
-    | undefined;
+  onIncidentClick?: ((incidentId: string) => void) | undefined;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -66,11 +64,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     }
 
     return props.incidents.filter((incident: UptimeBarTooltipIncident) => {
-      return OneUptimeDate.isBetween(
-        incident.declaredAt,
-        startOfDay,
-        endOfDay,
-      );
+      return OneUptimeDate.isBetween(incident.declaredAt, startOfDay, endOfDay);
     });
   };
 
@@ -179,7 +173,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
       const eventStatusId: string = key;
 
-      const isDowntimeEvent: boolean = downtimeStatusIds.includes(eventStatusId);
+      const isDowntimeEvent: boolean =
+        downtimeStatusIds.includes(eventStatusId);
 
       if (isDowntimeEvent) {
         const secondsOfDowntime: number = secondsOfEvent[key] || 0;
@@ -236,14 +231,13 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       statusDurations.push({
         label: eventLabels[key] || "Unknown",
         seconds: secondsOfEvent[key] || 0,
-        color: eventColors[key] || (props.defaultBarColor || Green),
+        color: eventColors[key] || props.defaultBarColor || Green,
         isDowntime: downtimeStatusIds.includes(key),
       });
     }
 
     const hasDayIncidents: boolean = dayIncidents.length > 0;
-    const isClickable: boolean =
-      hasDayIncidents && Boolean(props.onBarClick);
+    const isClickable: boolean = hasDayIncidents && Boolean(props.onBarClick);
 
     return (
       <Tooltip

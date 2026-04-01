@@ -1009,7 +1009,7 @@ export default class OneUptimeDate {
     }
 
     return (
-      moment(date).format(formatstring) +
+      moment(date).local().format(formatstring) +
       " " +
       (options?.onlyShowDate ? "" : this.getCurrentTimezoneString())
     );

@@ -359,8 +359,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ? {
                   name: incident.currentIncidentState.name || "",
                   color:
-                    incident.currentIncidentState.color ||
-                    new Color("#000000"),
+                    incident.currentIncidentState.color || new Color("#000000"),
                 }
               : undefined,
             monitorIds: (incident.monitors || []).map((m: Monitor) => {
@@ -691,12 +690,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           incidents={timelineIncidents}
           onIncidentClick={(incidentId: string) => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENT_VIEW]!,
-                {
-                  modelId: new ObjectID(incidentId),
-                },
-              ),
+              RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW]!, {
+                modelId: new ObjectID(incidentId),
+              }),
             );
           }}
           onBarClick={(
@@ -715,12 +711,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           incidents={selectedDayIncidents}
           onIncidentClick={(incidentId: string) => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENT_VIEW]!,
-                {
-                  modelId: new ObjectID(incidentId),
-                },
-              ),
+              RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW]!, {
+                modelId: new ObjectID(incidentId),
+              }),
             );
           }}
           onClose={() => {

@@ -34,9 +34,7 @@ export interface ComponentProps {
   defaultBarColor: Color;
   uptimeHistoryDays?: number | undefined;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
-  onIncidentClick?:
-    | ((incidentId: string) => void)
-    | undefined;
+  onIncidentClick?: ((incidentId: string) => void) | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (

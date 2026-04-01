@@ -301,15 +301,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             incidentSeverity: incident.incidentSeverity
               ? {
                   name: incident.incidentSeverity.name || "",
-                  color: incident.incidentSeverity.color || new Color("#000000"),
+                  color:
+                    incident.incidentSeverity.color || new Color("#000000"),
                 }
               : undefined,
             currentIncidentState: incident.currentIncidentState
               ? {
                   name: incident.currentIncidentState.name || "",
                   color:
-                    incident.currentIncidentState.color ||
-                    new Color("#000000"),
+                    incident.currentIncidentState.color || new Color("#000000"),
                 }
               : undefined,
             monitorIds: (incident.monitors || []).map((m: Monitor) => {
@@ -505,17 +505,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             currentStatus.color = Green;
           }
 
-          const monitorId: string =
-            resource.monitor?._id?.toString() || "";
+          const monitorId: string = resource.monitor?._id?.toString() || "";
 
           const monitorIncidents: Array<UptimeBarTooltipIncident> =
-            timelineIncidents.filter(
-              (incident: UptimeBarTooltipIncident) => {
-                return incident.monitorIds.some((id: ObjectID) => {
-                  return id.toString() === monitorId;
-                });
-              },
-            );
+            timelineIncidents.filter((incident: UptimeBarTooltipIncident) => {
+              return incident.monitorIds.some((id: ObjectID) => {
+                return id.toString() === monitorId;
+              });
+            });
 
           elements.push(
             <MonitorOverview
@@ -592,13 +589,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
           });
 
           const groupIncidents: Array<UptimeBarTooltipIncident> =
-            timelineIncidents.filter(
-              (incident: UptimeBarTooltipIncident) => {
-                return incident.monitorIds.some((id: ObjectID) => {
-                  return groupMonitorIds.includes(id.toString());
-                });
-              },
-            );
+            timelineIncidents.filter((incident: UptimeBarTooltipIncident) => {
+              return incident.monitorIds.some((id: ObjectID) => {
+                return groupMonitorIds.includes(id.toString());
+              });
+            });
 
           elements.push(
             <MonitorOverview
