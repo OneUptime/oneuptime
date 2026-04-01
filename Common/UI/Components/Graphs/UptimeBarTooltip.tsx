@@ -132,8 +132,8 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span
                 style={{
-                  fontSize: "20px",
-                  fontWeight: 700,
+                  fontSize: "14px",
+                  fontWeight: 600,
                   color: uptimeColor,
                   fontVariantNumeric: "tabular-nums",
                   lineHeight: 1,
@@ -434,7 +434,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                         flex: 1,
                         minWidth: 0,
                         fontSize: "12px",
-                        color: isClickable ? "#2563eb" : "#111827",
+                        color: "#111827",
                         fontWeight: 600,
                         lineHeight: "1.3",
                         overflow: "hidden",
