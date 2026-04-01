@@ -25,7 +25,9 @@ import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import Metric from "Common/Models/AnalyticsModels/Metric";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI, {
+  ListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -46,32 +48,35 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
 
       try {
-        // Query ClickHouse for recent metrics belonging to this monitor
-        // with names starting with "custom.monitor."
-        // monitorId is stored as serviceId in the Metric table.
-        const listResult = await AnalyticsModelAPI.getList<Metric>({
-          modelType: Metric,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            serviceId: props.monitorId,
-            name: new Search("custom.monitor.") as any,
-            time: new InBetween(
-              OneUptimeDate.addRemoveDays(
+        /*
+         * Query ClickHouse for recent metrics belonging to this monitor
+         * with names starting with "custom.monitor."
+         * monitorId is stored as serviceId in the Metric table.
+         */
+        const listResult: ListResult<Metric> =
+          await AnalyticsModelAPI.getList<Metric>({
+            modelType: Metric,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              serviceId: props.monitorId,
+              name: new Search("custom.monitor.") as any,
+              time: new InBetween(
+                OneUptimeDate.addRemoveDays(
+                  OneUptimeDate.getCurrentDate(),
+                  -30,
+                ),
                 OneUptimeDate.getCurrentDate(),
-                -30,
-              ),
-              OneUptimeDate.getCurrentDate(),
-            ) as any,
-          },
-          select: {
-            name: true,
-          },
-          limit: 1000,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+              ) as any,
+            },
+            select: {
+              name: true,
+            },
+            limit: 1000,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
 
         // Extract distinct metric names
         const nameSet: Set<string> = new Set<string>();
