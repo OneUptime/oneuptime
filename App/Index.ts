@@ -6,6 +6,8 @@ import FrontendRoutes from "./FeatureSet/Frontend/Index";
 import IdentityRoutes from "./FeatureSet/Identity/Index";
 import MCPRoutes from "./FeatureSet/MCP/Index";
 import NotificationRoutes from "./FeatureSet/Notification/Index";
+import WorkersRoutes from "./FeatureSet/Workers/Index";
+import WorkflowRoutes from "./FeatureSet/Workflow/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -108,6 +110,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await FrontendRoutes.init();
     await DocsRoutes.init();
     await APIReferenceRoutes.init();
+    await WorkersRoutes.init();
+    await WorkflowRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

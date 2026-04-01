@@ -646,35 +646,10 @@ home:
   containerSecurityContext: {}
 
 
-worker:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  enableProfiling: false
-  disableAutoscaler: false
-  concurrency: 100
-  workflowTimeoutInMs: 5000
-  ports:
-    http: 1445
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-  # KEDA autoscaling configuration based on queue metrics
-  keda:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    # Scale up when queue size exceeds this threshold
-    queueSizeThreshold: 100
-    # Polling interval for metrics (in seconds)
-    pollingInterval: 30
-    # Cooldown period after scaling (in seconds)
-    cooldownPeriod: 300
-
 app:
   enabled: true
   replicaCount: 1
+  workerConcurrency: 100
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
