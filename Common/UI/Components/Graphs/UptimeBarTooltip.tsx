@@ -30,23 +30,12 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   // Color tiers
   const isGood: boolean = props.uptimePercent >= 99.9;
   const isWarn: boolean = !isGood && props.uptimePercent >= 99;
+
   const uptimeColor: string = isGood
     ? "#059669"
     : isWarn
       ? "#d97706"
       : "#dc2626";
-
-  const uptimeBg: string = isGood
-    ? "#ecfdf5"
-    : isWarn
-      ? "#fffbeb"
-      : "#fef2f2";
-
-  const uptimeTrack: string = isGood
-    ? "#d1fae5"
-    : isWarn
-      ? "#fef3c7"
-      : "#fecaca";
 
   // Sort: downtime first, then by duration desc
   const sortedDurations: Array<StatusDuration> = [
@@ -82,15 +71,33 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "12px",
+          gap: "8px",
+          paddingBottom: "10px",
+          marginBottom: "10px",
+          borderBottom: "1px solid #f0f0f0",
         }}
       >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9ca3af"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ flexShrink: 0 }}
+        >
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
         <span
           style={{
             fontWeight: 600,
             fontSize: "13px",
-            color: "#1f2937",
+            color: "#111827",
             letterSpacing: "-0.01em",
           }}
         >
@@ -98,21 +105,18 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         </span>
       </div>
 
-      {/* ── Uptime meter ── */}
+      {/* ── Uptime ── */}
       {props.hasEvents && (
         <div
           style={{
-            backgroundColor: uptimeBg,
-            borderRadius: "10px",
-            padding: "10px 12px",
             marginBottom: hasStatuses || hasIncidents ? "12px" : "0",
           }}
         >
           <div
             style={{
               display: "flex",
+              alignItems: "baseline",
               justifyContent: "space-between",
-              alignItems: "center",
               marginBottom: "8px",
             }}
           >
@@ -120,49 +124,50 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               style={{
                 fontSize: "11px",
                 color: "#6b7280",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
+                fontWeight: 500,
               }}
             >
               Uptime
             </span>
-            <span
-              style={{
-                fontSize: "22px",
-                fontWeight: 700,
-                color: uptimeColor,
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {props.uptimePercent >= 100
-                ? "100"
-                : props.uptimePercent.toFixed(2)}
+            <div style={{ display: "flex", alignItems: "baseline" }}>
               <span
                 style={{
-                  fontSize: "12px",
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  color: uptimeColor,
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                {props.uptimePercent >= 100
+                  ? "100"
+                  : props.uptimePercent.toFixed(2)}
+              </span>
+              <span
+                style={{
+                  fontSize: "11px",
                   fontWeight: 600,
+                  color: uptimeColor,
                   marginLeft: "1px",
-                  opacity: 0.8,
+                  opacity: 0.7,
                 }}
               >
                 %
               </span>
-            </span>
+            </div>
           </div>
-          {/* Segmented bar showing all statuses proportionally */}
+          {/* Segmented bar */}
           {totalSeconds > 0 && sortedDurations.length > 1 ? (
             <div
               style={{
                 width: "100%",
-                height: "6px",
+                height: "4px",
                 borderRadius: "100px",
                 overflow: "hidden",
                 display: "flex",
                 gap: "1px",
-                backgroundColor: uptimeTrack,
+                backgroundColor: "#e5e7eb",
               }}
             >
               {sortedDurations.map(
@@ -179,12 +184,6 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                         width: `${widthPercent}%`,
                         height: "100%",
                         backgroundColor: status.color.toString(),
-                        borderRadius:
-                          index === 0
-                            ? "100px 0 0 100px"
-                            : index === sortedDurations.length - 1
-                              ? "0 100px 100px 0"
-                              : "0",
                       }}
                     />
                   );
@@ -195,8 +194,8 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
             <div
               style={{
                 width: "100%",
-                height: "6px",
-                backgroundColor: uptimeTrack,
+                height: "4px",
+                backgroundColor: "#e5e7eb",
                 borderRadius: "100px",
                 overflow: "hidden",
               }}
@@ -219,14 +218,14 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         <div
           style={{
             backgroundColor: "#f9fafb",
-            borderRadius: "10px",
-            padding: "14px 16px",
+            borderRadius: "8px",
+            padding: "16px",
             textAlign: "center",
           }}
         >
           <svg
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="#d1d5db"
@@ -256,50 +255,39 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         <div
           style={{
             paddingBottom: hasIncidents ? "10px" : "0",
-            marginBottom: hasIncidents ? "2px" : "0",
-            borderBottom: hasIncidents ? "1px solid #f3f4f6" : "none",
+            marginBottom: hasIncidents ? "10px" : "0",
+            borderBottom: hasIncidents ? "1px solid #f0f0f0" : "none",
           }}
         >
-          <div
-            style={{
-              fontSize: "10px",
-              color: "#9ca3af",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              fontWeight: 600,
-              marginBottom: "4px",
-            }}
-          >
-            Status Breakdown
-          </div>
           {sortedDurations.map((status: StatusDuration, index: number) => {
-            const pct: string =
+            const pct: number =
               totalSeconds > 0
-                ? ((status.seconds / totalSeconds) * 100).toFixed(1)
-                : "0";
+                ? (status.seconds / totalSeconds) * 100
+                : 0;
             return (
               <div
                 key={index}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "3px 0",
+                  padding: "4px 0",
+                  gap: "8px",
                 }}
               >
+                {/* Color dot + label */}
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "7px",
-                    flex: 1,
-                    minWidth: 0,
+                    gap: "6px",
+                    width: "100px",
+                    flexShrink: 0,
                   }}
                 >
                   <span
                     style={{
-                      width: "7px",
-                      height: "7px",
+                      width: "6px",
+                      height: "6px",
                       borderRadius: "50%",
                       backgroundColor: status.color.toString(),
                       display: "inline-block",
@@ -311,20 +299,35 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       fontSize: "12px",
                       color: "#374151",
                       fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
                     {status.label}
                   </span>
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      color: "#d1d5db",
-                      fontWeight: 400,
-                    }}
-                  >
-                    {pct}%
-                  </span>
                 </div>
+                {/* Mini bar */}
+                <div
+                  style={{
+                    flex: 1,
+                    height: "4px",
+                    backgroundColor: "#f3f4f6",
+                    borderRadius: "100px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${pct}%`,
+                      height: "100%",
+                      backgroundColor: status.color.toString(),
+                      borderRadius: "100px",
+                      opacity: 0.7,
+                    }}
+                  />
+                </div>
+                {/* Duration */}
                 <span
                   style={{
                     fontSize: "11px",
@@ -332,7 +335,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     fontWeight: status.isDowntime ? 600 : 400,
                     fontVariantNumeric: "tabular-nums",
                     whiteSpace: "nowrap",
-                    marginLeft: "12px",
+                    flexShrink: 0,
                   }}
                 >
                   {OneUptimeDate.secondsToFormattedFriendlyTimeString(
@@ -347,7 +350,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
 
       {/* ── Incidents ── */}
       {hasIncidents && (
-        <div style={{ paddingTop: "10px" }}>
+        <div>
           <div
             style={{
               display: "flex",
@@ -356,23 +359,11 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               marginBottom: "8px",
             }}
           >
-            {/* small warning triangle icon */}
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="#dc2626"
-              style={{ flexShrink: 0, opacity: 0.8 }}
-            >
-              <path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z" />
-            </svg>
             <span
               style={{
-                fontSize: "10px",
-                color: "#9ca3af",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                fontWeight: 600,
+                fontSize: "11px",
+                color: "#6b7280",
+                fontWeight: 500,
                 flex: 1,
               }}
             >
@@ -381,7 +372,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
             <span
               style={{
                 fontSize: "10px",
-                fontWeight: 700,
+                fontWeight: 600,
                 color: "#dc2626",
                 backgroundColor: "#fef2f2",
                 padding: "1px 7px",
@@ -409,28 +400,24 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       : undefined
                   }
                   style={{
-                    border: "1px solid #f3f4f6",
-                    borderRadius: "8px",
-                    padding: "7px 10px",
-                    marginBottom: "5px",
+                    borderLeft: `3px solid ${incident.incidentSeverity ? incident.incidentSeverity.color.toString() : "#dc2626"}`,
+                    padding: "6px 10px",
+                    marginBottom: "6px",
                     cursor: isClickable ? "pointer" : "default",
-                    transition: "all 0.12s ease",
-                    backgroundColor: "#ffffff",
+                    transition: "background-color 0.12s ease",
+                    backgroundColor: "#fafafa",
+                    borderRadius: "0 6px 6px 0",
                   }}
                   onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                     if (isClickable) {
-                      const el: HTMLDivElement =
-                        e.currentTarget as HTMLDivElement;
-                      el.style.backgroundColor = "#f9fafb";
-                      el.style.borderColor = "#e5e7eb";
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor =
+                        "#f3f4f6";
                     }
                   }}
                   onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
                     if (isClickable) {
-                      const el: HTMLDivElement =
-                        e.currentTarget as HTMLDivElement;
-                      el.style.backgroundColor = "#ffffff";
-                      el.style.borderColor = "#f3f4f6";
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor =
+                        "#fafafa";
                     }
                   }}
                 >
@@ -459,15 +446,15 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     </div>
                     {isClickable && (
                       <svg
-                        width="12"
-                        height="12"
+                        width="10"
+                        height="10"
                         viewBox="0 0 16 16"
                         fill="none"
-                        style={{ flexShrink: 0, opacity: 0.4 }}
+                        style={{ flexShrink: 0, opacity: 0.35 }}
                       >
                         <path
                           d="M6 3l5 5-5 5"
-                          stroke="currentColor"
+                          stroke="#6b7280"
                           strokeWidth="1.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -475,7 +462,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       </svg>
                     )}
                   </div>
-                  {/* Meta row: badges */}
+                  {/* Meta row: badges + time */}
                   <div
                     style={{
                       display: "flex",
@@ -488,14 +475,16 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     {incident.incidentSeverity && (
                       <span
                         style={{
-                          fontSize: "10px",
+                          fontSize: "9px",
                           fontWeight: 600,
                           color: incident.incidentSeverity.color.toString(),
                           backgroundColor:
-                            incident.incidentSeverity.color.toString() + "10",
-                          padding: "0px 6px",
-                          borderRadius: "4px",
-                          lineHeight: "1.7",
+                            incident.incidentSeverity.color.toString() + "14",
+                          padding: "1px 5px",
+                          borderRadius: "3px",
+                          lineHeight: "1.6",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em",
                         }}
                       >
                         {incident.incidentSeverity.name}
@@ -504,16 +493,18 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     {incident.currentIncidentState && (
                       <span
                         style={{
-                          fontSize: "10px",
+                          fontSize: "9px",
                           fontWeight: 600,
                           color:
                             incident.currentIncidentState.color.toString(),
                           backgroundColor:
                             incident.currentIncidentState.color.toString() +
-                            "10",
-                          padding: "0px 6px",
-                          borderRadius: "4px",
-                          lineHeight: "1.7",
+                            "14",
+                          padding: "1px 5px",
+                          borderRadius: "3px",
+                          lineHeight: "1.6",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em",
                         }}
                       >
                         {incident.currentIncidentState.name}
@@ -522,7 +513,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     <span
                       style={{
                         fontSize: "10px",
-                        color: "#c0c0c0",
+                        color: "#b0b0b0",
                         marginLeft: "auto",
                         whiteSpace: "nowrap",
                       }}
@@ -544,11 +535,12 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                 fontSize: "11px",
                 color: "#9ca3af",
                 textAlign: "center",
-                padding: "3px 0 0",
+                padding: "4px 0 0",
                 fontWeight: 500,
               }}
             >
-              +{props.incidents.length - 3} more
+              +{props.incidents.length - 3} more incident
+              {props.incidents.length - 3 !== 1 ? "s" : ""}
             </div>
           )}
         </div>
