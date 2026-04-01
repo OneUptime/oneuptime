@@ -6,6 +6,7 @@ import YAxis from "../Types/YAxis/YAxis";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import DataPointUtil from "../Utils/DataPoint";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
+import NoDataMessage from "../ChartGroup/NoDataMessage";
 
 export interface ComponentProps {
   data: Array<SeriesPoint>;
@@ -78,11 +79,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
       />
-      {hasNoData && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-sm text-gray-400">No data available</p>
-        </div>
-      )}
+      {hasNoData && <NoDataMessage />}
     </div>
   );
 };

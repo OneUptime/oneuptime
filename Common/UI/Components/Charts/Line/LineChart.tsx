@@ -7,6 +7,7 @@ import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import DataPointUtil from "../Utils/DataPoint";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
+import NoDataMessage from "../ChartGroup/NoDataMessage";
 
 export interface ComponentProps {
   data: Array<SeriesPoint>;
@@ -82,11 +83,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
       />
-      {hasNoData && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-sm text-gray-400">No data available</p>
-        </div>
-      )}
+      {hasNoData && <NoDataMessage />}
     </div>
   );
 };
