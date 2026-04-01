@@ -1,5 +1,5 @@
 import Tooltip from "../Tooltip/Tooltip";
-import UptimeBarTooltip from "./UptimeBarTooltip";
+import UptimeBarTooltip, { StatusDuration } from "./UptimeBarTooltip";
 import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -113,6 +113,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     });
 
     const secondsOfEvent: Dictionary<number> = {};
+    const eventColors: Dictionary<Color> = {};
 
     let currentPriority: number = 1;
 
@@ -144,6 +145,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       secondsOfEvent[event.eventStatusId.toString()]! += seconds;
 
       eventLabels[event.eventStatusId.toString()] = event.label;
+      eventColors[event.eventStatusId.toString()] = event.color;
 
       // set bar color.
       if (currentPriority <= event.priority) {
@@ -225,6 +227,17 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       className = "w-20 h-" + props.height;
     }
 
+    // Build status durations for tooltip
+    const statusDurations: Array<StatusDuration> = [];
+    for (const key in secondsOfEvent) {
+      statusDurations.push({
+        label: eventLabels[key] || "Unknown",
+        seconds: secondsOfEvent[key] || 0,
+        color: eventColors[key] || (props.defaultBarColor || Green),
+        isDowntime: downtimeStatusIds.includes(key),
+      });
+    }
+
     const hasDayIncidents: boolean = dayIncidents.length > 0;
     const isClickable: boolean =
       hasDayIncidents && Boolean(props.onBarClick);
@@ -237,9 +250,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             date={todaysDay}
             uptimePercent={uptimePercentForTheDay}
             hasEvents={hasEvents}
-            eventLabels={eventLabels}
-            secondsOfEvent={secondsOfEvent}
-            downtimeEventStatusIds={downtimeStatusIds}
+            statusDurations={statusDurations}
             incidents={dayIncidents}
           />
         }

@@ -28,7 +28,9 @@ const Tooltip: FunctionComponent<ComponentProps> = (
       interactive={true}
       trigger="mouseenter focus"
       hideOnClick={false}
-      maxWidth={350}
+      maxWidth={props.richContent ? 380 : 350}
+      delay={[100, 0]}
+      duration={[150, 100]}
       aria={{
         content: "describedby",
         expanded: "auto",

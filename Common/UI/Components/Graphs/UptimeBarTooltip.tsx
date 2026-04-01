@@ -1,15 +1,20 @@
 import OneUptimeDate from "../../../Types/Date";
-import Dictionary from "../../../Types/Dictionary";
+import Color from "../../../Types/Color";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import React, { FunctionComponent, ReactElement } from "react";
+
+export interface StatusDuration {
+  label: string;
+  seconds: number;
+  color: Color;
+  isDowntime: boolean;
+}
 
 export interface ComponentProps {
   date: Date;
   uptimePercent: number;
   hasEvents: boolean;
-  eventLabels: Dictionary<string>;
-  secondsOfEvent: Dictionary<number>;
-  downtimeEventStatusIds: Array<string>;
+  statusDurations: Array<StatusDuration>;
   incidents: Array<UptimeBarTooltipIncident>;
 }
 
@@ -19,78 +24,256 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   const dateStr: string =
     OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.date, true);
 
-  return (
-    <div className="text-left text-xs" style={{ minWidth: "200px" }}>
-      <div className="font-semibold text-sm mb-1">{dateStr}</div>
+  const uptimeColor: string =
+    props.uptimePercent >= 99.9
+      ? "#22c55e"
+      : props.uptimePercent >= 99
+        ? "#eab308"
+        : "#ef4444";
 
+  return (
+    <div style={{ minWidth: "240px", maxWidth: "320px", padding: "4px" }}>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "10px",
+        }}
+      >
+        <span
+          style={{
+            fontWeight: 600,
+            fontSize: "13px",
+            color: "#f3f4f6",
+          }}
+        >
+          {dateStr}
+        </span>
+      </div>
+
+      {/* Uptime bar */}
       {props.hasEvents && (
-        <div className="mb-1">
-          <span className="font-medium">
-            {props.uptimePercent.toFixed(2)}% uptime
-          </span>
+        <div style={{ marginBottom: "10px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "4px",
+            }}
+          >
+            <span style={{ fontSize: "11px", color: "#9ca3af" }}>Uptime</span>
+            <span
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: uptimeColor,
+              }}
+            >
+              {props.uptimePercent.toFixed(2)}%
+            </span>
+          </div>
+          <div
+            style={{
+              width: "100%",
+              height: "4px",
+              backgroundColor: "#374151",
+              borderRadius: "2px",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.min(props.uptimePercent, 100)}%`,
+                height: "100%",
+                backgroundColor: uptimeColor,
+                borderRadius: "2px",
+                transition: "width 0.3s ease",
+              }}
+            />
+          </div>
         </div>
       )}
 
       {!props.hasEvents && (
-        <div className="text-gray-300 mb-1">No data for this day.</div>
-      )}
-
-      {/* Status durations */}
-      {Object.keys(props.secondsOfEvent).length > 0 && (
-        <div className="mb-1">
-          {Object.keys(props.secondsOfEvent).map((key: string) => {
-            const isDowntime: boolean = props.downtimeEventStatusIds.includes(key);
-            if (!isDowntime) {
-              return null;
-            }
-            return (
-              <div key={key} className="text-gray-300">
-                {props.eventLabels[key]} for{" "}
-                {OneUptimeDate.secondsToFormattedFriendlyTimeString(
-                  props.secondsOfEvent[key] || 0,
-                )}
-              </div>
-            );
-          })}
+        <div
+          style={{
+            fontSize: "12px",
+            color: "#6b7280",
+            textAlign: "center",
+            padding: "6px 0",
+          }}
+        >
+          No data available for this day
         </div>
       )}
 
-      {/* Incidents */}
-      {props.incidents.length > 0 && (
-        <div className="mt-1 border-t border-gray-600 pt-1">
-          <div className="font-medium text-gray-300 mb-0.5">
-            {props.incidents.length} Incident
-            {props.incidents.length > 1 ? "s" : ""}:
-          </div>
-          {props.incidents.slice(0, 5).map(
-            (incident: UptimeBarTooltipIncident) => {
+      {/* Status breakdown */}
+      {props.statusDurations.length > 0 && (
+        <div style={{ marginBottom: props.incidents.length > 0 ? "8px" : "0" }}>
+          {props.statusDurations.map(
+            (status: StatusDuration, index: number) => {
               return (
-                <div key={incident.id} className="mb-0.5 flex items-start">
-                  {incident.incidentSeverity?.color && (
+                <div
+                  key={index}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "3px 0",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                  >
                     <span
-                      className="inline-block w-2 h-2 rounded-full mt-1 mr-1 flex-shrink-0"
                       style={{
-                        backgroundColor:
-                          incident.incidentSeverity.color.toString(),
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        backgroundColor: status.color.toString(),
+                        display: "inline-block",
+                        flexShrink: 0,
                       }}
-                    ></span>
-                  )}
-                  <span className="text-gray-200">{incident.title}</span>
+                    />
+                    <span style={{ fontSize: "11px", color: "#d1d5db" }}>
+                      {status.label}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: status.isDowntime ? "#fbbf24" : "#9ca3af",
+                      fontWeight: status.isDowntime ? 500 : 400,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {OneUptimeDate.secondsToFormattedFriendlyTimeString(
+                      status.seconds,
+                    )}
+                  </span>
                 </div>
               );
             },
           )}
-          {props.incidents.length > 5 && (
-            <div className="text-gray-400">
-              +{props.incidents.length - 5} more...
-            </div>
-          )}
         </div>
       )}
 
+      {/* Incidents section */}
       {props.incidents.length > 0 && (
-        <div className="mt-1 text-gray-400 text-[10px]">
-          Click for details
+        <div
+          style={{
+            borderTop: "1px solid #374151",
+            paddingTop: "8px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "11px",
+              color: "#9ca3af",
+              marginBottom: "6px",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              fontWeight: 500,
+            }}
+          >
+            {props.incidents.length} Incident
+            {props.incidents.length !== 1 ? "s" : ""}
+          </div>
+          {props.incidents.slice(0, 3).map(
+            (incident: UptimeBarTooltipIncident) => {
+              return (
+                <div
+                  key={incident.id}
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.05)",
+                    borderRadius: "6px",
+                    padding: "6px 8px",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#e5e7eb",
+                      fontWeight: 500,
+                      marginBottom: "3px",
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {incident.title}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {incident.incidentSeverity && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          color: incident.incidentSeverity.color.toString(),
+                          backgroundColor:
+                            incident.incidentSeverity.color.toString() + "20",
+                          padding: "1px 6px",
+                          borderRadius: "9999px",
+                          lineHeight: "1.5",
+                        }}
+                      >
+                        {incident.incidentSeverity.name}
+                      </span>
+                    )}
+                    {incident.currentIncidentState && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          color:
+                            incident.currentIncidentState.color.toString(),
+                          backgroundColor:
+                            incident.currentIncidentState.color.toString() +
+                            "20",
+                          padding: "1px 6px",
+                          borderRadius: "9999px",
+                          lineHeight: "1.5",
+                        }}
+                      >
+                        {incident.currentIncidentState.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            },
+          )}
+          {props.incidents.length > 3 && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: "#6b7280",
+                textAlign: "center",
+                paddingTop: "2px",
+              }}
+            >
+              +{props.incidents.length - 3} more
+            </div>
+          )}
+          <div
+            style={{
+              fontSize: "10px",
+              color: "#6b7280",
+              textAlign: "center",
+              marginTop: "6px",
+            }}
+          >
+            Click bar for full details
+          </div>
         </div>
       )}
     </div>
