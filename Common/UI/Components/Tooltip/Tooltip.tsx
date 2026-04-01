@@ -3,24 +3,32 @@ import React, { FunctionComponent, ReactElement } from "react";
 import "tippy.js/dist/tippy.css";
 
 export interface ComponentProps {
-  text: string;
+  text?: string | undefined;
   children: ReactElement;
+  richContent?: ReactElement | undefined;
 }
 
 const Tooltip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.text) {
+  if (!props.text && !props.richContent) {
     return props.children;
   }
+
+  const tooltipContent: ReactElement = props.richContent ? (
+    props.richContent
+  ) : (
+    <span>{props.text}</span>
+  );
 
   return (
     <Tippy
       key={Math.random()}
-      content={<span>{props.text}</span>}
+      content={tooltipContent}
       interactive={true}
       trigger="mouseenter focus"
       hideOnClick={false}
+      maxWidth={350}
       aria={{
         content: "describedby",
         expanded: "auto",

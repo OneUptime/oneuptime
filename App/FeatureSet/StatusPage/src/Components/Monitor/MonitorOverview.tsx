@@ -5,13 +5,15 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
 import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
+import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayModal";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
-import React, { FunctionComponent, ReactElement } from "react";
+import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   monitorName: string;
@@ -31,11 +33,17 @@ export interface ComponentProps {
   downtimeMonitorStatuses: Array<MonitorStatus>;
   defaultBarColor: Color;
   uptimeHistoryDays?: number | undefined;
+  incidents?: Array<UptimeBarTooltipIncident> | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [selectedDayIncidents, setSelectedDayIncidents] = useState<
+    Array<UptimeBarTooltipIncident>
+  >([]);
+
   const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
     // if the current status is operational then show uptime Percent.
 
@@ -137,6 +145,14 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             endDate={props.endDate}
             isLoading={false}
             height={props.uptimeGraphHeight}
+            incidents={props.incidents}
+            onBarClick={(
+              date: Date,
+              incidents: Array<UptimeBarTooltipIncident>,
+            ) => {
+              setSelectedDay(date);
+              setSelectedDayIncidents(incidents);
+            }}
           />
         </div>
       )}
@@ -147,6 +163,18 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           <div>{props.uptimeHistoryDays || 90} days ago</div>
           <div>Today</div>
         </div>
+      )}
+
+      {/* Incident detail modal */}
+      {selectedDay && (
+        <UptimeBarDayModal
+          date={selectedDay}
+          incidents={selectedDayIncidents}
+          onClose={() => {
+            setSelectedDay(null);
+            setSelectedDayIncidents([]);
+          }}
+        />
       )}
     </div>
   );

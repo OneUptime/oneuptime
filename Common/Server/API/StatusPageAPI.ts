@@ -2169,6 +2169,48 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
+          // Fetch all incidents (active + resolved) in the timeline date range
+          // for the uptime bar tooltip and click-through
+          let timelineIncidents: Array<Incident> = [];
+          if (
+            monitorsOnStatusPage.length > 0 &&
+            statusPage.showIncidentsOnStatusPage
+          ) {
+            timelineIncidents = await IncidentService.findBy({
+              query: {
+                monitors: monitorsOnStatusPage as any,
+                declaredAt: QueryHelper.inBetween(startDate, endDate),
+                isVisibleOnStatusPage: true,
+                projectId: statusPage.projectId!,
+              },
+              select: {
+                _id: true,
+                title: true,
+                declaredAt: true,
+                incidentSeverity: {
+                  name: true,
+                  color: true,
+                },
+                currentIncidentState: {
+                  _id: true,
+                  name: true,
+                  color: true,
+                },
+                monitors: {
+                  _id: true,
+                },
+              },
+              sort: {
+                declaredAt: SortOrder.Descending,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+
           const overallStatus: MonitorStatus | null =
             StatusPageService.getOverallMonitorStatus({
               statusPageResources,
@@ -2251,6 +2293,10 @@ export default class StatusPageAPI extends BaseAPI<
               monitorGroupCurrentStatuses,
             ),
             monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+            timelineIncidents: BaseModel.toJSONArray(
+              timelineIncidents,
+              Incident,
+            ),
           };
 
           return Response.sendJsonObjectResponse(req, res, response);

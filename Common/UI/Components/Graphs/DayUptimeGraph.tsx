@@ -1,9 +1,11 @@
 import Tooltip from "../Tooltip/Tooltip";
+import UptimeBarTooltip from "./UptimeBarTooltip";
 import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -27,6 +29,10 @@ export interface ComponentProps {
   barColorRules?: Array<BarChartRule> | undefined;
   downtimeEventStatusIds?: Array<ObjectID> | undefined;
   defaultBarColor: Color;
+  incidents?: Array<UptimeBarTooltipIncident> | undefined;
+  onBarClick?:
+    | ((date: Date, incidents: Array<UptimeBarTooltipIncident>) => void)
+    | undefined;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -43,6 +49,28 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     );
   }, [props.startDate, props.endDate]);
 
+  type GetIncidentsForDayFunction = (
+    startOfDay: Date,
+    endOfDay: Date,
+  ) => Array<UptimeBarTooltipIncident>;
+
+  const getIncidentsForDay: GetIncidentsForDayFunction = (
+    startOfDay: Date,
+    endOfDay: Date,
+  ): Array<UptimeBarTooltipIncident> => {
+    if (!props.incidents || props.incidents.length === 0) {
+      return [];
+    }
+
+    return props.incidents.filter((incident: UptimeBarTooltipIncident) => {
+      return OneUptimeDate.isBetween(
+        incident.declaredAt,
+        startOfDay,
+        endOfDay,
+      );
+    });
+  };
+
   type GetUptimeBarFunction = (dayNumber: number) => ReactElement;
 
   const getUptimeBar: GetUptimeBarFunction = (
@@ -54,11 +82,6 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       props.startDate,
       dayNumber,
     );
-
-    let toolTipText: string = `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-      todaysDay,
-      true,
-    )}`;
 
     const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
     const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
@@ -140,33 +163,20 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
     let totalUptimeInSeconds: number = 0;
 
+    const downtimeStatusIds: Array<string> = (
+      props.downtimeEventStatusIds || []
+    ).map((id: ObjectID) => {
+      return id.toString();
+    });
+
     for (const key in secondsOfEvent) {
       hasEvents = true;
 
       const eventStatusId: string = key;
 
-      // if this is downtime state then, include tooltip.
-
-      if (
-        (props.downtimeEventStatusIds?.filter((id: ObjectID) => {
-          return id.toString() === eventStatusId.toString();
-        }).length || 0) > 0
-      ) {
-        toolTipText += `, ${
-          eventLabels[key]
-        } for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(
-          secondsOfEvent[key] || 0,
-        )}`;
-      }
-
-      const isDowntimeEvent: boolean = Boolean(
-        props.downtimeEventStatusIds?.find((id: ObjectID) => {
-          return id.toString() === eventStatusId;
-        }),
-      );
+      const isDowntimeEvent: boolean = downtimeStatusIds.includes(eventStatusId);
 
       if (isDowntimeEvent) {
-        // remove the seconds from total uptime.
         const secondsOfDowntime: number = secondsOfEvent[key] || 0;
         totalDowntimeInSeconds += secondsOfDowntime;
       } else {
@@ -177,8 +187,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     // now check bar rules and finalize the color of the bar
 
     const uptimePercentForTheDay: number =
-      (totalUptimeInSeconds / (totalDowntimeInSeconds + totalUptimeInSeconds)) *
-      100;
+      totalUptimeInSeconds + totalDowntimeInSeconds > 0
+        ? (totalUptimeInSeconds /
+            (totalDowntimeInSeconds + totalUptimeInSeconds)) *
+          100
+        : 100;
 
     for (const rules of props.barColorRules || []) {
       if (uptimePercentForTheDay >= rules.uptimePercentGreaterThanOrEqualTo) {
@@ -187,31 +200,62 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       }
     }
 
-    if (todaysEvents.length === 1) {
+    if (todaysEvents.length === 1 && !hasEvents) {
       hasEvents = true;
-      toolTipText = `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        todaysDay,
-        true,
-      )} - 100% ${todaysEvents[0]?.label || "Operational"}.`;
     }
 
-    if (!hasEvents) {
-      toolTipText += ` - No data for this day.`;
+    if (todaysEvents.length === 1) {
+      hasEvents = true;
+    }
+
+    if (todaysEvents.length === 0) {
+      hasEvents = false;
       color = props.defaultBarColor || Green;
     }
+
+    // Get incidents for this day
+    const dayIncidents: Array<UptimeBarTooltipIncident> = getIncidentsForDay(
+      startOfTheDay,
+      endOfTheDay,
+    );
 
     let className: string = "h-20 w-20";
 
     if (props.height) {
       className = "w-20 h-" + props.height;
     }
+
+    const hasDayIncidents: boolean = dayIncidents.length > 0;
+    const isClickable: boolean =
+      hasDayIncidents && Boolean(props.onBarClick);
+
     return (
-      <Tooltip key={dayNumber} text={toolTipText || "100% Operational"}>
+      <Tooltip
+        key={dayNumber}
+        richContent={
+          <UptimeBarTooltip
+            date={todaysDay}
+            uptimePercent={uptimePercentForTheDay}
+            hasEvents={hasEvents}
+            eventLabels={eventLabels}
+            secondsOfEvent={secondsOfEvent}
+            downtimeEventStatusIds={downtimeStatusIds}
+            incidents={dayIncidents}
+          />
+        }
+      >
         <div
-          className={className}
+          className={`${className}${isClickable ? " cursor-pointer hover:opacity-80" : ""}`}
           style={{
             backgroundColor: color.toString(),
           }}
+          onClick={
+            isClickable
+              ? () => {
+                  props.onBarClick!(todaysDay, dayIncidents);
+                }
+              : undefined
+          }
         ></div>
       </Tooltip>
     );

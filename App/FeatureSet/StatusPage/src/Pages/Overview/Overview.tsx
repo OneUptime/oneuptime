@@ -40,6 +40,7 @@ import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpis
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -59,6 +60,8 @@ import React, {
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import Color from "Common/Types/Color";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -140,6 +143,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   const [monitorGroupCurrentStatuses, setMonitorGroupCurrentStatuses] =
     useState<Dictionary<ObjectID>>({});
+
+  const [timelineIncidents, setTimelineIncidents] = useState<
+    Array<UptimeBarTooltipIncident>
+  >([]);
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -277,6 +284,39 @@ const Overview: FunctionComponent<PageComponentProps> = (
           (data["monitorGroupCurrentStatuses"] as JSONObject) || {},
         ) as Dictionary<ObjectID>;
 
+      // Parse timeline incidents for uptime bar tooltips
+      const rawTimelineIncidents: Array<Incident> = BaseModel.fromJSONArray(
+        (data["timelineIncidents"] as JSONArray) || [],
+        Incident,
+      );
+
+      const parsedTimelineIncidents: Array<UptimeBarTooltipIncident> =
+        rawTimelineIncidents.map((incident: Incident) => {
+          return {
+            id: incident._id || "",
+            title: incident.title || "",
+            declaredAt: incident.declaredAt || new Date(),
+            incidentSeverity: incident.incidentSeverity
+              ? {
+                  name: incident.incidentSeverity.name || "",
+                  color: incident.incidentSeverity.color || new Color("#000000"),
+                }
+              : undefined,
+            currentIncidentState: incident.currentIncidentState
+              ? {
+                  name: incident.currentIncidentState.name || "",
+                  color:
+                    incident.currentIncidentState.color ||
+                    new Color("#000000"),
+                }
+              : undefined,
+            monitorIds: (incident.monitors || []).map((m: Monitor) => {
+              return new ObjectID(m._id?.toString() || "");
+            }),
+          };
+        });
+
+      setTimelineIncidents(parsedTimelineIncidents);
       setMonitorsInGroup(monitorsInGroup);
       setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
 
@@ -463,6 +503,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
             currentStatus.color = Green;
           }
 
+          const monitorId: string =
+            resource.monitor?._id?.toString() || "";
+
+          const monitorIncidents: Array<UptimeBarTooltipIncident> =
+            timelineIncidents.filter(
+              (incident: UptimeBarTooltipIncident) => {
+                return incident.monitorIds.some((id: ObjectID) => {
+                  return id.toString() === monitorId;
+                });
+              },
+            );
+
           elements.push(
             <MonitorOverview
               key={Math.random()}
@@ -495,6 +547,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimeGraphHeight={10}
               defaultBarColor={statusPage?.defaultBarColor || Green}
               uptimeHistoryDays={uptimeHistoryDays}
+              incidents={monitorIncidents}
             />,
           );
         }
@@ -519,6 +572,22 @@ const Overview: FunctionComponent<PageComponentProps> = (
             currentStatus.color = Green;
           }
 
+          // Get monitor IDs in this group
+          const groupMonitorIds: Array<string> = (
+            monitorsInGroup[resource.monitorGroupId?.toString() || ""] || []
+          ).map((id: ObjectID) => {
+            return id.toString();
+          });
+
+          const groupIncidents: Array<UptimeBarTooltipIncident> =
+            timelineIncidents.filter(
+              (incident: UptimeBarTooltipIncident) => {
+                return incident.monitorIds.some((id: ObjectID) => {
+                  return groupMonitorIds.includes(id.toString());
+                });
+              },
+            );
+
           elements.push(
             <MonitorOverview
               key={Math.random()}
@@ -551,6 +620,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimeGraphHeight={10}
               defaultBarColor={statusPage?.defaultBarColor || Green}
               uptimeHistoryDays={uptimeHistoryDays}
+              incidents={groupIncidents}
             />,
           );
         }

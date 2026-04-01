@@ -65,6 +65,10 @@ import MonitorFeedElement from "../../../Components/Monitor/MonitorFeed";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayModal";
+import Color from "Common/Types/Color";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -109,6 +113,15 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [latestEvaluationSummary, setLatestEvaluationSummary] = useState<
     MonitorEvaluationSummary | undefined
   >(undefined);
+
+  const [timelineIncidents, setTimelineIncidents] = useState<
+    Array<UptimeBarTooltipIncident>
+  >([]);
+
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [selectedDayIncidents, setSelectedDayIncidents] = useState<
+    Array<UptimeBarTooltipIncident>
+  >([]);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -296,6 +309,67 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }),
       );
       setStatusTimelines(monitorStatus.data);
+
+      // Fetch incidents for this monitor in the timeline date range
+      const incidentResult: ListResult<Incident> = await ModelAPI.getList({
+        modelType: Incident,
+        query: {
+          monitors: [modelId] as any,
+          declaredAt: new InBetween(startDate, endDate),
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          title: true,
+          declaredAt: true,
+          incidentSeverity: {
+            name: true,
+            color: true,
+          },
+          currentIncidentState: {
+            _id: true,
+            name: true,
+            color: true,
+          },
+          monitors: {
+            _id: true,
+          },
+        },
+        sort: {
+          declaredAt: SortOrder.Descending,
+        },
+      });
+
+      const parsedIncidents: Array<UptimeBarTooltipIncident> =
+        incidentResult.data.map((incident: Incident) => {
+          return {
+            id: incident._id || "",
+            title: incident.title || "",
+            declaredAt: incident.declaredAt || new Date(),
+            incidentSeverity: incident.incidentSeverity
+              ? {
+                  name: incident.incidentSeverity.name || "",
+                  color:
+                    incident.incidentSeverity.color || new Color("#000000"),
+                }
+              : undefined,
+            currentIncidentState: incident.currentIncidentState
+              ? {
+                  name: incident.currentIncidentState.name || "",
+                  color:
+                    incident.currentIncidentState.color ||
+                    new Color("#000000"),
+                }
+              : undefined,
+            monitorIds: (incident.monitors || []).map((m: Monitor) => {
+              return new ObjectID(m._id?.toString() || "");
+            }),
+          };
+        });
+
+      setTimelineIncidents(parsedIncidents);
 
       const isMonitoredByProbe: boolean = item.monitorType
         ? MonitorTypeHelper.isProbableMonitor(item.monitorType)
@@ -614,8 +688,27 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isLoading={isLoading}
           defaultBarColor={Green}
           downtimeMonitorStatuses={downTimeMonitorStatues}
+          incidents={timelineIncidents}
+          onBarClick={(
+            date: Date,
+            incidents: Array<UptimeBarTooltipIncident>,
+          ) => {
+            setSelectedDay(date);
+            setSelectedDayIncidents(incidents);
+          }}
         />
       </Card>
+
+      {selectedDay && (
+        <UptimeBarDayModal
+          date={selectedDay}
+          incidents={selectedDayIncidents}
+          onClose={() => {
+            setSelectedDay(null);
+            setSelectedDayIncidents([]);
+          }}
+        />
+      )}
 
       <Summary
         monitorType={monitorType!}

@@ -7,6 +7,7 @@ import CommonMonitorEvent from "../../../Utils/Uptime/MonitorEvent";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -27,6 +28,8 @@ export interface ComponentProps {
   barColorRules?: Array<StatusPageHistoryChartBarColorRule> | undefined;
   downtimeMonitorStatuses: Array<MonitorStatus> | undefined;
   defaultBarColor: Color;
+  incidents?: Array<UptimeBarTooltipIncident> | undefined;
+  onBarClick?: (date: Date, incidents: Array<UptimeBarTooltipIncident>) => void;
 }
 
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -83,6 +86,8 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
           return status.id!;
         }) || []
       }
+      incidents={props.incidents}
+      onBarClick={props.onBarClick}
     />
   );
 };
