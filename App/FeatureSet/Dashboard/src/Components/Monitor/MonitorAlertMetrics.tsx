@@ -9,7 +9,9 @@ import AlertMetricType from "Common/Types/Alerts/AlertMetricType";
 import AlertMetricTypeUtil from "Common/Utils/Alerts/AlertMetricType";
 import MetricView from "../Metrics/MetricView";
 import ProjectUtil from "Common/UI/Utils/Project";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData, {
+  MetricChartType,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
@@ -64,6 +66,7 @@ const MonitorAlertMetrics: FunctionComponent<ComponentProps> = (
             },
             groupBy: undefined,
           },
+          chartType: MetricChartType.BAR,
         });
       }
 

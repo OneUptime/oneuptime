@@ -10,7 +10,9 @@ import IncidentMetricType from "Common/Types/Incident/IncidentMetricType";
 import IncidentMetricTypeUtil from "Common/Utils/Incident/IncidentMetricType";
 import MetricView from "../Metrics/MetricView";
 import ProjectUtil from "Common/UI/Utils/Project";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData, {
+  MetricChartType,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
@@ -71,6 +73,7 @@ const MonitorIncidentMetrics: FunctionComponent<ComponentProps> = (
             },
             groupBy: undefined,
           },
+          chartType: MetricChartType.BAR,
         });
       }
 
