@@ -102,7 +102,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     return (
       <button
         type="button"
-        className="ml-2 inline-flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+        className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
         title="View metric details"
         onClick={() => {
           setMetricInfoModalChart(chart.metricInfo || null);
@@ -110,8 +110,8 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       >
         <Icon
           icon={IconProp.InformationCircle}
-          size={SizeProp.Small}
-          className="h-4 w-4"
+          size={SizeProp.Smaller}
+          className="h-3.5 w-3.5"
         />
       </button>
     );
