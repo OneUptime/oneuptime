@@ -9,7 +9,6 @@ import ObjectID from "Common/Types/ObjectID";
 import MetricView from "../Metrics/MetricView";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -23,13 +22,13 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import Card from "Common/UI/Components/Card/Card";
-import MetricType from "Common/Models/DatabaseModels/MetricType";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import Search from "Common/Types/BaseDatabase/Search";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
+import Search from "Common/Types/BaseDatabase/Search";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -47,31 +46,43 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
 
       try {
-        const listResult: ListResult<MetricType> =
-          await ModelAPI.getList<MetricType>({
-            modelType: MetricType,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              name: new Search("custom.monitor.") as any,
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
+        // Query ClickHouse for recent metrics belonging to this monitor
+        // with names starting with "custom.monitor."
+        // monitorId is stored as serviceId in the Metric table.
+        const listResult = await AnalyticsModelAPI.getList<Metric>({
+          modelType: Metric,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            serviceId: props.monitorId,
+            name: new Search("custom.monitor.") as any,
+            time: new InBetween(
+              OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                -30,
+              ),
+              OneUptimeDate.getCurrentDate(),
+            ) as any,
+          },
+          select: {
+            name: true,
+          },
+          limit: 1000,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
-        const names: Array<string> = listResult.data
-          .map((mt: MetricType) => {
-            return mt.name || "";
-          })
-          .filter((name: string) => {
-            return name.length > 0;
-          });
+        // Extract distinct metric names
+        const nameSet: Set<string> = new Set<string>();
+        for (const metric of listResult.data) {
+          const name: string = (metric as any).name || "";
+          if (name.length > 0) {
+            nameSet.add(name);
+          }
+        }
 
+        const names: Array<string> = Array.from(nameSet).sort();
         setCustomMetricNames(names);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
