@@ -60,7 +60,7 @@ EXPOSE 1444
 RUN mkdir -p /usr/src
 
 # Clone blog repo. 
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+RUN cd /usr/src && git clone --depth 1 https://github.com/oneuptime/blog
 
 # Now we have the blog repo cloned to /usr/src/blog.
 
