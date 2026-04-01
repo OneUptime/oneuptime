@@ -62,6 +62,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
                 <label
                   key={i}
                   className={className}
+                  data-testid={`card-select-option-${radioButton.value}`}
                   onClick={() => {
                     handleChange(radioButton.value);
                   }}
