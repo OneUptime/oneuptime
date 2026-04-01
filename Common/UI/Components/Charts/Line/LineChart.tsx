@@ -34,6 +34,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   useEffect(() => {
     if (!props.data || props.data.length === 0) {
       setRecords([]);
+      return;
     }
 
     const records: Array<ChartDataPoint> = DataPointUtil.getChartDataPoints({
@@ -49,6 +50,24 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   const style: React.CSSProperties = props.heightInPx
     ? { height: `${props.heightInPx}px` }
     : {};
+
+  const hasNoData: boolean =
+    !props.data ||
+    props.data.length === 0 ||
+    props.data.every((series: SeriesPoint) => {
+      return series.data.length === 0;
+    });
+
+  if (hasNoData) {
+    return (
+      <div
+        className={`flex items-center justify-center ${className}`}
+        style={style}
+      >
+        <p className="text-sm text-gray-400">No data available</p>
+      </div>
+    );
+  }
 
   return (
     <LineChart
