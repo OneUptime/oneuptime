@@ -33,6 +33,9 @@ export interface ComponentProps {
   onBarClick?:
     | ((date: Date, incidents: Array<UptimeBarTooltipIncident>) => void)
     | undefined;
+  onIncidentClick?:
+    | ((incidentId: string) => void)
+    | undefined;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -252,6 +255,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             hasEvents={hasEvents}
             statusDurations={statusDurations}
             incidents={dayIncidents}
+            onIncidentClick={props.onIncidentClick}
           />
         }
       >

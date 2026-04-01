@@ -689,6 +689,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           defaultBarColor={Green}
           downtimeMonitorStatuses={downTimeMonitorStatues}
           incidents={timelineIncidents}
+          onIncidentClick={(incidentId: string) => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.INCIDENT_VIEW]!,
+                {
+                  modelId: new ObjectID(incidentId),
+                },
+              ),
+            );
+          }}
           onBarClick={(
             date: Date,
             incidents: Array<UptimeBarTooltipIncident>,
@@ -703,6 +713,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <UptimeBarDayModal
           date={selectedDay}
           incidents={selectedDayIncidents}
+          onIncidentClick={(incidentId: string) => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.INCIDENT_VIEW]!,
+                {
+                  modelId: new ObjectID(incidentId),
+                },
+              ),
+            );
+          }}
           onClose={() => {
             setSelectedDay(null);
             setSelectedDayIncidents([]);

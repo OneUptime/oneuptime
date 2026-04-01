@@ -228,7 +228,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             ? metricAttributes
             : undefined,
         groupByAttribute:
-          queryConfig.metricQueryData.filterData.groupByAttribute,
+          queryConfig.metricQueryData.filterData.groupByAttribute?.toString(),
         unit,
       };
 

@@ -34,6 +34,9 @@ export interface ComponentProps {
   defaultBarColor: Color;
   uptimeHistoryDays?: number | undefined;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
+  onIncidentClick?:
+    | ((incidentId: string) => void)
+    | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -146,6 +149,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             isLoading={false}
             height={props.uptimeGraphHeight}
             incidents={props.incidents}
+            onIncidentClick={props.onIncidentClick}
             onBarClick={(
               date: Date,
               incidents: Array<UptimeBarTooltipIncident>,
@@ -170,6 +174,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         <UptimeBarDayModal
           date={selectedDay}
           incidents={selectedDayIncidents}
+          onIncidentClick={props.onIncidentClick}
           onClose={() => {
             setSelectedDay(null);
             setSelectedDayIncidents([]);

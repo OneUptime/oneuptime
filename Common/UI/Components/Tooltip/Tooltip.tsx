@@ -2,6 +2,7 @@ import Tippy from "@tippyjs/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
+import "tippy.js/animations/shift-away-subtle.css";
 
 export interface ComponentProps {
   text?: string | undefined;
@@ -22,20 +23,29 @@ const Tooltip: FunctionComponent<ComponentProps> = (
     <span>{props.text}</span>
   );
 
-  const themeProps: { theme: string } | Record<string, never> =
-    props.richContent ? { theme: "light-border" } : {};
+  const isRich: boolean = Boolean(props.richContent);
+
+  const themeProps: { theme: string } | Record<string, never> = isRich
+    ? { theme: "light-border" }
+    : {};
+
+  const animationProps: { animation: string } | Record<string, never> = isRich
+    ? { animation: "shift-away-subtle" }
+    : {};
 
   return (
     <Tippy
       key={Math.random()}
       content={tooltipContent}
-      interactive={true}
+      interactive={isRich}
       trigger="mouseenter focus"
       hideOnClick={false}
-      maxWidth={props.richContent ? 380 : 350}
-      delay={[80, 0]}
-      duration={[150, 100]}
+      maxWidth={isRich ? 380 : 350}
+      delay={isRich ? [120, 80] : [0, 0]}
+      duration={[200, 150]}
+      placement={isRich ? "top" : "top"}
       {...themeProps}
+      {...animationProps}
       aria={{
         content: "describedby",
         expanded: "auto",

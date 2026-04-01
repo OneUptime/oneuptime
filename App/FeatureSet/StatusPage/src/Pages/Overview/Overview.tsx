@@ -6,6 +6,8 @@ import ScheduledMaintenanceGroup from "../../Types/ScheduledMaintenanceGroup";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import StatusPageUtil from "../../Utils/StatusPage";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import { getAnnouncementEventItem } from "../Announcement/Detail";
 import { getIncidentEventItem, getEpisodeEventItem } from "../Incidents/Detail";
 import PageComponentProps from "../PageComponentProps";
@@ -548,6 +550,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
               defaultBarColor={statusPage?.defaultBarColor || Green}
               uptimeHistoryDays={uptimeHistoryDays}
               incidents={monitorIncidents}
+              onIncidentClick={(incidentId: string) => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    StatusPageUtil.isPreviewPage()
+                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                    new ObjectID(incidentId),
+                  ),
+                );
+              }}
             />,
           );
         }
@@ -621,6 +633,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
               defaultBarColor={statusPage?.defaultBarColor || Green}
               uptimeHistoryDays={uptimeHistoryDays}
               incidents={groupIncidents}
+              onIncidentClick={(incidentId: string) => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    StatusPageUtil.isPreviewPage()
+                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                    new ObjectID(incidentId),
+                  ),
+                );
+              }}
             />,
           );
         }
