@@ -1,9 +1,10 @@
+import Search from "../BaseDatabase/Search";
 import Dictionary from "../Dictionary";
 import MetricsAggregationType from "./MetricsAggregationType";
 
 export default interface MetricsQuery {
   metricName: string;
-  attributes: Dictionary<string | boolean | number>;
+  attributes: Dictionary<string | boolean | number | Search<string>>;
   aggegationType: MetricsAggregationType;
   aggregateBy: Dictionary<boolean>;
 

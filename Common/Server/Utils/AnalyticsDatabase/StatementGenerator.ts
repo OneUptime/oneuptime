@@ -419,23 +419,33 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         tableColumn.type === TableColumnType.MapStringString &&
         typeof value === "object"
       ) {
-        const mapValue: Record<string, string> = value as Record<
-          string,
-          string
-        >;
+        const mapValue: Record<string, string | Search<string>> =
+          value as Record<string, string | Search<string>>;
         for (const mapKey in mapValue) {
           if (mapValue[mapKey] === undefined) {
             continue;
           }
-          whereStatement.append(
-            SQL`AND ${key}[${{
-              value: mapKey,
-              type: TableColumnType.Text,
-            }}] = ${{
-              value: mapValue[mapKey] as string,
-              type: TableColumnType.Text,
-            }}`,
-          );
+          if (mapValue[mapKey] instanceof Search) {
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] ILIKE ${{
+                value: mapValue[mapKey] as Search<string>,
+                type: TableColumnType.Text,
+              }}`,
+            );
+          } else {
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] = ${{
+                value: mapValue[mapKey] as string,
+                type: TableColumnType.Text,
+              }}`,
+            );
+          }
         }
       } else if (
         (tableColumn.type === TableColumnType.JSON ||

@@ -2287,23 +2287,33 @@ ${incidentSeverity.name}
     const metricTypesMap: Dictionary<MetricType> = {};
 
     // common attributes shared by all incident metrics
+    // All values must be strings for ClickHouse Map(String, String) storage.
+    // Arrays are joined as comma-separated strings.
     const baseMetricAttributes: JSONObject = {
       incidentId: data.incidentId.toString(),
       projectId: incident.projectId.toString(),
       monitorIds:
-        incident.monitors?.map((monitor: Monitor) => {
-          return monitor._id?.toString();
-        }) || [],
+        (
+          incident.monitors
+            ?.map((monitor: Monitor) => {
+              return monitor._id?.toString();
+            })
+            .filter(Boolean) || []
+        ).join(", "),
       monitorNames:
-        incident.monitors?.map((monitor: Monitor) => {
-          return monitor.name?.toString();
-        }) || [],
+        (
+          incident.monitors
+            ?.map((monitor: Monitor) => {
+              return monitor.name?.toString();
+            })
+            .filter(Boolean) || []
+        ).join(", "),
       incidentSeverityId: incident.incidentSeverity?._id?.toString(),
       incidentSeverityName: incident.incidentSeverity?.name?.toString(),
-      ownerUserIds: ownerUserIds,
-      ownerUserNames: ownerUserNames,
-      ownerTeamIds: ownerTeamIds,
-      ownerTeamNames: ownerTeamNames,
+      ownerUserIds: ownerUserIds.join(", "),
+      ownerUserNames: ownerUserNames.join(", "),
+      ownerTeamIds: ownerTeamIds.join(", "),
+      ownerTeamNames: ownerTeamNames.join(", "),
     };
 
     const incidentCountMetric: Metric = new Metric();

@@ -12,7 +12,6 @@ import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import Dictionary from "Common/Types/Dictionary";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import OneUptimeDate from "Common/Types/Date";
@@ -35,8 +34,7 @@ export default class MetricUtil {
             projectId: ProjectUtil.getCurrentProjectId()!,
             time: metricViewData.startAndEndDate!,
             name: queryConfig.metricQueryData.filterData.metricName!,
-            attributes: queryConfig.metricQueryData.filterData
-              .attributes as Dictionary<string | number | boolean>,
+            attributes: queryConfig.metricQueryData.filterData.attributes as any,
           },
           aggregationType:
             (queryConfig.metricQueryData.filterData

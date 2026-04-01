@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
+import Search from "Common/Types/BaseDatabase/Search";
 import IncidentMetricType from "Common/Types/Incident/IncidentMetricType";
 import IncidentMetricTypeUtil from "Common/Utils/Incident/IncidentMetricType";
 import MetricView from "../Metrics/MetricView";
@@ -60,7 +61,7 @@ const MonitorIncidentMetrics: FunctionComponent<ComponentProps> = (
             filterData: {
               metricName: metricType,
               attributes: {
-                monitorIds: props.monitorId.toString(),
+                monitorIds: new Search(props.monitorId.toString()),
                 projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
               },
               aggegationType:
