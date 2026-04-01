@@ -1,6 +1,7 @@
 import Tippy from "@tippyjs/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import "tippy.js/dist/tippy.css";
+import "tippy.js/themes/light-border.css";
 
 export interface ComponentProps {
   text?: string | undefined;
@@ -21,6 +22,9 @@ const Tooltip: FunctionComponent<ComponentProps> = (
     <span>{props.text}</span>
   );
 
+  const themeProps: { theme: string } | Record<string, never> =
+    props.richContent ? { theme: "light-border" } : {};
+
   return (
     <Tippy
       key={Math.random()}
@@ -29,8 +33,9 @@ const Tooltip: FunctionComponent<ComponentProps> = (
       trigger="mouseenter focus"
       hideOnClick={false}
       maxWidth={props.richContent ? 380 : 350}
-      delay={[100, 0]}
+      delay={[80, 0]}
       duration={[150, 100]}
+      {...themeProps}
       aria={{
         content: "describedby",
         expanded: "auto",

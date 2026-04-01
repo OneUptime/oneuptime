@@ -26,50 +26,76 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
 
   const uptimeColor: string =
     props.uptimePercent >= 99.9
-      ? "#22c55e"
+      ? "#16a34a"
       : props.uptimePercent >= 99
-        ? "#eab308"
-        : "#ef4444";
+        ? "#ca8a04"
+        : "#dc2626";
+
+  const uptimeBgColor: string =
+    props.uptimePercent >= 99.9
+      ? "#f0fdf4"
+      : props.uptimePercent >= 99
+        ? "#fefce8"
+        : "#fef2f2";
+
+  const uptimeTrackColor: string =
+    props.uptimePercent >= 99.9
+      ? "#dcfce7"
+      : props.uptimePercent >= 99
+        ? "#fef9c3"
+        : "#fee2e2";
 
   return (
-    <div style={{ minWidth: "240px", maxWidth: "320px", padding: "4px" }}>
-      {/* Header */}
+    <div style={{ minWidth: "260px", maxWidth: "340px" }}>
+      {/* Date header */}
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "10px",
+          paddingBottom: "8px",
+          marginBottom: "8px",
+          borderBottom: "1px solid #f3f4f6",
         }}
       >
-        <span
+        <div
           style={{
             fontWeight: 600,
             fontSize: "13px",
-            color: "#f3f4f6",
+            color: "#111827",
           }}
         >
           {dateStr}
-        </span>
+        </div>
       </div>
 
-      {/* Uptime bar */}
+      {/* Uptime card */}
       {props.hasEvents && (
-        <div style={{ marginBottom: "10px" }}>
+        <div
+          style={{
+            backgroundColor: uptimeBgColor,
+            borderRadius: "8px",
+            padding: "10px 12px",
+            marginBottom: "10px",
+          }}
+        >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "4px",
+              alignItems: "baseline",
+              marginBottom: "6px",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#9ca3af" }}>Uptime</span>
+            <span
+              style={{ fontSize: "11px", color: "#6b7280", fontWeight: 500 }}
+            >
+              Uptime
+            </span>
             <span
               style={{
-                fontSize: "13px",
-                fontWeight: 600,
+                fontSize: "18px",
+                fontWeight: 700,
                 color: uptimeColor,
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
               }}
             >
               {props.uptimePercent.toFixed(2)}%
@@ -78,9 +104,9 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
           <div
             style={{
               width: "100%",
-              height: "4px",
-              backgroundColor: "#374151",
-              borderRadius: "2px",
+              height: "6px",
+              backgroundColor: uptimeTrackColor,
+              borderRadius: "3px",
               overflow: "hidden",
             }}
           >
@@ -89,8 +115,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                 width: `${Math.min(props.uptimePercent, 100)}%`,
                 height: "100%",
                 backgroundColor: uptimeColor,
-                borderRadius: "2px",
-                transition: "width 0.3s ease",
+                borderRadius: "3px",
               }}
             />
           </div>
@@ -100,19 +125,38 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
       {!props.hasEvents && (
         <div
           style={{
-            fontSize: "12px",
-            color: "#6b7280",
+            backgroundColor: "#f9fafb",
+            borderRadius: "8px",
+            padding: "12px",
             textAlign: "center",
-            padding: "6px 0",
+            marginBottom: "4px",
           }}
         >
-          No data available for this day
+          <div style={{ fontSize: "12px", color: "#9ca3af", fontWeight: 500 }}>
+            No data available for this day
+          </div>
         </div>
       )}
 
       {/* Status breakdown */}
       {props.statusDurations.length > 0 && (
-        <div style={{ marginBottom: props.incidents.length > 0 ? "8px" : "0" }}>
+        <div
+          style={{
+            marginBottom: props.incidents.length > 0 ? "10px" : "0",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "10px",
+              color: "#9ca3af",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontWeight: 600,
+              marginBottom: "4px",
+            }}
+          >
+            Status Breakdown
+          </div>
           {props.statusDurations.map(
             (status: StatusDuration, index: number) => {
               return (
@@ -122,11 +166,15 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "3px 0",
+                    padding: "4px 0",
                   }}
                 >
                   <div
-                    style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
                   >
                     <span
                       style={{
@@ -136,17 +184,24 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                         backgroundColor: status.color.toString(),
                         display: "inline-block",
                         flexShrink: 0,
+                        boxShadow: `0 0 0 2px ${status.color.toString()}30`,
                       }}
                     />
-                    <span style={{ fontSize: "11px", color: "#d1d5db" }}>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "#374151",
+                        fontWeight: 500,
+                      }}
+                    >
                       {status.label}
                     </span>
                   </div>
                   <span
                     style={{
-                      fontSize: "11px",
-                      color: status.isDowntime ? "#fbbf24" : "#9ca3af",
-                      fontWeight: status.isDowntime ? 500 : 400,
+                      fontSize: "12px",
+                      color: status.isDowntime ? "#dc2626" : "#6b7280",
+                      fontWeight: status.isDowntime ? 600 : 400,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
@@ -165,22 +220,42 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
       {props.incidents.length > 0 && (
         <div
           style={{
-            borderTop: "1px solid #374151",
-            paddingTop: "8px",
+            borderTop: "1px solid #f3f4f6",
+            paddingTop: "10px",
           }}
         >
           <div
             style={{
-              fontSize: "11px",
-              color: "#9ca3af",
-              marginBottom: "6px",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "8px",
             }}
           >
-            {props.incidents.length} Incident
-            {props.incidents.length !== 1 ? "s" : ""}
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#9ca3af",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                fontWeight: 600,
+              }}
+            >
+              Incidents
+            </div>
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: 600,
+                color: "#dc2626",
+                backgroundColor: "#fef2f2",
+                padding: "1px 8px",
+                borderRadius: "9999px",
+                lineHeight: "1.6",
+              }}
+            >
+              {props.incidents.length}
+            </div>
           </div>
           {props.incidents.slice(0, 3).map(
             (incident: UptimeBarTooltipIncident) => {
@@ -188,19 +263,20 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                 <div
                   key={incident.id}
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.05)",
-                    borderRadius: "6px",
-                    padding: "6px 8px",
-                    marginBottom: "4px",
+                    backgroundColor: "#f9fafb",
+                    border: "1px solid #f3f4f6",
+                    borderRadius: "8px",
+                    padding: "8px 10px",
+                    marginBottom: "6px",
                   }}
                 >
                   <div
                     style={{
                       fontSize: "12px",
-                      color: "#e5e7eb",
-                      fontWeight: 500,
-                      marginBottom: "3px",
-                      lineHeight: "1.3",
+                      color: "#111827",
+                      fontWeight: 600,
+                      marginBottom: "4px",
+                      lineHeight: "1.4",
                     }}
                   >
                     {incident.title}
@@ -217,13 +293,14 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       <span
                         style={{
                           fontSize: "10px",
-                          fontWeight: 500,
+                          fontWeight: 600,
                           color: incident.incidentSeverity.color.toString(),
                           backgroundColor:
-                            incident.incidentSeverity.color.toString() + "20",
-                          padding: "1px 6px",
+                            incident.incidentSeverity.color.toString() + "15",
+                          border: `1px solid ${incident.incidentSeverity.color.toString()}30`,
+                          padding: "1px 8px",
                           borderRadius: "9999px",
-                          lineHeight: "1.5",
+                          lineHeight: "1.6",
                         }}
                       >
                         {incident.incidentSeverity.name}
@@ -233,15 +310,16 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       <span
                         style={{
                           fontSize: "10px",
-                          fontWeight: 500,
+                          fontWeight: 600,
                           color:
                             incident.currentIncidentState.color.toString(),
                           backgroundColor:
                             incident.currentIncidentState.color.toString() +
-                            "20",
-                          padding: "1px 6px",
+                            "15",
+                          border: `1px solid ${incident.currentIncidentState.color.toString()}30`,
+                          padding: "1px 8px",
                           borderRadius: "9999px",
-                          lineHeight: "1.5",
+                          lineHeight: "1.6",
                         }}
                       >
                         {incident.currentIncidentState.name}
@@ -256,23 +334,27 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
             <div
               style={{
                 fontSize: "11px",
-                color: "#6b7280",
+                color: "#9ca3af",
                 textAlign: "center",
-                paddingTop: "2px",
+                padding: "2px 0",
+                fontWeight: 500,
               }}
             >
-              +{props.incidents.length - 3} more
+              +{props.incidents.length - 3} more incident
+              {props.incidents.length - 3 !== 1 ? "s" : ""}
             </div>
           )}
           <div
             style={{
               fontSize: "10px",
-              color: "#6b7280",
+              color: "#9ca3af",
               textAlign: "center",
-              marginTop: "6px",
+              marginTop: "8px",
+              fontWeight: 500,
+              letterSpacing: "0.02em",
             }}
           >
-            Click bar for full details
+            Click bar to view details
           </div>
         </div>
       )}

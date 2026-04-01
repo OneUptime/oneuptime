@@ -3,8 +3,10 @@ import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import ChartGroup, {
   Chart,
+  ChartMetricInfo,
   ChartType,
 } from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
+import Dictionary from "Common/Types/Dictionary";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -201,6 +203,35 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
+      // Build metric info for the info icon modal
+      const metricAttributes: Dictionary<string> = {};
+      const filterAttributes:
+        | Dictionary<string | boolean | number>
+        | undefined = queryConfig.metricQueryData.filterData.attributes as
+        | Dictionary<string | boolean | number>
+        | undefined;
+
+      if (filterAttributes) {
+        for (const key of Object.keys(filterAttributes)) {
+          metricAttributes[key] = String(filterAttributes[key]);
+        }
+      }
+
+      const metricInfo: ChartMetricInfo = {
+        metricName:
+          queryConfig.metricQueryData.filterData.metricName?.toString() || "",
+        aggregationType:
+          queryConfig.metricQueryData.filterData.aggegationType?.toString() ||
+          "",
+        attributes:
+          Object.keys(metricAttributes).length > 0
+            ? metricAttributes
+            : undefined,
+        groupByAttribute:
+          queryConfig.metricQueryData.filterData.groupByAttribute,
+        unit,
+      };
+
       const chart: Chart = {
         id: index.toString(),
         type: chartType,
@@ -209,6 +240,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           queryConfig.metricQueryData.filterData.metricName?.toString() ||
           "",
         description: queryConfig.metricAliasData?.description || "",
+        metricInfo,
         props: {
           data: chartSeries,
           xAxis: {
