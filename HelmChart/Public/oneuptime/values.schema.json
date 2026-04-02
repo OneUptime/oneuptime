@@ -1794,6 +1794,33 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
+                },
+                "keda": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "workerQueueSizeThreshold": {
+                            "type": "integer"
+                        },
+                        "telemetryQueueSizeThreshold": {
+                            "type": "integer"
+                        },
+                        "pollingInterval": {
+                            "type": "integer"
+                        },
+                        "cooldownPeriod": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

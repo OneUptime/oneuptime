@@ -832,7 +832,7 @@ spec:
     - type: metrics-api
       metadata:
         targetValue: {{ .threshold | quote }}
-        url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics/queue-size
+        url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}{{ if .urlPath }}{{ .urlPath }}{{ else }}/metrics/queue-size{{ end }}
         valueLocation: 'queueSize'
         method: 'GET'
       # authenticationRef:

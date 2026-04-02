@@ -17,6 +17,13 @@ KEDA ScaledObjects for various services
 {{- end }}
 {{- end }}
 
+{{/* App KEDA ScaledObject - scales based on worker and telemetry queue sizes */}}
+{{- if and .Values.keda.enabled .Values.app.enabled .Values.app.keda.enabled (not .Values.app.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
+{{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_app_worker_queue_size" "threshold" .Values.app.keda.workerQueueSizeThreshold "port" .Values.app.ports.http "urlPath" "/worker/metrics/queue-size") (dict "query" "oneuptime_app_telemetry_queue_size" "threshold" .Values.app.keda.telemetryQueueSizeThreshold "port" .Values.app.ports.http "urlPath" "/telemetry/metrics/queue-size")) }}
+{{- $appKedaArgs := dict "ServiceName" "app" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.app.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $appKedaArgs }}
+{{- end }}
+
 {{/* AI Agent KEDA ScaledObject */}}
 {{- if and .Values.keda.enabled .Values.aiAgent.enabled .Values.aiAgent.keda.enabled (not .Values.aiAgent.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $metricsConfig := dict "enabled" .Values.aiAgent.keda.enabled "minReplicas" .Values.aiAgent.keda.minReplicas "maxReplicas" .Values.aiAgent.keda.maxReplicas "pollingInterval" .Values.aiAgent.keda.pollingInterval "cooldownPeriod" .Values.aiAgent.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.aiAgent.keda.queueSizeThreshold "port" .Values.aiAgent.ports.http)) }}
