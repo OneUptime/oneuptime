@@ -522,30 +522,30 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /telemetry {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
     }
 
     location /incoming-request-ingest {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
     }
 
 
     location /otlp {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -556,25 +556,25 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
     }
 
     # Pyroscope profiling ingestion endpoint
     location /pyroscope {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
     }
 
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_otel_grpc grpc://${SERVER_APP_HOSTNAME}:4317;
-        grpc_pass $backend_otel_grpc;
+        set $backend_app_grpc grpc://${SERVER_APP_HOSTNAME}:4317;
+        grpc_pass $backend_app_grpc;
     }
 
     location /notification {
@@ -602,7 +602,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /fluentd/logs {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -614,12 +614,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Connection "upgrade";
 
         rewrite ^/fluentd/logs(.*)$ /fluentd/v1/logs$1 break;
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
     }
 
     location /syslog/v1/logs {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -629,12 +629,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
     }
 
     location /probe-ingest {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -644,7 +644,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
@@ -652,7 +652,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     # For backward compatibility with probes that are already deployed
     location /ingestor {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -662,14 +662,14 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
 
     location /server-monitor {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -679,7 +679,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
@@ -914,7 +914,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /heartbeat {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -925,7 +925,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         rewrite ^/heartbeat(.*)$ /incoming-request$1 break;
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
@@ -933,7 +933,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     location /incoming-email {
         # Incoming Email Monitor webhook endpoint
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -942,7 +942,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }

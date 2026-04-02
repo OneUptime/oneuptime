@@ -116,13 +116,7 @@ Usage:
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: TELEMETRY_HOSTNAME
-  value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_TELEMETRY_HOSTNAME
-  value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: APP_PORT
-  value: {{ $.Values.app.ports.http | squote }}
-- name: TELEMETRY_PORT
   value: {{ $.Values.app.ports.http | squote }}
 - name: HOME_PORT
   value: {{ $.Values.home.ports.http | squote }}
