@@ -135,7 +135,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Exceptions",
-      description: "Catch and fix bugs early.",
+      description: "Track and resolve bugs across your services.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),

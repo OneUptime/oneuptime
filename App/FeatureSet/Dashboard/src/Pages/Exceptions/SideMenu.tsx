@@ -17,6 +17,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
+            title: "Overview",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
+            ),
+          },
+          icon: IconProp.Home,
+        },
+        {
+          link: {
             title: "Unresolved",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
@@ -52,11 +61,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Documentation",
+      title: "Help",
       items: [
         {
           link: {
-            title: "Documentation",
+            title: "Setup Guide",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.EXCEPTIONS_DOCUMENTATION] as Route,
             ),

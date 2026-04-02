@@ -11,6 +11,11 @@ export function getExceptionsBreadcrumbs(
       "Project",
       "Exceptions",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_OVERVIEW, [
+      "Project",
+      "Exceptions",
+      "Overview",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_UNRESOLVED, [
       "Project",
       "Exceptions",
@@ -29,12 +34,12 @@ export function getExceptionsBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW, [
       "Project",
       "Exceptions",
-      "View Exception",
+      "Exception Details",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_DOCUMENTATION, [
       "Project",
       "Exceptions",
-      "Documentation",
+      "Setup Guide",
     ]),
   };
   return breadcrumpLinksMap[path];

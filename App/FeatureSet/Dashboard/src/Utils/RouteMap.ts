@@ -144,7 +144,8 @@ export const ProfilesRoutePath: Dictionary<string> = {
 };
 
 export const ExceptionsRoutePath: Dictionary<string> = {
-  [PageMap.EXCEPTIONS]: "unresolved",
+  [PageMap.EXCEPTIONS]: "overview",
+  [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
   [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
   [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
   [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
@@ -2779,6 +2780,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_OVERVIEW]
     }`,
   ),
 
