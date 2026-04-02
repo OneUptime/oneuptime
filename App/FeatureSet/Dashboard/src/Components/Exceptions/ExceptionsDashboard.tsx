@@ -15,7 +15,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 import TelemetryExceptionElement from "./ExceptionElement";
