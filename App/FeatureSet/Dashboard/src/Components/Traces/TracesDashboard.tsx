@@ -172,8 +172,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }
 
           if (span.statusCode === SpanStatus.Error) {
-            const errorSet: Set<string> =
-              serviceErrorTraceIds.get(serviceId)!;
+            const errorSet: Set<string> = serviceErrorTraceIds.get(serviceId)!;
 
             if (!errorSet.has(traceId)) {
               errorSet.add(traceId);
@@ -193,8 +192,10 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }
         }
 
-        // For the recent traces lists, pick the first span per trace
-        // (which is the most recent since we sort desc)
+        /*
+         * For the recent traces lists, pick the first span per trace
+         * (which is the most recent since we sort desc)
+         */
         if (!seenTraceIds.has(traceId) && traceId) {
           seenTraceIds.add(traceId);
 
@@ -202,9 +203,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             traceId: traceId,
             name: span.name?.toString() || "Unknown",
             serviceId: serviceId,
-            startTime: span.startTime
-              ? new Date(span.startTime)
-              : new Date(),
+            startTime: span.startTime ? new Date(span.startTime) : new Date(),
             statusCode: span.statusCode || SpanStatus.Unset,
             durationNano: (span.durationUnixNano as number) || 0,
           };
@@ -224,9 +223,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             traceId: traceId,
             name: span.name?.toString() || "Unknown",
             serviceId: serviceId,
-            startTime: span.startTime
-              ? new Date(span.startTime)
-              : new Date(),
+            startTime: span.startTime ? new Date(span.startTime) : new Date(),
             statusCode: span.statusCode,
             durationNano: (span.durationUnixNano as number) || 0,
           });
@@ -303,9 +300,36 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             stroke="currentColor"
           >
             {/* Three horizontal bars representing a waterfall/trace timeline */}
-            <rect x="4" y="10" width="28" height="5" rx="2.5" strokeWidth={1.5} fill="currentColor" opacity={0.5} />
-            <rect x="12" y="20" width="20" height="5" rx="2.5" strokeWidth={1.5} fill="currentColor" opacity={0.7} />
-            <rect x="20" y="30" width="24" height="5" rx="2.5" strokeWidth={1.5} fill="currentColor" opacity={0.9} />
+            <rect
+              x="4"
+              y="10"
+              width="28"
+              height="5"
+              rx="2.5"
+              strokeWidth={1.5}
+              fill="currentColor"
+              opacity={0.5}
+            />
+            <rect
+              x="12"
+              y="20"
+              width="20"
+              height="5"
+              rx="2.5"
+              strokeWidth={1.5}
+              fill="currentColor"
+              opacity={0.7}
+            />
+            <rect
+              x="20"
+              y="30"
+              width="24"
+              height="5"
+              rx="2.5"
+              strokeWidth={1.5}
+              fill="currentColor"
+              opacity={0.9}
+            />
             {/* Connecting lines */}
             <path d="M18 15 L16 20" strokeWidth={1.5} opacity={0.4} />
             <path d="M22 25 L24 30" strokeWidth={1.5} opacity={0.4} />

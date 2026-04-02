@@ -31,9 +31,7 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={MetricsRoutePath[PageMap.METRICS_LIST] || ""}
-          element={
-            <MetricsListPage />
-          }
+          element={<MetricsListPage />}
         />
         <PageRoute
           path={MetricsRoutePath[PageMap.METRICS_DOCUMENTATION] || ""}
