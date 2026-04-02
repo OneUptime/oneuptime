@@ -112,8 +112,6 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.domain | quote }}
 - name: INBOUND_EMAIL_WEBHOOK_SECRET
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
-- name: SERVER_WORKER_HOSTNAME
-  value: {{ $.Release.Name }}-worker.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_HOME_HOSTNAME
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
@@ -128,8 +126,8 @@ Usage:
   value: {{ $.Values.telemetry.ports.http | squote }}
 - name: HOME_PORT
   value: {{ $.Values.home.ports.http | squote }}
-- name: WORKER_PORT
-  value: {{ $.Values.worker.ports.http | squote }}
+- name: WORKER_CONCURRENCY
+  value: {{ $.Values.app.workerConcurrency | default 100 | squote }}
 - name: IP_WHITELIST
   value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- end }}
@@ -531,7 +529,7 @@ Usage:
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: WORKFLOW_TIMEOUT_IN_MS
-  value: {{ $.Values.worker.workflowTimeoutInMs | squote }}
+  value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: AVERAGE_SPAN_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageSpanRowSizeInBytes | quote }}

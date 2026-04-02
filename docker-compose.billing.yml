@@ -45,14 +45,6 @@ services:
         depends_on:
             <<: *common-depends-on
 
-    worker:
-        image:  oneuptime/worker:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: worker
-        depends_on:
-            <<: *common-depends-on
-
     probe-1:
         image:  oneuptime/probe:${APP_TAG}
         extends:

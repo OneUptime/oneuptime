@@ -14,6 +14,7 @@ export class TerraformProviderGenerator {
 
   public async generateBuildScripts(): Promise<void> {
     await this.generateMakefile();
+    await this.generateGoReleaserConfig();
     await this.generateInstallScript();
     await this.generateBuildScript();
     await this.generateTestScript();
@@ -81,6 +82,78 @@ clean:
 `.trim();
 
     await this.fileGenerator.writeFile("Makefile", makefileContent);
+  }
+
+  private async generateGoReleaserConfig(): Promise<void> {
+    const goReleaserContent: string = `
+# GoReleaser config for Terraform Provider
+# Used for parallel cross-compilation during CI builds
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+
+env:
+  - CGO_ENABLED=0
+
+builds:
+  - binary: terraform-provider-${this.config.providerName}
+    main: ./
+    goos:
+      - darwin
+      - linux
+      - windows
+      - freebsd
+      - openbsd
+      - solaris
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+      - arm
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: solaris
+        goarch: "386"
+      - goos: solaris
+        goarch: arm
+      - goos: solaris
+        goarch: arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+archives:
+  - format: zip
+    name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_SHA256SUMS"
+  algorithm: sha256
+
+signs:
+  - artifacts: checksum
+    cmd: gpg
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "\${signature}"
+      - "--detach-sig"
+      - "\${artifact}"
+
+release:
+  disable: true  # We handle release creation separately
+
+changelog:
+  disable: true
+`.trim();
+
+    await this.fileGenerator.writeFile(".goreleaser.yml", goReleaserContent);
   }
 
   private async generateInstallScript(): Promise<void> {
