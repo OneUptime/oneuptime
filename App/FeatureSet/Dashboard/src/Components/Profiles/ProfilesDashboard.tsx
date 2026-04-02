@@ -122,7 +122,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
 
       for (const profile of profiles) {
         const serviceId: string = profile.serviceId?.toString() || "";
-        let summary: ServiceProfileSummary | undefined =
+        const summary: ServiceProfileSummary | undefined =
           summaryMap.get(serviceId);
 
         if (!summary) {
@@ -192,7 +192,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           "functions"
         ] || []) as unknown as Array<FunctionHotspot>;
         setHotspots(functions);
-      } catch (_hotspotsErr) {
+      } catch {
         // Hotspots are optional - don't fail the whole page
         setHotspots([]);
       }
@@ -334,9 +334,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                     to={RouteUtil.populateRouteParams(
                       RouteMap[PageMap.SERVICE_VIEW_PROFILES] as Route,
                       {
-                        modelId: new ObjectID(
-                          summary.service._id as string,
-                        ),
+                        modelId: new ObjectID(summary.service._id as string),
                       },
                     )}
                   >
@@ -368,9 +366,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                   <th className="px-5 py-3 font-medium">#</th>
                   <th className="px-5 py-3 font-medium">Function</th>
                   <th className="px-5 py-3 font-medium">Source File</th>
-                  <th className="px-5 py-3 text-right font-medium">
-                    Own Time
-                  </th>
+                  <th className="px-5 py-3 text-right font-medium">Own Time</th>
                   <th className="px-5 py-3 text-right font-medium">
                     Total Time
                   </th>

@@ -120,7 +120,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body.toJSON ? req.body.toJSON() : req.body;
+      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
 
       Response.sendEmptySuccessResponse(req, res);
 

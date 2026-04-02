@@ -52,16 +52,14 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   const [recentErrorTraces, setRecentErrorTraces] = useState<
     Array<RecentTrace>
   >([]);
-  const [recentSlowTraces, setRecentSlowTraces] = useState<
-    Array<RecentTrace>
-  >([]);
+  const [recentSlowTraces, setRecentSlowTraces] = useState<Array<RecentTrace>>(
+    [],
+  );
   const [services, setServices] = useState<Array<Service>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const formatDuration: (nanos: number) => string = (
-    nanos: number,
-  ): string => {
+  const formatDuration: (nanos: number) => string = (nanos: number): string => {
     if (nanos >= 1_000_000_000) {
       return `${(nanos / 1_000_000_000).toFixed(2)}s`;
     }
@@ -370,9 +368,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                     to={RouteUtil.populateRouteParams(
                       RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route,
                       {
-                        modelId: new ObjectID(
-                          summary.service._id as string,
-                        ),
+                        modelId: new ObjectID(summary.service._id as string),
                       },
                     )}
                   >
@@ -406,50 +402,48 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           ) : (
             <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
               <div className="divide-y divide-gray-100">
-                {recentErrorTraces.map(
-                  (trace: RecentTrace, index: number) => {
-                    return (
-                      <AppLink
-                        key={`${trace.traceId}-${index}`}
-                        className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.TRACE_VIEW]!,
-                          {
-                            modelId: trace.traceId,
-                          },
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <SpanStatusElement
-                              spanStatusCode={trace.statusCode}
-                              title=""
-                            />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {trace.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {getServiceName(trace.serviceId)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0 ml-3">
-                            <p className="text-xs font-mono text-gray-600">
-                              {formatDuration(trace.durationNano)}
+                {recentErrorTraces.map((trace: RecentTrace, index: number) => {
+                  return (
+                    <AppLink
+                      key={`${trace.traceId}-${index}`}
+                      className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.TRACE_VIEW]!,
+                        {
+                          modelId: trace.traceId,
+                        },
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <SpanStatusElement
+                            spanStatusCode={trace.statusCode}
+                            title=""
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {trace.name}
                             </p>
-                            <p className="text-xs text-gray-400">
-                              {OneUptimeDate.getDateAsLocalFormattedString(
-                                trace.startTime,
-                                true,
-                              )}
+                            <p className="text-xs text-gray-500">
+                              {getServiceName(trace.serviceId)}
                             </p>
                           </div>
                         </div>
-                      </AppLink>
-                    );
-                  },
-                )}
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className="text-xs font-mono text-gray-600">
+                            {formatDuration(trace.durationNano)}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {OneUptimeDate.getDateAsLocalFormattedString(
+                              trace.startTime,
+                              true,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </AppLink>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -474,57 +468,55 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           ) : (
             <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
               <div className="divide-y divide-gray-100">
-                {recentSlowTraces.map(
-                  (trace: RecentTrace, index: number) => {
-                    const maxDuration: number =
-                      recentSlowTraces[0]?.durationNano || 1;
-                    const barWidth: number =
-                      (trace.durationNano / maxDuration) * 100;
+                {recentSlowTraces.map((trace: RecentTrace, index: number) => {
+                  const maxDuration: number =
+                    recentSlowTraces[0]?.durationNano || 1;
+                  const barWidth: number =
+                    (trace.durationNano / maxDuration) * 100;
 
-                    return (
-                      <AppLink
-                        key={`${trace.traceId}-slow-${index}`}
-                        className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.TRACE_VIEW]!,
-                          {
-                            modelId: trace.traceId,
-                          },
-                        )}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <SpanStatusElement
-                              spanStatusCode={trace.statusCode}
-                              title=""
-                            />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {trace.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {getServiceName(trace.serviceId)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0 ml-3">
-                            <p className="text-sm font-mono font-semibold text-gray-900">
-                              {formatDuration(trace.durationNano)}
+                  return (
+                    <AppLink
+                      key={`${trace.traceId}-slow-${index}`}
+                      className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.TRACE_VIEW]!,
+                        {
+                          modelId: trace.traceId,
+                        },
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <SpanStatusElement
+                            spanStatusCode={trace.statusCode}
+                            title=""
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {trace.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {getServiceName(trace.serviceId)}
                             </p>
                           </div>
                         </div>
-                        <div className="ml-8">
-                          <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-amber-400"
-                              style={{ width: `${barWidth}%` }}
-                            />
-                          </div>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className="text-sm font-mono font-semibold text-gray-900">
+                            {formatDuration(trace.durationNano)}
+                          </p>
                         </div>
-                      </AppLink>
-                    );
-                  },
-                )}
+                      </div>
+                      <div className="ml-8">
+                        <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-amber-400"
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                    </AppLink>
+                  );
+                })}
               </div>
             </div>
           )}

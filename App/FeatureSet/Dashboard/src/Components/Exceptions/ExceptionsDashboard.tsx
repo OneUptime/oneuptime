@@ -33,9 +33,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   const [unresolvedCount, setUnresolvedCount] = useState<number>(0);
   const [resolvedCount, setResolvedCount] = useState<number>(0);
   const [archivedCount, setArchivedCount] = useState<number>(0);
-  const [topExceptions, setTopExceptions] = useState<
-    Array<TelemetryException>
-  >([]);
+  const [topExceptions, setTopExceptions] = useState<Array<TelemetryException>>(
+    [],
+  );
   const [serviceSummaries, setServiceSummaries] = useState<
     Array<ServiceExceptionSummary>
   >([]);
@@ -274,9 +274,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                 </svg>
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Needs attention
-            </p>
+            <p className="text-xs text-gray-400 mt-2">Needs attention</p>
           </div>
         </AppLink>
 
@@ -310,9 +308,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                 </svg>
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Fixed and verified
-            </p>
+            <p className="text-xs text-gray-400 mt-2">Fixed and verified</p>
           </div>
         </AppLink>
 
@@ -397,10 +393,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   ] as Route,
                                 )
                                   .toString()
-                                  .replace(
-                                    /\/$/,
-                                    `/${exception.fingerprint}`,
-                                  ),
+                                  .replace(/\/$/, `/${exception.fingerprint}`),
                               )
                             : RouteUtil.populateRouteParams(
                                 RouteMap[
@@ -436,13 +429,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-semibold text-gray-900">
-                              {(
-                                exception.occuranceCount || 0
-                              ).toLocaleString()}
+                              {(exception.occuranceCount || 0).toLocaleString()}
                             </p>
-                            <p className="text-xs text-gray-400">
-                              occurrences
-                            </p>
+                            <p className="text-xs text-gray-400">occurrences</p>
                           </div>
                         </div>
                         <div className="mt-1">
@@ -475,40 +464,34 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
             </div>
             <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
               <div className="divide-y divide-gray-100">
-                {serviceSummaries.map(
-                  (summary: ServiceExceptionSummary) => {
-                    return (
-                      <div
-                        key={summary.service.id?.toString()}
-                        className="px-4 py-4"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <TelemetryServiceElement
-                            telemetryService={summary.service}
-                          />
-                          <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="text-sm font-semibold text-red-600">
-                                {summary.unresolvedCount}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                unresolved
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-semibold text-gray-700">
-                                {summary.totalOccurrences.toLocaleString()}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                total hits
-                              </p>
-                            </div>
+                {serviceSummaries.map((summary: ServiceExceptionSummary) => {
+                  return (
+                    <div
+                      key={summary.service.id?.toString()}
+                      className="px-4 py-4"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <TelemetryServiceElement
+                          telemetryService={summary.service}
+                        />
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-red-600">
+                              {summary.unresolvedCount}
+                            </p>
+                            <p className="text-xs text-gray-400">unresolved</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-gray-700">
+                              {summary.totalOccurrences.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-400">total hits</p>
                           </div>
                         </div>
                       </div>
-                    );
-                  },
-                )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

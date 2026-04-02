@@ -13,7 +13,13 @@ import path from "path";
 
 // Load proto file for OTel
 
-const PROTO_DIR: string = path.resolve(__dirname, "..", "ProtoFiles", "OTel", "v1");
+const PROTO_DIR: string = path.resolve(
+  __dirname,
+  "..",
+  "ProtoFiles",
+  "OTel",
+  "v1",
+);
 
 // Create a root namespace
 const LogsProto: protobuf.Root = protobuf.loadSync(

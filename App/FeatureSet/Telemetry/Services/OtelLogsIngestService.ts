@@ -65,7 +65,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         );
       }
 
-      req.body = req.body.toJSON ? req.body.toJSON() : req.body;
+      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
 
       Response.sendEmptySuccessResponse(req, res);
 
