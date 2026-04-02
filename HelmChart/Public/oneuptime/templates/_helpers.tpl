@@ -838,6 +838,18 @@ spec:
       # authenticationRef:
       #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
     {{- end }}
+    {{- if and .MetricsConfig.targetCPUUtilizationPercentage (gt (int .MetricsConfig.targetCPUUtilizationPercentage) 0) }}
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: {{ .MetricsConfig.targetCPUUtilizationPercentage | quote }}
+    {{- end }}
+    {{- if and .MetricsConfig.targetMemoryUtilizationPercentage (gt (int .MetricsConfig.targetMemoryUtilizationPercentage) 0) }}
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: {{ .MetricsConfig.targetMemoryUtilizationPercentage | quote }}
+    {{- end }}
 ---
 apiVersion: keda.sh/v1alpha1
 kind: TriggerAuthentication

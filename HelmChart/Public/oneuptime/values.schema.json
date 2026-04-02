@@ -1813,6 +1813,12 @@
                         "telemetryQueueSizeThreshold": {
                             "type": "integer"
                         },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        },
                         "pollingInterval": {
                             "type": "integer"
                         },
