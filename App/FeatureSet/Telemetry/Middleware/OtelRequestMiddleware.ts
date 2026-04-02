@@ -5,11 +5,14 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import protobuf from "protobufjs";
 import logger from "Common/Server/Utils/Logger";
 import path from "path";
+import zlib from "zlib";
+import { promisify } from "util";
 
 // Load proto file for OTel
 
@@ -43,8 +46,56 @@ const LogsData: protobuf.Type = LogsProto.lookupType("LogsData");
 const TracesData: protobuf.Type = TracesProto.lookupType("TracesData");
 const MetricsData: protobuf.Type = MetricsProto.lookupType("MetricsData");
 const ProfilesData: protobuf.Type = ProfilesProto.lookupType("ProfilesData");
+const gunzipAsync: (buffer: Uint8Array) => Promise<Buffer> = promisify(
+  zlib.gunzip,
+);
 
 export default class OpenTelemetryRequestMiddleware {
+  @CaptureSpan()
+  public static async parseBody(
+    req: ExpressRequest,
+    _res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      if (req.body !== undefined && req.body !== null) {
+        return next();
+      }
+
+      const requestBuffer: Buffer = await new Promise<Buffer>(
+        (resolve: (value: Buffer) => void, reject: (err: Error) => void) => {
+          const chunks: Array<Buffer> = [];
+
+          req.on("data", (chunk: Buffer | string) => {
+            chunks.push(
+              Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf-8"),
+            );
+          });
+
+          req.on("end", () => {
+            resolve(Buffer.concat(chunks));
+          });
+
+          req.on("error", (err: Error) => {
+            reject(err);
+          });
+        },
+      );
+
+      const contentEncoding: string | undefined = headerValueToString(
+        req.headers["content-encoding"],
+      );
+
+      req.body = contentEncoding?.includes("gzip")
+        ? await gunzipAsync(requestBuffer)
+        : requestBuffer;
+
+      next();
+    } catch (err) {
+      return next(err);
+    }
+  }
+
   @CaptureSpan()
   public static async getProductType(
     req: ExpressRequest,
@@ -54,7 +105,9 @@ export default class OpenTelemetryRequestMiddleware {
     try {
       let productType: ProductType;
 
-      const contentType: string | undefined = req.headers["content-type"];
+      const contentType: string | undefined = headerValueToString(
+        req.headers["content-type"],
+      );
       const isProtobuf: boolean =
         req.body instanceof Uint8Array &&
         (!contentType ||

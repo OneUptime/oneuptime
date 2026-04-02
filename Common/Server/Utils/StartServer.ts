@@ -19,6 +19,7 @@ import Express, {
   NextFunction,
   OneUptimeRequest,
   RequestHandler,
+  headerValueToString,
 } from "./Express";
 import logger from "./Logger";
 import "./Process";
@@ -117,9 +118,9 @@ app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
 });
 
 /*
- * Parse protobuf (binary) bodies for OTLP ingestion before JSON/gzip middleware.
- * The .NET OpenTelemetry SDK (and others) send telemetry data as application/x-protobuf.
- * Without this, express.json() skips protobuf requests and req.body remains undefined.
+ * Parse protobuf (binary) bodies for non-OTLP routes.
+ * OTLP HTTP ingestion bypasses the global body parsers and handles raw/gzip
+ * payloads in the telemetry router to avoid conflicts with the merged app stack.
  */
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
   type: ["application/x-protobuf", "application/protobuf"],
@@ -127,15 +128,18 @@ const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
 });
 
 app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
-  const contentType: string | undefined = req.headers["content-type"];
+  if (req.path.includes("/otlp/v1/")) {
+    return next();
+  }
 
-  if (
-    contentType &&
-    (contentType.includes("application/x-protobuf") ||
-      contentType.includes("application/protobuf"))
-  ) {
-    protobufBodyParserMiddleware(req, res, next);
-  } else if (req.headers["content-encoding"] === "gzip") {
+  const contentType: string | undefined = headerValueToString(
+    req.headers["content-type"],
+  );
+  const contentEncoding: string | undefined = headerValueToString(
+    req.headers["content-encoding"],
+  );
+
+  if (contentEncoding?.includes("gzip")) {
     const buffers: any = [];
 
     req.on("data", (chunk: any) => {
@@ -159,13 +163,22 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
         next();
       });
     });
+  } else if (
+    contentType &&
+    (contentType.includes("application/x-protobuf") ||
+      contentType.includes("application/protobuf"))
+  ) {
+    protobufBodyParserMiddleware(req, res, next);
   } else {
     jsonBodyParserMiddleware(req, res, next);
   }
 });
 
 app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-  if (req.headers["content-encoding"] === "gzip") {
+  if (
+    req.path.includes("/otlp/v1/") ||
+    headerValueToString(req.headers["content-encoding"])?.includes("gzip")
+  ) {
     next();
   } else {
     urlEncodedMiddleware(req, res, next);

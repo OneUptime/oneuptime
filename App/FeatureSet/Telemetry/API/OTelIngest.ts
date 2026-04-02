@@ -25,6 +25,7 @@ const router: ExpressRouter = Express.getRouter();
 
 router.post(
   "/otlp/v1/traces",
+  OpenTelemetryRequestMiddleware.parseBody,
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
@@ -38,6 +39,7 @@ router.post(
 
 router.post(
   "/otlp/v1/metrics",
+  OpenTelemetryRequestMiddleware.parseBody,
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
@@ -51,6 +53,7 @@ router.post(
 
 router.post(
   "/otlp/v1/logs",
+  OpenTelemetryRequestMiddleware.parseBody,
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
@@ -64,6 +67,7 @@ router.post(
 
 router.post(
   "/otlp/v1/profiles",
+  OpenTelemetryRequestMiddleware.parseBody,
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
