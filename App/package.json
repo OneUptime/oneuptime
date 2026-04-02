@@ -46,7 +46,7 @@
     "ejs": "^3.1.9",
     "handlebars": "^4.7.8",
     "nodemailer": "^6.9.7",
-    "protobufjs": "^7.3.2",
+    "protobufjs": "^7.5.4",
     "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
     "xml-crypto": "^3.2.0",
