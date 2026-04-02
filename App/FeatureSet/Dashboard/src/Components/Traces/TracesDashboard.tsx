@@ -295,19 +295,20 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   if (serviceSummaries.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-        <div className="text-gray-400 text-5xl mb-4">
+        <div className="mb-4">
           <svg
-            className="mx-auto h-12 w-12"
+            className="mx-auto h-16 w-16 text-indigo-200"
             fill="none"
-            viewBox="0 0 24 24"
+            viewBox="0 0 48 48"
             stroke="currentColor"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
-            />
+            {/* Three horizontal bars representing a waterfall/trace timeline */}
+            <rect x="4" y="10" width="28" height="5" rx="2.5" strokeWidth={1.5} fill="currentColor" opacity={0.5} />
+            <rect x="12" y="20" width="20" height="5" rx="2.5" strokeWidth={1.5} fill="currentColor" opacity={0.7} />
+            <rect x="20" y="30" width="24" height="5" rx="2.5" strokeWidth={1.5} fill="currentColor" opacity={0.9} />
+            {/* Connecting lines */}
+            <path d="M18 15 L16 20" strokeWidth={1.5} opacity={0.4} />
+            <path d="M22 25 L24 30" strokeWidth={1.5} opacity={0.4} />
           </svg>
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">
