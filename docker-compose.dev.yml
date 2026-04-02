@@ -88,6 +88,7 @@ services:
             - ./App/FeatureSet/Dashboard:/usr/src/app/FeatureSet/Dashboard:cached
             - ./App/FeatureSet/AdminDashboard:/usr/src/app/FeatureSet/AdminDashboard:cached
             - ./App/FeatureSet/StatusPage:/usr/src/app/FeatureSet/StatusPage:cached
+            - ./App/FeatureSet/PublicDashboard:/usr/src/app/FeatureSet/PublicDashboard:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -95,6 +96,7 @@ services:
             - /usr/src/app/FeatureSet/Dashboard/node_modules/
             - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
             - /usr/src/app/FeatureSet/StatusPage/node_modules/
+            - /usr/src/app/FeatureSet/PublicDashboard/node_modules/
             - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
