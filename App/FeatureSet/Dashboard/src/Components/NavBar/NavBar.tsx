@@ -108,7 +108,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Metrics",
-      description: "Monitor system metrics.",
+      description: "Monitor and visualize system metrics across your services.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       activeRoute: RouteMap[PageMap.METRICS],
       icon: IconProp.Heartbeat,
@@ -117,7 +117,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Traces",
-      description: "Distributed tracing analysis.",
+      description: "Track requests across your services.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
       icon: IconProp.Waterfall,
@@ -125,8 +125,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: "Observability",
     },
     {
-      title: "Profiles",
-      description: "CPU and memory profiling.",
+      title: "Performance Profiles",
+      description: "Find slow functions and memory hotspots.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILES] as Route),
       activeRoute: RouteMap[PageMap.PROFILES],
       icon: IconProp.Fire,
@@ -135,7 +135,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Exceptions",
-      description: "Catch and fix bugs early.",
+      description: "Track and resolve bugs across your services.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),

@@ -12,7 +12,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ProfileTable from "../../Components/Profiles/ProfileTable";
+import ProfilesDashboard from "../../Components/Profiles/ProfilesDashboard";
 
 const ProfilesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -62,7 +62,7 @@ const ProfilesPage: FunctionComponent<PageComponentProps> = (
     return <TelemetryDocumentation telemetryType="profiles" />;
   }
 
-  return <ProfileTable />;
+  return <ProfilesDashboard />;
 };
 
 export default ProfilesPage;

@@ -136,13 +136,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Profiles",
+            title: "Performance Profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SERVICE_VIEW_PROFILES] as Route,
               { modelId: props.modelId },
             ),
           }}
           icon={IconProp.Fire}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Exceptions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_EXCEPTIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Error}
         />
       </SideMenuSection>
 

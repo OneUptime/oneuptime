@@ -50,6 +50,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
+  [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
 };
 
@@ -123,6 +124,7 @@ export const LogsRoutePath: Dictionary<string> = {
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
+  [PageMap.METRICS_LIST]: "list",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
 };
@@ -130,6 +132,7 @@ export const MetricsRoutePath: Dictionary<string> = {
 // Traces product routes
 export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES]: "",
+  [PageMap.TRACES_LIST]: "list",
   [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.TRACES_DOCUMENTATION]: "documentation",
 };
@@ -137,12 +140,14 @@ export const TracesRoutePath: Dictionary<string> = {
 // Profiles product routes
 export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES]: "",
+  [PageMap.PROFILES_LIST]: "list",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
 
 export const ExceptionsRoutePath: Dictionary<string> = {
-  [PageMap.EXCEPTIONS]: "unresolved",
+  [PageMap.EXCEPTIONS]: "overview",
+  [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
   [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
   [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
   [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
@@ -1483,6 +1488,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_VIEW_EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_EXCEPTIONS]
+    }`,
+  ),
+
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
@@ -2265,6 +2276,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.METRICS]: new Route(`/dashboard/${RouteParams.ProjectID}/metrics`),
 
+  [PageMap.METRICS_LIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_LIST]
+    }`,
+  ),
+
   [PageMap.METRIC_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
       MetricsRoutePath[PageMap.METRIC_VIEW]
@@ -2284,6 +2301,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.TRACES]: new Route(`/dashboard/${RouteParams.ProjectID}/traces`),
 
+  [PageMap.TRACES_LIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_LIST]
+    }`,
+  ),
+
   [PageMap.TRACE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
       TracesRoutePath[PageMap.TRACE_VIEW]
@@ -2302,6 +2325,12 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.PROFILES]: new Route(`/dashboard/${RouteParams.ProjectID}/profiles`),
+
+  [PageMap.PROFILES_LIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_LIST]
+    }`,
+  ),
 
   [PageMap.PROFILE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/${
@@ -2765,6 +2794,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_OVERVIEW]
     }`,
   ),
 

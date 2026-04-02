@@ -6,6 +6,11 @@ import FrontendRoutes from "./FeatureSet/Frontend/Index";
 import IdentityRoutes from "./FeatureSet/Identity/Index";
 import MCPRoutes from "./FeatureSet/MCP/Index";
 import NotificationRoutes from "./FeatureSet/Notification/Index";
+import WorkersRoutes from "./FeatureSet/Workers/Index";
+import TelemetryRoutes from "./FeatureSet/Telemetry/Index";
+import WorkflowRoutes from "./FeatureSet/Workflow/Index";
+import AppMetricsAPI from "./API/Metrics";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -100,6 +105,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Initialize real-time functionalities
     await Realtime.init();
 
+    // Expose app-level combined metrics endpoint for KEDA
+    const expressApp: ExpressApplication = Express.getExpressApp();
+    expressApp.use("/", AppMetricsAPI);
+
     // Initialize feature sets
     await IdentityRoutes.init();
     await NotificationRoutes.init();
@@ -108,6 +117,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await FrontendRoutes.init();
     await DocsRoutes.init();
     await APIReferenceRoutes.init();
+    await WorkersRoutes.init();
+    await TelemetryRoutes.init();
+    await WorkflowRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

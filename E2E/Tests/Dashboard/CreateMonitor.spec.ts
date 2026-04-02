@@ -83,6 +83,12 @@ test.describe("Monitor Creation", () => {
       timeout: 30000,
     });
 
+    /*
+     * Wait for the page to fully settle after project creation
+     * The app may perform internal redirects after project setup
+     */
+    await page.waitForLoadState("networkidle");
+
     // Extract the project ID from the URL
     const projectUrl: string = page.url();
     const projectIdMatch: RegExpMatchArray | null = projectUrl.match(
@@ -96,6 +102,7 @@ test.describe("Monitor Creation", () => {
       URL.fromString(BASE_URL.toString())
         .addRoute(`/dashboard/${projectId}/monitors/create`)
         .toString(),
+      { waitUntil: "networkidle" },
     );
 
     // Wait for the create monitor form to load

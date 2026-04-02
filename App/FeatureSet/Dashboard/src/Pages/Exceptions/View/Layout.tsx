@@ -14,7 +14,7 @@ const ExceptionViewLayout: FunctionComponent<
 
   if (path.endsWith("exceptions")) {
     Navigation.navigate(
-      RouteUtil.populateRouteParams(RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!),
+      RouteUtil.populateRouteParams(RouteMap[PageMap.EXCEPTIONS_OVERVIEW]!),
     );
 
     return <></>;
@@ -22,7 +22,7 @@ const ExceptionViewLayout: FunctionComponent<
 
   return (
     <Page
-      title="Exception Explorer"
+      title="Exception Details"
       breadcrumbLinks={getExceptionsBreadcrumbs(path)}
     >
       <Outlet />

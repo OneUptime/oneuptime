@@ -168,7 +168,7 @@ const ProfileTimeline: FunctionComponent<ProfileTimelineProps> = (
     <div className="w-full">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-gray-600">
-          Profile Density ({profiles.length} profiles)
+          Activity ({profiles.length} profiles captured)
         </span>
         <span className="text-xs text-gray-400">
           {OneUptimeDate.getDateAsLocalFormattedString(props.startTime, true)} —{" "}

@@ -597,12 +597,16 @@ EOF
 
     # Clean up
     rm -f "$release_notes_file"
-    
-    # Use existing builds from generation process and generate SHASUMS
-    generate_shasums
-    
-    # Upload release assets
-    upload_release_assets
+
+    # Use GoReleaser to build archives, checksums, and sign if available
+    # Otherwise fall back to manual process
+    if command -v goreleaser &> /dev/null && [[ -f "$PROVIDER_FRAMEWORK_DIR/.goreleaser.yml" ]]; then
+        goreleaser_release_assets
+    else
+        # Fallback: Use existing builds from generation process and generate SHASUMS
+        generate_shasums
+        upload_release_assets
+    fi
 }
 
 
@@ -633,6 +637,70 @@ publish_to_registry() {
 
 }
 
+
+# Function to use GoReleaser for building archives, checksums, signing, and uploading
+goreleaser_release_assets() {
+    print_step "Using GoReleaser to build archives, checksums, and sign..."
+
+    cd "$PROVIDER_FRAMEWORK_DIR"
+
+    # Get GPG fingerprint for signing
+    local gpg_fingerprint=$(gpg --list-secret-keys --keyid-format=long | grep -E "^sec" | head -1 | sed 's/.*\/\([A-F0-9]*\).*/\1/')
+
+    if [[ -z "$gpg_fingerprint" ]]; then
+        print_error "No GPG secret key found for GoReleaser signing."
+        exit 1
+    fi
+
+    export GPG_FINGERPRINT="$gpg_fingerprint"
+    export GITHUB_TOKEN="$GITHUB_TOKEN"
+
+    print_status "Using GPG key: $gpg_fingerprint"
+    print_status "Running GoReleaser to create archives, checksums, and signatures..."
+
+    # GoReleaser builds archives + checksums + signs in one parallelized step
+    # We use --skip=publish since we already created the release and upload separately
+    goreleaser release \
+        --clean \
+        --skip=publish \
+        --config .goreleaser.yml
+
+    print_success "GoReleaser completed: archives, checksums, and signatures created"
+
+    # Upload all GoReleaser dist artifacts to the GitHub release
+    print_status "Uploading GoReleaser artifacts to GitHub release..."
+    local dist_dir="dist"
+
+    if [[ ! -d "$dist_dir" ]]; then
+        print_error "GoReleaser dist directory not found"
+        exit 1
+    fi
+
+    local files_uploaded=0
+    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*.json; do
+        if [[ -f "$file" ]]; then
+            local filename=$(basename "$file")
+            print_status "Uploading $filename..."
+            if command -v gh &> /dev/null; then
+                gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO" --clobber
+            else
+                local release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                    "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/tags/v$VERSION" | \
+                    jq -r '.id')
+                local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
+                curl -s -X POST \
+                    -H "Authorization: token $GITHUB_TOKEN" \
+                    -H "Content-Type: application/octet-stream" \
+                    --data-binary "@$file" \
+                    "$upload_url" > /dev/null
+            fi
+            print_status "✓ Uploaded $filename"
+            files_uploaded=$((files_uploaded + 1))
+        fi
+    done
+
+    print_success "Uploaded $files_uploaded release assets via GoReleaser"
+}
 
 # Function to generate SHASUMS and signature files
 generate_shasums() {
@@ -961,7 +1029,6 @@ main() {
     parse_args "$@"
 
     validate_prerequisites
-    install_dependencies
     generate_provider
     push_to_repository
     create_github_release

@@ -111,99 +111,74 @@ async function main(): Promise<void> {
     Logger.info("🔨 Step 10: Generating build and installation scripts...");
     await generator.generateBuildScripts();
 
-    // Step 12: Run go mod tidy and update dependencies to latest
-    Logger.info(
-      "📦 Step 11: Running go mod tidy and fetching latest dependencies...",
-    );
+    // Step 12: Run go mod tidy
+    Logger.info("📦 Step 11: Running go mod tidy...");
 
     try {
       const originalCwd: string = process.cwd();
       process.chdir(providerDir);
       await execAsync("go mod tidy");
-      Logger.info("✅ go mod tidy completed successfully");
-
-      // Update all dependencies to their latest versions
-      Logger.info("📦 Updating dependencies to latest versions...");
-      await execAsync("go get -u ./...");
-      Logger.info("✅ Dependencies updated to latest versions");
-
-      // Run go mod tidy again to clean up after updates
-      await execAsync("go mod tidy");
       process.chdir(originalCwd);
-      Logger.info("✅ Final go mod tidy completed successfully");
+      Logger.info("✅ go mod tidy completed successfully");
     } catch (error) {
       Logger.warn(
-        `⚠️  go mod tidy or dependency update failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `⚠️  go mod tidy failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
 
-    // Step 13: Build the provider for multiple platforms
-    Logger.info("🔨 Step 12: Building the provider for multiple platforms...");
+    // Step 13: Build the provider for multiple platforms using GoReleaser
+    Logger.info(
+      "🔨 Step 12: Building the provider for multiple platforms with GoReleaser...",
+    );
     try {
       const originalCwd: string = process.cwd();
       process.chdir(providerDir);
 
-      // First build for current platform
-      await execAsync("go build");
-      Logger.info("✅ go build completed successfully");
-
-      // Check if make is available for multi-platform build
+      // Use GoReleaser for parallel cross-compilation (build only, no publish)
       try {
-        await execAsync("which make");
-        // Then build for all platforms (this creates the builds directory)
-        await execAsync("make release");
-        Logger.info("✅ Multi-platform build completed successfully");
-      } catch {
-        Logger.warn(
-          "⚠️  'make' command not available, building platforms manually...",
+        await execAsync("which goreleaser");
+        await execAsync("goreleaser build --snapshot --clean");
+        Logger.info(
+          "✅ GoReleaser multi-platform build completed successfully",
         );
 
-        // Create builds directory manually
+        /*
+         * Move GoReleaser output to builds/ directory for compatibility
+         * GoReleaser puts binaries in dist/<target>/
+         */
         await execAsync("mkdir -p ./builds");
-
-        // Build for each platform manually
-        const platforms: Array<{
-          os: string;
-          arch: string;
-          ext?: string;
-        }> = [
-          { os: "darwin", arch: "amd64" },
-          { os: "darwin", arch: "arm" },
-          { os: "darwin", arch: "arm64" },
-          { os: "linux", arch: "amd64" },
-          { os: "linux", arch: "386" },
-          { os: "linux", arch: "arm" },
-          { os: "linux", arch: "arm64" },
-          { os: "windows", arch: "amd64", ext: ".exe" },
-          { os: "windows", arch: "386", ext: ".exe" },
-          { os: "windows", arch: "arm", ext: ".exe" },
-          { os: "windows", arch: "arm64", ext: ".exe" },
-          { os: "freebsd", arch: "amd64" },
-          { os: "freebsd", arch: "386" },
-          { os: "freebsd", arch: "arm" },
-          { os: "freebsd", arch: "arm64" },
-          { os: "openbsd", arch: "amd64" },
-          { os: "openbsd", arch: "386" },
-          { os: "openbsd", arch: "arm" },
-          { os: "openbsd", arch: "arm64" },
-          { os: "solaris", arch: "amd64" },
-        ];
-
-        for (const platform of platforms) {
-          const ext: string = platform.ext || "";
-          const binaryName: string = `terraform-provider-oneuptime_${platform.os}_${platform.arch}${ext}`;
-          const buildCmd: string = `GOOS=${platform.os} GOARCH=${platform.arch} go build -o ./builds/${binaryName}`;
-
-          try {
-            await execAsync(buildCmd);
-            Logger.info(`✅ Built ${binaryName}`);
-          } catch (platformError) {
-            Logger.warn(
-              `⚠️  Failed to build ${binaryName}: ${platformError instanceof Error ? platformError.message : "Unknown error"}`,
-            );
+        const { stdout: distDirs } = await execAsync(
+          "find dist -name 'terraform-provider-oneuptime*' -type f",
+        );
+        for (const binaryPath of distDirs.trim().split("\n")) {
+          if (binaryPath) {
+            // Extract os_arch from the dist directory name
+            const dirName: string =
+              binaryPath.split("/").slice(-2, -1)[0] || "";
+            const binaryName: string = binaryPath.split("/").pop() || "";
+            // GoReleaser dirs are like: terraform-provider-oneuptime_linux_amd64
+            const ext: string = binaryName.endsWith(".exe") ? ".exe" : "";
+            const destName: string = `terraform-provider-oneuptime_${dirName.replace("terraform-provider-oneuptime_", "")}${ext ? "" : ""}`;
+            await execAsync(`cp "${binaryPath}" "./builds/${destName}"`);
           }
         }
-        Logger.info("✅ Manual multi-platform build completed");
+        Logger.info("✅ Binaries copied to builds/ directory");
+      } catch {
+        Logger.warn(
+          "⚠️  GoReleaser not available, falling back to make release...",
+        );
+        // Fallback to Makefile-based sequential build
+        try {
+          await execAsync("which make");
+          await execAsync("make release");
+          Logger.info("✅ Makefile multi-platform build completed");
+        } catch {
+          Logger.warn(
+            "⚠️  make not available, building for current platform only...",
+          );
+          await execAsync("go build");
+          Logger.info("✅ Single-platform build completed");
+        }
       }
 
       process.chdir(originalCwd);

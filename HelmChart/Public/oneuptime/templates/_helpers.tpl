@@ -112,24 +112,16 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.domain | quote }}
 - name: INBOUND_EMAIL_WEBHOOK_SECRET
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
-- name: SERVER_WORKER_HOSTNAME
-  value: {{ $.Release.Name }}-worker.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_HOME_HOSTNAME
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: TELEMETRY_HOSTNAME
-  value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_TELEMETRY_HOSTNAME
-  value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
-- name: TELEMETRY_PORT
-  value: {{ $.Values.telemetry.ports.http | squote }}
 - name: HOME_PORT
   value: {{ $.Values.home.ports.http | squote }}
-- name: WORKER_PORT
-  value: {{ $.Values.worker.ports.http | squote }}
+- name: WORKER_CONCURRENCY
+  value: {{ $.Values.app.workerConcurrency | default 100 | squote }}
 - name: IP_WHITELIST
   value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- end }}
@@ -531,7 +523,7 @@ Usage:
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: WORKFLOW_TIMEOUT_IN_MS
-  value: {{ $.Values.worker.workflowTimeoutInMs | squote }}
+  value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: AVERAGE_SPAN_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageSpanRowSizeInBytes | quote }}
@@ -840,11 +832,23 @@ spec:
     - type: metrics-api
       metadata:
         targetValue: {{ .threshold | quote }}
-        url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics/queue-size
+        url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}{{ if .urlPath }}{{ .urlPath }}{{ else }}/metrics/queue-size{{ end }}
         valueLocation: 'queueSize'
         method: 'GET'
       # authenticationRef:
       #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
+    {{- end }}
+    {{- if and .MetricsConfig.targetCPUUtilizationPercentage (gt (int .MetricsConfig.targetCPUUtilizationPercentage) 0) }}
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: {{ .MetricsConfig.targetCPUUtilizationPercentage | quote }}
+    {{- end }}
+    {{- if and .MetricsConfig.targetMemoryUtilizationPercentage (gt (int .MetricsConfig.targetMemoryUtilizationPercentage) 0) }}
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: {{ .MetricsConfig.targetMemoryUtilizationPercentage | quote }}
     {{- end }}
 ---
 apiVersion: keda.sh/v1alpha1

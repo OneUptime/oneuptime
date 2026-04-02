@@ -569,88 +569,6 @@ jobs:
             --image test \
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
-  telemetry-docker-image-build:
-    needs: [generate-build-number, read-version]
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-latest
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
-
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Build and push
-        run: |
-          bash ./Scripts/GHA/build_docker_images.sh \
-            --image telemetry \
-            --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./Telemetry/Dockerfile \
-            --context . \
-            --platforms ${{ matrix.platform }} \
-            --git-sha "${{ github.sha }}"
-
-  telemetry-docker-image-merge:
-    needs: [telemetry-docker-image-build, read-version]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Merge multi-arch manifests
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          SANITIZED_VERSION="${VERSION//+/-}"
-          bash ./Scripts/GHA/merge_docker_manifests.sh \
-            --image telemetry \
-            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
-
   probe-docker-image-build:
     needs: [generate-build-number, read-version]
     strategy:
@@ -921,88 +839,6 @@ jobs:
       - name: Publish NPM Packages
         run: bash ./Scripts/NPM/PublishAllPackages.sh
 
-  worker-docker-image-build:
-    needs: [generate-build-number, read-version]
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-latest
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'linux/amd64'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
-
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Build and push
-        run: |
-          bash ./Scripts/GHA/build_docker_images.sh \
-            --image worker \
-            --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./Worker/Dockerfile \
-            --context . \
-            --platforms ${{ matrix.platform }} \
-            --git-sha "${{ github.sha }}"
-
-  worker-docker-image-merge:
-    needs: [worker-docker-image-build, read-version]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Merge multi-arch manifests
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          SANITIZED_VERSION="${VERSION//+/-}"
-          bash ./Scripts/GHA/merge_docker_manifests.sh \
-            --image worker \
-            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
-
   # ─── Non-Docker jobs (downstream dependencies updated) ───────────────
 
   publish-terraform-provider:
@@ -1019,8 +855,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for changelog generation
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -1061,7 +895,7 @@ jobs:
           gpg --export-secret-keys >~/.gnupg/secring.gpg
           echo "GPG key exported successfully"
 
-      - name: Generate Terraform provider
+      - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
 
@@ -1076,11 +910,9 @@ jobs:
       - home-docker-image-merge
       - test-server-docker-image-merge
       - test-docker-image-merge
-      - telemetry-docker-image-merge
       - probe-docker-image-merge
       - app-docker-image-merge
       - ai-agent-docker-image-merge
-      - worker-docker-image-merge
       - test-e2e-release-saas
       - test-e2e-release-self-hosted
     runs-on: ubuntu-latest
@@ -1093,11 +925,9 @@ jobs:
           "home",
           "test-server",
           "test",
-          "telemetry",
           "probe",
           "app",
-          "ai-agent",
-          "worker"
+          "ai-agent"
         ]
     steps:
       - name: Set up Docker Buildx
@@ -1143,7 +973,7 @@ jobs:
 
   test-e2e-release-saas:
     runs-on: ubuntu-latest
-    needs: [telemetry-docker-image-merge, ai-agent-docker-image-merge, app-docker-image-merge, home-docker-image-merge, worker-docker-image-merge, probe-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [ai-agent-docker-image-merge, app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1274,7 +1104,7 @@ jobs:
   test-e2e-release-self-hosted:
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [telemetry-docker-image-merge, ai-agent-docker-image-merge, app-docker-image-merge, home-docker-image-merge, worker-docker-image-merge, probe-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
+    needs: [ai-agent-docker-image-merge, app-docker-image-merge, home-docker-image-merge, probe-docker-image-merge, test-docker-image-merge, test-server-docker-image-merge, publish-npm-packages, e2e-docker-image-merge, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1875,8 +1705,9 @@ jobs:
             MARKETING_VERSION=${{ needs.read-version.outputs.major_minor }} \
             CURRENT_PROJECT_VERSION=${{ needs.generate-build-number.outputs.build_number }} \
             CODE_SIGN_STYLE=Manual \
-            OTHER_CODE_SIGN_FLAGS="--keychain ${{ env.KEYCHAIN_PATH }}" \
-            -allowProvisioningUpdates
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROFILE_UUID }}" \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${{ env.KEYCHAIN_PATH }}"
 
       - name: Export IPA
         run: |

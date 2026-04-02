@@ -1701,81 +1701,6 @@
             },
             "additionalProperties": false
         },
-        "worker": {
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "replicaCount": {
-                    "type": "integer"
-                },
-                "disableTelemetryCollection": {
-                    "type": "boolean"
-                },
-                "disableAutoscaler": {
-                    "type": "boolean"
-                },
-                "concurrency": {
-                    "type": "integer"
-                },
-                "workflowTimeoutInMs": {
-                    "type": "integer"
-                },
-                "ports": {
-                    "type": "object",
-                    "properties": {
-                        "http": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "resources": {
-                    "type": [
-                        "object",
-                        "null"
-                    ]
-                },
-                "nodeSelector": {
-                    "type": "object"
-                },
-                "podSecurityContext": {
-                    "type": "object"
-                },
-                "containerSecurityContext": {
-                    "type": "object"
-                },
-                "keda": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "minReplicas": {
-                            "type": "integer"
-                        },
-                        "maxReplicas": {
-                            "type": "integer"
-                        },
-                        "queueSizeThreshold": {
-                            "type": "integer"
-                        },
-                        "pollingInterval": {
-                            "type": "integer"
-                        },
-                        "cooldownPeriod": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "enableProfiling": {
-                    "type": "boolean"
-                }
-            },
-            "additionalProperties": false
-        },
         "docs": {
             "type": "object",
             "properties": {
@@ -1827,6 +1752,12 @@
                 "replicaCount": {
                     "type": "integer"
                 },
+                "workerConcurrency": {
+                    "type": "integer"
+                },
+                "telemetryConcurrency": {
+                    "type": "integer"
+                },
                 "disableTelemetryCollection": {
                     "type": "boolean"
                 },
@@ -1838,6 +1769,10 @@
                     "properties": {
                         "http": {
                             "type": "integer"
+                        },
+                        "grpc": {
+                            "type": "integer",
+                            "default": 4317
                         }
                     },
                     "additionalProperties": false
@@ -1859,54 +1794,6 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
-                }
-            },
-            "additionalProperties": false
-        },
-        "telemetry": {
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "replicaCount": {
-                    "type": "integer"
-                },
-                "disableTelemetryCollection": {
-                    "type": "boolean"
-                },
-                "disableAutoscaler": {
-                    "type": "boolean"
-                },
-                "concurrency": {
-                    "type": "integer"
-                },
-                "ports": {
-                    "type": "object",
-                    "properties": {
-                        "http": {
-                            "type": "integer"
-                        },
-                        "grpc": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "resources": {
-                    "type": [
-                        "object",
-                        "null"
-                    ]
-                },
-                "nodeSelector": {
-                    "type": "object"
-                },
-                "podSecurityContext": {
-                    "type": "object"
-                },
-                "containerSecurityContext": {
-                    "type": "object"
                 },
                 "keda": {
                     "type": "object",
@@ -1923,6 +1810,12 @@
                         "queueSizeThreshold": {
                             "type": "integer"
                         },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer"
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer"
+                        },
                         "pollingInterval": {
                             "type": "integer"
                         },
@@ -1931,9 +1824,6 @@
                         }
                     },
                     "additionalProperties": false
-                },
-                "enableProfiling": {
-                    "type": "boolean"
                 }
             },
             "additionalProperties": false

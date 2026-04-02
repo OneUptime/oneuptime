@@ -6,15 +6,20 @@ import Link from "Common/Types/Link";
 export function getTracesBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.TRACES, ["Project", "Traces"]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_LIST, [
+      "Project",
+      "Traces",
+      "All Spans",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TRACE_VIEW, [
       "Project",
       "Traces",
-      "Trace Explorer",
+      "Trace Details",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_DOCUMENTATION, [
       "Project",
       "Traces",
-      "Documentation",
+      "Setup Guide",
     ]),
   };
   return breadcrumpLinksMap[path];

@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TraceTable from "../../Components/Traces/TraceTable";
+import TracesDashboard from "../../Components/Traces/TracesDashboard";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -62,7 +62,7 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
     return <TelemetryDocumentation telemetryType="traces" />;
   }
 
-  return <TraceTable />;
+  return <TracesDashboard />;
 };
 
 export default TracesPage;

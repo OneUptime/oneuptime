@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import MetricsTable from "../../Components/Metrics/MetricsTable";
+import MetricsDashboard from "../../Components/Metrics/MetricsDashboard";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -62,7 +62,7 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
     return <TelemetryDocumentation telemetryType="metrics" />;
   }
 
-  return <MetricsTable />;
+  return <MetricsDashboard />;
 };
 
 export default MetricsPage;

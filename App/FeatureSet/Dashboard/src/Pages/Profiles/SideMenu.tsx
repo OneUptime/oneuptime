@@ -10,13 +10,22 @@ import React, { FunctionComponent, ReactElement } from "react";
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Profiles",
+      title: "Performance",
       items: [
+        {
+          link: {
+            title: "Overview",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROFILES] as Route,
+            ),
+          },
+          icon: IconProp.Home,
+        },
         {
           link: {
             title: "All Profiles",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.PROFILES] as Route,
+              RouteMap[PageMap.PROFILES_LIST] as Route,
             ),
           },
           icon: IconProp.Fire,
@@ -24,11 +33,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Documentation",
+      title: "Help",
       items: [
         {
           link: {
-            title: "Documentation",
+            title: "Setup Guide",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
             ),

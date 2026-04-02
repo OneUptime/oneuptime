@@ -176,15 +176,9 @@ export const AppApiHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_TELEMETRY_HOSTNAME"] || "localhost"}:${
-    process.env["TELEMETRY_PORT"] || 80
-  }`,
-);
-
 export const WorkerHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_WORKER_HOSTNAME"] || "localhost"}:${
-    process.env["WORKER_PORT"] || 80
+  `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
+    process.env["APP_PORT"] || 80
   }`,
 );
 

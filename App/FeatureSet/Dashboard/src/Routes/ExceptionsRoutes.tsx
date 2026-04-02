@@ -8,6 +8,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
+import ExceptionsOverview from "../Pages/Exceptions/Overview";
 import ExceptionsUnresolved from "../Pages/Exceptions/Unresolved";
 import ExceptionsResolved from "../Pages/Exceptions/Resolved";
 import ExceptionsArchived from "../Pages/Exceptions/Archived";
@@ -23,9 +24,19 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <ExceptionsUnresolved
+            <ExceptionsOverview
               {...props}
               pageRoute={RouteMap[PageMap.EXCEPTIONS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={ExceptionsRoutePath[PageMap.EXCEPTIONS_OVERVIEW] || ""}
+          element={
+            <ExceptionsOverview
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route}
             />
           }
         />

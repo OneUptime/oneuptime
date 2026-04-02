@@ -14,9 +14,18 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "All Traces",
+            title: "Overview",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TRACES] as Route,
+            ),
+          },
+          icon: IconProp.Home,
+        },
+        {
+          link: {
+            title: "All Spans",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TRACES_LIST] as Route,
             ),
           },
           icon: IconProp.RectangleStack,
@@ -24,11 +33,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Documentation",
+      title: "Help",
       items: [
         {
           link: {
-            title: "Documentation",
+            title: "Setup Guide",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
             ),

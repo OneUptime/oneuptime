@@ -12,7 +12,7 @@ const MetricsViewLayout: FunctionComponent<
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
     <Page
-      title="Metrics Explorer"
+      title="Metric Explorer"
       breadcrumbLinks={getMetricsBreadcrumbs(path)}
     >
       <Outlet />

@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import ProfilesPage from "../Pages/Profiles/Index";
+import ProfilesListPage from "../Pages/Profiles/List";
 import ProfilesDocumentationPage from "../Pages/Profiles/Documentation";
 import ProfileViewPage from "../Pages/Profiles/View/Index";
 
@@ -24,6 +25,15 @@ const ProfilesRoutes: FunctionComponent<ComponentProps> = (
             <ProfilesPage
               {...props}
               pageRoute={RouteMap[PageMap.PROFILES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ProfilesRoutePath[PageMap.PROFILES_LIST] || ""}
+          element={
+            <ProfilesListPage
+              {...props}
+              pageRoute={RouteMap[PageMap.PROFILES_LIST] as Route}
             />
           }
         />
