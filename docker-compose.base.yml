@@ -31,13 +31,11 @@ x-common-variables: &common-variables
 
     SERVER_APP_HOSTNAME: app
     SERVER_TELEMETRY_HOSTNAME: telemetry
-    SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
     #Ports. Usually they don't need to change.
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
     TELEMETRY_PORT: ${TELEMETRY_PORT}
-    WORKER_PORT: ${WORKER_PORT}
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
 
@@ -244,6 +242,7 @@ services:
             CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE: ${CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
             ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_APP}
+            WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
         logging:
             driver: "local"
             options:
@@ -256,21 +255,6 @@ services:
         environment: 
             <<: *common-runtime-variables
             PORT: ${HOME_PORT}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    worker:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${WORKER_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
-            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_WORKER}
-            WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
         logging:
             driver: "local"
             options:
