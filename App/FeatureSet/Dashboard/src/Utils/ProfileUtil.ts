@@ -64,7 +64,6 @@ export default class ProfileUtil {
     }
   }
 
-
   public static getFrameTypeColor(frameType: string): string {
     const type: string = frameType.toLowerCase();
 

@@ -83,8 +83,10 @@ test.describe("Monitor Creation", () => {
       timeout: 30000,
     });
 
-    // Wait for the page to fully settle after project creation
-    // The app may perform internal redirects after project setup
+    /*
+     * Wait for the page to fully settle after project creation
+     * The app may perform internal redirects after project setup
+     */
     await page.waitForLoadState("networkidle");
 
     // Extract the project ID from the URL

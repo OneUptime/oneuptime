@@ -184,7 +184,8 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   ) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No performance data found in the selected time ranges. Try adjusting the time periods.
+        No performance data found in the selected time ranges. Try adjusting the
+        time periods.
       </div>
     );
   }

@@ -137,15 +137,15 @@ async function main(): Promise<void> {
       // Use GoReleaser for parallel cross-compilation (build only, no publish)
       try {
         await execAsync("which goreleaser");
-        await execAsync(
-          "goreleaser build --snapshot --clean",
-        );
+        await execAsync("goreleaser build --snapshot --clean");
         Logger.info(
           "✅ GoReleaser multi-platform build completed successfully",
         );
 
-        // Move GoReleaser output to builds/ directory for compatibility
-        // GoReleaser puts binaries in dist/<target>/
+        /*
+         * Move GoReleaser output to builds/ directory for compatibility
+         * GoReleaser puts binaries in dist/<target>/
+         */
         await execAsync("mkdir -p ./builds");
         const { stdout: distDirs } = await execAsync(
           "find dist -name 'terraform-provider-oneuptime*' -type f",
@@ -173,7 +173,9 @@ async function main(): Promise<void> {
           await execAsync("make release");
           Logger.info("✅ Makefile multi-platform build completed");
         } catch {
-          Logger.warn("⚠️  make not available, building for current platform only...");
+          Logger.warn(
+            "⚠️  make not available, building for current platform only...",
+          );
           await execAsync("go build");
           Logger.info("✅ Single-platform build completed");
         }

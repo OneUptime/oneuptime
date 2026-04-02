@@ -211,7 +211,8 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
   if (samples.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No performance data found for this profile. This can happen if the profile was recently captured and data is still being processed.
+        No performance data found for this profile. This can happen if the
+        profile was recently captured and data is still being processed.
       </div>
     );
   }
@@ -365,7 +366,9 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
           {tooltip.fileName && (
             <div className="text-gray-300">{tooltip.fileName}</div>
           )}
-          <div className="mt-1">Own Time: {tooltip.selfValue.toLocaleString()}</div>
+          <div className="mt-1">
+            Own Time: {tooltip.selfValue.toLocaleString()}
+          </div>
           <div>Total Time: {tooltip.totalValue.toLocaleString()}</div>
         </div>
       )}
