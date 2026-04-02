@@ -118,11 +118,16 @@ spec:
               value: {{ $.Values.app.disableTelemetryCollection | quote }}
             - name: ENABLE_PROFILING
               value: {{ $.Values.app.enableProfiling | quote }}
-
+            - name: TELEMETRY_CONCURRENCY
+              value: {{ $.Values.app.telemetryConcurrency | default 100 | squote }}
+            {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.app.ports.http }}
               protocol: TCP
               name: http
+            - containerPort: {{ $.Values.app.ports.grpc | default 4317 }}
+              protocol: TCP
+              name: grpc
           {{- if $.Values.app.resources }}
           resources:
             {{- toYaml $.Values.app.resources | nindent 12 }}
@@ -141,7 +146,7 @@ spec:
 
 {{- if and $.Values.app.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime app Service
-{{- $appPorts := dict "port" $.Values.app.ports.http -}}
+{{- $appPorts := dict "http" $.Values.app.ports.http "grpc" ($.Values.app.ports.grpc | default 4317) -}}
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $appServiceArgs }}
 ---

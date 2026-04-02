@@ -53,14 +53,6 @@ services:
         depends_on:
             <<: *common-depends-on
 
-    telemetry:
-        image:  oneuptime/telemetry:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: telemetry
-        depends_on:
-            <<: *common-depends-on
-
     ingress:
        image:  oneuptime/nginx:${APP_TAG}
        extends:

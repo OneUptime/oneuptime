@@ -30,12 +30,12 @@ x-common-variables: &common-variables
     ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
     SERVER_APP_HOSTNAME: app
-    SERVER_TELEMETRY_HOSTNAME: telemetry
+    SERVER_TELEMETRY_HOSTNAME: app
     SERVER_HOME_HOSTNAME: home
     #Ports. Usually they don't need to change.
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
-    TELEMETRY_PORT: ${TELEMETRY_PORT}
+    TELEMETRY_PORT: ${APP_PORT}
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
 
@@ -232,7 +232,7 @@ services:
         networks:
           - oneuptime
         restart: always
-        environment: 
+        environment:
             <<: *common-runtime-variables
             PORT: ${APP_PORT}
             SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
@@ -243,6 +243,9 @@ services:
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
             ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_APP}
             WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
+            # Telemetry ingestion settings (merged from telemetry service)
+            TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
+            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
         logging:
             driver: "local"
             options:
@@ -343,23 +346,6 @@ services:
             options:
                 max-size: "1000m"
 
-    telemetry:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${TELEMETRY_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
-            ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_TELEMETRY}
-            # Max concurrent telemetry jobs the worker will process
-            TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
-            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-    
     e2e:
         restart: "no"
         network_mode: host # This is needed to access the host network,

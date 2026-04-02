@@ -1755,49 +1755,7 @@
                 "workerConcurrency": {
                     "type": "integer"
                 },
-                "disableTelemetryCollection": {
-                    "type": "boolean"
-                },
-                "disableAutoscaler": {
-                    "type": "boolean"
-                },
-                "ports": {
-                    "type": "object",
-                    "properties": {
-                        "http": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "resources": {
-                    "type": [
-                        "object",
-                        "null"
-                    ]
-                },
-                "nodeSelector": {
-                    "type": "object"
-                },
-                "podSecurityContext": {
-                    "type": "object"
-                },
-                "containerSecurityContext": {
-                    "type": "object"
-                },
-                "enableProfiling": {
-                    "type": "boolean"
-                }
-            },
-            "additionalProperties": false
-        },
-        "telemetry": {
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "replicaCount": {
+                "telemetryConcurrency": {
                     "type": "integer"
                 },
                 "disableTelemetryCollection": {
@@ -1805,9 +1763,6 @@
                 },
                 "disableAutoscaler": {
                     "type": "boolean"
-                },
-                "concurrency": {
-                    "type": "integer"
                 },
                 "ports": {
                     "type": "object",
@@ -1816,7 +1771,8 @@
                             "type": "integer"
                         },
                         "grpc": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 4317
                         }
                     },
                     "additionalProperties": false
@@ -1835,30 +1791,6 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
-                },
-                "keda": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "minReplicas": {
-                            "type": "integer"
-                        },
-                        "maxReplicas": {
-                            "type": "integer"
-                        },
-                        "queueSizeThreshold": {
-                            "type": "integer"
-                        },
-                        "pollingInterval": {
-                            "type": "integer"
-                        },
-                        "cooldownPeriod": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
                 },
                 "enableProfiling": {
                     "type": "boolean"

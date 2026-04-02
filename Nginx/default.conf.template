@@ -522,7 +522,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /telemetry {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -533,7 +533,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /incoming-request-ingest {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -545,7 +545,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /otlp {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -562,7 +562,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     # Pyroscope profiling ingestion endpoint
     location /pyroscope {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -573,7 +573,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_otel_grpc grpc://${SERVER_TELEMETRY_HOSTNAME}:4317;
+        set $backend_otel_grpc grpc://${SERVER_APP_HOSTNAME}:4317;
         grpc_pass $backend_otel_grpc;
     }
 
@@ -602,7 +602,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /fluentd/logs {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -619,7 +619,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /syslog/v1/logs {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -634,7 +634,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /probe-ingest {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -652,7 +652,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     # For backward compatibility with probes that are already deployed
     location /ingestor {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -669,7 +669,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /server-monitor {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -914,7 +914,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /heartbeat {
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -933,7 +933,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     location /incoming-email {
         # Incoming Email Monitor webhook endpoint
         resolver ${NGINX_RESOLVER} valid=30s;
-        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
+        set $backend_telemetry http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
