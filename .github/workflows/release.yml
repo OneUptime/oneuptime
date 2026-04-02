@@ -1875,8 +1875,9 @@ jobs:
             MARKETING_VERSION=${{ needs.read-version.outputs.major_minor }} \
             CURRENT_PROJECT_VERSION=${{ needs.generate-build-number.outputs.build_number }} \
             CODE_SIGN_STYLE=Manual \
-            OTHER_CODE_SIGN_FLAGS="--keychain ${{ env.KEYCHAIN_PATH }}" \
-            -allowProvisioningUpdates
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROFILE_UUID }}" \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${{ env.KEYCHAIN_PATH }}"
 
       - name: Export IPA
         run: |
