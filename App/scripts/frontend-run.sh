@@ -25,6 +25,11 @@ else
   exit 1
 fi
 
+if ! npm --prefix "$frontend_dir" ls --depth=0 >/dev/null 2>&1; then
+  echo "Installing missing dependencies for ${frontend_dir_name}..."
+  npm --prefix "$frontend_dir" install
+fi
+
 if [ "$#" -gt 0 ]; then
   npm --prefix "$frontend_dir" run "$frontend_script" -- "$@"
 else

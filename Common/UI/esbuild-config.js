@@ -180,6 +180,31 @@ function readEnvFile(pathToFile) {
   return env;
 }
 
+function resolvePackageRoot(packageName) {
+  const resolutionPaths = [
+    process.cwd(),
+    __dirname,
+    path.resolve(__dirname, '..'),
+    path.resolve(__dirname, '../..'),
+  ];
+
+  for (const resolutionPath of resolutionPaths) {
+    try {
+      const packageJsonPath = require.resolve(`${packageName}/package.json`, {
+        paths: [resolutionPath],
+      });
+
+      return path.dirname(packageJsonPath);
+    } catch (error) {
+      continue;
+    }
+  }
+
+  throw new Error(
+    `Unable to locate ${packageName} package for esbuild alias resolution.`,
+  );
+}
+
 /**
  * Create esbuild configuration for a service
  * @param {Object} options - Configuration options
@@ -204,6 +229,7 @@ function createConfig(options) {
 
   const isDev = process.env.NODE_ENV !== 'production';
   const isAnalyze = process.env.analyze === 'true';
+  const reactRoot = resolvePackageRoot('react');
 
   return {
     entryPoints: [entryPoint],
@@ -223,7 +249,9 @@ function createConfig(options) {
     },
     external: ['react-native-sqlite-storage', ...additionalExternal],
     alias: {
-      'react': path.resolve('./node_modules/react'),
+      'react': reactRoot,
+      'react/jsx-runtime': path.join(reactRoot, 'jsx-runtime.js'),
+      'react/jsx-dev-runtime': path.join(reactRoot, 'jsx-dev-runtime.js'),
       ...additionalAlias,
     },
     plugins: [createMermaidPlugin(), createRefractorCompatibilityPlugin(), createCSSPlugin(), createFileLoaderPlugin()],
