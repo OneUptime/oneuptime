@@ -21,6 +21,7 @@ enum PageMap {
   // Traces (standalone product)
   TRACES_ROOT = "TRACES_ROOT",
   TRACES = "TRACES",
+  TRACES_LIST = "TRACES_LIST",
   TRACE_VIEW = "TRACE_VIEW",
   TRACES_DOCUMENTATION = "TRACES_DOCUMENTATION",
 

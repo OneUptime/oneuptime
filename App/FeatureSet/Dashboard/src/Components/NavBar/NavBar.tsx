@@ -117,7 +117,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Traces",
-      description: "Distributed tracing analysis.",
+      description: "Track requests across your services.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
       icon: IconProp.Waterfall,

@@ -11,7 +11,7 @@ const TracesViewLayout: FunctionComponent<
 > = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
-    <Page title="Trace Explorer" breadcrumbLinks={getTracesBreadcrumbs(path)}>
+    <Page title="Trace Details" breadcrumbLinks={getTracesBreadcrumbs(path)}>
       <Outlet />
     </Page>
   );

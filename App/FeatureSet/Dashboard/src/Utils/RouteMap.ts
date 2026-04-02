@@ -130,6 +130,7 @@ export const MetricsRoutePath: Dictionary<string> = {
 // Traces product routes
 export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES]: "",
+  [PageMap.TRACES_LIST]: "list",
   [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.TRACES_DOCUMENTATION]: "documentation",
 };
@@ -2284,6 +2285,12 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.TRACES]: new Route(`/dashboard/${RouteParams.ProjectID}/traces`),
+
+  [PageMap.TRACES_LIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_LIST]
+    }`,
+  ),
 
   [PageMap.TRACE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
