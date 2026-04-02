@@ -19,7 +19,6 @@ import AnalyticsModelAPI, {
   ListResult as AnalyticsListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceElement from "../Service/ServiceElement";
@@ -100,17 +99,18 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       const loadedServices: Array<Service> = servicesResult.data || [];
       setServices(loadedServices);
 
-      // Load recent root spans (last 1 hour) to build per-service summaries
-      const rootSpansResult: AnalyticsListResult<Span> =
+      // Load recent spans (last 1 hour) to build per-service summaries
+      const spansResult: AnalyticsListResult<Span> =
         await AnalyticsModelAPI.getList({
           modelType: Span,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             startTime: new InBetween(oneHourAgo, now),
-            parentSpanId: new IsNull(),
           },
           select: {
             traceId: true,
+            spanId: true,
+            parentSpanId: true,
             serviceId: true,
             name: true,
             startTime: true,
@@ -124,9 +124,9 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           },
         });
 
-      const rootSpans: Array<Span> = rootSpansResult.data || [];
+      const allSpans: Array<Span> = spansResult.data || [];
 
-      // Build per-service summaries from root spans
+      // Build per-service summaries from all spans
       const summaryMap: Map<string, ServiceTraceSummary> = new Map();
 
       for (const service of loadedServices) {
@@ -139,19 +139,46 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         });
       }
 
+      // Track unique traces per service for counting
+      const serviceTraceIds: Map<string, Set<string>> = new Map();
+      const serviceErrorTraceIds: Map<string, Set<string>> = new Map();
+
       const errorTraces: Array<RecentTrace> = [];
       const allTraces: Array<RecentTrace> = [];
+      const seenTraceIds: Set<string> = new Set();
+      const seenErrorTraceIds: Set<string> = new Set();
 
-      for (const span of rootSpans) {
+      for (const span of allSpans) {
         const serviceId: string = span.serviceId?.toString() || "";
+        const traceId: string = span.traceId?.toString() || "";
         const summary: ServiceTraceSummary | undefined =
           summaryMap.get(serviceId);
 
         if (summary) {
-          summary.totalTraces += 1;
+          // Count unique traces per service
+          if (!serviceTraceIds.has(serviceId)) {
+            serviceTraceIds.set(serviceId, new Set());
+          }
+
+          if (!serviceErrorTraceIds.has(serviceId)) {
+            serviceErrorTraceIds.set(serviceId, new Set());
+          }
+
+          const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
+
+          if (!traceSet.has(traceId)) {
+            traceSet.add(traceId);
+            summary.totalTraces += 1;
+          }
 
           if (span.statusCode === SpanStatus.Error) {
-            summary.errorTraces += 1;
+            const errorSet: Set<string> =
+              serviceErrorTraceIds.get(serviceId)!;
+
+            if (!errorSet.has(traceId)) {
+              errorSet.add(traceId);
+              summary.errorTraces += 1;
+            }
           }
 
           const spanTime: Date | undefined = span.startTime
@@ -166,20 +193,44 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }
         }
 
-        const traceRecord: RecentTrace = {
-          traceId: span.traceId?.toString() || "",
-          name: span.name?.toString() || "Unknown",
-          serviceId: serviceId,
-          startTime: span.startTime ? new Date(span.startTime) : new Date(),
-          statusCode: span.statusCode || SpanStatus.Unset,
-          durationNano: (span.durationUnixNano as number) || 0,
-        };
+        // For the recent traces lists, pick the first span per trace
+        // (which is the most recent since we sort desc)
+        if (!seenTraceIds.has(traceId) && traceId) {
+          seenTraceIds.add(traceId);
 
-        if (span.statusCode === SpanStatus.Error) {
-          errorTraces.push(traceRecord);
+          const traceRecord: RecentTrace = {
+            traceId: traceId,
+            name: span.name?.toString() || "Unknown",
+            serviceId: serviceId,
+            startTime: span.startTime
+              ? new Date(span.startTime)
+              : new Date(),
+            statusCode: span.statusCode || SpanStatus.Unset,
+            durationNano: (span.durationUnixNano as number) || 0,
+          };
+
+          allTraces.push(traceRecord);
         }
 
-        allTraces.push(traceRecord);
+        // Collect error spans, deduped by trace
+        if (
+          span.statusCode === SpanStatus.Error &&
+          traceId &&
+          !seenErrorTraceIds.has(traceId)
+        ) {
+          seenErrorTraceIds.add(traceId);
+
+          errorTraces.push({
+            traceId: traceId,
+            name: span.name?.toString() || "Unknown",
+            serviceId: serviceId,
+            startTime: span.startTime
+              ? new Date(span.startTime)
+              : new Date(),
+            statusCode: span.statusCode,
+            durationNano: (span.durationUnixNano as number) || 0,
+          });
+        }
       }
 
       // Only show services that have traces

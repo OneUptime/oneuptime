@@ -144,6 +144,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Fire}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Exceptions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_EXCEPTIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Error}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
