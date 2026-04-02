@@ -124,6 +124,7 @@ export const LogsRoutePath: Dictionary<string> = {
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
+  [PageMap.METRICS_LIST]: "list",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
 };
@@ -2274,6 +2275,12 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.METRICS]: new Route(`/dashboard/${RouteParams.ProjectID}/metrics`),
+
+  [PageMap.METRICS_LIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_LIST]
+    }`,
+  ),
 
   [PageMap.METRIC_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${

@@ -108,7 +108,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Metrics",
-      description: "Monitor system metrics.",
+      description: "Monitor and visualize system metrics across your services.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       activeRoute: RouteMap[PageMap.METRICS],
       icon: IconProp.Heartbeat,

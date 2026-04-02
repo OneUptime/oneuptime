@@ -14,9 +14,18 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "All Metrics",
+            title: "Overview",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.METRICS] as Route,
+            ),
+          },
+          icon: IconProp.Home,
+        },
+        {
+          link: {
+            title: "All Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.METRICS_LIST] as Route,
             ),
           },
           icon: IconProp.ChartBar,
@@ -24,11 +33,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Documentation",
+      title: "Help",
       items: [
         {
           link: {
-            title: "Documentation",
+            title: "Setup Guide",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.METRICS_DOCUMENTATION] as Route,
             ),

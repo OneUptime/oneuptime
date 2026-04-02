@@ -43,9 +43,9 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
-          title: "Metrics",
+          title: "All Metrics",
           description:
-            "Metrics are the individual data points that make up a service. They are the building blocks of a service and represent the work done by a single service.",
+            "All metrics collected from your services. Click on a metric to explore its data in the chart viewer.",
         }}
         onViewPage={async (item: MetricType) => {
           const route: Route = RouteUtil.populateRouteParams(
