@@ -1807,10 +1807,7 @@
                         "maxReplicas": {
                             "type": "integer"
                         },
-                        "workerQueueSizeThreshold": {
-                            "type": "integer"
-                        },
-                        "telemetryQueueSizeThreshold": {
+                        "queueSizeThreshold": {
                             "type": "integer"
                         },
                         "targetCPUUtilizationPercentage": {

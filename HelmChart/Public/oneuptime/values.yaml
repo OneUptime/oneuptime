@@ -662,15 +662,13 @@ app:
   nodeSelector: {}
   podSecurityContext: {}
   containerSecurityContext: {}
-  # KEDA autoscaling configuration based on worker and telemetry queue metrics
+  # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry)
   keda:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when worker queue size exceeds this threshold
-    workerQueueSizeThreshold: 10
-    # Scale up when telemetry queue size exceeds this threshold
-    telemetryQueueSizeThreshold: 10
+    # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
+    queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable)
     targetCPUUtilizationPercentage: 80
     # Scale up when average memory utilization exceeds this percentage (0 to disable)
