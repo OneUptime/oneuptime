@@ -79,6 +79,17 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       });
     };
 
+    // Connect to Postgres database
+    await PostgresAppInstance.connect();
+
+    // Connect to Redis
+    await Redis.connect();
+
+    // Connect to Clickhouse database
+    await ClickhouseAppInstance.connect(
+      ClickhouseAppInstance.getDatasourceOptions(),
+    );
+
     // Initialize the app with service name and status checks
     await App.init({
       appName: APP_NAME,
@@ -91,16 +102,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
-    // Connect to Postgres database
-    await PostgresAppInstance.connect();
 
-    // Connect to Redis
-    await Redis.connect();
-
-    // Connect to Clickhouse database
-    await ClickhouseAppInstance.connect(
-      ClickhouseAppInstance.getDatasourceOptions(),
-    );
 
     // Initialize real-time functionalities
     await Realtime.init();
