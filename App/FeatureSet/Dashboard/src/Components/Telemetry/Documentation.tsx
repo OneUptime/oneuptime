@@ -1728,7 +1728,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 tokenValue,
                 pyroscopeUrl,
               )}
-              language="hcl"
+              language="nginx"
             />,
           )}
 

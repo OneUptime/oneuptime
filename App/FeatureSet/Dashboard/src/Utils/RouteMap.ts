@@ -137,6 +137,7 @@ export const TracesRoutePath: Dictionary<string> = {
 // Profiles product routes
 export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES]: "",
+  [PageMap.PROFILES_LIST]: "list",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
@@ -2302,6 +2303,12 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.PROFILES]: new Route(`/dashboard/${RouteParams.ProjectID}/profiles`),
+
+  [PageMap.PROFILES_LIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_LIST]
+    }`,
+  ),
 
   [PageMap.PROFILE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/${

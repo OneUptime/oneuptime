@@ -211,6 +211,9 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 }
           }
           query={query}
+          selectMoreFields={{
+            profileId: true,
+          }}
           showViewIdButton={true}
           noItemsMessage={
             props.noItemsMessage
