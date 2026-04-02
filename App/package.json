@@ -26,7 +26,7 @@
     "watch-frontend:status-page": "bash ./scripts/frontend-run.sh FeatureSet/StatusPage dev-build --watch",
     "watch-frontend:public-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/PublicDashboard dev-build --watch",
     "dev:api": "npx nodemon",
-    "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
+    "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --no-node-snapshot --require ts-node/register Index.ts",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "bash ./scripts/dev.sh",

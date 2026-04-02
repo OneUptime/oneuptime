@@ -31,6 +31,8 @@ pids+=($!)
 npm run watch-frontend:public-dashboard &
 pids+=($!)
 
+bash ./scripts/prepare-native-deps.sh
+
 npm run dev:api &
 pids+=($!)
 

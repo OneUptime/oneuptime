@@ -16,5 +16,5 @@
         "TS_NODE_TRANSPILE_ONLY": "1",
         "TS_NODE_FILES": "false"
     },
-    "exec": "node  -r ts-node/register/transpile-only Index.ts"
+    "exec": "node --no-node-snapshot -r ts-node/register/transpile-only Index.ts"
 }
