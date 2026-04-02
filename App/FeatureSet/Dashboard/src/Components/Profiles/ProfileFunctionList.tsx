@@ -204,7 +204,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
   if (samples.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No profile samples found for this profile.
+        No performance data found for this profile.
       </div>
     );
   }
@@ -228,7 +228,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 handleSort("fileName");
               }}
             >
-              File{getSortIndicator("fileName")}
+              Source File{getSortIndicator("fileName")}
             </th>
             <th
               className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 select-none"
@@ -236,7 +236,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 handleSort("selfValue");
               }}
             >
-              Self Value{getSortIndicator("selfValue")}
+              Own Time{getSortIndicator("selfValue")}
             </th>
             <th
               className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 select-none"
@@ -244,7 +244,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 handleSort("totalValue");
               }}
             >
-              Total Value{getSortIndicator("totalValue")}
+              Total Time{getSortIndicator("totalValue")}
             </th>
             <th
               className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 select-none"
@@ -252,7 +252,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 handleSort("sampleCount");
               }}
             >
-              Samples{getSortIndicator("sampleCount")}
+              Occurrences{getSortIndicator("sampleCount")}
             </th>
           </tr>
         </thead>

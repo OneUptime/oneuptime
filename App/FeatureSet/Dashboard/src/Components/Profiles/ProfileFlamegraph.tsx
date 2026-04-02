@@ -211,7 +211,7 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
   if (samples.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No profile samples found for this profile.
+        No performance data found for this profile. This can happen if the profile was recently captured and data is still being processed.
       </div>
     );
   }
@@ -325,19 +325,25 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
       )}
 
       <div className="mb-3 flex flex-wrap items-center space-x-4 text-xs text-gray-600">
-        <span className="font-medium">Frame Types:</span>
-        {["kernel", "native", "jvm", "cpython", "go", "v8js", "unknown"].map(
-          (type: string) => {
-            return (
-              <span key={type} className="flex items-center space-x-1">
-                <span
-                  className={`inline-block w-3 h-3 rounded ${ProfileUtil.getFrameTypeColor(type)}`}
-                />
-                <span>{type}</span>
-              </span>
-            );
-          },
-        )}
+        <span className="font-medium">Code Type:</span>
+        {[
+          { key: "kernel", label: "System / Kernel" },
+          { key: "native", label: "Native Code" },
+          { key: "jvm", label: "Java / JVM" },
+          { key: "cpython", label: "Python" },
+          { key: "go", label: "Go" },
+          { key: "v8js", label: "JavaScript" },
+          { key: "unknown", label: "Other" },
+        ].map((item: { key: string; label: string }) => {
+          return (
+            <span key={item.key} className="flex items-center space-x-1">
+              <span
+                className={`inline-block w-3 h-3 rounded ${ProfileUtil.getFrameTypeColor(item.key)}`}
+              />
+              <span>{item.label}</span>
+            </span>
+          );
+        })}
       </div>
 
       <div
@@ -359,8 +365,8 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
           {tooltip.fileName && (
             <div className="text-gray-300">{tooltip.fileName}</div>
           )}
-          <div className="mt-1">Self: {tooltip.selfValue.toLocaleString()}</div>
-          <div>Total: {tooltip.totalValue.toLocaleString()}</div>
+          <div className="mt-1">Own Time: {tooltip.selfValue.toLocaleString()}</div>
+          <div>Total Time: {tooltip.totalValue.toLocaleString()}</div>
         </div>
       )}
     </div>

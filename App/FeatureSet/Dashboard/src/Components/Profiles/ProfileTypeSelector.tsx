@@ -12,12 +12,12 @@ interface ProfileTypeOption {
 
 const profileTypeOptions: Array<ProfileTypeOption> = [
   { label: "All Types", value: undefined },
-  { label: "CPU", value: "cpu" },
-  { label: "Wall", value: "wall" },
-  { label: "Alloc Objects", value: "alloc_objects" },
-  { label: "Alloc Space", value: "alloc_space" },
-  { label: "Goroutine", value: "goroutine" },
-  { label: "Contention", value: "contention" },
+  { label: "CPU Usage", value: "cpu" },
+  { label: "Wall Clock Time", value: "wall" },
+  { label: "Memory Allocations (Count)", value: "alloc_objects" },
+  { label: "Memory Allocations (Size)", value: "alloc_space" },
+  { label: "Goroutines", value: "goroutine" },
+  { label: "Lock Contention", value: "contention" },
 ];
 
 const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
@@ -25,7 +25,7 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
 ): ReactElement => {
   return (
     <div className="flex items-center space-x-2">
-      <label className="text-sm font-medium text-gray-700">Profile Type:</label>
+      <label className="text-sm font-medium text-gray-700">Show:</label>
       <select
         className="px-3 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         value={props.selectedProfileType || ""}

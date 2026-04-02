@@ -10,7 +10,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Profiles",
+      title: "Performance",
       items: [
         {
           link: {
@@ -24,11 +24,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Documentation",
+      title: "Help",
       items: [
         {
           link: {
-            title: "Documentation",
+            title: "Setup Guide",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
             ),

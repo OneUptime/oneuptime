@@ -28,6 +28,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
+import ProfileUtil from "../../Utils/ProfileUtil";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -196,23 +197,25 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
-          singularName="Profile"
-          pluralName="Profiles"
-          name="Profiles"
+          singularName="Performance Profile"
+          pluralName="Performance Profiles"
+          name="Performance Profiles"
           isViewable={true}
           cardProps={
             props.isMinimalTable
               ? undefined
               : {
-                  title: "Profiles",
+                  title: "Performance Profiles",
                   description:
-                    "Continuous profiling data from your services. Profiles help you understand CPU, memory, and allocation hotspots in your applications.",
+                    "See where your application spends the most time and memory. Use profiles to find slow functions and optimize performance.",
                 }
           }
           query={query}
           showViewIdButton={true}
           noItemsMessage={
-            props.noItemsMessage ? props.noItemsMessage : "No profiles found."
+            props.noItemsMessage
+              ? props.noItemsMessage
+              : "No performance profiles found. Once your services start sending profiling data, they will appear here."
           }
           showRefreshButton={true}
           sortBy="startTime"
@@ -245,7 +248,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 profileType: true,
               },
               type: FieldType.Text,
-              title: "Profile Type",
+              title: "Type",
             },
             {
               field: {
@@ -259,7 +262,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 startTime: true,
               },
               type: FieldType.DateTime,
-              title: "Start Time",
+              title: "Captured At",
             },
             {
               field: {
@@ -273,20 +276,6 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           ]}
           onAdvancedFiltersToggle={handleAdvancedFiltersToggle}
           columns={[
-            {
-              field: {
-                profileId: true,
-              },
-              title: "Profile ID",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                profileType: true,
-              },
-              title: "Profile Type",
-              type: FieldType.Text,
-            },
             {
               field: {
                 serviceId: true,
@@ -314,16 +303,38 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
+                profileType: true,
+              },
+              title: "Type",
+              type: FieldType.Element,
+              getElement: (profile: Profile): ReactElement => {
+                const profileType: string = profile.profileType || "unknown";
+                const displayName: string =
+                  ProfileUtil.getProfileTypeDisplayName(profileType);
+                const badgeColor: string =
+                  ProfileUtil.getProfileTypeBadgeColor(profileType);
+
+                return (
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}`}
+                  >
+                    {displayName}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
                 sampleCount: true,
               },
-              title: "Samples",
+              title: "Data Points",
               type: FieldType.Number,
             },
             {
               field: {
                 startTime: true,
               },
-              title: "Start Time",
+              title: "Captured At",
               type: FieldType.DateTime,
             },
           ]}

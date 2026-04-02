@@ -184,7 +184,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   ) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No profile data found in the selected time ranges.
+        No performance data found in the selected time ranges. Try adjusting the time periods.
       </div>
     );
   }
@@ -323,14 +323,14 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       )}
 
       <div className="mb-3 flex flex-wrap items-center space-x-4 text-xs text-gray-600">
-        <span className="font-medium">Legend:</span>
+        <span className="font-medium">What the colors mean:</span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-red-500" />
-          <span>Regression (slower)</span>
+          <span>Got slower</span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-green-500" />
-          <span>Improvement (faster)</span>
+          <span>Got faster</span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-gray-400" />
@@ -364,9 +364,9 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             <div className="text-gray-300">{tooltip.fileName}</div>
           )}
           <div className="mt-1">
-            Baseline: {tooltip.baselineValue.toLocaleString()}
+            Before: {tooltip.baselineValue.toLocaleString()}
           </div>
-          <div>Comparison: {tooltip.comparisonValue.toLocaleString()}</div>
+          <div>After: {tooltip.comparisonValue.toLocaleString()}</div>
           <div
             className={
               tooltip.delta > 0
@@ -376,7 +376,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
                   : ""
             }
           >
-            Delta: {tooltip.delta > 0 ? "+" : ""}
+            Change: {tooltip.delta > 0 ? "+" : ""}
             {tooltip.delta.toLocaleString()} (
             {tooltip.deltaPercent >= 0 ? "+" : ""}
             {tooltip.deltaPercent.toFixed(1)}%)

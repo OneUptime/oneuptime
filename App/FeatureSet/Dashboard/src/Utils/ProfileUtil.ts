@@ -5,6 +5,66 @@ export interface ParsedStackFrame {
 }
 
 export default class ProfileUtil {
+  public static getProfileTypeDisplayName(profileType: string): string {
+    const type: string = profileType.toLowerCase().trim();
+
+    switch (type) {
+      case "cpu":
+        return "CPU Usage";
+      case "wall":
+        return "Wall Clock Time";
+      case "inuse_objects":
+        return "Memory Objects in Use";
+      case "inuse_space":
+        return "Memory Space in Use";
+      case "alloc_objects":
+        return "Memory Allocations (Count)";
+      case "alloc_space":
+        return "Memory Allocations (Size)";
+      case "goroutine":
+        return "Goroutines";
+      case "contention":
+        return "Lock Contention";
+      case "samples":
+        return "CPU Samples";
+      case "mutex":
+        return "Mutex Contention";
+      case "block":
+        return "Blocking Operations";
+      case "heap":
+        return "Heap Memory";
+      default:
+        return profileType;
+    }
+  }
+
+  public static getProfileTypeBadgeColor(profileType: string): string {
+    const type: string = profileType.toLowerCase().trim();
+
+    switch (type) {
+      case "cpu":
+      case "samples":
+        return "bg-orange-100 text-orange-800";
+      case "wall":
+        return "bg-purple-100 text-purple-800";
+      case "inuse_objects":
+      case "inuse_space":
+      case "alloc_objects":
+      case "alloc_space":
+      case "heap":
+        return "bg-blue-100 text-blue-800";
+      case "goroutine":
+        return "bg-green-100 text-green-800";
+      case "contention":
+      case "mutex":
+      case "block":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  }
+
+
   public static getFrameTypeColor(frameType: string): string {
     const type: string = frameType.toLowerCase();
 

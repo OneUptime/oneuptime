@@ -23,7 +23,7 @@ const ProfileViewPage: FunctionComponent<
 
   const tabs: Array<Tab> = [
     {
-      name: "Flamegraph",
+      name: "Performance Map",
       children: (
         <ProfileFlamegraph
           profileId={profileId}
@@ -32,7 +32,7 @@ const ProfileViewPage: FunctionComponent<
       ),
     },
     {
-      name: "Function List",
+      name: "Hotspots",
       children: (
         <ProfileFunctionList
           profileId={profileId}
@@ -41,12 +41,13 @@ const ProfileViewPage: FunctionComponent<
       ),
     },
     {
-      name: "Diff",
+      name: "Compare",
       children: (
         <div>
           <p className="text-sm text-gray-500 mb-4">
-            Compare profile data between two time ranges. Baseline is the
-            earlier period, comparison is the more recent period.
+            Compare performance between two time periods to see what got faster
+            or slower. The baseline is the earlier period, and the comparison is
+            the more recent period.
           </p>
           <DiffFlamegraph
             baselineStartTime={twoHoursAgo}

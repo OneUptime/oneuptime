@@ -125,8 +125,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: "Observability",
     },
     {
-      title: "Profiles",
-      description: "CPU and memory profiling.",
+      title: "Performance Profiles",
+      description: "Find slow functions and memory hotspots.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILES] as Route),
       activeRoute: RouteMap[PageMap.PROFILES],
       icon: IconProp.Fire,
