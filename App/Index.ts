@@ -102,8 +102,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
-
-
     // Initialize real-time functionalities
     await Realtime.init();
 
