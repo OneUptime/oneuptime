@@ -10,12 +10,13 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
+import path from "path";
 import zlib from "zlib";
 import ProfilesQueueService from "./Queue/ProfilesQueueService";
 
 // Load pprof proto schema
 const PprofProto: protobuf.Root = protobuf.loadSync(
-  "/usr/src/app/ProtoFiles/pprof/profile.proto",
+  path.resolve(__dirname, "..", "ProtoFiles", "pprof", "profile.proto"),
 );
 const PprofProfile: protobuf.Type = PprofProto.lookupType(
   "perftools.profiles.Profile",

@@ -9,24 +9,27 @@ import {
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import protobuf from "protobufjs";
 import logger from "Common/Server/Utils/Logger";
+import path from "path";
 
 // Load proto file for OTel
 
+const PROTO_DIR: string = path.resolve(__dirname, "..", "ProtoFiles", "OTel", "v1");
+
 // Create a root namespace
 const LogsProto: protobuf.Root = protobuf.loadSync(
-  "/usr/src/app/ProtoFiles/OTel/v1/logs.proto",
+  path.join(PROTO_DIR, "logs.proto"),
 );
 
 const TracesProto: protobuf.Root = protobuf.loadSync(
-  "/usr/src/app/ProtoFiles/OTel/v1/traces.proto",
+  path.join(PROTO_DIR, "traces.proto"),
 );
 
 const MetricsProto: protobuf.Root = protobuf.loadSync(
-  "/usr/src/app/ProtoFiles/OTel/v1/metrics.proto",
+  path.join(PROTO_DIR, "metrics.proto"),
 );
 
 const ProfilesProto: protobuf.Root = protobuf.loadSync(
-  "/usr/src/app/ProtoFiles/OTel/v1/profiles.proto",
+  path.join(PROTO_DIR, "profiles.proto"),
 );
 
 // Lookup the message type
