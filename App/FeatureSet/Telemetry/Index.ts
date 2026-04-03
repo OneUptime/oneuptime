@@ -38,8 +38,10 @@ const INCOMING_REQUEST_PREFIXES: Array<string> = [
 const TelemetryFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {
-      // Mount telemetry routes only during feature-set init so they sit behind
-      // the shared middleware stack from StartServer (body parsers, headers, etc.).
+      /*
+       * Mount telemetry routes only during feature-set init so they sit behind
+       * the shared middleware stack from StartServer (body parsers, headers, etc.).
+       */
       app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
       app.use(TELEMETRY_PREFIXES, MetricsAPI);
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
