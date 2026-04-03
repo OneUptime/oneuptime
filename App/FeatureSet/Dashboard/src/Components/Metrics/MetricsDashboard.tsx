@@ -74,7 +74,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             _id: true,
             name: true,
             serviceColor: true,
-          },
+          } as any,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,

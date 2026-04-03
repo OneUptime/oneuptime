@@ -92,7 +92,8 @@ E2E/
 │   ├── IncomingRequestIngest/
 │   ├── ProbeIngest/
 │   ├── StatusPage/     # Status page tests
-│   └── TelemetryIngest/
+│   ├── PublicDashboard/
+│   └── AdminDashboard/
 ├── Config.ts           # Environment configuration
 ├── playwright.config.ts # Playwright configuration
 └── package.json
