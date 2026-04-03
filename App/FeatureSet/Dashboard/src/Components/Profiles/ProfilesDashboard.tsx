@@ -165,10 +165,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
         }
 
         // Track global type stats
-        typeCountMap.set(
-          profileType,
-          (typeCountMap.get(profileType) || 0) + 1,
-        );
+        typeCountMap.set(profileType, (typeCountMap.get(profileType) || 0) + 1);
       }
 
       setTotalSampleCount(totalSamples);
@@ -185,20 +182,23 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
             badgeColor: ProfileUtil.getProfileTypeBadgeColor(type),
           };
         })
-        .sort(
-          (a: ProfileTypeStats, b: ProfileTypeStats) => b.count - a.count,
-        );
+        .sort((a: ProfileTypeStats, b: ProfileTypeStats) => {
+          return b.count - a.count;
+        });
 
       setProfileTypeStats(typeStats);
 
       // Only show services that have profiles
       const summariesWithData: Array<ServiceProfileSummary> = Array.from(
         summaryMap.values(),
-      ).filter((s: ServiceProfileSummary) => s.profileCount > 0);
+      ).filter((s: ServiceProfileSummary) => {
+        return s.profileCount > 0;
+      });
 
       summariesWithData.sort(
-        (a: ServiceProfileSummary, b: ServiceProfileSummary) =>
-          b.profileCount - a.profileCount,
+        (a: ServiceProfileSummary, b: ServiceProfileSummary) => {
+          return b.profileCount - a.profileCount;
+        },
       );
 
       setServiceSummaries(summariesWithData);
@@ -289,7 +289,9 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   }
 
   const maxProfiles: number = Math.max(
-    ...serviceSummaries.map((s: ServiceProfileSummary) => s.profileCount),
+    ...serviceSummaries.map((s: ServiceProfileSummary) => {
+      return s.profileCount;
+    }),
   );
 
   return (

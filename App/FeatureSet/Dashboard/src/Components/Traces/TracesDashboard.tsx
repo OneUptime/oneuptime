@@ -64,9 +64,9 @@ const getPercentile: (arr: Array<number>, p: number) => number = (
   if (arr.length === 0) {
     return 0;
   }
-  const sorted: Array<number> = [...arr].sort(
-    (a: number, b: number) => a - b,
-  );
+  const sorted: Array<number> = [...arr].sort((a: number, b: number) => {
+    return a - b;
+  });
   const idx: number = Math.ceil((p / 100) * sorted.length) - 1;
   return sorted[Math.max(0, idx)] || 0;
 };
@@ -197,8 +197,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }
 
           if (span.statusCode === SpanStatus.Error) {
-            const errorSet: Set<string> =
-              serviceErrorTraceIds.get(serviceId)!;
+            const errorSet: Set<string> = serviceErrorTraceIds.get(serviceId)!;
             if (!errorSet.has(traceId)) {
               errorSet.add(traceId);
               summary.errorTraces += 1;
@@ -254,7 +253,9 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       const summariesWithData: Array<ServiceTraceSummary> = Array.from(
         summaryMap.values(),
       )
-        .filter((s: ServiceTraceSummary) => s.totalTraces > 0)
+        .filter((s: ServiceTraceSummary) => {
+          return s.totalTraces > 0;
+        })
         .map((s: ServiceTraceSummary) => {
           return {
             ...s,
@@ -290,9 +291,9 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       setRecentErrorTraces(errorTraces.slice(0, 8));
 
       const slowTraces: Array<RecentTrace> = [...allTraces]
-        .sort(
-          (a: RecentTrace, b: RecentTrace) => b.durationNano - a.durationNano,
-        )
+        .sort((a: RecentTrace, b: RecentTrace) => {
+          return b.durationNano - a.durationNano;
+        })
         .slice(0, 8);
       setRecentSlowTraces(slowTraces);
     } catch (err) {
@@ -309,9 +310,9 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   const getServiceName: (serviceId: string) => string = (
     serviceId: string,
   ): string => {
-    const service: Service | undefined = services.find(
-      (s: Service) => s.id?.toString() === serviceId,
-    );
+    const service: Service | undefined = services.find((s: Service) => {
+      return s.id?.toString() === serviceId;
+    });
     return service?.name?.toString() || "Unknown";
   };
 

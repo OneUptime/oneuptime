@@ -205,8 +205,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
       }
 
       serviceExceptionCounts.sort(
-        (a: ServiceExceptionSummary, b: ServiceExceptionSummary) =>
-          b.unresolvedCount - a.unresolvedCount,
+        (a: ServiceExceptionSummary, b: ServiceExceptionSummary) => {
+          return b.unresolvedCount - a.unresolvedCount;
+        },
       );
 
       setServiceSummaries(serviceExceptionCounts);
@@ -506,9 +507,9 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                     const barWidth: number =
                       ((exception.occuranceCount || 0) / maxOccurrences) * 100;
 
-                    const isNewToday: boolean = !!(
+                    const isNewToday: boolean = Boolean(
                       exception.firstSeenAt &&
-                      new Date(exception.firstSeenAt) > oneDayAgo
+                        new Date(exception.firstSeenAt) > oneDayAgo,
                     );
 
                     return (
@@ -524,10 +525,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   ] as Route,
                                 )
                                   .toString()
-                                  .replace(
-                                    /\/?$/,
-                                    `/${exception.fingerprint}`,
-                                  ),
+                                  .replace(/\/?$/, `/${exception.fingerprint}`),
                               )
                             : RouteUtil.populateRouteParams(
                                 RouteMap[
@@ -582,9 +580,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-bold text-gray-900">
-                              {(
-                                exception.occuranceCount || 0
-                              ).toLocaleString()}
+                              {(exception.occuranceCount || 0).toLocaleString()}
                             </p>
                             <p className="text-xs text-gray-400">hits</p>
                           </div>
@@ -619,48 +615,46 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
               </div>
               <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                 <div className="divide-y divide-gray-50">
-                  {serviceSummaries.map(
-                    (summary: ServiceExceptionSummary) => {
-                      const barWidth: number =
-                        (summary.unresolvedCount / maxServiceBugs) * 100;
+                  {serviceSummaries.map((summary: ServiceExceptionSummary) => {
+                    const barWidth: number =
+                      (summary.unresolvedCount / maxServiceBugs) * 100;
 
-                      return (
-                        <div
-                          key={summary.service.id?.toString()}
-                          className="px-4 py-3"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <TelemetryServiceElement
-                              telemetryService={summary.service}
-                            />
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <span className="text-sm font-bold text-red-600">
-                                  {summary.unresolvedCount}
-                                </span>
-                                <span className="text-xs text-gray-400 ml-1">
-                                  bugs
-                                </span>
-                              </div>
+                    return (
+                      <div
+                        key={summary.service.id?.toString()}
+                        className="px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <TelemetryServiceElement
+                            telemetryService={summary.service}
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <span className="text-sm font-bold text-red-600">
+                                {summary.unresolvedCount}
+                              </span>
+                              <span className="text-xs text-gray-400 ml-1">
+                                bugs
+                              </span>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-red-400"
-                                style={{
-                                  width: `${Math.max(barWidth, 3)}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-400 flex-shrink-0">
-                              {summary.totalOccurrences.toLocaleString()} hits
-                            </span>
                           </div>
                         </div>
-                      );
-                    },
-                  )}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-red-400"
+                              style={{
+                                width: `${Math.max(barWidth, 3)}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-400 flex-shrink-0">
+                            {summary.totalOccurrences.toLocaleString()} hits
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -679,58 +673,54 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                 <div className="divide-y divide-gray-50">
                   {recentExceptions
                     .slice(0, 5)
-                    .map(
-                      (exception: TelemetryException, index: number) => {
-                        return (
-                          <AppLink
-                            key={
-                              exception.id?.toString() || index.toString()
-                            }
-                            className="block px-4 py-3 hover:bg-gray-50 transition-colors"
-                            to={
-                              exception.fingerprint
-                                ? new Route(
-                                    RouteUtil.populateRouteParams(
-                                      RouteMap[
-                                        PageMap.EXCEPTIONS_VIEW_ROOT
-                                      ] as Route,
-                                    )
-                                      .toString()
-                                      .replace(
-                                        /\/?$/,
-                                        `/${exception.fingerprint}`,
-                                      ),
-                                  )
-                                : RouteUtil.populateRouteParams(
+                    .map((exception: TelemetryException, index: number) => {
+                      return (
+                        <AppLink
+                          key={exception.id?.toString() || index.toString()}
+                          className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                          to={
+                            exception.fingerprint
+                              ? new Route(
+                                  RouteUtil.populateRouteParams(
                                     RouteMap[
-                                      PageMap.EXCEPTIONS_UNRESOLVED
+                                      PageMap.EXCEPTIONS_VIEW_ROOT
                                     ] as Route,
                                   )
-                            }
-                          >
-                            <p className="text-sm text-gray-900 truncate font-medium">
-                              {exception.message ||
-                                exception.exceptionType ||
-                                "Unknown"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {exception.service && (
-                                <span className="text-xs text-gray-500">
-                                  {exception.service.name?.toString()}
-                                </span>
-                              )}
-                              {exception.lastSeenAt && (
-                                <span className="text-xs text-gray-400">
-                                  {OneUptimeDate.fromNow(
-                                    new Date(exception.lastSeenAt),
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          </AppLink>
-                        );
-                      },
-                    )}
+                                    .toString()
+                                    .replace(
+                                      /\/?$/,
+                                      `/${exception.fingerprint}`,
+                                    ),
+                                )
+                              : RouteUtil.populateRouteParams(
+                                  RouteMap[
+                                    PageMap.EXCEPTIONS_UNRESOLVED
+                                  ] as Route,
+                                )
+                          }
+                        >
+                          <p className="text-sm text-gray-900 truncate font-medium">
+                            {exception.message ||
+                              exception.exceptionType ||
+                              "Unknown"}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {exception.service && (
+                              <span className="text-xs text-gray-500">
+                                {exception.service.name?.toString()}
+                              </span>
+                            )}
+                            {exception.lastSeenAt && (
+                              <span className="text-xs text-gray-400">
+                                {OneUptimeDate.fromNow(
+                                  new Date(exception.lastSeenAt),
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </AppLink>
+                      );
+                    })}
                 </div>
               </div>
             </div>

@@ -50,9 +50,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const categorizeMetric: (name: string) => string = (
-    name: string,
-  ): string => {
+  const categorizeMetric: (name: string) => string = (name: string): string => {
     const lower: string = name.toLowerCase();
     if (
       lower.includes("cpu") ||
@@ -370,9 +368,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">
-              Avg per Service
-            </p>
+            <p className="text-sm font-medium text-gray-500">Avg per Service</p>
             <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center">
               <svg
                 className="h-4.5 w-4.5 text-blue-600"
@@ -399,9 +395,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">
-              No Metrics
-            </p>
+            <p className="text-sm font-medium text-gray-500">No Metrics</p>
             <div
               className={`h-9 w-9 rounded-lg flex items-center justify-center ${servicesWithNoMetrics > 0 ? "bg-amber-50" : "bg-gray-50"}`}
             >
@@ -454,9 +448,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                     {cat.count}
                   </span>
                   <span className={`text-sm ${cat.color}`}>{cat.name}</span>
-                  <span
-                    className={`text-xs ${cat.color} opacity-60`}
-                  >
+                  <span className={`text-xs ${cat.color} opacity-60`}>
                     {pct}%
                   </span>
                 </div>
@@ -467,9 +459,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           <div className="flex h-2 rounded-full overflow-hidden mt-3">
             {metricCategories.map((cat: MetricCategory) => {
               const pct: number =
-                totalMetricCount > 0
-                  ? (cat.count / totalMetricCount) * 100
-                  : 0;
+                totalMetricCount > 0 ? (cat.count / totalMetricCount) * 100 : 0;
               const barColorMap: Record<string, string> = {
                 System: "bg-blue-400",
                 Request: "bg-purple-400",
