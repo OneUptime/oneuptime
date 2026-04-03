@@ -284,9 +284,6 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             if (project && props.onProjectSelected) {
               props.onProjectSelected(project);
             }
-            if (project && props.onProjectSelected) {
-              props.onProjectSelected(project);
-            }
             setShowModal(false);
             props.onProjectModalClose();
           }}

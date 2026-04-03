@@ -231,6 +231,7 @@ abstract class Navigation {
 
     if (options?.forceNavigate && to instanceof Route) {
       window.location.href = finalUrl;
+      return;
     }
 
     if (this.navigateHook && to instanceof Route && !this.isOnThisPage(to)) {
