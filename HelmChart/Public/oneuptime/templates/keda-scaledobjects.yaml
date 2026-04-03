@@ -19,6 +19,14 @@ KEDA ScaledObjects for various services
 
 {{/* App KEDA ScaledObject - scales based on combined queue size (worker + workflow + telemetry) */}}
 {{- if and .Values.keda.enabled .Values.app.enabled .Values.app.keda.enabled (not .Values.app.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
+{{- $appResources := .Values.app.resources | default dict }}
+{{- $appRequests := get $appResources "requests" | default dict }}
+{{- if and (gt (int (.Values.app.keda.targetCPUUtilizationPercentage | default 0)) 0) (not (get $appRequests "cpu")) }}
+{{- fail "app.keda.targetCPUUtilizationPercentage requires app.resources.requests.cpu to be set" }}
+{{- end }}
+{{- if and (gt (int (.Values.app.keda.targetMemoryUtilizationPercentage | default 0)) 0) (not (get $appRequests "memory")) }}
+{{- fail "app.keda.targetMemoryUtilizationPercentage requires app.resources.requests.memory to be set" }}
+{{- end }}
 {{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "targetCPUUtilizationPercentage" .Values.app.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.app.keda.targetMemoryUtilizationPercentage "triggers" (list (dict "query" "oneuptime_app_queue_size" "threshold" .Values.app.keda.queueSizeThreshold "port" .Values.app.ports.http)) }}
 {{- $appKedaArgs := dict "ServiceName" "app" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.app.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $appKedaArgs }}

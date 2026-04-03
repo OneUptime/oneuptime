@@ -669,10 +669,12 @@ app:
     maxReplicas: 100
     # Scale up when combined queue size (worker + workflow + telemetry) exceeds this threshold
     queueSizeThreshold: 10
-    # Scale up when average CPU utilization exceeds this percentage (0 to disable)
-    targetCPUUtilizationPercentage: 80
-    # Scale up when average memory utilization exceeds this percentage (0 to disable)
-    targetMemoryUtilizationPercentage: 80
+    # Scale up when average CPU utilization exceeds this percentage (0 to disable).
+    # If enabled, app.resources.requests.cpu must also be set.
+    targetCPUUtilizationPercentage: 0
+    # Scale up when average memory utilization exceeds this percentage (0 to disable).
+    # If enabled, app.resources.requests.memory must also be set.
+    targetMemoryUtilizationPercentage: 0
     # Polling interval for metrics (in seconds)
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
