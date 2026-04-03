@@ -1,5 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
-import { Page, expect, test, Response } from "@playwright/test";
+import { Page, expect, test, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
@@ -59,7 +59,9 @@ test.describe("Monitor Creation", () => {
     // Create a project first
     await page.getByTestId("create-new-project-button").click();
     await page.getByTestId("modal").waitFor({ state: "visible" });
-    const modalSubmitButton = page.getByTestId("modal-footer-submit-button");
+    const modalSubmitButton: Locator = page.getByTestId(
+      "modal-footer-submit-button",
+    );
 
     const projectName: string =
       "E2E Monitor Project " + Faker.generateName().toString();
@@ -71,7 +73,7 @@ test.describe("Monitor Creation", () => {
     if (IS_BILLING_ENABLED) {
       await modalSubmitButton.click();
 
-      const firstPlanOption = page
+      const firstPlanOption: Locator = page
         .locator("[data-testid^='card-select-option-']")
         .first();
 
@@ -132,12 +134,9 @@ test.describe("Monitor Creation", () => {
           break;
         }
 
-        await page.waitForURL(
-          new RegExp(`/dashboard/${projectId}(?:/)?$`),
-          {
-            timeout: 30000,
-          },
-        );
+        await page.waitForURL(new RegExp(`/dashboard/${projectId}(?:/)?$`), {
+          timeout: 30000,
+        });
         await page.waitForTimeout(1000);
       }
     }

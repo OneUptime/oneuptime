@@ -1,5 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
-import { Page, expect, test, Response } from "@playwright/test";
+import { Page, expect, test, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
@@ -59,7 +59,9 @@ test.describe("Project Creation", () => {
 
     // Wait for the project creation modal to appear
     await page.getByTestId("modal").waitFor({ state: "visible" });
-    const modalSubmitButton = page.getByTestId("modal-footer-submit-button");
+    const modalSubmitButton: Locator = page.getByTestId(
+      "modal-footer-submit-button",
+    );
 
     // Fill in the project name
     const projectName: string =
@@ -73,7 +75,7 @@ test.describe("Project Creation", () => {
       // Click "Next" to go to the plan selection step
       await modalSubmitButton.click();
 
-      const firstPlanOption = page
+      const firstPlanOption: Locator = page
         .locator("[data-testid^='card-select-option-']")
         .first();
 
