@@ -84,7 +84,7 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
-CMD [ "npm", "run", "dev" ]
+CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 {{ else }}
 # Copy app source
 COPY ./Probe /usr/src/app
@@ -95,4 +95,3 @@ RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
-
