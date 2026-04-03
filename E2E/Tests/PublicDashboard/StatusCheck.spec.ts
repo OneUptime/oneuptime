@@ -1,5 +1,5 @@
 import { BASE_URL } from "../../Config";
-import { Page, expect, test } from "@playwright/test";
+import { Page, Response, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.describe("check public dashboard", () => {
@@ -9,7 +9,7 @@ test.describe("check public dashboard", () => {
     page: Page;
   }) => {
     page.setDefaultNavigationTimeout(120000); // 2 minutes
-    const response = await page.goto(
+    const response: Response | null = await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/public-dashboard")
         .toString()}`,
