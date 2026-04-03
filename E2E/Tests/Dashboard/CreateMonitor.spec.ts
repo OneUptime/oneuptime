@@ -3,7 +3,8 @@ import { Page, expect, test, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
-const projectDashboardUrlRegex: RegExp = /\/dashboard\/([a-f0-9-]+)(?:\/)?$/;
+const projectDashboardUrlRegex: RegExp =
+  /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
 
 test.describe("Monitor Creation", () => {
   test("should be able to create a new monitor", async ({
@@ -134,9 +135,12 @@ test.describe("Monitor Creation", () => {
           break;
         }
 
-        await page.waitForURL(new RegExp(`/dashboard/${projectId}(?:/)?$`), {
-          timeout: 30000,
-        });
+        await page.waitForURL(
+          new RegExp(`/dashboard/${projectId}(?:/home/?)?$`),
+          {
+            timeout: 30000,
+          },
+        );
         await page.waitForTimeout(1000);
       }
     }

@@ -3,7 +3,8 @@ import { Page, expect, test, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
-const projectDashboardUrlRegex: RegExp = /\/dashboard\/([a-f0-9-]+)(?:\/)?$/;
+const projectDashboardUrlRegex: RegExp =
+  /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
 
 test.describe("Project Creation", () => {
   test("should be able to create a new project", async ({
