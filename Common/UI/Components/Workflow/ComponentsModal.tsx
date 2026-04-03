@@ -1,7 +1,6 @@
 // Show a large modal full of components.
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
-import Input from "../Input/Input";
 import SideOver from "../SideOver/SideOver";
 import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
@@ -12,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -27,6 +27,8 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [search, setSearch] = useState<string>("");
+  const searchInputRef: React.RefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
 
   const [components, setComponents] = useState<Array<ComponentMetadata>>([]);
   const [categories, setCategories] = useState<Array<ComponentCategory>>([]);
@@ -76,6 +78,12 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     ]);
   }, [search]);
 
+  const hasSearchTerm: boolean = search.trim().length > 0;
+  const totalComponentCount: number = components.length;
+  const componentTypeLabel: string = `${props.componentsType.toLowerCase()}${
+    totalComponentCount === 1 ? "" : "s"
+  }`;
+
   return (
     <SideOver
       submitButtonText="Add to Workflow"
@@ -93,22 +101,52 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
       <>
         <div className="flex flex-col h-full">
           {/* Search box */}
-          <div className="mt-4 mb-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Icon
-                  icon={IconProp.Search}
-                  className="h-4 w-4 text-gray-400"
-                />
+          <div className="mt-4 mb-5">
+            <label
+              htmlFor="workflow-component-search"
+              className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500"
+            >
+              Search {componentTypeLabel}
+            </label>
+            <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-r from-white via-indigo-50 to-slate-50 shadow-sm transition-all duration-200 hover:border-gray-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100">
+              <div className="pointer-events-none absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 transition-colors duration-200 group-focus-within:bg-indigo-50 group-focus-within:text-indigo-500 group-focus-within:ring-indigo-100">
+                <Icon icon={IconProp.Search} className="h-4 w-4" />
               </div>
-              <div className="pl-9">
-                <Input
-                  placeholder={`Search ${props.componentsType.toLowerCase()}s...`}
-                  onChange={(text: string) => {
+              <div className="pl-16 pr-3">
+                <input
+                  id="workflow-component-search"
+                  ref={searchInputRef}
+                  type="text"
+                  value={search}
+                  placeholder={`Search ${componentTypeLabel} by name, description, or category`}
+                  autoComplete="off"
+                  className="block w-full border-0 bg-transparent pb-1 pt-3 text-base font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                     setIsSearching(true);
-                    setSearch(text);
+                    setSearch(event.target.value);
                   }}
                 />
+                <div className="flex items-center justify-between gap-3 pb-3">
+                  <p className="min-w-0 text-xs text-gray-500">
+                    {hasSearchTerm
+                      ? `${componentsToShow.length} of ${totalComponentCount} ${componentTypeLabel} shown`
+                      : "Search by title, description, or category."}
+                  </p>
+
+                  {hasSearchTerm && (
+                    <button
+                      type="button"
+                      className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-700"
+                      onClick={() => {
+                        setSearch("");
+                        searchInputRef.current?.focus();
+                      }}
+                    >
+                      <Icon icon={IconProp.Close} className="h-3 w-3" />
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
