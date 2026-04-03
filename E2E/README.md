@@ -91,8 +91,7 @@ E2E/
 │   ├── Home/           # Homepage tests
 │   ├── IncomingRequestIngest/
 │   ├── ProbeIngest/
-│   ├── StatusPage/     # Status page tests
-│   └── TelemetryIngest/
+│   └── StatusPage/     # Status page tests
 ├── Config.ts           # Environment configuration
 ├── playwright.config.ts # Playwright configuration
 └── package.json
