@@ -33,6 +33,7 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 //Labels.
 import LabelService from "./LabelService";
+import KubernetesClusterService from "./KubernetesClusterService";
 import LlmProviderService from "./LlmProviderService";
 import LogService from "./LogService";
 import MailService from "./MailService";
@@ -256,6 +257,7 @@ const services: Array<BaseService> = [
   IncidentFeedService,
 
   LabelService,
+  KubernetesClusterService,
   LlmProviderService,
 
   MailService,

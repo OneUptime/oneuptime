@@ -21,7 +21,6 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
-import Includes from "Common/Types/BaseDatabase/Includes";
 
 interface ServiceMetricSummary {
   service: Service;
@@ -71,13 +70,11 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           name: true,
           unit: true,
           description: true,
-        },
-        relationSelect: {
           services: {
             _id: true,
             name: true,
             serviceColor: true,
-          },
+          } as any,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -106,9 +103,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
         for (const metricService of metricServices) {
           const serviceId: string =
-            metricService._id?.toString() ||
-            metricService.id?.toString() ||
-            "";
+            metricService._id?.toString() || metricService.id?.toString() || "";
           let summary: ServiceMetricSummary | undefined =
             summaryMap.get(serviceId);
 
@@ -285,7 +280,10 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           {serviceSummaries.map((summary: ServiceMetricSummary) => {
             return (
               <div
-                key={summary.service.id?.toString() || summary.service._id?.toString()}
+                key={
+                  summary.service.id?.toString() ||
+                  summary.service._id?.toString()
+                }
                 className="rounded-lg border border-gray-200 bg-white p-5 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
