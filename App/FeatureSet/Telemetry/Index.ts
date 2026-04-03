@@ -24,42 +24,43 @@ import logger from "Common/Server/Utils/Logger";
 const app: ExpressApplication = Express.getExpressApp();
 
 const TELEMETRY_PREFIXES: Array<string> = ["/telemetry", "/"];
-
-// Existing telemetry routes
-app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
-app.use(TELEMETRY_PREFIXES, MetricsAPI);
-app.use(TELEMETRY_PREFIXES, SyslogAPI);
-app.use(TELEMETRY_PREFIXES, FluentAPI);
-app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
-
-/*
- * ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]
- * "/ingestor" is used for backward compatibility because probes are already deployed with this path in client environments.
- */
 const PROBE_INGEST_PREFIXES: Array<string> = [
   "/probe-ingest",
   "/ingestor",
   "/",
 ];
-app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
-app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
-app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
-app.use(["/probe-ingest", "/"], IncomingEmailAPI);
-
-// ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]
 const SERVER_MONITOR_PREFIXES: Array<string> = ["/server-monitor-ingest", "/"];
-app.use(SERVER_MONITOR_PREFIXES, ServerMonitorAPI);
-
-// IncomingRequestIngest routes under ["/incoming-request-ingest", "/"]
 const INCOMING_REQUEST_PREFIXES: Array<string> = [
   "/incoming-request-ingest",
   "/",
 ];
-app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);
 
 const TelemetryFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {
+      // Mount telemetry routes only during feature-set init so they sit behind
+      // the shared middleware stack from StartServer (body parsers, headers, etc.).
+      app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
+      app.use(TELEMETRY_PREFIXES, MetricsAPI);
+      app.use(TELEMETRY_PREFIXES, SyslogAPI);
+      app.use(TELEMETRY_PREFIXES, FluentAPI);
+      app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
+
+      /*
+       * ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]
+       * "/ingestor" is used for backward compatibility because probes are already deployed with this path in client environments.
+       */
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
+      app.use(["/probe-ingest", "/"], IncomingEmailAPI);
+
+      // ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]
+      app.use(SERVER_MONITOR_PREFIXES, ServerMonitorAPI);
+
+      // IncomingRequestIngest routes under ["/incoming-request-ingest", "/"]
+      app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);
+
       logger.info(
         `Telemetry Service - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
       );
