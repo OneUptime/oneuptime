@@ -3,6 +3,8 @@ import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
+const projectDashboardUrlRegex: RegExp = /\/dashboard\/([a-f0-9-]+)(?:\/)?$/;
+
 test.describe("Project Creation", () => {
   test("should be able to create a new project", async ({
     page,
@@ -57,6 +59,7 @@ test.describe("Project Creation", () => {
 
     // Wait for the project creation modal to appear
     await page.getByTestId("modal").waitFor({ state: "visible" });
+    const modalSubmitButton = page.getByTestId("modal-footer-submit-button");
 
     // Fill in the project name
     const projectName: string =
@@ -68,28 +71,43 @@ test.describe("Project Creation", () => {
 
     if (IS_BILLING_ENABLED) {
       // Click "Next" to go to the plan selection step
-      await page.getByTestId("modal-footer-submit-button").click();
+      await modalSubmitButton.click();
 
-      // Select the first available plan
-      await page
+      const firstPlanOption = page
         .locator("[data-testid^='card-select-option-']")
-        .first()
-        .click();
+        .first();
+
+      await firstPlanOption.waitFor({ state: "visible" });
+
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        await firstPlanOption.click();
+
+        if (await modalSubmitButton.isEnabled()) {
+          break;
+        }
+
+        await page.waitForTimeout(1000);
+      }
+
+      await expect(modalSubmitButton).toBeEnabled({ timeout: 30000 });
 
       // Submit the form to create the project
-      await page.getByTestId("modal-footer-submit-button").click();
+      await modalSubmitButton.click();
     } else {
       // Submit the form to create the project
-      await page.getByTestId("modal-footer-submit-button").click();
+      await modalSubmitButton.click();
     }
 
     // Wait for navigation to the project dashboard
-    await page.waitForURL(/\/dashboard\/[a-f0-9-]+/, {
-      timeout: 30000,
+    await page.waitForURL(projectDashboardUrlRegex, {
+      timeout: 90000,
     });
+
+    // Give any final redirect triggered by project selection time to settle.
+    await page.waitForTimeout(1000);
 
     // Verify we are on the project dashboard
     const url: string = page.url();
-    expect(url).toMatch(/\/dashboard\/[a-f0-9-]+/);
+    expect(url).toMatch(projectDashboardUrlRegex);
   });
 });

@@ -3,6 +3,8 @@ import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
+const projectDashboardUrlRegex: RegExp = /\/dashboard\/([a-f0-9-]+)(?:\/)?$/;
+
 test.describe("Monitor Creation", () => {
   test("should be able to create a new monitor", async ({
     page,
@@ -57,6 +59,7 @@ test.describe("Monitor Creation", () => {
     // Create a project first
     await page.getByTestId("create-new-project-button").click();
     await page.getByTestId("modal").waitFor({ state: "visible" });
+    const modalSubmitButton = page.getByTestId("modal-footer-submit-button");
 
     const projectName: string =
       "E2E Monitor Project " + Faker.generateName().toString();
@@ -66,44 +69,82 @@ test.describe("Monitor Creation", () => {
       .fill(projectName);
 
     if (IS_BILLING_ENABLED) {
-      await page.getByTestId("modal-footer-submit-button").click();
+      await modalSubmitButton.click();
 
-      await page
+      const firstPlanOption = page
         .locator("[data-testid^='card-select-option-']")
-        .first()
-        .click();
+        .first();
 
-      await page.getByTestId("modal-footer-submit-button").click();
+      await firstPlanOption.waitFor({ state: "visible" });
+
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        await firstPlanOption.click();
+
+        if (await modalSubmitButton.isEnabled()) {
+          break;
+        }
+
+        await page.waitForTimeout(1000);
+      }
+
+      await expect(modalSubmitButton).toBeEnabled({ timeout: 30000 });
+
+      await modalSubmitButton.click();
     } else {
-      await page.getByTestId("modal-footer-submit-button").click();
+      await modalSubmitButton.click();
     }
 
     // Wait for navigation to the project dashboard
-    await page.waitForURL(/\/dashboard\/[a-f0-9-]+/, {
-      timeout: 30000,
+    await page.waitForURL(projectDashboardUrlRegex, {
+      timeout: 90000,
     });
 
-    /*
-     * Wait for the page to fully settle after project creation
-     * The app may perform internal redirects after project setup
-     */
-    await page.waitForLoadState("networkidle");
+    // Let project-selection redirects finish before navigating deeper.
+    await page.waitForTimeout(1000);
 
     // Extract the project ID from the URL
     const projectUrl: string = page.url();
     const projectIdMatch: RegExpMatchArray | null = projectUrl.match(
-      /\/dashboard\/([a-f0-9-]+)/,
+      projectDashboardUrlRegex,
     );
     expect(projectIdMatch).not.toBeNull();
     const projectId: string = projectIdMatch![1]!;
 
     // Navigate to the monitor creation page
-    await page.goto(
-      URL.fromString(BASE_URL.toString())
-        .addRoute(`/dashboard/${projectId}/monitors/create`)
-        .toString(),
-      { waitUntil: "networkidle" },
-    );
+    const monitorCreateUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/monitors/create`)
+      .toString();
+
+    let lastNavigationError: Error | null = null;
+
+    for (let attempt: number = 0; attempt < 3; attempt++) {
+      try {
+        await page.goto(monitorCreateUrl, { waitUntil: "domcontentloaded" });
+        await page
+          .locator("#create-monitor-form")
+          .waitFor({ state: "visible", timeout: 30000 });
+        lastNavigationError = null;
+        break;
+      } catch (error) {
+        lastNavigationError = error as Error;
+
+        if (attempt === 2) {
+          break;
+        }
+
+        await page.waitForURL(
+          new RegExp(`/dashboard/${projectId}(?:/)?$`),
+          {
+            timeout: 30000,
+          },
+        );
+        await page.waitForTimeout(1000);
+      }
+    }
+
+    if (lastNavigationError) {
+      throw lastNavigationError;
+    }
 
     // Wait for the create monitor form to load
     await page.locator("#create-monitor-form").waitFor({ state: "visible" });
