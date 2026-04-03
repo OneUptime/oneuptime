@@ -71,8 +71,8 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [search, setSearch] = useState<string>("");
-  const searchInputRef: React.RefObject<HTMLInputElement | null> =
-    useRef<HTMLInputElement | null>(null);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
 
   const [components, setComponents] = useState<Array<ComponentMetadata>>([]);
   const [categories, setCategories] = useState<Array<ComponentCategory>>([]);
