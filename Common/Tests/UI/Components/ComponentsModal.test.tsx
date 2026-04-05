@@ -86,7 +86,7 @@ describe("ComponentsModal", () => {
       />,
     );
     expect(
-      screen.getByPlaceholderText("Search components..."),
+      screen.getByPlaceholderText("Search components by name, description, or category"),
     ).toBeInTheDocument();
   });
 
@@ -187,7 +187,7 @@ describe("ComponentsModal", () => {
         categories={mockedCategories}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
       target: { value: "Non-existent Ccmponent" },
     });
     expect(
@@ -246,7 +246,7 @@ describe("ComponentsModal", () => {
         0,
         comp.title.length - comp.title.length / 2,
       );
-      fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+      fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
         target: { value: partialTitle },
       });
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -273,7 +273,7 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+      fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
         target: { value: comp.description },
       });
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -300,7 +300,7 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+      fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
         target: { value: comp.category },
       });
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe("ComponentsModal", () => {
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
       const searchInput: HTMLElement = screen.getByPlaceholderText(
-        "Search components...",
+        "Search components by name, description, or category",
       );
       fireEvent.change(searchInput, { target: { value: comp.title } });
       fireEvent.change(searchInput, { target: { value: "" } }); // clear search
@@ -341,14 +341,15 @@ describe("ComponentsModal", () => {
 
   it("should return multiple components when similar titles match", () => {
     // we add a new component where its title is a substring of another component's title
-    const commonWord: string = mockedComponents[0]?.title.substring(0, 5) || "";
+    const localComponents: ComponentMetadata[] = [...mockedComponents];
+    const commonWord: string = localComponents[0]?.title.substring(0, 5) || "";
     const newComponent: ComponentMetadata = getComponentMetadata(
       mockedCategories[1]?.name,
     );
     newComponent.title += commonWord;
-    mockedComponents.push(newComponent);
+    localComponents.push(newComponent);
     const componentsWithCommonWord: ComponentMetadata[] =
-      mockedComponents.filter((comp: ComponentMetadata) => {
+      localComponents.filter((comp: ComponentMetadata) => {
         return comp.title.includes(commonWord);
       });
 
@@ -357,12 +358,12 @@ describe("ComponentsModal", () => {
         componentsType={ComponentType.Component}
         onCloseModal={mockOnCloseModal}
         onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
+        components={localComponents}
         categories={mockedCategories}
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
       target: { value: commonWord },
     });
     componentsWithCommonWord.forEach((comp: ComponentMetadata) => {
@@ -372,24 +373,25 @@ describe("ComponentsModal", () => {
 
   it("should return return components with similar descriptions", () => {
     // we add a new component where its title is a substring of another component's description
+    const localComponents: ComponentMetadata[] = [...mockedComponents];
     const partialDescription: string =
-      mockedComponents[0]?.description.substring(0, 10) || "";
+      localComponents[0]?.description.substring(0, 10) || "";
     const newComponent: ComponentMetadata = getComponentMetadata(
       mockedCategories[1]?.name,
     );
     newComponent.title = partialDescription || "";
-    mockedComponents.push(newComponent);
+    localComponents.push(newComponent);
     render(
       <ComponentsModal
         componentsType={ComponentType.Component}
         onCloseModal={mockOnCloseModal}
         onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
+        components={localComponents}
         categories={mockedCategories}
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
       target: { value: partialDescription },
     });
     expect(
@@ -399,11 +401,12 @@ describe("ComponentsModal", () => {
 
   it("should return components with the same category", () => {
     // we add two components with the same category as the first component
-    const commonCategory: string | undefined = mockedComponents[0]?.category;
-    mockedComponents.push(getComponentMetadata(commonCategory));
-    mockedComponents.push(getComponentMetadata(commonCategory));
+    const localComponents: ComponentMetadata[] = [...mockedComponents];
+    const commonCategory: string | undefined = localComponents[0]?.category;
+    localComponents.push(getComponentMetadata(commonCategory));
+    localComponents.push(getComponentMetadata(commonCategory));
     const componentsInCommonCategory: ComponentMetadata[] =
-      mockedComponents.filter((comp: ComponentMetadata) => {
+      localComponents.filter((comp: ComponentMetadata) => {
         return comp.category === commonCategory;
       });
 
@@ -412,12 +415,12 @@ describe("ComponentsModal", () => {
         componentsType={ComponentType.Component}
         onCloseModal={mockOnCloseModal}
         onComponentClick={mockOnComponentClick}
-        components={mockedComponents}
+        components={localComponents}
         categories={mockedCategories}
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), {
+    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
       target: { value: commonCategory },
     });
     componentsInCommonCategory.forEach((comp: ComponentMetadata) => {
