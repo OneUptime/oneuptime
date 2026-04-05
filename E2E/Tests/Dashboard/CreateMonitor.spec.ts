@@ -100,6 +100,7 @@ test.describe("Monitor Creation", () => {
     // Wait for navigation to the project dashboard
     await page.waitForURL(projectDashboardUrlRegex, {
       timeout: 90000,
+      waitUntil: "domcontentloaded",
     });
 
     // Let project-selection redirects finish before navigating deeper.

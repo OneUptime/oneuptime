@@ -104,6 +104,7 @@ test.describe("Project Creation", () => {
     // Wait for navigation to the project dashboard
     await page.waitForURL(projectDashboardUrlRegex, {
       timeout: 90000,
+      waitUntil: "domcontentloaded",
     });
 
     // Give any final redirect triggered by project selection time to settle.
