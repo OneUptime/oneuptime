@@ -86,7 +86,9 @@ describe("ComponentsModal", () => {
       />,
     );
     expect(
-      screen.getByPlaceholderText("Search components by name, description, or category"),
+      screen.getByPlaceholderText(
+        "Search components by name, description, or category",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -187,9 +189,14 @@ describe("ComponentsModal", () => {
         categories={mockedCategories}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-      target: { value: "Non-existent Ccmponent" },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "Search components by name, description, or category",
+      ),
+      {
+        target: { value: "Non-existent Ccmponent" },
+      },
+    );
     expect(
       screen.getByText(
         "No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like.",
@@ -246,9 +253,14 @@ describe("ComponentsModal", () => {
         0,
         comp.title.length - comp.title.length / 2,
       );
-      fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-        target: { value: partialTitle },
-      });
+      fireEvent.change(
+        screen.getByPlaceholderText(
+          "Search components by name, description, or category",
+        ),
+        {
+          target: { value: partialTitle },
+        },
+      );
       expect(screen.getByText(comp.title)).toBeInTheDocument();
 
       // check other components are not displayed
@@ -273,9 +285,14 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-        target: { value: comp.description },
-      });
+      fireEvent.change(
+        screen.getByPlaceholderText(
+          "Search components by name, description, or category",
+        ),
+        {
+          target: { value: comp.description },
+        },
+      );
       expect(screen.getByText(comp.title)).toBeInTheDocument();
 
       // check other components are not displayed
@@ -300,9 +317,14 @@ describe("ComponentsModal", () => {
       />,
     );
     mockedComponents.forEach((comp: ComponentMetadata) => {
-      fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-        target: { value: comp.category },
-      });
+      fireEvent.change(
+        screen.getByPlaceholderText(
+          "Search components by name, description, or category",
+        ),
+        {
+          target: { value: comp.category },
+        },
+      );
       expect(screen.getByText(comp.title)).toBeInTheDocument();
 
       // check other components are not displayed
@@ -363,9 +385,14 @@ describe("ComponentsModal", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-      target: { value: commonWord },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "Search components by name, description, or category",
+      ),
+      {
+        target: { value: commonWord },
+      },
+    );
     componentsWithCommonWord.forEach((comp: ComponentMetadata) => {
       expect(screen.getByText(comp.title)).toBeInTheDocument();
     });
@@ -391,9 +418,14 @@ describe("ComponentsModal", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-      target: { value: partialDescription },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "Search components by name, description, or category",
+      ),
+      {
+        target: { value: partialDescription },
+      },
+    );
     expect(
       screen.getAllByText(new RegExp(partialDescription, "i")),
     ).toHaveLength(2);
@@ -420,9 +452,14 @@ describe("ComponentsModal", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Search components by name, description, or category"), {
-      target: { value: commonCategory },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "Search components by name, description, or category",
+      ),
+      {
+        target: { value: commonCategory },
+      },
+    );
     componentsInCommonCategory.forEach((comp: ComponentMetadata) => {
       expect(screen.getByText(comp.title)).toBeInTheDocument();
     });
