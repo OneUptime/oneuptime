@@ -97,14 +97,14 @@ test.describe("Monitor Creation", () => {
       await modalSubmitButton.click();
     }
 
-    // Wait for navigation to the project dashboard
-    await page.waitForURL(projectDashboardUrlRegex, {
-      timeout: 90000,
-      waitUntil: "domcontentloaded",
-    });
+    // Wait for navigation to the project dashboard.
+    // The app does a hard reload (window.location.href) after project creation.
+    // Use toHaveURL assertion which polls the URL, avoiding issues with
+    // navigation event detection during hard reloads.
+    await expect(page).toHaveURL(projectDashboardUrlRegex, { timeout: 120000 });
 
     // Let project-selection redirects finish before navigating deeper.
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     // Extract the project ID from the URL
     const projectUrl: string = page.url();
