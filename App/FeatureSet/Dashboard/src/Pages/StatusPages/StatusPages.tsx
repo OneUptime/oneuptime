@@ -61,6 +61,13 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         filters={[
           {
             field: {
+              _id: true,
+            },
+            title: "Status Page ID",
+            type: FieldType.ObjectID,
+          },
+          {
+            field: {
               name: true,
             },
             title: "Name",
