@@ -103,7 +103,7 @@ describe("ComponentsModal", () => {
       />,
     );
     for (const cat of mockedCategories) {
-      expect(screen.getByText(cat.name)).toBeInTheDocument();
+      expect(screen.getAllByText(cat.name).length).toBeGreaterThanOrEqual(1);
     }
     for (const comp of mockedComponents) {
       expect(screen.getByText(comp.title)).toBeInTheDocument();
@@ -261,7 +261,12 @@ describe("ComponentsModal", () => {
           target: { value: partialTitle },
         },
       );
-      expect(screen.getByText(comp.title)).toBeInTheDocument();
+      // title may be split across elements due to search highlighting
+      expect(
+        screen.getByText((_content, element) => {
+          return element?.textContent === comp.title;
+        }),
+      ).toBeInTheDocument();
 
       // check other components are not displayed
       mockedComponents
@@ -394,7 +399,12 @@ describe("ComponentsModal", () => {
       },
     );
     componentsWithCommonWord.forEach((comp: ComponentMetadata) => {
-      expect(screen.getByText(comp.title)).toBeInTheDocument();
+      // title may be split across elements due to search highlighting
+      expect(
+        screen.getByText((_content, element) => {
+          return element?.textContent === comp.title;
+        }),
+      ).toBeInTheDocument();
     });
   });
 
