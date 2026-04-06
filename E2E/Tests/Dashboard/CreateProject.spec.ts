@@ -2,6 +2,7 @@ import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { Page, expect, test, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import selectProjectPlan from "../Helpers/selectProjectPlan";
 
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
@@ -76,23 +77,7 @@ test.describe("Project Creation", () => {
       // Click "Next" to go to the plan selection step
       await modalSubmitButton.click();
 
-      const firstPlanOption: Locator = page
-        .locator("[data-testid^='card-select-option-']")
-        .first();
-
-      await firstPlanOption.waitFor({ state: "visible" });
-
-      for (let attempt: number = 0; attempt < 3; attempt++) {
-        await firstPlanOption.click();
-
-        if (await modalSubmitButton.isEnabled()) {
-          break;
-        }
-
-        await page.waitForTimeout(1000);
-      }
-
-      await expect(modalSubmitButton).toBeEnabled({ timeout: 30000 });
+      await selectProjectPlan({ page, submitButton: modalSubmitButton });
 
       // Submit the form to create the project
       await modalSubmitButton.click();
