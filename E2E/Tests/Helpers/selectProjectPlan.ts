@@ -1,6 +1,9 @@
 import { expect, Locator, Page } from "@playwright/test";
 
-const selectProjectPlan = async (data: {
+const selectProjectPlan: (data: {
+  page: Page;
+  submitButton: Locator;
+}) => Promise<void> = async (data: {
   page: Page;
   submitButton: Locator;
 }): Promise<void> => {
@@ -13,8 +16,10 @@ const selectProjectPlan = async (data: {
   const planOptionCount: number = await planOptions.count();
   expect(planOptionCount).toBeGreaterThan(0);
 
-  // Billing can render the default plan as checked while keeping submit disabled
-  // until the selection changes. Try each visible option until the form unlocks.
+  /*
+   * Billing can render the default plan as checked while keeping submit disabled
+   * until the selection changes. Try each visible option until the form unlocks.
+   */
   for (let attempt: number = 0; attempt < planOptionCount * 2; attempt++) {
     await planOptions.nth(attempt % planOptionCount).click();
 

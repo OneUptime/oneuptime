@@ -263,7 +263,7 @@ describe("ComponentsModal", () => {
       );
       // title may be split across elements due to search highlighting
       expect(
-        screen.getByText((_content, element) => {
+        screen.getByText((_content: string | null, element: Element | null) => {
           return element?.textContent === comp.title;
         }),
       ).toBeInTheDocument();
@@ -401,7 +401,7 @@ describe("ComponentsModal", () => {
     componentsWithCommonWord.forEach((comp: ComponentMetadata) => {
       // title may be split across elements due to search highlighting
       expect(
-        screen.getByText((_content, element) => {
+        screen.getByText((_content: string | null, element: Element | null) => {
           return element?.textContent === comp.title;
         }),
       ).toBeInTheDocument();
