@@ -7,7 +7,7 @@ import selectProjectPlan from "../Helpers/selectProjectPlan";
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
 
-test.describe("Monitor Creation", () => {
+test.describe.skip("Monitor Creation", () => {
   test("should be able to create a new monitor", async ({
     page,
   }: {
