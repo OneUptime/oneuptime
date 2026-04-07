@@ -274,7 +274,14 @@ function createConfig(options) {
  */
 async function build(config, serviceName) {
   const isAnalyze = process.env.analyze === 'true';
-  
+
+  // Clean the output directory before building to remove stale content-hashed chunks.
+  if (config.outdir && fs.existsSync(config.outdir)) {
+    fs.rmSync(config.outdir, { recursive: true, force: true });
+    fs.mkdirSync(config.outdir, { recursive: true });
+    console.log(`🧹 Cleaned output directory: ${config.outdir}`);
+  }
+
   try {
     const result = await esbuild.build(config);
     

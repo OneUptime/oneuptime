@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-undef
-process.env.TZ = "Europe/London";
+/** @timezone Europe/London */
 
 import XAxisUtil from "../../../UI/Components/Charts/Utils/XAxis";
 

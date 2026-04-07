@@ -1,10 +1,5 @@
-/** @jest-environment jsdom */
-/*
- * Ensure deterministic timezone for Date#getHours() etc.
- * This must be set before importing the component under test.
- */
-// eslint-disable-next-line no-undef
-process.env.TZ = "UTC";
+/** @timezone UTC */
+
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

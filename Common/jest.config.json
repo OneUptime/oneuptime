@@ -40,7 +40,7 @@
     "transformIgnorePatterns": [
         "node_modules/(?!(uuid|locter|yaml|@azure)/)"
     ],
-    "testEnvironment": "jsdom",
+    "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
     "setupFilesAfterEnv": [
         "<rootDir>/Tests/jest.setup.ts"
     ],
