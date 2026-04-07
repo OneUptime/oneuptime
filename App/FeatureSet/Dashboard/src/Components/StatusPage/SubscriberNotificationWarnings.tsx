@@ -31,8 +31,9 @@ interface WarningItem {
 const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [settings, setSettings] =
-    useState<StatusPageVisibilitySettings | null>(null);
+  const [settings, setSettings] = useState<StatusPageVisibilitySettings | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useAsyncEffect(async () => {
