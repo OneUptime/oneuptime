@@ -151,10 +151,17 @@ Usage:
   {{- if $.Values.registerProbeKey }}
   value: {{ $.Values.registerProbeKey }}
   {{- else }}
+  {{- if $.Values.externalSecrets.registerProbeKey.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ $.Values.externalSecrets.registerProbeKey.existingSecret.name }}
+        key: {{ $.Values.externalSecrets.registerProbeKey.existingSecret.passwordKey }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: register-probe-key
+  {{- end }}
   {{- end }}
 {{- end }}
 
