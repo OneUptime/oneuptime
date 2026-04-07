@@ -12,7 +12,7 @@ export interface ComponentProps {
   message: string;
   isResolved?: boolean | undefined;
   isArchived?: boolean | undefined;
-  fingerprint?: string | undefined;
+  exceptionId?: string | undefined;
   className?: string;
 }
 
@@ -86,17 +86,17 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
       {getResolvedIcon()}
       {getUnresolvedIcon()}
       {getArchivedIcon()}
-      {!props.fingerprint && (
+      {!props.exceptionId && (
         <div className="mt-0.5 ml-2 font-mono break-words">
           {props.message || "-"}
         </div>
       )}
-      {props.fingerprint && (
+      {props.exceptionId && (
         <AppLink
-          to={new Route(viewRoute.toString()).addRoute(props.fingerprint)}
+          to={new Route(viewRoute.toString()).addRoute(props.exceptionId)}
         >
           <div className="mt-0.5 ml-2 font-mono break-words">
-            {props.message || props.fingerprint || "-"}
+            {props.message || "-"}
           </div>
         </AppLink>
       )}

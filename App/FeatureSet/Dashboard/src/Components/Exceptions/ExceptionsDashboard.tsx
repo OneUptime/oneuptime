@@ -517,7 +517,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                         key={exception.id?.toString() || index.toString()}
                         className="block px-4 py-3 hover:bg-gray-50 transition-colors"
                         to={
-                          exception.fingerprint
+                          exception.id
                             ? new Route(
                                 RouteUtil.populateRouteParams(
                                   RouteMap[
@@ -525,7 +525,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   ] as Route,
                                 )
                                   .toString()
-                                  .replace(/\/?$/, `/${exception.fingerprint}`),
+                                  .replace(/\/?$/, `/${exception.id.toString()}`),
                               )
                             : RouteUtil.populateRouteParams(
                                 RouteMap[
@@ -679,7 +679,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                           key={exception.id?.toString() || index.toString()}
                           className="block px-4 py-3 hover:bg-gray-50 transition-colors"
                           to={
-                            exception.fingerprint
+                            exception.id
                               ? new Route(
                                   RouteUtil.populateRouteParams(
                                     RouteMap[
@@ -689,7 +689,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                     .toString()
                                     .replace(
                                       /\/?$/,
-                                      `/${exception.fingerprint}`,
+                                      `/${exception.id.toString()}`,
                                     ),
                                 )
                               : RouteUtil.populateRouteParams(
