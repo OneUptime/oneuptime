@@ -29,6 +29,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
+import OneUptimeDate from "../../../../Types/Date";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 type AnalyticsAggregation = "count" | "unique";
@@ -124,7 +125,7 @@ function pivotTimeseriesData(rows: Array<AnalyticsTimeseriesRow>): {
 }
 
 function formatTickTime(time: string): string {
-  const date: Date = new Date(time);
+  const date: Date = OneUptimeDate.fromString(time);
 
   if (isNaN(date.getTime())) {
     return time;
@@ -230,7 +231,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
       return "";
     }
 
-    const date: Date = new Date(label);
+    const date: Date = OneUptimeDate.fromString(label);
 
     if (isNaN(date.getTime())) {
       return label;

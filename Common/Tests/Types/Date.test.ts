@@ -86,4 +86,10 @@ describe("class OneUptimeDate", () => {
       OneUptimeDate.getSomeSecondsAfter(new PositiveNumber(4)).getSeconds(),
     ).toEqual(moment().add(4, "seconds").toDate().getSeconds());
   });
+
+  test("OneUptimeDate.fromString should parse ClickHouse timestamps as UTC", () => {
+    expect(
+      OneUptimeDate.fromString("2026-04-01 14:45:31.414000000").toISOString(),
+    ).toBe("2026-04-01T14:45:31.414Z");
+  });
 });

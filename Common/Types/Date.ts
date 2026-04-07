@@ -16,6 +16,30 @@ export default class OneUptimeDate {
     return value.toString().padStart(2, "0");
   }
 
+  private static isUtcDateTimeString(value: string): boolean {
+    return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(
+      value.trim(),
+    );
+  }
+
+  private static normalizeUtcDateTimeString(value: string): string {
+    const trimmedValue: string = value.trim();
+    const [datePart, timePart] = trimmedValue.split(" ");
+
+    if (!datePart || !timePart) {
+      return trimmedValue;
+    }
+
+    const [baseTime, fractionalPart] = timePart.split(".");
+
+    if (!fractionalPart) {
+      return `${datePart}T${baseTime}Z`;
+    }
+
+    const milliseconds: string = fractionalPart.slice(0, 3).padEnd(3, "0");
+    return `${datePart}T${baseTime}.${milliseconds}Z`;
+  }
+
   private static getLocalShortMonthName(date: Date): string {
     return date.toLocaleString("default", {
       month: "short",
@@ -1507,7 +1531,13 @@ export default class OneUptimeDate {
     }
 
     if (typeof date === "string") {
-      return moment(date).toDate();
+      const trimmedDate: string = date.trim();
+
+      if (this.isUtcDateTimeString(trimmedDate)) {
+        return moment.utc(this.normalizeUtcDateTimeString(trimmedDate)).toDate();
+      }
+
+      return moment(trimmedDate).toDate();
     }
 
     if (

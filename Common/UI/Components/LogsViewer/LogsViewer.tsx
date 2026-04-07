@@ -58,6 +58,7 @@ import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTi
 import TimeRange from "../../../Types/Time/TimeRange";
 import { exportLogs, LogExportFormat } from "../../Utils/LogExport";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -279,9 +280,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     cloned.sort((a: Log, b: Log) => {
       if (sortField === "time") {
         const aTime: number =
-          Number(a.timeUnixNano) || (a.time ? new Date(a.time).getTime() : 0);
+          Number(a.timeUnixNano) ||
+          (a.time ? OneUptimeDate.fromString(a.time).getTime() : 0);
         const bTime: number =
-          Number(b.timeUnixNano) || (b.time ? new Date(b.time).getTime() : 0);
+          Number(b.timeUnixNano) ||
+          (b.time ? OneUptimeDate.fromString(b.time).getTime() : 0);
 
         if (aTime === bTime) {
           return 0;

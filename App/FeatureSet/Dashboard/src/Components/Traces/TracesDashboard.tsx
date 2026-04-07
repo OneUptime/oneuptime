@@ -205,7 +205,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           }
 
           const spanTime: Date | undefined = span.startTime
-            ? new Date(span.startTime)
+            ? OneUptimeDate.fromString(span.startTime)
             : undefined;
           if (
             spanTime &&
@@ -221,7 +221,9 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             traceId,
             name: span.name?.toString() || "Unknown",
             serviceId,
-            startTime: span.startTime ? new Date(span.startTime) : new Date(),
+            startTime: span.startTime
+              ? OneUptimeDate.fromString(span.startTime)
+              : new Date(),
             statusCode: span.statusCode || SpanStatus.Unset,
             durationNano: duration,
           });
@@ -237,7 +239,9 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             traceId,
             name: span.name?.toString() || "Unknown",
             serviceId,
-            startTime: span.startTime ? new Date(span.startTime) : new Date(),
+            startTime: span.startTime
+              ? OneUptimeDate.fromString(span.startTime)
+              : new Date(),
             statusCode: span.statusCode,
             durationNano: duration,
           });

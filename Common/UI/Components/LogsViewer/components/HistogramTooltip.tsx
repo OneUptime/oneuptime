@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import OneUptimeDate from "../../../../Types/Date";
 import { getSeverityColor } from "./severityColors";
 
 export interface TooltipEntry {
@@ -21,7 +22,7 @@ function formatTooltipTime(label: string | undefined): string {
     return "";
   }
 
-  const date: Date = new Date(label);
+  const date: Date = OneUptimeDate.fromString(label);
 
   if (isNaN(date.getTime())) {
     return label;

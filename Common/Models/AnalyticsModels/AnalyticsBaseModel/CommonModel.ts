@@ -69,7 +69,11 @@ export default class CommonModel {
         value = new ObjectID(value as string | JSONObject);
       }
 
-      if (column.type === TableColumnType.Date && typeof value === "string") {
+      if (
+        (column.type === TableColumnType.Date ||
+          column.type === TableColumnType.DateTime64) &&
+        typeof value === "string"
+      ) {
         value = OneUptimeDate.fromString(value);
       }
 

@@ -285,7 +285,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         <span className="flex-none whitespace-nowrap font-mono text-[11px] text-gray-400">
           {ctxLog.time
             ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                new Date(ctxLog.time),
+                OneUptimeDate.fromString(ctxLog.time),
               )
             : "-"}
         </span>
