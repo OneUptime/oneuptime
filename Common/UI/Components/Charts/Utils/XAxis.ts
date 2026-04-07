@@ -295,9 +295,7 @@ export default class XAxisUtil {
           const roundedHours: number = Math.floor(hours / 2) * 2;
           roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(
-            roundedValue,
-          );
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
         };
       case XAxisPrecision.EVERY_THREE_HOURS:
         // round down to nearest 3 hours
@@ -307,9 +305,7 @@ export default class XAxisUtil {
           const roundedHours: number = Math.floor(hours / 3) * 3;
           roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(
-            roundedValue,
-          );
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
         };
       case XAxisPrecision.EVERY_SIX_HOURS:
         // round down to nearest 6 hours // HH:00 DD MMM
@@ -319,9 +315,7 @@ export default class XAxisUtil {
           const roundedHours: number = Math.floor(hours / 6) * 6;
           roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(
-            roundedValue,
-          );
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
         };
       case XAxisPrecision.EVERY_TWELVE_HOURS:
         // round down to nearest 12 hours  // DD MMM, HH:00
@@ -331,9 +325,7 @@ export default class XAxisUtil {
           const roundedHours: number = Math.floor(hours / 12) * 12;
           roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          return OneUptimeDate.getDateAsLocalDayMonthHourString(
-            roundedValue,
-          );
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(roundedValue);
         };
       case XAxisPrecision.EVERY_DAY:
         // round down to nearest day
