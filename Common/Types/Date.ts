@@ -17,9 +17,10 @@ export default class OneUptimeDate {
   }
 
   private static isUtcDateTimeString(value: string): boolean {
-    return (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/).test(
-      value.trim(),
-    );
+    const utcDateTimePattern: RegExp =
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/;
+
+    return utcDateTimePattern.test(value.trim());
   }
 
   private static normalizeUtcDateTimeString(value: string): string {
