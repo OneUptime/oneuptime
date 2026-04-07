@@ -174,6 +174,8 @@ RunCron(
       );
 
       try {
+        let notificationSentToAtLeastOneSubscriber: boolean = false;
+
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
@@ -329,6 +331,8 @@ RunCron(
                   );
                   continue;
                 }
+
+                notificationSentToAtLeastOneSubscriber = true;
 
                 const unsubscribeUrl: string =
                   StatusPageSubscriberService.getUnsubscribeLink(
@@ -587,6 +591,16 @@ RunCron(
           }
         }
 
+        if (notificationSentToAtLeastOneSubscriber) {
+          logger.debug(
+            `Notifications sent to subscribers for announcement ${announcement.id}.`,
+          );
+        } else {
+          logger.debug(
+            `No subscribers were notified for announcement ${announcement.id}. All status pages either hide announcements or had no matching subscribers.`,
+          );
+        }
+
         // If we get here, the notification was successful
         await StatusPageAnnouncementService.updateOneById({
           id: announcement.id!,
@@ -594,7 +608,9 @@ RunCron(
             subscriberNotificationStatus:
               StatusPageSubscriberNotificationStatus.Success,
             subscriberNotificationStatusMessage:
-              "Notifications sent successfully to all subscribers",
+              notificationSentToAtLeastOneSubscriber
+                ? "Notifications sent successfully to all subscribers"
+                : "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
           },
           props: {
             isRoot: true,

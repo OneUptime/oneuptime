@@ -38,7 +38,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
@@ -230,6 +230,8 @@ RunCron(
             }) || [],
           );
 
+        let notificationSentToAtLeastOneSubscriber: boolean = false;
+
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
             continue;
@@ -347,6 +349,8 @@ RunCron(
             if (!shouldNotifySubscriber) {
               continue;
             }
+
+            notificationSentToAtLeastOneSubscriber = true;
 
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
@@ -544,26 +548,55 @@ RunCron(
           }
         }
 
-        const scheduledMaintenanceNumber: string =
-          event.scheduledMaintenanceNumberWithPrefix ||
-          event.scheduledMaintenanceNumber?.toString() ||
-          " - ";
-        const projectId: ObjectID = event.projectId!;
-        const scheduledMaintenanceId: ObjectID = event.id!;
+        if (notificationSentToAtLeastOneSubscriber) {
+          const scheduledMaintenanceNumber: string =
+            event.scheduledMaintenanceNumberWithPrefix ||
+            event.scheduledMaintenanceNumber?.toString() ||
+            " - ";
+          const projectId: ObjectID = event.projectId!;
+          const scheduledMaintenanceId: ObjectID = event.id!;
 
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
-          {
-            scheduledMaintenanceId: event.id!,
-            projectId: event.projectId!,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
-            displayColor: Blue500,
-            feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: event.id!,
+              projectId: event.projectId!,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+              displayColor: Blue500,
+              feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+              },
             },
-          },
-        );
+          );
+        } else {
+          logger.debug(
+            `No subscribers were notified for scheduled maintenance state change. All status pages either hide scheduled maintenance events or had no matching subscribers.`,
+          );
+
+          const scheduledMaintenanceNumber: string =
+            event.scheduledMaintenanceNumberWithPrefix ||
+            event.scheduledMaintenanceNumber?.toString() ||
+            " - ";
+          const projectId: ObjectID = event.projectId!;
+          const scheduledMaintenanceId: ObjectID = event.id!;
+
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: event.id!,
+              projectId: event.projectId!,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+              displayColor: Yellow500,
+              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+              moreInformationInMarkdown:
+                "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+              workspaceNotification: {
+                sendWorkspaceNotification: false,
+              },
+            },
+          );
+        }
 
         // Set status to Success after successful notification
         await ScheduledMaintenanceStateTimelineService.updateOneById({

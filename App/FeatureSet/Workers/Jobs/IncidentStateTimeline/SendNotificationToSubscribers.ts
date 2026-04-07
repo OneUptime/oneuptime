@@ -38,7 +38,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
@@ -261,6 +261,8 @@ RunCron(
           }),
         );
 
+      let notificationSentToAtLeastOneSubscriber: boolean = false;
+
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
           logger.debug("Encountered a status page without an id; skipping.");
@@ -366,6 +368,8 @@ RunCron(
             );
             continue;
           }
+
+          notificationSentToAtLeastOneSubscriber = true;
 
           const unsubscribeUrl: string =
             StatusPageSubscriberService.getUnsubscribeLink(
@@ -606,28 +610,55 @@ RunCron(
         }
       }
 
-      logger.debug(
-        "Notification sent to subscribers for incident state change",
-      );
+      if (notificationSentToAtLeastOneSubscriber) {
+        logger.debug(
+          "Notification sent to subscribers for incident state change",
+        );
 
-      const incidentNumberDisplay: string =
-        incident.incidentNumberWithPrefix ||
-        "#" + (incident.incidentNumber?.toString() || " - ");
-      const projectId: ObjectID = incident.projectId!;
-      const incidentId: ObjectID = incident.id!;
+        const incidentNumberDisplay: string =
+          incident.incidentNumberWithPrefix ||
+          "#" + (incident.incidentNumber?.toString() || " - ");
+        const projectId: ObjectID = incident.projectId!;
+        const incidentId: ObjectID = incident.id!;
 
-      await IncidentFeedService.createIncidentFeedItem({
-        incidentId: incident.id!,
-        projectId: incident.projectId!,
-        incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
-        workspaceNotification: {
-          sendWorkspaceNotification: true,
-        },
-      });
+        await IncidentFeedService.createIncidentFeedItem({
+          incidentId: incident.id!,
+          projectId: incident.projectId!,
+          incidentFeedEventType:
+            IncidentFeedEventType.SubscriberNotificationSent,
+          displayColor: Blue500,
+          feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+          },
+        });
 
-      logger.debug("Incident Feed created");
+        logger.debug("Incident Feed created");
+      } else {
+        logger.debug(
+          `No subscribers were notified for incident state change. All status pages either hide incidents or had no matching subscribers.`,
+        );
+
+        const incidentNumberDisplay: string =
+          incident.incidentNumberWithPrefix ||
+          "#" + (incident.incidentNumber?.toString() || " - ");
+        const projectId: ObjectID = incident.projectId!;
+        const incidentId: ObjectID = incident.id!;
+
+        await IncidentFeedService.createIncidentFeedItem({
+          incidentId: incident.id!,
+          projectId: incident.projectId!,
+          incidentFeedEventType:
+            IncidentFeedEventType.SubscriberNotificationSent,
+          displayColor: Yellow500,
+          feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
+          moreInformationInMarkdown:
+            "Subscriber notifications were skipped because all associated status pages either hide incidents or had no matching subscribers.",
+          workspaceNotification: {
+            sendWorkspaceNotification: false,
+          },
+        });
+      }
 
       // Mark Success at the end
       await IncidentStateTimelineService.updateOneById({

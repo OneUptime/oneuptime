@@ -38,7 +38,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
@@ -288,6 +288,8 @@ RunCron(
           `Loaded ${statusPages.length} status page(s) for episode ${episode.id}.`,
         );
 
+        let notificationSentToAtLeastOneSubscriber: boolean = false;
+
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
@@ -429,6 +431,8 @@ RunCron(
                   );
                   continue;
                 }
+
+                notificationSentToAtLeastOneSubscriber = true;
 
                 const unsubscribeUrl: string =
                   StatusPageSubscriberService.getUnsubscribeLink(
@@ -670,18 +674,35 @@ RunCron(
           }
         }
 
-        logger.debug("Creating episode feed for subscriber notification");
+        if (notificationSentToAtLeastOneSubscriber) {
+          logger.debug("Creating episode feed for subscriber notification");
 
-        await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-          incidentEpisodeId: episode.id!,
-          projectId: episode.projectId!,
-          incidentEpisodeFeedEventType:
-            IncidentEpisodeFeedEventType.SubscriberNotificationSent,
-          displayColor: Blue500,
-          feedInfoInMarkdown: episodeFeedText,
-        });
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: episode.id!,
+            projectId: episode.projectId!,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.SubscriberNotificationSent,
+            displayColor: Blue500,
+            feedInfoInMarkdown: episodeFeedText,
+          });
 
-        logger.debug("Episode Feed created");
+          logger.debug("Episode Feed created");
+        } else {
+          logger.debug(
+            `No subscribers were notified for episode created: ${episode.id}. All status pages either hide episodes or had no matching subscribers.`,
+          );
+
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: episode.id!,
+            projectId: episode.projectId!,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.SubscriberNotificationSent,
+            displayColor: Yellow500,
+            feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the creation of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`,
+            moreInformationInMarkdown:
+              "Subscriber notifications were skipped because all associated status pages either hide episodes or had no matching subscribers.",
+          });
+        }
 
         // If we get here, the notification was successful
         await IncidentEpisodeService.updateOneById({

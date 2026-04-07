@@ -40,7 +40,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
@@ -337,6 +337,8 @@ RunCron(
           }),
         );
 
+      let notificationSentToAtLeastOneSubscriber: boolean = false;
+
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
           logger.debug("Encountered a status page without an id; skipping.");
@@ -442,6 +444,8 @@ RunCron(
             );
             continue;
           }
+
+          notificationSentToAtLeastOneSubscriber = true;
 
           const unsubscribeUrl: string =
             StatusPageSubscriberService.getUnsubscribeLink(
@@ -677,22 +681,47 @@ RunCron(
         }
       }
 
-      logger.debug("Notification sent to subscribers for episode state change");
+      if (notificationSentToAtLeastOneSubscriber) {
+        logger.debug(
+          "Notification sent to subscribers for episode state change",
+        );
 
-      const episodeNumber: string = episode.episodeNumber?.toString() || " - ";
-      const projectId: ObjectID = episode.projectId!;
-      const episodeId: ObjectID = episode.id!;
+        const episodeNumber: string =
+          episode.episodeNumber?.toString() || " - ";
+        const projectId: ObjectID = episode.projectId!;
+        const episodeId: ObjectID = episode.id!;
 
-      await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-        incidentEpisodeId: episode.id!,
-        projectId: episode.projectId!,
-        incidentEpisodeFeedEventType:
-          IncidentEpisodeFeedEventType.SubscriberNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateTimeline.incidentState.name}**`,
-      });
+        await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+          incidentEpisodeId: episode.id!,
+          projectId: episode.projectId!,
+          incidentEpisodeFeedEventType:
+            IncidentEpisodeFeedEventType.SubscriberNotificationSent,
+          displayColor: Blue500,
+          feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateTimeline.incidentState.name}**`,
+        });
 
-      logger.debug("Episode Feed created");
+        logger.debug("Episode Feed created");
+      } else {
+        logger.debug(
+          `No subscribers were notified for episode state change. All status pages either hide episodes or had no matching subscribers.`,
+        );
+
+        const episodeNumber: string =
+          episode.episodeNumber?.toString() || " - ";
+        const projectId: ObjectID = episode.projectId!;
+        const episodeId: ObjectID = episode.id!;
+
+        await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+          incidentEpisodeId: episode.id!,
+          projectId: episode.projectId!,
+          incidentEpisodeFeedEventType:
+            IncidentEpisodeFeedEventType.SubscriberNotificationSent,
+          displayColor: Yellow500,
+          feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) to **${episodeStateTimeline.incidentState.name}**`,
+          moreInformationInMarkdown:
+            "Subscriber notifications were skipped because all associated status pages either hide episodes or had no matching subscribers.",
+        });
+      }
 
       // Mark Success at the end
       await IncidentEpisodeStateTimelineService.updateOneById({

@@ -40,7 +40,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
@@ -240,6 +240,8 @@ RunCron(
           continue;
         }
 
+        let notificationSentToAtLeastOneSubscriber: boolean = false;
+
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
             logger.debug("Encountered a status page without an id; skipping.");
@@ -372,6 +374,8 @@ RunCron(
               );
               continue;
             }
+
+            notificationSentToAtLeastOneSubscriber = true;
 
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
@@ -607,22 +611,44 @@ RunCron(
           }
         }
 
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
-          {
-            scheduledMaintenanceId: event.id!,
-            projectId: event.projectId!,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
-            displayColor: Blue500,
-            feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
-            moreInformationInMarkdown: `**Public Note:**
-        
+        if (notificationSentToAtLeastOneSubscriber) {
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: event.id!,
+              projectId: event.projectId!,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+              displayColor: Blue500,
+              feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
+              moreInformationInMarkdown: `**Public Note:**
+
 ${publicNote.note}`,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+              },
             },
-          },
-        );
+          );
+        } else {
+          logger.debug(
+            `No subscribers were notified for public note on scheduled maintenance: ${event.id}. All status pages either hide scheduled maintenance events or had no matching subscribers.`,
+          );
+
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: event.id!,
+              projectId: event.projectId!,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+              displayColor: Yellow500,
+              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the public note on [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
+              moreInformationInMarkdown:
+                "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+              workspaceNotification: {
+                sendWorkspaceNotification: false,
+              },
+            },
+          );
+        }
 
         // Set status to Success after successful notification
         await ScheduledMaintenancePublicNoteService.updateOneById({

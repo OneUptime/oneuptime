@@ -38,7 +38,7 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
@@ -235,16 +235,18 @@ RunCron(
             }),
           );
 
+        let notificationSentToAtLeastOneSubscriber: boolean = false;
+
         for (const statuspage of statusPages) {
-          logger.debug("Encountered a status page without an id; skipping.");
           if (!statuspage.id) {
+            logger.debug("Encountered a status page without an id; skipping.");
             continue;
           }
 
-          logger.debug(
-            `Status page ${statuspage.id} hides incidents; skipping.`,
-          );
           if (!statuspage.showIncidentsOnStatusPage) {
+            logger.debug(
+              `Status page ${statuspage.id} hides incidents; skipping.`,
+            );
             continue; // Do not send notification to subscribers if incidents are not visible on status page.
           }
 
@@ -366,6 +368,8 @@ RunCron(
               );
               continue;
             }
+
+            notificationSentToAtLeastOneSubscriber = true;
 
             const unsubscribeUrl: string =
               StatusPageSubscriberService.getUnsubscribeLink(
@@ -604,26 +608,46 @@ ${incidentPublicNote.note || ""}
           }
         }
 
-        logger.debug(
-          `Notification sent to subscribers for public note added to incident: ${incident.id}`,
-        );
+        if (notificationSentToAtLeastOneSubscriber) {
+          logger.debug(
+            `Notification sent to subscribers for public note added to incident: ${incident.id}`,
+          );
 
-        await IncidentFeedService.createIncidentFeedItem({
-          incidentId: incident.id!,
-          projectId: incident.projectId!,
-          incidentFeedEventType:
-            IncidentFeedEventType.SubscriberNotificationSent,
-          displayColor: Blue500,
-          feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
-          moreInformationInMarkdown: `**Public Note:**
-        
+          await IncidentFeedService.createIncidentFeedItem({
+            incidentId: incident.id!,
+            projectId: incident.projectId!,
+            incidentFeedEventType:
+              IncidentFeedEventType.SubscriberNotificationSent,
+            displayColor: Blue500,
+            feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+            moreInformationInMarkdown: `**Public Note:**
+
 ${incidentPublicNote.note}`,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-          },
-        });
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          });
 
-        logger.debug("Incident Feed created");
+          logger.debug("Incident Feed created");
+        } else {
+          logger.debug(
+            `No subscribers were notified for public note added to incident: ${incident.id}. All status pages either hide incidents or had no matching subscribers.`,
+          );
+
+          await IncidentFeedService.createIncidentFeedItem({
+            incidentId: incident.id!,
+            projectId: incident.projectId!,
+            incidentFeedEventType:
+              IncidentFeedEventType.SubscriberNotificationSent,
+            displayColor: Yellow500,
+            feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the public note on [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+            moreInformationInMarkdown:
+              "Subscriber notifications were skipped because all associated status pages either hide incidents or had no matching subscribers.",
+            workspaceNotification: {
+              sendWorkspaceNotification: false,
+            },
+          });
+        }
 
         // Set status to Success after successful notification
         await IncidentPublicNoteService.updateOneById({
