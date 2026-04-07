@@ -22,6 +22,12 @@ interface StatusPageVisibilitySettings {
   enableSubscribers?: boolean;
 }
 
+interface WarningItem {
+  feature: string;
+  detail: string;
+  setting: string;
+}
+
 const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -66,36 +72,49 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
-  const warnings: Array<string> = [];
-
+  // If subscribers are globally disabled, show a single clear message
   if (!settings.enableSubscribers) {
-    warnings.push(
-      "Subscribers are disabled for this status page. Subscribers will not receive any notifications until subscribers are enabled in Status Page Settings.",
+    return (
+      <Alert
+        type={AlertType.WARNING}
+        strongTitle="Subscribers Disabled"
+        title="Subscribers are disabled for this status page. No notifications will be sent to any subscriber. Enable subscribers in Status Page Settings to start sending notifications."
+      />
     );
   }
 
+  const warnings: Array<WarningItem> = [];
+
   if (!settings.showIncidentsOnStatusPage) {
-    warnings.push(
-      "Incidents are hidden on this status page. Subscribers will not receive notifications for incident creation, state changes, or public notes. To enable these notifications, turn on 'Show Incidents' in Status Page Settings.",
-    );
+    warnings.push({
+      feature: "Incidents",
+      detail: "creation, state changes, and public notes",
+      setting: "Show Incidents",
+    });
   }
 
   if (!settings.showAnnouncementsOnStatusPage) {
-    warnings.push(
-      "Announcements are hidden on this status page. Subscribers will not receive notifications when announcements are created. To enable these notifications, turn on 'Show Announcements' in Status Page Settings.",
-    );
+    warnings.push({
+      feature: "Announcements",
+      detail: "creation",
+      setting: "Show Announcements",
+    });
   }
 
   if (!settings.showScheduledMaintenanceEventsOnStatusPage) {
-    warnings.push(
-      "Scheduled maintenance events are hidden on this status page. Subscribers will not receive notifications for scheduled maintenance creation, state changes, or public notes. To enable these notifications, turn on 'Show Scheduled Maintenance Events' in Status Page Settings.",
-    );
+    warnings.push({
+      feature: "Scheduled Maintenance",
+      detail: "creation, state changes, and public notes",
+      setting: "Show Scheduled Maintenance Events",
+    });
   }
 
   if (!settings.showEpisodesOnStatusPage) {
-    warnings.push(
-      "Episodes are hidden on this status page. Subscribers will not receive notifications for episode creation, state changes, or public notes. To enable these notifications, turn on 'Show Episodes' in Status Page Settings.",
-    );
+    warnings.push({
+      feature: "Episodes",
+      detail: "creation, state changes, and public notes",
+      setting: "Show Episodes",
+    });
   }
 
   if (warnings.length === 0) {
@@ -103,18 +122,32 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="mt-5 mb-5">
-      {warnings.map((warning: string, index: number) => {
-        return (
-          <Alert
-            key={index}
-            type={AlertType.WARNING}
-            strongTitle="Subscriber Notification Warning"
-            title={warning}
-          />
-        );
-      })}
-    </div>
+    <Alert
+      type={AlertType.WARNING}
+      strongTitle="Some subscriber notifications are disabled"
+      title={
+        <div>
+          <p>
+            {
+              "The following event types are hidden on this status page. Subscribers will not receive notifications for them. To fix this, enable the corresponding settings in Status Page Settings."
+            }
+          </p>
+          <ul className="list-disc list-inside space-y-1 mt-2">
+            {warnings.map((warning: WarningItem, index: number) => {
+              return (
+                <li key={index}>
+                  <span className="font-medium">{warning.feature}</span>
+                  {" — "}
+                  {`no notifications for ${warning.detail}. Enable `}
+                  <span className="font-medium">{`"${warning.setting}"`}</span>
+                  {" to fix."}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      }
+    />
   );
 };
 
