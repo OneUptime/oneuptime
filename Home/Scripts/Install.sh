@@ -90,7 +90,7 @@ echo ""
 # Ask for host configuration
 echo -e "${YELLOW}Enter the hostname where OneUptime will be accessible${NC}"
 echo -e "${YELLOW}(e.g., oneuptime.yourdomain.com or an IP address)${NC}"
-read -p "Host [localhost]: " USER_HOST
+read -p "Host [localhost]: " USER_HOST < /dev/tty
 USER_HOST=${USER_HOST:-localhost}
 
 # Create config.env if it doesn't exist
