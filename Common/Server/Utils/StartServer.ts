@@ -266,14 +266,13 @@ const init: InitFunction = async (
       },
     );
 
-    // Return 404 for missing static assets instead of falling through to SPA catch-all.
-    // Without this, missing JS/CSS chunks get served as HTML (index.ejs),
-    // which causes "Failed to fetch dynamically imported module" errors.
+    /*
+     * Return 404 for missing static assets instead of falling through to SPA catch-all.
+     * Without this, missing JS/CSS chunks get served as HTML (index.ejs),
+     * which causes "Failed to fetch dynamically imported module" errors.
+     */
     app.get(
-      [
-        `/${appName}/dist/*`,
-        `/${appName}/assets/*`,
-      ],
+      [`/${appName}/dist/*`, `/${appName}/assets/*`],
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.status(404).send("Not found");
       },
