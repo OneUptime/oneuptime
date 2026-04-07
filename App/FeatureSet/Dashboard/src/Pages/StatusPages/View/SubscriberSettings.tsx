@@ -38,6 +38,7 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useAsyncEffect from "use-async-effect";
+import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
 
 const StatusPageSubscriberSettings: FunctionComponent<
   PageComponentProps
@@ -100,6 +101,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
 
   const settingsContent: ReactElement = (
     <Fragment>
+      <SubscriberNotificationWarnings statusPageId={modelId} />
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Subscriber > Email"
         cardProps={{

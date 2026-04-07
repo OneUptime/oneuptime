@@ -19,6 +19,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
@@ -243,6 +244,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               title="SMS subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
             />
           )}
+          <SubscriberNotificationWarnings statusPageId={modelId} />
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             userPreferencesKey="status-page-sms-subscribers-table"

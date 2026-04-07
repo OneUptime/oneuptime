@@ -9,6 +9,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -17,6 +18,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <SubscriberNotificationWarnings statusPageId={modelId} />
       <ModelTable<StatusPageSubscriber>
         modelType={StatusPageSubscriber}
         name="Status Page > Webhook Subscribers"

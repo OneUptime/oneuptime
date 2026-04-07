@@ -28,6 +28,7 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -256,6 +257,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               title="Email subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
             />
           )}
+          <SubscriberNotificationWarnings statusPageId={modelId} />
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-subscriber"
