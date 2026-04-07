@@ -42,13 +42,17 @@ encryptionSecret:
 ipWhitelist:
 
 # External Secrets
-# You need to leave blank oneuptimeSecret and encryptionSecret to use this section
+# You need to leave blank oneuptimeSecret, encryptionSecret, and registerProbeKey to use this section
 externalSecrets:
   oneuptimeSecret:
     existingSecret:
       name:
       passwordKey:
   encryptionSecret:
+    existingSecret:
+      name:
+      passwordKey:
+  registerProbeKey:
     existingSecret:
       name:
       passwordKey:
