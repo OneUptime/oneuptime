@@ -12,6 +12,16 @@ export const Moment: typeof moment = moment;
 export default class OneUptimeDate {
   // get date time from unix timestamp
 
+  private static padDatePart(value: number): string {
+    return value.toString().padStart(2, "0");
+  }
+
+  private static getLocalShortMonthName(date: Date): string {
+    return date.toLocaleString("default", {
+      month: "short",
+    });
+  }
+
   public static getSchema(): ZodSchema {
     return Zod.object({
       _type: Zod.literal(ObjectType.DateTime),
@@ -106,8 +116,63 @@ export default class OneUptimeDate {
   }
 
   public static getLocalHourAndMinuteFromDate(date: Date | string): string {
+    return this.getLocalTimeString(date);
+  }
+
+  public static getLocalShortMonthNameFromDate(date: Date | string): string {
     date = this.fromString(date);
-    return moment(date).format("HH:mm");
+    return this.getLocalShortMonthName(date);
+  }
+
+  public static getLocalTimeString(
+    date: Date | string,
+    options?: {
+      includeMinutes?: boolean;
+      includeSeconds?: boolean;
+    },
+  ): string {
+    date = this.fromString(date);
+
+    const includeMinutes: boolean = options?.includeMinutes ?? true;
+    const includeSeconds: boolean = options?.includeSeconds ?? false;
+    const hours: string = this.padDatePart(date.getHours());
+
+    if (!includeMinutes) {
+      return hours;
+    }
+
+    const minutes: string = this.padDatePart(date.getMinutes());
+
+    if (!includeSeconds) {
+      return `${hours}:${minutes}`;
+    }
+
+    const seconds: string = this.padDatePart(date.getSeconds());
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  public static getDateAsLocalDayMonthString(date: Date | string): string {
+    date = this.fromString(date);
+
+    const day: string = this.padDatePart(date.getDate());
+    const month: string = this.getLocalShortMonthName(date);
+
+    return `${day} ${month}`;
+  }
+
+  public static getDateAsLocalDayMonthHourString(date: Date | string): string {
+    date = this.fromString(date);
+
+    return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(date, { includeMinutes: false })}:00`;
+  }
+
+  public static getDateAsLocalMonthYearString(date: Date | string): string {
+    date = this.fromString(date);
+
+    const month: string = this.getLocalShortMonthName(date);
+    const year: string = date.getFullYear().toString();
+
+    return `${month} ${year}`;
   }
 
   public static getMillisecondsBetweenTwoUnixNanoDates(

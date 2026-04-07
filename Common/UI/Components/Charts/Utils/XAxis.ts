@@ -4,6 +4,10 @@ import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
 
 export default class XAxisUtil {
+  private static cloneDate(value: Date): Date {
+    return new Date(value.getTime());
+  }
+
   public static getPrecision(data: {
     xAxisMin: XAxisMaxMin;
     xAxisMax: XAxisMaxMin;
@@ -203,211 +207,204 @@ export default class XAxisUtil {
     switch (precision) {
       case XAxisPrecision.EVERY_SECOND:
         return (value: Date) => {
-          // round down to nearest second
-          return value.toISOString().substring(11, 19);
+          return OneUptimeDate.getLocalTimeString(value, {
+            includeSeconds: true,
+          });
         };
       case XAxisPrecision.EVERY_FIVE_SECONDS:
         // round down to nearest 5 seconds
         return (value: Date) => {
-          const seconds: number = value.getSeconds();
+          const roundedValue: Date = this.cloneDate(value);
+          const seconds: number = roundedValue.getSeconds();
           const roundedSeconds: number = Math.floor(seconds / 5) * 5;
-          value.setSeconds(roundedSeconds);
-          return value.toISOString().substring(11, 19);
+          roundedValue.setSeconds(roundedSeconds, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue, {
+            includeSeconds: true,
+          });
         };
       case XAxisPrecision.EVERY_TEN_SECONDS:
         // round down to nearest 10 seconds
         return (value: Date) => {
-          const seconds: number = value.getSeconds();
+          const roundedValue: Date = this.cloneDate(value);
+          const seconds: number = roundedValue.getSeconds();
           const roundedSeconds: number = Math.floor(seconds / 10) * 10;
-          value.setSeconds(roundedSeconds);
-          return value.toISOString().substring(11, 19);
+          roundedValue.setSeconds(roundedSeconds, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue, {
+            includeSeconds: true,
+          });
         };
       case XAxisPrecision.EVERY_THIRTY_SECONDS:
         // round down to nearest 30 seconds
         return (value: Date) => {
-          const seconds: number = value.getSeconds();
+          const roundedValue: Date = this.cloneDate(value);
+          const seconds: number = roundedValue.getSeconds();
           const roundedSeconds: number = Math.floor(seconds / 30) * 30;
-          value.setSeconds(roundedSeconds);
-          return value.toISOString().substring(11, 19);
+          roundedValue.setSeconds(roundedSeconds, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue, {
+            includeSeconds: true,
+          });
         };
       case XAxisPrecision.EVERY_MINUTE:
         // round down to nearest minute
         return (value: Date) => {
-          return value.toISOString().substring(11, 16);
+          return OneUptimeDate.getLocalTimeString(value);
         };
       case XAxisPrecision.EVERY_FIVE_MINUTES:
         // round down to nearest 5 minutes
         return (value: Date) => {
-          const minutes: number = value.getMinutes();
+          const roundedValue: Date = this.cloneDate(value);
+          const minutes: number = roundedValue.getMinutes();
           const roundedMinutes: number = Math.floor(minutes / 5) * 5;
-          value.setMinutes(roundedMinutes);
-          return value.toISOString().substring(11, 16);
+          roundedValue.setMinutes(roundedMinutes, 0, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue);
         };
       case XAxisPrecision.EVERY_TEN_MINUTES:
         // round down to nearest 10 minutes
         return (value: Date) => {
-          const minutes: number = value.getMinutes();
+          const roundedValue: Date = this.cloneDate(value);
+          const minutes: number = roundedValue.getMinutes();
           const roundedMinutes: number = Math.floor(minutes / 10) * 10;
-          value.setMinutes(roundedMinutes);
-          return value.toISOString().substring(11, 16);
+          roundedValue.setMinutes(roundedMinutes, 0, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue);
         };
       case XAxisPrecision.EVERY_THIRTY_MINUTES:
         // round down to nearest 30 minutes
         return (value: Date) => {
-          const minutes: number = value.getMinutes();
+          const roundedValue: Date = this.cloneDate(value);
+          const minutes: number = roundedValue.getMinutes();
           const roundedMinutes: number = Math.floor(minutes / 30) * 30;
-          value.setMinutes(roundedMinutes);
-          return value.toISOString().substring(11, 16);
+          roundedValue.setMinutes(roundedMinutes, 0, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue);
         };
       case XAxisPrecision.EVERY_HOUR:
         return (value: Date) => {
-          return value.toISOString().substring(11, 13);
+          return OneUptimeDate.getLocalTimeString(value, {
+            includeMinutes: false,
+          });
         }; // HH:00
       case XAxisPrecision.EVERY_TWO_HOURS:
         return (value: Date) => {
-          const hours: number = value.getHours();
+          const roundedValue: Date = this.cloneDate(value);
+          const hours: number = roundedValue.getHours();
           const roundedHours: number = Math.floor(hours / 2) * 2;
-          value.setHours(roundedHours);
+          roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          const dateString: string = value.toISOString();
-          const day: string = dateString.substring(8, 10);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          return `${day} ${month}, ${value.toISOString().substring(11, 13)}:00`;
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(
+            roundedValue,
+          );
         };
       case XAxisPrecision.EVERY_THREE_HOURS:
         // round down to nearest 3 hours
         return (value: Date) => {
-          const hours: number = value.getHours();
+          const roundedValue: Date = this.cloneDate(value);
+          const hours: number = roundedValue.getHours();
           const roundedHours: number = Math.floor(hours / 3) * 3;
-          value.setHours(roundedHours);
+          roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          const dateString: string = value.toISOString();
-          const day: string = dateString.substring(8, 10);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          return `${day} ${month}, ${value.toISOString().substring(11, 13)}:00`;
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(
+            roundedValue,
+          );
         };
       case XAxisPrecision.EVERY_SIX_HOURS:
         // round down to nearest 6 hours // HH:00 DD MMM
         return (value: Date) => {
-          const hours: number = value.getHours();
+          const roundedValue: Date = this.cloneDate(value);
+          const hours: number = roundedValue.getHours();
           const roundedHours: number = Math.floor(hours / 6) * 6;
-          value.setHours(roundedHours);
+          roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          const dateString: string = value.toISOString();
-          const day: string = dateString.substring(8, 10);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          return `${day} ${month}, ${value.toISOString().substring(11, 13)}:00`;
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(
+            roundedValue,
+          );
         };
       case XAxisPrecision.EVERY_TWELVE_HOURS:
         // round down to nearest 12 hours  // DD MMM, HH:00
         return (value: Date) => {
-          const hours: number = value.getHours();
+          const roundedValue: Date = this.cloneDate(value);
+          const hours: number = roundedValue.getHours();
           const roundedHours: number = Math.floor(hours / 12) * 12;
-          value.setHours(roundedHours);
+          roundedValue.setHours(roundedHours, 0, 0, 0);
 
-          const dateString: string = value.toISOString();
-          const day: string = dateString.substring(8, 10);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          const hour: string = dateString.substring(11, 13);
-          return `${day} ${month}, ${hour}:00`;
+          return OneUptimeDate.getDateAsLocalDayMonthHourString(
+            roundedValue,
+          );
         };
       case XAxisPrecision.EVERY_DAY:
         // round down to nearest day
         return (value: Date) => {
-          const dateString: string = value.toISOString();
-          const day: string = dateString.substring(8, 10);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          return `${day} ${month}`;
+          return OneUptimeDate.getDateAsLocalDayMonthString(value);
         };
       case XAxisPrecision.EVERY_TWO_DAYS:
         // round down to nearest 2 days
         return (value: Date) => {
-          const days: number = value.getDate();
+          const roundedValue: Date = this.cloneDate(value);
+          const days: number = roundedValue.getDate();
           const roundedDays: number = Math.floor(days / 2) * 2;
-          value.setDate(roundedDays);
-          const dateString: string = value.toISOString();
-          const day: string = dateString.substring(8, 10);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          return `${day} ${month}`;
+          roundedValue.setDate(roundedDays);
+
+          return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
         };
       case XAxisPrecision.EVERY_WEEK:
         // round down to nearest week
         return (value: Date) => {
           const day: string = value.getDate().toString();
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
+          const month: string =
+            OneUptimeDate.getLocalShortMonthNameFromDate(value);
           return `${day} ${month}`;
         };
       case XAxisPrecision.EVERY_TWO_WEEKS:
         // round down to nearest 2 weeks. // DD MMM
         return (value: Date) => {
-          const days: number = value.getDate();
+          const roundedValue: Date = this.cloneDate(value);
+          const days: number = roundedValue.getDate();
           const roundedDays: number = Math.floor(days / 2) * 2;
-          value.setDate(roundedDays);
-          const day: string = value.getDate().toString();
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
+          roundedValue.setDate(roundedDays);
+          const day: string = roundedValue.getDate().toString();
+          const month: string =
+            OneUptimeDate.getLocalShortMonthNameFromDate(roundedValue);
           return `${day} ${month}`;
         };
       case XAxisPrecision.EVERY_MONTH:
         // round down to nearest month // MM YYYY
         return (value: Date) => {
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          const year: string = value.getFullYear().toString();
-          return `${month} ${year}`;
+          return OneUptimeDate.getDateAsLocalMonthYearString(value);
         };
 
       case XAxisPrecision.EVERY_TWO_MONTHS:
         // round down to nearest 2 months // MM YYYY
         return (value: Date) => {
-          const months: number = value.getMonth();
+          const roundedValue: Date = this.cloneDate(value);
+          const months: number = roundedValue.getMonth();
           const roundedMonths: number = Math.floor(months / 2) * 2;
-          value.setMonth(roundedMonths);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          const year: string = value.getFullYear().toString();
-          return `${month} ${year}`;
+          roundedValue.setMonth(roundedMonths);
+
+          return OneUptimeDate.getDateAsLocalMonthYearString(roundedValue);
         };
       case XAxisPrecision.EVERY_THREE_MONTHS:
         // round down to nearest 3 months // MM YYYY
         return (value: Date) => {
-          const months: number = value.getMonth();
+          const roundedValue: Date = this.cloneDate(value);
+          const months: number = roundedValue.getMonth();
           const roundedMonths: number = Math.floor(months / 3) * 3;
-          value.setMonth(roundedMonths);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          const year: string = value.getFullYear().toString();
-          return `${month} ${year}`;
+          roundedValue.setMonth(roundedMonths);
+
+          return OneUptimeDate.getDateAsLocalMonthYearString(roundedValue);
         };
       case XAxisPrecision.EVERY_SIX_MONTHS:
         // round down to nearest 6 months // MM YYYY
         return (value: Date) => {
-          const months: number = value.getMonth();
+          const roundedValue: Date = this.cloneDate(value);
+          const months: number = roundedValue.getMonth();
           const roundedMonths: number = Math.floor(months / 6) * 6;
-          value.setMonth(roundedMonths);
-          const month: string = value.toLocaleString("default", {
-            month: "short",
-          });
-          const year: string = value.getFullYear().toString();
-          return `${month} ${year}`;
+          roundedValue.setMonth(roundedMonths);
+
+          return OneUptimeDate.getDateAsLocalMonthYearString(roundedValue);
         };
       case XAxisPrecision.EVERY_YEAR:
         // round down to nearest year // YYYY
