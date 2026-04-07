@@ -525,7 +525,10 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   ] as Route,
                                 )
                                   .toString()
-                                  .replace(/\/?$/, `/${exception.id.toString()}`),
+                                  .replace(
+                                    /\/?$/,
+                                    `/${exception.id.toString()}`,
+                                  ),
                               )
                             : RouteUtil.populateRouteParams(
                                 RouteMap[
