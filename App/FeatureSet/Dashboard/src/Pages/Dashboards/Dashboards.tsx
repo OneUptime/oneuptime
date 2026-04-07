@@ -22,10 +22,8 @@ import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateC
 import {
   DashboardTemplates,
   DashboardTemplateType,
-  getTemplateConfig,
   DashboardTemplate,
 } from "Common/Types/Dashboard/DashboardTemplates";
-import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -142,17 +140,13 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
         onBeforeCreate={async (
           item: Dashboard,
-          _miscDataProps: JSONObject,
+          miscDataProps: JSONObject,
         ): Promise<Dashboard> => {
           if (
             selectedTemplate &&
             selectedTemplate !== DashboardTemplateType.Blank
           ) {
-            const templateConfig: DashboardViewConfig | null =
-              getTemplateConfig(selectedTemplate);
-            if (templateConfig) {
-              item.dashboardViewConfig = templateConfig;
-            }
+            miscDataProps["dashboardTemplateType"] = selectedTemplate;
           }
           setSelectedTemplate(null);
           setShowCreateForm(false);

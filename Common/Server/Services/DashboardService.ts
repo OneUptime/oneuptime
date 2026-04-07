@@ -13,6 +13,11 @@ import Model from "../../Models/DatabaseModels/Dashboard";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DashboardViewConfigUtil from "../../Utils/Dashboard/DashboardViewConfig";
+import {
+  DashboardTemplateType,
+  getTemplateConfig,
+} from "../../Types/Dashboard/DashboardTemplates";
+import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -52,6 +57,27 @@ export class Service extends DatabaseService<Model> {
             "Free plan can only have 1 dashboard. Please upgrade your plan.",
           );
         }
+      }
+    }
+
+    // Check if a template type was provided via miscDataProps
+    const templateType: string | undefined = createBy.miscDataProps?.[
+      "dashboardTemplateType"
+    ] as string | undefined;
+
+    if (
+      templateType &&
+      templateType !== DashboardTemplateType.Blank &&
+      Object.values(DashboardTemplateType).includes(
+        templateType as DashboardTemplateType,
+      )
+    ) {
+      const templateConfig: DashboardViewConfig | null = getTemplateConfig(
+        templateType as DashboardTemplateType,
+      );
+
+      if (templateConfig) {
+        createBy.data.dashboardViewConfig = templateConfig;
       }
     }
 
