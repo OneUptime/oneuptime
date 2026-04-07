@@ -17,7 +17,7 @@ export default class OneUptimeDate {
   }
 
   private static isUtcDateTimeString(value: string): boolean {
-    return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(
+    return (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/).test(
       value.trim(),
     );
   }
@@ -1534,7 +1534,9 @@ export default class OneUptimeDate {
       const trimmedDate: string = date.trim();
 
       if (this.isUtcDateTimeString(trimmedDate)) {
-        return moment.utc(this.normalizeUtcDateTimeString(trimmedDate)).toDate();
+        return moment
+          .utc(this.normalizeUtcDateTimeString(trimmedDate))
+          .toDate();
       }
 
       return moment(trimmedDate).toDate();
