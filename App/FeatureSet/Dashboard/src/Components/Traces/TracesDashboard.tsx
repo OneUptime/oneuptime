@@ -96,7 +96,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       setError("");
 
       const now: Date = OneUptimeDate.getCurrentDate();
-      const oneHourAgo: Date = OneUptimeDate.addRemoveHours(now, -1);
+      const twentyFourHoursAgo: Date = OneUptimeDate.addRemoveHours(now, -24);
 
       const [servicesResult, spansResult] = await Promise.all([
         ModelAPI.getList({
@@ -118,7 +118,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           modelType: Span,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
-            startTime: new InBetween(oneHourAgo, now),
+            startTime: new InBetween(twentyFourHoursAgo, now),
           },
           select: {
             traceId: true,
@@ -372,7 +372,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           <p className="text-3xl font-bold text-gray-900 mt-1">
             {totalRequests.toLocaleString()}
           </p>
-          <p className="text-xs text-gray-400 mt-1">last hour</p>
+          <p className="text-xs text-gray-400 mt-1">last 24 hours</p>
         </div>
 
         <div
@@ -601,7 +601,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                 </svg>
               </div>
               <p className="text-sm font-medium text-gray-700">
-                No errors in the last hour
+                No errors in the last 24 hours
               </p>
               <p className="text-xs text-gray-400 mt-1">Looking good!</p>
             </div>
@@ -661,7 +661,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           {recentSlowTraces.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
               <p className="text-sm text-gray-500">
-                No traces in the last hour
+                No traces in the last 24 hours
               </p>
             </div>
           ) : (
