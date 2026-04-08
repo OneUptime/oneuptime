@@ -17,7 +17,7 @@ import WorkspaceMessagePayload, {
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
-import logger from "../../Logger";
+import logger, { LogAttributes } from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import WorkspaceBase, {
@@ -50,8 +50,10 @@ export default class SlackUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<string | null> {
-    logger.debug("Getting username from user ID with data:");
-    logger.debug(data);
+    const usernameLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Getting username from user ID with data:", usernameLogAttributes);
+    logger.debug(data, usernameLogAttributes);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
@@ -69,27 +71,27 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for getting user info:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for getting user info:", usernameLogAttributes);
+    logger.debug(response, usernameLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", usernameLogAttributes);
+      logger.error(response, usernameLogAttributes);
       throw response;
     }
 
     // check for ok response
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", usernameLogAttributes);
+      logger.error(response.jsonData, usernameLogAttributes);
       return null;
     }
 
     if (
       !((response.jsonData as JSONObject)?.["user"] as JSONObject)?.["name"]
     ) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", usernameLogAttributes);
+      logger.error(response.jsonData, usernameLogAttributes);
       return null;
     }
 
@@ -97,8 +99,8 @@ export default class SlackUtil extends WorkspaceBase {
       (response.jsonData as JSONObject)["user"] as JSONObject
     )["name"] as string;
 
-    logger.debug("Username obtained:");
-    logger.debug(username);
+    logger.debug("Username obtained:", usernameLogAttributes);
+    logger.debug(username, usernameLogAttributes);
     return username;
   }
 
@@ -108,15 +110,17 @@ export default class SlackUtil extends WorkspaceBase {
     triggerId: string;
     modalBlock: WorkspaceModalBlock;
   }): Promise<void> {
-    logger.debug("Showing modal to user with data:");
-    logger.debug(data);
+    const modalLogAttributes: LogAttributes = { triggerId: data.triggerId };
+
+    logger.debug("Showing modal to user with data:", modalLogAttributes);
+    logger.debug(data, modalLogAttributes);
 
     const modalJson: JSONObject = this.getModalBlock({
       payloadModalBlock: data.modalBlock,
     });
 
-    logger.debug("Modal JSON generated:");
-    logger.debug(JSON.stringify(modalJson, null, 2));
+    logger.debug("Modal JSON generated:", modalLogAttributes);
+    logger.debug(JSON.stringify(modalJson, null, 2), modalLogAttributes);
 
     // use view.open API to show modal
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
@@ -138,21 +142,21 @@ export default class SlackUtil extends WorkspaceBase {
     );
 
     if (result instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(result);
+      logger.error("Error response from Slack API:", modalLogAttributes);
+      logger.error(result, modalLogAttributes);
       throw result;
     }
 
     if ((result.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(result.jsonData);
+      logger.error("Invalid response from Slack API:", modalLogAttributes);
+      logger.error(result.jsonData, modalLogAttributes);
       const messageFromSlack: string = (result.jsonData as JSONObject)?.[
         "error"
       ] as string;
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
-    logger.debug("Modal shown to user successfully.");
+    logger.debug("Modal shown to user successfully.", modalLogAttributes);
   }
 
   @CaptureSpan()
@@ -187,21 +191,21 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API for ephemeral message:");
-      logger.error(response);
+      logger.error("Error response from Slack API for ephemeral message:", { channelId: data.channelId } as LogAttributes);
+      logger.error(response, { channelId: data.channelId } as LogAttributes);
       throw response;
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API for ephemeral message:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API for ephemeral message:", { channelId: data.channelId } as LogAttributes);
+      logger.error(response.jsonData, { channelId: data.channelId } as LogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
-    logger.debug("Ephemeral message sent successfully.");
+    logger.debug("Ephemeral message sent successfully.", { channelId: data.channelId } as LogAttributes);
   }
 
   @CaptureSpan()
@@ -252,8 +256,10 @@ export default class SlackUtil extends WorkspaceBase {
       });
     }
 
-    logger.debug("Archiving channels with data:");
-    logger.debug(data);
+    const archiveLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Archiving channels with data:", archiveLogAttributes);
+    logger.debug(data, archiveLogAttributes);
 
     for (const channelId of data.channelIds) {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -272,18 +278,18 @@ export default class SlackUtil extends WorkspaceBase {
           },
         });
 
-      logger.debug("Response from Slack API for archiving channel:");
-      logger.debug(response);
+      logger.debug("Response from Slack API for archiving channel:", archiveLogAttributes);
+      logger.debug(response, archiveLogAttributes);
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API:");
-        logger.error(response);
+        logger.error("Error response from Slack API:", archiveLogAttributes);
+        logger.error(response, archiveLogAttributes);
         throw response;
       }
 
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-        logger.error("Invalid response from Slack API:");
-        logger.error(response.jsonData);
+        logger.error("Invalid response from Slack API:", archiveLogAttributes);
+        logger.error(response.jsonData, archiveLogAttributes);
         const messageFromSlack: string = (response.jsonData as JSONObject)?.[
           "error"
         ] as string;
@@ -291,7 +297,7 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
-    logger.debug("Channels archived successfully.");
+    logger.debug("Channels archived successfully.", archiveLogAttributes);
   }
 
   @CaptureSpan()
@@ -299,8 +305,10 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelId: string;
   }): Promise<void> {
-    logger.debug("Joining channel with data:");
-    logger.debug(data);
+    const joinLogAttributes: LogAttributes = { channelId: data.channelId };
+
+    logger.debug("Joining channel with data:", joinLogAttributes);
+    logger.debug(data, joinLogAttributes);
 
     // Join channel
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -319,26 +327,26 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for joining channel:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for joining channel:", joinLogAttributes);
+    logger.debug(response, joinLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", joinLogAttributes);
+      logger.error(response, joinLogAttributes);
       throw response;
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", joinLogAttributes);
+      logger.error(response.jsonData, joinLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
-    logger.debug("Channel joined successfully with data:");
-    logger.debug(data);
+    logger.debug("Channel joined successfully with data:", joinLogAttributes);
+    logger.debug(data, joinLogAttributes);
   }
 
   @CaptureSpan()
@@ -355,12 +363,14 @@ export default class SlackUtil extends WorkspaceBase {
     });
 
     if (isUserInChannel) {
-      logger.debug("User already in channel.");
+      logger.debug("User already in channel.", { channelId: data.channelId } as LogAttributes);
       return;
     }
 
-    logger.debug("Inviting user to channel with data:");
-    logger.debug(data);
+    const inviteByIdLogAttributes: LogAttributes = { channelId: data.channelId };
+
+    logger.debug("Inviting user to channel with data:", inviteByIdLogAttributes);
+    logger.debug(data, inviteByIdLogAttributes);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
@@ -379,25 +389,25 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for inviting user:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for inviting user:", inviteByIdLogAttributes);
+    logger.debug(response, inviteByIdLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", inviteByIdLogAttributes);
+      logger.error(response, inviteByIdLogAttributes);
       throw response;
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", inviteByIdLogAttributes);
+      logger.error(response.jsonData, inviteByIdLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
-    logger.debug("User invited to channel successfully.");
+    logger.debug("User invited to channel successfully.", inviteByIdLogAttributes);
   }
 
   @CaptureSpan()
@@ -412,8 +422,8 @@ export default class SlackUtil extends WorkspaceBase {
       data.channelName = data.channelName.substring(1);
     }
 
-    logger.debug("Inviting user to channel with data:");
-    logger.debug(data);
+    logger.debug("Inviting user to channel with data:", { projectId: data.projectId?.toString() } as LogAttributes);
+    logger.debug(data, { projectId: data.projectId?.toString() } as LogAttributes);
 
     const channelId: string = (
       await this.getWorkspaceChannelFromChannelName({
@@ -436,8 +446,10 @@ export default class SlackUtil extends WorkspaceBase {
     channelNames: Array<string>;
     projectId: ObjectID;
   }): Promise<Array<WorkspaceChannel>> {
-    logger.debug("Creating channels if they do not exist with data:");
-    logger.debug(data);
+    const createChLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Creating channels if they do not exist with data:", createChLogAttributes);
+    logger.debug(data, createChLogAttributes);
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
 
@@ -460,12 +472,12 @@ export default class SlackUtil extends WorkspaceBase {
         });
 
       if (existingChannel) {
-        logger.debug(`Channel ${channelName} already exists.`);
+        logger.debug(`Channel ${channelName} already exists.`, createChLogAttributes);
         workspaceChannels.push(existingChannel);
         continue;
       }
 
-      logger.debug(`Channel ${channelName} does not exist. Creating channel.`);
+      logger.debug(`Channel ${channelName} does not exist. Creating channel.`, createChLogAttributes);
       const channel: WorkspaceChannel = await this.createChannel({
         authToken: data.authToken,
         channelName: channelName,
@@ -473,13 +485,13 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
       if (channel) {
-        logger.debug(`Channel ${channelName} created successfully.`);
+        logger.debug(`Channel ${channelName} created successfully.`, createChLogAttributes);
         workspaceChannels.push(channel);
       }
     }
 
-    logger.debug("Channels created or found:");
-    logger.debug(workspaceChannels);
+    logger.debug("Channels created or found:", createChLogAttributes);
+    logger.debug(workspaceChannels, createChLogAttributes);
     return workspaceChannels;
   }
 
@@ -489,8 +501,10 @@ export default class SlackUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
-    logger.debug("Getting workspace channel ID from channel name with data:");
-    logger.debug(data);
+    const getChNameLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Getting workspace channel ID from channel name with data:", getChNameLogAttributes);
+    logger.debug(data, getChNameLogAttributes);
 
     const channel: WorkspaceChannel | null =
       await this.getWorkspaceChannelByName({
@@ -500,12 +514,12 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     if (!channel) {
-      logger.error("Channel not found.");
+      logger.error("Channel not found.", getChNameLogAttributes);
       throw new BadDataException("Channel not found.");
     }
 
-    logger.debug("Workspace channel obtained:");
-    logger.debug(channel);
+    logger.debug("Workspace channel obtained:", getChNameLogAttributes);
+    logger.debug(channel, getChNameLogAttributes);
 
     return channel;
   }
@@ -515,8 +529,10 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelId: string;
   }): Promise<WorkspaceChannel> {
-    logger.debug("Getting workspace channel from channel ID with data:");
-    logger.debug(data);
+    const getChIdLogAttributes: LogAttributes = { channelId: data.channelId };
+
+    logger.debug("Getting workspace channel from channel ID with data:", getChIdLogAttributes);
+    logger.debug(data, getChIdLogAttributes);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
@@ -534,19 +550,19 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for getting channel info:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for getting channel info:", getChIdLogAttributes);
+    logger.debug(response, getChIdLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", getChIdLogAttributes);
+      logger.error(response, getChIdLogAttributes);
       throw response;
     }
 
     // check for ok response
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", getChIdLogAttributes);
+      logger.error(response.jsonData, getChIdLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
@@ -556,8 +572,8 @@ export default class SlackUtil extends WorkspaceBase {
     if (
       !((response.jsonData as JSONObject)?.["channel"] as JSONObject)?.["name"]
     ) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", getChIdLogAttributes);
+      logger.error(response.jsonData, getChIdLogAttributes);
       throw new Error("Invalid response");
     }
 
@@ -569,8 +585,8 @@ export default class SlackUtil extends WorkspaceBase {
       workspaceType: WorkspaceType.Slack,
     };
 
-    logger.debug("Workspace channel obtained:");
-    logger.debug(channel);
+    logger.debug("Workspace channel obtained:", getChIdLogAttributes);
+    logger.debug(channel, getChIdLogAttributes);
     return channel;
   }
 
@@ -579,8 +595,10 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     projectId: ObjectID;
   }): Promise<Dictionary<WorkspaceChannel>> {
-    logger.debug("Getting all workspace channels with data:");
-    logger.debug(data);
+    const getAllChLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Getting all workspace channels with data:", getAllChLogAttributes);
+    logger.debug(data, getAllChLogAttributes);
 
     const channels: Dictionary<WorkspaceChannel> = {};
     let cursor: string | undefined = undefined;
@@ -614,15 +632,15 @@ export default class SlackUtil extends WorkspaceBase {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API:");
-        logger.error(response);
+        logger.error("Error response from Slack API:", getAllChLogAttributes);
+        logger.error(response, getAllChLogAttributes);
         throw response;
       }
 
       // check for ok response
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-        logger.error("Invalid response from Slack API:");
-        logger.error(response.jsonData);
+        logger.error("Invalid response from Slack API:", getAllChLogAttributes);
+        logger.error(response.jsonData, getAllChLogAttributes);
         const messageFromSlack: string = (response.jsonData as JSONObject)?.[
           "error"
         ] as string;
@@ -667,12 +685,12 @@ export default class SlackUtil extends WorkspaceBase {
         channelCache: localChannelCache,
       });
     } catch (error) {
-      logger.error("Error bulk updating channel cache:");
-      logger.error(error);
+      logger.error("Error bulk updating channel cache:", getAllChLogAttributes);
+      logger.error(error, getAllChLogAttributes);
       // Don't fail the request if caching fails
     }
 
-    logger.debug("All workspace channels obtained:");
+    logger.debug("All workspace channels obtained:", getAllChLogAttributes);
     return channels;
   }
 
@@ -687,7 +705,7 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     if (!projectAuth) {
-      logger.debug("No project auth found, cannot update cache");
+      logger.debug("No project auth found, cannot update cache", { projectId: data.projectId?.toString() } as LogAttributes);
       return;
     }
 
@@ -709,7 +727,7 @@ export default class SlackUtil extends WorkspaceBase {
       miscData: miscData,
     });
 
-    logger.debug("Channel cache updated successfully");
+    logger.debug("Channel cache updated successfully", { projectId: data.projectId?.toString() } as LogAttributes);
   }
 
   @CaptureSpan()
@@ -717,8 +735,10 @@ export default class SlackUtil extends WorkspaceBase {
     projectId: ObjectID;
     channelName: string;
   }): Promise<WorkspaceChannel | null> {
-    logger.debug("Getting channel from cache with data:");
-    logger.debug(data);
+    const cacheGetLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Getting channel from cache with data:", cacheGetLogAttributes);
+    logger.debug(data, cacheGetLogAttributes);
 
     const projectAuth: any =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
@@ -727,7 +747,7 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     if (!projectAuth || !projectAuth.miscData) {
-      logger.debug("No project auth found or no misc data");
+      logger.debug("No project auth found or no misc data", cacheGetLogAttributes);
       return null;
     }
 
@@ -735,7 +755,7 @@ export default class SlackUtil extends WorkspaceBase {
     const channelCache: any = miscData.channelCache;
 
     if (!channelCache || !channelCache[data.channelName]) {
-      logger.debug("Channel not found in cache");
+      logger.debug("Channel not found in cache", cacheGetLogAttributes);
       return null;
     }
 
@@ -748,8 +768,8 @@ export default class SlackUtil extends WorkspaceBase {
       workspaceType: WorkspaceType.Slack,
     };
 
-    logger.debug("Channel found in cache:");
-    logger.debug(channel);
+    logger.debug("Channel found in cache:", cacheGetLogAttributes);
+    logger.debug(channel, cacheGetLogAttributes);
     return channel;
   }
   @CaptureSpan()
@@ -758,8 +778,10 @@ export default class SlackUtil extends WorkspaceBase {
     channelName: string;
     channel: WorkspaceChannel;
   }): Promise<void> {
-    logger.debug("Updating channel cache with data:");
-    logger.debug(data);
+    const cacheUpdateLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Updating channel cache with data:", cacheUpdateLogAttributes);
+    logger.debug(data, cacheUpdateLogAttributes);
 
     const projectAuth: any =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
@@ -768,7 +790,7 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     if (!projectAuth) {
-      logger.debug("No project auth found, cannot update cache");
+      logger.debug("No project auth found, cannot update cache", cacheUpdateLogAttributes);
       return;
     }
 
@@ -794,7 +816,7 @@ export default class SlackUtil extends WorkspaceBase {
       miscData: miscData,
     });
 
-    logger.debug("Channel cache updated successfully");
+    logger.debug("Channel cache updated successfully", cacheUpdateLogAttributes);
   }
 
   @CaptureSpan()
@@ -803,8 +825,10 @@ export default class SlackUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
   }): Promise<WorkspaceChannel | null> {
-    logger.debug("Getting workspace channel by name with data:");
-    logger.debug(data);
+    const getByNameLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Getting workspace channel by name with data:", getByNameLogAttributes);
+    logger.debug(data, getByNameLogAttributes);
 
     // Normalize channel name
     let normalizedChannelName: string = data.channelName;
@@ -821,13 +845,13 @@ export default class SlackUtil extends WorkspaceBase {
           channelName: normalizedChannelName,
         });
       if (cachedChannel) {
-        logger.debug("Channel found in cache:");
-        logger.debug(cachedChannel);
+        logger.debug("Channel found in cache:", getByNameLogAttributes);
+        logger.debug(cachedChannel, getByNameLogAttributes);
         return cachedChannel;
       }
     } catch (error) {
-      logger.error("Error getting channel from cache, falling back to API:");
-      logger.error(error);
+      logger.error("Error getting channel from cache, falling back to API:", getByNameLogAttributes);
+      logger.error(error, getByNameLogAttributes);
     }
 
     let cursor: string | undefined = undefined;
@@ -861,25 +885,25 @@ export default class SlackUtil extends WorkspaceBase {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API:");
-        logger.error(response);
+        logger.error("Error response from Slack API:", getByNameLogAttributes);
+        logger.error(response, getByNameLogAttributes);
         throw response;
       }
 
       // check for ok response
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-        logger.error("Invalid response from Slack API:");
-        logger.error(response.jsonData);
+        logger.error("Invalid response from Slack API:", getByNameLogAttributes);
+        logger.error(response.jsonData, getByNameLogAttributes);
         const messageFromSlack: string = (response.jsonData as JSONObject)?.[
           "error"
         ] as string;
         throw new BadRequestException("Error from Slack " + messageFromSlack);
       }
 
-      logger.debug("Searching for " + normalizedChannelName);
-      logger.debug("Searching channels in current page...");
+      logger.debug("Searching for " + normalizedChannelName, getByNameLogAttributes);
+      logger.debug("Searching channels in current page...", getByNameLogAttributes);
       logger.debug(
-        JSON.stringify((response.jsonData as JSONObject)["channels"], null, 2),
+        JSON.stringify((response.jsonData as JSONObject)["channels"], null, 2), getByNameLogAttributes,
       );
 
       for (const channel of (response.jsonData as JSONObject)[
@@ -906,8 +930,8 @@ export default class SlackUtil extends WorkspaceBase {
 
         const channelName: string = (channel["name"] as string).toLowerCase();
         if (channelName === normalizedChannelName) {
-          logger.debug("Channel found:");
-          logger.debug(channel);
+          logger.debug("Channel found:", getByNameLogAttributes);
+          logger.debug(channel, getByNameLogAttributes);
 
           // Update cache before returning
           try {
@@ -916,8 +940,8 @@ export default class SlackUtil extends WorkspaceBase {
               channelCache: localChannelCache,
             });
           } catch (error) {
-            logger.error("Error bulk updating channel cache:");
-            logger.error(error);
+            logger.error("Error bulk updating channel cache:", getByNameLogAttributes);
+            logger.error(error, getByNameLogAttributes);
             // Don't fail the request if caching fails
           }
 
@@ -938,12 +962,12 @@ export default class SlackUtil extends WorkspaceBase {
         channelCache: localChannelCache,
       });
     } catch (error) {
-      logger.error("Error bulk updating channel cache:");
-      logger.error(error);
+      logger.error("Error bulk updating channel cache:", getByNameLogAttributes);
+      logger.error(error, getByNameLogAttributes);
       // Don't fail the request if caching fails
     }
 
-    logger.debug("Channel not found:");
+    logger.debug("Channel not found:", getByNameLogAttributes);
     return null;
   }
 
@@ -958,8 +982,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static getValuesFromView(data: {
     view: JSONObject;
   }): Dictionary<string | number | Array<string | number> | Date> {
-    logger.debug("Getting values from view with data:");
-    logger.debug(JSON.stringify(data, null, 2));
+    logger.debug("Getting values from view with data:", {} as LogAttributes);
+    logger.debug(JSON.stringify(data, null, 2), {} as LogAttributes);
 
     const slackView: JSONObject = data.view;
     const values: Dictionary<string | number | Array<string | number> | Date> =
@@ -1004,8 +1028,8 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
-    logger.debug("Values obtained from view:");
-    logger.debug(values);
+    logger.debug("Values obtained from view:", {} as LogAttributes);
+    logger.debug(values, {} as LogAttributes);
 
     return values;
   }
@@ -1042,15 +1066,17 @@ export default class SlackUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
-    logger.debug("Sending message to Slack with data:");
-    logger.debug(data);
+    const sendMsgLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Sending message to Slack with data:", sendMsgLogAttributes);
+    logger.debug(data, sendMsgLogAttributes);
 
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       data.workspaceMessagePayload,
     );
 
-    logger.debug("Blocks generated from workspace message payload:");
-    logger.debug(blocks);
+    logger.debug("Blocks generated from workspace message payload:", sendMsgLogAttributes);
+    logger.debug(blocks, sendMsgLogAttributes);
 
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
@@ -1071,7 +1097,7 @@ export default class SlackUtil extends WorkspaceBase {
       if (channel) {
         workspaceChannelsToPostTo.push(channel);
       } else {
-        logger.debug(`Channel ${channelName} does not exist.`);
+        logger.debug(`Channel ${channelName} does not exist.`, sendMsgLogAttributes);
       }
     }
 
@@ -1087,8 +1113,8 @@ export default class SlackUtil extends WorkspaceBase {
 
         workspaceChannelsToPostTo.push(channel);
       } catch (err) {
-        logger.error(`Error getting channel info for channel ID ${channelId}:`);
-        logger.error(err);
+        logger.error(`Error getting channel info for channel ID ${channelId}:`, sendMsgLogAttributes);
+        logger.error(err, sendMsgLogAttributes);
 
         // Fallback: create channel object with empty name if API call fails
         const channel: WorkspaceChannel = {
@@ -1101,8 +1127,8 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
-    logger.debug("Channel IDs to post to:");
-    logger.debug(workspaceChannelsToPostTo);
+    logger.debug("Channel IDs to post to:", sendMsgLogAttributes);
+    logger.debug(workspaceChannelsToPostTo, sendMsgLogAttributes);
 
     const workspaspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
@@ -1157,10 +1183,10 @@ export default class SlackUtil extends WorkspaceBase {
           workspaspaceMessageResponse.threads.push(lastThread);
         }
 
-        logger.debug(`Message sent to channel ID ${channel.id} successfully.`);
+        logger.debug(`Message sent to channel ID ${channel.id} successfully.`, sendMsgLogAttributes);
       } catch (e) {
-        logger.error(`Error sending message to channel ID ${channel.id}:`);
-        logger.error(e);
+        logger.error(`Error sending message to channel ID ${channel.id}:`, sendMsgLogAttributes);
+        logger.error(e, sendMsgLogAttributes);
         workspaspaceMessageResponse.errors!.push({
           channel: channel,
           error: e instanceof Error ? e.message : String(e),
@@ -1168,8 +1194,8 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
-    logger.debug("Message sent successfully.");
-    logger.debug(workspaspaceMessageResponse);
+    logger.debug("Message sent successfully.", sendMsgLogAttributes);
+    logger.debug(workspaspaceMessageResponse, sendMsgLogAttributes);
 
     return workspaspaceMessageResponse;
   }
@@ -1180,8 +1206,10 @@ export default class SlackUtil extends WorkspaceBase {
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
   }): Promise<WorkspaceThread> {
-    logger.debug("Sending payload blocks to channel with data:");
-    logger.debug(JSON.stringify(data, null, 2));
+    const payloadBlocksLogAttributes: LogAttributes = { channelId: data.workspaceChannel?.id };
+
+    logger.debug("Sending payload blocks to channel with data:", payloadBlocksLogAttributes);
+    logger.debug(JSON.stringify(data, null, 2), payloadBlocksLogAttributes);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
@@ -1201,25 +1229,25 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for sending message:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for sending message:", payloadBlocksLogAttributes);
+    logger.debug(response, payloadBlocksLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", payloadBlocksLogAttributes);
+      logger.error(response, payloadBlocksLogAttributes);
       throw response;
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", payloadBlocksLogAttributes);
+      logger.error(response.jsonData, payloadBlocksLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
-    logger.debug("Payload blocks sent to channel successfully.");
+    logger.debug("Payload blocks sent to channel successfully.", payloadBlocksLogAttributes);
 
     return {
       channel: data.workspaceChannel,
@@ -1234,8 +1262,10 @@ export default class SlackUtil extends WorkspaceBase {
     threadTs: string;
     text: string;
   }): Promise<void> {
-    logger.debug("Sending message to thread with data:");
-    logger.debug(data);
+    const threadLogAttributes: LogAttributes = { channelId: data.channelId };
+
+    logger.debug("Sending message to thread with data:", threadLogAttributes);
+    logger.debug(data, threadLogAttributes);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
@@ -1255,25 +1285,25 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for sending thread message:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for sending thread message:", threadLogAttributes);
+    logger.debug(response, threadLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", threadLogAttributes);
+      logger.error(response, threadLogAttributes);
       throw response;
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", threadLogAttributes);
+      logger.error(response.jsonData, threadLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
-    logger.debug("Thread message sent successfully.");
+    logger.debug("Thread message sent successfully.", threadLogAttributes);
   }
 
   @CaptureSpan()
@@ -1282,8 +1312,10 @@ export default class SlackUtil extends WorkspaceBase {
     channelId: string;
     messageTs: string;
   }): Promise<string | null> {
-    logger.debug("Getting message by timestamp with data:");
-    logger.debug(data);
+    const getMsgLogAttributes: LogAttributes = { channelId: data.channelId };
+
+    logger.debug("Getting message by timestamp with data:", getMsgLogAttributes);
+    logger.debug(data, getMsgLogAttributes);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
@@ -1305,18 +1337,18 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for getting message:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for getting message:", getMsgLogAttributes);
+    logger.debug(response, getMsgLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", getMsgLogAttributes);
+      logger.error(response, getMsgLogAttributes);
       throw response;
     }
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", getMsgLogAttributes);
+      logger.error(response.jsonData, getMsgLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
@@ -1328,14 +1360,14 @@ export default class SlackUtil extends WorkspaceBase {
     ] as Array<JSONObject>;
 
     if (!messages || messages.length === 0) {
-      logger.debug("No messages found for timestamp.");
+      logger.debug("No messages found for timestamp.", getMsgLogAttributes);
       return null;
     }
 
     const messageText: string | undefined = messages[0]?.["text"] as string;
 
-    logger.debug("Message text retrieved:");
-    logger.debug(messageText);
+    logger.debug("Message text retrieved:", getMsgLogAttributes);
+    logger.debug(messageText, getMsgLogAttributes);
 
     return messageText || null;
   }
@@ -1344,8 +1376,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getButtonsBlock(data: {
     payloadButtonsBlock: WorkspacePayloadButtons;
   }): JSONObject {
-    logger.debug("Getting buttons block with data:");
-    logger.debug(data);
+    logger.debug("Getting buttons block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const buttonsBlock: JSONObject = {
       type: "actions",
@@ -1356,8 +1388,8 @@ export default class SlackUtil extends WorkspaceBase {
       ),
     };
 
-    logger.debug("Buttons block generated:");
-    logger.debug(buttonsBlock);
+    logger.debug("Buttons block generated:", {} as LogAttributes);
+    logger.debug(buttonsBlock, {} as LogAttributes);
     return buttonsBlock;
   }
 
@@ -1375,8 +1407,10 @@ export default class SlackUtil extends WorkspaceBase {
       .toLowerCase()
       .replace(/[^a-z0-9\-_]/g, "");
 
-    logger.debug("Creating channel with data:");
-    logger.debug(data);
+    const createChannelLogAttributes: LogAttributes = { projectId: data.projectId?.toString() };
+
+    logger.debug("Creating channel with data:", createChannelLogAttributes);
+    logger.debug(data, createChannelLogAttributes);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
@@ -1394,19 +1428,19 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for creating channel:");
-    logger.debug(response);
+    logger.debug("Response from Slack API for creating channel:", createChannelLogAttributes);
+    logger.debug(response, createChannelLogAttributes);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", createChannelLogAttributes);
+      logger.error(response, createChannelLogAttributes);
       throw response;
     }
 
     // check for ok response
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", createChannelLogAttributes);
+      logger.error(response.jsonData, createChannelLogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
@@ -1417,8 +1451,8 @@ export default class SlackUtil extends WorkspaceBase {
       !((response.jsonData as JSONObject)?.["channel"] as JSONObject)?.["id"] ||
       !((response.jsonData as JSONObject)?.["channel"] as JSONObject)?.["name"]
     ) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", createChannelLogAttributes);
+      logger.error(response.jsonData, createChannelLogAttributes);
       throw new Error("Invalid response");
     }
 
@@ -1432,8 +1466,8 @@ export default class SlackUtil extends WorkspaceBase {
       workspaceType: WorkspaceType.Slack,
     };
 
-    logger.debug("Channel created successfully:");
-    logger.debug(channel);
+    logger.debug("Channel created successfully:", createChannelLogAttributes);
+    logger.debug(channel, createChannelLogAttributes);
 
     // Cache the created channel
     try {
@@ -1449,8 +1483,8 @@ export default class SlackUtil extends WorkspaceBase {
         channelCache: localCache,
       });
     } catch (error) {
-      logger.error("Error caching created channel:");
-      logger.error(error);
+      logger.error("Error caching created channel:", createChannelLogAttributes);
+      logger.error(error, createChannelLogAttributes);
       // Don't fail the creation if caching fails
     }
 
@@ -1461,8 +1495,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getHeaderBlock(data: {
     payloadHeaderBlock: WorkspacePayloadHeader;
   }): JSONObject {
-    logger.debug("Getting header block with data:");
-    logger.debug(data);
+    logger.debug("Getting header block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const headerBlock: JSONObject = {
       type: "header",
@@ -1472,8 +1506,8 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
-    logger.debug("Header block generated:");
-    logger.debug(headerBlock);
+    logger.debug("Header block generated:", {} as LogAttributes);
+    logger.debug(headerBlock, {} as LogAttributes);
     return headerBlock;
   }
 
@@ -1481,8 +1515,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getCheckboxBlock(data: {
     payloadCheckboxBlock: WorkspaceCheckboxBlock;
   }): JSONObject {
-    logger.debug("Getting checkbox block with data:");
-    logger.debug(data);
+    logger.debug("Getting checkbox block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const checkboxBlock: JSONObject = {
       type: "input",
@@ -1525,8 +1559,8 @@ export default class SlackUtil extends WorkspaceBase {
       };
     }
 
-    logger.debug("Checkbox block generated:");
-    logger.debug(checkboxBlock);
+    logger.debug("Checkbox block generated:", {} as LogAttributes);
+    logger.debug(checkboxBlock, {} as LogAttributes);
     return checkboxBlock;
   }
 
@@ -1534,8 +1568,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getDateTimePickerBlock(data: {
     payloadDateTimePickerBlock: WorkspaceDateTimePickerBlock;
   }): JSONObject {
-    logger.debug("Getting date time picker block with data:");
-    logger.debug(data);
+    logger.debug("Getting date time picker block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const dateTimePickerBlock: JSONObject = {
       type: "input",
@@ -1550,8 +1584,8 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
-    logger.debug("Date time picker block generated:");
-    logger.debug(dateTimePickerBlock);
+    logger.debug("Date time picker block generated:", {} as LogAttributes);
+    logger.debug(dateTimePickerBlock, {} as LogAttributes);
     return dateTimePickerBlock;
   }
 
@@ -1559,8 +1593,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getTextAreaBlock(data: {
     payloadTextAreaBlock: WorkspaceTextAreaBlock;
   }): JSONObject {
-    logger.debug("Getting text area block with data:");
-    logger.debug(data);
+    logger.debug("Getting text area block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const optional: boolean = data.payloadTextAreaBlock.optional || false;
 
@@ -1592,8 +1626,8 @@ export default class SlackUtil extends WorkspaceBase {
       };
     }
 
-    logger.debug("Text area block generated:");
-    logger.debug(textAreaBlock);
+    logger.debug("Text area block generated:", {} as LogAttributes);
+    logger.debug(textAreaBlock, {} as LogAttributes);
     return textAreaBlock;
   }
 
@@ -1601,8 +1635,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getTextBoxBlock(data: {
     payloadTextBoxBlock: WorkspaceTextBoxBlock;
   }): JSONObject {
-    logger.debug("Getting text box block with data:");
-    logger.debug(data);
+    logger.debug("Getting text box block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const optional: boolean = data.payloadTextBoxBlock.optional || false;
 
@@ -1633,8 +1667,8 @@ export default class SlackUtil extends WorkspaceBase {
       };
     }
 
-    logger.debug("Text box block generated:");
-    logger.debug(textBoxBlock);
+    logger.debug("Text box block generated:", {} as LogAttributes);
+    logger.debug(textBoxBlock, {} as LogAttributes);
     return textBoxBlock;
   }
 
@@ -1642,8 +1676,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getImageBlock(data: {
     payloadImageBlock: WorkspacePayloadImage;
   }): JSONObject {
-    logger.debug("Getting image block with data:");
-    logger.debug(data);
+    logger.debug("Getting image block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const imageBlock: JSONObject = {
       type: "image",
@@ -1651,8 +1685,8 @@ export default class SlackUtil extends WorkspaceBase {
       alt_text: data.payloadImageBlock.altText,
     };
 
-    logger.debug("Image block generated:");
-    logger.debug(imageBlock);
+    logger.debug("Image block generated:", {} as LogAttributes);
+    logger.debug(imageBlock, {} as LogAttributes);
     return imageBlock;
   }
 
@@ -1660,8 +1694,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getDropdownBlock(data: {
     payloadDropdownBlock: WorkspaceDropdownBlock;
   }): JSONObject {
-    logger.debug("Getting dropdown block with data:");
-    logger.debug(data);
+    logger.debug("Getting dropdown block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const optional: boolean = data.payloadDropdownBlock.optional || false;
 
@@ -1715,8 +1749,8 @@ export default class SlackUtil extends WorkspaceBase {
       };
     }
 
-    logger.debug("Dropdown block generated:");
-    logger.debug(dropdownBlock);
+    logger.debug("Dropdown block generated:", {} as LogAttributes);
+    logger.debug(dropdownBlock, {} as LogAttributes);
     return dropdownBlock;
   }
 
@@ -1724,8 +1758,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getModalBlock(data: {
     payloadModalBlock: WorkspaceModalBlock;
   }): JSONObject {
-    logger.debug("Getting modal block with data:");
-    logger.debug(data);
+    logger.debug("Getting modal block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const modalBlock: JSONObject = {
       type: "modal",
@@ -1748,8 +1782,8 @@ export default class SlackUtil extends WorkspaceBase {
       }),
     };
 
-    logger.debug("Modal block generated:");
-    logger.debug(modalBlock);
+    logger.debug("Modal block generated:", {} as LogAttributes);
+    logger.debug(modalBlock, {} as LogAttributes);
     return modalBlock;
   }
 
@@ -1757,8 +1791,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
-    logger.debug("Getting markdown block with data:");
-    logger.debug(data);
+    logger.debug("Getting markdown block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const markdownBlock: JSONObject = {
       type: "section",
@@ -1770,8 +1804,8 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
-    logger.debug("Markdown block generated:");
-    logger.debug(markdownBlock);
+    logger.debug("Markdown block generated:", {} as LogAttributes);
+    logger.debug(markdownBlock, {} as LogAttributes);
     return markdownBlock;
   }
 
@@ -1799,16 +1833,16 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
+      logger.error("Error response from Slack API:", { channelId: data.directMessageChannelId } as LogAttributes);
+      logger.error(response, { channelId: data.directMessageChannelId } as LogAttributes);
       throw response;
     }
 
     // check for ok response
 
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
+      logger.error("Invalid response from Slack API:", { channelId: data.directMessageChannelId } as LogAttributes);
+      logger.error(response.jsonData, { channelId: data.directMessageChannelId } as LogAttributes);
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
@@ -1835,8 +1869,10 @@ export default class SlackUtil extends WorkspaceBase {
   }): Promise<boolean> {
     const members: Array<string> = [];
 
-    logger.debug("Checking if user is in channel with data:");
-    logger.debug(data);
+    const isInChannelLogAttributes: LogAttributes = { channelId: data.channelId };
+
+    logger.debug("Checking if user is in channel with data:", isInChannelLogAttributes);
+    logger.debug(data, isInChannelLogAttributes);
 
     let cursor: string | undefined = undefined;
 
@@ -1866,20 +1902,20 @@ export default class SlackUtil extends WorkspaceBase {
           },
         });
 
-      logger.debug("Response from Slack API for getting channel members:");
-      logger.debug(response);
+      logger.debug("Response from Slack API for getting channel members:", isInChannelLogAttributes);
+      logger.debug(response, isInChannelLogAttributes);
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API:");
-        logger.error(response);
+        logger.error("Error response from Slack API:", isInChannelLogAttributes);
+        logger.error(response, isInChannelLogAttributes);
         throw response;
       }
 
       // check for ok response
 
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-        logger.error("Invalid response from Slack API:");
-        logger.error(response.jsonData);
+        logger.error("Invalid response from Slack API:", isInChannelLogAttributes);
+        logger.error(response.jsonData, isInChannelLogAttributes);
         const messageFromSlack: string = (response.jsonData as JSONObject)?.[
           "error"
         ] as string;
@@ -1909,8 +1945,8 @@ export default class SlackUtil extends WorkspaceBase {
   public static override getButtonBlock(data: {
     payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
-    logger.debug("Getting button block with data:");
-    logger.debug(data);
+    logger.debug("Getting button block with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const buttonBlock: JSONObject = {
       type: "button",
@@ -1926,8 +1962,8 @@ export default class SlackUtil extends WorkspaceBase {
         : undefined,
     };
 
-    logger.debug("Button block generated:");
-    logger.debug(buttonBlock);
+    logger.debug("Button block generated:", {} as LogAttributes);
+    logger.debug(buttonBlock, {} as LogAttributes);
     return buttonBlock;
   }
 
@@ -1936,8 +1972,8 @@ export default class SlackUtil extends WorkspaceBase {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
-    logger.debug("Sending message to channel via incoming webhook with data:");
-    logger.debug(data);
+    logger.debug("Sending message to channel via incoming webhook with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
       await API.post({
@@ -1959,8 +1995,8 @@ export default class SlackUtil extends WorkspaceBase {
         },
       });
 
-    logger.debug("Response from Slack API for sending message via webhook:");
-    logger.debug(apiResult);
+    logger.debug("Response from Slack API for sending message via webhook:", {} as LogAttributes);
+    logger.debug(apiResult, {} as LogAttributes);
     return apiResult;
   }
 
@@ -2108,16 +2144,16 @@ export default class SlackUtil extends WorkspaceBase {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API for channel history:");
-        logger.error(response);
+        logger.error("Error response from Slack API for channel history:", { channelId: params.channelId } as LogAttributes);
+        logger.error(response, { channelId: params.channelId } as LogAttributes);
         break;
       }
 
       const jsonData: JSONObject = response.jsonData as JSONObject;
 
       if (jsonData["ok"] !== true) {
-        logger.error("Invalid response from Slack API for channel history:");
-        logger.error(jsonData);
+        logger.error("Invalid response from Slack API for channel history:", { channelId: params.channelId } as LogAttributes);
+        logger.error(jsonData, { channelId: params.channelId } as LogAttributes);
         break;
       }
 
@@ -2173,7 +2209,7 @@ export default class SlackUtil extends WorkspaceBase {
     } while (cursor && messages.length < maxMessages && pageCount < maxPages);
 
     logger.debug(
-      `Retrieved ${messages.length} messages from Slack channel ${params.channelId}`,
+      `Retrieved ${messages.length} messages from Slack channel ${params.channelId}`, { channelId: params.channelId } as LogAttributes,
     );
 
     // Reverse to get chronological order (Slack returns newest first)
