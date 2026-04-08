@@ -8,5 +8,7 @@ export default interface Filter<T extends GenericObject> {
   key: keyof T;
   type: FieldType;
   jsonKeys?: Array<string> | undefined;
+  jsonValueSuggestions?: Record<string, Array<string>> | undefined;
+  onJsonKeySelected?: ((key: string) => void) | undefined;
   isAdvancedFilter?: boolean | undefined;
 }

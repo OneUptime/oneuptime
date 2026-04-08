@@ -18,6 +18,10 @@ export interface ComponentProps {
   onDataChanged: (filterData: MetricQueryData) => void;
   metricTypes: Array<MetricType>;
   telemetryAttributes: string[];
+  telemetryAttributeValueSuggestions?:
+    | Record<string, Array<string>>
+    | undefined;
+  onAttributeKeySelected?: ((key: string) => void) | undefined;
   onAdvancedFiltersToggle?:
     | undefined
     | ((showAdvancedFilters: boolean) => void);
@@ -84,6 +88,8 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               type: FieldType.JSON,
               title: "Filter by Attributes",
               jsonKeys: props.telemetryAttributes,
+              jsonValueSuggestions: props.telemetryAttributeValueSuggestions,
+              onJsonKeySelected: props.onAttributeKeySelected,
               isAdvancedFilter: true,
             },
             {

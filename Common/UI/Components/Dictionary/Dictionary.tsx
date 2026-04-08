@@ -28,6 +28,8 @@ export interface ComponentProps {
   addButtonSuffix?: string | undefined;
   valueTypes?: Array<ValueType>; // by default it'll be Text
   keys?: Array<string> | undefined;
+  valueSuggestions?: Record<string, Array<string>> | undefined;
+  onKeySelected?: ((key: string) => void) | undefined;
 }
 
 interface Item {
@@ -160,6 +162,14 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     newData[index]!.key = value;
                     setData(newData);
                     onDataChange(newData);
+
+                    // If this key matches one of the known keys, notify parent to fetch values
+                    if (
+                      props.onKeySelected &&
+                      props.keys?.includes(value)
+                    ) {
+                      props.onKeySelected(value);
+                    }
                   }}
                 />
               </div>
@@ -212,9 +222,14 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 </div>
                 {item.type === ValueType.Text && (
-                  <Input
+                  <AutocompleteTextInput
                     value={item.value.toString()}
                     placeholder={props.valuePlaceholder}
+                    suggestions={
+                      item.key && props.valueSuggestions?.[item.key]
+                        ? props.valueSuggestions[item.key]
+                        : undefined
+                    }
                     onChange={(value: string) => {
                       const newData: Array<Item> = [...data];
                       newData[index]!.value = value;

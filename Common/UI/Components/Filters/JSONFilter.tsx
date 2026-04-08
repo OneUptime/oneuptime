@@ -12,6 +12,8 @@ export interface ComponentProps<T extends GenericObject> {
   onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
   filterData: FilterData<T>;
   jsonKeys?: Array<string> | undefined;
+  jsonValueSuggestions?: Record<string, Array<string>> | undefined;
+  onJsonKeySelected?: ((key: string) => void) | undefined;
 }
 
 type JSONFilterFunction = <T extends GenericObject>(
@@ -28,6 +30,8 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
     return (
       <DictionaryForm
         keys={props.jsonKeys}
+        valueSuggestions={props.jsonValueSuggestions}
+        onKeySelected={props.onJsonKeySelected}
         addButtonSuffix={filter.title}
         keyPlaceholder={"Key"}
         valuePlaceholder={"Value"}

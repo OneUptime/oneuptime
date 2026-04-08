@@ -119,6 +119,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [telemetryAttributesError, setTelemetryAttributesError] =
     useState<string>("");
 
+  // Attribute value suggestions keyed by "metricName:attributeKey"
+  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
+    Record<string, Record<string, Array<string>>>
+  >({});
+  const loadedAttributeValuesRef: React.MutableRefObject<Set<string>> =
+    React.useRef<Set<string>>(new Set());
+
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
   const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
@@ -285,6 +292,43 @@ const MetricView: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const loadAttributeValues: (
+    metricName: string,
+    attributeKey: string,
+  ) => Promise<void> = async (
+    metricName: string,
+    attributeKey: string,
+  ): Promise<void> => {
+    const cacheKey: string = `${metricName}:${attributeKey}`;
+
+    if (loadedAttributeValuesRef.current.has(cacheKey)) {
+      return;
+    }
+
+    loadedAttributeValuesRef.current.add(cacheKey);
+
+    try {
+      const values: Array<string> =
+        await MetricUtil.getTelemetryAttributeValues({
+          attributeKey,
+          metricName,
+        });
+
+      setAttributeValueSuggestions(
+        (prev: Record<string, Record<string, Array<string>>>) => ({
+          ...prev,
+          [metricName]: {
+            ...(prev[metricName] || {}),
+            [attributeKey]: values,
+          },
+        }),
+      );
+    } catch {
+      // Silently fail — value suggestions are best-effort
+      loadedAttributeValuesRef.current.delete(cacheKey);
+    }
+  };
+
   const handleAdvancedFiltersToggle: (
     show: boolean,
     metricName?: string,
@@ -395,6 +439,20 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         "",
                     )}
                     attributesError={telemetryAttributesError}
+                    telemetryAttributeValueSuggestions={
+                      attributeValueSuggestions[
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                          ""
+                      ] || {}
+                    }
+                    onAttributeKeySelected={(attributeKey: string) => {
+                      const metricName: string =
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                        "";
+                      if (metricName && attributeKey) {
+                        void loadAttributeValues(metricName, attributeKey);
+                      }
+                    }}
                     onMetricNameChanged={(metricName: string) => {
                       void loadTelemetryAttributesForMetric(metricName);
                     }}

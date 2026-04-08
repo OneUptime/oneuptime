@@ -29,6 +29,10 @@ export interface ComponentProps {
   attributesError?: string | undefined;
   onAttributesRetry?: (() => void) | undefined;
   onMetricNameChanged?: ((metricName: string) => void) | undefined;
+  telemetryAttributeValueSuggestions?:
+    | Record<string, Array<string>>
+    | undefined;
+  onAttributeKeySelected?: ((key: string) => void) | undefined;
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
@@ -293,6 +297,10 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 }}
                 metricTypes={props.metricTypes}
                 telemetryAttributes={props.telemetryAttributes}
+                telemetryAttributeValueSuggestions={
+                  props.telemetryAttributeValueSuggestions
+                }
+                onAttributeKeySelected={props.onAttributeKeySelected}
                 onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
                 isAttributesLoading={props.attributesLoading}
                 attributesError={props.attributesError}

@@ -55,6 +55,14 @@ router.post(
 );
 
 router.post(
+  "/telemetry/metrics/get-attribute-values",
+  UserMiddleware.getUserMiddleware,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributeValues(req, res, next, TelemetryType.Metric);
+  },
+);
+
+router.post(
   "/telemetry/logs/get-attributes",
   UserMiddleware.getUserMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -117,6 +125,73 @@ const getAttributes: GetAttributesFunction = async (
 
     return Response.sendJsonObjectResponse(req, res, {
       attributes: attributes,
+    });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+type GetAttributeValuesFunction = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+  telemetryType: TelemetryType,
+) => Promise<void>;
+
+const getAttributeValues: GetAttributeValuesFunction = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+  telemetryType: TelemetryType,
+) => {
+  try {
+    const databaseProps: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!databaseProps) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User Session"),
+      );
+    }
+
+    if (!databaseProps.tenantId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project ID"),
+      );
+    }
+
+    const attributeKey: string | undefined =
+      req.body["attributeKey"] && typeof req.body["attributeKey"] === "string"
+        ? (req.body["attributeKey"] as string)
+        : undefined;
+
+    if (!attributeKey) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("attributeKey is required"),
+      );
+    }
+
+    const metricName: string | undefined =
+      req.body["metricName"] && typeof req.body["metricName"] === "string"
+        ? (req.body["metricName"] as string)
+        : undefined;
+
+    const values: string[] =
+      await TelemetryAttributeService.fetchAttributeValues({
+        projectId: databaseProps.tenantId,
+        telemetryType,
+        metricName,
+        attributeKey,
+      });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      values: values,
     });
   } catch (err: any) {
     next(err);

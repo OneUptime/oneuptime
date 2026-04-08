@@ -139,4 +139,29 @@ export default class MetricUtil {
 
     return (metricAttributesResponse.data["attributes"] || []) as Array<string>;
   }
+
+  public static async getTelemetryAttributeValues(data: {
+    attributeKey: string;
+    metricName?: string | undefined;
+  }): Promise<Array<string>> {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/metrics/get-attribute-values",
+        ),
+        data: {
+          attributeKey: data.attributeKey,
+          ...(data.metricName ? { metricName: data.metricName } : {}),
+        },
+        headers: {
+          ...AnalyticsModelAPI.getCommonHeaders(),
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    return (response.data["values"] || []) as Array<string>;
+  }
 }

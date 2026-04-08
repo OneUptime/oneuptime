@@ -319,6 +319,95 @@ export class TelemetryAttributeService {
 
     return Array.from(new Set(attributeKeys));
   }
+
+  private static readonly ATTRIBUTE_VALUES_LIMIT: number = 100;
+
+  @CaptureSpan()
+  public async fetchAttributeValues(data: {
+    projectId: ObjectID;
+    telemetryType: TelemetryType;
+    metricName?: string | undefined;
+    attributeKey: string;
+  }): Promise<string[]> {
+    const source: TelemetrySource | null = this.getTelemetrySource(
+      data.telemetryType,
+    );
+
+    if (!source) {
+      return [];
+    }
+
+    return TelemetryAttributeService.fetchAttributeValuesFromDatabase({
+      projectId: data.projectId,
+      source,
+      metricName: data.metricName,
+      attributeKey: data.attributeKey,
+    });
+  }
+
+  private static async fetchAttributeValuesFromDatabase(data: {
+    projectId: ObjectID;
+    source: TelemetrySource;
+    metricName?: string | undefined;
+    attributeKey: string;
+  }): Promise<Array<string>> {
+    const lookbackStartDate: Date =
+      TelemetryAttributeService.getLookbackStartDate();
+
+    const statement: Statement = SQL`
+      SELECT DISTINCT ${data.source.attributesColumn}[${{
+        type: TableColumnType.Text,
+        value: data.attributeKey,
+      }}] AS attributeValue
+      FROM ${data.source.tableName}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND ${data.source.timeColumn} >= ${{
+          type: TableColumnType.Date,
+          value: lookbackStartDate,
+        }}
+        AND mapContains(${data.source.attributesColumn}, ${{
+          type: TableColumnType.Text,
+          value: data.attributeKey,
+        }})`;
+
+    if (data.metricName) {
+      statement.append(
+        SQL`
+        AND name = ${{
+          type: TableColumnType.Text,
+          value: data.metricName,
+        }}`,
+      );
+    }
+
+    statement.append(
+      SQL`
+      ORDER BY attributeValue ASC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: TelemetryAttributeService.ATTRIBUTE_VALUES_LIMIT,
+      }}`,
+    );
+
+    const dbResult: Results = await data.source.service.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    return rows
+      .map((row: JSONObject) => {
+        const val: unknown = row["attributeValue"];
+        return typeof val === "string" ? val.trim() : null;
+      })
+      .filter((val: string | null): val is string => {
+        return Boolean(val);
+      });
+  }
 }
 
 export default new TelemetryAttributeService();
