@@ -82,7 +82,6 @@ const BulkUpdateForm: <T extends GenericObject>(
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
 
-  const [actionName, setActionName] = React.useState<string>("");
 
   if (props.selectedItems.length === 0) {
     return <></>;
@@ -243,7 +242,6 @@ const BulkUpdateForm: <T extends GenericObject>(
                           },
                           onBulkActionStart: () => {
                             setShowProgressInfoModal(true);
-                            setActionName(button.title);
                             setProgressInfo({
                               inProgressItems: props.selectedItems,
                               successItems: [],
@@ -257,7 +255,6 @@ const BulkUpdateForm: <T extends GenericObject>(
                           },
                           onBulkActionEnd: () => {
                             setActionInProgress(false);
-                            setActionName("");
                           },
                         };
 
