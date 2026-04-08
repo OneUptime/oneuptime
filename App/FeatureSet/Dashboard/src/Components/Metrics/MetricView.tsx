@@ -265,15 +265,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
       });
       setTelemetryAttributesError("");
 
-      const attributes: Array<string> =
-        await MetricUtil.getTelemetryAttributes({ metricName });
+      const attributes: Array<string> = await MetricUtil.getTelemetryAttributes(
+        { metricName },
+      );
 
-      setTelemetryAttributesByMetric(
-        (prev: Record<string, Array<string>>) => ({
+      setTelemetryAttributesByMetric((prev: Record<string, Array<string>>) => {
+        return {
           ...prev,
           [metricName]: attributes,
-        }),
-      );
+        };
+      });
       setLoadedMetricAttributes((prev: Set<string>) => {
         const next: Set<string> = new Set(prev);
         next.add(metricName);
@@ -315,13 +316,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
         });
 
       setAttributeValueSuggestions(
-        (prev: Record<string, Record<string, Array<string>>>) => ({
-          ...prev,
-          [metricName]: {
-            ...(prev[metricName] || {}),
-            [attributeKey]: values,
-          },
-        }),
+        (prev: Record<string, Record<string, Array<string>>>) => {
+          return {
+            ...prev,
+            [metricName]: {
+              ...(prev[metricName] || {}),
+              [attributeKey]: values,
+            },
+          };
+        },
       );
     } catch {
       // Silently fail — value suggestions are best-effort

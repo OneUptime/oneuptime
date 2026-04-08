@@ -82,7 +82,6 @@ const BulkUpdateForm: <T extends GenericObject>(
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
 
-
   if (props.selectedItems.length === 0) {
     return <></>;
   }

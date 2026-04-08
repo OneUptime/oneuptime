@@ -1691,7 +1691,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         bulkItemToString={(item: TBaseModel) => {
           const label: string = props.singularName || item.singularName || "";
           const name: string =
-            (item as unknown as Record<string, unknown>)["name"]?.toString() || "";
+            (item as unknown as Record<string, unknown>)["name"]?.toString() ||
+            "";
           if (name) {
             return label ? `${label}: ${name}` : name;
           }

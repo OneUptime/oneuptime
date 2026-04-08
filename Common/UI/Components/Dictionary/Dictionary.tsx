@@ -164,10 +164,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     onDataChange(newData);
 
                     // If this key matches one of the known keys, notify parent to fetch values
-                    if (
-                      props.onKeySelected &&
-                      props.keys?.includes(value)
-                    ) {
+                    if (props.onKeySelected && props.keys?.includes(value)) {
                       props.onKeySelected(value);
                     }
                   }}
