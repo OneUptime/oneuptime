@@ -91,6 +91,10 @@ RunCron(
         if (!incident.showPostmortemOnStatusPage) {
           logger.debug(
             `Incident ${incident.id} is not set to show postmortem on status page; marking as Skipped.`,
+            {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            },
           );
           await IncidentService.updateOneById({
             id: incident.id!,
@@ -111,6 +115,10 @@ RunCron(
         if (!incident.notifySubscribersOnPostmortemPublished) {
           logger.debug(
             `Incident ${incident.id} is not set to notify subscribers on postmortem published; marking as Skipped.`,
+            {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            },
           );
           await IncidentService.updateOneById({
             id: incident.id!,
@@ -137,6 +145,10 @@ RunCron(
         if (!incident.monitors || incident.monitors.length === 0) {
           logger.debug(
             `Incident ${incident.id} has no monitors attached; marking subscriber notifications as Skipped.`,
+            {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            },
           );
 
           await IncidentService.updateOneById({
@@ -170,11 +182,19 @@ RunCron(
 
         logger.debug(
           `Incident ${incident.id} status set to InProgress for subscriber postmortem notifications.`,
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
         );
 
         if (!incident.isVisibleOnStatusPage) {
           logger.debug(
             `Incident ${incident.id} is not visible on status page; skipping subscriber notifications.`,
+            {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            },
           );
 
           await IncidentService.updateOneById({
@@ -227,6 +247,10 @@ RunCron(
 
         logger.debug(
           `Found ${statusPageResources.length} status page resources linked to incident ${incident.id}.`,
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
         );
 
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
@@ -247,6 +271,10 @@ RunCron(
 
         logger.debug(
           `Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for notifications.`,
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
         );
 
         const statusPages: Array<StatusPage> =
@@ -258,6 +286,10 @@ RunCron(
 
         logger.debug(
           `Loaded ${statusPages.length} status page(s) for incident ${incident.id}.`,
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
         );
 
         for (const statuspage of statusPages) {
@@ -265,6 +297,10 @@ RunCron(
             if (!statuspage.id) {
               logger.debug(
                 "Encountered a status page without an id; skipping.",
+                {
+                  projectId: incident.projectId?.toString(),
+                  incidentId: incident.id?.toString(),
+                },
               );
               continue;
             }
@@ -272,6 +308,10 @@ RunCron(
             if (!statuspage.showIncidentsOnStatusPage) {
               logger.debug(
                 `Status page ${statuspage.id} is configured to hide incidents; skipping notifications.`,
+                {
+                  projectId: incident.projectId?.toString(),
+                  incidentId: incident.id?.toString(),
+                },
               );
               continue; // Do not send notification to subscribers if incidents are not visible on status page.
             }
@@ -345,6 +385,10 @@ RunCron(
 
             logger.debug(
               `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s).`,
+              {
+                projectId: incident.projectId?.toString(),
+                incidentId: incident.id?.toString(),
+              },
             );
 
             // Send email to Email subscribers.
@@ -356,6 +400,10 @@ RunCron(
 
             logger.debug(
               `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedString}`,
+              {
+                projectId: incident.projectId?.toString(),
+                incidentId: incident.id?.toString(),
+              },
             );
 
             for (const subscriber of subscribers) {
@@ -363,6 +411,10 @@ RunCron(
                 if (!subscriber._id) {
                   logger.debug(
                     "Encountered a subscriber without an _id; skipping.",
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
                   continue;
                 }
@@ -379,6 +431,10 @@ RunCron(
                 if (!shouldNotifySubscriber) {
                   logger.debug(
                     `Skipping subscriber ${subscriber._id} based on preferences or filters.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
                   continue;
                 }
@@ -391,12 +447,20 @@ RunCron(
 
                 logger.debug(
                   `Prepared unsubscribe link for subscriber ${subscriber._id}.`,
+                  {
+                    projectId: incident.projectId?.toString(),
+                    incidentId: incident.id?.toString(),
+                  },
                 );
 
                 if (subscriber.subscriberEmail) {
                   // send email here.
                   logger.debug(
                     `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
 
                   // Template variables for compilation
@@ -443,7 +507,13 @@ RunCron(
                         incidentId: incident.id!,
                       },
                     ).catch((err: Error) => {
-                      logger.error(err);
+                      logger.error(
+                        err,
+                        {
+                          projectId: incident.projectId?.toString(),
+                          incidentId: incident.id?.toString(),
+                        },
+                      );
                     });
                   } else {
                     MailService.sendMail(
@@ -491,11 +561,21 @@ RunCron(
                         incidentId: incident.id!,
                       },
                     ).catch((err: Error) => {
-                      logger.error(err);
+                      logger.error(
+                        err,
+                        {
+                          projectId: incident.projectId?.toString(),
+                          incidentId: incident.id?.toString(),
+                        },
+                      );
                     });
                   }
                   logger.debug(
                     `Email notification queued for subscriber ${subscriber._id}.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
                 }
 
@@ -505,6 +585,10 @@ RunCron(
                   const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
                   logger.debug(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
 
                   // Template variables for compilation
@@ -546,16 +630,30 @@ RunCron(
                     statusPageId: statuspage.id!,
                     incidentId: incident.id!,
                   }).catch((err: Error) => {
-                    logger.error(err);
+                    logger.error(
+                      err,
+                      {
+                        projectId: incident.projectId?.toString(),
+                        incidentId: incident.id?.toString(),
+                      },
+                    );
                   });
                   logger.debug(
                     `SMS notification queued for subscriber ${subscriber._id}.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
                 }
 
                 if (subscriber.slackIncomingWebhookUrl) {
                   logger.debug(
                     `Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
 
                   // Template variables for compilation
@@ -597,16 +695,30 @@ RunCron(
                       markdownMessage,
                     ),
                   }).catch((err: Error) => {
-                    logger.error(err);
+                    logger.error(
+                      err,
+                      {
+                        projectId: incident.projectId?.toString(),
+                        incidentId: incident.id?.toString(),
+                      },
+                    );
                   });
                   logger.debug(
                     `Slack notification queued for subscriber ${subscriber._id}.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
                 }
 
                 if (subscriber.microsoftTeamsIncomingWebhookUrl) {
                   logger.debug(
                     `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
 
                   // Template variables for compilation
@@ -642,22 +754,50 @@ RunCron(
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
                     text: teamsMarkdownMessage,
                   }).catch((err: Error) => {
-                    logger.error(err);
+                    logger.error(
+                      err,
+                      {
+                        projectId: incident.projectId?.toString(),
+                        incidentId: incident.id?.toString(),
+                      },
+                    );
                   });
                   logger.debug(
                     `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
+                    {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    },
                   );
                 }
               } catch (err) {
-                logger.error(err);
+                logger.error(
+                  err,
+                  {
+                    projectId: incident.projectId?.toString(),
+                    incidentId: incident.id?.toString(),
+                  },
+                );
               }
             }
           } catch (err) {
-            logger.error(err);
+            logger.error(
+              err,
+              {
+                projectId: incident.projectId?.toString(),
+                incidentId: incident.id?.toString(),
+              },
+            );
           }
         }
 
-        logger.debug("Creating incident feed for subscriber notification");
+        logger.debug(
+          "Creating incident feed for subscriber notification",
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
+        );
 
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incident.id!,
@@ -671,7 +811,13 @@ RunCron(
           },
         });
 
-        logger.debug("Incident Feed created");
+        logger.debug(
+          "Incident Feed created",
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
+        );
 
         // If we get here, the notification was successful
         await IncidentService.updateOneById({
@@ -689,10 +835,20 @@ RunCron(
         });
         logger.debug(
           `Incident ${incident.id} marked as Success for subscriber postmortem notifications.`,
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
         );
       } catch (err) {
         // If there was an error, mark as failed
-        logger.error(err);
+        logger.error(
+          err,
+          {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          },
+        );
         IncidentService.updateOneById({
           id: incident.id!,
           data: {
@@ -708,6 +864,10 @@ RunCron(
         }).catch((error: Error) => {
           logger.error(
             `Failed to update incident ${incident.id} status after error: ${error.message}`,
+            {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            },
           );
         });
       }

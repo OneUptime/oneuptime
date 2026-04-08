@@ -124,10 +124,19 @@ RunCron(
 
     for (const episodePublicNote of episodePublicNotes) {
       try {
-        logger.debug(`Processing episode public note ${episodePublicNote.id}.`);
+        logger.debug(
+          `Processing episode public note ${episodePublicNote.id}.`,
+          {
+            projectId: episodePublicNote.projectId?.toString(),
+            incidentEpisodeId: episodePublicNote.incidentEpisodeId?.toString(),
+          },
+        );
         if (!episodePublicNote.incidentEpisodeId) {
           logger.debug(
             `Episode public note ${episodePublicNote.id} has no incidentEpisodeId; skipping.`,
+            {
+              projectId: episodePublicNote.projectId?.toString(),
+            },
           );
           continue; // skip if incidentEpisodeId is not set
         }
@@ -156,6 +165,10 @@ RunCron(
         if (!episode) {
           logger.debug(
             `Episode ${episodePublicNote.incidentEpisodeId} not found; marking public note ${episodePublicNote.id} as Skipped.`,
+            {
+              projectId: episodePublicNote.projectId?.toString(),
+              incidentEpisodeId: episodePublicNote.incidentEpisodeId?.toString(),
+            },
           );
           await IncidentEpisodePublicNoteService.updateOneById({
             id: episodePublicNote.id!,
@@ -208,6 +221,10 @@ RunCron(
         if (monitorIds.size === 0) {
           logger.debug(
             `Episode ${episode.id} has no monitors; marking public note ${episodePublicNote.id} as Skipped.`,
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
           );
           await IncidentEpisodePublicNoteService.updateOneById({
             id: episodePublicNote.id!,
@@ -239,12 +256,20 @@ RunCron(
         });
         logger.debug(
           `Episode public note ${episodePublicNote.id} status set to InProgress for subscriber notifications.`,
+          {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          },
         );
 
         if (!episode.isVisibleOnStatusPage) {
           // Set status to Skipped for non-visible episodes
           logger.debug(
             `Episode ${episode.id} is not visible on status page; marking public note ${episodePublicNote.id} as Skipped.`,
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
           );
           await IncidentEpisodePublicNoteService.updateOneById({
             id: episodePublicNote.id!,
@@ -281,6 +306,10 @@ RunCron(
 
         logger.debug(
           `Found ${statusPageResources.length} status page resource(s) for episode ${episode.id}.`,
+          {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          },
         );
 
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
@@ -301,6 +330,10 @@ RunCron(
 
         logger.debug(
           `Episode ${episode.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`,
+          {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          },
         );
 
         const statusPages: Array<StatusPage> =
@@ -314,13 +347,23 @@ RunCron(
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
-            logger.debug("Encountered a status page without an id; skipping.");
+            logger.debug(
+              "Encountered a status page without an id; skipping.",
+              {
+                projectId: episode.projectId?.toString(),
+                incidentEpisodeId: episode.id?.toString(),
+              },
+            );
             continue;
           }
 
           if (!statuspage.showEpisodesOnStatusPage) {
             logger.debug(
               `Status page ${statuspage.id} hides episodes; skipping.`,
+              {
+                projectId: episode.projectId?.toString(),
+                incidentEpisodeId: episode.id?.toString(),
+              },
             );
             continue; // Do not send notification to subscribers if episodes are not visible on status page.
           }
@@ -350,6 +393,10 @@ RunCron(
 
           logger.debug(
             `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${episodePublicNote.id}.`,
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
           );
 
           // Fetch custom templates for this status page (if any)
@@ -424,6 +471,10 @@ RunCron(
             if (!subscriber._id) {
               logger.debug(
                 "Encountered a subscriber without an _id; skipping.",
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
               continue;
             }
@@ -440,6 +491,10 @@ RunCron(
             if (!shouldNotifySubscriber) {
               logger.debug(
                 `Skipping subscriber ${subscriber._id} based on preferences for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
               continue;
             }
@@ -454,6 +509,10 @@ RunCron(
 
             logger.debug(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${episodePublicNote.id}.`,
+              {
+                projectId: episode.projectId?.toString(),
+                incidentEpisodeId: episode.id?.toString(),
+              },
             );
 
             // Add unsubscribeUrl to template variables
@@ -467,6 +526,10 @@ RunCron(
               const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
               logger.debug(
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
 
               // SMS-specific template variables with unsubscribe URL
@@ -501,7 +564,13 @@ RunCron(
                 ),
                 statusPageId: statuspage.id!,
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(
+                  err,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
               });
             }
 
@@ -509,6 +578,10 @@ RunCron(
               // send email here.
               logger.debug(
                 `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
 
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
@@ -542,7 +615,13 @@ RunCron(
                     statusPageId: statuspage.id!,
                   },
                 ).catch((err: Error) => {
-                  logger.error(err);
+                  logger.error(
+                    err,
+                    {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    },
+                  );
                 });
               } else {
                 // Use default hard-coded template
@@ -589,11 +668,21 @@ RunCron(
                     statusPageId: statuspage.id!,
                   },
                 ).catch((err: Error) => {
-                  logger.error(err);
+                  logger.error(
+                    err,
+                    {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    },
+                  );
                 });
               }
               logger.debug(
                 `Email notification queued for subscriber ${subscriber._id} for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
             }
 
@@ -601,6 +690,10 @@ RunCron(
               // send slack message here.
               logger.debug(
                 `Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
 
               let markdownMessage: string;
@@ -630,10 +723,20 @@ ${episodePublicNote.note || ""}
                 url: subscriber.slackIncomingWebhookUrl,
                 text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(
+                  err,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
               });
               logger.debug(
                 `Slack notification queued for subscriber ${subscriber._id} for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
             }
 
@@ -641,6 +744,10 @@ ${episodePublicNote.note || ""}
               // send Teams message here.
               logger.debug(
                 `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
 
               let markdownMessage: string;
@@ -670,10 +777,20 @@ ${episodePublicNote.note || ""}
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
                 text: markdownMessage,
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(
+                  err,
+                  {
+                    projectId: episode.projectId?.toString(),
+                    incidentEpisodeId: episode.id?.toString(),
+                  },
+                );
               });
               logger.debug(
                 `Microsoft Teams notification queued for subscriber ${subscriber._id} for public note ${episodePublicNote.id}.`,
+                {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                },
               );
             }
           }
@@ -682,6 +799,10 @@ ${episodePublicNote.note || ""}
         if (notificationSentToAtLeastOneSubscriber) {
           logger.debug(
             `Notification sent to subscribers for public note added to episode: ${episode.id}`,
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
           );
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -696,10 +817,20 @@ ${episodePublicNote.note || ""}
 ${episodePublicNote.note}`,
           });
 
-          logger.debug("Episode Feed created");
+          logger.debug(
+            "Episode Feed created",
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
+          );
         } else {
           logger.debug(
             `No subscribers were notified for public note added to episode: ${episode.id}. All status pages either hide episodes or had no matching subscribers.`,
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
           );
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -730,10 +861,18 @@ ${episodePublicNote.note}`,
         });
         logger.debug(
           `Episode public note ${episodePublicNote.id} marked as Success for subscriber notifications.`,
+          {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          },
         );
       } catch (err) {
         logger.error(
           `Error sending notification for episode public note ${episodePublicNote.id}: ${err}`,
+          {
+            projectId: episodePublicNote.projectId?.toString(),
+            incidentEpisodeId: episodePublicNote.incidentEpisodeId?.toString(),
+          },
         );
 
         // Set status to Failed with error reason

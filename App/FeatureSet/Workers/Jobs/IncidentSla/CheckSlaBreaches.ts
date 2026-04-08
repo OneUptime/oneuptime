@@ -146,6 +146,10 @@ RunCron(
 
           logger.info(
             `SLA ${sla.id} status changed from ${sla.status} to ${newStatus}`,
+            {
+              projectId: sla.projectId?.toString(),
+              incidentId: sla.incidentId?.toString(),
+            },
           );
 
           // Send breach notification if breached
@@ -161,7 +165,13 @@ RunCron(
           }
         }
       } catch (error) {
-        logger.error(`Error checking SLA breach for ${sla.id}: ${error}`);
+        logger.error(
+          `Error checking SLA breach for ${sla.id}: ${error}`,
+          {
+            projectId: sla.projectId?.toString(),
+            incidentId: sla.incidentId?.toString(),
+          },
+        );
       }
     }
   },
@@ -307,10 +317,18 @@ async function sendBreachNotification(data: {
 
     logger.info(
       `Sent SLA ${breachType} breach notification for incident ${sla.incidentId}`,
+      {
+        projectId: sla.projectId?.toString(),
+        incidentId: sla.incidentId?.toString(),
+      },
     );
   } catch (error) {
     logger.error(
       `Error sending SLA breach notification for incident ${sla.incidentId}: ${error}`,
+      {
+        projectId: sla.projectId?.toString(),
+        incidentId: sla.incidentId?.toString(),
+      },
     );
   }
 }
