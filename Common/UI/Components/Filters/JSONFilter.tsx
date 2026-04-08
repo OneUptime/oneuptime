@@ -35,7 +35,7 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
         addButtonSuffix={filter.title}
         keyPlaceholder={"Key"}
         valuePlaceholder={"Value"}
-        valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
+        valueTypes={[ValueType.Text]}
         initialValue={(filterData[filter.key] as Dictionary<string>) || {}}
         onChange={(value: Dictionary<string | number | boolean>) => {
           // if no keys in the dictionary, remove the filter
