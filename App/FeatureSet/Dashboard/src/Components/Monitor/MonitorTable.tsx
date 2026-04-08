@@ -2,6 +2,9 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import ProjectUtil from "Common/UI/Utils/Project";
 
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import { Black, Gray500, Red500 } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -106,6 +109,28 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           throw new BadDataException("Monitor ID not found");
         }
 
+        if (
+          !monitor.monitorType ||
+          !MonitorTypeHelper.isProbableMonitor(
+            monitor.monitorType as MonitorType,
+          )
+        ) {
+          failedItems.push({
+            item: monitor,
+            failedMessage:
+              "This monitor type does not support probes",
+          });
+
+          onProgressInfo({
+            totalItems: totalItems,
+            failed: failedItems,
+            successItems: successItems,
+            inProgressItems: inProgressItems,
+          });
+
+          continue;
+        }
+
         // Check if this probe is already assigned to this monitor
         const existingProbes: ListResult<MonitorProbe> =
           await ModelAPI.getList<MonitorProbe>({
@@ -185,6 +210,28 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       try {
         if (!monitor.id) {
           throw new BadDataException("Monitor ID not found");
+        }
+
+        if (
+          !monitor.monitorType ||
+          !MonitorTypeHelper.isProbableMonitor(
+            monitor.monitorType as MonitorType,
+          )
+        ) {
+          failedItems.push({
+            item: monitor,
+            failedMessage:
+              "This monitor type does not support probes",
+          });
+
+          onProgressInfo({
+            totalItems: totalItems,
+            failed: failedItems,
+            successItems: successItems,
+            inProgressItems: inProgressItems,
+          });
+
+          continue;
         }
 
         // Find the MonitorProbe record to delete
@@ -443,6 +490,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           disableActiveMonitoring: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
+          monitorType: true,
         }}
         noItemsMessage={props.noItemsMessage || "No monitors found."}
         showRefreshButton={true}
