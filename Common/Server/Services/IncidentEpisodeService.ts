@@ -10,7 +10,7 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineService";
@@ -157,6 +157,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Workspace operations failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes,
           );
         }
       })
@@ -175,6 +176,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Handle episode state change failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes,
           );
         }
       })
@@ -184,6 +186,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create episode feed failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes,
           );
         }
       })
@@ -194,12 +197,14 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes,
           );
         }
       })
       .catch((error: Error) => {
         logger.error(
           `Critical error in IncidentEpisodeService.onCreateSuccess: ${error}`,
+          { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes,
         );
       });
 
@@ -246,7 +251,7 @@ export class Service extends DatabaseService<Model> {
         });
       }
     } catch (error) {
-      logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`);
+      logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -375,7 +380,7 @@ export class Service extends DatabaseService<Model> {
         feedInfoInMarkdown: feedInfoInMarkdown,
       });
     } catch (error) {
-      logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`);
+      logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString(), incidentEpisodeId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -512,6 +517,7 @@ export class Service extends DatabaseService<Model> {
       } catch (error) {
         logger.error(
           `Failed to cascade state change to incident ${member.incidentId.toString()}: ${error}`,
+          { projectId: projectId.toString(), incidentEpisodeId: episodeId.toString(), incidentId: member.incidentId.toString() } as LogAttributes,
         );
       }
     }

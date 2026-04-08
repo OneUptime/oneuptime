@@ -24,7 +24,7 @@ import ComponentCode, {
 } from "Common/Server/Types/Workflow/ComponentCode";
 import Components from "Common/Server/Types/Workflow/Components/Index";
 import { RunProps } from "Common/Server/Types/Workflow/Workflow";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
@@ -61,6 +61,14 @@ export default class RunWorkflow {
   private workflowId: ObjectID | null = null;
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
+
+  private getLogAttributes(): LogAttributes {
+    return {
+      workflowId: this.workflowId?.toString(),
+      projectId: this.projectId?.toString(),
+      workflowLogId: this.workflowLogId?.toString(),
+    } as LogAttributes;
+  }
 
   public async runWorkflow(runProps: RunProps): Promise<void> {
     // get nodes and edges.
@@ -269,7 +277,7 @@ export default class RunWorkflow {
         },
       });
     } catch (err: any) {
-      logger.error(err);
+      logger.error(err, this.getLogAttributes());
       this.log(err.message || err.toString());
 
       if (!runProps.workflowLogId) {

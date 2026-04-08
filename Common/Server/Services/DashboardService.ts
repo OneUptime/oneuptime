@@ -3,7 +3,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -140,7 +140,7 @@ export class Service extends DatabaseService<Model> {
           req.ips[0];
 
         if (!ipAccessedFrom) {
-          logger.error("IP address not found in request.");
+          logger.error("IP address not found in request.", { dashboardId: dashboardId?.toString() } as LogAttributes);
           return {
             hasReadAccess: false,
             error: new ForbiddenException(
@@ -160,6 +160,7 @@ export class Service extends DatabaseService<Model> {
         if (!isIPWhitelisted) {
           logger.error(
             `IP address ${ipAccessedFrom} is not whitelisted for dashboard ${dashboardId.toString()}.`,
+            { dashboardId: dashboardId?.toString() } as LogAttributes,
           );
 
           return {
@@ -206,7 +207,7 @@ export class Service extends DatabaseService<Model> {
         };
       }
     } catch (err) {
-      logger.error(err);
+      logger.error(err, { dashboardId: dashboardId?.toString() } as LogAttributes);
     }
 
     return {
@@ -238,7 +239,7 @@ export class Service extends DatabaseService<Model> {
         payload["type"] === DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER
       );
     } catch (err) {
-      logger.error(err);
+      logger.error(err, { dashboardId: data.dashboardId?.toString() } as LogAttributes);
     }
 
     return false;

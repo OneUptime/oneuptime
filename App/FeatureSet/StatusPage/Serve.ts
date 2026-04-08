@@ -60,15 +60,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {
-    logger.error("App Init Failed:");
-    logger.error(err);
+    logger.error("App Init Failed:", { service: "status-page" });
+    logger.error(err, { service: "status-page" });
     throw err;
   }
 };
 
 init().catch((err: Error) => {
-  logger.error(err);
-  logger.error("Exiting node process");
+  logger.error(err, { service: "status-page" });
+  logger.error("Exiting node process", { service: "status-page" });
   process.exit(1);
 });
 

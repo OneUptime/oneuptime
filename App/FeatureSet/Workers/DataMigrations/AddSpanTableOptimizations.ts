@@ -23,11 +23,12 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
 
       if (hasExceptionColumn) {
         await SpanService.addColumnInDatabase(hasExceptionColumn);
-        logger.info("Added hasException column to SpanItem");
+        logger.info("Added hasException column to SpanItem", { service: "workers" });
       }
     } else {
       logger.info(
         "hasException column already exists on SpanItem, skipping add",
+        { service: "workers" },
       );
     }
 
@@ -35,12 +36,12 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     await SpanService.execute(
       `ALTER TABLE SpanItem ADD INDEX IF NOT EXISTS idx_kind assumeNotNull(kind) TYPE set(5) GRANULARITY 4`,
     );
-    logger.info("Added skip index idx_kind on SpanItem");
+    logger.info("Added skip index idx_kind on SpanItem", { service: "workers" });
 
     await SpanService.execute(
       `ALTER TABLE SpanItem ADD INDEX IF NOT EXISTS idx_parent_span_id assumeNotNull(parentSpanId) TYPE bloom_filter(0.01) GRANULARITY 1`,
     );
-    logger.info("Added skip index idx_parent_span_id on SpanItem");
+    logger.info("Added skip index idx_parent_span_id on SpanItem", { service: "workers" });
 
     /*
      * Step 3: Apply compression codecs (only if not already applied)
@@ -120,6 +121,7 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     );
     logger.info(
       "Started async backfill of hasException for existing SpanItem rows",
+      { service: "workers" },
     );
   }
 
@@ -138,6 +140,7 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     if (currentCodec === expectedCodecValue) {
       logger.info(
         `SpanItem.${columnName} already has ${expectedCodecValue}, skipping codec change`,
+        { service: "workers" },
       );
       // Still ensure the index exists (IF NOT EXISTS is safe to re-run)
       await SpanService.execute(
@@ -150,19 +153,19 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     await SpanService.execute(
       `ALTER TABLE SpanItem DROP INDEX IF EXISTS ${indexName} SETTINGS mutations_sync=0`,
     );
-    logger.info(`Dropped index ${indexName} on SpanItem (async)`);
+    logger.info(`Dropped index ${indexName} on SpanItem (async)`, { service: "workers" });
 
     // Apply the codec (async)
     await SpanService.execute(
       `ALTER TABLE SpanItem MODIFY COLUMN ${columnName} ${columnType} CODEC(${codec}) SETTINGS mutations_sync=0`,
     );
-    logger.info(`Applied ${codec} codec to SpanItem.${columnName} (async)`);
+    logger.info(`Applied ${codec} codec to SpanItem.${columnName} (async)`, { service: "workers" });
 
     // Re-add the index (async)
     await SpanService.execute(
       `ALTER TABLE SpanItem ADD INDEX IF NOT EXISTS ${indexName} ${indexExpr} TYPE ${indexType} GRANULARITY ${granularity} SETTINGS mutations_sync=0`,
     );
-    logger.info(`Re-added index ${indexName} on SpanItem (async)`);
+    logger.info(`Re-added index ${indexName} on SpanItem (async)`, { service: "workers" });
   }
 
   public override async rollback(): Promise<void> {

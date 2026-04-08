@@ -74,8 +74,8 @@ const WorkflowFeatureSet: FeatureSet = {
         { concurrency: 100 },
       );
     } catch (err) {
-      logger.error("App Init Failed:");
-      logger.error(err);
+      logger.error("App Init Failed:", { service: "workflow" });
+      logger.error(err, { service: "workflow" });
       throw err;
     }
   },

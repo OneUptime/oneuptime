@@ -12,9 +12,9 @@ RunCron(
   async () => {
     const olderThanDays: number = 30;
 
-    logger.debug("Checking Metric:DeleteMonitorMetricsOlderThanXDays");
+    logger.debug("Checking Metric:DeleteMonitorMetricsOlderThanXDays", { service: "workers" });
 
-    logger.debug(`Deleting Monitor Metrics older than ${olderThanDays} days`);
+    logger.debug(`Deleting Monitor Metrics older than ${olderThanDays} days`, { service: "workers" });
 
     await MetricService.deleteBy({
       query: {

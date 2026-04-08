@@ -26,7 +26,7 @@ import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/Sched
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
@@ -104,7 +104,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           namespace: "ScheduledMaintenanceStateTimeline.create",
         });
       } catch (err) {
-        logger.error(err);
+        logger.error(err, { scheduledMaintenanceId: createBy.data.scheduledMaintenanceId?.toString() } as LogAttributes);
       }
 
       if (!createBy.data.startsAt) {
@@ -292,7 +292,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         try {
           await Semaphore.release(mutex);
         } catch (err) {
-          logger.error(err);
+          logger.error(err, { projectId: createBy.data.projectId?.toString(), scheduledMaintenanceId: createBy.data.scheduledMaintenanceId?.toString() } as LogAttributes);
         }
       }
 
@@ -317,14 +317,14 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
     // update the last status as ended.
 
-    logger.debug("Status Timeline Before this");
-    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus);
+    logger.debug("Status Timeline Before this", { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
 
-    logger.debug("Status Timeline After this");
-    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus);
+    logger.debug("Status Timeline After this", { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
 
-    logger.debug("Created Item");
-    logger.debug(createdItem);
+    logger.debug("Created Item", { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
+    logger.debug(createdItem, { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
 
     /*
      * now there are three cases.
@@ -332,7 +332,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
      */
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
-      logger.debug("This is the first status.");
+      logger.debug("This is the first status.", { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
       /*
        * 2. This is the last status.
@@ -347,7 +347,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           isRoot: true,
         },
       });
-      logger.debug("This is the last status.");
+      logger.debug("This is the last status.", { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
     } else {
       /*
        * 3. This is in the middle.
@@ -373,7 +373,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           isRoot: true,
         },
       });
-      logger.debug("This status is in the middle.");
+      logger.debug("This status is in the middle.", { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
     }
 
     if (!createdItem.endsAt) {
@@ -393,7 +393,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       try {
         await Semaphore.release(mutex);
       } catch (err) {
-        logger.error(err);
+        logger.error(err, { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
       }
     }
 
@@ -583,8 +583,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           ).toString()})** is complete. Archiving channel.`,
         },
       }).catch((error: Error) => {
-        logger.error(`Error while archiving workspace channels:`);
-        logger.error(error);
+        logger.error(`Error while archiving workspace channels:`, { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
+        logger.error(error, { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString() } as LogAttributes);
       });
     }
 
@@ -796,7 +796,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
         if (!stateBeforeThis) {
           // This is the first state, no need to update previous state.
-          logger.debug("This is the first state.");
+          logger.debug("This is the first state.", { scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
         } else if (!stateAfterThis) {
           /*
            * This is the last state.
@@ -811,7 +811,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
               isRoot: true,
             },
           });
-          logger.debug("This is the last state.");
+          logger.debug("This is the last state.", { scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
         } else {
           /*
            * This state is in the middle.
@@ -837,7 +837,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
               isRoot: true,
             },
           });
-          logger.debug("This state is in the middle.");
+          logger.debug("This state is in the middle.", { scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
         }
       }
 

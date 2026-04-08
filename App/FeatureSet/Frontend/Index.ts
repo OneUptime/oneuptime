@@ -301,7 +301,7 @@ const renderFrontendIndexPage: (
           ...variablesToRenderIndexPage,
         };
       } catch (err) {
-        logger.error(err);
+        logger.error(err, { service: "frontend" });
       }
     }
 
@@ -355,7 +355,7 @@ const ensureMasterAdminAccess: (
 
     return {};
   } catch (error) {
-    logger.error(error);
+    logger.error(error, { service: "frontend" });
     Response.sendErrorResponse(
       req,
       res,
@@ -432,8 +432,8 @@ const isDashboardDomain: (hostname: string) => Promise<boolean> = async (
 
     return dashboardDomain !== null;
   } catch (err) {
-    logger.error("Error checking if domain is a dashboard domain:");
-    logger.error(err);
+    logger.error("Error checking if domain is a dashboard domain:", { service: "frontend" });
+    logger.error(err, { service: "frontend" });
     return false;
   }
 };

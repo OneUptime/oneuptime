@@ -117,7 +117,7 @@ export class ProjectService extends DatabaseService<Model> {
       );
     }
 
-    logger.debug("Creating project for user " + data.props.userId);
+    logger.debug("Creating project for user " + data.props.userId, { userId: data.props.userId?.toString() } as LogAttributes);
 
     const user: User | null = await UserService.findOneById({
       id: data.props.userId,
@@ -482,6 +482,7 @@ export class ProjectService extends DatabaseService<Model> {
 
     logger.debug(
       `Changing plan for project ${project.id?.toString()} to ${plan.getName()} with seats ${seats}`,
+      { projectId: project.id?.toString() } as LogAttributes,
     );
 
     const endTrialAt: Date | undefined =
@@ -1485,7 +1486,7 @@ export class ProjectService extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async reactiveSubscription(projectId: ObjectID): Promise<void> {
-    logger.debug("Reactivating subscription for project " + projectId);
+    logger.debug("Reactivating subscription for project " + projectId, { projectId: projectId?.toString() } as LogAttributes);
 
     const project: Model | null = await this.findOneById({
       id: projectId!,

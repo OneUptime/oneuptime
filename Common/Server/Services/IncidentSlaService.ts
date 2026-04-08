@@ -123,6 +123,7 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     logger.debug(
       `Marking incident ${data.incidentId} as responded at ${data.respondedAt}`,
+      { incidentId: data.incidentId?.toString() } as LogAttributes,
     );
 
     // Find all active SLA records for this incident
@@ -157,7 +158,7 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        logger.info(`Marked SLA ${sla.id} as responded at ${data.respondedAt}`);
+        logger.info(`Marked SLA ${sla.id} as responded at ${data.respondedAt}`, { incidentId: data.incidentId?.toString() } as LogAttributes);
       }
     }
   }
@@ -169,6 +170,7 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     logger.debug(
       `Marking incident ${data.incidentId} as resolved at ${data.resolvedAt}`,
+      { incidentId: data.incidentId?.toString() } as LogAttributes,
     );
 
     // Find all active SLA records for this incident
@@ -235,6 +237,7 @@ export class Service extends DatabaseService<Model> {
 
       logger.info(
         `Marked SLA ${sla.id} as resolved with status ${finalStatus}`,
+        { incidentId: data.incidentId?.toString() } as LogAttributes,
       );
     }
   }
@@ -243,7 +246,7 @@ export class Service extends DatabaseService<Model> {
   public async recalculateDeadlines(data: {
     incidentId: ObjectID;
   }): Promise<void> {
-    logger.debug(`Recalculating deadlines for incident ${data.incidentId}`);
+    logger.debug(`Recalculating deadlines for incident ${data.incidentId}`, { incidentId: data.incidentId?.toString() } as LogAttributes);
 
     // Get the incident to find the new severity and project
     const incident: Incident | null = await IncidentService.findOneById({

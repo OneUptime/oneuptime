@@ -41,14 +41,15 @@ export default class Jobs {
             await LocalFile.makeDirectory("/etc/nginx/certs/StatusPageCerts");
           } catch (err) {
             // directory already exists, ignore.
-            logger.error("Create directory err");
-            logger.error(err);
+            logger.error("Create directory err", { service: "ingress", job: "WriteCustomCertsToDisk" });
+            logger.error(err, { service: "ingress", job: "WriteCustomCertsToDisk" });
           }
 
           if (!cert.customCertificate || !cert.customCertificateKey) {
             logger.error(
               "Custom certificate or key is missing for domain: " +
                 cert.fullDomain?.toString(),
+              { service: "ingress", job: "WriteCustomCertsToDisk", domain: cert.fullDomain?.toString() || "" },
             );
             continue;
           }
@@ -66,6 +67,7 @@ export default class Jobs {
 
           logger.debug(
             `Wrote custom certs to disk for domain: ${cert.fullDomain?.toString().trim().toLocaleLowerCase()}`,
+            { service: "ingress", job: "WriteCustomCertsToDisk", domain: cert.fullDomain?.toString().trim().toLocaleLowerCase() || "" },
           );
         }
       },

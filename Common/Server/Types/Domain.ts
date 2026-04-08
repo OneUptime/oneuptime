@@ -1,4 +1,4 @@
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DomainCommon from "../../Types/Domain";
 import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import dns from "dns";
@@ -13,9 +13,14 @@ export default class Domain extends DomainCommon {
         dns.resolveCname(
           data.domain,
           (err: Error | null, addresses: string[]) => {
+            const domainLogAttributes: LogAttributes = {
+              domain: data.domain,
+            };
+
             if (err) {
               logger.debug(
                 `DNS CNAME lookup failed for domain ${data.domain}: ${err.message}`,
+                domainLogAttributes,
               );
 
               // Handle specific DNS error types with user-friendly messages
@@ -89,9 +94,14 @@ export default class Domain extends DomainCommon {
         dns.resolveTxt(
           domain.toString(),
           (err: Error | null, data: Array<Array<string>>) => {
+            const domainLogAttributes: LogAttributes = {
+              domain: domain.toString(),
+            };
+
             if (err) {
               logger.debug(
                 `DNS TXT lookup failed for domain ${domain.toString()}: ${err.message}`,
+                domainLogAttributes,
               );
 
               // Handle specific DNS error types with user-friendly messages
@@ -136,10 +146,10 @@ export default class Domain extends DomainCommon {
               );
             }
 
-            logger.debug("Verify TXT Record");
-            logger.debug("Domain " + domain.toString());
-            logger.debug("Data: ");
-            logger.debug(data);
+            logger.debug("Verify TXT Record", domainLogAttributes);
+            logger.debug("Domain " + domain.toString(), domainLogAttributes);
+            logger.debug("Data: ", domainLogAttributes);
+            logger.debug(data, domainLogAttributes);
 
             let isVerified: boolean = false;
             for (const item of data) {

@@ -12,7 +12,7 @@ import ComponentMetadata, {
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import APIComponents from "../../../../../Types/Workflow/Components/API";
 import API from "../../../../../Utils/API";
-import logger from "../../../../Utils/Logger";
+import logger, { LogAttributes } from "../../../../Utils/Logger";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class ApiPost extends ComponentCode {
@@ -42,24 +42,29 @@ export default class ApiPost extends ComponentCode {
 
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
-    logger.debug("API Post Component is running.");
+    const workflowLogAttributes: LogAttributes = {
+      projectId: options.projectId.toString(),
+      workflowId: options.workflowId.toString(),
+    };
+
+    logger.debug("API Post Component is running.", workflowLogAttributes);
 
     const url: URL = args["url"] as URL;
     if (!url) {
       throw options.onError(new BadDataException("URL is required"));
     }
 
-    logger.debug(`URL: ${url}`);
+    logger.debug(`URL: ${url}`, workflowLogAttributes);
 
     const requestBody: JSONObject = args["request-body"] as JSONObject;
 
-    logger.debug(`Request Body: ${JSON.stringify(requestBody)}`);
+    logger.debug(`Request Body: ${JSON.stringify(requestBody)}`, workflowLogAttributes);
 
     const requestHeaders: Dictionary<string> = args[
       "request-headers"
     ] as Dictionary<string>;
 
-    logger.debug(`Request Headers: ${JSON.stringify(requestHeaders)}`);
+    logger.debug(`Request Headers: ${JSON.stringify(requestHeaders)}`, workflowLogAttributes);
 
     try {
       apiResult = await API.post({
@@ -68,7 +73,7 @@ export default class ApiPost extends ComponentCode {
         headers: args["request-headers"] as Dictionary<string>,
       });
 
-      logger.debug("API Post Component is done.");
+      logger.debug("API Post Component is done.", workflowLogAttributes);
 
       return Promise.resolve({
         returnValues: ApiComponentUtils.getReturnValues(apiResult),
@@ -89,8 +94,8 @@ export default class ApiPost extends ComponentCode {
         });
       }
 
-      logger.debug("API Post Component is done with error.");
-      logger.debug(err);
+      logger.debug("API Post Component is done with error.", workflowLogAttributes);
+      logger.debug(err, workflowLogAttributes);
 
       return Promise.resolve({
         returnValues: {

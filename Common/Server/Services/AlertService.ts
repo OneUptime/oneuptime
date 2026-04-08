@@ -261,7 +261,7 @@ export class Service extends DatabaseService<Model> {
           } catch (error) {
             logger.error(
               `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
-              { projectId: createdItem.projectId?.toString() },
+              { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
             );
             return Promise.resolve();
           }
@@ -274,7 +274,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() },
+            { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve(); // Continue chain even on error
         }
@@ -285,7 +285,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Handle alert state change failed in AlertService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() },
+            { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve(); // Continue chain even on error
         }
@@ -314,7 +314,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Add owners failed in AlertService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() },
+            { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve(); // Continue chain even on error
         }
@@ -329,7 +329,7 @@ export class Service extends DatabaseService<Model> {
           } catch (error) {
             logger.error(
               `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
-              { projectId: createdItem.projectId?.toString() },
+              { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
             );
             return Promise.resolve();
           }
@@ -343,7 +343,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() },
+            { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -351,7 +351,7 @@ export class Service extends DatabaseService<Model> {
       .catch((error: Error) => {
         logger.error(
           `Critical error in AlertService sequential operations: ${error}`,
-          { projectId: createdItem.projectId?.toString() },
+          { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes,
         );
       });
 
@@ -382,8 +382,8 @@ export class Service extends DatabaseService<Model> {
             : {}),
         });
 
-      logger.debug("Alert created. Workspace result:", { projectId: createdItem.projectId?.toString() });
-      logger.debug(workspaceResult, { projectId: createdItem.projectId?.toString() });
+      logger.debug("Alert created. Workspace result:", { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes);
+      logger.debug(workspaceResult, { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes);
 
       if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
         // update alert with these channels.
@@ -399,7 +399,7 @@ export class Service extends DatabaseService<Model> {
         });
       }
     } catch (error) {
-      logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -513,7 +513,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in createAlertFeedAsync: ${error}`, { projectId: alert?.projectId?.toString(), userId: alert?.createdByUserId?.toString() });
+      logger.error(`Error in createAlertFeedAsync: ${error}`, { alertId: alertId?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -539,7 +539,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in handleAlertStateChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in handleAlertStateChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -569,7 +569,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         await Promise.allSettled(policyPromises);
       }
     } catch (error) {
-      logger.error(`Error in executeAlertOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in executeAlertOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString(), alertId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -1392,7 +1392,7 @@ ${alertSeverity.name}
       metricNameServiceNameMap: metricTypesMap,
       projectId: alert.projectId,
     }).catch((err: Error) => {
-      logger.error(err, { projectId: alert.projectId?.toString() });
+      logger.error(err, { projectId: alert.projectId?.toString(), alertId: alert.id?.toString() } as LogAttributes);
     });
   }
 
@@ -1569,7 +1569,7 @@ ${alertSeverity.name}
       });
       logger.info(
         `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`,
-        { projectId: alert.projectId?.toString() },
+        { projectId: alert.projectId?.toString(), alertId: alert.id?.toString() } as LogAttributes,
       );
     }
   }

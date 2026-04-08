@@ -65,13 +65,14 @@ const TelemetryFeatureSet: FeatureSet = {
 
       logger.info(
         `Telemetry Service - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
+        { service: "telemetry" },
       );
 
       // Start gRPC OTLP server on port 4317
       startGrpcServer();
     } catch (err) {
-      logger.error("Telemetry FeatureSet Init Failed:");
-      logger.error(err);
+      logger.error("Telemetry FeatureSet Init Failed:", { service: "telemetry" });
+      logger.error(err, { service: "telemetry" });
       throw err;
     }
   },

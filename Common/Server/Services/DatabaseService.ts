@@ -586,7 +586,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     modelEventType: ModelEventType,
   ): Promise<void> {
     logger.debug("Realtime Events Enabled", { projectId: projectId?.toString() } as LogAttributes);
-    logger.debug(this.model.enableRealtimeEventsOn);
+    logger.debug(this.model.enableRealtimeEventsOn, { projectId: projectId?.toString() } as LogAttributes);
 
     if (Realtime.isInitialized() && this.model.enableRealtimeEventsOn) {
       logger.debug("Emitting realtime event", { projectId: projectId?.toString() } as LogAttributes);
@@ -626,7 +626,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         modelType: this.modelType,
       }).catch((err: Error) => {
         logger.error("Cannot emit realtime event", { projectId: projectId?.toString() } as LogAttributes);
-        logger.error(err);
+        logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
       });
     }
   }
@@ -1531,8 +1531,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           ...data,
         } as any;
 
-        logger.debug("Updated Item");
-        logger.debug(JSON.stringify(updatedItem, null, 2));
+        logger.debug("Updated Item", { projectId: updateBy.props.tenantId?.toString() } as LogAttributes);
+        logger.debug(JSON.stringify(updatedItem, null, 2), { projectId: updateBy.props.tenantId?.toString() } as LogAttributes);
 
         await this.getRepository().save(updatedItem);
 

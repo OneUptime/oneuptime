@@ -65,7 +65,7 @@ RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor");
+    logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor", { service: "workers" });
 
     const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
       query: {
@@ -113,7 +113,7 @@ RunCron(
             telemetryMonitor.monitoringInterval as string,
           );
         } catch (err) {
-          logger.error(err);
+          logger.error(err, { service: "workers", projectId: telemetryMonitor.projectId?.toString() });
         }
       }
 
@@ -133,9 +133,9 @@ RunCron(
 
     await Promise.all(updatePromises);
 
-    logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`);
+    logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`, { service: "workers" });
 
-    logger.debug(telemetryMonitors);
+    logger.debug(telemetryMonitors, { service: "workers" });
 
     const monitorResponses: Array<
       Promise<
@@ -154,7 +154,7 @@ RunCron(
           !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
           monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
         ) {
-          logger.debug("Monitor has no steps. Skipping...");
+          logger.debug("Monitor has no steps. Skipping...", { service: "workers", projectId: monitor.projectId?.toString() });
           continue;
         }
 
@@ -375,8 +375,8 @@ const monitorMetric: MonitorMetricFunction = async (data: {
       },
     );
 
-    logger.debug("Aggregated results");
-    logger.debug(aggregatedResults);
+    logger.debug("Aggregated results", { service: "workers", projectId: data.projectId.toString() });
+    logger.debug(aggregatedResults, { service: "workers", projectId: data.projectId.toString() });
 
     finalResult.push(aggregatedResults);
   }
@@ -585,8 +585,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       },
     );
 
-    logger.debug("Kubernetes monitor aggregated results");
-    logger.debug(aggregatedResults);
+    logger.debug("Kubernetes monitor aggregated results", { service: "workers", projectId: data.projectId.toString() });
+    logger.debug(aggregatedResults, { service: "workers", projectId: data.projectId.toString() });
 
     finalResult.push(aggregatedResults);
 
@@ -701,8 +701,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         };
       }
     } catch (err) {
-      logger.error("Failed to fetch Kubernetes resource breakdown");
-      logger.error(err);
+      logger.error("Failed to fetch Kubernetes resource breakdown", { service: "workers", projectId: data.projectId.toString() });
+      logger.error(err, { service: "workers", projectId: data.projectId.toString() });
     }
   }
 

@@ -51,7 +51,7 @@ const RunCron: RunCronFunction = (
           JobDictionary.setTimeoutInMs(jobName, options.timeoutInMS);
         }
 
-        logger.debug("Adding job to the queue: " + jobName);
+        logger.debug("Adding job to the queue: " + jobName, { service: "workers" });
 
         const queueName: QueueName = options.queueName || QueueName.Worker;
 
@@ -65,20 +65,20 @@ const RunCron: RunCronFunction = (
             scheduleAt: options.schedule,
           },
         ).catch((err: Error) => {
-          return logger.error(err);
+          return logger.error(err, { service: "workers" });
         });
 
         // Run the job immediately on startup if specified
         if (options.runOnStartup) {
           Queue.addJob(queueName, jobName, jobName, {}, {}).catch(
             (err: Error) => {
-              return logger.error(err);
+              return logger.error(err, { service: "workers" });
             },
           );
         }
       } catch (err) {
         // log this error
-        logger.error(err);
+        logger.error(err, { service: "workers" });
 
         // record exception
         span.recordException(err as SpanException);

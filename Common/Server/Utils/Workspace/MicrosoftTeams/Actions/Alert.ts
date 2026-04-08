@@ -49,7 +49,10 @@ export default class MicrosoftTeamsAlertActions {
   }): Promise<void> {
     const { teamsRequest, action } = data;
 
-    logger.debug("Handling Microsoft Teams alert action:");
+    logger.debug("Handling Microsoft Teams alert action:", {
+      projectId: teamsRequest.projectId.toString(),
+      actionType: action.actionType,
+    });
     logger.debug(action);
 
     try {
@@ -73,11 +76,17 @@ export default class MicrosoftTeamsAlertActions {
           break;
 
         default:
-          logger.debug("Unhandled alert action: " + action.actionType);
+          logger.debug("Unhandled alert action: " + action.actionType, {
+            projectId: teamsRequest.projectId.toString(),
+            actionType: action.actionType,
+          });
           break;
       }
     } catch (error) {
-      logger.error("Error handling Microsoft Teams alert action:");
+      logger.error("Error handling Microsoft Teams alert action:", {
+        projectId: teamsRequest.projectId.toString(),
+        actionType: action.actionType,
+      });
       logger.error(error);
     }
 
@@ -92,11 +101,16 @@ export default class MicrosoftTeamsAlertActions {
     const alertId: string = data.action.actionValue || "";
 
     if (!alertId) {
-      logger.error("No alert ID provided for acknowledge action");
+      logger.error("No alert ID provided for acknowledge action", {
+        projectId: data.teamsRequest.projectId.toString(),
+      });
       return;
     }
 
-    logger.debug("Acknowledging alert: " + alertId);
+    logger.debug("Acknowledging alert: " + alertId, {
+      projectId: data.teamsRequest.projectId.toString(),
+      alertId: alertId,
+    });
 
     try {
       const alert: Alert | null = await AlertService.findOneBy({
@@ -119,12 +133,18 @@ export default class MicrosoftTeamsAlertActions {
       });
 
       if (!alert) {
-        logger.error("Alert not found: " + alertId);
+        logger.error("Alert not found: " + alertId, {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertId: alertId,
+        });
         return;
       }
 
       if (alert.currentAlertState?.isAcknowledgedState) {
-        logger.debug("Alert is already acknowledged");
+        logger.debug("Alert is already acknowledged", {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertId: alertId,
+        });
         return;
       }
 
@@ -139,9 +159,15 @@ export default class MicrosoftTeamsAlertActions {
         oneUptimeUserId,
       );
 
-      logger.debug("Alert acknowledged successfully");
+      logger.debug("Alert acknowledged successfully", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertId: alertId,
+      });
     } catch (error) {
-      logger.error("Error acknowledging alert:");
+      logger.error("Error acknowledging alert:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertId: alertId,
+      });
       logger.error(error);
     }
   }
@@ -154,11 +180,16 @@ export default class MicrosoftTeamsAlertActions {
     const alertId: string = data.action.actionValue || "";
 
     if (!alertId) {
-      logger.error("No alert ID provided for resolve action");
+      logger.error("No alert ID provided for resolve action", {
+        projectId: data.teamsRequest.projectId.toString(),
+      });
       return;
     }
 
-    logger.debug("Resolving alert: " + alertId);
+    logger.debug("Resolving alert: " + alertId, {
+      projectId: data.teamsRequest.projectId.toString(),
+      alertId: alertId,
+    });
 
     try {
       const alert: Alert | null = await AlertService.findOneBy({
@@ -181,12 +212,18 @@ export default class MicrosoftTeamsAlertActions {
       });
 
       if (!alert) {
-        logger.error("Alert not found: " + alertId);
+        logger.error("Alert not found: " + alertId, {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertId: alertId,
+        });
         return;
       }
 
       if (alert.currentAlertState?.isResolvedState) {
-        logger.debug("Alert is already resolved");
+        logger.debug("Alert is already resolved", {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertId: alertId,
+        });
         return;
       }
 
@@ -198,9 +235,15 @@ export default class MicrosoftTeamsAlertActions {
 
       await AlertService.resolveAlert(new ObjectID(alertId), oneUptimeUserId);
 
-      logger.debug("Alert resolved successfully");
+      logger.debug("Alert resolved successfully", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertId: alertId,
+      });
     } catch (error) {
-      logger.error("Error resolving alert:");
+      logger.error("Error resolving alert:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertId: alertId,
+      });
       logger.error(error);
     }
   }

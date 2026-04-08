@@ -173,8 +173,8 @@ const WorkersFeatureSet: FeatureSet = {
 
       // run async database migrations
       RunDatabaseMigrations().catch((err: Error) => {
-        logger.error("Error running database migrations");
-        logger.error(err);
+        logger.error("Error running database migrations", { service: "workers" });
+        logger.error(err, { service: "workers" });
       });
 
       // create tables in analytics database
@@ -186,7 +186,7 @@ const WorkersFeatureSet: FeatureSet = {
         async (job: QueueJob) => {
           const name: string = job.name;
 
-          logger.debug("Running Job: " + name);
+          logger.debug("Running Job: " + name, { service: "workers" });
 
           const funcToRun: PromiseVoidFunction =
             JobDictionary.getJobFunction(name);
@@ -200,8 +200,8 @@ const WorkersFeatureSet: FeatureSet = {
         { concurrency: WORKER_CONCURRENCY },
       );
     } catch (err) {
-      logger.error("App Init Failed:");
-      logger.error(err);
+      logger.error("App Init Failed:", { service: "workers" });
+      logger.error(err, { service: "workers" });
       throw err;
     }
   },

@@ -65,7 +65,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }): Promise<void> {
     const { action } = data;
 
-    logger.debug("Handling Microsoft Teams scheduled maintenance action:");
+    logger.debug("Handling Microsoft Teams scheduled maintenance action:", {
+      projectId: data.teamsRequest.projectId.toString(),
+      actionType: action.actionType,
+    });
     logger.debug(action);
 
     try {
@@ -87,12 +90,20 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         default:
           logger.debug(
             `Unhandled scheduled maintenance action: ${action.actionType}`,
+            {
+              projectId: data.teamsRequest.projectId.toString(),
+              actionType: action.actionType,
+            },
           );
           break;
       }
     } catch (error) {
       logger.error(
         "Error handling Microsoft Teams scheduled maintenance action:",
+        {
+          projectId: data.teamsRequest.projectId.toString(),
+          actionType: action.actionType,
+        },
       );
       logger.error(error);
     }
@@ -223,6 +234,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           logger.debug(
             "Scheduled maintenance created successfully: " +
               createdScheduledMaintenance.id?.toString(),
+            {
+              projectId: request.projectId.toString(),
+              scheduledMaintenanceId: createdScheduledMaintenance.id?.toString(),
+            },
           );
 
           // Update monitor status if specified
@@ -269,6 +284,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         } catch (error) {
           logger.error(
             "Error creating scheduled maintenance from Microsoft Teams:",
+            {
+              projectId: request.projectId.toString(),
+            },
           );
           logger.error(error);
           await turnContext.sendActivity(
@@ -284,7 +302,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       ] as ObjectID;
 
       if (!scheduledMaintenanceId) {
-        logger.error("ScheduledMaintenance ID is required");
+        logger.error("ScheduledMaintenance ID is required", {
+          actionType: actionType,
+        });
         await turnContext.sendActivity("ScheduledMaintenance ID is required");
         return;
       }
@@ -309,7 +329,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         });
 
       if (!scheduledMaintenance) {
-        logger.error("ScheduledMaintenance not found");
+        logger.error("ScheduledMaintenance not found", {
+          scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+        });
         await turnContext.sendActivity("ScheduledMaintenance not found");
         return;
       }
@@ -459,12 +481,17 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         }
 
         default:
-          logger.error(`Unknown action type: ${actionType}`);
+          logger.error(`Unknown action type: ${actionType}`, {
+            scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+            actionType: actionType,
+          });
           await turnContext.sendActivity("Unknown action type");
           break;
       }
     } catch (error) {
-      logger.error(`Error handling scheduled maintenance action: ${error}`);
+      logger.error(`Error handling scheduled maintenance action: ${error}`, {
+        actionType: actionType,
+      });
       await turnContext.sendActivity(
         "An error occurred while processing the action",
       );
@@ -590,7 +617,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }): Promise<void> {
     const { teamsRequest, req, res } = data;
 
-    logger.debug("Showing new scheduled maintenance card for Microsoft Teams");
+    logger.debug("Showing new scheduled maintenance card for Microsoft Teams", {
+      projectId: teamsRequest.projectId?.toString(),
+    });
 
     // Send empty response first
     Response.sendTextResponse(req, res, "");
@@ -609,7 +638,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
      * Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
      * For now, we'll just log it. The actual sending will be done through the bot framework
      */
-    logger.debug("New scheduled maintenance card built:");
+    logger.debug("New scheduled maintenance card built:", {
+      projectId: teamsRequest.projectId.toString(),
+    });
     logger.debug(JSON.stringify(card, null, 2));
   }
 
@@ -623,7 +654,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     const { teamsRequest, req, res } = data;
     const { userId, projectId } = teamsRequest;
 
-    logger.debug("Submitting new scheduled maintenance from Microsoft Teams");
+    logger.debug("Submitting new scheduled maintenance from Microsoft Teams", {
+      projectId: projectId?.toString(),
+    });
 
     if (!projectId) {
       return Response.sendErrorResponse(
@@ -661,6 +694,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     if (!title || !description || !startDate || !endDate) {
       logger.error(
         "Missing required fields for scheduled maintenance creation",
+        {
+          projectId: projectId.toString(),
+        },
       );
       return;
     }
@@ -733,6 +769,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       logger.debug(
         "Scheduled maintenance created successfully: " +
           createdScheduledMaintenance.id?.toString(),
+        {
+          projectId: projectId.toString(),
+          scheduledMaintenanceId: createdScheduledMaintenance.id?.toString(),
+        },
       );
 
       // Update monitor status if specified
@@ -760,10 +800,16 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
       logger.debug(
         "New scheduled maintenance created from Microsoft Teams successfully",
+        {
+          projectId: projectId.toString(),
+        },
       );
     } catch (error) {
       logger.error(
         "Error creating scheduled maintenance from Microsoft Teams:",
+        {
+          projectId: projectId.toString(),
+        },
       );
       logger.error(error);
     }

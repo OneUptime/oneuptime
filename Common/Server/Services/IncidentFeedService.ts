@@ -4,7 +4,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import IncidentFeed, {
   IncidentFeedEventType,
@@ -43,8 +43,8 @@ export class Service extends DatabaseService<IncidentFeed> {
       | undefined;
   }): Promise<void> {
     try {
-      logger.debug("IncidentFeedService.createIncidentFeedItem");
-      logger.debug(data);
+      logger.debug("IncidentFeedService.createIncidentFeedItem", { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
+      logger.debug(data, { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
 
       const incidentFeed: IncidentFeed = new IncidentFeed();
 
@@ -93,8 +93,8 @@ export class Service extends DatabaseService<IncidentFeed> {
         },
       });
 
-      logger.debug("Incident Feed created");
-      logger.debug(createdIncidentFeed);
+      logger.debug("Incident Feed created", { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
+      logger.debug(createdIncidentFeed, { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
 
       try {
         // send notification to slack and teams
@@ -110,14 +110,14 @@ export class Service extends DatabaseService<IncidentFeed> {
           });
         }
       } catch (e) {
-        logger.error("Error in sending notification to slack and teams");
-        logger.error(e);
+        logger.error("Error in sending notification to slack and teams", { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
+        logger.error(e, { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
 
         // we dont throw this error as it is not a critical error
       }
     } catch (e) {
-      logger.error("Error in creating incident feed");
-      logger.error(e);
+      logger.error("Error in creating incident feed", { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
+      logger.error(e, { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
 
       // we dont throw this error as it is not a critical error
     }

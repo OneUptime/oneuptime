@@ -42,10 +42,10 @@ const returnResponse: RequestHandler = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    logger.debug("Request Headers: ");
-    logger.debug(req.headers);
-    logger.debug("Request Body: ");
-    logger.debug(req.body);
+    logger.debug("Request Headers: ", { service: "test-server" });
+    logger.debug(req.headers, { service: "test-server" });
+    logger.debug("Request Body: ", { service: "test-server" });
+    logger.debug(req.body, { service: "test-server" });
 
     const responseCode: number | undefined =
       LocalCache.getNumber("TestServer", "responseCode") || 200;
@@ -56,12 +56,12 @@ const returnResponse: RequestHandler = async (
     let responseHeaders: JSONValue | undefined =
       LocalCache.getJSON("TestServer", "responseHeaders") || {};
 
-    logger.debug("Response Code: " + responseCode);
-    logger.debug("Response Time: " + responseTime);
-    logger.debug("Response Body: ");
-    logger.debug(responseBody);
-    logger.debug("Response Headers: ");
-    logger.debug(responseHeaders);
+    logger.debug("Response Code: " + responseCode, { service: "test-server" });
+    logger.debug("Response Time: " + responseTime, { service: "test-server" });
+    logger.debug("Response Body: ", { service: "test-server" });
+    logger.debug(responseBody, { service: "test-server" });
+    logger.debug("Response Headers: ", { service: "test-server" });
+    logger.debug(responseHeaders, { service: "test-server" });
 
     if (responseHeaders && typeof responseHeaders === Typeof.String) {
       responseHeaders = JSON.parse(responseHeaders.toString());

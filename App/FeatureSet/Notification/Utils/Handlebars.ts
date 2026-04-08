@@ -31,13 +31,13 @@ const loadPartials: PromiseVoidFunction = async (): Promise<void> => {
 
     Handlebars.registerPartial(name, partialTemplate);
 
-    logger.debug(`Loaded partial ${name}`);
+    logger.debug(`Loaded partial ${name}`, { service: "notification" });
   });
 };
 
 loadPartials().catch((err: Error) => {
-  logger.error("Error loading partials");
-  logger.error(err);
+  logger.error("Error loading partials", { service: "notification" });
+  logger.error(err, { service: "notification" });
 });
 
 Handlebars.registerHelper("ifCond", function (v1, v2, options) {

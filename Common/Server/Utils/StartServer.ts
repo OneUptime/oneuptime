@@ -61,7 +61,7 @@ const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
   extended: true,
   verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
     (req as OneUptimeRequest).rawBody = buf.toString();
-    logger.debug(`Raw JSON Body for signature verification captured`);
+    logger.debug(`Raw JSON Body for signature verification captured`, getLogAttributesFromRequest(req as OneUptimeRequest));
   },
 }); // 50 MB limit.
 
@@ -73,6 +73,7 @@ const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded({
     (req as OneUptimeRequest).rawBody = buf.toString(); // Also set rawBody for consistency
     logger.debug(
       `Raw Form Url Encoded Body: ${(req as OneUptimeRequest).rawFormUrlEncodedBody}`,
+      getLogAttributesFromRequest(req as OneUptimeRequest),
     );
   },
 }); // 50 MB limit.
@@ -151,7 +152,7 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
       const buffer: Buffer = Buffer.concat(buffers);
       zlib.gunzip(buffer as Uint8Array, (err: unknown, decoded: Buffer) => {
         if (err) {
-          logger.error(err);
+          logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
           return Response.sendErrorResponse(
             req,
             res,
@@ -292,12 +293,14 @@ const init: InitFunction = async (
         next: NextFunction,
       ) => {
         try {
-          logger.debug("Rendering index page");
+          const renderLogAttributes = getLogAttributesFromRequest(_req as OneUptimeRequest);
+
+          logger.debug("Rendering index page", renderLogAttributes);
 
           let variables: JSONObject = {};
 
           if (data.getVariablesToRenderIndexPage) {
-            logger.debug("Getting variables to render index page");
+            logger.debug("Getting variables to render index page", renderLogAttributes);
             try {
               const variablesToRenderIndexPage: JSONObject =
                 await data.getVariablesToRenderIndexPage(_req, res);
@@ -306,16 +309,17 @@ const init: InitFunction = async (
                 ...variablesToRenderIndexPage,
               };
             } catch (error) {
-              logger.error(error);
+              logger.error(error, renderLogAttributes);
             }
           }
 
-          logger.debug("Rendering index page with variables: ");
-          logger.debug(variables);
+          logger.debug("Rendering index page with variables: ", renderLogAttributes);
+          logger.debug(variables, renderLogAttributes);
 
           if (res.headersSent) {
             logger.debug(
               "Response already sent while preparing index page. Skipping render.",
+              renderLogAttributes,
             );
             return;
           }

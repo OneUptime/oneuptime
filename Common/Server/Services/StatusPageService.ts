@@ -5,7 +5,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -217,7 +217,7 @@ export class Service extends DatabaseService<StatusPage> {
         false,
         onCreate.createBy.props,
       ).catch((error: Error) => {
-        logger.error(`Error in StatusPageService owner assignment: ${error}`);
+        logger.error(`Error in StatusPageService owner assignment: ${error}`, { projectId: createdItem.projectId?.toString(), statusPageId: createdItem.id?.toString() } as LogAttributes);
       });
     }
 
@@ -405,7 +405,7 @@ export class Service extends DatabaseService<StatusPage> {
           req.ips[0];
 
         if (!ipAccessedFrom) {
-          logger.error("IP address not found in request.");
+          logger.error("IP address not found in request.", { statusPageId: statusPageId?.toString() } as LogAttributes);
           return {
             hasReadAccess: false,
             error: new ForbiddenException(
@@ -424,7 +424,7 @@ export class Service extends DatabaseService<StatusPage> {
 
         if (!isIPWhitelisted) {
           logger.error(
-            `IP address ${ipAccessedFrom} is not whitelisted for status page ${statusPageId.toString()}.`,
+            `IP address ${ipAccessedFrom} is not whitelisted for status page ${statusPageId.toString()}.`, { statusPageId: statusPageId?.toString() } as LogAttributes,
           );
 
           return {
@@ -460,7 +460,7 @@ export class Service extends DatabaseService<StatusPage> {
             };
           }
         } catch (err) {
-          logger.error(err);
+          logger.error(err, { statusPageId: statusPageId?.toString() } as LogAttributes);
         }
       }
 
@@ -492,7 +492,7 @@ export class Service extends DatabaseService<StatusPage> {
         };
       }
     } catch (err) {
-      logger.error(err);
+      logger.error(err, { statusPageId: statusPageId?.toString() } as LogAttributes);
     }
 
     return {
@@ -524,7 +524,7 @@ export class Service extends DatabaseService<StatusPage> {
         payload["type"] === MASTER_PASSWORD_COOKIE_IDENTIFIER
       );
     } catch (err) {
-      logger.error(err);
+      logger.error(err, { statusPageId: data.statusPageId?.toString() } as LogAttributes);
     }
 
     return false;
@@ -841,7 +841,7 @@ export class Service extends DatabaseService<StatusPage> {
           statusPageId: statuspage.id!,
         },
       ).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, { projectId: statuspage.projectId?.toString(), statusPageId: statuspage.id?.toString() } as LogAttributes);
       });
     };
 
@@ -889,7 +889,7 @@ export class Service extends DatabaseService<StatusPage> {
           continue; // Cant send Status Page reports to SMS subscribers.
         }
       } catch (err) {
-        logger.error(err);
+        logger.error(err, { projectId: statuspage.projectId?.toString(), statusPageId: statuspage.id?.toString() } as LogAttributes);
       }
     }
   }

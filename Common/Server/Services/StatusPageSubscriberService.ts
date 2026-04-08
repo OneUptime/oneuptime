@@ -43,38 +43,38 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    logger.debug("onBeforeCreate called with data:");
-    logger.debug(data);
+    logger.debug("onBeforeCreate called with data:", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
+    logger.debug(data, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
     if (!data.data.statusPageId) {
-      logger.debug("Status Page ID is missing.");
+      logger.debug("Status Page ID is missing.", { projectId: data.data.projectId?.toString() } as LogAttributes);
       throw new BadDataException("Status Page ID is required.");
     }
 
     if (!data.data.projectId) {
-      logger.debug("Project ID is missing.");
+      logger.debug("Project ID is missing.", { statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       throw new BadDataException("Project ID is required.");
     }
 
     const projectId: ObjectID = data.data.projectId;
-    logger.debug(`Project ID: ${projectId}`);
+    logger.debug(`Project ID: ${projectId}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
     // if the project is on the free plan, then only allow 1 status page.
     if (IsBillingEnabled) {
-      logger.debug("Billing is enabled.");
+      logger.debug("Billing is enabled.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       const currentPlan: CurrentPlan =
         await ProjectService.getCurrentPlan(projectId);
-      logger.debug(`Current Plan: ${JSON.stringify(currentPlan)}`);
+      logger.debug(`Current Plan: ${JSON.stringify(currentPlan)}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
       if (currentPlan.isSubscriptionUnpaid) {
-        logger.debug("Subscription is unpaid.");
+        logger.debug("Subscription is unpaid.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
         throw new BadDataException(
           "Your subscription is unpaid. Please update your payment method and to add subscribers.",
         );
       }
 
       if (currentPlan.plan === PlanType.Free) {
-        logger.debug("Current plan is Free.");
+        logger.debug("Current plan is Free.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
         const subscribersCount: PositiveNumber = await this.countBy({
           query: {
             projectId: projectId,
@@ -83,11 +83,12 @@ export class Service extends DatabaseService<Model> {
             isRoot: true,
           },
         });
-        logger.debug(`Subscribers Count: ${subscribersCount.toNumber()}`);
+        logger.debug(`Subscribers Count: ${subscribersCount.toNumber()}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
         if (subscribersCount.toNumber() >= AllowedSubscribersCountInFreePlan) {
           logger.debug(
             "Reached maximum allowed subscriber limit for the free plan.",
+            { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes,
           );
           throw new BadDataException(
             `You have reached the maximum allowed subscriber limit for the free plan. Please upgrade your plan to add more subscribers.`,
@@ -99,7 +100,7 @@ export class Service extends DatabaseService<Model> {
     let subscriber: Model | null = null;
 
     if (data.data.subscriberEmail) {
-      logger.debug(`Subscriber Email: ${data.data.subscriberEmail}`);
+      logger.debug(`Subscriber Email: ${data.data.subscriberEmail}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       subscriber = await this.findOneBy({
         query: {
           statusPageId: data.data.statusPageId,
@@ -114,18 +115,18 @@ export class Service extends DatabaseService<Model> {
           ignoreHooks: true,
         },
       });
-      logger.debug(`Found Subscriber by Email: ${JSON.stringify(subscriber)}`);
+      logger.debug(`Found Subscriber by Email: ${JSON.stringify(subscriber)}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
     }
 
     if (data.data.subscriberPhone) {
-      logger.debug(`Subscriber Phone: ${data.data.subscriberPhone}`);
+      logger.debug(`Subscriber Phone: ${data.data.subscriberPhone}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       // check if this project has SMS enabled.
       const isSMSEnabled: boolean =
         await ProjectService.isSMSNotificationsEnabled(projectId);
-      logger.debug(`Is SMS Enabled: ${isSMSEnabled}`);
+      logger.debug(`Is SMS Enabled: ${isSMSEnabled}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
       if (!isSMSEnabled) {
-        logger.debug("SMS notifications are not enabled for this project.");
+        logger.debug("SMS notifications are not enabled for this project.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
         throw new BadDataException(
           "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
         );
@@ -146,11 +147,11 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      logger.debug(`Found Subscriber by Phone: ${JSON.stringify(subscriber)}`);
+      logger.debug(`Found Subscriber by Phone: ${JSON.stringify(subscriber)}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
     }
 
     if (subscriber && !subscriber.isUnsubscribed) {
-      logger.debug("Subscriber is already subscribed and not unsubscribed.");
+      logger.debug("Subscriber is already subscribed and not unsubscribed.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       throw new BadDataException(
         "You are already subscribed to this status page.",
       );
@@ -158,7 +159,7 @@ export class Service extends DatabaseService<Model> {
 
     // if the user is unsubscribed, delete this record and it'll create a new one.
     if (subscriber) {
-      logger.debug("Subscriber is unsubscribed. Deleting old record.");
+      logger.debug("Subscriber is unsubscribed. Deleting old record.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       await this.deleteOneBy({
         query: {
           _id: subscriber?._id as string,
@@ -172,7 +173,7 @@ export class Service extends DatabaseService<Model> {
 
     const statuspages: Array<StatusPage> =
       await this.getStatusPagesToSendNotification([data.data.statusPageId]);
-    logger.debug(`Status Pages: ${JSON.stringify(statuspages)}`);
+    logger.debug(`Status Pages: ${JSON.stringify(statuspages)}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
     const statuspage: StatusPage | undefined = statuspages.find(
       (statuspage: StatusPage) => {
@@ -183,19 +184,19 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (!statuspage || !statuspage.projectId) {
-      logger.debug("Status Page not found or Project ID is missing.");
+      logger.debug("Status Page not found or Project ID is missing.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
       throw new BadDataException("Status Page not found");
     }
 
     data.data.projectId = statuspage.projectId;
-    logger.debug(`Updated Project ID: ${data.data.projectId}`);
+    logger.debug(`Updated Project ID: ${data.data.projectId}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
     const isEmailSubscriber: boolean = Boolean(data.data.subscriberEmail);
     const isSubscriptionConfirmed: boolean = Boolean(
       data.data.isSubscriptionConfirmed,
     );
-    logger.debug(`Is Email Subscriber: ${isEmailSubscriber}`);
-    logger.debug(`Is Subscription Confirmed: ${isSubscriptionConfirmed}`);
+    logger.debug(`Is Email Subscriber: ${isEmailSubscriber}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
+    logger.debug(`Is Subscription Confirmed: ${isSubscriptionConfirmed}`, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
     if (isEmailSubscriber && !isSubscriptionConfirmed) {
       data.data.isSubscriptionConfirmed = false;
@@ -204,6 +205,7 @@ export class Service extends DatabaseService<Model> {
     }
     logger.debug(
       `Final Subscription Confirmed: ${data.data.isSubscriptionConfirmed}`,
+      { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes,
     );
 
     // if slack incoming webhook is provided, then see if it starts with https://hooks.slack.com/services/
@@ -211,13 +213,14 @@ export class Service extends DatabaseService<Model> {
     if (data.data.slackIncomingWebhookUrl) {
       logger.debug(
         `Slack Incoming Webhook URL: ${data.data.slackIncomingWebhookUrl}`,
+        { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes,
       );
       if (
         !SlackUtil.isValidSlackIncomingWebhookUrl(
           data.data.slackIncomingWebhookUrl,
         )
       ) {
-        logger.debug("Invalid Slack Incoming Webhook URL.");
+        logger.debug("Invalid Slack Incoming Webhook URL.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
         throw new BadDataException("Invalid Slack Incoming Webhook URL.");
       }
     }
@@ -226,13 +229,14 @@ export class Service extends DatabaseService<Model> {
     if (data.data.microsoftTeamsIncomingWebhookUrl) {
       logger.debug(
         `Microsoft Teams Incoming Webhook URL: ${data.data.microsoftTeamsIncomingWebhookUrl}`,
+        { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes,
       );
       if (
         !MicrosoftTeamsUtil.isValidMicrosoftTeamsIncomingWebhookUrl(
           data.data.microsoftTeamsIncomingWebhookUrl,
         )
       ) {
-        logger.debug("Invalid Microsoft Teams Incoming Webhook URL.");
+        logger.debug("Invalid Microsoft Teams Incoming Webhook URL.", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
         throw new BadDataException(
           "Invalid Microsoft Teams Incoming Webhook URL.",
         );
@@ -245,10 +249,11 @@ export class Service extends DatabaseService<Model> {
     ).toString();
     logger.debug(
       `Subscription Confirmation Token: ${data.data.subscriptionConfirmationToken}`,
+      { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes,
     );
 
-    logger.debug("onBeforeCreate processed data:");
-    logger.debug(data);
+    logger.debug("onBeforeCreate processed data:", { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
+    logger.debug(data, { projectId: data.data.projectId?.toString(), statusPageId: data.data.statusPageId?.toString() } as LogAttributes);
 
     return { createBy: data, carryForward: statuspage };
   }
@@ -258,30 +263,30 @@ export class Service extends DatabaseService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    logger.debug("onCreateSuccess called with createdItem:");
-    logger.debug(createdItem);
+    logger.debug("onCreateSuccess called with createdItem:", { projectId: createdItem.projectId?.toString() } as LogAttributes);
+    logger.debug(createdItem, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
     if (!createdItem.statusPageId) {
-      logger.debug("Status Page ID is missing in createdItem.");
+      logger.debug("Status Page ID is missing in createdItem.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
       return createdItem;
     }
 
     const statusPageURL: string = await StatusPageService.getStatusPageURL(
       createdItem.statusPageId,
     );
-    logger.debug(`Status Page URL: ${statusPageURL}`);
+    logger.debug(`Status Page URL: ${statusPageURL}`, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
     const statusPageName: string =
       onCreate.carryForward.pageTitle ||
       onCreate.carryForward.name ||
       "Status Page";
-    logger.debug(`Status Page Name: ${statusPageName}`);
+    logger.debug(`Status Page Name: ${statusPageName}`, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
       createdItem.id!,
     ).toString();
-    logger.debug(`Unsubscribe Link: ${unsubscribeLink}`);
+    logger.debug(`Unsubscribe Link: ${unsubscribeLink}`, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
     if (
       createdItem.statusPageId &&
@@ -291,6 +296,7 @@ export class Service extends DatabaseService<Model> {
     ) {
       logger.debug(
         "Subscriber has a phone number and sendYouHaveSubscribedMessage is true.",
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
       const statusPage: StatusPage | null = await StatusPageService.findOneBy({
         query: {
@@ -312,12 +318,13 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (!statusPage) {
-        logger.debug("Status Page not found.");
+        logger.debug("Status Page not found.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
         return createdItem;
       }
 
       logger.debug(
         `Status Page Call SMS Config: ${JSON.stringify(statusPage.callSmsConfig)}`,
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
 
       SmsService.sendSms(
@@ -343,15 +350,16 @@ export class Service extends DatabaseService<Model> {
       createdItem.subscriberEmail &&
       createdItem._id
     ) {
-      logger.debug("Subscriber has an email.");
+      logger.debug("Subscriber has an email.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
       const isSubcriptionConfirmed: boolean = Boolean(
         createdItem.isSubscriptionConfirmed,
       );
-      logger.debug(`Is Subscription Confirmed: ${isSubcriptionConfirmed}`);
+      logger.debug(`Is Subscription Confirmed: ${isSubcriptionConfirmed}`, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
       if (!isSubcriptionConfirmed) {
         logger.debug(
           "Subscription is not confirmed. Sending confirmation email.",
+          { projectId: createdItem.projectId?.toString() } as LogAttributes,
         );
         await this.sendConfirmSubscriptionEmail({
           subscriberId: createdItem.id!,
@@ -361,6 +369,7 @@ export class Service extends DatabaseService<Model> {
       if (isSubcriptionConfirmed && createdItem.sendYouHaveSubscribedMessage) {
         logger.debug(
           "Subscription is confirmed and sendYouHaveSubscribedMessage is true. Sending 'You have subscribed' email.",
+          { projectId: createdItem.projectId?.toString() } as LogAttributes,
         );
         await this.sendYouHaveSubscribedEmail({
           subscriberId: createdItem.id!,
@@ -370,7 +379,7 @@ export class Service extends DatabaseService<Model> {
 
     // if slack incoming webhook is provided, then send a message to the slack channel.
     if (createdItem.slackIncomingWebhookUrl) {
-      logger.debug("Sending Slack notification for new subscriber.");
+      logger.debug("Sending Slack notification for new subscriber.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
       const slackMessage: string = `## 📢 New Subscription to ${statusPageName}
 
 **You have successfully subscribed to receive status updates!**
@@ -386,14 +395,14 @@ You will receive real-time notifications for:
 
 Stay informed about service availability! 🚀`;
 
-      logger.debug(`Slack Message: ${slackMessage}`);
+      logger.debug(`Slack Message: ${slackMessage}`, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
       SlackUtil.sendMessageToChannelViaIncomingWebhook({
         url: URL.fromString(createdItem.slackIncomingWebhookUrl.toString()),
         text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
       })
         .then(() => {
-          logger.debug("Slack notification sent successfully.");
+          logger.debug("Slack notification sent successfully.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
         })
         .catch((err: Error) => {
           logger.error("Error sending Slack notification:", { projectId: createdItem.projectId?.toString() } as LogAttributes);
@@ -406,7 +415,7 @@ Stay informed about service availability! 🚀`;
       createdItem.microsoftTeamsIncomingWebhookUrl &&
       createdItem.sendYouHaveSubscribedMessage
     ) {
-      logger.debug("Sending Microsoft Teams notification for new subscriber.");
+      logger.debug("Sending Microsoft Teams notification for new subscriber.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
       const teamsMessage: string = `## 📢 New Subscription to ${statusPageName}
 
 **You have successfully subscribed to receive status updates!**
@@ -422,7 +431,7 @@ You will receive real-time notifications for:
 
 Stay informed about service availability! 🚀`;
 
-      logger.debug(`Teams Message: ${teamsMessage}`);
+      logger.debug(`Teams Message: ${teamsMessage}`, { projectId: createdItem.projectId?.toString() } as LogAttributes);
 
       MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
         url: URL.fromString(
@@ -431,7 +440,7 @@ Stay informed about service availability! 🚀`;
         text: teamsMessage,
       })
         .then(() => {
-          logger.debug("Microsoft Teams notification sent successfully.");
+          logger.debug("Microsoft Teams notification sent successfully.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
         })
         .catch((err: Error) => {
           logger.error("Error sending Microsoft Teams notification:", { projectId: createdItem.projectId?.toString() } as LogAttributes);
@@ -439,7 +448,7 @@ Stay informed about service availability! 🚀`;
         });
     }
 
-    logger.debug("onCreateSuccess completed.");
+    logger.debug("onCreateSuccess completed.", { projectId: createdItem.projectId?.toString() } as LogAttributes);
     return createdItem;
   }
 
@@ -447,8 +456,8 @@ Stay informed about service availability! 🚀`;
   public async sendConfirmSubscriptionEmail(data: {
     subscriberId: ObjectID;
   }): Promise<void> {
-    logger.debug("sendConfirmSubscriptionEmail called with data:");
-    logger.debug(data);
+    logger.debug("sendConfirmSubscriptionEmail called with data:", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
+    logger.debug(data, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     // get subscriber
     const subscriber: Model | null = await this.findOneBy({
@@ -468,11 +477,11 @@ Stay informed about service availability! 🚀`;
         ignoreHooks: true,
       },
     });
-    logger.debug(`Found Subscriber: ${JSON.stringify(subscriber)}`);
+    logger.debug(`Found Subscriber: ${JSON.stringify(subscriber)}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     // get status page
     if (!subscriber || !subscriber.statusPageId) {
-      logger.debug("Subscriber or Status Page ID is missing.");
+      logger.debug("Subscriber or Status Page ID is missing.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
       return;
     }
 
@@ -501,27 +510,27 @@ Stay informed about service availability! 🚀`;
         ignoreHooks: true,
       },
     });
-    logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`);
+    logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     if (!statusPage || !statusPage.id) {
-      logger.debug("Status Page not found or ID is missing.");
+      logger.debug("Status Page not found or ID is missing.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
       return;
     }
 
     const statusPageURL: string = await StatusPageService.getStatusPageURL(
       statusPage.id,
     );
-    logger.debug(`Status Page URL: ${statusPageURL}`);
+    logger.debug(`Status Page URL: ${statusPageURL}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const statusPageName: string =
       statusPage.pageTitle || statusPage.name || "Status Page";
-    logger.debug(`Status Page Name: ${statusPageName}`);
+    logger.debug(`Status Page Name: ${statusPageName}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const host: Hostname = await DatabaseConfig.getHost();
-    logger.debug(`Host: ${host}`);
+    logger.debug(`Host: ${host}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-    logger.debug(`HTTP Protocol: ${httpProtocol}`);
+    logger.debug(`HTTP Protocol: ${httpProtocol}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
     const statusPageIdString: string | null =
       statusPage.id?.toString() || statusPage._id?.toString() || null;
 
@@ -530,7 +539,7 @@ Stay informed about service availability! 🚀`;
       confirmationToken: subscriber.subscriptionConfirmationToken || "",
       statusPageSubscriberId: subscriber.id!,
     }).toString();
-    logger.debug(`Confirm Subscription Link: ${confirmSubscriptionLink}`);
+    logger.debug(`Confirm Subscription Link: ${confirmSubscriptionLink}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     if (
       subscriber.statusPageId &&
@@ -541,7 +550,7 @@ Stay informed about service availability! 🚀`;
         URL.fromString(statusPageURL),
         subscriber.id!,
       ).toString();
-      logger.debug(`Unsubscribe URL: ${unsubscribeUrl}`);
+      logger.debug(`Unsubscribe URL: ${unsubscribeUrl}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
       MailService.sendMail(
         {
@@ -575,9 +584,9 @@ Stay informed about service availability! 🚀`;
       ).catch((err: Error) => {
         logger.error(err, { projectId: subscriber.projectId?.toString() } as LogAttributes);
       });
-      logger.debug("Confirmation email sent.");
+      logger.debug("Confirmation email sent.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
     } else {
-      logger.debug("Subscriber email or ID is missing.");
+      logger.debug("Subscriber email or ID is missing.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
     }
   }
 
@@ -585,8 +594,8 @@ Stay informed about service availability! 🚀`;
   public async sendYouHaveSubscribedEmail(data: {
     subscriberId: ObjectID;
   }): Promise<void> {
-    logger.debug("sendYouHaveSubscribedEmail called with data:");
-    logger.debug(data);
+    logger.debug("sendYouHaveSubscribedEmail called with data:", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
+    logger.debug(data, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     // get subscriber
     const subscriber: Model | null = await this.findOneBy({
@@ -605,11 +614,11 @@ Stay informed about service availability! 🚀`;
         ignoreHooks: true,
       },
     });
-    logger.debug(`Found Subscriber: ${JSON.stringify(subscriber)}`);
+    logger.debug(`Found Subscriber: ${JSON.stringify(subscriber)}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     // get status page
     if (!subscriber || !subscriber.statusPageId) {
-      logger.debug("Subscriber or Status Page ID is missing.");
+      logger.debug("Subscriber or Status Page ID is missing.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
       return;
     }
 
@@ -638,27 +647,27 @@ Stay informed about service availability! 🚀`;
         ignoreHooks: true,
       },
     });
-    logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`);
+    logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     if (!statusPage || !statusPage.id) {
-      logger.debug("Status Page not found or ID is missing.");
+      logger.debug("Status Page not found or ID is missing.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
       return;
     }
 
     const statusPageURL: string = await StatusPageService.getStatusPageURL(
       statusPage.id,
     );
-    logger.debug(`Status Page URL: ${statusPageURL}`);
+    logger.debug(`Status Page URL: ${statusPageURL}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const statusPageName: string =
       statusPage.pageTitle || statusPage.name || "Status Page";
-    logger.debug(`Status Page Name: ${statusPageName}`);
+    logger.debug(`Status Page Name: ${statusPageName}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const host: Hostname = await DatabaseConfig.getHost();
-    logger.debug(`Host: ${host}`);
+    logger.debug(`Host: ${host}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-    logger.debug(`HTTP Protocol: ${httpProtocol}`);
+    logger.debug(`HTTP Protocol: ${httpProtocol}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
     const statusPageIdString: string | null =
       statusPage.id?.toString() || statusPage._id?.toString() || null;
 
@@ -666,14 +675,14 @@ Stay informed about service availability! 🚀`;
       URL.fromString(statusPageURL),
       subscriber.id!,
     ).toString();
-    logger.debug(`Unsubscribe Link: ${unsubscribeLink}`);
+    logger.debug(`Unsubscribe Link: ${unsubscribeLink}`, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     if (
       subscriber.statusPageId &&
       subscriber.subscriberEmail &&
       subscriber._id
     ) {
-      logger.debug("Subscriber has an email and ID.");
+      logger.debug("Subscriber has an email and ID.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
       MailService.sendMail(
         {
           toEmail: subscriber.subscriberEmail,
@@ -706,9 +715,9 @@ Stay informed about service availability! 🚀`;
         logger.error("Error sending subscription email:", { projectId: subscriber.projectId?.toString() } as LogAttributes);
         logger.error(err, { projectId: subscriber.projectId?.toString() } as LogAttributes);
       });
-      logger.debug("Subscription email sent successfully.");
+      logger.debug("Subscription email sent successfully.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
     } else {
-      logger.debug("Subscriber email or ID is missing.");
+      logger.debug("Subscriber email or ID is missing.", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
     }
   }
 
@@ -717,17 +726,18 @@ Stay informed about service availability! 🚀`;
     confirmationToken: string;
     statusPageSubscriberId: ObjectID;
   }): URL {
-    logger.debug("getConfirmSubscriptionLink called with data:");
-    logger.debug(data);
+    logger.debug("getConfirmSubscriptionLink called with data:", { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
+    logger.debug(data, { statusPageSubscriberId: data.subscriberId?.toString() } as LogAttributes);
 
     const confirmSubscriptionLink: URL = URL.fromString(
       data.statusPageUrl,
     ).addRoute(
-      `/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`,
+      `/confirm-subscription/${data.subscriberId.toString()}?verification-token=${data.confirmationToken}`,
     );
 
     logger.debug(
       `Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`,
+      { statusPageId: statusPageId?.toString() } as LogAttributes,
     );
     return confirmSubscriptionLink;
   }
@@ -737,10 +747,10 @@ Stay informed about service availability! 🚀`;
     statusPageId: ObjectID,
     props: DatabaseCommonInteractionProps,
   ): Promise<Array<Model>> {
-    logger.debug("getSubscribersByStatusPage called with statusPageId:");
-    logger.debug(statusPageId);
-    logger.debug("DatabaseCommonInteractionProps:");
-    logger.debug(props);
+    logger.debug("getSubscribersByStatusPage called with statusPageId:", { statusPageId: statusPageId?.toString() } as LogAttributes);
+    logger.debug(statusPageId, { statusPageId: statusPageId?.toString() } as LogAttributes);
+    logger.debug("DatabaseCommonInteractionProps:", { statusPageId: statusPageId?.toString() } as LogAttributes);
+    logger.debug(props, { statusPageId: statusPageId?.toString() } as LogAttributes);
 
     const subscribers: Array<Model> = await this.findBy({
       query: {
@@ -765,8 +775,8 @@ Stay informed about service availability! 🚀`;
       props: props,
     });
 
-    logger.debug("Found subscribers:");
-    logger.debug(subscribers);
+    logger.debug("Found subscribers:", { statusPageId: statusPageId?.toString() } as LogAttributes);
+    logger.debug(subscribers, { statusPageId: statusPageId?.toString() } as LogAttributes);
 
     return subscribers;
   }
@@ -775,17 +785,17 @@ Stay informed about service availability! 🚀`;
     statusPageUrl: URL,
     statusPageSubscriberId: ObjectID,
   ): URL {
-    logger.debug("getUnsubscribeLink called with statusPageUrl:");
-    logger.debug(statusPageUrl);
-    logger.debug("statusPageSubscriberId:");
-    logger.debug(statusPageSubscriberId);
+    logger.debug("getUnsubscribeLink called with statusPageUrl:", { statusPageSubscriberId: statusPageSubscriberId?.toString() } as LogAttributes);
+    logger.debug(statusPageUrl, { statusPageSubscriberId: statusPageSubscriberId?.toString() } as LogAttributes);
+    logger.debug("statusPageSubscriberId:", { statusPageSubscriberId: statusPageSubscriberId?.toString() } as LogAttributes);
+    logger.debug(statusPageSubscriberId, { statusPageSubscriberId: statusPageSubscriberId?.toString() } as LogAttributes);
 
     const unsubscribeLink: URL = URL.fromString(
       statusPageUrl.toString(),
     ).addRoute("/update-subscription/" + statusPageSubscriberId.toString());
 
-    logger.debug("Generated Unsubscribe Link:");
-    logger.debug(unsubscribeLink);
+    logger.debug("Generated Unsubscribe Link:", { statusPageSubscriberId: statusPageSubscriberId?.toString() } as LogAttributes);
+    logger.debug(unsubscribeLink, { statusPageSubscriberId: statusPageSubscriberId?.toString() } as LogAttributes);
 
     return unsubscribeLink;
   }
@@ -796,13 +806,13 @@ Stay informed about service availability! 🚀`;
     statusPage: StatusPage;
     eventType: StatusPageEventType;
   }): boolean {
-    logger.debug("shouldSendNotification called with data:");
-    logger.debug(data);
+    logger.debug("shouldSendNotification called with data:", { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
+    logger.debug(data, { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
 
     let shouldSendNotification: boolean = true; // default to true.
 
     if (data.subscriber.isUnsubscribed) {
-      logger.debug("Subscriber is unsubscribed.");
+      logger.debug("Subscriber is unsubscribed.", { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
       shouldSendNotification = false;
       return shouldSendNotification;
     }
@@ -817,6 +827,7 @@ Stay informed about service availability! 🚀`;
     ) {
       logger.debug(
         "Subscriber can choose resources and is not subscribed to all resources.",
+        { statusPageId: data.statusPage?.id?.toString() } as LogAttributes,
       );
       const subscriberResourceIds: Array<string> =
         data.subscriber.statusPageResources?.map(
@@ -825,27 +836,27 @@ Stay informed about service availability! 🚀`;
           },
         ) || [];
 
-      logger.debug(`Subscriber Resource IDs: ${subscriberResourceIds}`);
+      logger.debug(`Subscriber Resource IDs: ${subscriberResourceIds}`, { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
 
       let shouldSendNotificationForResource: boolean = false;
 
       if (subscriberResourceIds.length === 0) {
-        logger.debug("Subscriber has no resource IDs.");
+        logger.debug("Subscriber has no resource IDs.", { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
         shouldSendNotificationForResource = false;
       } else {
         for (const resource of data.statusPageResources) {
-          logger.debug(`Checking resource: ${resource.id}`);
+          logger.debug(`Checking resource: ${resource.id}`, { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
           if (
             subscriberResourceIds.includes(resource.id?.toString() as string)
           ) {
-            logger.debug("Resource ID matches subscriber's resource ID.");
+            logger.debug("Resource ID matches subscriber's resource ID.", { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
             shouldSendNotificationForResource = true;
           }
         }
       }
 
       if (!shouldSendNotificationForResource) {
-        logger.debug("Should not send notification for resource.");
+        logger.debug("Should not send notification for resource.", { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
         shouldSendNotification = false;
       }
     }
@@ -858,27 +869,29 @@ Stay informed about service availability! 🚀`;
     ) {
       logger.debug(
         "Subscriber can choose event types and is not subscribed to all event types.",
+        { statusPageId: data.statusPage?.id?.toString() } as LogAttributes,
       );
       const subscriberEventTypes: Array<StatusPageEventType> =
         data.subscriber.statusPageEventTypes || [];
 
-      logger.debug(`Subscriber Event Types: ${subscriberEventTypes}`);
+      logger.debug(`Subscriber Event Types: ${subscriberEventTypes}`, { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
 
       let shouldSendNotificationForEventType: boolean = false;
 
       if (subscriberEventTypes.includes(data.eventType)) {
-        logger.debug("Event type matches subscriber's event type.");
+        logger.debug("Event type matches subscriber's event type.", { statusPageId: data.statusPage?.id?.toString() } as LogAttributes);
         shouldSendNotificationForEventType = true;
       }
 
       if (!shouldSendNotificationForEventType) {
-        logger.debug("Should not send notification for event type.");
+        logger.debug("Should not send notification for event type.", {} as LogAttributes);
         shouldSendNotification = false;
       }
     }
 
     logger.debug(
       `Final decision on shouldSendNotification: ${shouldSendNotification}`,
+      {} as LogAttributes,
     );
     return shouldSendNotification;
   }
@@ -887,8 +900,8 @@ Stay informed about service availability! 🚀`;
   public async getStatusPagesToSendNotification(
     statusPageIds: Array<ObjectID>,
   ): Promise<Array<StatusPage>> {
-    logger.debug("getStatusPagesToSendNotification called with statusPageIds:");
-    logger.debug(statusPageIds);
+    logger.debug("getStatusPagesToSendNotification called with statusPageIds:", {} as LogAttributes);
+    logger.debug(statusPageIds, {} as LogAttributes);
 
     const statusPages: Array<StatusPage> = await StatusPageService.findBy({
       query: {
@@ -937,8 +950,8 @@ Stay informed about service availability! 🚀`;
       },
     });
 
-    logger.debug("Found status pages:");
-    logger.debug(statusPages);
+    logger.debug("Found status pages:", {} as LogAttributes);
+    logger.debug(statusPages, {} as LogAttributes);
 
     return statusPages;
   }

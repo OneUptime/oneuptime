@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import GreenlockUtil from "../Utils/Greenlock/Greenlock";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import DomainService from "./DomainService";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -163,7 +163,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           }
 
           logger.debug(
-            "Ordering SSL for domain: " + statusPageDomain.fullDomain,
+            "Ordering SSL for domain: " + statusPageDomain.fullDomain, { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
           );
 
           await GreenlockUtil.orderCert({
@@ -174,7 +174,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           });
 
           logger.debug(
-            "SSL ordered for domain: " + statusPageDomain.fullDomain,
+            "SSL ordered for domain: " + statusPageDomain.fullDomain, { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
           );
 
           // update the order.
@@ -244,7 +244,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       return true;
     } catch (err) {
-      logger.error(err);
+      logger.error(err, { fullDomain: fulldomain } as LogAttributes);
       return false;
     }
   }
@@ -288,7 +288,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     try {
       // get the token from the domain.
 
-      logger.debug("Checking for CNAME " + fullDomain);
+      logger.debug("Checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
 
       const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
         query: {
@@ -309,7 +309,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       const token: string = statusPageDomain.cnameVerificationToken!;
 
-      logger.debug("Checking for CNAME " + fullDomain + " with token " + token);
+      logger.debug("Checking for CNAME " + fullDomain + " with token " + token, { fullDomain } as LogAttributes);
 
       try {
         const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -322,8 +322,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
             ),
           });
 
-        logger.debug("CNAME verification result");
-        logger.debug(result);
+        logger.debug("CNAME verification result", { fullDomain } as LogAttributes);
+        logger.debug(result, { fullDomain } as LogAttributes);
 
         if (result.isSuccess()) {
           await this.updateCnameStatusForStatusPageDomain({
@@ -334,8 +334,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
           return true;
         }
       } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain);
-        logger.debug(err);
+        logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+        logger.debug(err, { fullDomain } as LogAttributes);
       }
 
       // try with https
@@ -351,8 +351,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
             ),
           });
 
-        logger.debug("CNAME verification result for https");
-        logger.debug(resultHttps);
+        logger.debug("CNAME verification result for https", { fullDomain } as LogAttributes);
+        logger.debug(resultHttps, { fullDomain } as LogAttributes);
 
         if (resultHttps.isSuccess()) {
           await this.updateCnameStatusForStatusPageDomain({
@@ -363,8 +363,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
           return true;
         }
       } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain);
-        logger.debug(err);
+        logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+        logger.debug(err, { fullDomain } as LogAttributes);
       }
 
       try {
@@ -382,7 +382,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
           if (!cnameRecord) {
             logger.debug(
-              `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
+              `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`, { fullDomain } as LogAttributes,
             );
             await this.updateCnameStatusForStatusPageDomain({
               domain: fullDomain,
@@ -397,7 +397,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
               StatusPageCNameRecord.trim().toLocaleLowerCase()
           ) {
             logger.debug(
-              `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`,
+              `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`, { fullDomain } as LogAttributes,
             );
 
             await this.updateCnameStatusForStatusPageDomain({
@@ -409,12 +409,12 @@ export class Service extends DatabaseService<StatusPageDomain> {
           }
 
           logger.debug(
-            `CNAME record for ${fullDomain} is ${cnameRecord} and it does not match the expected record: ${StatusPageCNameRecord}`,
+            `CNAME record for ${fullDomain} is ${cnameRecord} and it does not match the expected record: ${StatusPageCNameRecord}`, { fullDomain } as LogAttributes,
           );
         }
       } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain);
-        logger.debug(err);
+        logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+        logger.debug(err, { fullDomain } as LogAttributes);
       }
 
       await this.updateCnameStatusForStatusPageDomain({
@@ -424,8 +424,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       return false;
     } catch (err) {
-      logger.debug("Failed checking for CNAME " + fullDomain);
-      logger.debug(err);
+      logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+      logger.debug(err, { fullDomain } as LogAttributes);
 
       await this.updateCnameStatusForStatusPageDomain({
         domain: fullDomain,
@@ -463,7 +463,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     logger.debug(
-      `StatusPageCerts:RemoveCerts - Checking CNAME ${statusPageDomain.fullDomain}`,
+      `StatusPageCerts:RemoveCerts - Checking CNAME ${statusPageDomain.fullDomain}`, { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
     );
 
     // Check CNAME validation and if that fails. Remove certs from Greenlock.
@@ -495,9 +495,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
           await this.orderCert(statusPageDomain);
         } catch (err) {
           logger.error(
-            "Cannot order cert for domain: " + statusPageDomain.fullDomain,
+            "Cannot order cert for domain: " + statusPageDomain.fullDomain, { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
           );
-          logger.error(err);
+          logger.error(err, { fullDomain: statusPageDomain.fullDomain } as LogAttributes);
         }
       }
     } else {
@@ -538,10 +538,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
           for (const domain of domains) {
             try {
-              logger.debug("Ordering SSL for domain: " + domain.fullDomain);
+              logger.debug("Ordering SSL for domain: " + domain.fullDomain, { fullDomain: domain.fullDomain } as LogAttributes);
               await this.orderCert(domain);
             } catch (e) {
-              logger.error(e);
+              logger.error(e, { fullDomain: domain.fullDomain } as LogAttributes);
             }
           }
 
@@ -579,7 +579,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
       try {
         await this.isCnameValid(domain.fullDomain as string); // this will also upate the status.
       } catch (e) {
-        logger.error(e);
+        logger.error(e, { fullDomain: domain.fullDomain as string } as LogAttributes);
       }
     }
   }
@@ -605,7 +605,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           },
         });
 
-        logger.debug(`DomainModel removed from greenlock: ${domain}`);
+        logger.debug(`DomainModel removed from greenlock: ${domain}`, { fullDomain: domain } as LogAttributes);
       },
     });
   }
@@ -653,8 +653,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
           // order cert again.
           await this.orderCert(domain);
         } catch (err) {
-          logger.error("Cannot order cert for domain: " + domain.fullDomain);
-          logger.error(err);
+          logger.error("Cannot order cert for domain: " + domain.fullDomain, { fullDomain: domain.fullDomain } as LogAttributes);
+          logger.error(err, { fullDomain: domain.fullDomain } as LogAttributes);
         }
       }
     }

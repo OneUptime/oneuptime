@@ -4,7 +4,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyFeed, {
   OnCallDutyPolicyFeedEventType,
@@ -45,8 +45,9 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
     try {
       logger.debug(
         "OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem",
+        { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes,
       );
-      logger.debug(data);
+      logger.debug(data, { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
 
       const onCallDutyPolicyFeed: OnCallDutyPolicyFeed =
         new OnCallDutyPolicyFeed();
@@ -99,8 +100,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
           },
         });
 
-      logger.debug("On Call Duty Policy Feed created");
-      logger.debug(createdOnCallDutyPolicyFeed);
+      logger.debug("On Call Duty Policy Feed created", { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
+      logger.debug(createdOnCallDutyPolicyFeed, { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
 
       try {
         // send notification to slack and teams
@@ -116,14 +117,14 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
           });
         }
       } catch (e) {
-        logger.error("Error in sending notification to slack and teams");
-        logger.error(e);
+        logger.error("Error in sending notification to slack and teams", { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
+        logger.error(e, { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
 
         // we dont throw this error as it is not a critical error
       }
     } catch (e) {
-      logger.error("Error in creating onCallDutyPolicy feed");
-      logger.error(e);
+      logger.error("Error in creating onCallDutyPolicy feed", { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
+      logger.error(e, { projectId: data.projectId?.toString(), onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() } as LogAttributes);
 
       // we dont throw this error as it is not a critical error
     }

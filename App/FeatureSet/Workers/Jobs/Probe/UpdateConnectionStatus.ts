@@ -11,7 +11,7 @@ RunCron(
   "Probe:UpdateConnectionStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    logger.debug("Checking Probe:UpdateConnectionStatus");
+    logger.debug("Checking Probe:UpdateConnectionStatus", { service: "workers" });
 
     const probes: Array<Probe> = await ProbeService.findAllBy({
       query: {},
@@ -26,9 +26,9 @@ RunCron(
       },
     });
 
-    logger.debug(`Found ${probes.length} probes`);
+    logger.debug(`Found ${probes.length} probes`, { service: "workers" });
 
-    logger.debug(probes);
+    logger.debug(probes, { service: "workers" });
 
     for (const probe of probes) {
       try {
@@ -86,7 +86,7 @@ RunCron(
           });
         }
       } catch (error) {
-        logger.error(error);
+        logger.error(error, { service: "workers", projectId: probe.projectId?.toString() });
       }
     }
   },

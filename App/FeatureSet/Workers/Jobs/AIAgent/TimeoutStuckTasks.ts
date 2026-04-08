@@ -24,7 +24,7 @@ RunCron(
     runOnStartup: false,
   },
   async () => {
-    logger.debug("Checking for stuck AI Agent tasks");
+    logger.debug("Checking for stuck AI Agent tasks", { service: "workers" });
 
     const timeoutThreshold: Date =
       OneUptimeDate.getSomeMinutesAgo(TASK_TIMEOUT_MINUTES);
@@ -50,6 +50,7 @@ RunCron(
 
     logger.info(
       `Found ${stuckTasks.length} stuck AI Agent task(s). Resetting to Scheduled status.`,
+      { service: "workers" },
     );
 
     for (const task of stuckTasks) {
@@ -69,12 +70,14 @@ RunCron(
 
         logger.info(
           `Reset stuck AI Agent task ${task.id?.toString()} to Scheduled status`,
+          { service: "workers" },
         );
       } catch (error) {
         logger.error(
           `Failed to reset stuck AI Agent task ${task.id?.toString()}:`,
+          { service: "workers" },
         );
-        logger.error(error);
+        logger.error(error, { service: "workers" });
       }
     }
   },

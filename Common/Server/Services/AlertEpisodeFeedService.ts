@@ -4,7 +4,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import Model, {
   AlertEpisodeFeedEventType,
@@ -107,12 +107,12 @@ export class Service extends DatabaseService<Model> {
           });
         }
       } catch (e) {
-        logger.error("Error in sending notification to slack and teams");
-        logger.error(e);
+        logger.error("Error in sending notification to slack and teams", { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
+        logger.error(e, { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
       }
     } catch (error) {
-      logger.error("AlertEpisodeFeedService.createAlertEpisodeFeedItem");
-      logger.error(error);
+      logger.error("AlertEpisodeFeedService.createAlertEpisodeFeedItem", { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
+      logger.error(error, { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
       // we dont want to throw the error here, as this is a non-critical operation
     }
   }

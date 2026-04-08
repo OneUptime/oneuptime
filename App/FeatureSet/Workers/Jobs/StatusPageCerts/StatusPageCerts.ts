@@ -14,9 +14,9 @@ RunCron(
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(15),
   },
   async () => {
-    logger.debug("Renewing Certs...");
+    logger.debug("Renewing Certs...", { service: "workers" });
     await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
-    logger.debug("Renew Completed...");
+    logger.debug("Renew Completed...", { service: "workers" });
   },
 );
 
@@ -53,7 +53,7 @@ RunCron(
       },
       fn: async (span: Span): Promise<void> => {
         try {
-          logger.debug("Ordering SSL for domains which are not ordered yet");
+          logger.debug("Ordering SSL for domains which are not ordered yet", { service: "workers" });
 
           await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
           Telemetry.endSpan(span);

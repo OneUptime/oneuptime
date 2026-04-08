@@ -691,7 +691,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -702,7 +702,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -713,7 +713,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -742,7 +742,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Add owners failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -759,7 +759,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Monitor status change failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -772,7 +772,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Disable active monitoring failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -789,7 +789,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -801,7 +801,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
         }
       })
@@ -822,14 +822,14 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `SLA creation failed in IncidentService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+            { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
           );
         }
       })
       .catch((error: Error) => {
         logger.error(
           `Critical error in IncidentService sequential operations: ${error}`,
-          { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
+          { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString(), userId: createdItem.createdByUserId?.toString() } as LogAttributes,
         );
       });
 
@@ -876,7 +876,7 @@ export class Service extends DatabaseService<Model> {
         });
       }
     } catch (error) {
-      logger.error(`Error in handleIncidentWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in handleIncidentWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -955,7 +955,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in createIncidentFeedAsync: ${error}`, { projectId: incident.projectId?.toString(), userId: incident.createdByUserId?.toString() });
+      logger.error(`Error in createIncidentFeedAsync: ${error}`, { projectId: incident.projectId?.toString(), incidentId: incident.id?.toString(), userId: incident.createdByUserId?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -994,7 +994,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in handleIncidentStateChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in handleIncidentStateChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -1024,7 +1024,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         await Promise.allSettled(policyPromises);
       }
     } catch (error) {
-      logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -1055,7 +1055,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         );
       }
     } catch (error) {
-      logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
+      logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -1435,13 +1435,13 @@ ${incident.remediationNotes || "No remediation notes provided."}
                 },
                 projectId: projectId,
               }).catch((err: Error) => {
-                logger.error(err, { projectId: projectId?.toString(), incidentId: incidentId?.toString() });
+                logger.error(err, { projectId: projectId?.toString(), incidentId: incidentId?.toString() } as LogAttributes);
               });
             }
           } catch (metricError) {
             logger.error(
               `Failed to emit postmortem completion time metric: ${metricError}`,
-              { projectId: projectId?.toString(), incidentId: incidentId?.toString() },
+              { projectId: projectId?.toString(), incidentId: incidentId?.toString() } as LogAttributes,
             );
           }
         }
@@ -1577,7 +1577,7 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
-                { projectId: projectId?.toString(), incidentId: incidentId?.toString() },
+                { projectId: projectId?.toString(), incidentId: incidentId?.toString() } as LogAttributes,
               );
             }
 
@@ -1629,12 +1629,12 @@ ${incidentSeverity.name}
                 },
                 projectId: projectId,
               }).catch((err: Error) => {
-                logger.error(err, { projectId: projectId?.toString(), incidentId: incidentId?.toString() });
+                logger.error(err, { projectId: projectId?.toString(), incidentId: incidentId?.toString() } as LogAttributes);
               });
             } catch (metricError) {
               logger.error(
                 `Failed to emit severity change metric: ${metricError}`,
-                { projectId: projectId?.toString(), incidentId: incidentId?.toString() },
+                { projectId: projectId?.toString(), incidentId: incidentId?.toString() } as LogAttributes,
               );
             }
           }
@@ -2584,7 +2584,7 @@ ${incidentSeverity.name}
       metricNameServiceNameMap: metricTypesMap,
       projectId: incident.projectId,
     }).catch((err: Error) => {
-      logger.error(err, { projectId: incident.projectId?.toString() });
+      logger.error(err, { projectId: incident.projectId?.toString(), incidentId: incident.id?.toString() } as LogAttributes);
     });
   }
 
@@ -2693,7 +2693,7 @@ ${incidentSeverity.name}
       });
       logger.info(
         `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`,
-        { projectId: incident.projectId?.toString(), incidentId: incident.id?.toString() },
+        { projectId: incident.projectId?.toString(), incidentId: incident.id?.toString() } as LogAttributes,
       );
     }
   }

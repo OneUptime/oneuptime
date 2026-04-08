@@ -6,7 +6,7 @@ import {
 import AcmeCertificateService from "../../Services/AcmeCertificateService";
 import AcmeChallengeService from "../../Services/AcmeChallengeService";
 import QueryHelper from "../../Types/Database/QueryHelper";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
@@ -56,6 +56,7 @@ export default class GreenlockUtil {
 
       logger.debug(
         `Found ${certificates.length} certificates which are expiring soon`,
+        { certificateCount: certificates.length },
       );
 
       // order certificate for each domain
@@ -65,7 +66,11 @@ export default class GreenlockUtil {
           continue;
         }
 
-        logger.debug(`Renewing certificate for domain: ${certificate.domain}`);
+        const certLogAttributes: LogAttributes = {
+          domain: certificate.domain,
+        };
+
+        logger.debug(`Renewing certificate for domain: ${certificate.domain}`, certLogAttributes);
 
         try {
           //validate cname
@@ -76,6 +81,7 @@ export default class GreenlockUtil {
           if (!isValidCname) {
             logger.debug(
               `CNAME is not valid for domain: ${certificate.domain}`,
+              certLogAttributes,
             );
 
             // if cname is not valid then remove the domain
@@ -84,9 +90,10 @@ export default class GreenlockUtil {
 
             logger.error(
               `Cname is not valid for domain: ${certificate.domain}`,
+              certLogAttributes,
             );
           } else {
-            logger.debug(`CNAME is valid for domain: ${certificate.domain}`);
+            logger.debug(`CNAME is valid for domain: ${certificate.domain}`, certLogAttributes);
 
             await GreenlockUtil.orderCert({
               domain: certificate.domain,
@@ -95,13 +102,15 @@ export default class GreenlockUtil {
 
             logger.debug(
               `Certificate renewed for domain: ${certificate.domain}`,
+              certLogAttributes,
             );
           }
         } catch (e) {
           logger.error(
             `Error renewing certificate for domain: ${certificate.domain}`,
+            certLogAttributes,
           );
-          logger.error(e);
+          logger.error(e, certLogAttributes);
         }
       }
     } catch (e) {
@@ -127,7 +136,7 @@ export default class GreenlockUtil {
         },
       });
     } catch (err) {
-      logger.error(`Error removing domain: ${domain}`);
+      logger.error(`Error removing domain: ${domain}`, { domain });
       throw err;
     }
   }
@@ -138,13 +147,19 @@ export default class GreenlockUtil {
     validateCname: (domain: string) => Promise<boolean>;
   }): Promise<void> {
     try {
+      const orderLogAttributes: LogAttributes = {
+        domain: data.domain,
+      };
+
       logger.debug(
         `GreenlockUtil - Ordering certificate for domain: ${data.domain}`,
+        orderLogAttributes,
       );
 
       let { domain } = data;
 
       domain = domain.trim().toLowerCase();
+      orderLogAttributes.domain = domain;
 
       const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
 
@@ -163,20 +178,20 @@ export default class GreenlockUtil {
 
       //validate cname
 
-      logger.debug(`Validating cname for domain: ${domain}`);
+      logger.debug(`Validating cname for domain: ${domain}`, orderLogAttributes);
 
       const isValidCname: boolean = await data.validateCname(domain);
 
       if (!isValidCname) {
-        logger.debug(`CNAME is not valid for domain: ${domain}`);
-        logger.debug(`Removing domain: ${domain}`);
+        logger.debug(`CNAME is not valid for domain: ${domain}`, orderLogAttributes);
+        logger.debug(`Removing domain: ${domain}`, orderLogAttributes);
 
         await GreenlockUtil.removeDomain(domain);
-        logger.error(`Cname is not valid for domain: ${domain}`);
+        logger.error(`Cname is not valid for domain: ${domain}`, orderLogAttributes);
         throw new BadDataException("Cname is not valid for domain " + domain);
       }
 
-      logger.debug(`Cname is valid for domain: ${domain}`);
+      logger.debug(`Cname is valid for domain: ${domain}`, orderLogAttributes);
 
       const client: acme.Client = new acme.Client({
         directoryUrl: acme.directory.letsencrypt.production,
@@ -187,7 +202,7 @@ export default class GreenlockUtil {
         commonName: domain,
       });
 
-      logger.debug(`Ordering certificate for domain: ${domain}`);
+      logger.debug(`Ordering certificate for domain: ${domain}`, orderLogAttributes);
 
       const certificate: string = await client.auto({
         csr: certificateRequest,
@@ -204,6 +219,7 @@ export default class GreenlockUtil {
           if (challenge.type === "http-01") {
             logger.debug(
               `Creating challenge for domain: ${authz.identifier.value}`,
+              orderLogAttributes,
             );
 
             const acmeChallenge: AcmeChallenge = new AcmeChallenge();
@@ -220,6 +236,7 @@ export default class GreenlockUtil {
 
             logger.debug(
               `Challenge created for domain: ${authz.identifier.value}`,
+              orderLogAttributes,
             );
           }
         },
@@ -231,6 +248,7 @@ export default class GreenlockUtil {
 
           logger.debug(
             `Removing challenge for domain: ${authz.identifier.value}`,
+            orderLogAttributes,
           );
 
           if (challenge.type === "http-01") {
@@ -248,11 +266,12 @@ export default class GreenlockUtil {
 
           logger.debug(
             `Challenge removed for domain: ${authz.identifier.value}`,
+            orderLogAttributes,
           );
         },
       });
 
-      logger.debug(`Certificate ordered for domain: ${domain}`);
+      logger.debug(`Certificate ordered for domain: ${domain}`, orderLogAttributes);
 
       // get expires at date from certificate
       const cert: acme.CertificateInfo =
@@ -260,8 +279,8 @@ export default class GreenlockUtil {
       const issuedAt: Date = cert.notBefore;
       const expiresAt: Date = cert.notAfter;
 
-      logger.debug(`Certificate expires at: ${expiresAt}`);
-      logger.debug(`Certificate issued at: ${issuedAt}`);
+      logger.debug(`Certificate expires at: ${expiresAt}`, orderLogAttributes);
+      logger.debug(`Certificate issued at: ${issuedAt}`, orderLogAttributes);
 
       // check if the certificate is already in the database.
       const existingCertificate: AcmeCertificate | null =
@@ -278,7 +297,7 @@ export default class GreenlockUtil {
         });
 
       if (existingCertificate) {
-        logger.debug(`Updating certificate for domain: ${domain}`);
+        logger.debug(`Updating certificate for domain: ${domain}`, orderLogAttributes);
 
         // update the certificate
         await AcmeCertificateService.updateBy({
@@ -298,9 +317,9 @@ export default class GreenlockUtil {
           },
         });
 
-        logger.debug(`Certificate updated for domain: ${domain}`);
+        logger.debug(`Certificate updated for domain: ${domain}`, orderLogAttributes);
       } else {
-        logger.debug(`Creating certificate for domain: ${domain}`);
+        logger.debug(`Creating certificate for domain: ${domain}`, orderLogAttributes);
         // create the certificate
         const acmeCertificate: AcmeCertificate = new AcmeCertificate();
 
@@ -317,11 +336,11 @@ export default class GreenlockUtil {
           },
         });
 
-        logger.debug(`Certificate created for domain: ${domain}`);
+        logger.debug(`Certificate created for domain: ${domain}`, orderLogAttributes);
       }
     } catch (e) {
-      logger.error(`Error ordering certificate for domain: ${data.domain}`);
-      logger.error(e);
+      logger.error(`Error ordering certificate for domain: ${data.domain}`, orderLogAttributes);
+      logger.error(e, orderLogAttributes);
 
       if (e instanceof Exception) {
         throw e;

@@ -29,7 +29,10 @@ export default class MicrosoftTeamsOnCallDutyActions {
   }): Promise<void> {
     const { action } = data;
 
-    logger.debug("Handling Microsoft Teams on-call duty action:");
+    logger.debug("Handling Microsoft Teams on-call duty action:", {
+      projectId: data.teamsRequest.projectId.toString(),
+      actionType: action.actionType,
+    });
     logger.debug(action);
 
     try {
@@ -39,11 +42,17 @@ export default class MicrosoftTeamsOnCallDutyActions {
           break;
 
         default:
-          logger.debug("Unhandled on-call duty action: " + action.actionType);
+          logger.debug("Unhandled on-call duty action: " + action.actionType, {
+            projectId: data.teamsRequest.projectId.toString(),
+            actionType: action.actionType,
+          });
           break;
       }
     } catch (error) {
-      logger.error("Error handling Microsoft Teams on-call duty action:");
+      logger.error("Error handling Microsoft Teams on-call duty action:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        actionType: action.actionType,
+      });
       logger.error(error);
     }
 
@@ -62,7 +71,9 @@ export default class MicrosoftTeamsOnCallDutyActions {
       ] as ObjectID;
 
       if (!onCallDutyPolicyId) {
-        logger.error("OnCallDutyPolicy ID is required");
+        logger.error("OnCallDutyPolicy ID is required", {
+          actionType: actionType,
+        });
         await turnContext.sendActivity("OnCallDutyPolicy ID is required");
         return;
       }
@@ -81,7 +92,9 @@ export default class MicrosoftTeamsOnCallDutyActions {
         });
 
       if (!onCallDutyPolicy) {
-        logger.error("OnCallDutyPolicy not found");
+        logger.error("OnCallDutyPolicy not found", {
+          onCallDutyPolicyId: onCallDutyPolicyId.toString(),
+        });
         await turnContext.sendActivity("OnCallDutyPolicy not found");
         return;
       }
@@ -105,12 +118,17 @@ export default class MicrosoftTeamsOnCallDutyActions {
           break;
 
         default:
-          logger.error(`Unknown action type: ${actionType}`);
+          logger.error(`Unknown action type: ${actionType}`, {
+            onCallDutyPolicyId: onCallDutyPolicyId.toString(),
+            actionType: actionType,
+          });
           await turnContext.sendActivity("Unknown action type");
           break;
       }
     } catch (error) {
-      logger.error(`Error handling on-call duty action: ${error}`);
+      logger.error(`Error handling on-call duty action: ${error}`, {
+        actionType: actionType,
+      });
       await turnContext.sendActivity(
         "An error occurred while processing the action",
       );

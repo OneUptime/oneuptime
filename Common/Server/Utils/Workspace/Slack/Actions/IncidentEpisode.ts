@@ -156,7 +156,7 @@ export default class SlackIncidentEpisodeActions {
             isRoot: true,
           });
         } catch (err) {
-          logger.error("Error logging button interaction:");
+          logger.error("Error logging button interaction:", { projectId: slackRequest.projectId?.toString(), episodeId: episodeId.toString() });
           logger.error(err);
           // Don't throw the error, just log it so the main flow continues
         }

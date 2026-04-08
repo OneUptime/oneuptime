@@ -57,7 +57,7 @@ const ensureMasterAdminAccess: EnsureMasterAdminAccessFunction = async (
 
     return {};
   } catch (error) {
-    logger.error(error);
+    logger.error(error, { service: "admin" });
     Response.sendErrorResponse(
       req,
       res,
@@ -86,15 +86,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {
-    logger.error("App Init Failed:");
-    logger.error(err);
+    logger.error("App Init Failed:", { service: "admin" });
+    logger.error(err, { service: "admin" });
     throw err;
   }
 };
 
 init().catch((err: Error) => {
-  logger.error(err);
-  logger.error("Exiting node process");
+  logger.error(err, { service: "admin" });
+  logger.error("Exiting node process", { service: "admin" });
   process.exit(1);
 });
 

@@ -127,15 +127,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Generate OpenAPI spec (this automatically saves it to cache)
     OpenAPIUtil.generateOpenAPISpec();
   } catch (err) {
-    logger.error("App Init Failed:");
-    logger.error(err);
+    logger.error("App Init Failed:", { service: "api" });
+    logger.error(err, { service: "api" });
     throw err;
   }
 };
 
 // Call the initialization function and handle errors
 init().catch((err: Error) => {
-  logger.error(err);
-  logger.error("Exiting node process");
+  logger.error(err, { service: "api" });
+  logger.error("Exiting node process", { service: "api" });
   process.exit(1);
 });

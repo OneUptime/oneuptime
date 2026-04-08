@@ -92,6 +92,7 @@ export class Service extends DatabaseService<Model> {
       logger.debug(
         "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Sending notification for event: " +
           event.id,
+        { projectId: event.projectId?.toString(), scheduledMaintenanceId: event.id?.toString() } as LogAttributes,
       );
 
       let statusPageResources: Array<StatusPageResource> = [];
@@ -815,7 +816,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() } as LogAttributes,
+            { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -828,7 +829,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() } as LogAttributes,
+            { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -841,7 +842,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Create scheduled maintenance state timeline failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() } as LogAttributes,
+            { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -872,7 +873,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Add owners failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString() } as LogAttributes,
+            { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -880,7 +881,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       .catch((error: Error) => {
         logger.error(
           `Critical error in ScheduledMaintenanceService sequential operations: ${error}`,
-          { projectId: createdItem.projectId?.toString() } as LogAttributes,
+          { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
         );
       });
 
@@ -926,7 +927,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     } catch (error) {
       logger.error(
         `Error in handleScheduledMaintenanceWorkspaceOperationsAsync: ${error}`,
-        { projectId: createdItem.projectId?.toString() } as LogAttributes,
+        { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
       );
       throw error;
     }
@@ -997,7 +998,7 @@ ${scheduledMaintenance.description || "No description provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in createScheduledMaintenanceFeedAsync: ${error}`, { projectId: scheduledMaintenance.projectId?.toString() } as LogAttributes);
+      logger.error(`Error in createScheduledMaintenanceFeedAsync: ${error}`, { projectId: scheduledMaintenance.projectId?.toString(), scheduledMaintenanceId: scheduledMaintenance.id?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -1032,7 +1033,7 @@ ${scheduledMaintenance.description || "No description provided."}
     } catch (error) {
       logger.error(
         `Error in createScheduledMaintenanceStateTimelineAsync: ${error}`,
-        { projectId: createdItem.projectId?.toString() } as LogAttributes,
+        { projectId: createdItem.projectId?.toString(), scheduledMaintenanceId: createdItem.id?.toString() } as LogAttributes,
       );
       throw error;
     }

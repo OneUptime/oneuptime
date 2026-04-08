@@ -17,7 +17,7 @@ RunCron(
       return;
     }
 
-    logger.debug("Starting cron job: OnCallDutySchedule:RefreshHandoffTime");
+    logger.debug("Starting cron job: OnCallDutySchedule:RefreshHandoffTime", { service: "workers" });
 
     const sixMonthsAgo: Date = OneUptimeDate.getSomeDaysAgo(200); // approx 200 days.
 

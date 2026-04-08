@@ -73,7 +73,7 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("FetchGitHubStats: Failed to fetch contributors");
+        logger.error("FetchGitHubStats: Failed to fetch contributors", { service: "home", job: "FetchGitHubStats" });
         break;
       }
 
@@ -100,6 +100,7 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
       );
       logger.debug(
         `FetchGitHubStats: Updated contributors count to ${contributorsCount}`,
+        { service: "home", job: "FetchGitHubStats" },
       );
     }
 
@@ -144,6 +145,7 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
               );
               logger.debug(
                 `FetchGitHubStats: Updated commits count to ${commitsCount}`,
+                { service: "home", job: "FetchGitHubStats" },
               );
             }
           }
@@ -151,8 +153,8 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
       }
     }
   } catch (error) {
-    logger.error("FetchGitHubStats: Error fetching GitHub stats");
-    logger.error(error);
+    logger.error("FetchGitHubStats: Error fetching GitHub stats", { service: "home", job: "FetchGitHubStats" });
+    logger.error(error, { service: "home", job: "FetchGitHubStats" });
   }
 };
 
@@ -163,8 +165,8 @@ BasicCron({
     runOnStartup: true,
   },
   runFunction: async () => {
-    logger.debug("FetchGitHubStats: Start");
+    logger.debug("FetchGitHubStats: Start", { service: "home", job: "FetchGitHubStats" });
     await fetchGitHubStats();
-    logger.debug("FetchGitHubStats: End");
+    logger.debug("FetchGitHubStats: End", { service: "home", job: "FetchGitHubStats" });
   },
 });

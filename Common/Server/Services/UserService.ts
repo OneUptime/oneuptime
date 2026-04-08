@@ -6,7 +6,7 @@ import {
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
@@ -97,7 +97,7 @@ export class Service extends DatabaseService<Model> {
   *Company:* ${createdItem.companyName?.toString() || "N/A"}`,
       }).catch((err: Error) => {
         // log this error but do not throw it. Not important enough to stop the process.
-        logger.error(err);
+        logger.error(err, { userId: createdItem.id?.toString() } as LogAttributes);
       });
     }
 
@@ -267,7 +267,7 @@ export class Service extends DatabaseService<Model> {
             homeURL: new URL(httpProtocol, host).toString(),
           },
         }).catch((err: Error) => {
-          logger.error(err);
+          logger.error(err, { userId: user.id?.toString() } as LogAttributes);
         });
       }
     }
@@ -378,7 +378,7 @@ export class Service extends DatabaseService<Model> {
               homeUrl: new URL(httpProtocol, host).toString(),
             },
           }).catch((err: Error) => {
-            logger.error(err);
+            logger.error(err, { userId: user.id?.toString() } as LogAttributes);
           });
 
           await this.updateOneBy({
