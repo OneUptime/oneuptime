@@ -15,7 +15,8 @@ import TelemetryUtil, {
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
@@ -275,8 +276,8 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
-      logger.error("Fluent logs ingest: critical error");
-      logger.error(error);
+      logger.error("Fluent logs ingest: critical error", getLogAttributesFromRequest(req as RequestLike));
+      logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
   }

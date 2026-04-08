@@ -4,11 +4,12 @@ import DashboardService, {
 } from "../Services/DashboardService";
 import DashboardDomainService from "../Services/DashboardDomainService";
 import CookieUtil from "../Utils/Cookie";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -76,7 +77,7 @@ export default class DashboardAPI extends BaseAPI<
             try {
               dashboardId = new ObjectID(dashboardIdOrDomain);
             } catch (err) {
-              logger.error(err);
+              logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
               return Response.sendErrorResponse(
                 req,
                 res,

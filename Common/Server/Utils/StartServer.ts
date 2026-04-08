@@ -21,7 +21,7 @@ import Express, {
   RequestHandler,
   headerValueToString,
 } from "./Express";
-import logger from "./Logger";
+import logger, { getLogAttributesFromRequest } from "./Logger";
 import "./Process";
 import Response from "./Response";
 import { api } from "@opentelemetry/sdk-node";
@@ -38,6 +38,7 @@ import Typeof from "../../Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
 import zlib from "zlib";
+import crypto from "crypto";
 import path from "path";
 import "ejs";
 // Make sure we have stack trace for debugging.
@@ -192,6 +193,11 @@ app.use((_req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
     span.setStatus({ code: api.SpanStatusCode.OK });
   }
 
+  next();
+});
+
+app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+  (req as OneUptimeRequest).requestId = crypto.randomUUID();
   next();
 });
 
@@ -369,7 +375,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
       res: ExpressResponse,
       next: NextFunction,
     ) => {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
 
       // Mark span as error.
       if (err) {

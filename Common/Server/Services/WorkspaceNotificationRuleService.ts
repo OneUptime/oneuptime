@@ -35,7 +35,7 @@ import WorkspaceProjectAuthToken, {
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import UserService from "./UserService";
@@ -512,7 +512,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!projectAuth || !projectAuth.authToken) {
-        logger.debug("No project auth found for workspace type");
+        logger.debug("No project auth found for workspace type", { projectId: data.projectId?.toString() } as LogAttributes);
         continue;
       }
 
@@ -689,7 +689,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     workspaceType: WorkspaceType;
   }): Promise<Array<WorkspaceChannel>> {
-    logger.debug("getWorkspaceChannelsByNotificationFor called with data:");
+    logger.debug("getWorkspaceChannelsByNotificationFor called with data:", { projectId: data.projectId?.toString() } as LogAttributes);
     logger.debug(JSON.stringify(data, null, 2));
 
     let monitorChannels: Array<WorkspaceChannel> = [];
@@ -874,6 +874,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     try {
       logger.debug(
         "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
+        { projectId: data.projectId?.toString() } as LogAttributes,
       );
       logger.debug(data);
 
@@ -987,6 +988,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.error(
             "Error in creating channels and inviting users to channels for workspace type " +
               projectAuth.workspaceType,
+            { projectId: data.projectId?.toString() } as LogAttributes,
           );
           logger.error(err);
         }
@@ -999,6 +1001,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     } catch (err) {
       logger.error(
         "Error in createChannelsAndInviteUsersToChannelsBasedOnRules:",
+        { projectId: data.projectId?.toString() } as LogAttributes,
       );
       logger.error(err);
       return null;
@@ -1077,7 +1080,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<WorkspaceNotificationRule>;
     notificationChannels: Array<NotificationRuleWorkspaceChannel>;
   }): Promise<void> {
-    logger.debug("inviteUsersAndTeamsToChannelsBasedOnRules called with data:");
+    logger.debug("inviteUsersAndTeamsToChannelsBasedOnRules called with data:", { projectId: data.projectId?.toString() } as LogAttributes);
     logger.debug(data);
 
     const inviteUserPayloads: Array<{
@@ -1163,7 +1166,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               data.workspaceType,
             ).sendMessage(sendMessageData);
           } catch (e) {
-            logger.error("Error in sending message to channel");
+            logger.error("Error in sending message to channel", { projectId: data.projectId?.toString() } as LogAttributes);
             logger.error(e);
           }
         }
@@ -1211,6 +1214,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     logger.debug(
       "inviteUsersBasedOnRulesAndWorkspaceChannels called with data:",
+      { projectId: data.projectId?.toString() } as LogAttributes,
     );
     logger.debug(data);
     const userIds: Array<ObjectID> = data.userIds;
@@ -1266,7 +1270,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!projectAuth) {
-        logger.debug("No project auth found for workspace type");
+        logger.debug("No project auth found for workspace type", { projectId: data.projectId?.toString() } as LogAttributes);
         continue;
       }
 
@@ -1337,7 +1341,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               sendMessageData,
             );
           } catch (e) {
-            logger.error("Error in sending message to channel");
+            logger.error("Error in sending message to channel", { projectId: data.projectId?.toString() } as LogAttributes);
             logger.error(e);
           }
         }
@@ -1394,7 +1398,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           }
         }
       } catch (err) {
-        logger.error("Error logging user invitations:");
+        logger.error("Error logging user invitations:", { projectId: data.projectId?.toString() } as LogAttributes);
         logger.error(err);
         // Don't throw the error, just log it so the main flow continues
       }
@@ -1437,7 +1441,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     workspaceType: WorkspaceType;
     oneuptimeUserId: ObjectID;
   }): Promise<string | null> {
-    logger.debug("getWorkspaceUserIdFromOneUptimeUserId called with data:");
+    logger.debug("getWorkspaceUserIdFromOneUptimeUserId called with data:", { projectId: data.projectId?.toString() } as LogAttributes);
     logger.debug(data);
 
     const userAuth: WorkspaceUserAuthToken | null =
@@ -1476,7 +1480,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationEventType: NotificationRuleEventType;
     notificationFor?: NotificationFor;
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
-    logger.debug("createChannelsBasedOnRules called with data:");
+    logger.debug("createChannelsBasedOnRules called with data:", { projectId: data.projectId?.toString() } as LogAttributes);
     logger.debug(data);
 
     const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
@@ -1609,7 +1613,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           isRoot: true,
         });
       } catch (err) {
-        logger.error("Error logging channel creation:");
+        logger.error("Error logging channel creation:", { projectId: data.projectId?.toString() } as LogAttributes);
         logger.error(err);
         // Don't throw the error, just log it so the main flow continues
       }
@@ -1867,7 +1871,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
   }): Promise<Array<WorkspaceNotificationRule>> {
-    logger.debug("getNotificationRules called with data:");
+    logger.debug("getNotificationRules called with data:", { projectId: data.projectId?.toString() } as LogAttributes);
     logger.debug(data);
 
     const notificationRules: Array<WorkspaceNotificationRule> =

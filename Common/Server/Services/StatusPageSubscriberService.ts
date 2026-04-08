@@ -9,7 +9,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -334,7 +334,7 @@ export class Service extends DatabaseService<Model> {
           statusPageId: createdItem.statusPageId!,
         },
       ).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, { projectId: createdItem.projectId?.toString() } as LogAttributes);
       });
     }
 
@@ -396,8 +396,8 @@ Stay informed about service availability! 🚀`;
           logger.debug("Slack notification sent successfully.");
         })
         .catch((err: Error) => {
-          logger.error("Error sending Slack notification:");
-          logger.error(err);
+          logger.error("Error sending Slack notification:", { projectId: createdItem.projectId?.toString() } as LogAttributes);
+          logger.error(err, { projectId: createdItem.projectId?.toString() } as LogAttributes);
         });
     }
 
@@ -434,8 +434,8 @@ Stay informed about service availability! 🚀`;
           logger.debug("Microsoft Teams notification sent successfully.");
         })
         .catch((err: Error) => {
-          logger.error("Error sending Microsoft Teams notification:");
-          logger.error(err);
+          logger.error("Error sending Microsoft Teams notification:", { projectId: createdItem.projectId?.toString() } as LogAttributes);
+          logger.error(err, { projectId: createdItem.projectId?.toString() } as LogAttributes);
         });
     }
 
@@ -573,7 +573,7 @@ Stay informed about service availability! 🚀`;
           statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, { projectId: subscriber.projectId?.toString() } as LogAttributes);
       });
       logger.debug("Confirmation email sent.");
     } else {
@@ -703,8 +703,8 @@ Stay informed about service availability! 🚀`;
           statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {
-        logger.error("Error sending subscription email:");
-        logger.error(err);
+        logger.error("Error sending subscription email:", { projectId: subscriber.projectId?.toString() } as LogAttributes);
+        logger.error(err, { projectId: subscriber.projectId?.toString() } as LogAttributes);
       });
       logger.debug("Subscription email sent successfully.");
     } else {
@@ -1000,8 +1000,8 @@ You will receive real-time notifications for:
         text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
       });
     } catch (error) {
-      logger.error("Error sending test Slack notification:");
-      logger.error(error);
+      logger.error("Error sending test Slack notification:", { projectId: statusPage?.projectId?.toString() } as LogAttributes);
+      logger.error(error, { projectId: statusPage?.projectId?.toString() } as LogAttributes);
       throw error;
     }
   }

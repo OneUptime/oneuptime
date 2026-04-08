@@ -1,4 +1,4 @@
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import LogAggregationService from "../../Services/LogAggregationService";
 import VMUtil from "../VM/VMAPI";
 import APIRequestCriteria from "./Criteria/APIRequestCriteria";
@@ -284,7 +284,9 @@ ${contextBlock}
               .responseBody as string) || "{}",
           );
         } catch (err) {
-          logger.error(err);
+          logger.error(err, {
+            projectId: input.monitor.projectId?.toString(),
+          });
           responseBody = (input.dataToProcess as ProbeMonitorResponse)
             .responseBody as JSONObject;
         }
@@ -331,7 +333,9 @@ ${contextBlock}
           },
         });
       } catch (err) {
-        logger.error(err);
+        logger.error(err, {
+          projectId: input.monitor.projectId?.toString(),
+        });
         return null;
       }
 
@@ -903,8 +907,11 @@ ${contextBlock}
             );
           }
         } catch (err) {
-          logger.error("Failed to fetch container logs for root cause context");
-          logger.error(err);
+          const k8sLogAttributes: LogAttributes = {
+            projectId: input.monitor.projectId?.toString(),
+          };
+          logger.error("Failed to fetch container logs for root cause context", k8sLogAttributes);
+          logger.error(err, k8sLogAttributes);
         }
       }
     }

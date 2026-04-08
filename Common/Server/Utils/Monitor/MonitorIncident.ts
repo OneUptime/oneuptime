@@ -19,7 +19,7 @@ import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
@@ -113,8 +113,12 @@ export default class MonitorIncident {
       telemetryQuery?: TelemetryQuery | undefined;
     };
   }): Promise<void> {
+    const incidentLogAttributes: LogAttributes = {
+      projectId: input.monitor.projectId?.toString(),
+    };
+
     // check open incidents
-    logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`);
+    logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`, incidentLogAttributes);
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> =
       await this.checkOpenIncidentsAndCloseIfResolved({
@@ -149,10 +153,12 @@ export default class MonitorIncident {
 
         logger.debug(
           `${input.monitor.id?.toString()} - Open Incident ${alreadyOpenIncident?.id?.toString()}`,
+          incidentLogAttributes,
         );
 
         logger.debug(
           `${input.monitor.id?.toString()} - Has open incident ${hasAlreadyOpenIncident}`,
+          incidentLogAttributes,
         );
 
         if (hasAlreadyOpenIncident) {
@@ -171,7 +177,7 @@ export default class MonitorIncident {
           continue;
         }
 
-        logger.debug(`${input.monitor.id?.toString()} - Create incident.`);
+        logger.debug(`${input.monitor.id?.toString()} - Create incident.`, incidentLogAttributes);
 
         const incident: Incident = new Incident();
         const storageMap: JSONObject =
@@ -341,11 +347,13 @@ export default class MonitorIncident {
 
                 logger.debug(
                   `${input.monitor.id?.toString()} - Assigned incident member role ${assignment.roleId.toString()} to user ${assignment.userId.toString()}`,
+                  incidentLogAttributes,
                 );
               }
             } catch (memberError) {
               logger.error(
                 `${input.monitor.id?.toString()} - Failed to assign incident member role: ${memberError}`,
+                incidentLogAttributes,
               );
             }
           }

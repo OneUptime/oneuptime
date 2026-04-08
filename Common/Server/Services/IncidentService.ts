@@ -45,7 +45,7 @@ import Metric, {
 } from "../../Models/AnalyticsModels/Metric";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -691,6 +691,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -701,6 +702,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -711,6 +713,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -739,6 +742,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Add owners failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -755,6 +759,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Monitor status change failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -767,6 +772,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Disable active monitoring failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -783,6 +789,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
           return Promise.resolve();
         }
@@ -794,6 +801,7 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
         }
       })
@@ -814,12 +822,14 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `SLA creation failed in IncidentService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
           );
         }
       })
       .catch((error: Error) => {
         logger.error(
           `Critical error in IncidentService sequential operations: ${error}`,
+          { projectId: createdItem.projectId?.toString(), userId: createdItem.createdByUserId?.toString() },
         );
       });
 
@@ -866,7 +876,7 @@ export class Service extends DatabaseService<Model> {
         });
       }
     } catch (error) {
-      logger.error(`Error in handleIncidentWorkspaceOperationsAsync: ${error}`);
+      logger.error(`Error in handleIncidentWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
       throw error;
     }
   }
@@ -945,7 +955,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in createIncidentFeedAsync: ${error}`);
+      logger.error(`Error in createIncidentFeedAsync: ${error}`, { projectId: incident.projectId?.toString(), userId: incident.createdByUserId?.toString() });
       throw error;
     }
   }
@@ -984,7 +994,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in handleIncidentStateChangeAsync: ${error}`);
+      logger.error(`Error in handleIncidentStateChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
       throw error;
     }
   }
@@ -1014,7 +1024,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         await Promise.allSettled(policyPromises);
       }
     } catch (error) {
-      logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`);
+      logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
       throw error;
     }
   }
@@ -1045,7 +1055,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         );
       }
     } catch (error) {
-      logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`);
+      logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`, { projectId: createdItem.projectId?.toString() });
       throw error;
     }
   }
@@ -1425,12 +1435,13 @@ ${incident.remediationNotes || "No remediation notes provided."}
                 },
                 projectId: projectId,
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, { projectId: projectId?.toString(), incidentId: incidentId?.toString() });
               });
             }
           } catch (metricError) {
             logger.error(
               `Failed to emit postmortem completion time metric: ${metricError}`,
+              { projectId: projectId?.toString(), incidentId: incidentId?.toString() },
             );
           }
         }
@@ -1566,6 +1577,7 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
+                { projectId: projectId?.toString(), incidentId: incidentId?.toString() },
               );
             }
 
@@ -1617,11 +1629,12 @@ ${incidentSeverity.name}
                 },
                 projectId: projectId,
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, { projectId: projectId?.toString(), incidentId: incidentId?.toString() });
               });
             } catch (metricError) {
               logger.error(
                 `Failed to emit severity change metric: ${metricError}`,
+                { projectId: projectId?.toString(), incidentId: incidentId?.toString() },
               );
             }
           }
@@ -2571,7 +2584,7 @@ ${incidentSeverity.name}
       metricNameServiceNameMap: metricTypesMap,
       projectId: incident.projectId,
     }).catch((err: Error) => {
-      logger.error(err);
+      logger.error(err, { projectId: incident.projectId?.toString() });
     });
   }
 
@@ -2680,6 +2693,7 @@ ${incidentSeverity.name}
       });
       logger.info(
         `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`,
+        { projectId: incident.projectId?.toString(), incidentId: incident.id?.toString() },
       );
     }
   }

@@ -40,7 +40,7 @@ import StatusPageService from "../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../Server/Services/StatusPageSubscriberService";
 import QueryHelper from "../../Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Server/Types/Markdown";
-import logger from "../../Server/Utils/Logger";
+import logger, { LogAttributes } from "../../Server/Utils/Logger";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -288,7 +288,7 @@ export class Service extends DatabaseService<Model> {
               statusPageId: statuspage.id!,
               scheduledMaintenanceId: event.id!,
             }).catch((err: Error) => {
-              logger.error(err);
+              logger.error(err, { projectId: statuspage.projectId?.toString() } as LogAttributes);
             });
           }
 
@@ -320,7 +320,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
               url: subscriber.slackIncomingWebhookUrl,
               text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
             }).catch((err: Error) => {
-              logger.error(err);
+              logger.error(err, { projectId: statuspage.projectId?.toString() } as LogAttributes);
             });
           }
 
@@ -398,7 +398,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   scheduledMaintenanceId: event.id!,
                 },
               ).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, { projectId: statuspage.projectId?.toString() } as LogAttributes);
               });
             } else {
               // Use default hard-coded template
@@ -421,7 +421,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   scheduledMaintenanceId: event.id!,
                 },
               ).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, { projectId: statuspage.projectId?.toString() } as LogAttributes);
               });
             }
           }
@@ -815,6 +815,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -827,6 +828,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -839,6 +841,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Create scheduled maintenance state timeline failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -869,6 +872,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Add owners failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            { projectId: createdItem.projectId?.toString() } as LogAttributes,
           );
           return Promise.resolve();
         }
@@ -876,6 +880,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       .catch((error: Error) => {
         logger.error(
           `Critical error in ScheduledMaintenanceService sequential operations: ${error}`,
+          { projectId: createdItem.projectId?.toString() } as LogAttributes,
         );
       });
 
@@ -921,6 +926,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     } catch (error) {
       logger.error(
         `Error in handleScheduledMaintenanceWorkspaceOperationsAsync: ${error}`,
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
       throw error;
     }
@@ -991,7 +997,7 @@ ${scheduledMaintenance.description || "No description provided."}
         },
       });
     } catch (error) {
-      logger.error(`Error in createScheduledMaintenanceFeedAsync: ${error}`);
+      logger.error(`Error in createScheduledMaintenanceFeedAsync: ${error}`, { projectId: scheduledMaintenance.projectId?.toString() } as LogAttributes);
       throw error;
     }
   }
@@ -1026,6 +1032,7 @@ ${scheduledMaintenance.description || "No description provided."}
     } catch (error) {
       logger.error(
         `Error in createScheduledMaintenanceStateTimelineAsync: ${error}`,
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
       throw error;
     }
@@ -1888,6 +1895,7 @@ ${labels
       });
       logger.info(
         `Updated ScheduledMaintenance ${scheduledMaintenance.id} current state to ${latestTimeline.scheduledMaintenanceStateId}`,
+        { projectId: scheduledMaintenance.projectId?.toString() } as LogAttributes,
       );
     }
   }

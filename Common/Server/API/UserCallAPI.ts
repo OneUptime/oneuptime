@@ -10,7 +10,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -111,7 +111,7 @@ export default class UserCallAPI extends BaseAPI<
               },
             );
           } catch (e) {
-            logger.error(e);
+            logger.error(e, getLogAttributesFromRequest(req as OneUptimeRequest));
           }
 
           return Response.sendEmptySuccessResponse(req, res);

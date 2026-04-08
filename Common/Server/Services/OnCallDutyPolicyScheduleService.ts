@@ -27,7 +27,7 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Timezone from "../../Types/Timezone";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Green500 } from "../../Types/BrandColors";
@@ -68,7 +68,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         onCallDutyPolicyScheduleId: schedule.id!,
         endsAt: OneUptimeDate.getCurrentDate(),
       }).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, { projectId: schedule.projectId?.toString() } as LogAttributes);
       });
     }
 
@@ -310,8 +310,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 sendEmailToUserId.toString() +
                 " for schedule: " +
                 data.scheduleId.toString(),
+              { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes,
             );
-            logger.error(err);
+            logger.error(err, { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes);
           });
 
           const onCallDutyPolicyId: ObjectID =
@@ -443,8 +444,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 sendEmailToUserId.toString() +
                 " for schedule: " +
                 data.scheduleId.toString(),
+              { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes,
             );
-            logger.error(err);
+            logger.error(err, { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes);
           });
 
           const onCallDutyPolicyId: ObjectID =

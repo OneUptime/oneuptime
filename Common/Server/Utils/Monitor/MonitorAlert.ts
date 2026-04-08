@@ -17,7 +17,7 @@ import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
@@ -104,8 +104,12 @@ export default class MonitorAlert {
       telemetryQuery?: TelemetryQuery | undefined;
     };
   }): Promise<void> {
+    const alertLogAttributes: LogAttributes = {
+      projectId: input.monitor.projectId?.toString(),
+    };
+
     // check open alerts
-    logger.debug(`${input.monitor.id?.toString()} - Check open alerts.`);
+    logger.debug(`${input.monitor.id?.toString()} - Check open alerts.`, alertLogAttributes);
     // check active alerts and if there are open alerts, do not cretae anothr alert.
     const openAlerts: Array<Alert> =
       await this.checkOpenAlertsAndCloseIfResolved({
@@ -137,10 +141,12 @@ export default class MonitorAlert {
 
         logger.debug(
           `${input.monitor.id?.toString()} - Open Alert ${alreadyOpenAlert?.id?.toString()}`,
+          alertLogAttributes,
         );
 
         logger.debug(
           `${input.monitor.id?.toString()} - Has open alert ${hasAlreadyOpenAlert}`,
+          alertLogAttributes,
         );
 
         if (hasAlreadyOpenAlert) {
@@ -161,7 +167,7 @@ export default class MonitorAlert {
 
         // create alert here.
 
-        logger.debug(`${input.monitor.id?.toString()} - Create alert.`);
+        logger.debug(`${input.monitor.id?.toString()} - Create alert.`, alertLogAttributes);
 
         const alert: Alert = new Alert();
         const storageMap: JSONObject =

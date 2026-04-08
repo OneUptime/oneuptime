@@ -31,7 +31,8 @@ import Express, {
   getClientIp,
   headerValueToString,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
@@ -68,7 +69,7 @@ const hasValidMasterPasswordSession: (
       payload["type"] === MASTER_PASSWORD_COOKIE_IDENTIFIER
     );
   } catch (err) {
-    logger.error(err);
+    logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
   }
 
   return false;
@@ -569,7 +570,7 @@ router.post(
             statusPageId: statusPage.id!,
           },
         ).catch((err: Error) => {
-          logger.error(err);
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
         });
 
         return Response.sendEmptySuccessResponse(req, res);
@@ -729,7 +730,7 @@ router.post(
           statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       });
 
       return Response.sendEmptySuccessResponse(req, res);

@@ -4,7 +4,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import CronTab from "Common/Server/Utils/CronTab";
@@ -168,10 +168,12 @@ RunCron(
           }),
         );
       } catch (error) {
+        const attrs: LogAttributes = { projectId: monitor.projectId?.toString() };
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
+          attrs,
         );
-        logger.error(error);
+        logger.error(error, attrs);
       }
     }
 

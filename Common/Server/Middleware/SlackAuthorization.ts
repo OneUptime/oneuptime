@@ -7,7 +7,7 @@ import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { SlackAppSigningSecret } from "../EnvironmentConfig";
 import crypto from "crypto";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class SlackAuthorization {
@@ -17,10 +17,10 @@ export default class SlackAuthorization {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
-    logger.debug("Starting Slack request authorization");
+    logger.debug("Starting Slack request authorization", getLogAttributesFromRequest(req));
 
     if (!SlackAppSigningSecret) {
-      logger.error("SLACK_APP_SIGNING_SECRET env variable not found.");
+      logger.error("SLACK_APP_SIGNING_SECRET env variable not found.", getLogAttributesFromRequest(req));
       return Response.sendErrorResponse(
         req,
         res,
@@ -43,15 +43,15 @@ export default class SlackAuthorization {
       (req as OneUptimeRequest).rawFormUrlEncodedBody ||
       "";
 
-    logger.debug(`slackSignature: ${slackSignature}`);
-    logger.debug(`timestamp: ${timestamp}`);
-    logger.debug(`requestBody: `);
-    logger.debug(requestBody);
+    logger.debug(`slackSignature: ${slackSignature}`, getLogAttributesFromRequest(req));
+    logger.debug(`timestamp: ${timestamp}`, getLogAttributesFromRequest(req));
+    logger.debug(`requestBody: `, getLogAttributesFromRequest(req));
+    logger.debug(requestBody, getLogAttributesFromRequest(req));
 
     const baseString: string = `v0:${timestamp}:${requestBody}`;
     const signature: string = `v0=${crypto.createHmac("sha256", slackSigningSecret).update(baseString).digest("hex")}`;
 
-    logger.debug(`Generated signature: ${signature}`);
+    logger.debug(`Generated signature: ${signature}`, getLogAttributesFromRequest(req));
 
     // check if the signature is valid
     if (
@@ -60,7 +60,7 @@ export default class SlackAuthorization {
         Buffer.from(slackSignature) as Uint8Array,
       )
     ) {
-      logger.error("Slack Signature Verification Failed.");
+      logger.error("Slack Signature Verification Failed.", getLogAttributesFromRequest(req));
       return Response.sendErrorResponse(
         req,
         res,
@@ -68,7 +68,7 @@ export default class SlackAuthorization {
       );
     }
 
-    logger.debug("Slack request authorized successfully");
+    logger.debug("Slack request authorized successfully", getLogAttributesFromRequest(req));
     next();
   }
 }

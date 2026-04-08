@@ -16,7 +16,8 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
@@ -119,7 +120,7 @@ router.post(
           timeout: 4000,
         });
       } catch (err) {
-        logger.error(err);
+        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
         // Provide more specific error messages based on auth type
         if (authType === SMTPAuthenticationType.OAuth) {

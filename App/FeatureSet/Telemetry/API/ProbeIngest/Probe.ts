@@ -17,7 +17,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -247,12 +247,13 @@ router.post(
                 userId: emailToUserIdMap.get(email.toString()) || undefined,
               },
             ).catch((err: Error) => {
-              logger.error(err);
+              logger.error(err, getLogAttributesFromRequest(req as any));
             });
           }
         } else {
           logger.debug(
             "Billing is enabled, skipping probe offline email notification",
+            getLogAttributesFromRequest(req as any),
           );
         }
       }

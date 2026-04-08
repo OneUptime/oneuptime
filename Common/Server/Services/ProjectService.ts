@@ -13,7 +13,7 @@ import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import Errors from "../Utils/Errors";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
@@ -372,6 +372,7 @@ export class ProjectService extends DatabaseService<Model> {
           } catch (err) {
             logger.error(
               `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
+              { projectId: updateBy.query._id?.toString() } as LogAttributes,
             );
           }
         } else {
@@ -582,7 +583,7 @@ export class ProjectService extends DatabaseService<Model> {
         url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
         text: slackMessage,
       }).catch((error: Exception) => {
-        logger.error("Error sending slack message: " + error);
+        logger.error("Error sending slack message: " + error, { projectId: project?.id?.toString() } as LogAttributes);
       });
     }
   }
@@ -787,7 +788,7 @@ export class ProjectService extends DatabaseService<Model> {
           url: URL.fromString(NotificationSlackWebhookOnCreateProject),
           text: slackMessage,
         }).catch((error: Exception) => {
-          logger.error("Error sending slack message: " + error);
+          logger.error("Error sending slack message: " + error, { projectId: createdItem.id?.toString() } as LogAttributes);
         });
       }
     }
@@ -1380,7 +1381,7 @@ export class ProjectService extends DatabaseService<Model> {
           text: slackMessage,
         }).catch((err: Error) => {
           // log this error but do not throw it. Not important enough to stop the process.
-          logger.error(err);
+          logger.error(err, { projectId: project?.id?.toString() } as LogAttributes);
         });
       }
     }
@@ -1477,7 +1478,7 @@ export class ProjectService extends DatabaseService<Model> {
           userId: owner.id!,
         },
       ).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
       });
     }
   }

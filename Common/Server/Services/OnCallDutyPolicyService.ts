@@ -30,7 +30,7 @@ import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -187,6 +187,7 @@ ${onCallPolicy.description || "No description provided."}
       } catch (error) {
         logger.error(
           `Error while archiving workspace channels for onCallDutyPolicy ${deleteBy.query._id}: ${error}`,
+          { projectId: (projectId as ObjectID)?.toString() } as LogAttributes,
         );
       }
     }

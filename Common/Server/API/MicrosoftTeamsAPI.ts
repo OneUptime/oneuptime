@@ -5,7 +5,7 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadRequestException from "../../Types/Exception/BadRequestException";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
@@ -213,7 +213,7 @@ export default class MicrosoftTeamsAPI {
 
           // Handle archive errors
           archive.on("error", (err: Error) => {
-            logger.error("Archive error: " + err);
+            logger.error("Archive error: " + err, getLogAttributesFromRequest(req as any));
             throw err;
           });
 
@@ -263,7 +263,7 @@ export default class MicrosoftTeamsAPI {
           // Finalize the archive
           await archive.finalize();
         } catch (error) {
-          logger.error("Error creating Teams app manifest zip: " + error);
+          logger.error("Error creating Teams app manifest zip: " + error, getLogAttributesFromRequest(req as any));
           return Response.sendErrorResponse(
             req,
             res,
@@ -366,8 +366,9 @@ export default class MicrosoftTeamsAPI {
 
           logger.debug(
             "Microsoft Teams Token Request Body (static redirect): ",
+            getLogAttributesFromRequest(req as any),
           );
-          logger.debug(tokenRequestBody);
+          logger.debug(tokenRequestBody, getLogAttributesFromRequest(req as any));
 
           const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.post<JSONObject>({
@@ -381,14 +382,14 @@ export default class MicrosoftTeamsAPI {
             });
 
           if (tokenResponse instanceof HTTPErrorResponse) {
-            logger.error("Error getting Teams token:");
-            logger.error(tokenResponse);
+            logger.error("Error getting Teams token:", getLogAttributesFromRequest(req as any));
+            logger.error(tokenResponse, getLogAttributesFromRequest(req as any));
             throw tokenResponse;
           }
 
           const tokenData: JSONObject = tokenResponse.data;
-          logger.debug("Microsoft Teams Token Response (static redirect): ");
-          logger.debug(tokenData);
+          logger.debug("Microsoft Teams Token Response (static redirect): ", getLogAttributesFromRequest(req as any));
+          logger.debug(tokenData, getLogAttributesFromRequest(req as any));
 
           if (!tokenData["access_token"]) {
             return Response.sendErrorResponse(
@@ -413,14 +414,14 @@ export default class MicrosoftTeamsAPI {
           });
 
           if (userProfileResponse instanceof HTTPErrorResponse) {
-            logger.error("Error getting user profile:");
-            logger.error(userProfileResponse);
+            logger.error("Error getting user profile:", getLogAttributesFromRequest(req as any));
+            logger.error(userProfileResponse, getLogAttributesFromRequest(req as any));
             throw userProfileResponse;
           }
 
           const userProfile: JSONObject = userProfileResponse.data;
-          logger.debug("User Profile: ");
-          logger.debug(userProfile);
+          logger.debug("User Profile: ", getLogAttributesFromRequest(req as any));
+          logger.debug(userProfile, getLogAttributesFromRequest(req as any));
 
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
@@ -462,8 +463,8 @@ export default class MicrosoftTeamsAPI {
             teamsIntegrationPageUrl.addQueryParam("needAdminConsent", "true"),
           );
         } catch (err) {
-          logger.error("Error in static Microsoft Teams auth callback: ");
-          logger.error(err);
+          logger.error("Error in static Microsoft Teams auth callback: ", getLogAttributesFromRequest(req as any));
+          logger.error(err, getLogAttributesFromRequest(req as any));
           return Response.sendErrorResponse(
             req,
             res,
@@ -543,8 +544,8 @@ export default class MicrosoftTeamsAPI {
 
           return Response.redirect(req, res, URL.fromString(adminConsentUrl));
         } catch (error) {
-          logger.error("Error starting Teams admin consent: ");
-          logger.error(error);
+          logger.error("Error starting Teams admin consent: ", getLogAttributesFromRequest(req as any));
+          logger.error(error, getLogAttributesFromRequest(req as any));
           return Response.sendErrorResponse(
             req,
             res,
@@ -652,8 +653,8 @@ export default class MicrosoftTeamsAPI {
             });
 
           if (tokenResp instanceof HTTPErrorResponse) {
-            logger.error("Error getting app token after admin consent:");
-            logger.error(tokenResp);
+            logger.error("Error getting app token after admin consent:", getLogAttributesFromRequest(req as any));
+            logger.error(tokenResp, getLogAttributesFromRequest(req as any));
             return Response.redirect(
               req,
               res,
@@ -672,8 +673,8 @@ export default class MicrosoftTeamsAPI {
             Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
           ).toISOString();
 
-          logger.debug("App Access Token acquired via admin consent: ");
-          logger.debug(tokenData);
+          logger.debug("App Access Token acquired via admin consent: ", getLogAttributesFromRequest(req as any));
+          logger.debug(tokenData, getLogAttributesFromRequest(req as any));
 
           // Get available teams from user auth token
           const userId: string = stateParts[1]!;
@@ -704,8 +705,8 @@ export default class MicrosoftTeamsAPI {
               });
 
               if (teamsResponse instanceof HTTPErrorResponse) {
-                logger.error("Failed to get teams:");
-                logger.error(teamsResponse);
+                logger.error("Failed to get teams:", getLogAttributesFromRequest(req as any));
+                logger.error(teamsResponse, getLogAttributesFromRequest(req as any));
                 return Response.redirect(
                   req,
                   res,
@@ -743,8 +744,8 @@ export default class MicrosoftTeamsAPI {
                 {} as Record<string, MicrosoftTeamsTeam>,
               );
             } catch (error) {
-              logger.error("Error getting teams:");
-              logger.error(error);
+              logger.error("Error getting teams:", getLogAttributesFromRequest(req as any));
+              logger.error(error, getLogAttributesFromRequest(req as any));
               return Response.redirect(
                 req,
                 res,
@@ -784,8 +785,8 @@ export default class MicrosoftTeamsAPI {
               .addQueryParam("tenantId", tenantId),
           );
         } catch (err) {
-          logger.error("Error in Microsoft Teams admin consent callback: ");
-          logger.error(err);
+          logger.error("Error in Microsoft Teams admin consent callback: ", getLogAttributesFromRequest(req as any));
+          logger.error(err, getLogAttributesFromRequest(req as any));
           // Best-effort redirect to integration page with error
           try {
             const stateParam: string | undefined =
@@ -830,7 +831,7 @@ export default class MicrosoftTeamsAPI {
           // Delegate to MicrosoftTeamsUtil which uses the Bot Framework SDK
           await MicrosoftTeamsUtil.processBotActivity(req, res);
         } catch (error) {
-          logger.error("Error in Bot Framework endpoint: " + error);
+          logger.error("Error in Bot Framework endpoint: " + error, getLogAttributesFromRequest(req as any));
           if (!res.headersSent) {
             Response.sendJsonObjectResponse(req, res, {
               error: "Internal server error",
@@ -844,8 +845,8 @@ export default class MicrosoftTeamsAPI {
     router.post(
       "/microsoft-teams/webhook",
       async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.debug("Microsoft Teams Webhook Request: ");
-        logger.debug(req.body);
+        logger.debug("Microsoft Teams Webhook Request: ", getLogAttributesFromRequest(req as any));
+        logger.debug(req.body, getLogAttributesFromRequest(req as any));
 
         try {
           const authResult: MicrosoftTeamsRequest =
@@ -853,8 +854,8 @@ export default class MicrosoftTeamsAPI {
               req: req,
             });
 
-          logger.debug("Microsoft Teams Auth Result: ");
-          logger.debug(authResult);
+          logger.debug("Microsoft Teams Auth Result: ", getLogAttributesFromRequest(req as any));
+          logger.debug(authResult, getLogAttributesFromRequest(req as any));
 
           if (authResult.isAuthorized === false) {
             return Response.sendTextResponse(req, res, "");
@@ -884,8 +885,8 @@ export default class MicrosoftTeamsAPI {
 
           return Response.sendTextResponse(req, res, "");
         } catch (error) {
-          logger.error("Error processing Teams webhook:");
-          logger.error(error);
+          logger.error("Error processing Teams webhook:", getLogAttributesFromRequest(req as any));
+          logger.error(error, getLogAttributesFromRequest(req as any));
           return Response.sendTextResponse(req, res, "");
         }
       },

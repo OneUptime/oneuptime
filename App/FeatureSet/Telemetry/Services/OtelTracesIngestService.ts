@@ -23,7 +23,8 @@ import {
 } from "Common/Models/AnalyticsModels/Span";
 import ExceptionUtil from "../Utils/Exception";
 import StackTraceParser, { ParsedStackTrace } from "../Utils/StackTraceParser";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import SpanService from "Common/Server/Services/SpanService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
@@ -145,7 +146,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
 
       if (!resourceSpans || !Array.isArray(resourceSpans)) {
-        logger.error("Invalid resourceSpans format in request body");
+        logger.error("Invalid resourceSpans format in request body", getLogAttributesFromRequest(req as RequestLike));
         throw new BadRequestException("Invalid resourceSpans format");
       }
 
@@ -431,8 +432,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
-      logger.error("Critical error in processTracesAsync:");
-      logger.error(error);
+      logger.error("Critical error in processTracesAsync:", getLogAttributesFromRequest(req as RequestLike));
+      logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
   }

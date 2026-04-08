@@ -65,7 +65,7 @@ import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import LabelService from "./LabelService";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
@@ -263,6 +263,7 @@ export class Service extends DatabaseService<Model> {
       } catch (error) {
         logger.error(
           `Error while archiving workspace channels for monitor ${monitor.id?.toString()}: ${error}`,
+          { projectId: monitor.projectId?.toString(), monitorId: monitor.id?.toString() } as LogAttributes,
         );
       }
     }
@@ -620,6 +621,7 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Workspace operations failed in MonitorService.onCreateSuccess",
+            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -639,6 +641,7 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Change monitor status failed in MonitorService.onCreateSuccess",
+            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -659,6 +662,7 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Add default probes failed in MonitorService.onCreateSuccess",
+            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -675,6 +679,7 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Billing operations failed in MonitorService.onCreateSuccess",
+            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -702,7 +707,7 @@ ${createdItem.description?.trim() || "No description provided."}
           }
           return Promise.resolve();
         } catch (error) {
-          logger.error("Add owners failed in MonitorService.onCreateSuccess");
+          logger.error("Add owners failed in MonitorService.onCreateSuccess", { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes);
           logger.error(error as Error);
           return Promise.resolve();
         }
@@ -713,6 +718,7 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Refresh probe status failed in MonitorService.onCreateSuccess",
+            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -721,6 +727,7 @@ ${createdItem.description?.trim() || "No description provided."}
       .catch((error: Error) => {
         logger.error(
           `Critical error in MonitorService sequential operations: ${error}`,
+          { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
         );
       });
 

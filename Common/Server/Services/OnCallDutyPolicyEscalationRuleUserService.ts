@@ -23,7 +23,7 @@ import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 
 export class Service extends DatabaseService<Model> {
@@ -183,6 +183,7 @@ export class Service extends DatabaseService<Model> {
       }).catch((error: Error) => {
         logger.error(
           `Error starting time log for user ${createdModel.user?.id}: ${error}`,
+          { projectId: projectId?.toString(), userId: createdModel.user?.id?.toString() } as LogAttributes,
         );
       });
     }
@@ -267,7 +268,7 @@ export class Service extends DatabaseService<Model> {
             userId: userId,
             endsAt: OneUptimeDate.getCurrentDate(),
           }).catch((error: Error) => {
-            logger.error(`Error ending time log for user ${userId}: ${error}`);
+            logger.error(`Error ending time log for user ${userId}: ${error}`, { projectId: projectId?.toString(), userId: userId?.toString() } as LogAttributes);
           });
         }
       }

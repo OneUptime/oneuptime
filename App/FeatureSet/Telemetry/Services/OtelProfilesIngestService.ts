@@ -16,7 +16,8 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import ProfileService from "Common/Server/Services/ProfileService";
 import ProfileSampleService from "Common/Server/Services/ProfileSampleService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
@@ -123,7 +124,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       ] as JSONArray;
 
       if (!resourceProfiles || !Array.isArray(resourceProfiles)) {
-        logger.error("Invalid resourceProfiles format in request body");
+        logger.error("Invalid resourceProfiles format in request body", getLogAttributesFromRequest(req as RequestLike));
         throw new BadRequestException("Invalid resourceProfiles format");
       }
 
@@ -559,8 +560,8 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
-      logger.error("Critical error in processProfilesAsync:");
-      logger.error(error);
+      logger.error("Critical error in processProfilesAsync:", getLogAttributesFromRequest(req as RequestLike));
+      logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
   }

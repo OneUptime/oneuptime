@@ -5,7 +5,7 @@ import UserService, {
   Service as UserServiceType,
 } from "../Services/UserService";
 import { ExpressRequest, ExpressResponse } from "../Utils/Express";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 
@@ -71,7 +71,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
 
           return this.sendBlankProfile(req, res);
         } catch (error) {
-          logger.error(error);
+          logger.error(error, getLogAttributesFromRequest(req as any));
           return this.sendBlankProfile(req, res);
         }
       },
@@ -84,7 +84,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     try {
       Response.sendFileByPath(req, res, BLANK_PROFILE_PICTURE_PATH);
     } catch (error) {
-      logger.error(error);
+      logger.error(error, getLogAttributesFromRequest(req as any));
       Response.sendErrorResponse(
         req,
         res,

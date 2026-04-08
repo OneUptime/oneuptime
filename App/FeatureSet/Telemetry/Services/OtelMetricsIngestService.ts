@@ -20,7 +20,8 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -100,7 +101,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       ] as JSONArray;
 
       if (!resourceMetrics || !Array.isArray(resourceMetrics)) {
-        logger.error("Invalid resourceMetrics format in request body");
+        logger.error("Invalid resourceMetrics format in request body", getLogAttributesFromRequest(req as RequestLike));
         throw new BadRequestException("Invalid resourceMetrics format");
       }
 
@@ -381,8 +382,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
-      logger.error("Critical error in processMetricsAsync:");
-      logger.error(error);
+      logger.error("Critical error in processMetricsAsync:", getLogAttributesFromRequest(req as RequestLike));
+      logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
   }

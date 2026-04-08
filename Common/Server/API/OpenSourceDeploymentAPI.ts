@@ -6,7 +6,7 @@ import OpenSourceDeploymentService, {
   Service as OpenSourceDeploymentServiceType,
 } from "../Services/OpenSourceDeploymentService";
 import { OpenSourceDeploymentWebhookUrl } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import {
   ExpressRequest,
@@ -67,7 +67,7 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
                 instanceUrl: deployment.instanceUrl?.toString() || "",
               },
             }).catch((err: Error) => {
-              logger.error(err);
+              logger.error(err, getLogAttributesFromRequest(req as any));
             });
           }
 

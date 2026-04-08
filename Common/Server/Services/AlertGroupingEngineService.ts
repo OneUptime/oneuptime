@@ -12,7 +12,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import ServiceMonitor from "../../Models/DatabaseModels/ServiceMonitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -38,11 +38,11 @@ export interface GroupingResult {
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
   public async processAlert(alert: Alert): Promise<GroupingResult> {
-    logger.debug(`Processing alert ${alert.id} for grouping`);
+    logger.debug(`Processing alert ${alert.id} for grouping`, { projectId: alert.projectId?.toString() } as LogAttributes);
 
     try {
       if (!alert.id || !alert.projectId) {
-        logger.warn("Alert missing id or projectId, skipping grouping");
+        logger.warn("Alert missing id or projectId, skipping grouping", { projectId: alert.projectId?.toString() } as LogAttributes);
         return { grouped: false };
       }
 
@@ -124,12 +124,14 @@ class AlertGroupingEngineServiceClass {
       if (rules.length === 0) {
         logger.debug(
           `No enabled grouping rules found for project ${alert.projectId}`,
+          { projectId: alert.projectId?.toString() } as LogAttributes,
         );
         return { grouped: false };
       }
 
       logger.debug(
         `Found ${rules.length} enabled grouping rules for project ${alert.projectId}`,
+        { projectId: alert.projectId?.toString() } as LogAttributes,
       );
 
       // Find first matching rule
@@ -139,6 +141,7 @@ class AlertGroupingEngineServiceClass {
         if (matches) {
           logger.debug(
             `Alert ${alert.id} matches rule ${rule.name || rule.id}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
 
           // Try to find existing episode or create new one
@@ -150,10 +153,10 @@ class AlertGroupingEngineServiceClass {
         }
       }
 
-      logger.debug(`Alert ${alert.id} did not match any grouping rules`);
+      logger.debug(`Alert ${alert.id} did not match any grouping rules`, { projectId: alert.projectId?.toString() } as LogAttributes);
       return { grouped: false };
     } catch (error) {
-      logger.error(`Error processing alert for grouping: ${error}`);
+      logger.error(`Error processing alert for grouping: ${error}`, { projectId: alert.projectId?.toString() } as LogAttributes);
       return { grouped: false };
     }
   }
@@ -165,6 +168,7 @@ class AlertGroupingEngineServiceClass {
   ): Promise<boolean> {
     logger.debug(
       `Checking if alert ${alert.id} matches rule ${rule.name || rule.id}`,
+      { projectId: alert.projectId?.toString() } as LogAttributes,
     );
 
     // Check monitor IDs - if monitors are specified, alert must be from one of them
@@ -286,6 +290,7 @@ class AlertGroupingEngineServiceClass {
         } catch {
           logger.warn(
             `Invalid regex pattern in rule ${rule.id}: ${rule.monitorNamePattern}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
           return false;
         }
@@ -304,6 +309,7 @@ class AlertGroupingEngineServiceClass {
         } catch {
           logger.warn(
             `Invalid regex pattern in rule ${rule.id}: ${rule.monitorDescriptionPattern}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
           return false;
         }
@@ -323,6 +329,7 @@ class AlertGroupingEngineServiceClass {
       } catch {
         logger.warn(
           `Invalid regex pattern in rule ${rule.id}: ${rule.alertTitlePattern}`,
+          { projectId: alert.projectId?.toString() } as LogAttributes,
         );
         return false;
       }
@@ -341,6 +348,7 @@ class AlertGroupingEngineServiceClass {
       } catch {
         logger.warn(
           `Invalid regex pattern in rule ${rule.id}: ${rule.alertDescriptionPattern}`,
+          { projectId: alert.projectId?.toString() } as LogAttributes,
         );
         return false;
       }
@@ -349,6 +357,7 @@ class AlertGroupingEngineServiceClass {
     // If no criteria specified (all fields empty), rule matches all alerts
     logger.debug(
       `Rule ${rule.name || rule.id} matched alert ${alert.id} (all criteria passed)`,
+      { projectId: alert.projectId?.toString() } as LogAttributes,
     );
     return true;
   }
@@ -373,6 +382,7 @@ class AlertGroupingEngineServiceClass {
        */
       logger.debug(
         `Acquiring mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+        { projectId: alert.projectId?.toString() } as LogAttributes,
       );
       mutex = await Semaphore.lock({
         key: mutexKey,
@@ -382,6 +392,7 @@ class AlertGroupingEngineServiceClass {
       });
       logger.debug(
         `Acquired mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+        { projectId: alert.projectId?.toString() } as LogAttributes,
       );
 
       // Calculate time window cutoff (only if time window is enabled)
@@ -496,14 +507,17 @@ class AlertGroupingEngineServiceClass {
         try {
           logger.debug(
             `Releasing mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
           await Semaphore.release(mutex);
           logger.debug(
             `Released mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
         } catch (err) {
           logger.error(
             `Error releasing mutex for grouping key: ${mutexKey}: ${err}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
         }
       }
@@ -747,6 +761,7 @@ class AlertGroupingEngineServiceClass {
           } catch (ownerError) {
             logger.error(
               `Error adding owner user ${user.id} to episode: ${ownerError}`,
+              { projectId: alert.projectId?.toString() } as LogAttributes,
             );
           }
         }
@@ -777,6 +792,7 @@ class AlertGroupingEngineServiceClass {
           } catch (ownerError) {
             logger.error(
               `Error adding owner team ${team.id} to episode: ${ownerError}`,
+              { projectId: alert.projectId?.toString() } as LogAttributes,
             );
           }
         }
@@ -824,13 +840,14 @@ class AlertGroupingEngineServiceClass {
         } catch (feedError) {
           logger.error(
             `Error creating episode feed for episode creation: ${feedError}`,
+            { projectId: alert.projectId?.toString() } as LogAttributes,
           );
         }
       }
 
       return createdEpisode;
     } catch (error) {
-      logger.error(`Error creating new episode: ${error}`);
+      logger.error(`Error creating new episode: ${error}`, { projectId: alert.projectId?.toString() } as LogAttributes);
       return null;
     }
   }
@@ -989,7 +1006,7 @@ class AlertGroupingEngineServiceClass {
         error instanceof Error &&
         error.message.includes("already a member")
       ) {
-        logger.debug(`Alert ${alert.id} is already in episode ${episodeId}`);
+        logger.debug(`Alert ${alert.id} is already in episode ${episodeId}`, { projectId: alert.projectId?.toString() } as LogAttributes);
         return;
       }
       throw error;

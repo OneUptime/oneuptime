@@ -5,7 +5,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import InboundEmailProvider, {
   ParsedInboundEmail,
@@ -26,16 +26,17 @@ router.post(
   MultipartFormDataMiddleware,
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-      logger.debug("Received incoming email webhook");
+      logger.debug("Received incoming email webhook", getLogAttributesFromRequest(req as any));
 
       // Log raw body for debugging
       logger.debug(
         `Request body keys: ${Object.keys(req.body || {}).join(", ")}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Check if inbound email is configured
       if (!InboundEmailProviderFactory.isConfigured()) {
-        logger.error("Inbound email is not configured");
+        logger.error("Inbound email is not configured", getLogAttributesFromRequest(req as any));
         throw new BadDataException(
           "Inbound email is not configured. Please set the INBOUND_EMAIL_DOMAIN environment variable.",
         );
@@ -55,7 +56,7 @@ router.post(
       });
 
       if (!isValid) {
-        logger.error("Invalid webhook signature");
+        logger.error("Invalid webhook signature", getLogAttributesFromRequest(req as any));
         throw new BadDataException("Invalid webhook signature");
       }
 
@@ -64,9 +65,9 @@ router.post(
         req.body as JSONObject,
       );
 
-      logger.debug(`Parsed email from: ${parsedEmail.from}`);
-      logger.debug(`Parsed email to: ${parsedEmail.to}`);
-      logger.debug(`Parsed email subject: ${parsedEmail.subject}`);
+      logger.debug(`Parsed email from: ${parsedEmail.from}`, getLogAttributesFromRequest(req as any));
+      logger.debug(`Parsed email to: ${parsedEmail.to}`, getLogAttributesFromRequest(req as any));
+      logger.debug(`Parsed email subject: ${parsedEmail.subject}`, getLogAttributesFromRequest(req as any));
 
       // Extract secret key from the "to" address
       const secretKey: string | null = provider.extractSecretKeyFromEmail(
@@ -76,13 +77,14 @@ router.post(
       if (!secretKey) {
         logger.error(
           `Could not extract secret key from email: ${parsedEmail.to}`,
+          getLogAttributesFromRequest(req as any),
         );
         throw new BadDataException(
           "Invalid monitor email address. Could not extract secret key.",
         );
       }
 
-      logger.debug(`Extracted secret key: ${secretKey}`);
+      logger.debug(`Extracted secret key: ${secretKey}`, getLogAttributesFromRequest(req as any));
 
       // Queue the email for async processing using the unified Telemetry queue
       await TelemetryQueueService.addIncomingEmailJob({
@@ -96,7 +98,7 @@ router.post(
         attachments: parsedEmail.attachments,
       });
 
-      logger.debug("Email queued for processing");
+      logger.debug("Email queued for processing", getLogAttributesFromRequest(req as any));
 
       // Return 202 Accepted immediately
       return Response.sendJsonObjectResponse(req, res, {
@@ -104,8 +106,8 @@ router.post(
         message: "Email queued for processing",
       });
     } catch (error) {
-      logger.error("Error processing incoming email webhook:");
-      logger.error(error);
+      logger.error("Error processing incoming email webhook:", getLogAttributesFromRequest(req as any));
+      logger.error(error, getLogAttributesFromRequest(req as any));
 
       if (error instanceof BadDataException) {
         return Response.sendErrorResponse(req, res, error);

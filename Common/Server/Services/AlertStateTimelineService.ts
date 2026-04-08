@@ -18,7 +18,7 @@ import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
@@ -78,7 +78,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
           namespace: "AlertStateTimeline.create",
         });
       } catch (err) {
-        logger.error(err);
+        logger.error(err, { projectId: createBy.data.projectId?.toString(), alertId: createBy.data.alertId?.toString() } as LogAttributes);
       }
 
       if (
@@ -267,7 +267,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         try {
           await Semaphore.release(mutex);
         } catch (err) {
-          logger.error(err);
+          logger.error(err, { projectId: createBy.data.projectId?.toString(), alertId: createBy.data.alertId?.toString() } as LogAttributes);
         }
       }
 
@@ -365,7 +365,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       try {
         await Semaphore.release(mutex);
       } catch (err) {
-        logger.error(err);
+        logger.error(err, { projectId: createdItem.projectId?.toString(), alertId: createdItem.alertId?.toString() } as LogAttributes);
       }
     }
 
@@ -450,8 +450,9 @@ ${createdItem.rootCause}`,
     }).catch((error: Error) => {
       logger.error(
         "Error while refreshing alert metrics after alert state timeline creation",
+        { projectId: createdItem.projectId?.toString(), alertId: createdItem.alertId?.toString() } as LogAttributes,
       );
-      logger.error(error);
+      logger.error(error, { projectId: createdItem.projectId?.toString(), alertId: createdItem.alertId?.toString() } as LogAttributes);
     });
 
     const isLastAlertState: boolean = await this.isLastAlertState({
@@ -475,8 +476,8 @@ ${createdItem.rootCause}`,
           ).toString()})** is resolved. Archiving channel.`,
         },
       }).catch((error: Error) => {
-        logger.error(`Error while archiving workspace channels:`);
-        logger.error(error);
+        logger.error(`Error while archiving workspace channels:`, { projectId: createdItem.projectId?.toString(), alertId: createdItem.alertId?.toString() } as LogAttributes);
+        logger.error(error, { projectId: createdItem.projectId?.toString(), alertId: createdItem.alertId?.toString() } as LogAttributes);
       });
     }
 

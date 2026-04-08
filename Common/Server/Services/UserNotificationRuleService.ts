@@ -66,7 +66,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface NotificationMethodDescriptor {
@@ -2207,7 +2207,7 @@ export class Service extends DatabaseService<Model> {
       incidentId: options.triggeredByIncidentId,
       userId: userId,
     }).catch((error: Error) => {
-      logger.error(error);
+      logger.error(error, { projectId: options.projectId?.toString(), userId: userId?.toString() } as LogAttributes);
     });
   }
 
@@ -2266,7 +2266,7 @@ export class Service extends DatabaseService<Model> {
         userIds: [data.userId],
       },
     ).catch((error: Error) => {
-      logger.error(error);
+      logger.error(error, { projectId: data.projectId?.toString(), userId: data.userId?.toString() } as LogAttributes);
     });
   }
 

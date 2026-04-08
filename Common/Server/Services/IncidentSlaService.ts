@@ -6,7 +6,7 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import IncidentSlaStatus from "../../Types/Incident/IncidentSlaStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentService from "./IncidentService";
@@ -30,6 +30,7 @@ export class Service extends DatabaseService<Model> {
   }): Promise<Model | null> {
     logger.debug(
       `Creating SLA record for incident ${data.incidentId} in project ${data.projectId}`,
+      { projectId: data.projectId?.toString() } as LogAttributes,
     );
 
     // Find matching rule
@@ -52,6 +53,7 @@ export class Service extends DatabaseService<Model> {
     if (!matchingRule || !matchingRule.id) {
       logger.debug(
         `No matching SLA rule found for incident ${data.incidentId}`,
+        { projectId: data.projectId?.toString() } as LogAttributes,
       );
       return null;
     }
@@ -101,12 +103,14 @@ export class Service extends DatabaseService<Model> {
 
       logger.info(
         `Created SLA record ${createdSla.id} for incident ${data.incidentId} with rule ${matchingRule.name || matchingRule.id}`,
+        { projectId: data.projectId?.toString() } as LogAttributes,
       );
 
       return createdSla;
     } catch (error) {
       logger.error(
         `Error creating SLA record for incident ${data.incidentId}: ${error}`,
+        { projectId: data.projectId?.toString() } as LogAttributes,
       );
       return null;
     }
@@ -266,7 +270,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!incident || !incident.projectId) {
-      logger.warn(`Incident ${data.incidentId} not found`);
+      logger.warn(`Incident ${data.incidentId} not found`, { projectId: incident?.projectId?.toString() } as LogAttributes);
       return;
     }
 
@@ -338,11 +342,13 @@ export class Service extends DatabaseService<Model> {
 
         logger.info(
           `Recalculated SLA ${sla.id} with new rule ${newMatchingRule.name || newMatchingRule.id}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
       } else if (!newMatchingRule) {
         // No matching rule anymore, but keep the existing SLA record
         logger.debug(
           `No matching SLA rule found after severity change for incident ${data.incidentId}, keeping existing SLA`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
       }
     }

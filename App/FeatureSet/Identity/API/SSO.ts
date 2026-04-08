@@ -36,7 +36,8 @@ import Express, {
   getClientIp,
   headerValueToString,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
@@ -163,7 +164,7 @@ router.get(
         ProjectSSO,
       );
     } catch (err) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
       if (err instanceof Exception) {
         return next(err);
@@ -259,7 +260,7 @@ router.get(
 
       return Response.redirect(req, res, samlRequestUrl);
     } catch (err) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
       if (err instanceof Exception) {
         return next(err);
@@ -433,6 +434,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           projectSSO.issuerURL.toString() +
           " but it is " +
           issuerUrl.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
       );
       return Response.sendErrorResponse(
         req,
@@ -614,7 +616,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
       const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
 
-      logger.info("User logged in with SSO (mobile): " + email.toString());
+      logger.info("User logged in with SSO (mobile): " + email.toString(), getLogAttributesFromRequest(req as RequestLike));
 
       return res.redirect(deepLinkUrl);
     }
@@ -638,7 +640,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    logger.info("User logged in with SSO: " + email.toString());
+    logger.info("User logged in with SSO: " + email.toString(), getLogAttributesFromRequest(req as RequestLike));
 
     return Response.redirect(
       req,
@@ -652,7 +654,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       ),
     );
   } catch (err) {
-    logger.error(err);
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
     Response.sendErrorResponse(req, res, err as Exception);
   }
