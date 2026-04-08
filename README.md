@@ -114,9 +114,9 @@ By using OneUptime Cloud, you also support the continued development of the open
 ### Self-Hosted Installation
 
 - **[Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime)** - Recommended for production
-- **[Docker Compose](/Docs/Content/installation/docker-compose.md)** - Single-node install (not recommended for production)
-- **[Local Development](/Docs/Content/installation/local-development.md)** - For contributors
-- **[Upgrade Guide](/Docs/Content/installation/upgrading.md)** - Upgrade existing installations
+- **[Docker Compose](/App/FeatureSet/Docs/Content/installation/docker-compose.md)** - Single-node install (not recommended for production)
+- **[Local Development](/App/FeatureSet/Docs/Content/installation/local-development.md)** - For contributors
+- **[Upgrade Guide](/App/FeatureSet/Docs/Content/installation/upgrading.md)** - Upgrade existing installations
 
 ---
 
@@ -140,9 +140,9 @@ curl -sSL https://oneuptime.com/install.sh | bash
 
 For detailed installation guides, see:
 - [Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime) (recommended for production)
-- [Docker Compose](/Docs/Content/installation/docker-compose.md)
-- [Local Development](/Docs/Content/installation/local-development.md)
-- [Upgrade Guide](/Docs/Content/installation/upgrading.md)
+- [Docker Compose](/App/FeatureSet/Docs/Content/installation/docker-compose.md)
+- [Local Development](/App/FeatureSet/Docs/Content/installation/local-development.md)
+- [Upgrade Guide](/App/FeatureSet/Docs/Content/installation/upgrading.md)
 
 ---
 
