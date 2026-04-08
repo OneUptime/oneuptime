@@ -5,9 +5,11 @@ import DatabaseService, { EntityManager } from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
+import Monitor from "../../Models/DatabaseModels/Monitor";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
+import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import CronTab from "../Utils/CronTab";
 import logger from "../Utils/Logger";
 
@@ -186,6 +188,31 @@ export class Service extends DatabaseService<MonitorProbe> {
 
       if (monitorProbe) {
         throw new BadDataException("Probe is already added to this monitor.");
+      }
+    }
+
+    // Check if the monitor type supports probes
+    const monitorId: ObjectID | undefined | null =
+      createBy.data.monitorId || createBy.data.monitor?.id;
+
+    if (monitorId) {
+      const monitor: Monitor | null = await MonitorService.findOneById({
+        id: monitorId,
+        select: {
+          monitorType: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        monitor?.monitorType &&
+        !MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+      ) {
+        throw new BadDataException(
+          "Probes cannot be added to this monitor type.",
+        );
       }
     }
 
