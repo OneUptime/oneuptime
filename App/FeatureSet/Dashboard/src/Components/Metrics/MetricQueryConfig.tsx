@@ -28,6 +28,7 @@ export interface ComponentProps {
   attributesLoading?: boolean | undefined;
   attributesError?: string | undefined;
   onAttributesRetry?: (() => void) | undefined;
+  onMetricNameChanged?: ((metricName: string) => void) | undefined;
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
@@ -257,11 +258,12 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     const previousMetricName: string | undefined =
                       props.data?.metricQueryData?.filterData?.metricName?.toString();
 
-                    // If metric changed, prefill all alias fields from MetricType
+                    // If metric changed, prefill all alias fields from MetricType and reload attributes
                     if (
                       selectedMetricName &&
                       selectedMetricName !== previousMetricName
                     ) {
+                      props.onMetricNameChanged?.(selectedMetricName);
                       const metricType: MetricType | undefined =
                         props.metricTypes.find((m: MetricType) => {
                           return m.name === selectedMetricName;

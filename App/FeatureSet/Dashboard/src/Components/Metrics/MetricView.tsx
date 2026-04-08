@@ -108,13 +108,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
 
-  const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
-    [],
-  );
-  const [telemetryAttributesLoaded, setTelemetryAttributesLoaded] =
-    useState<boolean>(false);
-  const [telemetryAttributesLoading, setTelemetryAttributesLoading] =
-    useState<boolean>(false);
+  const [telemetryAttributesByMetric, setTelemetryAttributesByMetric] =
+    useState<Record<string, Array<string>>>({});
+  const [loadedMetricAttributes, setLoadedMetricAttributes] = useState<
+    Set<string>
+  >(new Set());
+  const [loadingMetricAttributes, setLoadingMetricAttributes] = useState<
+    Set<string>
+  >(new Set());
   const [telemetryAttributesError, setTelemetryAttributesError] =
     useState<string>("");
 
@@ -184,9 +185,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
       });
 
       setMetricTypes(metricTypes);
-      setTelemetryAttributes([]);
-      setTelemetryAttributesLoaded(false);
-      setTelemetryAttributesLoading(false);
+      setTelemetryAttributesByMetric({});
+      setLoadedMetricAttributes(new Set());
+      setLoadingMetricAttributes(new Set());
       setTelemetryAttributesError("");
 
       setIsPageLoading(false);
@@ -235,37 +236,61 @@ const MetricView: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const loadTelemetryAttributes: PromiseVoidFunction =
-    async (): Promise<void> => {
-      if (telemetryAttributesLoading || telemetryAttributesLoaded) {
-        return;
-      }
+  const loadTelemetryAttributesForMetric: (
+    metricName: string,
+  ) => Promise<void> = async (metricName: string): Promise<void> => {
+    if (!metricName) {
+      return;
+    }
 
-      try {
-        setTelemetryAttributesLoading(true);
-        setTelemetryAttributesError("");
+    if (
+      loadingMetricAttributes.has(metricName) ||
+      loadedMetricAttributes.has(metricName)
+    ) {
+      return;
+    }
 
-        const attributes: Array<string> =
-          await MetricUtil.getTelemetryAttributes();
+    try {
+      setLoadingMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.add(metricName);
+        return next;
+      });
+      setTelemetryAttributesError("");
 
-        setTelemetryAttributes(attributes);
-        setTelemetryAttributesLoaded(true);
-      } catch (err) {
-        setTelemetryAttributes([]);
-        setTelemetryAttributesLoaded(false);
-        setTelemetryAttributesError(
-          `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
-        );
-      } finally {
-        setTelemetryAttributesLoading(false);
-      }
-    };
+      const attributes: Array<string> =
+        await MetricUtil.getTelemetryAttributes({ metricName });
 
-  const handleAdvancedFiltersToggle: (show: boolean) => void = (
+      setTelemetryAttributesByMetric(
+        (prev: Record<string, Array<string>>) => ({
+          ...prev,
+          [metricName]: attributes,
+        }),
+      );
+      setLoadedMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.add(metricName);
+        return next;
+      });
+    } catch (err) {
+      setTelemetryAttributesError(
+        `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
+      );
+    } finally {
+      setLoadingMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.delete(metricName);
+        return next;
+      });
+    }
+  };
+
+  const handleAdvancedFiltersToggle: (
     show: boolean,
-  ): void => {
-    if (show && !telemetryAttributesLoaded && !telemetryAttributesLoading) {
-      void loadTelemetryAttributes();
+    metricName?: string,
+  ) => void = (show: boolean, metricName?: string): void => {
+    if (show && metricName) {
+      void loadTelemetryAttributesForMetric(metricName);
     }
   };
 
@@ -352,14 +377,39 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     }}
                     data={queryConfig}
                     hideCard={props.hideCardInQueryElements}
-                    telemetryAttributes={telemetryAttributes}
+                    telemetryAttributes={
+                      telemetryAttributesByMetric[
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                          ""
+                      ] || []
+                    }
                     metricTypes={metricTypes}
-                    onAdvancedFiltersToggle={handleAdvancedFiltersToggle}
-                    attributesLoading={telemetryAttributesLoading}
+                    onAdvancedFiltersToggle={(show: boolean) => {
+                      handleAdvancedFiltersToggle(
+                        show,
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString(),
+                      );
+                    }}
+                    attributesLoading={loadingMetricAttributes.has(
+                      queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                        "",
+                    )}
                     attributesError={telemetryAttributesError}
+                    onMetricNameChanged={(metricName: string) => {
+                      void loadTelemetryAttributesForMetric(metricName);
+                    }}
                     onAttributesRetry={() => {
-                      setTelemetryAttributesLoaded(false);
-                      void loadTelemetryAttributes();
+                      const metricName: string =
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                        "";
+                      if (metricName) {
+                        setLoadedMetricAttributes((prev: Set<string>) => {
+                          const next: Set<string> = new Set(prev);
+                          next.delete(metricName);
+                          return next;
+                        });
+                        void loadTelemetryAttributesForMetric(metricName);
+                      }
                     }}
                     onRemove={() => {
                       if (props.data.queryConfigs.length === 1) {

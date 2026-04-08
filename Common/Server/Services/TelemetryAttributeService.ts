@@ -71,6 +71,7 @@ export class TelemetryAttributeService {
   public async fetchAttributes(data: {
     projectId: ObjectID;
     telemetryType: TelemetryType;
+    metricName?: string | undefined;
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
@@ -83,6 +84,7 @@ export class TelemetryAttributeService {
     const cacheKey: string = TelemetryAttributeService.getCacheKey(
       data.projectId,
       data.telemetryType,
+      data.metricName,
     );
 
     const cachedEntry: TelemetryAttributesCacheEntry | null =
@@ -98,6 +100,7 @@ export class TelemetryAttributeService {
       attributes = await TelemetryAttributeService.fetchAttributesFromDatabase({
         projectId: data.projectId,
         source,
+        metricName: data.metricName,
       });
     } catch (error) {
       if (cachedEntry) {
@@ -122,8 +125,13 @@ export class TelemetryAttributeService {
   private static getCacheKey(
     projectId: ObjectID,
     telemetryType: TelemetryType,
+    metricName?: string | undefined,
   ): string {
-    return `${projectId.toString()}:${telemetryType}`;
+    const base: string = `${projectId.toString()}:${telemetryType}`;
+    if (metricName) {
+      return `${base}:${metricName}`;
+    }
+    return base;
   }
 
   private static getLookbackStartDate(): Date {
@@ -219,6 +227,7 @@ export class TelemetryAttributeService {
     attributesColumn: string;
     attributeKeysColumn: string;
     timeColumn: string;
+    metricName?: string | undefined;
   }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
@@ -244,7 +253,20 @@ export class TelemetryAttributeService {
           AND ${data.timeColumn} >= ${{
             type: TableColumnType.Date,
             value: lookbackStartDate,
-          }}
+          }}`;
+
+    if (data.metricName) {
+      statement.append(
+        SQL`
+          AND name = ${{
+            type: TableColumnType.Text,
+            value: data.metricName,
+          }}`,
+      );
+    }
+
+    statement.append(
+      SQL`
         ORDER BY ${data.timeColumn} DESC
         LIMIT ${{
           type: TableColumnType.Number,
@@ -258,8 +280,8 @@ export class TelemetryAttributeService {
       LIMIT ${{
         type: TableColumnType.Number,
         value: TelemetryAttributeService.ATTRIBUTES_LIMIT,
-      }}
-    `;
+      }}`,
+    );
 
     return statement;
   }
@@ -267,6 +289,7 @@ export class TelemetryAttributeService {
   private static async fetchAttributesFromDatabase(data: {
     projectId: ObjectID;
     source: TelemetrySource;
+    metricName?: string | undefined;
   }): Promise<Array<string>> {
     const statement: Statement =
       TelemetryAttributeService.buildAttributesStatement({
@@ -275,6 +298,7 @@ export class TelemetryAttributeService {
         attributesColumn: data.source.attributesColumn,
         attributeKeysColumn: data.source.attributeKeysColumn,
         timeColumn: data.source.timeColumn,
+        metricName: data.metricName,
       });
 
     const dbResult: Results = await data.source.service.executeQuery(statement);

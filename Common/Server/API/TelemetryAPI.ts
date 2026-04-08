@@ -103,10 +103,16 @@ const getAttributes: GetAttributesFunction = async (
       );
     }
 
+    const metricName: string | undefined =
+      req.body["metricName"] && typeof req.body["metricName"] === "string"
+        ? (req.body["metricName"] as string)
+        : undefined;
+
     const attributes: string[] =
       await TelemetryAttributeService.fetchAttributes({
         projectId: databaseProps.tenantId,
         telemetryType,
+        metricName,
       });
 
     return Response.sendJsonObjectResponse(req, res, {

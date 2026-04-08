@@ -118,14 +118,16 @@ export default class MetricUtil {
     };
   }
 
-  public static async getTelemetryAttributes(): Promise<Array<string>> {
+  public static async getTelemetryAttributes(data?: {
+    metricName?: string | undefined;
+  }): Promise<Array<string>> {
     const metricAttributesResponse:
       | HTTPResponse<JSONObject>
       | HTTPErrorResponse = await API.post({
       url: URL.fromString(APP_API_URL.toString()).addRoute(
         "/telemetry/metrics/get-attributes",
       ),
-      data: {},
+      data: data?.metricName ? { metricName: data.metricName } : {},
       headers: {
         ...AnalyticsModelAPI.getCommonHeaders(),
       },
