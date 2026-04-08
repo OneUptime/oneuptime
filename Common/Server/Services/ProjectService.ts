@@ -1295,10 +1295,12 @@ export class ProjectService extends DatabaseService<Model> {
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     // if user has no project id, then he should not be able to access any project.
+    // Master admins should be able to access all projects.
     if (
-      (!findBy.props.isRoot &&
-        !findBy.props.userGlobalAccessPermission?.projectIds) ||
-      findBy.props.userGlobalAccessPermission?.projectIds.length === 0
+      !findBy.props.isRoot &&
+      !findBy.props.isMasterAdmin &&
+      (!findBy.props.userGlobalAccessPermission?.projectIds ||
+        findBy.props.userGlobalAccessPermission?.projectIds.length === 0)
     ) {
       findBy.props.isRoot = true;
       findBy.query._id = ObjectID.getZeroObjectID().toString(); // should not get any projects.
