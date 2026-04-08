@@ -116,7 +116,11 @@ const BulkUpdateForm: <T extends GenericObject>(
                   color={Green}
                 />
                 <div className="ml-2 text-sm font-medium text-green-800">
-                  {progressInfo.successItems.length} {progressInfo.successItems.length === 1 ? props.singularLabel : props.pluralLabel} succeeded
+                  {progressInfo.successItems.length}{" "}
+                  {progressInfo.successItems.length === 1
+                    ? props.singularLabel
+                    : props.pluralLabel}{" "}
+                  succeeded
                 </div>
               </div>
             )}
@@ -128,7 +132,11 @@ const BulkUpdateForm: <T extends GenericObject>(
                   color={Red}
                 />
                 <div className="ml-2 text-sm font-medium text-red-800">
-                  {progressInfo.failed.length} {progressInfo.failed.length === 1 ? props.singularLabel : props.pluralLabel} failed
+                  {progressInfo.failed.length}{" "}
+                  {progressInfo.failed.length === 1
+                    ? props.singularLabel
+                    : props.pluralLabel}{" "}
+                  failed
                 </div>
               </div>
             )}
@@ -145,10 +153,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                       : "";
 
                     return (
-                      <div
-                        className="px-4 py-3 text-sm"
-                        key={i}
-                      >
+                      <div className="px-4 py-3 text-sm" key={i}>
                         {itemName && (
                           <div className="font-medium text-gray-900">
                             {itemName}

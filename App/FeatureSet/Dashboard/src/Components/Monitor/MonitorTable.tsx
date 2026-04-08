@@ -117,8 +117,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         ) {
           failedItems.push({
             item: monitor,
-            failedMessage:
-              "This monitor type does not support probes",
+            failedMessage: "This monitor type does not support probes",
           });
 
           onProgressInfo({
@@ -220,8 +219,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         ) {
           failedItems.push({
             item: monitor,
-            failedMessage:
-              "This monitor type does not support probes",
+            failedMessage: "This monitor type does not support probes",
           });
 
           onProgressInfo({
@@ -361,10 +359,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 for (const monitor of totalItems) {
                   // remove this item from inProgressItems
 
-                  inProgressItems.splice(
-                    inProgressItems.indexOf(monitor),
-                    1,
-                  );
+                  inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
 
                   try {
                     if (!monitor.id) {
@@ -420,10 +415,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 for (const monitor of totalItems) {
                   // remove this item from inProgressItems
 
-                  inProgressItems.splice(
-                    inProgressItems.indexOf(monitor),
-                    1,
-                  );
+                  inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
 
                   try {
                     if (!monitor.id) {
@@ -481,8 +473,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: props.title || "Monitors",
           description:
-            props.description ||
-            "Here is a list of monitors for this project.",
+            props.description || "Here is a list of monitors for this project.",
           buttons: cardbuttons,
         }}
         videoLink={props.videoLink}
