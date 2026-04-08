@@ -1689,12 +1689,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
-          return (
-            (props.singularName || item.singularName || "") +
-              " " +
-              item[matchBulkSelectedItemByField]?.toString() +
-              " " || ""
-          );
+          const label: string = props.singularName || item.singularName || "";
+          const name: string =
+            (item as Record<string, unknown>)["name"]?.toString() || "";
+          if (name) {
+            return label ? `${label}: ${name}` : name;
+          }
+          const id: string =
+            item[matchBulkSelectedItemByField]?.toString() || "";
+          return label ? `${label} ${id}` : id;
         }}
         filters={classicTableFilters}
         filterError={tableFilterError}

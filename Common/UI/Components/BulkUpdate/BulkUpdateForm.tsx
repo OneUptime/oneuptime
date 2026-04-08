@@ -6,7 +6,6 @@ import ConfirmModal, {
 } from "../Modal/ConfirmModal";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
-import SimpleLogViewer from "../SimpleLogViewer/SimpleLogViewer";
 import { Green, Red } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
@@ -102,44 +101,66 @@ const BulkUpdateForm: <T extends GenericObject>(
     }
 
     if (!actionInProgress && progressInfo) {
+      const hasFailures: boolean = progressInfo.failed.length > 0;
+      const hasSuccesses: boolean = progressInfo.successItems.length > 0;
+
       return (
-        <div className="mt-1 mb-1 space-y-1">
-          <div className="flex">
-            <Icon
-              className="h-5 w-5"
-              icon={IconProp.CheckCircle}
-              color={Green}
-            />
-            <div className="ml-1 font-medium">
-              {progressInfo.successItems.length} {props.pluralLabel} Succeeded
-            </div>
-          </div>
-          {progressInfo.failed.length > 0 && (
-            <div>
-              <div className="flex mt-3">
-                <Icon className="h-5 w-5" icon={IconProp.Close} color={Red} />
-                <div className="ml-1 font-medium">
-                  {progressInfo.failed.length} {props.pluralLabel} Failed. Here
-                  is more information:
+        <div className="space-y-4">
+          {/* Summary counts */}
+          <div className="flex flex-col space-y-3">
+            {hasSuccesses && (
+              <div className="flex items-center rounded-lg bg-green-50 p-3">
+                <Icon
+                  className="h-5 w-5 flex-shrink-0"
+                  icon={IconProp.CheckCircle}
+                  color={Green}
+                />
+                <div className="ml-2 text-sm font-medium text-green-800">
+                  {progressInfo.successItems.length} {progressInfo.successItems.length === 1 ? props.singularLabel : props.pluralLabel} succeeded
                 </div>
               </div>
-              <div>
-                <SimpleLogViewer>
-                  {progressInfo.failed.map(
-                    (failedItem: BulkActionFailed<T>, i: number) => {
-                      return (
-                        <div className="flex mb-2" key={i}>
-                          {actionName}{" "}
-                          {props.itemToString
-                            ? props.itemToString(failedItem.item)
-                            : ""}{" "}
-                          {"Failed: "}
+            )}
+            {hasFailures && (
+              <div className="flex items-center rounded-lg bg-red-50 p-3">
+                <Icon
+                  className="h-5 w-5 flex-shrink-0"
+                  icon={IconProp.Close}
+                  color={Red}
+                />
+                <div className="ml-2 text-sm font-medium text-red-800">
+                  {progressInfo.failed.length} {progressInfo.failed.length === 1 ? props.singularLabel : props.pluralLabel} failed
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Failure details */}
+          {hasFailures && (
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+                {progressInfo.failed.map(
+                  (failedItem: BulkActionFailed<T>, i: number) => {
+                    const itemName: string = props.itemToString
+                      ? props.itemToString(failedItem.item)
+                      : "";
+
+                    return (
+                      <div
+                        className="px-4 py-3 text-sm"
+                        key={i}
+                      >
+                        {itemName && (
+                          <div className="font-medium text-gray-900">
+                            {itemName}
+                          </div>
+                        )}
+                        <div className="text-gray-500 mt-0.5">
                           {failedItem.failedMessage}
                         </div>
-                      );
-                    },
-                  )}
-                </SimpleLogViewer>
+                      </div>
+                    );
+                  },
+                )}
               </div>
             </div>
           )}
