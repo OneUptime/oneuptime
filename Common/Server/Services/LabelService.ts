@@ -3,6 +3,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export class Service extends DatabaseService<Model> {
@@ -14,13 +15,25 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    let projectId: ObjectID | undefined = createBy.props.tenantId;
+
+    if (createBy.props.isMasterAdmin || createBy.props.isRoot) {
+      if (createBy.data.projectId) {
+        projectId = createBy.data.projectId;
+      }
+    }
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required to create a label.");
+    }
+
     let existingProjectWithSameNameCount: number = 0;
 
     existingProjectWithSameNameCount = (
       await this.countBy({
         query: {
           name: QueryHelper.findWithSameText(createBy.data.name!),
-          projectId: createBy.props.tenantId!,
+          projectId: projectId,
         },
         props: {
           isRoot: true,

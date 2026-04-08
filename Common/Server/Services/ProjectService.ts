@@ -1294,8 +1294,10 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
-    // if user has no project id, then he should not be able to access any project.
-    // Master admins should be able to access all projects.
+    /*
+     * if user has no project id, then he should not be able to access any project.
+     * Master admins should be able to access all projects.
+     */
     if (
       !findBy.props.isRoot &&
       !findBy.props.isMasterAdmin &&
