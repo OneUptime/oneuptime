@@ -58,7 +58,10 @@ export default class MicrosoftTeamsAlertEpisodeActions {
   }): Promise<void> {
     const { teamsRequest, action } = data;
 
-    logger.debug("Handling Microsoft Teams alert episode action:");
+    logger.debug("Handling Microsoft Teams alert episode action:", {
+      projectId: teamsRequest.projectId.toString(),
+      actionType: action.actionType,
+    });
     logger.debug(action);
 
     try {
@@ -82,11 +85,17 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           break;
 
         default:
-          logger.debug("Unhandled alert episode action: " + action.actionType);
+          logger.debug("Unhandled alert episode action: " + action.actionType, {
+            projectId: teamsRequest.projectId.toString(),
+            actionType: action.actionType,
+          });
           break;
       }
     } catch (error) {
-      logger.error("Error handling Microsoft Teams alert episode action:");
+      logger.error("Error handling Microsoft Teams alert episode action:", {
+        projectId: teamsRequest.projectId.toString(),
+        actionType: action.actionType,
+      });
       logger.error(error);
     }
 
@@ -101,11 +110,16 @@ export default class MicrosoftTeamsAlertEpisodeActions {
     const episodeId: string = data.action.actionValue || "";
 
     if (!episodeId) {
-      logger.error("No episode ID provided for acknowledge action");
+      logger.error("No episode ID provided for acknowledge action", {
+        projectId: data.teamsRequest.projectId.toString(),
+      });
       return;
     }
 
-    logger.debug("Acknowledging alert episode: " + episodeId);
+    logger.debug("Acknowledging alert episode: " + episodeId, {
+      projectId: data.teamsRequest.projectId.toString(),
+      alertEpisodeId: episodeId,
+    });
 
     try {
       const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
@@ -128,12 +142,18 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       });
 
       if (!episode) {
-        logger.error("Alert episode not found: " + episodeId);
+        logger.error("Alert episode not found: " + episodeId, {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertEpisodeId: episodeId,
+        });
         return;
       }
 
       if (episode.currentAlertState?.isAcknowledgedState) {
-        logger.debug("Alert episode is already acknowledged");
+        logger.debug("Alert episode is already acknowledged", {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertEpisodeId: episodeId,
+        });
         return;
       }
 
@@ -148,9 +168,15 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         oneUptimeUserId,
       );
 
-      logger.debug("Alert episode acknowledged successfully");
+      logger.debug("Alert episode acknowledged successfully", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertEpisodeId: episodeId,
+      });
     } catch (error) {
-      logger.error("Error acknowledging alert episode:");
+      logger.error("Error acknowledging alert episode:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertEpisodeId: episodeId,
+      });
       logger.error(error);
     }
   }
@@ -163,11 +189,16 @@ export default class MicrosoftTeamsAlertEpisodeActions {
     const episodeId: string = data.action.actionValue || "";
 
     if (!episodeId) {
-      logger.error("No episode ID provided for resolve action");
+      logger.error("No episode ID provided for resolve action", {
+        projectId: data.teamsRequest.projectId.toString(),
+      });
       return;
     }
 
-    logger.debug("Resolving alert episode: " + episodeId);
+    logger.debug("Resolving alert episode: " + episodeId, {
+      projectId: data.teamsRequest.projectId.toString(),
+      alertEpisodeId: episodeId,
+    });
 
     try {
       const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
@@ -190,12 +221,18 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       });
 
       if (!episode) {
-        logger.error("Alert episode not found: " + episodeId);
+        logger.error("Alert episode not found: " + episodeId, {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertEpisodeId: episodeId,
+        });
         return;
       }
 
       if (episode.currentAlertState?.isResolvedState) {
-        logger.debug("Alert episode is already resolved");
+        logger.debug("Alert episode is already resolved", {
+          projectId: data.teamsRequest.projectId.toString(),
+          alertEpisodeId: episodeId,
+        });
         return;
       }
 
@@ -210,9 +247,15 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         oneUptimeUserId,
       );
 
-      logger.debug("Alert episode resolved successfully");
+      logger.debug("Alert episode resolved successfully", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertEpisodeId: episodeId,
+      });
     } catch (error) {
-      logger.error("Error resolving alert episode:");
+      logger.error("Error resolving alert episode:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        alertEpisodeId: episodeId,
+      });
       logger.error(error);
     }
   }

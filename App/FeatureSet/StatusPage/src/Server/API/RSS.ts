@@ -8,7 +8,9 @@ import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 
 type RSSItem = {
@@ -168,7 +170,7 @@ export const handleRSS: (
     res.set("Content-Type", "application/rss+xml");
     res.send(rssXml);
   } catch (err) {
-    logger.error(err);
+    logger.error(err, getLogAttributesFromRequest(req as any));
     res.status(500).send("Internal Server Error");
   }
 };

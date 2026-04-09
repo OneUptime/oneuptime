@@ -256,7 +256,7 @@ RunCron(
           vars["isOwner"] = "true";
         }
 
-        const subjectLine: string = `[Incident ${incidentNumberStr} ${Text.uppercaseFirstLetter(incidentState!.name!)}] - ${incident.title!}`;
+        const subjectLine: string = `[${Text.uppercaseFirstLetter(incidentState!.name!)} Incident ${incidentNumberStr}] - ${incident.title!}`;
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined

@@ -20,19 +20,21 @@ export const getStatusPageData: (
   req: ExpressRequest,
 ): Promise<StatusPageData | null> => {
   try {
-    logger.debug("Getting status page data");
+    logger.debug("Getting status page data", { service: "status-page" });
 
     let statusPageIdOrDomain: string = "";
     let isPreview: boolean = false;
 
     const path: string = req.path;
-    logger.debug(`Request path: ${path}`);
+    logger.debug(`Request path: ${path}`, { service: "status-page" });
 
     if (path && path.includes("/status-page/")) {
       statusPageIdOrDomain =
         path.split("/status-page/")[1]?.split("/")[0] || "";
       isPreview = true;
-      logger.debug(`Found status page ID in URL: ${statusPageIdOrDomain}`);
+      logger.debug(`Found status page ID in URL: ${statusPageIdOrDomain}`, {
+        service: "status-page",
+      });
     } else {
       const host: string =
         req.hostname?.toString() || req.headers["host"]?.toString() || "";
@@ -40,12 +42,15 @@ export const getStatusPageData: (
         statusPageIdOrDomain = host;
         logger.debug(
           `Found domain in request headers: ${statusPageIdOrDomain}`,
+          { service: "status-page" },
         );
       }
     }
 
     if (!statusPageIdOrDomain) {
-      logger.debug("No status page ID or domain found");
+      logger.debug("No status page ID or domain found", {
+        service: "status-page",
+      });
       return null;
     }
 
@@ -62,6 +67,7 @@ export const getStatusPageData: (
       // For live pages, call SEO API
       logger.debug(
         `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
+        { service: "status-page" },
       );
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get({
@@ -71,15 +77,21 @@ export const getStatusPageData: (
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.debug(`Received error response from API: ${response}`);
+        logger.debug(`Received error response from API: ${response}`, {
+          service: "status-page",
+        });
         return null;
       }
 
-      logger.debug("Successfully received response from API");
+      logger.debug("Successfully received response from API", {
+        service: "status-page",
+      });
 
       statusPageId = response.data?.["_id"] as string;
       if (!statusPageId) {
-        logger.debug("No status page ID in response");
+        logger.debug("No status page ID in response", {
+          service: "status-page",
+        });
         return null;
       }
 
@@ -94,8 +106,8 @@ export const getStatusPageData: (
       faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
     };
   } catch (err) {
-    logger.error("Error getting status page data:");
-    logger.error(err);
+    logger.error("Error getting status page data:", { service: "status-page" });
+    logger.error(err, { service: "status-page" });
     return null;
   }
 };

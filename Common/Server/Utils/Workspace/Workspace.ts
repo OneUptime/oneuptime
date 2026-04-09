@@ -7,7 +7,7 @@ import ObjectID from "../../../Types/ObjectID";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, {
   SlackMiscData,
@@ -157,8 +157,15 @@ export default class WorkspaceUtil {
     projectId: ObjectID;
     messagePayloadsByWorkspace: Array<WorkspaceMessagePayload>;
   }): Promise<Array<WorkspaceSendMessageResponse>> {
-    logger.debug("postToWorkspaceChannels called with data:");
-    logger.debug(JSON.stringify(data, null, 2));
+    const workspaceLogAttributes: LogAttributes = {
+      projectId: data.projectId?.toString(),
+    };
+
+    logger.debug(
+      "postToWorkspaceChannels called with data:",
+      workspaceLogAttributes,
+    );
+    logger.debug(JSON.stringify(data, null, 2), workspaceLogAttributes);
 
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
@@ -214,9 +221,12 @@ export default class WorkspaceUtil {
       responses.push(result);
     }
 
-    logger.debug("Message posted to workspace channels successfully");
-    logger.debug("Returning thread IDs");
-    logger.debug(JSON.stringify(responses, null, 2));
+    logger.debug(
+      "Message posted to workspace channels successfully",
+      workspaceLogAttributes,
+    );
+    logger.debug("Returning thread IDs", workspaceLogAttributes);
+    logger.debug(JSON.stringify(responses, null, 2), workspaceLogAttributes);
 
     return responses;
   }
@@ -229,8 +239,15 @@ export default class WorkspaceUtil {
     workspaceMessagePayload: WorkspaceMessagePayload;
     projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
-    logger.debug("postToWorkspaceChannels called with data:");
-    logger.debug(data);
+    const postLogAttributes: LogAttributes = {
+      projectId: data.projectId?.toString(),
+    };
+
+    logger.debug(
+      "postToWorkspaceChannels called with data:",
+      postLogAttributes,
+    );
+    logger.debug(data, postLogAttributes);
 
     const result: WorkspaceSendMessageResponse =
       await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
@@ -240,9 +257,12 @@ export default class WorkspaceUtil {
         projectId: data.projectId,
       });
 
-    logger.debug("Message posted to workspace channels successfully");
-    logger.debug("Returning thread IDs");
-    logger.debug(result);
+    logger.debug(
+      "Message posted to workspace channels successfully",
+      postLogAttributes,
+    );
+    logger.debug("Returning thread IDs", postLogAttributes);
+    logger.debug(result, postLogAttributes);
 
     return result;
   }
@@ -283,6 +303,7 @@ export default class WorkspaceUtil {
         if (!params.teamId) {
           logger.error(
             "Team ID is required for Microsoft Teams channel messages",
+            { projectId: params.projectId?.toString() },
           );
           return [];
         }
@@ -312,6 +333,7 @@ export default class WorkspaceUtil {
       default:
         logger.debug(
           `Unsupported workspace type for channel messages: ${params.workspaceType}`,
+          { projectId: params.projectId?.toString() },
         );
         return [];
     }

@@ -616,7 +616,10 @@ export default class SlackIncidentActions {
             isRoot: true,
           });
         } catch (err) {
-          logger.error("Error logging button interaction:");
+          logger.error("Error logging button interaction:", {
+            projectId: slackRequest.projectId?.toString(),
+            incidentId: incidentId.toString(),
+          });
           logger.error(err);
           // Don't throw the error, just log it so the main flow continues
         }
@@ -859,7 +862,9 @@ export default class SlackIncidentActions {
         },
       });
 
-    logger.debug("Incident States: ");
+    logger.debug("Incident States: ", {
+      projectId: data.slackRequest.projectId?.toString(),
+    });
     logger.debug(incidentStates);
 
     const dropdownOptions: Array<DropdownOption> = incidentStates
@@ -985,7 +990,10 @@ export default class SlackIncidentActions {
           isRoot: true,
         });
       } catch (err) {
-        logger.error("Error logging button interaction:");
+        logger.error("Error logging button interaction:", {
+          projectId: data.slackRequest.projectId?.toString(),
+          incidentId: incidentId.toString(),
+        });
         logger.error(err);
         // Don't throw the error, just log it so the main flow continues
       }
@@ -1334,7 +1342,9 @@ export default class SlackIncidentActions {
     channelId: string;
     messageTs: string;
   }): Promise<void> {
-    logger.debug("Handling emoji reaction with data:");
+    logger.debug("Handling emoji reaction with data:", {
+      channelId: data.channelId,
+    });
     logger.debug(data);
 
     const { teamId, reaction, userId, channelId, messageTs } = data;
@@ -1445,13 +1455,21 @@ export default class SlackIncidentActions {
         messageTs: messageTs,
       });
     } catch (err) {
-      logger.error("Error fetching message text:");
+      logger.error("Error fetching message text:", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+        channelId: channelId,
+      });
       logger.error(err);
       return;
     }
 
     if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.");
+      logger.debug("No message text found. Ignoring emoji reaction.", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+        channelId: channelId,
+      });
       return;
     }
 
@@ -1474,6 +1492,10 @@ export default class SlackIncidentActions {
         if (hasExistingNote) {
           logger.debug(
             "Private note from this Slack message already exists. Skipping duplicate.",
+            {
+              projectId: projectId.toString(),
+              incidentId: incidentId.toString(),
+            },
           );
           return;
         }
@@ -1485,7 +1507,10 @@ export default class SlackIncidentActions {
           userId: oneUptimeUserId,
           postedFromSlackMessageId: postedFromSlackMessageId,
         });
-        logger.debug("Private note added successfully.");
+        logger.debug("Private note added successfully.", {
+          projectId: projectId.toString(),
+          incidentId: incidentId.toString(),
+        });
       } else if (isPublicNoteEmoji) {
         noteType = "public";
 
@@ -1499,6 +1524,10 @@ export default class SlackIncidentActions {
         if (hasExistingNote) {
           logger.debug(
             "Public note from this Slack message already exists. Skipping duplicate.",
+            {
+              projectId: projectId.toString(),
+              incidentId: incidentId.toString(),
+            },
           );
           return;
         }
@@ -1510,12 +1539,18 @@ export default class SlackIncidentActions {
           userId: oneUptimeUserId,
           postedFromSlackMessageId: postedFromSlackMessageId,
         });
-        logger.debug("Public note added successfully.");
+        logger.debug("Public note added successfully.", {
+          projectId: projectId.toString(),
+          incidentId: incidentId.toString(),
+        });
       } else {
         return;
       }
     } catch (err) {
-      logger.error("Error saving note:");
+      logger.error("Error saving note:", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+      });
       logger.error(err);
       return;
     }
@@ -1538,9 +1573,15 @@ export default class SlackIncidentActions {
         text: confirmationMessage,
       });
 
-      logger.debug("Confirmation message sent successfully.");
+      logger.debug("Confirmation message sent successfully.", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+      });
     } catch (err) {
-      logger.error("Error sending confirmation message:");
+      logger.error("Error sending confirmation message:", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+      });
       logger.error(err);
       // Don't throw - note was saved successfully, confirmation is best effort
     }

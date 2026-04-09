@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import Execute from "../Execute";
 import LocalFile from "../LocalFile";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "../../../Types/Dictionary";
@@ -91,11 +91,17 @@ export default class CodeRepositoryUtil {
       ]);
       await this.runGitCommand(data.repoPath, ["checkout", data.branchName]);
     } catch (error) {
+      const branchLogAttributes: LogAttributes = {
+        repoPath: data.repoPath,
+        branchName: data.branchName,
+      };
+
       logger.debug(
         `Branch ${data.branchName} not found. Creating a new branch instead.`,
+        branchLogAttributes,
       );
 
-      logger.debug(error);
+      logger.debug(error, branchLogAttributes);
 
       await this.runGitCommand(data.repoPath, [
         "checkout",
@@ -172,7 +178,10 @@ export default class CodeRepositoryUtil {
       `${data.repoPath}/${data.directoryPath}`,
     );
 
-    logger.debug("Deleting directory: " + totalPath);
+    logger.debug("Deleting directory: " + totalPath, {
+      repoPath: data.repoPath,
+      directoryPath: data.directoryPath,
+    });
 
     await LocalFile.deleteDirectory(totalPath);
   }
@@ -182,8 +191,14 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     branchName: string;
   }): Promise<void> {
+    const createBranchLogAttributes: LogAttributes = {
+      repoPath: data.repoPath,
+      branchName: data.branchName,
+    };
+
     logger.debug(
       `Creating git branch '${data.branchName}' in ${path.resolve(data.repoPath)}`,
+      createBranchLogAttributes,
     );
 
     const stdout: string = await this.runGitCommand(data.repoPath, [
@@ -192,7 +207,7 @@ export default class CodeRepositoryUtil {
       data.branchName,
     ]);
 
-    logger.debug(stdout);
+    logger.debug(stdout, createBranchLogAttributes);
   }
 
   @CaptureSpan()
@@ -200,8 +215,14 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     branchName: string;
   }): Promise<void> {
+    const checkoutLogAttributes: LogAttributes = {
+      repoPath: data.repoPath,
+      branchName: data.branchName,
+    };
+
     logger.debug(
       `Checking out git branch '${data.branchName}' in ${path.resolve(data.repoPath)}`,
+      checkoutLogAttributes,
     );
 
     const stdout: string = await this.runGitCommand(data.repoPath, [
@@ -209,7 +230,7 @@ export default class CodeRepositoryUtil {
       data.branchName,
     ]);
 
-    logger.debug(stdout);
+    logger.debug(stdout, checkoutLogAttributes);
   }
 
   @CaptureSpan()
@@ -249,13 +270,21 @@ export default class CodeRepositoryUtil {
       );
     }
 
+    const addFilesLogAttributes: LogAttributes = {
+      repoPath: data.repoPath,
+    };
+
     if (sanitizedRelativeFilePaths.length === 0) {
-      logger.debug("git add skipped because no file paths were provided");
+      logger.debug(
+        "git add skipped because no file paths were provided",
+        addFilesLogAttributes,
+      );
       return;
     }
 
     logger.debug(
       `Adding ${sanitizedRelativeFilePaths.length} file(s) to git in ${path.resolve(data.repoPath)}`,
+      addFilesLogAttributes,
     );
 
     const stdout: string = await this.runGitCommand(data.repoPath, [
@@ -263,7 +292,7 @@ export default class CodeRepositoryUtil {
       ...sanitizedRelativeFilePaths,
     ]);
 
-    logger.debug(stdout);
+    logger.debug(stdout, addFilesLogAttributes);
   }
 
   @CaptureSpan()
@@ -271,7 +300,14 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     username: string;
   }): Promise<void> {
-    logger.debug(`Setting git user.name in ${path.resolve(data.repoPath)}`);
+    const setUsernameLogAttributes: LogAttributes = {
+      repoPath: data.repoPath,
+    };
+
+    logger.debug(
+      `Setting git user.name in ${path.resolve(data.repoPath)}`,
+      setUsernameLogAttributes,
+    );
 
     const stdout: string = await this.runGitCommand(data.repoPath, [
       "config",
@@ -279,7 +315,7 @@ export default class CodeRepositoryUtil {
       data.username,
     ]);
 
-    logger.debug(stdout);
+    logger.debug(stdout, setUsernameLogAttributes);
   }
 
   @CaptureSpan()
@@ -287,7 +323,11 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     message: string;
   }): Promise<void> {
-    logger.debug("Executing git commit");
+    const commitLogAttributes: LogAttributes = {
+      repoPath: data.repoPath,
+    };
+
+    logger.debug("Executing git commit", commitLogAttributes);
 
     const stdout: string = await Execute.executeCommandFile({
       command: "git",
@@ -295,7 +335,7 @@ export default class CodeRepositoryUtil {
       cwd: data.repoPath,
     });
 
-    logger.debug(stdout);
+    logger.debug(stdout, commitLogAttributes);
   }
 
   @CaptureSpan()
@@ -323,7 +363,15 @@ export default class CodeRepositoryUtil {
       `./${relativeTarget}`,
     );
 
-    logger.debug(`Getting last commit hash for ${gitArgument} in ${repoRoot}`);
+    const commitHashLogAttributes: LogAttributes = {
+      repoPath: data.repoPath,
+      filePath: data.filePath,
+    };
+
+    logger.debug(
+      `Getting last commit hash for ${gitArgument} in ${repoRoot}`,
+      commitHashLogAttributes,
+    );
 
     const hash: string = await this.runGitCommand(repoRoot, [
       "log",
@@ -332,7 +380,7 @@ export default class CodeRepositoryUtil {
       gitArgument,
     ]);
 
-    logger.debug(hash);
+    logger.debug(hash, commitHashLogAttributes);
 
     return hash.trim();
   }
@@ -490,6 +538,7 @@ export default class CodeRepositoryUtil {
           return arg.includes(" ") ? `"${arg}"` : arg;
         })
         .join(" ")}`,
+      { repoPath },
     );
 
     return Execute.executeCommandFile({

@@ -5,7 +5,7 @@ import {
   OneUptimeResponse,
 } from "./Express";
 import JsonToCsv from "./JsonToCsv";
-import logger from "./Logger";
+import logger, { getLogAttributesFromRequest } from "./Logger";
 import AnalyticsDataModel, {
   AnalyticsBaseModelType,
 } from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -109,7 +109,7 @@ export default class Response {
     const status: number = error.code || 500;
     const message: string = error.message || "Server Error";
 
-    logger.error(error);
+    logger.error(error, getLogAttributesFromRequest(_req as any));
 
     oneUptimeResponse.status(status).send({ message });
   }

@@ -35,7 +35,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -205,8 +205,9 @@ export default class StatusPageAPI extends BaseAPI<
           } catch (err) {
             logger.error(
               `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
+              getLogAttributesFromRequest(req as any),
             );
-            logger.error(err);
+            logger.error(err, getLogAttributesFromRequest(req as any));
             return Response.sendErrorResponse(
               req,
               res,
@@ -275,7 +276,10 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
           if (!statusPage || !statusPage.faviconFile) {
-            logger.debug("Favicon file not found. Returning default favicon.");
+            logger.debug(
+              "Favicon file not found. Returning default favicon.",
+              getLogAttributesFromRequest(req as any),
+            );
 
             return Response.sendFileByPath(
               req,
@@ -286,6 +290,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           logger.debug(
             `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendFileResponse(req, res, statusPage.faviconFile);
@@ -294,7 +299,7 @@ export default class StatusPageAPI extends BaseAPI<
             return Response.sendErrorResponse(req, res, error);
           }
 
-          logger.error(error);
+          logger.error(error, getLogAttributesFromRequest(req as any));
           return Response.sendErrorResponse(
             req,
             res,
@@ -344,7 +349,7 @@ export default class StatusPageAPI extends BaseAPI<
             return Response.sendErrorResponse(req, res, error);
           }
 
-          logger.error(error);
+          logger.error(error, getLogAttributesFromRequest(req as any));
           return Response.sendErrorResponse(
             req,
             res,
@@ -394,7 +399,7 @@ export default class StatusPageAPI extends BaseAPI<
             return Response.sendErrorResponse(req, res, error);
           }
 
-          logger.error(error);
+          logger.error(error, getLogAttributesFromRequest(req as any));
           return Response.sendErrorResponse(
             req,
             res,
@@ -604,7 +609,7 @@ export default class StatusPageAPI extends BaseAPI<
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
           return res.send(svg);
         } catch (err) {
-          logger.error(err);
+          logger.error(err, getLogAttributesFromRequest(req as any));
           return res.status(500).send("Internal Server Error");
         }
       },
@@ -684,7 +689,10 @@ export default class StatusPageAPI extends BaseAPI<
 
         const token: string = req.params["token"] as string;
 
-        logger.debug(`CNAME Verification: Host:${host}  - Token:${token}`);
+        logger.debug(
+          `CNAME Verification: Host:${host}  - Token:${token}`,
+          getLogAttributesFromRequest(req as any),
+        );
 
         const domain: StatusPageDomain | null =
           await StatusPageDomainService.findOneBy({
@@ -720,6 +728,7 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse) => {
         logger.debug(
           `ACME challenge validation request received for token: ${req.params["token"]} from host: ${req.headers["host"]}`,
+          getLogAttributesFromRequest(req as any),
         );
 
         const challenge: AcmeChallenge | null =
@@ -738,6 +747,7 @@ export default class StatusPageAPI extends BaseAPI<
         if (!challenge) {
           logger.error(
             `ACME challenge not found for token: ${req.params["token"]} from host: ${req.headers["host"]}`,
+            getLogAttributesFromRequest(req as any),
           );
           return Response.sendErrorResponse(
             req,
@@ -3106,6 +3116,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     logger.debug(
       `Managing Existing Subscription for Status Page: ${statusPageId}`,
+      getLogAttributesFromRequest(req as any),
     );
 
     await this.checkHasReadAccess({
@@ -3134,20 +3145,27 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
     if (!statusPage) {
-      logger.debug(`Status page not found with ID: ${statusPageId}`);
+      logger.debug(
+        `Status page not found with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
       throw new BadDataException("Status Page not found");
     }
 
     if (!statusPage.showSubscriberPageOnStatusPage) {
       logger.debug(
         `Subscriber page not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Subscribes not enabled for this status page.",
       );
     }
 
-    logger.debug(`Status page found: ${JSON.stringify(statusPage)}`);
+    logger.debug(
+      `Status page found: ${JSON.stringify(statusPage)}`,
+      getLogAttributesFromRequest(req as any),
+    );
 
     if (
       req.body.data["subscriberEmail"] &&
@@ -3155,6 +3173,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Email subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Email subscribers not enabled for this status page.",
@@ -3167,6 +3186,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Slack subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Slack subscribers not enabled for this status page.",
@@ -3176,6 +3196,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
         `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "SMS subscribers not enabled for this status page.",
@@ -3191,6 +3212,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `No email, slack workspace name or phone provided for subscription to status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Email, phone or slack workspace name is required to subscribe to this status page.",
@@ -3214,7 +3236,10 @@ export default class StatusPageAPI extends BaseAPI<
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
     if (email) {
-      logger.debug(`Setting subscriber email: ${email}`);
+      logger.debug(
+        `Setting subscriber email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           subscriberEmail: email,
@@ -3231,7 +3256,10 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (phone) {
-      logger.debug(`Setting subscriber phone: ${phone}`);
+      logger.debug(
+        `Setting subscriber phone: ${phone}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           subscriberPhone: phone,
@@ -3248,7 +3276,10 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (slackWorkspaceName) {
-      logger.debug(`Setting subscriber slack workspace: ${slackWorkspaceName}`);
+      logger.debug(
+        `Setting subscriber slack workspace: ${slackWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           slackWorkspaceName: slackWorkspaceName,
@@ -3269,6 +3300,7 @@ export default class StatusPageAPI extends BaseAPI<
       // not found, return bad data
       logger.debug(
         `Subscriber not found for email: ${email}, phone: ${phone}, or slack workspace: ${slackWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       let identifierType: string = "email";
@@ -3355,7 +3387,7 @@ export default class StatusPageAPI extends BaseAPI<
           ),
           statusPageId: statusPage.id!,
         }).catch((err: Error) => {
-          logger.error(err);
+          logger.error(err, getLogAttributesFromRequest(req as any));
         });
       }
 
@@ -3366,12 +3398,13 @@ export default class StatusPageAPI extends BaseAPI<
           url: statusPageSubscriber.slackIncomingWebhookUrl,
           text: slackMessage,
         }).catch((err: Error) => {
-          logger.error(err);
+          logger.error(err, getLogAttributesFromRequest(req as any));
         });
       }
 
       logger.debug(
         `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
+        getLogAttributesFromRequest(req as any),
       );
     }
   }
@@ -3382,7 +3415,10 @@ export default class StatusPageAPI extends BaseAPI<
       req.params["statusPageId"] as string,
     );
 
-    logger.debug(`Subscribing to status page with ID: ${objectId}`);
+    logger.debug(
+      `Subscribing to status page with ID: ${objectId}`,
+      getLogAttributesFromRequest(req as any),
+    );
 
     await this.checkHasReadAccess({
       statusPageId: objectId,
@@ -3410,20 +3446,27 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
     if (!statusPage) {
-      logger.debug(`Status page not found with ID: ${objectId}`);
+      logger.debug(
+        `Status page not found with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
       throw new BadDataException("Status Page not found");
     }
 
     if (!statusPage.showSubscriberPageOnStatusPage) {
       logger.debug(
         `Subscriber page not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Subscribes not enabled for this status page.",
       );
     }
 
-    logger.debug(`Status page found: ${JSON.stringify(statusPage)}`);
+    logger.debug(
+      `Status page found: ${JSON.stringify(statusPage)}`,
+      getLogAttributesFromRequest(req as any),
+    );
 
     if (
       req.body.data["subscriberEmail"] &&
@@ -3431,6 +3474,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Email subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Email subscribers not enabled for this status page.",
@@ -3440,6 +3484,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
         `SMS subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "SMS subscribers not enabled for this status page.",
@@ -3454,6 +3499,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Slack subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Slack subscribers not enabled for this status page.",
@@ -3466,6 +3512,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Microsoft Teams subscribers not enabled for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Microsoft Teams subscribers not enabled for this status page.",
@@ -3480,6 +3527,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `No email, phone, slack workspace name, or Microsoft Teams workspace name provided for subscription to status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Email, phone, slack workspace name, or Microsoft Teams workspace name is required to subscribe to this status page.",
@@ -3525,6 +3573,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (!req.params["subscriberId"]) {
       logger.debug(
         `Creating new subscriber for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber = new StatusPageSubscriber();
     } else {
@@ -3534,6 +3583,7 @@ export default class StatusPageAPI extends BaseAPI<
 
       logger.debug(
         `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
@@ -3545,7 +3595,10 @@ export default class StatusPageAPI extends BaseAPI<
       });
 
       if (!statusPageSubscriber) {
-        logger.debug(`Subscriber not found with ID: ${subscriberId}`);
+        logger.debug(
+          `Subscriber not found with ID: ${subscriberId}`,
+          getLogAttributesFromRequest(req as any),
+        );
         throw new BadDataException("Subscriber not found");
       }
 
@@ -3553,17 +3606,26 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (email) {
-      logger.debug(`Setting subscriber email: ${email}`);
+      logger.debug(
+        `Setting subscriber email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.subscriberEmail = email;
     }
 
     if (phone) {
-      logger.debug(`Setting subscriber phone: ${phone}`);
+      logger.debug(
+        `Setting subscriber phone: ${phone}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.subscriberPhone = phone;
     }
 
     if (slackIncomingWebhookUrl) {
-      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`);
+      logger.debug(
+        `Setting subscriber slack: ${slackIncomingWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
         slackIncomingWebhookUrl,
       );
@@ -3572,6 +3634,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (slackWorkspaceName) {
       logger.debug(
         `Setting subscriber slack workspace name: ${slackWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.slackWorkspaceName = slackWorkspaceName;
     }
@@ -3579,6 +3642,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (microsoftTeamsIncomingWebhookUrl) {
       logger.debug(
         `Setting subscriber Microsoft Teams webhook: ${microsoftTeamsIncomingWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(
         microsoftTeamsIncomingWebhookUrl,
@@ -3588,6 +3652,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (microsoftTeamsWorkspaceName) {
       logger.debug(
         `Setting subscriber Microsoft Teams workspace name: ${microsoftTeamsWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.microsoftTeamsWorkspaceName =
         microsoftTeamsWorkspaceName;
@@ -3599,6 +3664,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Subscribers not allowed to choose resources for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Subscribers are not allowed to choose resources for this status page.",
@@ -3611,6 +3677,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Subscribers not allowed to choose event types for status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Subscribers are not allowed to choose event types for this status page.",
@@ -3634,6 +3701,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Setting subscriber resources: ${JSON.stringify(req.body.data["statusPageResources"])}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.statusPageResources = req.body.data[
         "statusPageResources"
@@ -3646,6 +3714,7 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       logger.debug(
         `Setting subscriber event types: ${JSON.stringify(req.body.data["statusPageEventTypes"])}`,
+        getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.statusPageEventTypes = req.body.data[
         "statusPageEventTypes"
@@ -3654,7 +3723,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (isUpdate) {
       // check isUnsubscribed is set to false.
-      logger.debug(`Updating subscriber with ID: ${statusPageSubscriber.id}`);
+      logger.debug(
+        `Updating subscriber with ID: ${statusPageSubscriber.id}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.isUnsubscribed = Boolean(
         req.body.data["isUnsubscribed"],
       );
@@ -3674,6 +3746,7 @@ export default class StatusPageAPI extends BaseAPI<
     } else {
       logger.debug(
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
+        getLogAttributesFromRequest(req as any),
       );
       await StatusPageSubscriberService.create({
         data: statusPageSubscriber,
@@ -3685,6 +3758,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     logger.debug(
       `Subscription process completed for status page with ID: ${objectId}`,
+      getLogAttributesFromRequest(req as any),
     );
   }
 

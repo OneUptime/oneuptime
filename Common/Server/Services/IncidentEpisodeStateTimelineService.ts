@@ -15,7 +15,7 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -50,7 +50,10 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
           namespace: "IncidentEpisodeStateTimeline.create",
         });
       } catch (err) {
-        logger.error(err);
+        logger.error(err, {
+          projectId: createBy.data.projectId?.toString(),
+          incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+        } as LogAttributes);
       }
 
       if (
@@ -109,8 +112,14 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
           },
         });
 
-      logger.debug("State Before this");
-      logger.debug(stateBeforeThis);
+      logger.debug("State Before this", {
+        projectId: createBy.data.projectId?.toString(),
+        incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+      } as LogAttributes);
+      logger.debug(stateBeforeThis, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+      } as LogAttributes);
 
       // If this is the first state, then do not notify the owner.
       if (!stateBeforeThis) {
@@ -170,8 +179,14 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
         }
       }
 
-      logger.debug("State After this");
-      logger.debug(stateAfterThis);
+      logger.debug("State After this", {
+        projectId: createBy.data.projectId?.toString(),
+        incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+      } as LogAttributes);
+      logger.debug(stateAfterThis, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+      } as LogAttributes);
 
       return {
         createBy,
@@ -187,7 +202,10 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
         try {
           await Semaphore.release(mutex);
         } catch (err) {
-          logger.error(err);
+          logger.error(err, {
+            projectId: createBy.data.projectId?.toString(),
+            incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+          } as LogAttributes);
         }
       }
 
@@ -210,19 +228,40 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
       throw new BadDataException("incidentStateId is null");
     }
 
-    logger.debug("Status Timeline Before this");
-    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus);
+    logger.debug("Status Timeline Before this", {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Status Timeline After this");
-    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus);
+    logger.debug("Status Timeline After this", {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Created Item");
-    logger.debug(createdItem);
+    logger.debug("Created Item", {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
+    logger.debug(createdItem, {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
 
     // Handle timeline updates
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
-      logger.debug("This is the first status.");
+      logger.debug("This is the first status.", {
+        projectId: createdItem.projectId?.toString(),
+        incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+      } as LogAttributes);
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
       // This is the last status. Update the previous status to end at the start of this status.
       await this.updateOneById({
@@ -234,7 +273,10 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This is the last status.");
+      logger.debug("This is the last status.", {
+        projectId: createdItem.projectId?.toString(),
+        incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+      } as LogAttributes);
     } else {
       // This is in the middle. Update the previous status to end at the start of this status.
       await this.updateOneById({
@@ -257,7 +299,10 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This status is in the middle.");
+      logger.debug("This status is in the middle.", {
+        projectId: createdItem.projectId?.toString(),
+        incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+      } as LogAttributes);
     }
 
     // Update episode's current state if this is the latest timeline entry
@@ -311,6 +356,10 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
         } catch (error) {
           logger.error(
             `Failed to cascade state change to member incidents: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+            } as LogAttributes,
           );
         }
       }
@@ -320,7 +369,10 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
       try {
         await Semaphore.release(mutex);
       } catch (err) {
-        logger.error(err);
+        logger.error(err, {
+          projectId: createdItem.projectId?.toString(),
+          incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+        } as LogAttributes);
       }
     }
 
@@ -480,7 +532,9 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
 
         if (!stateBeforeThis) {
           // This is the first state, no need to update previous state.
-          logger.debug("This is the first state.");
+          logger.debug("This is the first state.", {
+            incidentEpisodeId: episodeId?.toString(),
+          } as LogAttributes);
         } else if (!stateAfterThis) {
           // This is the last state. Update the previous state to end at the end of this state.
           await this.updateOneById({
@@ -492,7 +546,9 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
               isRoot: true,
             },
           });
-          logger.debug("This is the last state.");
+          logger.debug("This is the last state.", {
+            incidentEpisodeId: episodeId?.toString(),
+          } as LogAttributes);
         } else {
           // This state is in the middle. Update the previous state to end at the start of the next state.
           await this.updateOneById({
@@ -515,7 +571,9 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
               isRoot: true,
             },
           });
-          logger.debug("This state is in the middle.");
+          logger.debug("This state is in the middle.", {
+            incidentEpisodeId: episodeId?.toString(),
+          } as LogAttributes);
         }
       }
 

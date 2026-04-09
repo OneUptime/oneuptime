@@ -26,7 +26,7 @@ import Select from "../Types/AnalyticsDatabase/Select";
 import UpdateBy from "../Types/AnalyticsDatabase/UpdateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../Utils/AnalyticsDatabase/StatementGenerator";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import Realtime from "../Utils/Realtime";
 import StreamUtil from "../Utils/Stream";
 import BaseService from "./BaseService";
@@ -122,12 +122,14 @@ export default class AnalyticsDatabaseService<
 
       logger.debug(
         `ClickHouse insert succeeded for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
+        { tableName } as LogAttributes,
       );
     } catch (error) {
       logger.error(
         `ClickHouse insert failed for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
+        { tableName } as LogAttributes,
       );
-      logger.error(error);
+      logger.error(error, { tableName } as LogAttributes);
       throw error;
     }
   }
@@ -202,8 +204,12 @@ export default class AnalyticsDatabaseService<
       const dbResult: ResultSet<"JSON"> =
         await this.executeQuery(countStatement);
 
-      logger.debug(`${this.model.tableName} Count Statement executed`);
-      logger.debug(countStatement);
+      logger.debug(`${this.model.tableName} Count Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
+      logger.debug(countStatement, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       const resultInJSON: ResponseJSON<JSONObject> =
         await dbResult.json<JSONObject>();
@@ -220,8 +226,12 @@ export default class AnalyticsDatabaseService<
         );
       }
 
-      logger.debug(`Result: `);
-      logger.debug(countPositive.toNumber());
+      logger.debug(`Result: `, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
+      logger.debug(countPositive.toNumber(), {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       countPositive = await this.onCountSuccess(countPositive);
       return countPositive;
@@ -249,6 +259,21 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async dropColumnInDatabase(columnName: string): Promise<void> {
+    /*
+     * Drop any skip index associated with this column before dropping the column itself.
+     * ClickHouse will reject a column drop if a skip index depends on it.
+     */
+    const column: AnalyticsTableColumn | undefined =
+      this.model.tableColumns.find((col: AnalyticsTableColumn) => {
+        return col.key === columnName;
+      });
+
+    if (column?.skipIndex) {
+      await this.execute(
+        this.statementGenerator.toDropSkipIndexStatement(column.skipIndex.name),
+      );
+    }
+
     await this.execute(
       this.statementGenerator.toDropColumnStatement(columnName),
     );
@@ -296,6 +321,7 @@ export default class AnalyticsDatabaseService<
     if (currentCodec === data.expectedCodecValue) {
       logger.info(
         `${tableName}.${data.columnName} already has ${data.expectedCodecValue}, skipping`,
+        { tableName } as LogAttributes,
       );
       return;
     }
@@ -305,6 +331,7 @@ export default class AnalyticsDatabaseService<
     );
     logger.info(
       `Applied ${data.codec} codec to ${tableName}.${data.columnName} (async)`,
+      { tableName } as LogAttributes,
     );
   }
 
@@ -397,7 +424,9 @@ export default class AnalyticsDatabaseService<
         findStatement.statement,
       );
 
-      logger.debug(`${this.model.tableName} Aggregate Statement executed`);
+      logger.debug(`${this.model.tableName} Aggregate Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       const responseJSON: ResponseJSON<JSONObject> =
         await dbResult.json<JSONObject>();
@@ -524,8 +553,12 @@ export default class AnalyticsDatabaseService<
         findStatement.statement,
       );
 
-      logger.debug(`${this.model.tableName} Find Statement executed`);
-      logger.debug(findStatement.statement);
+      logger.debug(`${this.model.tableName} Find Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
+      logger.debug(findStatement.statement, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       const responseJSON: ResponseJSON<JSONObject> =
         await dbResult.json<JSONObject>();
@@ -656,8 +689,8 @@ export default class AnalyticsDatabaseService<
             }}
             `);
     }
-    logger.debug(`${this.model.tableName} Count Statement`);
-    logger.debug(statement);
+    logger.debug(`${this.model.tableName} Count Statement`, { tableName: this.model.tableName } as LogAttributes);
+    logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
     return statement;
   }
@@ -716,8 +749,8 @@ export default class AnalyticsDatabaseService<
     }}
         `);
 
-    logger.debug(`${this.model.tableName} Aggregate Statement`);
-    logger.debug(statement);
+    logger.debug(`${this.model.tableName} Aggregate Statement`, { tableName: this.model.tableName } as LogAttributes);
+    logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
     return { statement, columns: select.columns };
   }
@@ -780,8 +813,8 @@ export default class AnalyticsDatabaseService<
     }}
         `);
 
-    logger.debug(`${this.model.tableName} Find Statement`);
-    logger.debug(statement);
+    logger.debug(`${this.model.tableName} Find Statement`, { tableName: this.model.tableName } as LogAttributes);
+    logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
     return { statement, columns: select.columns };
   }
@@ -801,8 +834,8 @@ export default class AnalyticsDatabaseService<
             ALTER TABLE ${databaseName}.${this.model.tableName}
             DELETE WHERE TRUE `.append(whereStatement);
 
-    logger.debug(`${this.model.tableName} Delete Statement`);
-    logger.debug(statement);
+    logger.debug(`${this.model.tableName} Delete Statement`, { tableName: this.model.tableName } as LogAttributes);
+    logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
     return statement;
   }
@@ -855,8 +888,8 @@ export default class AnalyticsDatabaseService<
 
       await this.execute(deleteStatement);
 
-      logger.debug(`${this.model.tableName} Delete Statement executed`);
-      logger.debug(deleteStatement);
+      logger.debug(`${this.model.tableName} Delete Statement executed`, { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(deleteStatement, { tableName: this.model.tableName } as LogAttributes);
     } catch (error) {
       await this.onDeleteError(error as Exception);
       throw this.getException(error as Exception);
@@ -914,8 +947,8 @@ export default class AnalyticsDatabaseService<
 
       await this.execute(statement);
 
-      logger.debug(`${this.model.tableName} Update Statement executed`);
-      logger.debug(statement);
+      logger.debug(`${this.model.tableName} Update Statement executed`, { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
     } catch (error) {
       await this.onUpdateError(error as Exception);
       throw this.getException(error as Exception);
@@ -1143,8 +1176,8 @@ export default class AnalyticsDatabaseService<
 
       await this.execute(insertStatement);
 
-      logger.debug(`${this.model.tableName} Create Statement executed`);
-      logger.debug(insertStatement);
+      logger.debug(`${this.model.tableName} Create Statement executed`, { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(insertStatement, { tableName: this.model.tableName } as LogAttributes);
 
       if (!createBy.props.ignoreHooks) {
         for (let i: number = 0; i < items.length; i++) {
@@ -1212,7 +1245,8 @@ export default class AnalyticsDatabaseService<
           logger.warn(
             `Realtime is not initialized. Skipping emitModelEvent for ${
               this.getModel().tableName
-            }`
+            }`,
+            { tableName: this.getModel().tableName } as LogAttributes,
           );
         }
       }
@@ -1294,7 +1328,7 @@ export default class AnalyticsDatabaseService<
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
       }).catch((error: Error) => {
-        logger.error(error);
+        logger.error(error, { projectId: projectId?.toString(), tableName: this.getModel().tableName } as LogAttributes);
       });
     }
   }

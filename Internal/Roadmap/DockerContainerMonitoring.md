@@ -2,9 +2,37 @@
 
 ## Context
 
-OneUptime's infrastructure monitoring currently supports Server/VM monitoring via the InfrastructureAgent (a Go-based agent that collects CPU, memory, disk, and process metrics) and has a commented-out Kubernetes monitor type. There is **no Docker container monitoring** today. Users running containerized workloads — whether on bare-metal Docker hosts, Docker Compose, or Docker Swarm — have no visibility into container-level health, resource consumption, or lifecycle events.
+OneUptime's infrastructure monitoring currently supports Server/VM monitoring via the InfrastructureAgent (a Go-based agent that collects CPU, memory, disk, and process metrics) and has full Kubernetes monitoring via an OpenTelemetry Collector-based kubernetes-agent Helm chart. There is **no Docker container monitoring** today. Users running containerized workloads — whether on bare-metal Docker hosts, Docker Compose, or Docker Swarm — have no visibility into container-level health, resource consumption, or lifecycle events.
 
 Docker container monitoring is a critical gap: Docker remains the dominant container runtime, and many users run workloads on Docker without Kubernetes. Competitors (Datadog, New Relic, Grafana Cloud) all provide first-class Docker monitoring. This plan proposes a phased implementation to close this gap.
+
+### Architecture Decision: OTel Collector (not custom agent)
+
+Kubernetes monitoring uses an **OpenTelemetry Collector** deployed via Helm chart — not a custom agent. Docker monitoring follows the same pattern for consistency.
+
+| Factor | Custom Agent | OTel Collector (chosen) |
+|--------|-------------|------------------------|
+| Maintenance | Must maintain custom Docker SDK code in Go | Community-maintained receivers |
+| Maturity | New, unproven | Production-proven, widely deployed |
+| Consistency | Different pattern than K8s monitoring | Same pattern as K8s monitoring |
+| Log collection | Must build custom log collector | `filelog` receiver already handles Docker JSON logs |
+| Metrics format | Custom format, needs custom ingest API | Standard OTLP, uses existing `/otlp/v1/*` endpoints |
+| New API endpoints | Need `/docker-monitor/` endpoints | None needed — existing OTLP pipeline |
+| Agent updates | Must release new agent binary | Update collector config YAML |
+
+### Open Source Components
+
+The **OpenTelemetry Collector Contrib** (`otel/opentelemetry-collector-contrib`) — the same image used for kubernetes-agent — includes:
+
+1. **`docker_stats` receiver** — Collects per-container CPU, memory, network, block I/O metrics from Docker daemon via `/var/run/docker.sock`
+2. **`docker_observer` extension** — Auto-discovers running containers for dynamic monitoring
+3. **`filelog` receiver** — Collects container logs from Docker JSON log files (`/var/lib/docker/containers/`)
+4. **`resourcedetection` processor** — Enriches telemetry with host metadata
+5. **`resource` processor** — Stamps all data with project identifiers
+
+OneUptime already has **full OTLP ingestion** (HTTP on `/otlp/v1/metrics`, `/otlp/v1/logs`, gRPC on port 4317), so no new ingest endpoints are needed.
+
+---
 
 ## Gap Analysis Summary
 
@@ -24,13 +52,11 @@ Docker container monitoring is a critical gap: Docker remains the dominant conta
 
 ---
 
-## Phase 1: Foundation (P0) — Container Discovery & Core Metrics
-
-These are table-stakes features required for any Docker monitoring product.
+## Phase 1: Foundation (P0) — Docker Agent & Core Metrics
 
 ### 1.1 Docker Monitor Type
 
-**Current**: No Docker monitor type exists. Kubernetes is defined but commented out.
+**Current**: No Docker monitor type exists.
 **Target**: Add a `Docker` monitor type with full UI integration.
 
 **Implementation**:
@@ -38,109 +64,210 @@ These are table-stakes features required for any Docker monitoring product.
 - Add `Docker = "Docker"` to the `MonitorType` enum
 - Add Docker to the "Infrastructure" monitor type category alongside Server and SNMP
 - Add monitor type props (title: "Docker Container", description, icon: `IconProp.Cube`)
-- Create `DockerMonitorResponse` interface for container metric reporting
 - Add Docker to `getActiveMonitorTypes()` and relevant helper methods
 
 **Files to modify**:
 - `Common/Types/Monitor/MonitorType.ts` (add enum value, category, props)
-- `Common/Types/Monitor/DockerMonitor/DockerMonitorResponse.ts` (new)
-- `Common/Types/Monitor/DockerMonitor/DockerContainerMetrics.ts` (new)
 
-### 1.2 Container Metrics Collection in InfrastructureAgent
+### 1.2 Docker Agent — OTel Collector Deployment
 
-**Current**: The Go-based InfrastructureAgent collects host-level CPU, memory, disk, and process metrics.
-**Target**: Extend the agent to discover and collect metrics from all running Docker containers on the host.
+**Current**: No Docker metrics collection.
+**Target**: Deploy an OpenTelemetry Collector on Docker hosts to collect container metrics and logs, sending them to OneUptime via standard OTLP.
 
 **Implementation**:
 
-- Add a Docker collector module to the InfrastructureAgent that uses the Docker Engine API (via `/var/run/docker.sock` or configurable endpoint)
-- Discover all running containers via `GET /containers/json`
-- For each container, collect metrics via `GET /containers/{id}/stats?stream=false`:
-  - **CPU**: `cpu_stats.cpu_usage.total_usage`, `cpu_stats.system_cpu_usage`, per-core usage, throttled periods/time
-  - **Memory**: `memory_stats.usage`, `memory_stats.limit`, `memory_stats.stats.cache`, RSS, swap, working set, OOM kill count
-  - **Network**: `networks.*.rx_bytes`, `tx_bytes`, `rx_packets`, `tx_packets`, `rx_errors`, `tx_errors`, `rx_dropped`, `tx_dropped` (per interface)
-  - **Block I/O**: `blkio_stats.io_service_bytes_recursive` (read/write bytes), `io_serviced_recursive` (read/write ops)
-  - **PIDs**: `pids_stats.current`, `pids_stats.limit`
-- Collect container metadata: name, image, image ID, labels, created time, status, health check status, restart count, ports, mounts, environment (filtered for sensitive values)
-- Report interval: configurable, default 30 seconds (matching existing server monitor interval)
+Provide multiple deployment options (Docker hosts are not Kubernetes, so no Helm chart):
 
-**Files to modify**:
-- `InfrastructureAgent/collector/docker.go` (new - Docker metrics collector)
-- `InfrastructureAgent/model/docker.go` (new - Docker metric data models)
-- `InfrastructureAgent/agent.go` (add Docker collection to the main loop)
-- `InfrastructureAgent/config.go` (add Docker-related configuration: socket path, collection enabled/disabled)
+**Option A: Docker Compose (recommended)**
+```yaml
+# docker-compose.yml
+services:
+  oneuptime-docker-agent:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
+    restart: unless-stopped
+```
 
-### 1.3 Container Inventory & Discovery
+**Option B: Standalone Docker run command** (quick start)
+**Option C: systemd service** (bare-metal install)
 
-**Current**: No container awareness.
-**Target**: Auto-discover containers on monitored hosts and maintain a live inventory.
+**OTel Collector configuration** (`otel-collector-config.yaml`):
+```yaml
+receivers:
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+    provide_per_core_cpu_metrics: true
+    # Collects: container.cpu.*, container.memory.*, container.network.io.*,
+    #           container.blockio.*, container.uptime, container.restarts,
+    #           container.pids.count
+
+  filelog:
+    include:
+      - /var/lib/docker/containers/*/*.log
+    operators:
+      - type: json_parser
+        # Docker JSON log format: {"log":"...","stream":"stdout","time":"..."}
+      - type: move
+        from: attributes.log
+        to: body
+      - type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+
+processors:
+  resource:
+    attributes:
+      - key: oneuptime.project.id
+        value: "${ONEUPTIME_PROJECT_ID}"
+        action: upsert
+  resourcedetection:
+    detectors: [env, system, docker]
+    system:
+      hostname_sources: [os]
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+exporters:
+  otlphttp:
+    endpoint: "${ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-service-token: "${ONEUPTIME_SERVICE_TOKEN}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [docker_stats]
+      processors: [resourcedetection, resource, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [filelog]
+      processors: [resourcedetection, resource, batch]
+      exporters: [otlphttp]
+```
+
+**Metrics collected by `docker_stats` receiver:**
+- `container.cpu.usage.total` — Total CPU time consumed
+- `container.cpu.usage.percpu` — Per-core CPU usage
+- `container.cpu.percent` — CPU usage percentage
+- `container.cpu.throttling_data.throttled_time` — CPU throttled time
+- `container.memory.usage.total` — Total memory usage
+- `container.memory.usage.limit` — Memory limit
+- `container.memory.percent` — Memory usage percentage
+- `container.memory.active_anon`, `container.memory.cache`, `container.memory.rss` — Memory breakdown
+- `container.network.io.usage.rx_bytes` / `tx_bytes` — Network I/O
+- `container.network.io.usage.rx_packets` / `tx_packets` — Network packets
+- `container.blockio.io_service_bytes_recursive.read` / `write` — Block I/O
+- `container.uptime` — Container uptime
+- `container.restarts` — Restart count
+- `container.pids.count` — Process count in container
+
+**Resource attributes automatically included:**
+- `container.id`, `container.name`, `container.image.name`, `container.image.tag`
+- `container.runtime` = "docker"
+- `host.name`, `os.type`
+
+**Files to create**:
+- `DockerAgent/docker-compose.yml` — OTel Collector deployment
+- `DockerAgent/otel-collector-config.yaml` — Collector configuration template
+- `DockerAgent/install.sh` — One-line install script (downloads compose file, prompts for config values)
+- `DockerAgent/systemd/oneuptime-docker-agent.service` — systemd unit file alternative
+- `DockerAgent/README.md` — Setup guide
+
+### 1.3 Docker Host Auto-Discovery
+
+**Current**: No Docker host awareness.
+**Target**: Auto-discover Docker hosts when telemetry arrives, following the Kubernetes cluster auto-discovery pattern.
 
 **Implementation**:
 
-- Create a `DockerContainer` PostgreSQL model to store discovered containers:
-  - `containerId` (Docker container ID)
-  - `containerName`
-  - `imageName`, `imageId`, `imageTag`
-  - `status` (running, paused, stopped, restarting, dead, created)
-  - `healthStatus` (healthy, unhealthy, starting, none)
-  - `labels` (JSON)
-  - `createdAt` (container creation time)
-  - `startedAt`
-  - `hostMonitorId` (reference to the Server monitor for the host)
+The Kubernetes monitoring uses a `KubernetesCluster` model (`Common/Models/DatabaseModels/KubernetesCluster.ts`) with auto-discovery via `findOrCreateByClusterIdentifier()` when telemetry arrives with `k8s.cluster.name` attribute. Follow the same pattern for Docker hosts:
+
+- Create a `DockerHost` PostgreSQL model:
+  - `hostName` (from `host.name` resource attribute)
   - `projectId`
-  - `restartCount`
-  - `ports` (JSON - exposed ports mapping)
-  - `mounts` (JSON - volume mounts)
-  - `cpuLimit`, `memoryLimit` (resource constraints)
-- On each agent report, upsert container records (create new, update existing, mark removed containers as stopped)
-- Container inventory page in the dashboard showing all containers across all monitored hosts
+  - `otelCollectorStatus` (connected / disconnected)
+  - `lastSeenAt` (timestamp — mark disconnected if no data for 5+ minutes)
+  - `dockerVersion` (from container metadata if available)
+  - `containersRunning`, `containersStopped`, `containersPaused` (cached counts)
+  - `osType`, `osVersion` (from `os.type`, `os.version` resource attributes)
+- Auto-discover: when Docker container metrics arrive with `host.name` attribute, call `findOrCreateByHostIdentifier()`
+- Disconnect detection: worker job marks hosts as disconnected if no metrics received in 5+ minutes
 
-**Files to modify**:
-- `Common/Models/DatabaseModels/DockerContainer.ts` (new)
-- `Common/Server/Services/DockerContainerService.ts` (new)
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerContainers.tsx` (new - container list page)
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerContainerDetail.tsx` (new - single container detail)
+**Files to create**:
+- `Common/Models/DatabaseModels/DockerHost.ts` (new)
+- `Common/Server/Services/DockerHostService.ts` (new)
 
-### 1.4 Container Lifecycle Events
+### 1.4 Docker Metric Catalog
+
+**Current**: No Docker-specific metric catalog.
+**Target**: Pre-defined metric catalog for Docker container metrics, following the Kubernetes metric catalog pattern.
+
+**Implementation**:
+
+The K8s monitoring has `Common/Types/Monitor/KubernetesMetricCatalog.ts` with 30+ pre-defined metrics. Create an equivalent for Docker:
+
+- Define all `docker_stats` receiver metrics with human-readable names, descriptions, units, and aggregation types
+- Group by category: CPU, Memory, Network, Block I/O, Container Info
+- Used in monitor creation UI for metric selection (no manual metric name typing)
+
+**Files to create**:
+- `Common/Types/Monitor/DockerMetricCatalog.ts` (new)
+
+### 1.5 Container Lifecycle Events
 
 **Current**: No container event tracking.
 **Target**: Capture and surface container lifecycle events (start, stop, restart, OOM kill, health check failures).
 
 **Implementation**:
 
-- In the InfrastructureAgent, subscribe to Docker events via `GET /events?filters={"type":["container"]}` (long-poll/streaming)
+- Add Docker events receiver to the OTel Collector config using the `docker_observer` extension or by subscribing to Docker events API
 - Capture events: `start`, `stop`, `die`, `kill`, `oom`, `restart`, `pause`, `unpause`, `health_status`
+- Events arrive as structured logs via the existing OTLP log pipeline
 - Include exit code, OOM killed flag, and signal information for `die` events
-- Report events to OneUptime alongside metric data
-- Store events in the existing telemetry pipeline (as structured logs or a dedicated events table)
 - Surface events as an overlay on container metric charts (vertical markers)
-- Enable alerting on lifecycle events (e.g., alert on OOM kill, alert on restart count > N in time window)
+- Enable alerting on lifecycle events via Log-based monitors
 
 **Files to modify**:
-- `InfrastructureAgent/collector/docker_events.go` (new - event listener)
-- `Common/Types/Monitor/DockerMonitor/DockerContainerEvent.ts` (new)
-- `Worker/Jobs/Monitors/DockerContainerMonitor.ts` (new - process container reports, evaluate criteria)
+- `DockerAgent/otel-collector-config.yaml` (add Docker events collection)
 
 ---
 
 ## Phase 2: Alerting & Monitoring Rules (P0-P1) — Actionable Monitoring
 
-### 2.1 Container Health Check Monitoring
+### 2.1 Docker Monitor Creation & Evaluation
 
-**Current**: No health check awareness.
-**Target**: Monitor Docker health check status and alert on unhealthy containers.
+**Current**: No Docker-specific monitoring.
+**Target**: Create Docker monitors that query container metrics and evaluate criteria, following the Kubernetes monitor pattern.
 
 **Implementation**:
 
-- Extract health check status from container inspect data (`State.Health.Status`, `State.Health.FailingStreak`, `State.Health.Log`)
-- Add monitor criteria for health check status:
-  - Alert when container health transitions to `unhealthy`
-  - Alert when failing streak exceeds threshold
-  - Surface health check log output in alert details
-- Add health status column to the container inventory table
+The K8s monitoring implements `monitorKubernetes()` in the TelemetryMonitor worker, which queries ClickHouse for K8s metrics using the metric catalog. Follow the same pattern:
+
+- Docker monitors query ClickHouse for Docker container metrics
+- Support filtering by host, container name, container image
+- Criteria evaluation checks metric values against thresholds
+- Pre-built alert templates (like K8s has 12 templates):
+  - Container stopped unexpectedly
+  - Container CPU usage > threshold
+  - Container memory usage > threshold (limit-aware)
+  - Container restart loop (restart count > N in time window)
+  - Container OOM killed
+  - Docker daemon disconnected (no metrics received)
+
+**Files to create**:
+- `Common/Server/Utils/Monitor/Criteria/DockerMonitorCriteria.ts` (new)
+- `Common/Types/Monitor/DockerMonitor/DockerAlertTemplates.ts` (new)
 
 **Files to modify**:
-- `Common/Server/Utils/Monitor/Criteria/DockerContainerCriteria.ts` (new)
+- `Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts` (route Docker type)
 - `Common/Types/Monitor/CriteriaFilter.ts` (add Docker-specific filter types)
 
 ### 2.2 Container Resource Threshold Alerts
@@ -162,10 +289,6 @@ These are table-stakes features required for any Docker monitoring product.
   - E.g., container with 2GB memory limit using 1.8GB = 90% (alert), not 1.8/64GB = 2.8% (misleading)
 - Support compound criteria (e.g., CPU > 80% AND memory > 90% for 5 minutes)
 
-**Files to modify**:
-- `Common/Server/Utils/Monitor/Criteria/DockerContainerCriteria.ts` (extend)
-- `Worker/Jobs/Monitors/DockerContainerMonitor.ts` (criteria evaluation)
-
 ### 2.3 Container Auto-Restart Detection
 
 **Current**: No restart tracking.
@@ -178,52 +301,60 @@ These are table-stakes features required for any Docker monitoring product.
 - Include container exit code and last log lines in the alert context
 - Dashboard widget showing containers with highest restart frequency
 
-**Files to modify**:
-- `Worker/Jobs/Monitors/DockerContainerMonitor.ts` (add restart loop detection)
-
 ---
 
-## Phase 3: Visualization & UX (P1) — Container Dashboard
+## Phase 3: Visualization & UX (P1) — Docker Observability Product
 
-### 3.1 Container Overview Dashboard
+### 3.1 Docker as an Observability Product
 
-**Current**: No container UI.
-**Target**: Dedicated container monitoring pages with rich visualizations.
+**Current**: No Docker UI.
+**Target**: Docker as a standalone product in the Observability section, following the Kubernetes product pattern.
 
-**Implementation**:
+```
+Observability
+├── Logs
+├── Traces
+├── Metrics
+├── Services
+├── Exceptions
+├── Kubernetes    (existing)
+└── Docker        (NEW)
+    ├── Hosts List         ← All Docker hosts in project
+    └── Host Detail
+        ├── Overview       (daemon info, container counts, resource usage)
+        ├── Containers     (list with CPU/memory/status, drill into detail)
+        ├── Events         (container lifecycle events)
+        └── Logs           (container logs, pre-filtered by host)
+```
 
-- **Container List Page**: Table with columns for name, image, status, health, CPU%, memory%, network I/O, uptime, restart count. Sortable, filterable, searchable
-- **Container Detail Page**: Single-container view with:
-  - Header: container name, image, status badge, health badge, uptime
-  - Metrics charts: CPU, memory, network, block I/O (time series, matching existing metric chart style)
-  - Events timeline: lifecycle events overlaid on charts
-  - Container metadata: labels, ports, mounts, environment variables (filtered), resource limits
-  - Processes: top processes inside the container (if available via `docker top`)
-  - Logs: recent container logs (linked to log management if available)
-- **Host-Container Relationship**: From the existing Server monitor detail page, add a "Containers" tab showing all containers on that host
+### 3.2 Container List & Detail Pages
+
+**Container List Page**: Table with columns for name, image, status, health, CPU%, memory%, network I/O, uptime, restart count. Sortable, filterable, searchable.
+
+**Container Detail Page**: Single-container view with:
+- Header: container name, image, status badge, health badge, uptime
+- Metrics charts: CPU, memory, network, block I/O (time series, matching existing metric chart style)
+- Events timeline: lifecycle events overlaid on charts
+- Container metadata: labels, ports, mounts, resource limits
+- Logs tab: recent container logs (pre-filtered from log management)
+
+### 3.3 Docker Monitor Setup Documentation
+
+Show install instructions in the monitor creation UI:
+- Docker Compose method (recommended)
+- Standalone Docker run command (quick start)
+- systemd service (bare-metal)
+- Configuration values: OneUptime URL, project ID, service token
+- Note: requires access to `/var/run/docker.sock`
+
+**Files to create**:
+- `App/FeatureSet/Dashboard/src/Pages/Docker/` (new directory — host list, host detail, container list, container detail)
+- `App/FeatureSet/Dashboard/src/Components/Docker/` (new directory — view components)
+- `App/FeatureSet/Dashboard/src/Components/Monitor/DockerMonitor/Documentation.tsx` (new)
 
 **Files to modify**:
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerContainers.tsx` (new - list view)
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerContainerDetail.tsx` (new - detail view)
-- `App/FeatureSet/Dashboard/src/Components/Docker/ContainerMetricsCharts.tsx` (new)
-- `App/FeatureSet/Dashboard/src/Components/Docker/ContainerEventsTimeline.tsx` (new)
-- `App/FeatureSet/Dashboard/src/Components/Docker/ContainerMetadataPanel.tsx` (new)
-
-### 3.2 Container Map / Topology View
-
-**Current**: No topology visualization.
-**Target**: Visual map showing containers, their host, and network relationships.
-
-**Implementation**:
-
-- Show containers grouped by host
-- Color-code by status (green=healthy, yellow=warning, red=unhealthy/stopped)
-- Show network links between containers on the same Docker network
-- Click to drill into container detail
-- Show Docker Compose project grouping via labels
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Components/Docker/ContainerTopology.tsx` (new)
+- Dashboard routing and sidebar navigation (add Docker product)
+- Monitor creation form (add Docker type with metric catalog picker and template selector)
 
 ---
 
@@ -232,25 +363,21 @@ These are table-stakes features required for any Docker monitoring product.
 ### 4.1 Automatic Container Log Collection
 
 **Current**: Log collection requires explicit OTLP/Fluentd/Syslog integration per application.
-**Target**: Automatically collect logs from all Docker containers via the InfrastructureAgent.
+**Target**: The Docker Agent OTel Collector automatically collects logs from all containers.
 
 **Implementation**:
 
-- Add a log collector to the InfrastructureAgent using `GET /containers/{id}/logs?stdout=true&stderr=true&follow=true&tail=100`
-- Automatically enrich logs with container metadata:
-  - `container.id`, `container.name`, `container.image.name`, `container.image.tag`
-  - Host information (hostname, OS)
-  - Docker labels as log attributes
-- Forward logs to OneUptime's telemetry ingestion endpoint (OTLP format)
-- Configurable:
-  - Enable/disable per container (via label `oneuptime.logs.enabled=true/false`)
-  - Max log line size
-  - Log rate limiting (to prevent noisy container flooding)
-  - Include/exclude containers by name pattern or label selector
+The `filelog` receiver in the OTel Collector config (Phase 1.2) already handles this:
+- Reads from `/var/lib/docker/containers/*/*.log` (Docker JSON log format)
+- Parses JSON log format automatically
+- Enriches with container metadata (name, image, ID) via `resourcedetection` processor
+- Forwards to OneUptime's `/otlp/v1/logs` endpoint
 
-**Files to modify**:
-- `InfrastructureAgent/collector/docker_logs.go` (new - log collector)
-- `InfrastructureAgent/config.go` (add log collection config)
+Configuration options (via environment variables or collector config):
+- Enable/disable log collection per container (via Docker labels: `oneuptime.logs.enabled=true/false`)
+- Max log line size
+- Log rate limiting (to prevent noisy container flooding)
+- Include/exclude containers by name pattern or label selector
 
 ### 4.2 Container Log Correlation
 
@@ -259,14 +386,14 @@ These are table-stakes features required for any Docker monitoring product.
 
 **Implementation**:
 
-- Automatically tag container logs with `container.id` and `container.name` attributes
-- In the container detail page, add a "Logs" tab that pre-filters the log viewer to the container's logs
+- All container logs and metrics share `container.name` and `container.id` resource attributes (set by OTel Collector)
+- In the container detail page, the "Logs" tab pre-filters the log viewer by `container.id`
 - When viewing a metric anomaly or event, show a link to "View logs around this time"
 - In the log detail view, show a link to "View container metrics" when `container.id` attribute is present
 
 **Files to modify**:
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerContainerDetail.tsx` (add Logs tab)
-- `App/FeatureSet/Dashboard/src/Components/Logs/LogDetailsPanel.tsx` (add container link)
+- Container detail page (add Logs tab with pre-filtered log viewer)
+- Log details panel (add container metrics link)
 
 ---
 
@@ -279,7 +406,7 @@ These are table-stakes features required for any Docker monitoring product.
 
 **Implementation**:
 
-- Detect Compose projects via standard labels:
+- Detect Compose projects via standard labels (available as resource attributes from `docker_stats` receiver):
   - `com.docker.compose.project` (project name)
   - `com.docker.compose.service` (service name)
   - `com.docker.compose.container-number` (replica number)
@@ -288,14 +415,13 @@ These are table-stakes features required for any Docker monitoring product.
   - Project name with list of services
   - Per-service status (all replicas healthy, degraded, down)
   - Per-service aggregated metrics (total CPU, memory across replicas)
-  - Service dependency visualization (if depends_on info is available via labels)
 - Alert at the service level (e.g., "all replicas of service X are down")
 
-**Files to modify**:
+**Files to create**:
 - `Common/Models/DatabaseModels/DockerComposeProject.ts` (new)
 - `Common/Server/Services/DockerComposeProjectService.ts` (new)
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerComposeProjects.tsx` (new)
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerComposeProjectDetail.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Docker/ComposeProjects.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Docker/ComposeProjectDetail.tsx` (new)
 
 ### 5.2 Docker Swarm Monitoring
 
@@ -304,19 +430,12 @@ These are table-stakes features required for any Docker monitoring product.
 
 **Implementation**:
 
-- Detect if the Docker host is a Swarm manager node
-- Collect Swarm-specific data:
-  - Services: `GET /services` (desired/running replicas, update status)
-  - Tasks: `GET /tasks` (task state, assigned node, error messages)
-  - Nodes: `GET /nodes` (availability, status, resource capacity)
+- Detect if the Docker host is a Swarm manager node (from Docker daemon info)
+- Extend OTel Collector config to collect Swarm-specific metrics (may require custom receiver or Prometheus exporter)
+- Collect Swarm-specific data: services (desired/running replicas), tasks (state, assigned node), nodes (availability, status)
 - Surface Swarm service health: desired replicas vs running replicas
 - Alert when service degraded (running < desired) or task failures
 - Swarm-specific dashboard showing cluster overview
-
-**Files to modify**:
-- `InfrastructureAgent/collector/docker_swarm.go` (new)
-- `Common/Types/Monitor/DockerMonitor/DockerSwarmMetrics.ts` (new)
-- `App/FeatureSet/Dashboard/src/Pages/Infrastructure/DockerSwarm.tsx` (new)
 
 ---
 
@@ -341,7 +460,7 @@ These are table-stakes features required for any Docker monitoring product.
 
 **Implementation**:
 
-- Analyze historical container metrics (p95 CPU, p99 memory over 7 days)
+- Analyze historical container metrics (p95 CPU, p99 memory over 7 days) from ClickHouse
 - Compare actual usage to configured limits
 - Flag over-provisioned containers (limit >> usage) and under-provisioned containers (usage approaching limit)
 - Generate recommendations: "Container X uses max 256MB, but has a 4GB limit — consider reducing to 512MB"
@@ -353,7 +472,7 @@ These are table-stakes features required for any Docker monitoring product.
 
 **Implementation**:
 
-- Store container configuration snapshots on each agent report
+- Store container configuration snapshots (from resource attributes) on each metric report
 - Diff against previous snapshot and generate change events
 - Alert on unexpected configuration changes
 - Show change history in the container detail page
@@ -362,39 +481,42 @@ These are table-stakes features required for any Docker monitoring product.
 
 ## Quick Wins (Can Ship First)
 
-1. **Add Docker monitor type** — Add the enum value, category, and props (no collection yet, but enables the UI scaffolding)
-2. **Basic container discovery** — Extend InfrastructureAgent to list running containers and report names, images, status
-3. **Container CPU/memory metrics** — Collect basic cgroup stats via Docker stats API
-4. **Container inventory page** — Simple table showing discovered containers across hosts
+1. **Docker Agent** — Create the OTel Collector config + Docker Compose file (Phase 1.2) — users can start collecting Docker metrics immediately using existing Telemetry/Metrics monitors
+2. **Add Docker monitor type** — Add the enum value, category, and props (Phase 1.1)
+3. **Docker metric catalog** — Define metrics for the monitor creation UI (Phase 1.4)
+4. **Container inventory page** — Simple table showing discovered containers across hosts (Phase 3.2)
 
 ---
 
 ## Recommended Implementation Order
 
-1. **Phase 1.1** — Docker monitor type (enum, UI scaffolding)
-2. **Phase 1.2** — Container metrics collection in InfrastructureAgent
-3. **Phase 1.3** — Container inventory & discovery
-4. **Phase 3.1** — Container overview dashboard (list + detail pages)
-5. **Phase 1.4** — Container lifecycle events
-6. **Phase 2.1** — Container health check monitoring
-7. **Phase 2.2** — Container resource threshold alerts
-8. **Phase 4.1** — Automatic container log collection
-9. **Phase 5.1** — Docker Compose project grouping
-10. **Phase 2.3** — Container auto-restart detection
-11. **Phase 3.2** — Container map / topology view
-12. **Phase 4.2** — Container log correlation
-13. **Phase 5.2** — Docker Swarm monitoring
-14. **Phase 6.1** — Container image analysis
-15. **Phase 6.2** — Container resource recommendations
-16. **Phase 6.3** — Container diff / change detection
+1. **Phase 1.2** — Docker Agent (OTel Collector config + deployment) — immediate value
+2. **Phase 1.1** — Docker monitor type (enum, UI scaffolding)
+3. **Phase 1.4** — Docker metric catalog
+4. **Phase 1.3** — Docker host auto-discovery
+5. **Phase 2.1** — Docker monitor creation & evaluation with alert templates
+6. **Phase 3.1** — Docker as Observability product (dashboard pages)
+7. **Phase 3.2** — Container list & detail pages
+8. **Phase 1.5** — Container lifecycle events
+9. **Phase 2.2** — Container resource threshold alerts
+10. **Phase 4.1** — Automatic container log collection
+11. **Phase 4.2** — Container log correlation
+12. **Phase 5.1** — Docker Compose project grouping
+13. **Phase 2.3** — Container auto-restart detection
+14. **Phase 5.2** — Docker Swarm monitoring
+15. **Phase 6.1** — Container image analysis
+16. **Phase 6.2** — Container resource recommendations
+17. **Phase 6.3** — Container diff / change detection
 
 ## Verification
 
 For each feature:
-1. Unit tests for new Docker metric collection, parsing, and criteria evaluation
-2. Integration tests for container discovery, metric ingestion, and alerting APIs
-3. Manual verification with a Docker host running multiple containers (various states: healthy, unhealthy, restarting, OOM)
-4. Test with Docker Compose multi-service applications
-5. Performance test: verify agent overhead is minimal (< 1% CPU) when monitoring 50+ containers
-6. Verify container metrics accuracy by comparing agent-reported values to `docker stats` output
-7. Test graceful handling of Docker daemon unavailability (agent should not crash, should report connection failure)
+1. Deploy OTel Collector with `docker_stats` receiver on a Docker host, verify metrics arrive at OneUptime's `/otlp/v1/metrics` and appear in ClickHouse
+2. Verify container logs arrive via `filelog` receiver at `/otlp/v1/logs`
+3. Create a Docker monitor, verify criteria evaluation fires alerts correctly
+4. Test auto-discovery: start collector, verify DockerHost record auto-created
+5. Test alerting: stop a container, verify alert fires
+6. Performance test: verify collector overhead is minimal (< 1% CPU) when monitoring 50+ containers
+7. Test Docker Compose project detection via standard labels
+8. Test graceful handling of Docker daemon unavailability (collector should report errors, not crash)
+9. Verify container metrics accuracy by comparing OTel-reported values to `docker stats` CLI output

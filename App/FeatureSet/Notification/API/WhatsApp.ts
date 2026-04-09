@@ -22,7 +22,10 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();
@@ -183,6 +186,7 @@ const updateWhatsAppLogStatus: (
   if (!messageId) {
     logger.warn(
       `[Meta WhatsApp Webhook] Received status payload without message id. Payload: ${JSON.stringify(statusPayload)}`,
+      getLogAttributesFromRequest(req as any),
     );
     return;
   }
@@ -212,10 +216,12 @@ const updateWhatsAppLogStatus: (
   if (updateResult === 0) {
     logger.warn(
       `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${messageId}. Payload: ${JSON.stringify(statusPayload)}`,
+      getLogAttributesFromRequest(req as any),
     );
   } else {
     logger.debug(
       `[Meta WhatsApp Webhook] Updated WhatsApp log for message id ${messageId} with status ${derivedStatus}.`,
+      getLogAttributesFromRequest(req as any),
     );
   }
 };
@@ -351,6 +357,7 @@ router.get("/webhook", async (req: ExpressRequest, res: ExpressResponse) => {
     if (!configuredVerifyToken) {
       logger.error(
         "Meta WhatsApp webhook verify token is not configured. Rejecting verification request.",
+        getLogAttributesFromRequest(req as RequestLike),
       );
       res.sendStatus(403);
       return;
@@ -363,6 +370,7 @@ router.get("/webhook", async (req: ExpressRequest, res: ExpressResponse) => {
 
     logger.warn(
       "Meta WhatsApp webhook verification failed due to token mismatch.",
+      getLogAttributesFromRequest(req as any),
     );
     res.sendStatus(403);
     return;
@@ -383,6 +391,7 @@ router.post(
       ) {
         logger.debug(
           `[Meta WhatsApp Webhook] Received event for unsupported object: ${JSON.stringify(body)}`,
+          getLogAttributesFromRequest(req as any),
         );
         return Response.sendEmptySuccessResponse(req, res);
       }
@@ -394,6 +403,7 @@ router.post(
       if (!Array.isArray(entries)) {
         logger.warn(
           `[Meta WhatsApp Webhook] Payload did not include entries array. Payload: ${JSON.stringify(body)}`,
+          getLogAttributesFromRequest(req as any),
         );
         return Response.sendEmptySuccessResponse(req, res);
       }

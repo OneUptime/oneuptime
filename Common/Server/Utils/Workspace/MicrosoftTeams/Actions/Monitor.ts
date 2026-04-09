@@ -29,7 +29,10 @@ export default class MicrosoftTeamsMonitorActions {
   }): Promise<void> {
     const { action } = data;
 
-    logger.debug("Handling Microsoft Teams monitor action:");
+    logger.debug("Handling Microsoft Teams monitor action:", {
+      projectId: data.teamsRequest.projectId.toString(),
+      actionType: action.actionType,
+    });
     logger.debug(action);
 
     try {
@@ -39,11 +42,17 @@ export default class MicrosoftTeamsMonitorActions {
           break;
 
         default:
-          logger.debug("Unhandled monitor action: " + action.actionType);
+          logger.debug("Unhandled monitor action: " + action.actionType, {
+            projectId: data.teamsRequest.projectId.toString(),
+            actionType: action.actionType,
+          });
           break;
       }
     } catch (error) {
-      logger.error("Error handling Microsoft Teams monitor action:");
+      logger.error("Error handling Microsoft Teams monitor action:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        actionType: action.actionType,
+      });
       logger.error(error);
     }
 

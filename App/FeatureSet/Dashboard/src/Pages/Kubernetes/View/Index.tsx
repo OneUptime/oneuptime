@@ -5,6 +5,8 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Label from "Common/Models/DatabaseModels/Label";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
@@ -1120,6 +1122,16 @@ const KubernetesClusterOverview: FunctionComponent<
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>
         name="Cluster Details"
+        formSteps={[
+          {
+            title: "Cluster Info",
+            id: "cluster-info",
+          },
+          {
+            title: "Labels",
+            id: "labels",
+          },
+        ]}
         cardProps={{
           title: "Cluster Details",
           description: "Basic information about this Kubernetes cluster.",
@@ -1131,6 +1143,7 @@ const KubernetesClusterOverview: FunctionComponent<
             field: {
               name: true,
             },
+            stepId: "cluster-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -1140,6 +1153,7 @@ const KubernetesClusterOverview: FunctionComponent<
             field: {
               description: true,
             },
+            stepId: "cluster-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
@@ -1149,12 +1163,30 @@ const KubernetesClusterOverview: FunctionComponent<
             field: {
               clusterIdentifier: true,
             },
+            stepId: "cluster-info",
             title: "Cluster Identifier",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-us-east-1",
             description:
               "This should match the clusterName value in your kubernetes-agent Helm chart.",
+          },
+          {
+            field: {
+              labels: true,
+            },
+            stepId: "labels",
+            title: "Labels",
+            description:
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
           },
         ]}
         modelDetailProps={{
@@ -1190,6 +1222,19 @@ const KubernetesClusterOverview: FunctionComponent<
               },
               title: "Last Seen",
               fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              fieldType: FieldType.Element,
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
             },
           ],
         }}

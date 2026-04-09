@@ -3,7 +3,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
 import UserService from "./UserService";
@@ -40,7 +40,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         namespace: "MonitorStatusTimeline.create",
       });
     } catch (e) {
-      logger.error(e);
+      logger.error(e, {
+        projectId: createBy.data.projectId?.toString(),
+        monitorId: createBy.data.monitorId?.toString(),
+      } as LogAttributes);
     }
 
     if (!createBy.data.startsAt) {
@@ -98,8 +101,14 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       },
     });
 
-    logger.debug("State Before this");
-    logger.debug(stateBeforeThis);
+    logger.debug("State Before this", {
+      projectId: createBy.data.projectId?.toString(),
+      monitorId: createBy.data.monitorId?.toString(),
+    } as LogAttributes);
+    logger.debug(stateBeforeThis, {
+      projectId: createBy.data.projectId?.toString(),
+      monitorId: createBy.data.monitorId?.toString(),
+    } as LogAttributes);
 
     // If this is the first state, then do not notify the owner.
     if (!stateBeforeThis) {
@@ -161,8 +170,14 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       }
     }
 
-    logger.debug("State After this");
-    logger.debug(stateAfterThis);
+    logger.debug("State After this", {
+      projectId: createBy.data.projectId?.toString(),
+      monitorId: createBy.data.monitorId?.toString(),
+    } as LogAttributes);
+    logger.debug(stateAfterThis, {
+      projectId: createBy.data.projectId?.toString(),
+      monitorId: createBy.data.monitorId?.toString(),
+    } as LogAttributes);
 
     return {
       createBy,
@@ -189,14 +204,32 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
     // update the last status as ended.
 
-    logger.debug("Status Timeline Before this");
-    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus);
+    logger.debug("Status Timeline Before this", {
+      projectId: createdItem.projectId?.toString(),
+      monitorId: createdItem.monitorId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      monitorId: createdItem.monitorId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Status Timeline After this");
-    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus);
+    logger.debug("Status Timeline After this", {
+      projectId: createdItem.projectId?.toString(),
+      monitorId: createdItem.monitorId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      monitorId: createdItem.monitorId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Created Item");
-    logger.debug(createdItem);
+    logger.debug("Created Item", {
+      projectId: createdItem.projectId?.toString(),
+      monitorId: createdItem.monitorId?.toString(),
+    } as LogAttributes);
+    logger.debug(createdItem, {
+      projectId: createdItem.projectId?.toString(),
+      monitorId: createdItem.monitorId?.toString(),
+    } as LogAttributes);
 
     /*
      * now there are three cases.
@@ -204,7 +237,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
      */
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
-      logger.debug("This is the first status.");
+      logger.debug("This is the first status.", {
+        projectId: createdItem.projectId?.toString(),
+        monitorId: createdItem.monitorId?.toString(),
+      } as LogAttributes);
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
       /*
        * 2. This is the last status.
@@ -219,7 +255,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This is the last status.");
+      logger.debug("This is the last status.", {
+        projectId: createdItem.projectId?.toString(),
+        monitorId: createdItem.monitorId?.toString(),
+      } as LogAttributes);
     } else {
       /*
        * 3. This is in the middle.
@@ -245,7 +284,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This status is in the middle.");
+      logger.debug("This status is in the middle.", {
+        projectId: createdItem.projectId?.toString(),
+        monitorId: createdItem.monitorId?.toString(),
+      } as LogAttributes);
     }
 
     if (!createdItem.endsAt) {
@@ -420,7 +462,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
         if (!stateBeforeThis) {
           // This is the first status, no need to update previous status.
-          logger.debug("This is the first status.");
+          logger.debug("This is the first status.", {
+            monitorId: monitorId?.toString(),
+          } as LogAttributes);
         } else if (!stateAfterThis) {
           /*
            * This is the last status.
@@ -435,7 +479,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
               isRoot: true,
             },
           });
-          logger.debug("This is the last status.");
+          logger.debug("This is the last status.", {
+            monitorId: monitorId?.toString(),
+          } as LogAttributes);
         } else {
           /*
            * This status is in the middle.
@@ -461,7 +507,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
               isRoot: true,
             },
           });
-          logger.debug("This status is in the middle.");
+          logger.debug("This status is in the middle.", {
+            monitorId: monitorId?.toString(),
+          } as LogAttributes);
         }
       }
 

@@ -8,7 +8,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Errors from "../Utils/Errors";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
@@ -180,7 +180,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             userId: user.id!,
           },
         ).catch((err: Error) => {
-          logger.error(err);
+          logger.error(err, {
+            projectId: createBy.data.projectId?.toString(),
+            userId: user?.id?.toString(),
+          } as LogAttributes);
         });
       }
     }
@@ -326,7 +329,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         userId: member.userId!,
         endsAt: OneUptimeDate.getCurrentDate(),
       }).catch((err: Error) => {
-        logger.error(err);
+        logger.error(err, {
+          projectId: member.projectId?.toString(),
+          userId: member.userId?.toString(),
+        } as LogAttributes);
       });
 
       if (member.team?.shouldHaveAtLeastOneMember) {

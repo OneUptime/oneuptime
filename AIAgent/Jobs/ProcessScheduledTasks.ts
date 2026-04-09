@@ -15,7 +15,7 @@ import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import ObjectID from "Common/Types/ObjectID";
@@ -130,7 +130,10 @@ const executeTask: ExecuteTaskFunction = async (
 
 const startTaskProcessingLoop: () => Promise<void> =
   async (): Promise<void> => {
-    logger.info("Starting AI Agent task processing loop...");
+    logger.info(
+      "Starting AI Agent task processing loop...",
+      {} as LogAttributes,
+    );
 
     const getPendingTaskUrl: URL = URL.fromString(
       ONEUPTIME_URL.toString(),
@@ -150,9 +153,13 @@ const startTaskProcessingLoop: () => Promise<void> =
         });
 
         if (!getPendingTaskResult.isSuccess()) {
-          logger.error("Failed to fetch pending task from server");
+          logger.error(
+            "Failed to fetch pending task from server",
+            {} as LogAttributes,
+          );
           logger.debug(
             `Sleeping for ${SLEEP_WHEN_NO_TASKS_MS / 1000} seconds before retrying...`,
+            {} as LogAttributes,
           );
           await Sleep.sleep(SLEEP_WHEN_NO_TASKS_MS);
           continue;
@@ -163,9 +170,10 @@ const startTaskProcessingLoop: () => Promise<void> =
         const task: AIAgentTaskData | null = responseData.task;
 
         if (!task || !task._id) {
-          logger.debug("No pending tasks available");
+          logger.debug("No pending tasks available", {} as LogAttributes);
           logger.debug(
             `Sleeping for ${SLEEP_WHEN_NO_TASKS_MS / 1000} seconds before checking again...`,
+            {} as LogAttributes,
           );
           await Sleep.sleep(SLEEP_WHEN_NO_TASKS_MS);
           continue;
@@ -173,7 +181,15 @@ const startTaskProcessingLoop: () => Promise<void> =
 
         const taskId: string = task._id;
         const taskType: string = task.taskType || "Unknown";
-        logger.info(`Processing task: ${taskId} (type: ${taskType})`);
+        const taskLogAttrs: LogAttributes = {
+          taskId,
+          taskType,
+          projectId: task.projectId,
+        } as LogAttributes;
+        logger.info(
+          `Processing task: ${taskId} (type: ${taskType})`,
+          taskLogAttrs,
+        );
 
         try {
           /* Mark task as InProgress */
@@ -189,6 +205,7 @@ const startTaskProcessingLoop: () => Promise<void> =
           if (!inProgressResult.isSuccess()) {
             logger.error(
               `Failed to mark task ${taskId} as InProgress. Skipping.`,
+              taskLogAttrs,
             );
             continue;
           }
@@ -210,11 +227,14 @@ const startTaskProcessingLoop: () => Promise<void> =
           });
 
           if (!completedResult.isSuccess()) {
-            logger.error(`Failed to mark task ${taskId} as Completed`);
+            logger.error(
+              `Failed to mark task ${taskId} as Completed`,
+              taskLogAttrs,
+            );
           } else {
             /* Send task completed log */
             await AIAgentTaskLog.sendTaskCompletedLog(taskId);
-            logger.info(`Task completed successfully: ${taskId}`);
+            logger.info(`Task completed successfully: ${taskId}`, taskLogAttrs);
           }
         } catch (error) {
           /* Mark task as Error with error message */
@@ -234,20 +254,25 @@ const startTaskProcessingLoop: () => Promise<void> =
           if (!errorResult.isSuccess()) {
             logger.error(
               `Failed to mark task ${taskId} as Error: ${errorMessage}`,
+              taskLogAttrs,
             );
           }
 
           /* Send task error log */
           await AIAgentTaskLog.sendTaskErrorLog(taskId, errorMessage);
 
-          logger.error(`Task failed: ${taskId} - ${errorMessage}`);
-          logger.error(error);
+          logger.error(
+            `Task failed: ${taskId} - ${errorMessage}`,
+            taskLogAttrs,
+          );
+          logger.error(error, taskLogAttrs);
         }
       } catch (error) {
-        logger.error("Error in task processing loop:");
-        logger.error(error);
+        logger.error("Error in task processing loop:", {} as LogAttributes);
+        logger.error(error, {} as LogAttributes);
         logger.debug(
           `Sleeping for ${SLEEP_WHEN_NO_TASKS_MS / 1000} seconds before retrying...`,
+          {} as LogAttributes,
         );
         await Sleep.sleep(SLEEP_WHEN_NO_TASKS_MS);
       }

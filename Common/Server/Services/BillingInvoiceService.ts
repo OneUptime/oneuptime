@@ -15,7 +15,7 @@ import SubscriptionStatus, {
 } from "../../Types/Billing/SubscriptionStatus";
 import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import OneUptimeDate from "../../Types/Date";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -51,7 +51,9 @@ export class Service extends DatabaseService<Model> {
           " at " +
           OneUptimeDate.getCurrentDateAsFormattedString(),
       );
-      logger.error(err);
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
     }
 
     let project: Project | null = await ProjectService.findOneById({
@@ -183,7 +185,9 @@ export class Service extends DatabaseService<Model> {
             " at " +
             OneUptimeDate.getCurrentDateAsFormattedString(),
         );
-        logger.error(err);
+        logger.error(err, {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
       }
     }
   }

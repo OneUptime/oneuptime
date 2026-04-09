@@ -5,7 +5,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
 } from "../Utils/Express";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import Telemetry, { TelemetryCounter } from "../Utils/Telemetry";
 import Exception from "../../Types/Exception/Exception";
@@ -62,7 +62,7 @@ export default class StatusAPI {
     router.get("/status", (req: ExpressRequest, res: ExpressResponse) => {
       statusCheckSuccessCounter.add(1);
 
-      logger.info("Status check: ok");
+      logger.info("Status check: ok", getLogAttributesFromRequest(req as any));
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
@@ -127,17 +127,20 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.info("Ready check: Init");
+      logger.info("Ready check: Init", getLogAttributesFromRequest(req as any));
       await options.readyCheck();
-      logger.info("Ready check: ok");
+      logger.info("Ready check: ok", getLogAttributesFromRequest(req as any));
       stausReadySuccess.add(1);
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
       });
     } catch (e) {
-      logger.error("Ready check: failed");
-      logger.error(e);
+      logger.error(
+        "Ready check: failed",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(e, getLogAttributesFromRequest(req as any));
 
       stausReadyFailed.add(1);
       Response.sendErrorResponse(
@@ -157,17 +160,20 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.info("Live check: Init");
+      logger.info("Live check: Init", getLogAttributesFromRequest(req as any));
       await options.liveCheck();
-      logger.info("Live check: ok");
+      logger.info("Live check: ok", getLogAttributesFromRequest(req as any));
       stausLiveSuccess.add(1);
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
       });
     } catch (e) {
-      logger.error("Live check: failed");
-      logger.error(e);
+      logger.error(
+        "Live check: failed",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(e, getLogAttributesFromRequest(req as any));
       stausLiveFailed.add(1);
       Response.sendErrorResponse(
         req,
@@ -184,13 +190,19 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Global cache check");
+      logger.debug(
+        "Global cache check",
+        getLogAttributesFromRequest(req as any),
+      );
       if (options.globalCacheCheck) {
         await options.globalCacheCheck();
       } else {
         throw new BadRequestException("Global cache check not implemented");
       }
-      logger.info("Global cache check: ok");
+      logger.info(
+        "Global cache check: ok",
+        getLogAttributesFromRequest(req as any),
+      );
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
@@ -213,7 +225,10 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Analytics database check");
+      logger.debug(
+        "Analytics database check",
+        getLogAttributesFromRequest(req as any),
+      );
       if (options.analyticsDatabaseCheck) {
         await options.analyticsDatabaseCheck();
       } else {
@@ -221,7 +236,10 @@ export default class StatusAPI {
           "Analytics database check not implemented",
         );
       }
-      logger.info("Analytics database check: ok");
+      logger.info(
+        "Analytics database check: ok",
+        getLogAttributesFromRequest(req as any),
+      );
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
@@ -244,7 +262,7 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Database check");
+      logger.debug("Database check", getLogAttributesFromRequest(req as any));
 
       if (options.databaseCheck) {
         await options.databaseCheck();
@@ -252,7 +270,10 @@ export default class StatusAPI {
         throw new BadRequestException("Database check not implemented");
       }
 
-      logger.info("Database check: ok");
+      logger.info(
+        "Database check: ok",
+        getLogAttributesFromRequest(req as any),
+      );
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",

@@ -9,7 +9,9 @@ import {
 } from "Common/Server/Utils/Express";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import protobuf from "protobufjs";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import path from "path";
 import zlib from "zlib";
 import { promisify } from "util";
@@ -149,8 +151,14 @@ export default class OpenTelemetryRequestMiddleware {
 
       (req as TelemetryRequest).productType = productType;
 
-      logger.debug("Product Type: " + productType);
-      logger.debug("Is Protobuf: " + isProtobuf);
+      logger.debug(
+        "Product Type: " + productType,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        "Is Protobuf: " + isProtobuf,
+        getLogAttributesFromRequest(req as any),
+      );
 
       next();
     } catch (err) {

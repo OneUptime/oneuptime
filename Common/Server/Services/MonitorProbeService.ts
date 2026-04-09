@@ -11,7 +11,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
 import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import CronTab from "../Utils/CronTab";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
@@ -54,7 +54,9 @@ export class Service extends DatabaseService<MonitorProbe> {
           monitorProbe?.monitor?.monitoringInterval as string,
         );
       } catch (err) {
-        logger.error(err);
+        logger.error(err, {
+          monitorId: data.monitorId?.toString(),
+        } as LogAttributes);
       }
 
       if (nextPing && monitorProbe.id) {

@@ -2,7 +2,7 @@ import {
   IsBillingEnabled,
   NotificationSlackWebhookOnSubscriptionUpdate,
 } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
 import ProjectService from "./ProjectService";
@@ -129,6 +129,7 @@ export class NotificationService extends BaseService {
       }).catch((error: Exception) => {
         logger.error(
           "Error sending slack message for balance refill: " + error,
+          { projectId: projectId?.toString() } as LogAttributes,
         );
       });
 
@@ -153,7 +154,7 @@ export class NotificationService extends BaseService {
           project.name || ""
         } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
       );
-      logger.error(err);
+      logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
       throw err;
     }
   }
@@ -245,6 +246,7 @@ ${project.createdOwnerName && project.createdOwnerEmail ? `*Project Created By:*
       }).catch((error: Exception) => {
         logger.error(
           "Error sending slack message for balance refill: " + error,
+          { projectId: project.id?.toString() } as LogAttributes,
         );
       });
     }

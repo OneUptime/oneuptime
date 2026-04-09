@@ -2,7 +2,7 @@ import ProjectSCIMLog from "Common/Models/DatabaseModels/ProjectSCIMLog";
 import StatusPageSCIMLog from "Common/Models/DatabaseModels/StatusPageSCIMLog";
 import ProjectSCIMLogService from "Common/Server/Services/ProjectSCIMLogService";
 import StatusPageSCIMLogService from "Common/Server/Services/StatusPageSCIMLogService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import { JSONObject, JSONValue, JSONArray } from "Common/Types/JSON";
@@ -205,8 +205,9 @@ export const createProjectSCIMLog: (
     });
   } catch (err) {
     // Log errors silently to not affect SCIM operations
-    logger.error("Failed to create Project SCIM log entry:");
-    logger.error(err);
+    const attrs: LogAttributes = { projectId: data.projectId?.toString() };
+    logger.error("Failed to create Project SCIM log entry:", attrs);
+    logger.error(err, attrs);
   }
 };
 
@@ -251,8 +252,9 @@ export const createStatusPageSCIMLog: (
     });
   } catch (err) {
     // Log errors silently to not affect SCIM operations
-    logger.error("Failed to create Status Page SCIM log entry:");
-    logger.error(err);
+    const attrs: LogAttributes = { projectId: data.projectId?.toString() };
+    logger.error("Failed to create Status Page SCIM log entry:", attrs);
+    logger.error(err, attrs);
   }
 };
 

@@ -209,8 +209,15 @@ RunCron(
         } catch (e) {
           logger.error(
             "Error in sending incident episode created resource notification",
+            {
+              projectId: projectId?.toString(),
+              incidentEpisodeId: episodeId?.toString(),
+            },
           );
-          logger.error(e);
+          logger.error(e, {
+            projectId: projectId?.toString(),
+            incidentEpisodeId: episodeId?.toString(),
+          });
         }
       }
 

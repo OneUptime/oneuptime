@@ -5,7 +5,7 @@ import { JSONObject } from "../../../Types/JSON";
 import API from "../../../Utils/API";
 import LlmType from "../../../Types/LLM/LlmType";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export interface LLMMessage {
@@ -92,9 +92,14 @@ export default class LLMService {
         },
       });
 
+    const openAILogAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
+
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from OpenAI API:");
-      logger.error(response);
+      logger.error("Error from OpenAI API:", openAILogAttributes);
+      logger.error(response, openAILogAttributes);
       throw new BadDataException(
         `OpenAI API error: ${JSON.stringify(response.jsonData)}`,
       );
@@ -175,9 +180,14 @@ export default class LLMService {
         },
       });
 
+    const anthropicLogAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
+
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from Anthropic API:");
-      logger.error(response);
+      logger.error("Error from Anthropic API:", anthropicLogAttributes);
+      logger.error(response, anthropicLogAttributes);
       throw new BadDataException(
         `Anthropic API error: ${JSON.stringify(response.jsonData)}`,
       );
@@ -253,9 +263,14 @@ export default class LLMService {
         },
       });
 
+    const ollamaLogAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
+
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from Ollama API:");
-      logger.error(response);
+      logger.error("Error from Ollama API:", ollamaLogAttributes);
+      logger.error(response, ollamaLogAttributes);
       throw new BadDataException(
         `Ollama API error: ${JSON.stringify(response.jsonData)}`,
       );

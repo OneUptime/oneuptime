@@ -19,7 +19,7 @@ import Dictionary from "../../Types/Dictionary";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { SMSMessage } from "../../Types/SMS/SMS";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -56,8 +56,10 @@ export class Service extends DatabaseService<Model> {
         OneUptimeDate.toString(lastAlive),
       );
     } catch (err) {
-      logger.error("Error in saving last alive in cache");
-      logger.error(err);
+      logger.error("Error in saving last alive in cache", {
+        projectId: probeId?.toString(),
+      } as LogAttributes);
+      logger.error(err, { projectId: probeId?.toString() } as LogAttributes);
     }
   }
 
@@ -95,8 +97,10 @@ export class Service extends DatabaseService<Model> {
       await this.saveLastAliveInCache(probeId, now);
     } catch (err) {
       // failed to hit the cache, so we will hit the database
-      logger.error("Error in getting last alive from cache");
-      logger.error(err);
+      logger.error("Error in getting last alive from cache", {
+        probeId: probeId?.toString(),
+      } as LogAttributes);
+      logger.error(err, { probeId: probeId?.toString() } as LogAttributes);
     }
 
     return true;
@@ -413,8 +417,13 @@ export class Service extends DatabaseService<Model> {
           eventType,
         });
       } catch (e) {
-        logger.error("Error in sending incident created resource notification");
-        logger.error(e);
+        logger.error(
+          "Error in sending incident created resource notification",
+          { projectId: probe.projectId?.toString() } as LogAttributes,
+        );
+        logger.error(e, {
+          projectId: probe.projectId?.toString(),
+        } as LogAttributes);
       }
     }
   }

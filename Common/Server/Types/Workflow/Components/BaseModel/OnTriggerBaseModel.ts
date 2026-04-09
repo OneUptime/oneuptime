@@ -6,7 +6,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../../Utils/Express";
-import logger from "../../../../Utils/Logger";
+import logger, { LogAttributes } from "../../../../Utils/Logger";
 import Response from "../../../../Utils/Response";
 import Select from "../../../Database/Select";
 import { RunOptions, RunReturnType } from "../../ComponentCode";
@@ -131,8 +131,13 @@ export default class OnTriggerBaseModel<
 
     let select: Select<TBaseModel> = args["select"] as Select<TBaseModel>;
 
-    logger.debug("Select: ");
-    logger.debug(select);
+    const runLogAttributes: LogAttributes = {
+      projectId: options.projectId.toString(),
+      workflowId: options.workflowId.toString(),
+    };
+
+    logger.debug("Select: ", runLogAttributes);
+    logger.debug(select, runLogAttributes);
 
     if (select && typeof select === "string") {
       select = JSONFunctions.parse(select) as Select<TBaseModel>;
@@ -236,7 +241,10 @@ export default class OnTriggerBaseModel<
               listenOn = JSON.parse(listenOn);
             }
           } catch (err) {
-            logger.error(err);
+            logger.error(err, {
+              projectId: req.params["projectId"],
+              workflowId: workflow.id?.toString(),
+            });
             continue;
           }
 

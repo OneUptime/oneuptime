@@ -1,5 +1,5 @@
 import IO, { Socket, SocketServer } from "../Infrastructure/SocketIO";
-import logger from "./Logger";
+import logger, { LogAttributes } from "./Logger";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseType from "../../Types/BaseDatabase/DatabaseType";
@@ -49,20 +49,24 @@ export default abstract class Realtime {
           logger.debug("Received ListenToModalEvent with data:");
           logger.debug(data);
 
+          const socketLogAttributes: LogAttributes = {
+            projectId: data["tenantId"]?.toString(),
+          };
+
           if (typeof data["eventType"] !== "string") {
-            logger.error("eventType is not a string");
+            logger.error("eventType is not a string", socketLogAttributes);
             throw new BadDataException("eventType is not a string");
           }
           if (typeof data["modelType"] !== "string") {
-            logger.error("modelType is not a string");
+            logger.error("modelType is not a string", socketLogAttributes);
             throw new BadDataException("modelType is not a string");
           }
           if (typeof data["modelName"] !== "string") {
-            logger.error("modelName is not a string");
+            logger.error("modelName is not a string", socketLogAttributes);
             throw new BadDataException("modelName is not a string");
           }
           if (typeof data["tenantId"] !== "string") {
-            logger.error("tenantId is not a string");
+            logger.error("tenantId is not a string", socketLogAttributes);
             throw new BadDataException("tenantId is not a string");
           }
 
@@ -84,11 +88,18 @@ export default abstract class Realtime {
     socket: Socket,
     data: ListenToModelEventJSON,
   ): Promise<void> {
-    logger.debug("Listening to model event with data:");
-    logger.debug(data);
+    const listenLogAttributes: LogAttributes = {
+      projectId: data.tenantId?.toString(),
+    };
+
+    logger.debug("Listening to model event with data:", listenLogAttributes);
+    logger.debug(data, listenLogAttributes);
 
     if (!this.socketServer) {
-      logger.debug("Socket server not initialized, initializing now");
+      logger.debug(
+        "Socket server not initialized, initializing now",
+        listenLogAttributes,
+      );
       await this.init();
     }
 
@@ -97,42 +108,56 @@ export default abstract class Realtime {
      * and to this model and to this event type
      */
 
-    logger.debug("Extracting user access token from socket");
+    logger.debug(
+      "Extracting user access token from socket",
+      listenLogAttributes,
+    );
     const userAccessToken: string | undefined =
       this.getAccessTokenFromSocket(socket);
 
     if (!userAccessToken) {
       logger.debug(
         "User access token not found in socket, aborting joining room",
+        listenLogAttributes,
       );
       return;
     }
 
-    logger.debug("Decoding user access token");
+    logger.debug("Decoding user access token", listenLogAttributes);
     const userAuthorizationData: JSONWebTokenData =
       JSONWebToken.decode(userAccessToken);
 
     if (!userAuthorizationData) {
       logger.debug(
         "User authorization data not found in socket, aborting joining room",
+        listenLogAttributes,
       );
       return;
     }
 
     if (!userAuthorizationData.userId) {
-      logger.debug("User ID not found in socket, aborting joining room");
+      logger.debug(
+        "User ID not found in socket, aborting joining room",
+        listenLogAttributes,
+      );
       return;
     }
 
-    logger.debug("Checking user access permissions");
+    logger.debug("Checking user access permissions", listenLogAttributes);
     let hasAccess: boolean = false;
 
     if (userAuthorizationData.isMasterAdmin) {
-      logger.debug("User is a master admin, granting access");
+      logger.debug(
+        "User is a master admin, granting access",
+        listenLogAttributes,
+      );
       hasAccess = true;
     }
 
-    logger.debug("Fetching user global access permissions");
+    logger.debug(
+      "Fetching user global access permissions",
+      listenLogAttributes,
+    );
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
       await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(
         userAuthorizationData.userId,
@@ -140,7 +165,10 @@ export default abstract class Realtime {
 
     // check if the user has access to this tenant
     if (userGlobalAccessPermission && !hasAccess) {
-      logger.debug("Checking if user has access to the tenant");
+      logger.debug(
+        "Checking if user has access to the tenant",
+        listenLogAttributes,
+      );
       const hasAccessToProjectId: boolean =
         userGlobalAccessPermission.projectIds.some((projectId: ObjectID) => {
           return projectId.toString() === data.tenantId.toString();
@@ -149,11 +177,15 @@ export default abstract class Realtime {
       if (!hasAccessToProjectId) {
         logger.debug(
           "User does not have access to this tenant, aborting joining room",
+          listenLogAttributes,
         );
         return;
       }
 
-      logger.debug("User has access to the tenant, checking model access");
+      logger.debug(
+        "User has access to the tenant, checking model access",
+        listenLogAttributes,
+      );
       const userId: ObjectID = new ObjectID(
         userAuthorizationData.userId.toString(),
       );
@@ -174,7 +206,10 @@ export default abstract class Realtime {
           data.modelName,
         )
       ) {
-        logger.debug("User has access to the model, granting access");
+        logger.debug(
+          "User has access to the model, granting access",
+          listenLogAttributes,
+        );
         hasAccess = true;
       }
     }
@@ -182,6 +217,7 @@ export default abstract class Realtime {
     if (!hasAccess) {
       logger.debug(
         "User does not have access to this tenant, aborting joining room",
+        listenLogAttributes,
       );
       return;
     }
@@ -194,7 +230,7 @@ export default abstract class Realtime {
         data.modelId,
       );
 
-      logger.debug(`Joining room with ID: ${modelRoomId}`);
+      logger.debug(`Joining room with ID: ${modelRoomId}`, listenLogAttributes);
       // join the room.
       await socket.join(modelRoomId);
     } else {
@@ -204,7 +240,7 @@ export default abstract class Realtime {
         data.eventType,
       );
 
-      logger.debug(`Joining room with ID: ${roomId}`);
+      logger.debug(`Joining room with ID: ${roomId}`, listenLogAttributes);
       // join the room.
       await socket.join(roomId);
     }
@@ -215,11 +251,21 @@ export default abstract class Realtime {
     socket: Socket,
     data: ListenToModelEventJSON,
   ): Promise<void> {
-    logger.debug("Stopping listening to model event with data:");
-    logger.debug(data);
+    const stopLogAttributes: LogAttributes = {
+      projectId: data.tenantId?.toString(),
+    };
+
+    logger.debug(
+      "Stopping listening to model event with data:",
+      stopLogAttributes,
+    );
+    logger.debug(data, stopLogAttributes);
 
     if (!this.socketServer) {
-      logger.debug("Socket server not initialized, initializing now");
+      logger.debug(
+        "Socket server not initialized, initializing now",
+        stopLogAttributes,
+      );
       await this.init();
     }
 
@@ -230,7 +276,7 @@ export default abstract class Realtime {
       data.modelId,
     );
 
-    logger.debug(`Leaving room with ID: ${roomId}`);
+    logger.debug(`Leaving room with ID: ${roomId}`, stopLogAttributes);
     // leave this room.
     await socket.leave(roomId);
   }
@@ -242,13 +288,20 @@ export default abstract class Realtime {
     modelId: ObjectID;
     modelType: { new (): BaseModel | AnalyticsBaseModel };
   }): Promise<void> {
-    logger.debug("Emitting model event with data:");
-    logger.debug(`Tenant ID: ${data.tenantId}`);
-    logger.debug(`Event Type: ${data.eventType}`);
-    logger.debug(`Model ID: ${data.modelId}`);
+    const emitLogAttributes: LogAttributes = {
+      projectId: data.tenantId?.toString(),
+    };
+
+    logger.debug("Emitting model event with data:", emitLogAttributes);
+    logger.debug(`Tenant ID: ${data.tenantId}`, emitLogAttributes);
+    logger.debug(`Event Type: ${data.eventType}`, emitLogAttributes);
+    logger.debug(`Model ID: ${data.modelId}`, emitLogAttributes);
 
     if (!this.socketServer) {
-      logger.debug("Socket server not initialized, initializing now");
+      logger.debug(
+        "Socket server not initialized, initializing now",
+        emitLogAttributes,
+      );
       await this.init();
     }
 
@@ -259,7 +312,10 @@ export default abstract class Realtime {
     const model: BaseModel | AnalyticsBaseModel = new data.modelType();
 
     if (!model.tableName) {
-      logger.warn("Model does not have a tableName, aborting emit");
+      logger.warn(
+        "Model does not have a tableName, aborting emit",
+        emitLogAttributes,
+      );
       return;
     }
 
@@ -276,8 +332,11 @@ export default abstract class Realtime {
       data.modelId,
     );
 
-    logger.debug(`Emitting event to room with ID: ${roomId}`);
-    logger.debug(jsonObject);
+    logger.debug(
+      `Emitting event to room with ID: ${roomId}`,
+      emitLogAttributes,
+    );
+    logger.debug(jsonObject, emitLogAttributes);
 
     this.socketServer!.to(roomId).emit(roomId, jsonObject);
     this.socketServer!.to(modelRoomId).emit(modelRoomId, jsonObject);

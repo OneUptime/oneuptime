@@ -11,9 +11,10 @@ import {
 } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import JSONWebToken from "../Utils/JsonWebToken";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -104,7 +105,10 @@ export default class UserMiddleware {
             value as string,
           ).projectId?.toString();
         } catch (err) {
-          logger.error(err);
+          logger.error(
+            err,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           continue;
         }
 
@@ -146,12 +150,15 @@ export default class UserMiddleware {
               ssoTokens[projectId] = token;
             }
           } catch (err) {
-            logger.error(err);
+            logger.error(
+              err,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
             continue;
           }
         }
       } catch (err) {
-        logger.error(err);
+        logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
       }
     }
 
@@ -217,7 +224,7 @@ export default class UserMiddleware {
       oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
     } catch (err) {
       // if the token is invalid or expired, return 401 so clients can refresh the token.
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(oneuptimeRequest));
       return Response.sendErrorResponse(
         req,
         res,
@@ -234,6 +241,16 @@ export default class UserMiddleware {
     }
 
     const userId: string = oneuptimeRequest.userAuthorization.userId.toString();
+
+    // Tag the current span with user and project context for observability
+    SpanUtil.addAttributesToCurrentSpan({
+      userId: userId,
+      userType: oneuptimeRequest.userType,
+      ...(tenantId ? { projectId: tenantId.toString() } : {}),
+      ...(oneuptimeRequest.requestId
+        ? { requestId: oneuptimeRequest.requestId }
+        : {}),
+    });
 
     await UserService.updateOneBy({
       query: {

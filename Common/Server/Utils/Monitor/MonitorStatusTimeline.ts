@@ -6,7 +6,7 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import ObjectID from "../../../Types/ObjectID";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 
@@ -71,8 +71,13 @@ export default class MonitorStatusTimelineUtil {
     }
 
     if (shouldUpdateStatus) {
+      const monitorLogAttributes: LogAttributes = {
+        projectId: input.monitor.projectId?.toString(),
+      };
+
       logger.debug(
         `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId?.toString()}`,
+        monitorLogAttributes,
       );
       // change monitor status
 

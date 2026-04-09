@@ -146,7 +146,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     projectId: ObjectID;
   }): Promise<string> {
-    logger.debug("=== getValidAccessToken called ===");
+    logger.debug("=== getValidAccessToken called ===", {
+      projectId: data.projectId?.toString(),
+    });
 
     if (!data.projectId) {
       throw new BadDataException(
@@ -175,6 +177,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     if (!projectAuth || !projectAuth.miscData) {
       logger.error(
         "Microsoft Teams integration not found for this project - no project auth or miscData",
+        {
+          projectId: data.projectId.toString(),
+        },
       );
       throw new BadDataException(
         "Microsoft Teams integration not found for this project",
@@ -190,6 +195,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     if (!tenantId) {
       logger.error(
         "Microsoft Teams tenant ID missing from project auth configuration",
+        {
+          projectId: data.projectId.toString(),
+        },
       );
       throw new BadDataException(
         "Microsoft Teams tenant ID not found for this project",
@@ -260,7 +268,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     // If refresh failed, throw error
-    logger.error("Could not obtain valid access token for Microsoft Teams");
+    logger.error("Could not obtain valid access token for Microsoft Teams", {
+      projectId: data.projectId.toString(),
+    });
     throw new BadDataException(
       "Could not obtain valid access token for Microsoft Teams",
     );
@@ -272,7 +282,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     miscData: MicrosoftTeamsMiscData;
     tenantId: string;
   }): Promise<string | null> {
-    logger.debug("=== refreshAccessToken called ===");
+    logger.debug("=== refreshAccessToken called ===", {
+      projectId: data.projectId?.toString(),
+    });
 
     if (!data.projectId) {
       throw new BadDataException(
@@ -391,7 +403,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       return newAccessToken;
     } catch (error) {
-      logger.error("Error refreshing Microsoft Teams access token:");
+      logger.error("Error refreshing Microsoft Teams access token:", {
+        projectId: data.projectId.toString(),
+      });
       logger.error(error);
       return null;
     }
@@ -693,7 +707,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<string | null> {
-    logger.debug("Getting username from user ID with data:");
+    logger.debug("Getting username from user ID with data:", {
+      projectId: data.projectId.toString(),
+      userId: data.userId,
+    });
     logger.debug(data);
 
     // Get valid access token
@@ -717,7 +734,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(response);
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Microsoft Graph API:");
+      logger.error("Error response from Microsoft Graph API:", {
+        projectId: data.projectId.toString(),
+        userId: data.userId,
+      });
       logger.error(response);
       throw response;
     }
@@ -1019,7 +1039,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
-    logger.debug("=== MicrosoftTeamsUtil.sendMessage called ===");
+    logger.debug("=== MicrosoftTeamsUtil.sendMessage called ===", {
+      projectId: data.projectId.toString(),
+    });
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
 
@@ -1124,7 +1146,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.debug(`Channel info obtained: ${JSON.stringify(channel)}`);
         workspaceChannelsToPostTo.push(channel);
       } catch (err) {
-        logger.error(`Error getting channel info for channel ID ${channelId}:`);
+        logger.error(
+          `Error getting channel info for channel ID ${channelId}:`,
+          {
+            projectId: data.projectId.toString(),
+            channelId: channelId,
+          },
+        );
         logger.error(err);
       }
     }
@@ -1172,7 +1200,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           workspaceMessageResponse.threads.push(lastThread);
         }
       } catch (e) {
-        logger.error(`Error sending message to channel ID ${channel.id}:`);
+        logger.error(`Error sending message to channel ID ${channel.id}:`, {
+          projectId: data.projectId.toString(),
+          channelId: channel.id,
+        });
         logger.error(e);
         workspaceMessageResponse.errors!.push({
           channel: channel,
@@ -1230,6 +1261,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     logger.debug(
       `Sending adaptive card to channel via Bot Framework: ${data.workspaceChannel.name} (${data.workspaceChannel.id})`,
+      {
+        projectId: data.projectId.toString(),
+        channelId: data.workspaceChannel.id,
+        teamId: data.teamId,
+      },
     );
     logger.debug(`Team ID: ${data.teamId}`);
     logger.debug(`Adaptive card: ${JSON.stringify(data.adaptiveCard)}`);
@@ -1331,7 +1367,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
       return thread;
     } catch (error) {
-      logger.error("Error sending adaptive card via Bot Framework:");
+      logger.error("Error sending adaptive card via Bot Framework:", {
+        projectId: data.projectId.toString(),
+        channelId: data.workspaceChannel.id,
+        teamId: data.teamId,
+      });
       logger.error(error);
       throw error;
     }
@@ -1344,7 +1384,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     teamId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
-    logger.debug("=== getWorkspaceChannelFromChannelId called ===");
+    logger.debug("=== getWorkspaceChannelFromChannelId called ===", {
+      projectId: data.projectId?.toString(),
+      channelId: data.channelId,
+      teamId: data.teamId,
+    });
 
     if (!data.projectId) {
       throw new BadDataException(
@@ -1391,7 +1435,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error getting channel info from Microsoft Graph API:");
+        logger.error("Error getting channel info from Microsoft Graph API:", {
+          projectId: data.projectId.toString(),
+          channelId: data.channelId,
+          teamId: data.teamId,
+        });
         logger.error(response);
         // Fall back to basic channel object
         logger.debug("Falling back to basic channel object");
@@ -1416,7 +1464,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Channel info retrieved: ${JSON.stringify(channel)}`);
       return channel;
     } catch (error) {
-      logger.error("Error fetching channel information:");
+      logger.error("Error fetching channel information:", {
+        projectId: data.projectId.toString(),
+        channelId: data.channelId,
+        teamId: data.teamId,
+      });
       logger.error(error);
       throw error;
     }
@@ -1901,7 +1953,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       });
 
     if (!projectAuth || !projectAuth.projectId) {
-      logger.error("Project auth not found for tenant ID: " + tenantId);
+      logger.error("Project auth not found for tenant ID: " + tenantId, {
+        tenantId: tenantId,
+      });
       await data.turnContext.sendActivity(
         "Sorry, I couldn't find your project configuration. Please try again later.",
       );
@@ -1990,9 +2044,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       // Send response directly using TurnContext - this is the recommended Bot Framework pattern
       await data.turnContext.sendActivity(responseText);
-      logger.debug("Bot message sent successfully using TurnContext");
+      logger.debug("Bot message sent successfully using TurnContext", {
+        projectId: projectId.toString(),
+      });
     } catch (error) {
-      logger.error("Error sending bot message via TurnContext: " + error);
+      logger.error("Error sending bot message via TurnContext: " + error, {
+        projectId: projectId.toString(),
+      });
       await data.turnContext.sendActivity(
         "Sorry, I encountered an error processing your request. Please try again later.",
       );
@@ -2503,6 +2561,9 @@ All monitoring checks are passing normally.`;
       if (!projectAuth || !projectAuth.projectId) {
         logger.error(
           "Project auth not found for invoke activity tenant: " + tenantId,
+          {
+            tenantId: tenantId,
+          },
         );
         await data.turnContext.sendActivity(
           "Sorry, I couldn't find your project configuration.",
@@ -2519,6 +2580,9 @@ All monitoring checks are passing normally.`;
       if (!teamsUserId) {
         logger.error(
           "AAD Object ID (teamsUserId) not found in invoke activity from object",
+          {
+            projectId: projectId.toString(),
+          },
         );
         await data.turnContext.sendActivity(
           "Sorry, I couldn't identify you. Please try again later.",
@@ -2644,7 +2708,9 @@ All monitoring checks are passing normally.`;
         return;
       }
     } catch (error) {
-      logger.error("Error handling bot invoke activity:");
+      logger.error("Error handling bot invoke activity:", {
+        actionType: actionType,
+      });
       logger.error(error);
       await data.turnContext.sendActivity(
         "Sorry, that action failed. Please try again later.",
@@ -2981,7 +3047,9 @@ All monitoring checks are passing normally.`;
     userId?: ObjectID;
     userAccessToken?: string;
   }): Promise<Record<string, { id: string; name: string }>> {
-    logger.debug("=== refreshTeams called ===");
+    logger.debug("=== refreshTeams called ===", {
+      projectId: data.projectId?.toString(),
+    });
 
     if (!data.projectId) {
       throw new BadDataException(
@@ -3076,7 +3144,9 @@ All monitoring checks are passing normally.`;
             });
 
           if (teamsResponse instanceof HTTPErrorResponse) {
-            logger.error("Error fetching teams from Microsoft Teams:");
+            logger.error("Error fetching teams from Microsoft Teams:", {
+              projectId: data.projectId.toString(),
+            });
             logger.error(teamsResponse);
             throw new BadDataException(
               "Failed to fetch teams from Microsoft Teams",
@@ -3136,7 +3206,9 @@ All monitoring checks are passing normally.`;
 
       return availableTeams;
     } catch (error) {
-      logger.error("Error refreshing teams:");
+      logger.error("Error refreshing teams:", {
+        projectId: data.projectId.toString(),
+      });
       logger.error(error);
       throw error;
     }
@@ -3148,7 +3220,10 @@ All monitoring checks are passing normally.`;
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<Array<JSONObject>> {
-    logger.debug("=== getUserJoinedTeams called ===");
+    logger.debug("=== getUserJoinedTeams called ===", {
+      projectId: data.projectId.toString(),
+      userId: data.userId.toString(),
+    });
     logger.debug(`User ID: ${data.userId.toString()}`);
     logger.debug(`Project ID: ${data.projectId.toString()}`);
 
@@ -3205,7 +3280,10 @@ All monitoring checks are passing normally.`;
 
       return teams;
     } catch (error) {
-      logger.error("Error getting user joined teams:");
+      logger.error("Error getting user joined teams:", {
+        projectId: data.projectId.toString(),
+        userId: data.userId.toString(),
+      });
       logger.error(error);
       throw error;
     }

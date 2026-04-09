@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import ChartGroup, {
@@ -22,7 +28,14 @@ import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import MetricUtil from "./Utils/Metrics";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Navigation from "Common/UI/Utils/Navigation";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -36,6 +49,70 @@ export interface ComponentProps {
 const MetricCharts: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Exemplar data keyed by metric name
+  const [exemplarsByMetric, setExemplarsByMetric] = useState<
+    Record<string, Array<ExemplarPoint>>
+  >({});
+
+  // Fetch exemplars for all queried metrics
+  useEffect(() => {
+    if (
+      !props.metricViewData.startAndEndDate?.startValue ||
+      !props.metricViewData.startAndEndDate?.endValue
+    ) {
+      return;
+    }
+
+    const startAndEndDate: InBetween<Date> = new InBetween<Date>(
+      props.metricViewData.startAndEndDate.startValue as Date,
+      props.metricViewData.startAndEndDate.endValue as Date,
+    );
+
+    for (const queryConfig of props.metricViewData.queryConfigs) {
+      const metricName: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      if (!metricName) {
+        continue;
+      }
+
+      MetricUtil.fetchExemplars({
+        metricName,
+        startAndEndDate,
+      })
+        .then((exemplars: Array<ExemplarPoint>) => {
+          setExemplarsByMetric((prev: Record<string, Array<ExemplarPoint>>) => {
+            return {
+              ...prev,
+              [metricName]: exemplars,
+            };
+          });
+        })
+        .catch(() => {
+          // Best-effort: don't break charts if exemplar fetch fails
+        });
+    }
+  }, [props.metricViewData.startAndEndDate, props.metricViewData.queryConfigs]);
+
+  const handleExemplarClick: (exemplar: ExemplarPoint) => void = useCallback(
+    (exemplar: ExemplarPoint): void => {
+      const route: Route = RouteUtil.populateRouteParams(
+        RouteMap[PageMap.TRACE_VIEW]!,
+        {
+          modelId: exemplar.traceId,
+        },
+      );
+
+      if (exemplar.spanId) {
+        const routeWithQuery: Route = new Route(route.toString());
+        routeWithQuery.addQueryParams({ spanId: exemplar.spanId });
+        Navigation.navigate(routeWithQuery);
+      } else {
+        Navigation.navigate(route);
+      }
+    },
+    [],
+  );
+
   type GetChartXAxisTypeFunction = () => XAxisType;
 
   const getChartXAxisType: GetChartXAxisTypeFunction = (): XAxisType => {
@@ -232,15 +309,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         unit,
       };
 
+      // Get exemplar data for this metric
+      const metricNameStr: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      const chartExemplars: Array<ExemplarPoint> =
+        exemplarsByMetric[metricNameStr] || [];
+
       const chart: Chart = {
         id: index.toString(),
         type: chartType,
-        title:
-          queryConfig.metricAliasData?.title ||
-          queryConfig.metricQueryData.filterData.metricName?.toString() ||
-          "",
+        title: queryConfig.metricAliasData?.title || metricNameStr || "",
         description: queryConfig.metricAliasData?.description || "",
         metricInfo,
+        exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
+        onExemplarClick: handleExemplarClick,
         props: {
           data: chartSeries,
           xAxis: {

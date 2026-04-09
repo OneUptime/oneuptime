@@ -9,8 +9,9 @@ import {
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import Response from "../Utils/Response";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -41,7 +42,10 @@ export default class TelemetryIngest {
       }
 
       if (!oneuptimeToken) {
-        logger.error("Missing header: x-oneuptime-token");
+        logger.error(
+          "Missing header: x-oneuptime-token",
+          getLogAttributesFromRequest(req as any),
+        );
 
         if (isOpenTelemetryAPI) {
           /*
@@ -70,7 +74,10 @@ export default class TelemetryIngest {
         });
 
       if (!token) {
-        logger.error("Invalid service token: " + oneuptimeToken);
+        logger.error(
+          "Invalid service token: " + oneuptimeToken,
+          getLogAttributesFromRequest(req as any),
+        );
 
         if (isOpenTelemetryAPI) {
           /*
@@ -90,6 +97,7 @@ export default class TelemetryIngest {
       if (!projectId) {
         logger.error(
           "Project ID not found for service token: " + oneuptimeToken,
+          getLogAttributesFromRequest(req as any),
         );
 
         if (isOpenTelemetryAPI) {
@@ -106,6 +114,11 @@ export default class TelemetryIngest {
       }
 
       (req as TelemetryRequest).projectId = projectId as ObjectID;
+
+      // Tag span with project context for telemetry ingestion observability
+      SpanUtil.addAttributesToCurrentSpan({
+        projectId: projectId.toString(),
+      });
 
       next();
     } catch (err) {

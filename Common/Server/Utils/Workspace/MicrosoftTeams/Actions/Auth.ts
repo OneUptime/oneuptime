@@ -100,7 +100,9 @@ export default class MicrosoftTeamsAuthAction {
 
     // Find the project associated with this team
     if (!teamId) {
-      logger.debug("No team ID found in payload");
+      logger.debug("No team ID found in payload", {
+        tenantId: tenantId,
+      });
       return {
         isAuthorized: false,
         projectId: new ObjectID(""),
@@ -130,7 +132,10 @@ export default class MicrosoftTeamsAuthAction {
         },
       });
     } catch (error) {
-      logger.debug("Error finding project auth token:");
+      logger.debug("Error finding project auth token:", {
+        teamId: teamId,
+        tenantId: tenantId,
+      });
       logger.debug(error);
       return {
         isAuthorized: false,
@@ -142,7 +147,10 @@ export default class MicrosoftTeamsAuthAction {
     }
 
     if (!projectAuthToken) {
-      logger.debug(`No project auth token found for team: ${teamId}`);
+      logger.debug(`No project auth token found for team: ${teamId}`, {
+        teamId: teamId,
+        tenantId: tenantId,
+      });
       return {
         isAuthorized: false,
         projectId: new ObjectID(""),
@@ -219,6 +227,10 @@ export default class MicrosoftTeamsAuthAction {
       if (workspaceUserAuthToken && workspaceUserAuthToken.userId) {
         logger.debug(
           "Found OneUptime user for Teams user: " + data.teamsUserId,
+          {
+            projectId: data.projectId.toString(),
+            workspaceUserId: data.teamsUserId,
+          },
         );
         return workspaceUserAuthToken.userId;
       }
@@ -229,6 +241,10 @@ export default class MicrosoftTeamsAuthAction {
     } catch (error) {
       logger.error(
         "Error finding OneUptime user for Teams user: " + data.teamsUserId,
+        {
+          projectId: data.projectId.toString(),
+          workspaceUserId: data.teamsUserId,
+        },
       );
       logger.error(error);
       throw error;

@@ -45,25 +45,56 @@ export default class OTelIngestService {
     });
 
     if (!service) {
-      // create service
+      try {
+        const newService: Service = new Service();
+        newService.projectId = data.projectId;
+        newService.name = data.serviceName;
+        newService.description = data.serviceName;
+        newService.retainTelemetryDataForDays = DEFAULT_RETENTION_IN_DAYS;
 
-      const newService: Service = new Service();
-      newService.projectId = data.projectId;
-      newService.name = data.serviceName;
-      newService.description = data.serviceName;
-      newService.retainTelemetryDataForDays = DEFAULT_RETENTION_IN_DAYS;
+        const createdService: Service = await ServiceService.create({
+          data: newService,
+          props: {
+            isRoot: true,
+          },
+        });
 
-      const createdService: Service = await ServiceService.create({
-        data: newService,
-        props: {
-          isRoot: true,
-        },
-      });
+        return {
+          serviceId: createdService.id!,
+          dataRententionInDays: DEFAULT_RETENTION_IN_DAYS,
+        };
+      } catch {
+        /*
+         * Race condition: another request created the service concurrently.
+         * Re-fetch the existing service.
+         */
+        const existingService: Service | null = await ServiceService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            name: data.serviceName,
+          },
+          select: {
+            _id: true,
+            retainTelemetryDataForDays: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
-      return {
-        serviceId: createdService.id!,
-        dataRententionInDays: DEFAULT_RETENTION_IN_DAYS,
-      };
+        if (existingService) {
+          return {
+            serviceId: existingService.id!,
+            dataRententionInDays:
+              existingService.retainTelemetryDataForDays ||
+              DEFAULT_RETENTION_IN_DAYS,
+          };
+        }
+
+        throw new Error(
+          "Failed to create or find service: " + data.serviceName,
+        );
+      }
     }
 
     return {
@@ -167,7 +198,7 @@ export default class OTelIngestService {
         }),
         ...TelemetryUtil.getAttributes({
           items: (datapoint["attributes"] as JSONArray) || [],
-          prefixKeysWithString: "metricAttributes",
+          prefixKeysWithString: "",
         }),
       };
     }

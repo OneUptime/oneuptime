@@ -70,7 +70,10 @@ export default class MicrosoftTeamsIncidentActions {
   }): Promise<void> {
     const { teamsRequest, action } = data;
 
-    logger.debug("Handling Microsoft Teams incident action:");
+    logger.debug("Handling Microsoft Teams incident action:", {
+      projectId: teamsRequest.projectId.toString(),
+      actionType: action.actionType,
+    });
     logger.debug(action);
 
     try {
@@ -104,11 +107,17 @@ export default class MicrosoftTeamsIncidentActions {
           break;
 
         default:
-          logger.debug("Unhandled incident action: " + action.actionType);
+          logger.debug("Unhandled incident action: " + action.actionType, {
+            projectId: teamsRequest.projectId.toString(),
+            actionType: action.actionType,
+          });
           break;
       }
     } catch (error) {
-      logger.error("Error handling Microsoft Teams incident action:");
+      logger.error("Error handling Microsoft Teams incident action:", {
+        projectId: teamsRequest.projectId.toString(),
+        actionType: action.actionType,
+      });
       logger.error(error);
     }
 
@@ -124,11 +133,16 @@ export default class MicrosoftTeamsIncidentActions {
     const incidentId: string = data.action.actionValue || "";
 
     if (!incidentId) {
-      logger.error("No incident ID provided for acknowledge action");
+      logger.error("No incident ID provided for acknowledge action", {
+        projectId: data.teamsRequest.projectId.toString(),
+      });
       return;
     }
 
-    logger.debug("Acknowledging incident: " + incidentId);
+    logger.debug("Acknowledging incident: " + incidentId, {
+      projectId: data.teamsRequest.projectId.toString(),
+      incidentId: incidentId,
+    });
 
     try {
       // Get the incident
@@ -152,13 +166,19 @@ export default class MicrosoftTeamsIncidentActions {
       });
 
       if (!incident) {
-        logger.error("Incident not found: " + incidentId);
+        logger.error("Incident not found: " + incidentId, {
+          projectId: data.teamsRequest.projectId.toString(),
+          incidentId: incidentId,
+        });
         return;
       }
 
       // Check if already acknowledged
       if (incident.currentIncidentState?.isAcknowledgedState) {
-        logger.debug("Incident is already acknowledged");
+        logger.debug("Incident is already acknowledged", {
+          projectId: data.teamsRequest.projectId.toString(),
+          incidentId: incidentId,
+        });
         return;
       }
 
@@ -174,9 +194,15 @@ export default class MicrosoftTeamsIncidentActions {
         oneUptimeUserId,
       );
 
-      logger.debug("Incident acknowledged successfully");
+      logger.debug("Incident acknowledged successfully", {
+        projectId: data.teamsRequest.projectId.toString(),
+        incidentId: incidentId,
+      });
     } catch (error) {
-      logger.error("Error acknowledging incident:");
+      logger.error("Error acknowledging incident:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        incidentId: incidentId,
+      });
       logger.error(error);
     }
   }
@@ -189,11 +215,16 @@ export default class MicrosoftTeamsIncidentActions {
     const incidentId: string = data.action.actionValue || "";
 
     if (!incidentId) {
-      logger.error("No incident ID provided for resolve action");
+      logger.error("No incident ID provided for resolve action", {
+        projectId: data.teamsRequest.projectId.toString(),
+      });
       return;
     }
 
-    logger.debug("Resolving incident: " + incidentId);
+    logger.debug("Resolving incident: " + incidentId, {
+      projectId: data.teamsRequest.projectId.toString(),
+      incidentId: incidentId,
+    });
 
     try {
       // Get the incident
@@ -217,13 +248,19 @@ export default class MicrosoftTeamsIncidentActions {
       });
 
       if (!incident) {
-        logger.error("Incident not found: " + incidentId);
+        logger.error("Incident not found: " + incidentId, {
+          projectId: data.teamsRequest.projectId.toString(),
+          incidentId: incidentId,
+        });
         return;
       }
 
       // Check if already resolved
       if (incident.currentIncidentState?.isResolvedState) {
-        logger.debug("Incident is already resolved");
+        logger.debug("Incident is already resolved", {
+          projectId: data.teamsRequest.projectId.toString(),
+          incidentId: incidentId,
+        });
         return;
       }
 
@@ -239,9 +276,15 @@ export default class MicrosoftTeamsIncidentActions {
         oneUptimeUserId,
       );
 
-      logger.debug("Incident resolved successfully");
+      logger.debug("Incident resolved successfully", {
+        projectId: data.teamsRequest.projectId.toString(),
+        incidentId: incidentId,
+      });
     } catch (error) {
-      logger.error("Error resolving incident:");
+      logger.error("Error resolving incident:", {
+        projectId: data.teamsRequest.projectId.toString(),
+        incidentId: incidentId,
+      });
       logger.error(error);
     }
   }
@@ -649,6 +692,10 @@ export default class MicrosoftTeamsIncidentActions {
 
         logger.debug(
           "Incident created successfully: " + createdIncident.id?.toString(),
+          {
+            projectId: projectId.toString(),
+            incidentId: createdIncident.id?.toString(),
+          },
         );
 
         // Update monitor status if specified
@@ -693,7 +740,9 @@ export default class MicrosoftTeamsIncidentActions {
 
         return;
       } catch (error) {
-        logger.error("Error creating incident from Microsoft Teams:");
+        logger.error("Error creating incident from Microsoft Teams:", {
+          projectId: projectId.toString(),
+        });
         logger.error(error);
         await turnContext.sendActivity(
           "❌ Failed to create incident. Please try again.",
@@ -892,7 +941,9 @@ export default class MicrosoftTeamsIncidentActions {
   }): Promise<void> {
     const { teamsRequest, req, res } = data;
 
-    logger.debug("Showing new incident card for Microsoft Teams");
+    logger.debug("Showing new incident card for Microsoft Teams", {
+      projectId: teamsRequest.projectId?.toString(),
+    });
 
     // Send empty response first
     Response.sendTextResponse(req, res, "");
@@ -911,7 +962,9 @@ export default class MicrosoftTeamsIncidentActions {
      * Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
      * For now, we'll just log it. The actual sending will be done through the bot framework
      */
-    logger.debug("New incident card built:");
+    logger.debug("New incident card built:", {
+      projectId: teamsRequest.projectId.toString(),
+    });
     logger.debug(JSON.stringify(card, null, 2));
   }
 
@@ -925,7 +978,9 @@ export default class MicrosoftTeamsIncidentActions {
     const { teamsRequest, req, res } = data;
     const { userId, projectId } = teamsRequest;
 
-    logger.debug("Submitting new incident from Microsoft Teams");
+    logger.debug("Submitting new incident from Microsoft Teams", {
+      projectId: projectId?.toString(),
+    });
 
     if (!projectId) {
       return Response.sendErrorResponse(
@@ -960,7 +1015,9 @@ export default class MicrosoftTeamsIncidentActions {
       (value["onCallDutyPolicies"] as string) || "";
 
     if (!title || !description || !severityId) {
-      logger.error("Missing required fields for incident creation");
+      logger.error("Missing required fields for incident creation", {
+        projectId: projectId.toString(),
+      });
       return;
     }
 
@@ -1048,6 +1105,10 @@ export default class MicrosoftTeamsIncidentActions {
 
       logger.debug(
         "Incident created successfully: " + createdIncident.id?.toString(),
+        {
+          projectId: projectId.toString(),
+          incidentId: createdIncident.id?.toString(),
+        },
       );
 
       // Update monitor status if specified
@@ -1073,9 +1134,13 @@ export default class MicrosoftTeamsIncidentActions {
         }
       }
 
-      logger.debug("New incident created from Microsoft Teams successfully");
+      logger.debug("New incident created from Microsoft Teams successfully", {
+        projectId: projectId.toString(),
+      });
     } catch (error) {
-      logger.error("Error creating incident from Microsoft Teams:");
+      logger.error("Error creating incident from Microsoft Teams:", {
+        projectId: projectId.toString(),
+      });
       logger.error(error);
     }
   }

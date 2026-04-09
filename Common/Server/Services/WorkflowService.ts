@@ -16,7 +16,7 @@ import {
 } from "../../Types/Workflow/Component";
 import API from "../../Utils/API";
 import Model from "../../Models/DatabaseModels/Workflow";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import UUID from "../../Utils/UUID";
 
 export class Service extends DatabaseService<Model> {
@@ -93,7 +93,9 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    logger.debug("Updating workflow on the workflow service");
+    logger.debug("Updating workflow on the workflow service", {
+      workflowId: onUpdate.updateBy.query._id?.toString(),
+    } as LogAttributes);
 
     await API.post<EmptyResponseData>({
       url: new URL(
@@ -107,7 +109,9 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    logger.debug("Updated workflow on the workflow service");
+    logger.debug("Updated workflow on the workflow service", {
+      workflowId: onUpdate.updateBy.query._id?.toString(),
+    } as LogAttributes);
 
     return onUpdate;
   }

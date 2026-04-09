@@ -1,6 +1,6 @@
 import Execute from "Common/Server/Utils/Execute";
 import LocalFile from "Common/Server/Utils/LocalFile";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import path from "path";
 import TaskLogger from "./TaskLogger";
 
@@ -138,8 +138,10 @@ export default class RepositoryManager {
       ]);
       return status.trim().length > 0;
     } catch (error) {
-      logger.error("Error checking for changes:");
-      logger.error(error);
+      logger.error("Error checking for changes:", {
+        repoPath,
+      } as LogAttributes);
+      logger.error(error, { repoPath } as LogAttributes);
       return false;
     }
   }
@@ -246,8 +248,10 @@ export default class RepositoryManager {
       await LocalFile.deleteDirectory(workDir);
       await this.log("Workspace cleaned up successfully");
     } catch (error) {
-      logger.error(`Error cleaning up workspace ${workDir}:`);
-      logger.error(error);
+      logger.error(`Error cleaning up workspace ${workDir}:`, {
+        workDir,
+      } as LogAttributes);
+      logger.error(error, { workDir } as LogAttributes);
     }
   }
 
@@ -257,8 +261,8 @@ export default class RepositoryManager {
       const diff: string = await this.runGitCommand(repoPath, ["diff"]);
       return diff;
     } catch (error) {
-      logger.error("Error getting diff:");
-      logger.error(error);
+      logger.error("Error getting diff:", { repoPath } as LogAttributes);
+      logger.error(error, { repoPath } as LogAttributes);
       return "";
     }
   }
@@ -272,8 +276,8 @@ export default class RepositoryManager {
       ]);
       return diff;
     } catch (error) {
-      logger.error("Error getting staged diff:");
-      logger.error(error);
+      logger.error("Error getting staged diff:", { repoPath } as LogAttributes);
+      logger.error(error, { repoPath } as LogAttributes);
       return "";
     }
   }
@@ -293,7 +297,9 @@ export default class RepositoryManager {
       return arg.includes(" ") ? `"${arg}"` : arg;
     });
 
-    logger.debug(`Executing git command in ${cwd}: git ${logArgs.join(" ")}`);
+    logger.debug(`Executing git command in ${cwd}: git ${logArgs.join(" ")}`, {
+      repoPath: cwd,
+    } as LogAttributes);
 
     return Execute.executeCommandFile({
       command: "git",

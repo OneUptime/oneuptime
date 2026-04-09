@@ -5,6 +5,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import UserType from "../../Types/UserType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 
 export default class CommonAPI {
   @CaptureSpan()
@@ -61,6 +62,16 @@ export default class CommonAPI {
     if (props.userType === UserType.MasterAdmin) {
       props.isMasterAdmin = true;
     }
+
+    // Add context attributes to the current span for observability
+    SpanUtil.addAttributesToCurrentSpan({
+      ...(props.tenantId ? { projectId: props.tenantId.toString() } : {}),
+      ...(props.userId ? { userId: props.userId.toString() } : {}),
+      ...(props.userType ? { userType: props.userType } : {}),
+      ...((req as OneUptimeRequest).requestId
+        ? { requestId: (req as OneUptimeRequest).requestId }
+        : {}),
+    });
 
     return props;
   }

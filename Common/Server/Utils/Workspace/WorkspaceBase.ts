@@ -343,7 +343,9 @@ export default class WorkspaceBase {
           );
           break;
         default:
-          logger.error("Unknown block type: " + block._type);
+          logger.error("Unknown block type: " + block._type, {
+            blockType: block._type,
+          });
           break;
       }
     }

@@ -42,7 +42,7 @@ The following features have been implemented:
 | Latency breakdown / critical path | **Yes** | Per-hop latency, bottleneck detection | No | BubbleUp (Honeycomb) | ~~P1~~ Done |
 | In-trace search | **Yes** | Yes | No | No | ~~P1~~ Done |
 | Per-trace service map | **Yes** | Yes (Map view) | No | No | ~~P1~~ Done |
-| Trace-to-metric exemplars | None | Pivot from metric graph to traces | Metric-to-trace linking | Prometheus exemplars | **P1** |
+| Trace-to-metric exemplars | **Yes** | Pivot from metric graph to traces | Metric-to-trace linking | Prometheus exemplars | ~~P1~~ Done |
 | Custom metrics from spans | None | Generate count/distribution/gauge from tags | Via NRQL | SLOs from span data | **P2** |
 | Structural trace queries | None | Trace Queries (multi-span relationships) | Via NRQL | TraceQL spanset pipelines | **P2** |
 | Trace comparison / diffing | None | Partial | Side-by-side comparison | compare() in TraceQL | **P2** |
@@ -179,22 +179,9 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 
 ## Phase 3: Advanced Analytics & Correlation (P2) — Power Features
 
-### 3.1 Trace-to-Metric Exemplars
+### ~~3.1 Trace-to-Metric Exemplars~~ ✅ Done
 
-**Current**: Metric model has no traceId/spanId fields.
-**Target**: Link metric data points to trace IDs; show exemplar dots on metric charts that navigate to traces.
-
-**Implementation**:
-
-- Add optional `traceId` and `spanId` columns to the Metric ClickHouse model
-- During metric ingestion, extract exemplar trace/span IDs from OTLP exemplar fields
-- On metric charts, render exemplar dots at data points that have associated traces
-- Clicking an exemplar dot navigates to the trace view
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Metric.ts` (add traceId/spanId columns)
-- `Telemetry/Services/OtelMetricsIngestService.ts` (extract exemplars)
-- `App/FeatureSet/Dashboard/src/Components/Metrics/MetricGraph.tsx` (render exemplar dots)
+Implemented: Metric model has `traceId`/`spanId` columns. Exemplar trace/span IDs are extracted during OTLP metric ingestion. Metric charts render clickable exemplar dots (purple) that navigate to the trace view.
 
 ### 3.2 Custom Metrics from Spans
 
@@ -315,7 +302,7 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 3. **Quick Wins** - Ship top-N operations, error rate by service, trace duration histogram, span count display
 4. **Phase 1.3** - Trace-Based Alerting (core observability workflow)
 5. **Phase 1.4** - Head-Based Sampling (essential for high-volume users)
-6. **Phase 3.1** - Trace-to-Metric Exemplars
+6. ~~**Phase 3.1** - Trace-to-Metric Exemplars~~ ✅ Done
 7. **Phase 3.2-3.4** - Custom metrics, structural queries, comparison
 8. **Phase 4.x** - AI/ML, RUM, profiling (long-term)
 

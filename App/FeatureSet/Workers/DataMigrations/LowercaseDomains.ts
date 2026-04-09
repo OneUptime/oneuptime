@@ -61,8 +61,8 @@ export default class LowercaseDomains extends DataMigrationBase {
           },
         });
       } catch (err) {
-        logger.error("Error updating domain:");
-        logger.error(err);
+        logger.error("Error updating domain:", { service: "workers" });
+        logger.error(err, { service: "workers" });
       }
     }
 
@@ -96,8 +96,10 @@ export default class LowercaseDomains extends DataMigrationBase {
           },
         });
       } catch (err) {
-        logger.error("Error updating status page domain:");
-        logger.error(err);
+        logger.error("Error updating status page domain:", {
+          service: "workers",
+        });
+        logger.error(err, { service: "workers" });
       }
     }
   }

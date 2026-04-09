@@ -112,10 +112,18 @@ async function processInternalNoteReminders(): Promise<void> {
 
         logger.info(
           `Sent internal note reminder for incident ${sla.incidentId} (SLA ${sla.id})`,
+          {
+            projectId: sla.projectId?.toString(),
+            incidentId: sla.incidentId?.toString(),
+          },
         );
       } catch (error) {
         logger.error(
           `Error sending internal note reminder for SLA ${sla.id}: ${error}`,
+          {
+            projectId: sla.projectId?.toString(),
+            incidentId: sla.incidentId?.toString(),
+          },
         );
       }
     }
@@ -188,10 +196,18 @@ async function processPublicNoteReminders(): Promise<void> {
 
         logger.info(
           `Sent public note reminder for incident ${sla.incidentId} (SLA ${sla.id})`,
+          {
+            projectId: sla.projectId?.toString(),
+            incidentId: sla.incidentId?.toString(),
+          },
         );
       } catch (error) {
         logger.error(
           `Error sending public note reminder for SLA ${sla.id}: ${error}`,
+          {
+            projectId: sla.projectId?.toString(),
+            incidentId: sla.incidentId?.toString(),
+          },
         );
       }
     }

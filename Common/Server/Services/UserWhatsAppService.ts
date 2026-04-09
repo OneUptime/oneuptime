@@ -2,7 +2,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -117,7 +117,10 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     if (!createdItem.isVerified) {
       this.sendVerificationCode(createdItem).catch((error: Error) => {
-        logger.error(error);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          userId: createdItem.userId?.toString(),
+        } as LogAttributes);
       });
     }
 
@@ -167,7 +170,10 @@ export class Service extends DatabaseService<Model> {
 
   public async sendVerificationCode(item: Model): Promise<void> {
     if (!item.projectId || !item.userId || !item.phone) {
-      logger.warn("Cannot send WhatsApp verification code. Missing data.");
+      logger.warn("Cannot send WhatsApp verification code. Missing data.", {
+        projectId: item.projectId?.toString(),
+        userId: item.userId?.toString(),
+      } as LogAttributes);
       throw new BadDataException(
         "Unable to send WhatsApp verification code. Please remove this number and add it again.",
       );

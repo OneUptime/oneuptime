@@ -45,7 +45,10 @@ export default class SessionManager {
    */
   public static setSession(sessionId: string, data: SessionData): void {
     this.sessions.set(sessionId, data);
-    logger.info(`MCP session stored: ${sessionId}`);
+    logger.info(`MCP session stored: ${sessionId}`, {
+      service: "mcp",
+      sessionId,
+    });
   }
 
   /**
@@ -69,7 +72,10 @@ export default class SessionManager {
   public static removeSession(sessionId: string): boolean {
     const deleted: boolean = this.sessions.delete(sessionId);
     if (deleted) {
-      logger.info(`MCP session removed: ${sessionId}`);
+      logger.info(`MCP session removed: ${sessionId}`, {
+        service: "mcp",
+        sessionId,
+      });
     }
     return deleted;
   }
@@ -108,6 +114,6 @@ export default class SessionManager {
   public static clearAllSessions(): void {
     this.sessions.clear();
     this.currentSessionApiKey = "";
-    logger.info("All MCP sessions cleared");
+    logger.info("All MCP sessions cleared", { service: "mcp" });
   }
 }

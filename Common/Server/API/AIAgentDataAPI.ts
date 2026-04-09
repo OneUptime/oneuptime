@@ -29,7 +29,7 @@ import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import URL from "../../Types/API/URL";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 export default class AIAgentDataAPI {
   public router!: ExpressRouter;
@@ -113,6 +113,7 @@ export default class AIAgentDataAPI {
 
           logger.debug(
             `LLM config fetched for project ${projectId.toString()}: ${llmProvider.llmType}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -194,6 +195,7 @@ export default class AIAgentDataAPI {
 
           logger.debug(
             `Exception details fetched: ${exception._id} - ${exception.message?.substring(0, 100)}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -328,6 +330,7 @@ export default class AIAgentDataAPI {
 
           logger.debug(
             `Found ${repositories.length} code repositories for service ${serviceId.toString()}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -440,6 +443,7 @@ export default class AIAgentDataAPI {
 
           logger.debug(
             `Generated access token for repository ${codeRepository.organizationName}/${codeRepository.repositoryName}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -623,6 +627,7 @@ export default class AIAgentDataAPI {
 
           logger.debug(
             `Recorded pull request ${pullRequestUrl} for task ${taskId.toString()}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {

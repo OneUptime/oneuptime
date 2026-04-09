@@ -57,8 +57,10 @@ RunCron(
           statusPageId: statusPageToSendReport.id!,
         });
       } catch (err) {
-        logger.error("Error sending report to subscribers");
-        logger.error(err);
+        logger.error("Error sending report to subscribers", {
+          service: "workers",
+        });
+        logger.error(err, { service: "workers" });
       }
     }
   },

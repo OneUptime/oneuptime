@@ -11,7 +11,9 @@ RunCron(
   "AIAgent:UpdateConnectionStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    logger.debug("Checking AIAgent:UpdateConnectionStatus");
+    logger.debug("Checking AIAgent:UpdateConnectionStatus", {
+      service: "workers",
+    });
 
     const aiAgents: Array<AIAgent> = await AIAgentService.findAllBy({
       query: {},
@@ -26,9 +28,9 @@ RunCron(
       },
     });
 
-    logger.debug(`Found ${aiAgents.length} AI agents`);
+    logger.debug(`Found ${aiAgents.length} AI agents`, { service: "workers" });
 
-    logger.debug(aiAgents);
+    logger.debug(aiAgents, { service: "workers" });
 
     for (const aiAgent of aiAgents) {
       try {
@@ -86,7 +88,10 @@ RunCron(
           });
         }
       } catch (error) {
-        logger.error(error);
+        logger.error(error, {
+          service: "workers",
+          projectId: aiAgent.projectId?.toString(),
+        });
       }
     }
   },

@@ -17,6 +17,8 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 export default class MetricUtil {
   public static async fetchResults(data: {
@@ -69,6 +71,66 @@ export default class MetricUtil {
     }
 
     return results;
+  }
+
+  /**
+   * Fetch exemplar data points for a metric - these are raw metric rows
+   * that have an associated traceId from OTLP exemplars.
+   */
+  public static async fetchExemplars(data: {
+    metricName: string;
+    startAndEndDate: InBetween<Date>;
+  }): Promise<Array<ExemplarPoint>> {
+    try {
+      const result: ListResult<Metric> = await AnalyticsModelAPI.getList({
+        modelType: Metric,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          name: data.metricName,
+          time: data.startAndEndDate,
+        } as any,
+        select: {
+          time: true,
+          value: true,
+          traceId: true,
+          spanId: true,
+        } as any,
+        sort: {
+          time: SortOrder.Descending,
+        } as any,
+        limit: 50, // Limit exemplar dots to keep charts readable
+        skip: 0,
+      });
+
+      const exemplars: Array<ExemplarPoint> = [];
+
+      for (const metric of result.data) {
+        const traceId: string | undefined = metric.traceId;
+
+        if (!traceId) {
+          continue;
+        }
+
+        const time: Date | undefined = metric.time;
+        const value: number | undefined = metric.value;
+
+        if (!time || value === undefined || value === null) {
+          continue;
+        }
+
+        exemplars.push({
+          x: time,
+          y: value,
+          traceId: traceId,
+          spanId: metric.spanId || undefined,
+        });
+      }
+
+      return exemplars;
+    } catch {
+      // Exemplar fetching is best-effort, don't break the main chart
+      return [];
+    }
   }
 
   public static async loadAllMetricsTypes(options?: {

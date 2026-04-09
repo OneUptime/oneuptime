@@ -12,7 +12,7 @@ import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import { HasClusterKey } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 export default class Register {
@@ -27,15 +27,20 @@ export default class Register {
 
     while (currentRetry < maxRetry) {
       try {
-        logger.debug(`Registering AI Agent. Attempt: ${currentRetry + 1}`);
+        logger.debug(`Registering AI Agent. Attempt: ${currentRetry + 1}`, {
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
         await Register._registerAIAgent();
-        logger.debug(`AI Agent registered successfully.`);
+        logger.debug(`AI Agent registered successfully.`, {
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
         break;
       } catch (error) {
         logger.error(
           `Failed to register AI Agent. Retrying after ${retryIntervalInSeconds} seconds...`,
+          { aiAgentName: AI_AGENT_NAME } as LogAttributes,
         );
-        logger.error(error);
+        logger.error(error, { aiAgentName: AI_AGENT_NAME } as LogAttributes);
         currentRetry++;
         await Sleep.sleep(retryIntervalInSeconds * 1000);
       }
@@ -49,8 +54,12 @@ export default class Register {
         ONEUPTIME_URL.toString(),
       ).addRoute("/api/ai-agent/register");
 
-      logger.debug("Registering AI Agent...");
-      logger.debug("Sending request to: " + aiAgentRegistrationUrl.toString());
+      logger.debug("Registering AI Agent...", {
+        aiAgentName: AI_AGENT_NAME,
+      } as LogAttributes);
+      logger.debug("Sending request to: " + aiAgentRegistrationUrl.toString(), {
+        aiAgentName: AI_AGENT_NAME,
+      } as LogAttributes);
 
       const result: HTTPResponse<JSONObject> = await API.post({
         url: aiAgentRegistrationUrl,
@@ -65,23 +74,34 @@ export default class Register {
       if (!result.isSuccess()) {
         logger.error(
           `Failed to register AI Agent. Status: ${result.statusCode}`,
+          { aiAgentName: AI_AGENT_NAME } as LogAttributes,
         );
-        logger.error(result.data);
+        logger.error(result.data, {
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
         throw new Error(
           "Failed to register AI Agent: HTTP " + result.statusCode,
         );
       }
 
-      logger.debug("AI Agent Registered");
-      logger.debug(result.data);
+      logger.debug("AI Agent Registered", {
+        aiAgentName: AI_AGENT_NAME,
+      } as LogAttributes);
+      logger.debug(result.data, {
+        aiAgentName: AI_AGENT_NAME,
+      } as LogAttributes);
 
       const aiAgentId: string | undefined = result.data["_id"] as
         | string
         | undefined;
 
       if (!aiAgentId) {
-        logger.error("AI Agent ID not found in response");
-        logger.error(result.data);
+        logger.error("AI Agent ID not found in response", {
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
+        logger.error(result.data, {
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
         throw new Error("AI Agent ID not found in registration response");
       }
 
@@ -89,7 +109,9 @@ export default class Register {
     } else {
       // Non-clustered mode: Validate AI agent by sending alive request
       if (!AI_AGENT_ID) {
-        logger.error("AI_AGENT_ID or ONEUPTIME_SECRET should be set");
+        logger.error("AI_AGENT_ID or ONEUPTIME_SECRET should be set", {
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
         return process.exit();
       }
 
@@ -97,8 +119,14 @@ export default class Register {
         "/api/ai-agent/alive",
       );
 
-      logger.debug("Registering AI Agent...");
-      logger.debug("Sending request to: " + aliveUrl.toString());
+      logger.debug("Registering AI Agent...", {
+        aiAgentId: AI_AGENT_ID?.toString(),
+        aiAgentName: AI_AGENT_NAME,
+      } as LogAttributes);
+      logger.debug("Sending request to: " + aliveUrl.toString(), {
+        aiAgentId: AI_AGENT_ID?.toString(),
+        aiAgentName: AI_AGENT_NAME,
+      } as LogAttributes);
 
       const result: HTTPResponse<JSONObject> = await API.post({
         url: aliveUrl,
@@ -114,7 +142,10 @@ export default class Register {
           "AI_AGENT_ID",
           AI_AGENT_ID.toString() as string,
         );
-        logger.debug("AI Agent registered successfully");
+        logger.debug("AI Agent registered successfully", {
+          aiAgentId: AI_AGENT_ID?.toString(),
+          aiAgentName: AI_AGENT_NAME,
+        } as LogAttributes);
       } else {
         throw new Error("Failed to register AI Agent: " + result.statusCode);
       }
@@ -122,6 +153,7 @@ export default class Register {
 
     logger.debug(
       `AI Agent ID: ${LocalCache.getString("AI_AGENT", "AI_AGENT_ID") || "Unknown"}`,
+      { aiAgentName: AI_AGENT_NAME } as LogAttributes,
     );
   }
 }

@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -60,6 +61,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const [moreMenuTimeout, setMoreMenuTimeout] = useState<ReturnType<
     typeof setTimeout
   > | null>(null);
+  const suppressShowRef = useRef<boolean>(false);
 
   // Use the existing outside click hook for mobile menu
   const {
@@ -108,9 +110,16 @@ const Navbar: FunctionComponent<ComponentProps> = (
     }
 
     setIsMoreMenuVisible(false);
+    suppressShowRef.current = true;
+    setTimeout(() => {
+      suppressShowRef.current = false;
+    }, 300);
   };
 
   const showMoreMenu: () => void = (): void => {
+    if (suppressShowRef.current) {
+      return;
+    }
     if (moreMenuTimeout) {
       clearTimeout(moreMenuTimeout);
     }

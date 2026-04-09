@@ -7,7 +7,7 @@ import {
 import Project from "../../Models/DatabaseModels/Project";
 import ServerMeteredPlan from "../Types/Billing/MeteredPlan/ServerMeteredPlan";
 import Errors from "../Utils/Errors";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
@@ -821,7 +821,7 @@ export class BillingService extends BaseService {
     try {
       await this.stripe.subscriptions.del(subscriptionId);
     } catch (err) {
-      logger.error(err);
+      logger.error(err, { subscriptionId } as LogAttributes);
     }
   }
 
@@ -981,6 +981,7 @@ export class BillingService extends BaseService {
       if (!stripeInvoice) {
         logger.error(
           `[Invoice Email] Invoice ${invoiceId} not found in Stripe`,
+          { projectId: projectId?.toString() } as LogAttributes,
         );
         return;
       }
@@ -994,6 +995,7 @@ export class BillingService extends BaseService {
       if (!toEmail) {
         logger.error(
           `[Invoice Email] No recipient email found for invoice ${invoiceId}`,
+          { projectId: projectId?.toString() } as LogAttributes,
         );
         return;
       }
@@ -1049,6 +1051,7 @@ export class BillingService extends BaseService {
     } catch (err) {
       logger.error(
         `[Invoice Email] Failed to send invoice ${invoiceId} by email: ${err}`,
+        { projectId: projectId?.toString() } as LogAttributes,
       );
       // Don't throw - sending email is not critical
     }
@@ -1092,6 +1095,7 @@ export class BillingService extends BaseService {
     } catch (err) {
       logger.error(
         `[Invoice Email] Failed to check invoice email preference for customer ${customerId}: ${err}`,
+        { customerId } as LogAttributes,
       );
       return false;
     }
@@ -1125,6 +1129,7 @@ export class BillingService extends BaseService {
     if (!invoice || !invoice.id) {
       logger.error(
         `[Invoice Email] Failed to create invoice for customer ${customerId}`,
+        { projectId: projectId?.toString() } as LogAttributes,
       );
       throw new APIException(Errors.BillingService.INVOICE_NOT_GENERATED);
     }
@@ -1165,6 +1170,7 @@ export class BillingService extends BaseService {
     } catch (err) {
       logger.error(
         `[Invoice Email] Failed to pay invoice ${invoice.id}, voiding: ${err}`,
+        { projectId: projectId?.toString() } as LogAttributes,
       );
       // mark invoice as failed and do not collect payment.
       await this.voidInvoice(invoice.id!);
@@ -1382,6 +1388,7 @@ export class BillingService extends BaseService {
       } catch (err) {
         logger.error(
           `[Invoice Email] Failed to send invoice by email for invoice ${invoice.id}: ${err}`,
+          { customerId } as LogAttributes,
         );
         // Don't throw - webhook should still return success
       }

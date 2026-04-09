@@ -12,7 +12,7 @@ import StatusPageSCIM from "../../Models/DatabaseModels/StatusPageSCIM";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 export default class SCIMMiddleware {
   @CaptureSpan()
@@ -44,6 +44,7 @@ export default class SCIMMiddleware {
         `SCIM Authorization: scimId=${scimId}, bearerToken=${
           bearerToken ? "***" : "missing"
         }`,
+        getLogAttributesFromRequest(req as OneUptimeRequest),
       );
 
       if (!bearerToken) {

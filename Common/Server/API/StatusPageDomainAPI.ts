@@ -8,7 +8,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
@@ -223,12 +223,15 @@ export default class StatusPageDomainAPI extends BaseAPI<
             );
           }
 
-          logger.debug("Ordering SSL");
+          logger.debug("Ordering SSL", getLogAttributesFromRequest(req as any));
 
           // provision SSL
           await StatusPageDomainService.orderCert(domain);
 
-          logger.debug("SSL Provisioned for domain - " + domain.fullDomain);
+          logger.debug(
+            "SSL Provisioned for domain - " + domain.fullDomain,
+            getLogAttributesFromRequest(req as any),
+          );
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (e) {

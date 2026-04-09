@@ -4,7 +4,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import CronTab from "Common/Server/Utils/CronTab";
@@ -65,7 +65,9 @@ RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor");
+    logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor", {
+      service: "workers",
+    });
 
     const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
       query: {
@@ -113,7 +115,10 @@ RunCron(
             telemetryMonitor.monitoringInterval as string,
           );
         } catch (err) {
-          logger.error(err);
+          logger.error(err, {
+            service: "workers",
+            projectId: telemetryMonitor.projectId?.toString(),
+          });
         }
       }
 
@@ -133,9 +138,11 @@ RunCron(
 
     await Promise.all(updatePromises);
 
-    logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`);
+    logger.debug(`Found ${telemetryMonitors.length} telemetry monitors`, {
+      service: "workers",
+    });
 
-    logger.debug(telemetryMonitors);
+    logger.debug(telemetryMonitors, { service: "workers" });
 
     const monitorResponses: Array<
       Promise<
@@ -154,7 +161,10 @@ RunCron(
           !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
           monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
         ) {
-          logger.debug("Monitor has no steps. Skipping...");
+          logger.debug("Monitor has no steps. Skipping...", {
+            service: "workers",
+            projectId: monitor.projectId?.toString(),
+          });
           continue;
         }
 
@@ -168,10 +178,14 @@ RunCron(
           }),
         );
       } catch (error) {
+        const attrs: LogAttributes = {
+          projectId: monitor.projectId?.toString(),
+        };
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
+          attrs,
         );
-        logger.error(error);
+        logger.error(error, attrs);
       }
     }
 
@@ -373,8 +387,14 @@ const monitorMetric: MonitorMetricFunction = async (data: {
       },
     );
 
-    logger.debug("Aggregated results");
-    logger.debug(aggregatedResults);
+    logger.debug("Aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+    logger.debug(aggregatedResults, {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
 
     finalResult.push(aggregatedResults);
   }
@@ -583,8 +603,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       },
     );
 
-    logger.debug("Kubernetes monitor aggregated results");
-    logger.debug(aggregatedResults);
+    logger.debug("Kubernetes monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+    logger.debug(aggregatedResults, {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
 
     finalResult.push(aggregatedResults);
 
@@ -699,8 +725,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         };
       }
     } catch (err) {
-      logger.error("Failed to fetch Kubernetes resource breakdown");
-      logger.error(err);
+      logger.error("Failed to fetch Kubernetes resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
     }
   }
 

@@ -35,8 +35,14 @@ export default class AlertWorkspaceMessages {
       );
     } catch (err) {
       // log the error and continue.
-      logger.error("Error in createChannelsAndInviteUsersToChannels");
-      logger.error(err);
+      logger.error("Error in createChannelsAndInviteUsersToChannels", {
+        projectId: data.projectId?.toString(),
+        alertId: data.alertId?.toString(),
+      });
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+        alertId: data.alertId?.toString(),
+      });
       return null;
     }
   }

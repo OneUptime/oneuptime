@@ -4,7 +4,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MonitorFeed, {
   MonitorFeedEventType,
@@ -43,8 +43,14 @@ export class Service extends DatabaseService<MonitorFeed> {
       | undefined;
   }): Promise<void> {
     try {
-      logger.debug("MonitorFeedService.createMonitorFeedItem");
-      logger.debug(data);
+      logger.debug("MonitorFeedService.createMonitorFeedItem", {
+        projectId: data.projectId?.toString(),
+        monitorId: data.monitorId?.toString(),
+      } as LogAttributes);
+      logger.debug(data, {
+        projectId: data.projectId?.toString(),
+        monitorId: data.monitorId?.toString(),
+      } as LogAttributes);
 
       const monitorFeed: MonitorFeed = new MonitorFeed();
 
@@ -93,8 +99,14 @@ export class Service extends DatabaseService<MonitorFeed> {
         },
       });
 
-      logger.debug("Monitor Feed created");
-      logger.debug(createdMonitorFeed);
+      logger.debug("Monitor Feed created", {
+        projectId: data.projectId?.toString(),
+        monitorId: data.monitorId?.toString(),
+      } as LogAttributes);
+      logger.debug(createdMonitorFeed, {
+        projectId: data.projectId?.toString(),
+        monitorId: data.monitorId?.toString(),
+      } as LogAttributes);
 
       try {
         // send notification to slack and teams
@@ -110,14 +122,26 @@ export class Service extends DatabaseService<MonitorFeed> {
           });
         }
       } catch (e) {
-        logger.error("Error in sending notification to slack and teams");
-        logger.error(e);
+        logger.error("Error in sending notification to slack and teams", {
+          projectId: data.projectId?.toString(),
+          monitorId: data.monitorId?.toString(),
+        } as LogAttributes);
+        logger.error(e, {
+          projectId: data.projectId?.toString(),
+          monitorId: data.monitorId?.toString(),
+        } as LogAttributes);
 
         // we dont throw this error as it is not a critical error
       }
     } catch (e) {
-      logger.error("Error in creating monitor feed");
-      logger.error(e);
+      logger.error("Error in creating monitor feed", {
+        projectId: data.projectId?.toString(),
+        monitorId: data.monitorId?.toString(),
+      } as LogAttributes);
+      logger.error(e, {
+        projectId: data.projectId?.toString(),
+        monitorId: data.monitorId?.toString(),
+      } as LogAttributes);
 
       // we dont throw this error as it is not a critical error
     }

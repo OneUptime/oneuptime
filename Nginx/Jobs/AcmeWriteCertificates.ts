@@ -36,8 +36,14 @@ export default class Jobs {
             await LocalFile.makeDirectory("/etc/nginx/certs/StatusPageCerts");
           } catch (err) {
             // directory already exists, ignore.
-            logger.error("Create directory err");
-            logger.error(err);
+            logger.error("Create directory err", {
+              service: "ingress",
+              job: "AcmeWriteCertificates",
+            });
+            logger.error(err, {
+              service: "ingress",
+              job: "AcmeWriteCertificates",
+            });
           }
 
           // Write to disk.
@@ -53,6 +59,11 @@ export default class Jobs {
 
           logger.debug(
             `Wrote custom certs to disk for domain: ${cert.domain?.toString().trim().toLocaleLowerCase()}`,
+            {
+              service: "ingress",
+              job: "AcmeWriteCertificates",
+              domain: cert.domain?.toString().trim().toLocaleLowerCase() || "",
+            },
           );
         }
       },

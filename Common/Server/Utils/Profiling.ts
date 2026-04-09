@@ -1,6 +1,6 @@
 import Pyroscope from "@pyroscope/nodejs";
 import { EnableProfiling } from "../EnvironmentConfig";
-import logger from "./Logger";
+import logger, { LogAttributes } from "./Logger";
 
 export default class Profiling {
   public static init(data: { serviceName: string }): void {
@@ -11,9 +11,14 @@ export default class Profiling {
     const serverAddress: string | undefined = this.getServerAddress();
     const authToken: string | undefined = this.getAuthToken();
 
+    const profilingLogAttributes: LogAttributes = {
+      serviceName: data.serviceName,
+    };
+
     if (!serverAddress) {
       logger.warn(
         "Profiling enabled but OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT not configured. Skipping profiling initialization.",
+        profilingLogAttributes,
       );
       return;
     }
@@ -32,16 +37,17 @@ export default class Profiling {
 
       logger.info(
         `Profiling initialized for service: ${data.serviceName} -> ${serverAddress}`,
+        profilingLogAttributes,
       );
     } catch (err) {
-      logger.error("Failed to initialize profiling:");
-      logger.error(err);
+      logger.error("Failed to initialize profiling:", profilingLogAttributes);
+      logger.error(err, profilingLogAttributes);
     }
 
     process.on("SIGTERM", () => {
       Pyroscope.stop().catch((err: unknown) => {
-        logger.error("Error stopping profiler:");
-        logger.error(err);
+        logger.error("Error stopping profiler:", profilingLogAttributes);
+        logger.error(err, profilingLogAttributes);
       });
     });
   }

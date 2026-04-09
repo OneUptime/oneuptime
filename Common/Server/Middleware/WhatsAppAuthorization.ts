@@ -9,7 +9,7 @@ import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import ObjectID from "../../Types/ObjectID";
 import crypto from "crypto";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class WhatsAppAuthorization {
@@ -19,7 +19,10 @@ export default class WhatsAppAuthorization {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
-    logger.debug("Starting WhatsApp webhook signature verification");
+    logger.debug(
+      "Starting WhatsApp webhook signature verification",
+      getLogAttributesFromRequest(req),
+    );
 
     const signature: string | undefined = req.headers["x-hub-signature-256"] as
       | string
@@ -28,6 +31,7 @@ export default class WhatsAppAuthorization {
     if (!signature) {
       logger.error(
         "WhatsApp webhook request missing X-Hub-Signature-256 header.",
+        getLogAttributesFromRequest(req),
       );
       return Response.sendErrorResponse(
         req,
@@ -55,6 +59,7 @@ export default class WhatsAppAuthorization {
     if (!appSecret) {
       logger.error(
         "Meta WhatsApp App Secret is not configured. Cannot verify webhook signature.",
+        getLogAttributesFromRequest(req),
       );
       return Response.sendErrorResponse(
         req,
@@ -73,7 +78,10 @@ export default class WhatsAppAuthorization {
         Buffer.from(signature) as Uint8Array,
       )
     ) {
-      logger.error("WhatsApp webhook signature verification failed.");
+      logger.error(
+        "WhatsApp webhook signature verification failed.",
+        getLogAttributesFromRequest(req),
+      );
       return Response.sendErrorResponse(
         req,
         res,
@@ -81,7 +89,10 @@ export default class WhatsAppAuthorization {
       );
     }
 
-    logger.debug("WhatsApp webhook signature verified successfully");
+    logger.debug(
+      "WhatsApp webhook signature verified successfully",
+      getLogAttributesFromRequest(req),
+    );
     next();
   }
 }

@@ -9,7 +9,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import MonitorService from "./MonitorService";
 import IncidentService from "./IncidentService";
@@ -60,6 +60,7 @@ export class Service extends DatabaseService<Model> {
   }): Promise<Model | null> {
     logger.debug(
       `Finding matching SLA rule for incident ${data.incidentId} in project ${data.projectId}`,
+      { projectId: data.projectId?.toString() } as LogAttributes,
     );
 
     // Get the incident if not provided
@@ -90,7 +91,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!incident) {
-      logger.warn(`Incident ${data.incidentId} not found`);
+      logger.warn(`Incident ${data.incidentId} not found`, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
 
@@ -137,7 +140,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (rules.length === 0) {
-      logger.debug(`No enabled SLA rules found for project ${data.projectId}`);
+      logger.debug(`No enabled SLA rules found for project ${data.projectId}`, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
 
@@ -148,12 +153,15 @@ export class Service extends DatabaseService<Model> {
       if (matches) {
         logger.debug(
           `Incident ${data.incidentId} matches SLA rule ${rule.name || rule.id}`,
+          { projectId: data.projectId?.toString() } as LogAttributes,
         );
         return rule;
       }
     }
 
-    logger.debug(`Incident ${data.incidentId} did not match any SLA rules`);
+    logger.debug(`Incident ${data.incidentId} did not match any SLA rules`, {
+      projectId: data.projectId?.toString(),
+    } as LogAttributes);
     return null;
   }
 
@@ -164,6 +172,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<boolean> {
     logger.debug(
       `Checking if incident ${incident.id} matches SLA rule ${rule.name || rule.id}`,
+      { projectId: incident.projectId?.toString() } as LogAttributes,
     );
 
     // Check monitor IDs - if monitors are specified, incident must have at least one of them
@@ -321,6 +330,7 @@ export class Service extends DatabaseService<Model> {
       } catch {
         logger.warn(
           `Invalid regex pattern in SLA rule ${rule.id}: ${rule.incidentTitlePattern}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
         return false;
       }
@@ -340,6 +350,7 @@ export class Service extends DatabaseService<Model> {
       } catch {
         logger.warn(
           `Invalid regex pattern in SLA rule ${rule.id}: ${rule.incidentDescriptionPattern}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
         return false;
       }
@@ -348,6 +359,7 @@ export class Service extends DatabaseService<Model> {
     // If no criteria specified (all fields empty), rule matches all incidents
     logger.debug(
       `SLA rule ${rule.name || rule.id} matched incident ${incident.id} (all criteria passed)`,
+      { projectId: incident.projectId?.toString() } as LogAttributes,
     );
     return true;
   }

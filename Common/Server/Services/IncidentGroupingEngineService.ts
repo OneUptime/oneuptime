@@ -13,7 +13,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import ServiceMonitor from "../../Models/DatabaseModels/ServiceMonitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -40,11 +40,15 @@ export interface GroupingResult {
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
   public async processIncident(incident: Incident): Promise<GroupingResult> {
-    logger.debug(`Processing incident ${incident.id} for grouping`);
+    logger.debug(`Processing incident ${incident.id} for grouping`, {
+      projectId: incident.projectId?.toString(),
+    } as LogAttributes);
 
     try {
       if (!incident.id || !incident.projectId) {
-        logger.warn("Incident missing id or projectId, skipping grouping");
+        logger.warn("Incident missing id or projectId, skipping grouping", {
+          projectId: incident.projectId?.toString(),
+        } as LogAttributes);
         return { grouped: false };
       }
 
@@ -130,12 +134,14 @@ class IncidentGroupingEngineServiceClass {
       if (rules.length === 0) {
         logger.debug(
           `No enabled grouping rules found for project ${incident.projectId}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
         return { grouped: false };
       }
 
       logger.debug(
         `Found ${rules.length} enabled grouping rules for project ${incident.projectId}`,
+        { projectId: incident.projectId?.toString() } as LogAttributes,
       );
 
       // Find first matching rule
@@ -148,6 +154,7 @@ class IncidentGroupingEngineServiceClass {
         if (matches) {
           logger.debug(
             `Incident ${incident.id} matches rule ${rule.name || rule.id}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
           );
 
           // Try to find existing episode or create new one
@@ -159,10 +166,14 @@ class IncidentGroupingEngineServiceClass {
         }
       }
 
-      logger.debug(`Incident ${incident.id} did not match any grouping rules`);
+      logger.debug(`Incident ${incident.id} did not match any grouping rules`, {
+        projectId: incident.projectId?.toString(),
+      } as LogAttributes);
       return { grouped: false };
     } catch (error) {
-      logger.error(`Error processing incident for grouping: ${error}`);
+      logger.error(`Error processing incident for grouping: ${error}`, {
+        projectId: incident.projectId?.toString(),
+      } as LogAttributes);
       return { grouped: false };
     }
   }
@@ -174,6 +185,7 @@ class IncidentGroupingEngineServiceClass {
   ): Promise<boolean> {
     logger.debug(
       `Checking if incident ${incident.id} matches rule ${rule.name || rule.id}`,
+      { projectId: incident.projectId?.toString() } as LogAttributes,
     );
 
     // Check monitor IDs - if monitors are specified, incident must be from one of them
@@ -319,6 +331,7 @@ class IncidentGroupingEngineServiceClass {
             } catch {
               logger.warn(
                 `Invalid regex pattern in rule ${rule.id}: ${rule.monitorNamePattern}`,
+                { projectId: incident.projectId?.toString() } as LogAttributes,
               );
               monitorMatches = false;
             }
@@ -341,6 +354,7 @@ class IncidentGroupingEngineServiceClass {
             } catch {
               logger.warn(
                 `Invalid regex pattern in rule ${rule.id}: ${rule.monitorDescriptionPattern}`,
+                { projectId: incident.projectId?.toString() } as LogAttributes,
               );
               monitorMatches = false;
             }
@@ -371,6 +385,7 @@ class IncidentGroupingEngineServiceClass {
       } catch {
         logger.warn(
           `Invalid regex pattern in rule ${rule.id}: ${rule.incidentTitlePattern}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
         return false;
       }
@@ -389,6 +404,7 @@ class IncidentGroupingEngineServiceClass {
       } catch {
         logger.warn(
           `Invalid regex pattern in rule ${rule.id}: ${rule.incidentDescriptionPattern}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
         return false;
       }
@@ -397,6 +413,7 @@ class IncidentGroupingEngineServiceClass {
     // If no criteria specified (all fields empty), rule matches all incidents
     logger.debug(
       `Rule ${rule.name || rule.id} matched incident ${incident.id} (all criteria passed)`,
+      { projectId: incident.projectId?.toString() } as LogAttributes,
     );
     return true;
   }
@@ -421,6 +438,7 @@ class IncidentGroupingEngineServiceClass {
        */
       logger.debug(
         `Acquiring mutex for grouping key: ${mutexKey} for incident ${incident.id}`,
+        { projectId: incident.projectId?.toString() } as LogAttributes,
       );
       mutex = await Semaphore.lock({
         key: mutexKey,
@@ -430,6 +448,7 @@ class IncidentGroupingEngineServiceClass {
       });
       logger.debug(
         `Acquired mutex for grouping key: ${mutexKey} for incident ${incident.id}`,
+        { projectId: incident.projectId?.toString() } as LogAttributes,
       );
 
       // Calculate time window cutoff (only if time window is enabled)
@@ -546,14 +565,17 @@ class IncidentGroupingEngineServiceClass {
         try {
           logger.debug(
             `Releasing mutex for grouping key: ${mutexKey} for incident ${incident.id}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
           );
           await Semaphore.release(mutex);
           logger.debug(
             `Released mutex for grouping key: ${mutexKey} for incident ${incident.id}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
           );
         } catch (err) {
           logger.error(
             `Error releasing mutex for grouping key: ${mutexKey}: ${err}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
           );
         }
       }
@@ -817,6 +839,7 @@ class IncidentGroupingEngineServiceClass {
           } catch (ownerError) {
             logger.error(
               `Error adding owner user ${user.id} to episode: ${ownerError}`,
+              { projectId: incident.projectId?.toString() } as LogAttributes,
             );
           }
         }
@@ -847,6 +870,7 @@ class IncidentGroupingEngineServiceClass {
           } catch (ownerError) {
             logger.error(
               `Error adding owner team ${team.id} to episode: ${ownerError}`,
+              { projectId: incident.projectId?.toString() } as LogAttributes,
             );
           }
         }
@@ -878,6 +902,7 @@ class IncidentGroupingEngineServiceClass {
           } catch (memberError) {
             logger.error(
               `Error adding member role assignment to episode: ${memberError}`,
+              { projectId: incident.projectId?.toString() } as LogAttributes,
             );
           }
         }
@@ -926,13 +951,16 @@ class IncidentGroupingEngineServiceClass {
         } catch (feedError) {
           logger.error(
             `Error creating episode feed for episode creation: ${feedError}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
           );
         }
       }
 
       return createdEpisode;
     } catch (error) {
-      logger.error(`Error creating new episode: ${error}`);
+      logger.error(`Error creating new episode: ${error}`, {
+        projectId: incident.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
   }
@@ -1118,6 +1146,7 @@ class IncidentGroupingEngineServiceClass {
       ) {
         logger.debug(
           `Incident ${incident.id} is already in episode ${episodeId}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
         );
         return;
       }

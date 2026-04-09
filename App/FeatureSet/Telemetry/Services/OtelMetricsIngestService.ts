@@ -20,7 +20,10 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+  type RequestLike,
+} from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -29,6 +32,7 @@ import OtelIngestBaseService from "./OtelIngestBaseService";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import OneUptimeDate from "Common/Types/Date";
 import MetricService from "Common/Server/Services/MetricService";
+import Text from "Common/Types/Text";
 
 type MetricTimestamp = {
   nano: string;
@@ -100,7 +104,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       ] as JSONArray;
 
       if (!resourceMetrics || !Array.isArray(resourceMetrics)) {
-        logger.error("Invalid resourceMetrics format in request body");
+        logger.error(
+          "Invalid resourceMetrics format in request body",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         throw new BadRequestException("Invalid resourceMetrics format");
       }
 
@@ -239,7 +246,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     ...resourceAttributes,
                     ...TelemetryUtil.getAttributes({
                       items: (metric["attributes"] as JSONArray) || [],
-                      prefixKeysWithString: "metricAttributes",
+                      prefixKeysWithString: "",
                     }),
                   };
 
@@ -381,8 +388,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
-      logger.error("Critical error in processMetricsAsync:");
-      logger.error(error);
+      logger.error(
+        "Critical error in processMetricsAsync:",
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+      logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }
   }
@@ -428,7 +438,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         attributes,
         TelemetryUtil.getAttributes({
           items: (data.datapoint["attributes"] as JSONArray) || [],
-          prefixKeysWithString: "metricAttributes",
+          prefixKeysWithString: "",
         }),
       );
     }
@@ -474,6 +484,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           })
       : [];
 
+    // Extract exemplar trace/span IDs from the first exemplar that has a traceId
+    const exemplarTraceAndSpanIds: {
+      traceId: string | null;
+      spanId: string | null;
+    } = this.extractExemplarIds(data.datapoint["exemplars"] as JSONArray);
+
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
       data.dataRententionInDays || 15,
@@ -509,6 +525,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       max: max,
       bucketCounts: bucketCounts,
       explicitBounds: explicitBounds,
+      traceId: exemplarTraceAndSpanIds.traceId,
+      spanId: exemplarTraceAndSpanIds.spanId,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
 
@@ -592,5 +610,61 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return null;
+  }
+
+  /**
+   * Extract trace and span IDs from OTLP exemplars.
+   * Takes the first exemplar that has a traceId.
+   * OTLP sends trace_id and span_id as base64-encoded bytes.
+   */
+  private static extractExemplarIds(exemplars: JSONArray | undefined): {
+    traceId: string | null;
+    spanId: string | null;
+  } {
+    if (!exemplars || !Array.isArray(exemplars) || exemplars.length === 0) {
+      return { traceId: null, spanId: null };
+    }
+
+    for (const exemplar of exemplars) {
+      const exemplarObj: JSONObject = exemplar as JSONObject;
+      const rawTraceId: string | undefined = exemplarObj["traceId"] as
+        | string
+        | undefined;
+
+      if (!rawTraceId) {
+        continue;
+      }
+
+      const traceId: string = this.convertBase64ToHexSafe(rawTraceId);
+
+      if (!traceId) {
+        continue;
+      }
+
+      const rawSpanId: string | undefined = exemplarObj["spanId"] as
+        | string
+        | undefined;
+      const spanId: string = rawSpanId
+        ? this.convertBase64ToHexSafe(rawSpanId)
+        : "";
+
+      return {
+        traceId: traceId || null,
+        spanId: spanId || null,
+      };
+    }
+
+    return { traceId: null, spanId: null };
+  }
+
+  private static convertBase64ToHexSafe(value: string | undefined): string {
+    if (!value) {
+      return "";
+    }
+    try {
+      return Text.convertBase64ToHex(value);
+    } catch {
+      return "";
+    }
   }
 }

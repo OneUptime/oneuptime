@@ -10,7 +10,10 @@ import Express, {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
@@ -48,6 +51,7 @@ router.get(
     try {
       logger.debug(
         `Status Page SCIM ServiceProviderConfig - scimId: ${req.params["statusPageScimId"]!}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const serviceProviderConfig: JSONObject = generateServiceProviderConfig(
@@ -58,7 +62,7 @@ router.get(
 
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
     } catch (err) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
     }
   },
@@ -76,6 +80,7 @@ router.get(
     try {
       logger.debug(
         `Status Page SCIM Schemas - scimId: ${req.params["statusPageScimId"]!}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const schemasResponse: JSONObject = generateSchemasResponse(
@@ -84,10 +89,13 @@ router.get(
         "status-page",
       );
 
-      logger.debug("Status Page SCIM Schemas response prepared successfully");
+      logger.debug(
+        "Status Page SCIM Schemas response prepared successfully",
+        getLogAttributesFromRequest(req as any),
+      );
       return Response.sendJsonObjectResponse(req, res, schemasResponse);
     } catch (err) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
     }
   },
@@ -105,6 +113,7 @@ router.get(
     try {
       logger.debug(
         `Status Page SCIM ResourceTypes - scimId: ${req.params["statusPageScimId"]!}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const resourceTypesResponse: JSONObject = generateResourceTypesResponse(
@@ -115,10 +124,11 @@ router.get(
 
       logger.debug(
         "Status Page SCIM ResourceTypes response prepared successfully",
+        getLogAttributesFromRequest(req as any),
       );
       return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
     } catch (err) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
     }
   },
@@ -145,6 +155,7 @@ router.post(
     try {
       logger.debug(
         `Status Page SCIM Bulk request - scimId: ${req.params["statusPageScimId"]!}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -167,6 +178,7 @@ router.post(
         executionSteps.push(`Validation failed: ${validation.error}`);
         logger.debug(
           `Status Page SCIM Bulk - validation failed: ${validation.error}`,
+          getLogAttributesFromRequest(req as any),
         );
 
         void createStatusPageSCIMLog({
@@ -206,6 +218,7 @@ router.post(
       );
       logger.debug(
         `Status Page SCIM Bulk - processing ${operations.length} operations`,
+        getLogAttributesFromRequest(req as any),
       );
 
       for (let opIndex: number = 0; opIndex < operations.length; opIndex++) {
@@ -544,6 +557,7 @@ router.post(
 
           logger.debug(
             `Status Page SCIM Bulk - operation failed: ${error.message}`,
+            getLogAttributesFromRequest(req as any),
           );
 
           // Check if we should stop processing due to failOnErrors
@@ -553,6 +567,7 @@ router.post(
             );
             logger.debug(
               `Status Page SCIM Bulk - stopping due to failOnErrors threshold (${failOnErrors})`,
+              getLogAttributesFromRequest(req as any),
             );
             results.push(operationResult);
             break;
@@ -570,6 +585,7 @@ router.post(
       );
       logger.debug(
         `Status Page SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const bulkResponse: JSONObject = generateBulkResponse(results);
@@ -628,7 +644,7 @@ router.post(
         },
       });
 
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
     }
   },
@@ -649,6 +665,7 @@ router.get(
     try {
       logger.debug(
         `Status Page SCIM Users list request for statusPageScimId: ${req.params["statusPageScimId"]}`,
+        getLogAttributesFromRequest(req as any),
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
@@ -671,6 +688,7 @@ router.get(
 
       logger.debug(
         `Status Page SCIM Users - statusPageId: ${statusPageId}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Build query for status page users
@@ -690,6 +708,7 @@ router.get(
           filterEmail = email;
           logger.debug(
             `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filter by email: ${email}`,
+            getLogAttributesFromRequest(req as any),
           );
           executionSteps.push(`Filter parsed: userName eq "${email}"`);
 
@@ -698,6 +717,7 @@ router.get(
               query.email = new Email(email);
               logger.debug(
                 `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filtering by email: ${email}`,
+                getLogAttributesFromRequest(req as any),
               );
               executionSteps.push(`Valid email, filtering by: ${email}`);
             } else {
@@ -707,6 +727,7 @@ router.get(
                */
               logger.debug(
                 `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter is not an email format: ${email}, returning empty list`,
+                getLogAttributesFromRequest(req as any),
               );
               executionSteps.push(
                 `userName filter value "${email}" is not an email format, returning empty list (no matching users)`,
@@ -767,6 +788,7 @@ router.get(
 
       logger.debug(
         `Status Page SCIM Users - found ${statusPageUsers.length} users`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Format users for SCIM
@@ -792,6 +814,7 @@ router.get(
 
       logger.debug(
         `Status Page SCIM Users response prepared with ${users.length} users`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const responseBody: JSONObject = {
@@ -852,7 +875,7 @@ router.get(
         steps: executionSteps,
       });
 
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
     }
   },
@@ -873,6 +896,7 @@ router.get(
     try {
       logger.debug(
         `Status Page SCIM Get individual user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
+        getLogAttributesFromRequest(req as any),
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
@@ -885,6 +909,7 @@ router.get(
 
       logger.debug(
         `Status Page SCIM Get user - statusPageId: ${statusPageId}, userId: ${userId}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       if (!userId) {
@@ -913,6 +938,7 @@ router.get(
         executionSteps.push(`User not found with ID: ${userId}`);
         logger.debug(
           `Status Page SCIM Get user - user not found for userId: ${userId}`,
+          getLogAttributesFromRequest(req as any),
         );
         throw new NotFoundException(
           "User not found or not part of this status page",
@@ -931,6 +957,7 @@ router.get(
 
       logger.debug(
         `Status Page SCIM Get user - returning user with id: ${statusPageUser.id}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Log the operation
@@ -978,7 +1005,7 @@ router.get(
       });
 
       if (!isNotFound) {
-        logger.error(err);
+        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       }
       return next(err);
     }
@@ -1000,6 +1027,7 @@ router.post(
     try {
       logger.debug(
         `Status Page SCIM Create user request for statusPageScimId: ${req.params["statusPageScimId"]}`,
+        getLogAttributesFromRequest(req as any),
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
@@ -1027,10 +1055,12 @@ router.post(
 
       logger.debug(
         `Status Page SCIM Create user - statusPageId: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       logger.debug(
         `Request body for Status Page SCIM Create user: ${JSON.stringify(scimUser, null, 2)}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Extract user data from SCIM payload
@@ -1049,7 +1079,10 @@ router.post(
         throw new BadRequestException("Email is required for user creation");
       }
 
-      logger.debug(`Status Page SCIM Create user - email: ${email}`);
+      logger.debug(
+        `Status Page SCIM Create user - email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // Check if user already exists for this status page
       executionSteps.push(
@@ -1078,6 +1111,7 @@ router.post(
         );
         logger.debug(
           `Status Page SCIM Create user - creating new user with email: ${email}`,
+          getLogAttributesFromRequest(req as any),
         );
 
         const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
@@ -1102,6 +1136,7 @@ router.post(
         );
         logger.debug(
           `Status Page SCIM Create user - user already exists with id: ${user.id}`,
+          getLogAttributesFromRequest(req as any),
         );
       }
 
@@ -1115,6 +1150,7 @@ router.post(
 
       logger.debug(
         `Status Page SCIM Create user - returning created user with id: ${user.id}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Log the operation
@@ -1164,7 +1200,7 @@ router.post(
         steps: executionSteps,
       });
 
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       return next(err);
     }
   },
@@ -1185,6 +1221,7 @@ const handleStatusPageUserUpdate: (
   try {
     logger.debug(
       `Status Page SCIM Update user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
+      getLogAttributesFromRequest(req as any),
     );
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const bearerData: JSONObject =
@@ -1198,10 +1235,12 @@ const handleStatusPageUserUpdate: (
 
     logger.debug(
       `Status Page SCIM Update user - statusPageId: ${statusPageId}, userId: ${userId}`,
+      getLogAttributesFromRequest(req as any),
     );
 
     logger.debug(
       `Request body for Status Page SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`,
+      getLogAttributesFromRequest(req as any),
     );
 
     if (!userId) {
@@ -1230,6 +1269,7 @@ const handleStatusPageUserUpdate: (
       executionSteps.push(`User not found with ID: ${userId}`);
       logger.debug(
         `Status Page SCIM Update user - user not found for userId: ${userId}`,
+        getLogAttributesFromRequest(req as any),
       );
       throw new NotFoundException(
         "User not found or not part of this status page",
@@ -1251,6 +1291,7 @@ const handleStatusPageUserUpdate: (
 
     logger.debug(
       `Status Page SCIM Update user - email: ${email}, active: ${active}`,
+      getLogAttributesFromRequest(req as any),
     );
 
     // Handle user deactivation by deleting from status page
@@ -1258,6 +1299,7 @@ const handleStatusPageUserUpdate: (
       executionSteps.push("User marked as inactive (active=false)");
       logger.debug(
         `Status Page SCIM Update user - user marked as inactive, removing from status page`,
+        getLogAttributesFromRequest(req as any),
       );
 
       const scimConfig: StatusPageSCIM = bearerData[
@@ -1275,6 +1317,7 @@ const handleStatusPageUserUpdate: (
         executionSteps.push("User deleted successfully from status page");
         logger.debug(
           `Status Page SCIM Update user - user removed from status page`,
+          getLogAttributesFromRequest(req as any),
         );
 
         // Log the operation
@@ -1331,6 +1374,7 @@ const handleStatusPageUserUpdate: (
       executionSteps.push("Updating user in database");
       logger.debug(
         `Status Page SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       await StatusPagePrivateUserService.updateOneById({
@@ -1340,7 +1384,10 @@ const handleStatusPageUserUpdate: (
       });
 
       executionSteps.push("User updated successfully in database");
-      logger.debug(`Status Page SCIM Update user - user updated successfully`);
+      logger.debug(
+        `Status Page SCIM Update user - user updated successfully`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // Fetch updated user
       executionSteps.push("Fetching updated user from database");
@@ -1399,6 +1446,7 @@ const handleStatusPageUserUpdate: (
     executionSteps.push("No changes detected, returning existing user");
     logger.debug(
       `Status Page SCIM Update user - no updates made, returning existing user`,
+      getLogAttributesFromRequest(req as any),
     );
 
     // If no updates were made, return the existing user
@@ -1458,7 +1506,7 @@ const handleStatusPageUserUpdate: (
     });
 
     if (!isNotFound) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
     }
     return next(err);
   }
@@ -1493,6 +1541,7 @@ router.delete(
     try {
       logger.debug(
         `Status Page SCIM Delete user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
+        getLogAttributesFromRequest(req as any),
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
@@ -1520,6 +1569,7 @@ router.delete(
 
       logger.debug(
         `Status Page SCIM Delete user - statusPageId: ${statusPageId}, userId: ${userId}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       if (!userId) {
@@ -1546,6 +1596,7 @@ router.delete(
         executionSteps.push(`User not found with ID: ${userId}`);
         logger.debug(
           `Status Page SCIM Delete user - user not found for userId: ${userId}`,
+          getLogAttributesFromRequest(req as any),
         );
         // SCIM spec says to return 404 for non-existent resources
         throw new NotFoundException("User not found");
@@ -1564,6 +1615,7 @@ router.delete(
       executionSteps.push("User deleted successfully");
       logger.debug(
         `Status Page SCIM Delete user - user deleted successfully for userId: ${userId}`,
+        getLogAttributesFromRequest(req as any),
       );
 
       // Log the operation
@@ -1615,7 +1667,7 @@ router.delete(
       });
 
       if (!isNotFound) {
-        logger.error(err);
+        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       }
       return next(err);
     }

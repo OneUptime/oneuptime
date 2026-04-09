@@ -590,7 +590,7 @@ RunCron(
                           statuspage,
                         ),
                     },
-                    subject: "[Scheduled Maintenance Update] " + event.title,
+                    subject: "[Update Scheduled Maintenance] " + event.title,
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(

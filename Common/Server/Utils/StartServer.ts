@@ -21,9 +21,10 @@ import Express, {
   RequestHandler,
   headerValueToString,
 } from "./Express";
-import logger from "./Logger";
+import logger, { getLogAttributesFromRequest } from "./Logger";
 import "./Process";
 import Response from "./Response";
+import SpanUtil from "./Telemetry/SpanUtil";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -38,6 +39,7 @@ import Typeof from "../../Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
 import zlib from "zlib";
+import crypto from "crypto";
 import path from "path";
 import "ejs";
 // Make sure we have stack trace for debugging.
@@ -60,7 +62,10 @@ const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
   extended: true,
   verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
     (req as OneUptimeRequest).rawBody = buf.toString();
-    logger.debug(`Raw JSON Body for signature verification captured`);
+    logger.debug(
+      `Raw JSON Body for signature verification captured`,
+      getLogAttributesFromRequest(req as OneUptimeRequest),
+    );
   },
 }); // 50 MB limit.
 
@@ -72,6 +77,7 @@ const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded({
     (req as OneUptimeRequest).rawBody = buf.toString(); // Also set rawBody for consistency
     logger.debug(
       `Raw Form Url Encoded Body: ${(req as OneUptimeRequest).rawFormUrlEncodedBody}`,
+      getLogAttributesFromRequest(req as OneUptimeRequest),
     );
   },
 }); // 50 MB limit.
@@ -150,7 +156,10 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
       const buffer: Buffer = Buffer.concat(buffers);
       zlib.gunzip(buffer as Uint8Array, (err: unknown, decoded: Buffer) => {
         if (err) {
-          logger.error(err);
+          logger.error(
+            err,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           return Response.sendErrorResponse(
             req,
             res,
@@ -191,6 +200,18 @@ app.use((_req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
   if (span) {
     span.setStatus({ code: api.SpanStatusCode.OK });
   }
+
+  next();
+});
+
+app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+  const requestId: string = crypto.randomUUID();
+  (req as OneUptimeRequest).requestId = requestId;
+
+  // Tag the current span with requestId so all downstream spans inherit context
+  SpanUtil.addAttributesToCurrentSpan({
+    requestId: requestId,
+  });
 
   next();
 });
@@ -286,12 +307,19 @@ const init: InitFunction = async (
         next: NextFunction,
       ) => {
         try {
-          logger.debug("Rendering index page");
+          const renderLogAttributes = getLogAttributesFromRequest(
+            _req as OneUptimeRequest,
+          );
+
+          logger.debug("Rendering index page", renderLogAttributes);
 
           let variables: JSONObject = {};
 
           if (data.getVariablesToRenderIndexPage) {
-            logger.debug("Getting variables to render index page");
+            logger.debug(
+              "Getting variables to render index page",
+              renderLogAttributes,
+            );
             try {
               const variablesToRenderIndexPage: JSONObject =
                 await data.getVariablesToRenderIndexPage(_req, res);
@@ -300,16 +328,20 @@ const init: InitFunction = async (
                 ...variablesToRenderIndexPage,
               };
             } catch (error) {
-              logger.error(error);
+              logger.error(error, renderLogAttributes);
             }
           }
 
-          logger.debug("Rendering index page with variables: ");
-          logger.debug(variables);
+          logger.debug(
+            "Rendering index page with variables: ",
+            renderLogAttributes,
+          );
+          logger.debug(variables, renderLogAttributes);
 
           if (res.headersSent) {
             logger.debug(
               "Response already sent while preparing index page. Skipping render.",
+              renderLogAttributes,
             );
             return;
           }
@@ -369,7 +401,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
       res: ExpressResponse,
       next: NextFunction,
     ) => {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
 
       // Mark span as error.
       if (err) {

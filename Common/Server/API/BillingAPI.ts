@@ -17,7 +17,7 @@ import Project from "../../Models/DatabaseModels/Project";
 import CommonAPI from "./CommonAPI";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 export default class BillingAPI {
   public router: ExpressRouter;
@@ -32,11 +32,13 @@ export default class BillingAPI {
         try {
           logger.debug(
             `[Invoice Email] Webhook endpoint hit - /billing/webhook`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
           if (!IsBillingEnabled) {
             logger.debug(
               `[Invoice Email] Billing not enabled, returning early`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
             );
             return Response.sendJsonObjectResponse(req, res, {
               message: "Billing is not enabled",
@@ -46,6 +48,7 @@ export default class BillingAPI {
           if (!BillingWebhookSecret) {
             logger.error(
               `[Invoice Email] Billing webhook secret is not configured`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
             );
             throw new BadDataException(
               "Billing webhook secret is not configured",
@@ -55,46 +58,65 @@ export default class BillingAPI {
           const signature: string = req.headers["stripe-signature"] as string;
           logger.debug(
             `[Invoice Email] Stripe signature header present: ${Boolean(signature)}`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
           if (!signature) {
-            logger.error(`[Invoice Email] Missing Stripe signature header`);
+            logger.error(
+              `[Invoice Email] Missing Stripe signature header`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
             throw new BadDataException("Missing Stripe signature header");
           }
 
           const rawBody: string | undefined = (req as OneUptimeRequest).rawBody;
           logger.debug(
             `[Invoice Email] Raw body present: ${Boolean(rawBody)}, length: ${rawBody?.length || 0}`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
           if (!rawBody) {
             logger.error(
               `[Invoice Email] Missing raw body for webhook verification`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
             );
             throw new BadDataException(
               "Missing raw body for webhook verification",
             );
           }
 
-          logger.debug(`[Invoice Email] Verifying webhook signature...`);
+          logger.debug(
+            `[Invoice Email] Verifying webhook signature...`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           const event: Stripe.Event = BillingService.verifyWebhookSignature(
             rawBody,
             signature,
           );
           logger.debug(
             `[Invoice Email] Webhook signature verified successfully, event type: ${event.type}`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
           // Handle the event asynchronously
-          logger.debug(`[Invoice Email] Handling webhook event...`);
+          logger.debug(
+            `[Invoice Email] Handling webhook event...`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           await BillingService.handleWebhookEvent(event);
-          logger.debug(`[Invoice Email] Webhook event handled successfully`);
+          logger.debug(
+            `[Invoice Email] Webhook event handled successfully`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
 
           return Response.sendJsonObjectResponse(req, res, {
             received: true,
           });
         } catch (err) {
-          logger.error(`[Invoice Email] Stripe webhook error: ${err}`);
+          logger.error(
+            `[Invoice Email] Stripe webhook error: ${err}`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           next(err);
         }
       },

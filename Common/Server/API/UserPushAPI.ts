@@ -5,7 +5,7 @@ import UserPushService, {
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import PushNotificationService from "../Services/PushNotificationService";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
-import logger from "../Utils/Logger";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -131,7 +131,10 @@ export default class UserPushAPI extends BaseAPI<
               },
             );
           } catch (e) {
-            logger.error(e);
+            logger.error(
+              e,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
           }
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -346,7 +349,10 @@ export default class UserPushAPI extends BaseAPI<
               },
             );
           } catch (e) {
-            logger.error(e);
+            logger.error(
+              e,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
           }
 
           return Response.sendEmptySuccessResponse(req, res);

@@ -248,8 +248,15 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",
+            {
+              projectId: projectId?.toString(),
+              incidentId: incidentId?.toString(),
+            },
           );
-          logger.error(e);
+          logger.error(e, {
+            projectId: projectId?.toString(),
+            incidentId: incidentId?.toString(),
+          });
         }
       }
 

@@ -4,7 +4,7 @@
  */
 
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 
 // Session data interface
 export interface SessionData {
@@ -45,7 +45,9 @@ export default class SessionManager {
    */
   public static setSession(sessionId: string, data: SessionData): void {
     this.sessions.set(sessionId, data);
-    logger.info(`MCP session stored: ${sessionId}`);
+    logger.info(`MCP session stored: ${sessionId}`, {
+      sessionId,
+    } as LogAttributes);
   }
 
   /**
@@ -69,7 +71,9 @@ export default class SessionManager {
   public static removeSession(sessionId: string): boolean {
     const deleted: boolean = this.sessions.delete(sessionId);
     if (deleted) {
-      logger.info(`MCP session removed: ${sessionId}`);
+      logger.info(`MCP session removed: ${sessionId}`, {
+        sessionId,
+      } as LogAttributes);
     }
     return deleted;
   }
@@ -108,6 +112,6 @@ export default class SessionManager {
   public static clearAllSessions(): void {
     this.sessions.clear();
     this.currentSessionApiKey = "";
-    logger.info("All MCP sessions cleared");
+    logger.info("All MCP sessions cleared", {} as LogAttributes);
   }
 }

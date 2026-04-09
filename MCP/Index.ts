@@ -38,6 +38,7 @@ function initializeApiService(): void {
   OneUptimeApiService.initialize(config);
   logger.info(
     `OneUptime API Service initialized with: ${apiUrl} (API keys provided per-request via x-api-key header)`,
+    { service: APP_NAME },
   );
 }
 
@@ -47,10 +48,12 @@ function initializeApiService(): void {
 function generateTools(): McpToolInfo[] {
   try {
     const tools: McpToolInfo[] = generateAllTools();
-    logger.info(`Generated ${tools.length} OneUptime MCP tools`);
+    logger.info(`Generated ${tools.length} OneUptime MCP tools`, {
+      service: APP_NAME,
+    });
     return tools;
   } catch (error) {
-    logger.error(`Failed to generate tools: ${error}`);
+    logger.error(`Failed to generate tools: ${error}`, { service: APP_NAME });
     throw error;
   }
 }
@@ -108,24 +111,30 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Add default routes to the app
     await App.addDefaultRoutes();
 
-    logger.info(`OneUptime MCP Server started successfully`);
-    logger.info(`Available tools: ${tools.length} total`);
+    logger.info(`OneUptime MCP Server started successfully`, {
+      service: APP_NAME,
+    });
+    logger.info(`Available tools: ${tools.length} total`, {
+      service: APP_NAME,
+    });
 
     // Log some example tools
     const exampleTools: string[] = tools.slice(0, 5).map((t: McpToolInfo) => {
       return t.name;
     });
-    logger.info(`Example tools: ${exampleTools.join(", ")}`);
+    logger.info(`Example tools: ${exampleTools.join(", ")}`, {
+      service: APP_NAME,
+    });
   } catch (err) {
-    logger.error("MCP Server Init Failed:");
-    logger.error(err);
+    logger.error("MCP Server Init Failed:", { service: APP_NAME });
+    logger.error(err, { service: APP_NAME });
     throw err;
   }
 };
 
 // Start the server
 init().catch((err: Error) => {
-  logger.error(err);
-  logger.error("Exiting node process");
+  logger.error(err, { service: APP_NAME });
+  logger.error("Exiting node process", { service: APP_NAME });
   process.exit(1);
 });

@@ -30,7 +30,7 @@ import OnCallDutyPolicyEscalationRuleTeam from "../../Models/DatabaseModels/OnCa
 import OnCallDutyPolicyEscalationRuleUser from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import OnCallDutyPolicyExecutionLogTimeline from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import User from "../../Models/DatabaseModels/User";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -44,6 +44,10 @@ export class Service extends DatabaseService<Model> {
   }): Promise<ObjectID | null> {
     logger.debug(
       `Getting route alert to user id for userId: ${data.userId.toString()}`,
+      {
+        projectId: data.projectId.toString(),
+        userId: data.userId.toString(),
+      } as LogAttributes,
     );
 
     const currentDate: Date = OneUptimeDate.getCurrentDate();
@@ -70,7 +74,10 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    logger.debug(`Found alert routed to: ${JSON.stringify(alertRoutedTo)}`);
+    logger.debug(`Found alert routed to: ${JSON.stringify(alertRoutedTo)}`, {
+      projectId: data.projectId.toString(),
+      userId: data.userId.toString(),
+    } as LogAttributes);
 
     // local override takes precedence over global override.
     const localOverride: OnCallDutyPolicyUserOverride | undefined =
@@ -84,6 +91,10 @@ export class Service extends DatabaseService<Model> {
     if (localOverride && localOverride.routeAlertsToUserId) {
       logger.debug(
         `Route alert to user id found: ${localOverride.routeAlertsToUserId.toString()}`,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
       );
       return localOverride.routeAlertsToUserId;
     }
@@ -96,6 +107,10 @@ export class Service extends DatabaseService<Model> {
     if (globalOverride && globalOverride.routeAlertsToUserId) {
       logger.debug(
         `Route alert to user id found: ${globalOverride.routeAlertsToUserId.toString()}`,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
       );
       return globalOverride.routeAlertsToUserId;
     }
@@ -117,7 +132,10 @@ export class Service extends DatabaseService<Model> {
       onCallPolicyId: ObjectID;
     },
   ): Promise<void> {
-    logger.debug(`Starting rule execution for ruleId: ${ruleId.toString()}`);
+    logger.debug(`Starting rule execution for ruleId: ${ruleId.toString()}`, {
+      projectId: options.projectId.toString(),
+      onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+    } as LogAttributes);
 
     const rule: Model | null = await this.findOneById({
       id: ruleId,
@@ -137,7 +155,10 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    logger.debug(`Found rule: ${JSON.stringify(rule)}`);
+    logger.debug(`Found rule: ${JSON.stringify(rule)}`, {
+      projectId: options.projectId.toString(),
+      onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+    } as LogAttributes);
 
     await OnCallDutyPolicyExecutionLogService.updateOneById({
       id: options.onCallPolicyExecutionLogId,
@@ -152,7 +173,10 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    logger.debug(`Updated execution log for ruleId: ${ruleId.toString()}`);
+    logger.debug(`Updated execution log for ruleId: ${ruleId.toString()}`, {
+      projectId: options.projectId.toString(),
+      onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+    } as LogAttributes);
 
     type GetNewLogFunction = () => OnCallDutyPolicyExecutionLogTimeline;
 
@@ -242,7 +266,10 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    logger.debug(`Found users in rule: ${JSON.stringify(usersInRule)}`);
+    logger.debug(`Found users in rule: ${JSON.stringify(usersInRule)}`, {
+      projectId: options.projectId.toString(),
+      onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+    } as LogAttributes);
 
     const teamsInRule: Array<OnCallDutyPolicyEscalationRuleTeam> =
       await OnCallDutyPolicyEscalationRuleTeamService.findBy({
@@ -259,7 +286,10 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    logger.debug(`Found teams in rule: ${JSON.stringify(teamsInRule)}`);
+    logger.debug(`Found teams in rule: ${JSON.stringify(teamsInRule)}`, {
+      projectId: options.projectId.toString(),
+      onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+    } as LogAttributes);
 
     const schedulesInRule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
       await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
@@ -276,7 +306,13 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    logger.debug(`Found schedules in rule: ${JSON.stringify(schedulesInRule)}`);
+    logger.debug(
+      `Found schedules in rule: ${JSON.stringify(schedulesInRule)}`,
+      {
+        projectId: options.projectId.toString(),
+        onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+      } as LogAttributes,
+    );
 
     type StartUserNotificationRuleExecutionFunction = (
       userId: ObjectID,
@@ -307,6 +343,11 @@ export class Service extends DatabaseService<Model> {
 
         logger.debug(
           `Starting notification rule execution for userId: ${alertSentToUserId.toString()}`,
+          {
+            projectId: options.projectId.toString(),
+            onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+            userId: alertSentToUserId.toString(),
+          } as LogAttributes,
         );
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage = "Sending notification to user.";
@@ -479,7 +520,10 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    logger.debug(`Completed rule execution for ruleId: ${ruleId.toString()}`);
+    logger.debug(`Completed rule execution for ruleId: ${ruleId.toString()}`, {
+      projectId: options.projectId.toString(),
+      onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+    } as LogAttributes);
   }
 
   public constructor() {

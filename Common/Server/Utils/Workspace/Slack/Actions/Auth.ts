@@ -293,7 +293,9 @@ export default class SlackAuthAction {
       viewValues: viewValues,
     };
 
-    logger.debug("Slack request authorized successfully");
+    logger.debug("Slack request authorized successfully", {
+      projectId: projectId.toString(),
+    });
     logger.debug("Slack request: ");
     logger.debug(slackRequest);
 

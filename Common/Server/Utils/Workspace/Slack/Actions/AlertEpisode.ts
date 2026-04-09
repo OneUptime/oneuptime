@@ -155,7 +155,9 @@ export default class SlackAlertEpisodeActions {
             isRoot: true,
           });
         } catch (err) {
-          logger.error("Error logging button interaction:");
+          logger.error("Error logging button interaction:", {
+            projectId: slackRequest.projectId?.toString(),
+          });
           logger.error(err);
           // Don't throw the error, just log it so the main flow continues
         }
@@ -493,7 +495,10 @@ export default class SlackAlertEpisodeActions {
           isRoot: true,
         });
       } catch (err) {
-        logger.error("Error logging button interaction:");
+        logger.error("Error logging button interaction:", {
+          projectId: data.slackRequest.projectId?.toString(),
+          alertEpisodeId: episodeId.toString(),
+        });
         logger.error(err);
         // Don't throw the error, just log it so the main flow continues
       }
@@ -760,7 +765,9 @@ export default class SlackAlertEpisodeActions {
     channelId: string;
     messageTs: string;
   }): Promise<void> {
-    logger.debug("Handling emoji reaction for Alert Episode with data:");
+    logger.debug("Handling emoji reaction for Alert Episode with data:", {
+      channelId: data.channelId,
+    });
     logger.debug(data);
 
     const { teamId, reaction, userId, channelId, messageTs } = data;
@@ -859,13 +866,21 @@ export default class SlackAlertEpisodeActions {
         messageTs: messageTs,
       });
     } catch (err) {
-      logger.error("Error fetching message text:");
+      logger.error("Error fetching message text:", {
+        projectId: projectId.toString(),
+        alertEpisodeId: episodeId.toString(),
+        channelId: channelId,
+      });
       logger.error(err);
       return;
     }
 
     if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.");
+      logger.debug("No message text found. Ignoring emoji reaction.", {
+        projectId: projectId.toString(),
+        alertEpisodeId: episodeId.toString(),
+        channelId: channelId,
+      });
       return;
     }
 
@@ -895,9 +910,15 @@ export default class SlackAlertEpisodeActions {
         userId: oneUptimeUserId,
         postedFromSlackMessageId: postedFromSlackMessageId,
       });
-      logger.debug("Private note added to alert episode successfully.");
+      logger.debug("Private note added to alert episode successfully.", {
+        projectId: projectId.toString(),
+        alertEpisodeId: episodeId.toString(),
+      });
     } catch (err) {
-      logger.error("Error saving note:");
+      logger.error("Error saving note:", {
+        projectId: projectId.toString(),
+        alertEpisodeId: episodeId.toString(),
+      });
       logger.error(err);
       return;
     }
@@ -922,7 +943,10 @@ export default class SlackAlertEpisodeActions {
 
       logger.debug("Confirmation message sent successfully.");
     } catch (err) {
-      logger.error("Error sending confirmation message:");
+      logger.error("Error sending confirmation message:", {
+        projectId: projectId.toString(),
+        alertEpisodeId: episodeId.toString(),
+      });
       logger.error(err);
       // Don't throw - note was saved successfully, confirmation is best effort
     }

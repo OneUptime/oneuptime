@@ -24,7 +24,10 @@ import Express, {
   getClientIp,
   headerValueToString,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
@@ -326,7 +329,7 @@ router.post(
         }),
       );
     } catch (err) {
-      logger.error(err);
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       if (err instanceof Exception) {
         return next(err);
       }

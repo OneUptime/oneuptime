@@ -13,12 +13,12 @@ BasicCron({
     runOnStartup: true,
   },
   runFunction: async () => {
-    logger.debug("UpdateBlog: Start");
+    logger.debug("UpdateBlog: Start", { service: "home", job: "UpdateBlog" });
     // Pull latest changes from the repository
     await CodeRepositoryUtil.pullChanges({
       repoPath: BlogRootPath,
     });
     BlogPostUtil.clearAllCaches();
-    logger.debug("UpdateBlog: End");
+    logger.debug("UpdateBlog: End", { service: "home", job: "UpdateBlog" });
   },
 });

@@ -14,7 +14,10 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import User from "Common/Models/DatabaseModels/User";
 
 const router: ExpressRouter = Express.getRouter();
@@ -73,6 +76,7 @@ async function sendBroadcastEmailsInBackground(data: {
           errorCount++;
           logger.error(
             `Failed to send broadcast email to ${user.email.toString()}: ${err}`,
+            getLogAttributesFromRequest(req as any),
           );
         }
       }
@@ -86,9 +90,13 @@ async function sendBroadcastEmailsInBackground(data: {
 
     logger.info(
       `Broadcast email completed. Total users: ${totalUsers}, Sent: ${sentCount}, Errors: ${errorCount}`,
+      getLogAttributesFromRequest(req as any),
     );
   } catch (err) {
-    logger.error(`Broadcast email background job failed: ${err}`);
+    logger.error(
+      `Broadcast email background job failed: ${err}`,
+      getLogAttributesFromRequest(req as any),
+    );
   }
 }
 
@@ -177,7 +185,10 @@ router.post(
         subject,
         htmlMessage,
       }).catch((err: Error) => {
-        logger.error(`Broadcast email background job failed: ${err}`);
+        logger.error(
+          `Broadcast email background job failed: ${err}`,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
       });
     } catch (err) {
       return next(err);

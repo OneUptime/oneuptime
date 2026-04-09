@@ -13,7 +13,10 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
+import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -149,7 +152,7 @@ router.post(
           },
         );
       } catch (err) {
-        logger.error(err);
+        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
         throw new BadDataException(
           "Failed to send test SMS. Please check the twilio logs for more details.",
         );

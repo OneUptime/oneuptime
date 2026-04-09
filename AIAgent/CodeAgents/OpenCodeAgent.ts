@@ -10,7 +10,7 @@ import TaskLogger from "../Utils/TaskLogger";
 import Execute from "Common/Server/Utils/Execute";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import LlmType from "Common/Types/LLM/LlmType";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import path from "path";
 import { ChildProcess, spawn } from "child_process";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -143,11 +143,15 @@ export default class OpenCodeAgent implements CodeAgent {
         cwd: process.cwd(),
       });
 
-      logger.debug(`OpenCode version check: ${result}`);
+      logger.debug(`OpenCode version check: ${result}`, {
+        agentName: this.name,
+      } as LogAttributes);
       return true;
     } catch (error) {
-      logger.debug("OpenCode is not available:");
-      logger.debug(error);
+      logger.debug("OpenCode is not available:", {
+        agentName: this.name,
+      } as LogAttributes);
+      logger.debug(error, { agentName: this.name } as LogAttributes);
       return false;
     }
   }
@@ -230,7 +234,9 @@ export default class OpenCodeAgent implements CodeAgent {
       }
     } catch (error) {
       // Log but don't throw - cleanup failure shouldn't fail the task
-      logger.warn(`Failed to restore/delete opencode.json: ${error}`);
+      logger.warn(`Failed to restore/delete opencode.json: ${error}`, {
+        agentName: this.name,
+      } as LogAttributes);
     }
 
     // Reset the tracking variables
@@ -380,6 +386,7 @@ export default class OpenCodeAgent implements CodeAgent {
 
         logger.debug(
           `Running: opencode ${args.join(" ")} (prompt via stdin, ${prompt.length} chars)`,
+          { agentName: this.name } as LogAttributes,
         );
 
         const child: ChildProcess = spawn("opencode", args, {
@@ -418,14 +425,19 @@ export default class OpenCodeAgent implements CodeAgent {
           // Stream to console immediately
           const trimmedText: string = text.trim();
           if (trimmedText) {
-            logger.info(`[OpenCode stdout] ${trimmedText}`);
+            logger.info(`[OpenCode stdout] ${trimmedText}`, {
+              agentName: this.name,
+            } as LogAttributes);
 
             // Stream to task logger for server-side logging
             if (this.taskLogger) {
               this.taskLogger
                 .info(`[OpenCode] ${trimmedText}`)
                 .catch((err: Error) => {
-                  logger.error(`Failed to log OpenCode output: ${err.message}`);
+                  logger.error(
+                    `Failed to log OpenCode output: ${err.message}`,
+                    { agentName: this.name } as LogAttributes,
+                  );
                 });
             }
           }
@@ -444,14 +456,19 @@ export default class OpenCodeAgent implements CodeAgent {
           // Stream to console immediately
           const trimmedText: string = text.trim();
           if (trimmedText) {
-            logger.warn(`[OpenCode stderr] ${trimmedText}`);
+            logger.warn(`[OpenCode stderr] ${trimmedText}`, {
+              agentName: this.name,
+            } as LogAttributes);
 
             // Stream to task logger for server-side logging
             if (this.taskLogger) {
               this.taskLogger
                 .warning(`[OpenCode stderr] ${trimmedText}`)
                 .catch((err: Error) => {
-                  logger.error(`Failed to log OpenCode stderr: ${err.message}`);
+                  logger.error(
+                    `Failed to log OpenCode stderr: ${err.message}`,
+                    { agentName: this.name } as LogAttributes,
+                  );
                 });
             }
           }
@@ -517,8 +534,10 @@ export default class OpenCodeAgent implements CodeAgent {
           return line.substring(3).trim();
         });
     } catch (error) {
-      logger.error("Error getting modified files:");
-      logger.error(error);
+      logger.error("Error getting modified files:", {
+        agentName: this.name,
+      } as LogAttributes);
+      logger.error(error, { agentName: this.name } as LogAttributes);
       return [];
     }
   }

@@ -12,9 +12,13 @@ RunCron(
   async () => {
     const olderThanDays: number = 180; // store for 6 months.
 
-    logger.debug("Checking Metric:DeleteAlertMetricsOlderThanXDays");
+    logger.debug("Checking Metric:DeleteAlertMetricsOlderThanXDays", {
+      service: "workers",
+    });
 
-    logger.debug(`Deleting Alert Metrics older than ${olderThanDays} days`);
+    logger.debug(`Deleting Alert Metrics older than ${olderThanDays} days`, {
+      service: "workers",
+    });
 
     await MetricService.deleteBy({
       query: {
