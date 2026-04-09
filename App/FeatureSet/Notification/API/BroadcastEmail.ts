@@ -76,7 +76,7 @@ async function sendBroadcastEmailsInBackground(data: {
           errorCount++;
           logger.error(
             `Failed to send broadcast email to ${user.email.toString()}: ${err}`,
-            getLogAttributesFromRequest(req as any),
+            {} as any,
           );
         }
       }
@@ -90,12 +90,12 @@ async function sendBroadcastEmailsInBackground(data: {
 
     logger.info(
       `Broadcast email completed. Total users: ${totalUsers}, Sent: ${sentCount}, Errors: ${errorCount}`,
-      getLogAttributesFromRequest(req as any),
+      {} as any,
     );
   } catch (err) {
     logger.error(
       `Broadcast email background job failed: ${err}`,
-      getLogAttributesFromRequest(req as any),
+      {} as any,
     );
   }
 }

@@ -1823,12 +1823,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           const userIds: Array<ObjectID> =
             workspaceRules.inviteUsersToNewChannel || [];
 
-          logger.debug("User IDs to invite from rule:", {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
-          logger.debug(userIds, {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
+          logger.debug("User IDs to invite from rule:", {} as LogAttributes);
+          logger.debug(userIds, {} as LogAttributes);
 
           for (const userId of userIds) {
             if (
@@ -1852,22 +1848,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             return new ObjectID(teamId.toString());
           });
 
-          logger.debug("Team IDs to invite from rule:", {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
-          logger.debug(teamIds, {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
+          logger.debug("Team IDs to invite from rule:", {} as LogAttributes);
+          logger.debug(teamIds, {} as LogAttributes);
 
           const usersInTeam: Array<User> =
             await TeamMemberService.getUsersInTeams(teamIds);
 
-          logger.debug("Users in teams:", {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
-          logger.debug(usersInTeam, {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
+          logger.debug("Users in teams:", {} as LogAttributes);
+          logger.debug(usersInTeam, {} as LogAttributes);
 
           for (const user of usersInTeam) {
             if (
@@ -1892,12 +1880,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
     }
 
-    logger.debug("Final list of user IDs to invite:", {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(result, {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
+    logger.debug("Final list of user IDs to invite:", {} as LogAttributes);
+    logger.debug(result, {} as LogAttributes);
 
     return result;
   }
@@ -1908,11 +1892,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): Array<WorkspaceChannel> {
     logger.debug(
       "getExistingChannelNamesFromNotificationRules called with data:",
-      { projectId: data.projectId?.toString() } as LogAttributes,
+      {} as LogAttributes,
     );
-    logger.debug(data, {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const channels: Array<WorkspaceChannel> = [];
 
@@ -1923,18 +1905,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const existingChannelNames: Array<string> =
           workspaceRules.existingChannelNames.split(",");
 
-        logger.debug("Existing channel names from rule:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(existingChannelNames, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Existing channel names from rule:", {} as LogAttributes);
+        logger.debug(existingChannelNames, {} as LogAttributes);
 
         for (const channelName of existingChannelNames) {
           if (!channelName) {
-            logger.debug("Empty channel name found. Skipping.", {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
+            logger.debug("Empty channel name found. Skipping.", {} as LogAttributes);
             continue;
           }
 
@@ -1958,12 +1934,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
     }
 
-    logger.debug("Final list of existing channels:", {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(channels, {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
+    logger.debug("Final list of existing channels:", {} as LogAttributes);
+    logger.debug(channels, {} as LogAttributes);
 
     return channels;
   }
@@ -1979,11 +1951,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }> {
     logger.debug(
       "getnotificationChannelssFromNotificationRules called with data:",
-      { projectId: data.projectId?.toString() } as LogAttributes,
+      {} as LogAttributes,
     );
-    logger.debug(data, {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     const channels: Array<{
       channelName: string;
@@ -1995,24 +1965,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       const workspaceRules: CreateChannelNotificationRule =
         notificationRule.notificationRule as CreateChannelNotificationRule;
 
-      logger.debug("Processing notification rule:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(workspaceRules, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Processing notification rule:", {} as LogAttributes);
+      logger.debug(workspaceRules, {} as LogAttributes);
 
       if (workspaceRules.shouldCreateNewChannel) {
         const notificationChannels: string =
           workspaceRules.newChannelTemplateName ||
           `oneuptime-${data.notificationEventType.toLowerCase()}-`;
 
-        logger.debug("New channel template name:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(notificationChannels, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("New channel template name:", {} as LogAttributes);
+        logger.debug(notificationChannels, {} as LogAttributes);
 
         /*
          * Sanitize the suffix for workspace channel names.
@@ -2027,12 +1989,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         // add suffix and then check if it is already added or not.
         const channelName: string = notificationChannels + sanitizedSuffix;
 
-        logger.debug("Final channel name with suffix:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(channelName, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Final channel name with suffix:", {} as LogAttributes);
+        logger.debug(channelName, {} as LogAttributes);
 
         if (
           channels.filter(
@@ -2060,24 +2018,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           }
 
           channels.push(channelData);
-          logger.debug(`Channel name ${channelName} added to the list.`, {
-            projectId: data.projectId?.toString(),
-          } as LogAttributes);
+          logger.debug(`Channel name ${channelName} added to the list.`, {} as LogAttributes);
         } else {
           logger.debug(
             `Channel name ${channelName} already exists in the list. Skipping.`,
-            { projectId: data.projectId?.toString() } as LogAttributes,
+            {} as LogAttributes,
           );
         }
       }
     }
 
-    logger.debug("Final list of new channel names:", {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(channels, {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
+    logger.debug("Final list of new channel names:", {} as LogAttributes);
+    logger.debug(channels, {} as LogAttributes);
 
     return channels;
   }
@@ -2131,20 +2083,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       | Array<string>
       | undefined;
   }> {
-    logger.debug("getValuesBasedOnNotificationFor called with data:", {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(data, {
-      projectId: data.projectId?.toString(),
-    } as LogAttributes);
+    logger.debug("getValuesBasedOnNotificationFor called with data:", {} as LogAttributes);
+    logger.debug(data, {} as LogAttributes);
 
     if (data.notificationFor.incidentId) {
-      logger.debug("Fetching incident details for incident ID:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(data.notificationFor.incidentId, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Fetching incident details for incident ID:", {} as LogAttributes);
+      logger.debug(data.notificationFor.incidentId, {} as LogAttributes);
 
       const incident: Incident | null = await IncidentService.findOneById({
         id: data.notificationFor.incidentId,
@@ -2162,21 +2106,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       });
 
       if (!incident) {
-        logger.debug("Incident not found for ID:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(data.notificationFor.incidentId, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Incident not found for ID:", {} as LogAttributes);
+        logger.debug(data.notificationFor.incidentId, {} as LogAttributes);
         throw new BadDataException("Incident ID not found");
       }
 
-      logger.debug("Incident details retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(incident, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Incident details retrieved:", {} as LogAttributes);
+      logger.debug(incident, {} as LogAttributes);
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
@@ -2186,12 +2122,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             }) || [],
         });
 
-      logger.debug("Monitor labels retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(monitorLabels, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Monitor labels retrieved:", {} as LogAttributes);
+      logger.debug(monitorLabels, {} as LogAttributes);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
@@ -2247,12 +2179,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.alertId) {
-      logger.debug("Fetching alert details for alert ID:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(data.notificationFor.alertId, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Fetching alert details for alert ID:", {} as LogAttributes);
+      logger.debug(data.notificationFor.alertId, {} as LogAttributes);
 
       const alert: Alert | null = await AlertService.findOneById({
         id: data.notificationFor.alertId,
@@ -2270,33 +2198,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       });
 
       if (!alert) {
-        logger.debug("Alert not found for ID:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(data.notificationFor.alertId, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Alert not found for ID:", {} as LogAttributes);
+        logger.debug(data.notificationFor.alertId, {} as LogAttributes);
         throw new BadDataException("Alert ID not found");
       }
 
-      logger.debug("Alert details retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(alert, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Alert details retrieved:", {} as LogAttributes);
+      logger.debug(alert, {} as LogAttributes);
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
           monitorIds: alert?.monitor?.id ? [alert?.monitor?.id] : [],
         });
 
-      logger.debug("Monitor labels retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(monitorLabels, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Monitor labels retrieved:", {} as LogAttributes);
+      logger.debug(monitorLabels, {} as LogAttributes);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
@@ -2351,12 +2267,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.scheduledMaintenanceId) {
-      logger.debug("Fetching scheduled maintenance details for ID:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(data.notificationFor.scheduledMaintenanceId, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Fetching scheduled maintenance details for ID:", {} as LogAttributes);
+      logger.debug(data.notificationFor.scheduledMaintenanceId, {} as LogAttributes);
 
       const scheduledMaintenance: ScheduledMaintenance | null =
         await ScheduledMaintenanceService.findOneById({
@@ -2374,21 +2286,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!scheduledMaintenance) {
-        logger.debug("Scheduled maintenance not found for ID:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(data.notificationFor.scheduledMaintenanceId, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Scheduled maintenance not found for ID:", {} as LogAttributes);
+        logger.debug(data.notificationFor.scheduledMaintenanceId, {} as LogAttributes);
         throw new BadDataException("Scheduled Maintenance ID not found");
       }
 
-      logger.debug("Scheduled maintenance details retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(scheduledMaintenance, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Scheduled maintenance details retrieved:", {} as LogAttributes);
+      logger.debug(scheduledMaintenance, {} as LogAttributes);
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
@@ -2400,12 +2304,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             ) || [],
         });
 
-      logger.debug("Monitor labels retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(monitorLabels, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Monitor labels retrieved:", {} as LogAttributes);
+      logger.debug(monitorLabels, {} as LogAttributes);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
@@ -2461,12 +2361,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.monitorId) {
-      logger.debug("Fetching monitor status timeline details for ID:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(data.notificationFor.monitorId, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Fetching monitor status timeline details for ID:", {} as LogAttributes);
+      logger.debug(data.notificationFor.monitorId, {} as LogAttributes);
 
       const monitor: Monitor | null = await MonitorService.findOneById({
         id: data.notificationFor.monitorId,
@@ -2482,12 +2378,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       });
 
       if (!monitor) {
-        logger.debug("Monitor not found for ID:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(data.notificationFor.monitorId, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Monitor not found for ID:", {} as LogAttributes);
+        logger.debug(data.notificationFor.monitorId, {} as LogAttributes);
         throw new BadDataException(ExceptionMessages.MonitorNotFound);
       }
 
@@ -2541,12 +2433,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.onCallDutyPolicyId) {
-      logger.debug("Fetching on call policy details for ID:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(data.notificationFor.onCallDutyPolicyId, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Fetching on call policy details for ID:", {} as LogAttributes);
+      logger.debug(data.notificationFor.onCallDutyPolicyId, {} as LogAttributes);
 
       const onCallDutyPolicy: OnCallDutyPolicy | null =
         await OnCallDutyPolicyService.findOneById({
@@ -2562,12 +2450,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!onCallDutyPolicy) {
-        logger.debug("On Call Duty Policy not found for ID:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(data.notificationFor.onCallDutyPolicyId, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("On Call Duty Policy not found for ID:", {} as LogAttributes);
+        logger.debug(data.notificationFor.onCallDutyPolicyId, {} as LogAttributes);
         throw new BadDataException("On Call Duty Policy ID not found");
       }
 
@@ -2621,12 +2505,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     // Handle Incident Episode
     if (data.notificationFor.incidentEpisodeId) {
-      logger.debug("Fetching incident episode details for ID:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(data.notificationFor.incidentEpisodeId, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Fetching incident episode details for ID:", {} as LogAttributes);
+      logger.debug(data.notificationFor.incidentEpisodeId, {} as LogAttributes);
 
       const incidentEpisode: IncidentEpisode | null =
         await IncidentEpisodeService.findOneById({
@@ -2644,21 +2524,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!incidentEpisode) {
-        logger.debug("Incident Episode not found for ID:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(data.notificationFor.incidentEpisodeId, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.debug("Incident Episode not found for ID:", {} as LogAttributes);
+        logger.debug(data.notificationFor.incidentEpisodeId, {} as LogAttributes);
         throw new BadDataException("Incident Episode ID not found");
       }
 
-      logger.debug("Incident Episode details retrieved:", {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
-      logger.debug(incidentEpisode, {
-        projectId: data.projectId?.toString(),
-      } as LogAttributes);
+      logger.debug("Incident Episode details retrieved:", {} as LogAttributes);
+      logger.debug(incidentEpisode, {} as LogAttributes);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,

@@ -186,7 +186,7 @@ const updateWhatsAppLogStatus: (
   if (!messageId) {
     logger.warn(
       `[Meta WhatsApp Webhook] Received status payload without message id. Payload: ${JSON.stringify(statusPayload)}`,
-      getLogAttributesFromRequest(req as any),
+      {} as any,
     );
     return;
   }
@@ -216,12 +216,12 @@ const updateWhatsAppLogStatus: (
   if (updateResult === 0) {
     logger.warn(
       `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${messageId}. Payload: ${JSON.stringify(statusPayload)}`,
-      getLogAttributesFromRequest(req as any),
+      {} as any,
     );
   } else {
     logger.debug(
       `[Meta WhatsApp Webhook] Updated WhatsApp log for message id ${messageId} with status ${derivedStatus}.`,
-      getLogAttributesFromRequest(req as any),
+      {} as any,
     );
   }
 };

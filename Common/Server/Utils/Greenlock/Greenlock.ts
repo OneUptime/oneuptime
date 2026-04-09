@@ -152,10 +152,11 @@ export default class GreenlockUtil {
     domain: string;
     validateCname: (domain: string) => Promise<boolean>;
   }): Promise<void> {
+    const orderLogAttributes: LogAttributes = {
+      domain: data.domain,
+    };
+
     try {
-      const orderLogAttributes: LogAttributes = {
-        domain: data.domain,
-      };
 
       logger.debug(
         `GreenlockUtil - Ordering certificate for domain: ${data.domain}`,
@@ -165,7 +166,7 @@ export default class GreenlockUtil {
       let { domain } = data;
 
       domain = domain.trim().toLowerCase();
-      orderLogAttributes.domain = domain;
+      orderLogAttributes["domain"] = domain;
 
       const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
 

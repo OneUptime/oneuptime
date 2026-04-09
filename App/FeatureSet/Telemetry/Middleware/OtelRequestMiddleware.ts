@@ -66,11 +66,11 @@ export default class OpenTelemetryRequestMiddleware {
 
       const requestBuffer: Buffer = await new Promise<Buffer>(
         (resolve: (value: Buffer) => void, reject: (err: Error) => void) => {
-          const chunks: Array<Buffer> = [];
+          const chunks: Array<Uint8Array> = [];
 
           req.on("data", (chunk: Buffer | string) => {
             chunks.push(
-              Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf-8"),
+              new Uint8Array(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf-8")),
             );
           });
 
@@ -89,7 +89,7 @@ export default class OpenTelemetryRequestMiddleware {
       );
 
       req.body = contentEncoding?.includes("gzip")
-        ? await gunzipAsync(requestBuffer)
+        ? await gunzipAsync(new Uint8Array(requestBuffer))
         : requestBuffer;
 
       next();

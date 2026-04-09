@@ -925,21 +925,21 @@ Stay informed about service availability! 🚀`;
     statusPageSubscriberId: ObjectID;
   }): URL {
     logger.debug("getConfirmSubscriptionLink called with data:", {
-      statusPageSubscriberId: data.subscriberId?.toString(),
+      statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
     } as LogAttributes);
     logger.debug(data, {
-      statusPageSubscriberId: data.subscriberId?.toString(),
+      statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
     } as LogAttributes);
 
     const confirmSubscriptionLink: URL = URL.fromString(
       data.statusPageUrl,
     ).addRoute(
-      `/confirm-subscription/${data.subscriberId.toString()}?verification-token=${data.confirmationToken}`,
+      `/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`,
     );
 
     logger.debug(
       `Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`,
-      { statusPageId: statusPageId?.toString() } as LogAttributes,
+      { statusPageSubscriberId: data.statusPageSubscriberId?.toString() } as LogAttributes,
     );
     return confirmSubscriptionLink;
   }
