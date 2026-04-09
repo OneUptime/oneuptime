@@ -222,9 +222,9 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
           vars: vars,
-          subject: `[Scheduled Maintenance ${scheduledMaintenanceNumberStr} ${Text.uppercaseFirstLetter(
+          subject: `[${Text.uppercaseFirstLetter(
             scheduledMaintenanceState!.name!,
-          )}] - ${scheduledMaintenance.title}`,
+          )} Scheduled Maintenance ${scheduledMaintenanceNumberStr}] - ${scheduledMaintenance.title}`,
         };
 
         const scheduledMaintenanceIdentifier: string =

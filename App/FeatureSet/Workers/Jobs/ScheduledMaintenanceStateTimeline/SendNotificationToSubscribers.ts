@@ -527,10 +527,10 @@ RunCron(
                           statuspage,
                         ),
                     },
-                    subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
+                    subject: `[${Text.uppercaseFirstLetter(
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name,
-                    )}] ${event.title || ""}`,
+                    )} Scheduled Maintenance] ${event.title || ""}`,
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(

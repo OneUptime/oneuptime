@@ -94,7 +94,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.StatusPageOwnerResourceCreated,
           vars: vars,
-          subject: "[Status Page Created]" + statusPage.name!,
+          subject: "[Created Status Page] " + statusPage.name!,
         };
 
         const sms: SMSMessage = {

@@ -252,9 +252,9 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerStateChanged,
           vars: vars,
-          subject: `[Alert ${alertNumberStr} ${Text.uppercaseFirstLetter(
+          subject: `[${Text.uppercaseFirstLetter(
             alertState!.name!,
-          )}] - ${alert.title!}`,
+          )} Alert ${alertNumberStr}] - ${alert.title!}`,
         };
 
         const sms: SMSMessage = {

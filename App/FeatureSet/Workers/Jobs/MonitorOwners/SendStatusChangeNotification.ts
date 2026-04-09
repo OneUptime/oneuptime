@@ -215,9 +215,9 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.MonitorOwnerStatusChanged,
           vars: vars,
-          subject: `[Monitor] ${
+          subject: `[${monitorStatus!.name!} Monitor] ${
             monitor.name || "Monitor"
-          } is ${monitorStatus!.name!}`,
+          }`,
         };
 
         const sms: SMSMessage = {

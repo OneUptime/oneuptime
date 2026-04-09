@@ -584,7 +584,7 @@ RunCron(
                           statuspage,
                         ),
                     },
-                    subject: "[Incident Update] " + incident.title,
+                    subject: "[Update Incident] " + incident.title,
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(

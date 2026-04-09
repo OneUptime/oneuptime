@@ -1294,7 +1294,7 @@ ${createdItem.description?.trim() || "No description provided."}
       const emailMessage: EmailEnvelope = {
         templateType: EmailTemplateType.MonitorProbesStatus,
         vars: vars,
-        subject: `[Monitor Probes ${enabledStatus}] ${monitor.name!}`,
+        subject: `[${enabledStatus} Monitor Probes] ${monitor.name!}`,
       };
 
       const sms: SMSMessage = {
@@ -1424,7 +1424,7 @@ ${createdItem.description?.trim() || "No description provided."}
       const emailMessage: EmailEnvelope = {
         templateType: EmailTemplateType.MonitorProbesStatus,
         vars: vars,
-        subject: `[Monitor Probes ${status}] ${monitor.name!}`,
+        subject: `[${status} Monitor Probes] ${monitor.name!}`,
       };
 
       const sms: SMSMessage = {

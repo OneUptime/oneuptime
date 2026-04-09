@@ -582,9 +582,9 @@ RunCron(
                         statuspage,
                       ),
                   },
-                  subject: `[Incident ${Text.uppercaseFirstLetter(
+                  subject: `[${Text.uppercaseFirstLetter(
                     incidentStateTimeline.incidentState.name,
-                  )}] ${incident.title}`,
+                  )} Incident] ${incident.title}`,
                 },
                 {
                   mailServer: ProjectSMTPConfigService.toEmailServer(
