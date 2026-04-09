@@ -7,6 +7,7 @@ import BarChartElement, {
 import AreaChartElement, {
   ComponentProps as AreaChartProps,
 } from "../Area/AreaChart";
+import ExemplarPoint from "../Types/ExemplarPoint";
 import Icon, { SizeProp } from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Modal, { ModalWidth } from "../../Modal/Modal";
@@ -33,6 +34,8 @@ export interface Chart {
   type: ChartType;
   props: LineChartProps | BarChartProps | AreaChartProps;
   metricInfo?: ChartMetricInfo | undefined;
+  exemplarPoints?: Array<ExemplarPoint> | undefined;
+  onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
 }
 
 export interface ComponentProps {
@@ -67,6 +70,8 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             {...(chart.props as LineChartProps)}
             syncid={syncId}
             heightInPx={props.heightInPx}
+            exemplarPoints={chart.exemplarPoints}
+            onExemplarClick={chart.onExemplarClick}
           />
         );
       case ChartType.BAR:
@@ -85,6 +90,8 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             {...(chart.props as AreaChartProps)}
             syncid={syncId}
             heightInPx={props.heightInPx}
+            exemplarPoints={chart.exemplarPoints}
+            onExemplarClick={chart.onExemplarClick}
           />
         );
       default:

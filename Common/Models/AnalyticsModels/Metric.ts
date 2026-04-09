@@ -524,6 +524,66 @@ export default class Metric extends AnalyticsBaseModel {
       },
     );
 
+    const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "traceId",
+      title: "Trace ID",
+      description:
+        "Trace ID from an exemplar associated with this metric data point",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_trace_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const spanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "spanId",
+      title: "Span ID",
+      description:
+        "Span ID from an exemplar associated with this metric data point",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_span_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       title: "Retention Date",
@@ -587,6 +647,8 @@ export default class Metric extends AnalyticsBaseModel {
         maxColumn,
         bucketCountsColumn,
         explicitBoundsColumn,
+        traceIdColumn,
+        spanIdColumn,
         retentionDateColumn,
       ],
       projections: [],
@@ -759,6 +821,22 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set explicitBounds(v: Array<number> | undefined) {
     this.setColumnValue("explicitBounds", v);
+  }
+
+  public get traceId(): string | undefined {
+    return this.getColumnValue("traceId") as string | undefined;
+  }
+
+  public set traceId(v: string | undefined) {
+    this.setColumnValue("traceId", v);
+  }
+
+  public get spanId(): string | undefined {
+    return this.getColumnValue("spanId") as string | undefined;
+  }
+
+  public set spanId(v: string | undefined) {
+    this.setColumnValue("spanId", v);
   }
 
   public get retentionDate(): Date | undefined {

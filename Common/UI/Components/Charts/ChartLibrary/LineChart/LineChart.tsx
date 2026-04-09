@@ -12,6 +12,7 @@ import {
   Line,
   Legend as RechartsLegend,
   LineChart as RechartsLineChart,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -19,6 +20,8 @@ import {
   YAxis,
 } from "recharts";
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import ExemplarPoint from "../../Types/ExemplarPoint";
+import FormattedExemplarPoint from "../Types/FormattedExemplarPoint";
 import { AxisDomain } from "recharts/types/util/types";
 
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
@@ -574,6 +577,8 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   customTooltip?: React.ComponentType<TooltipProps>;
   syncid?: string | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  formattedExemplarPoints?: Array<FormattedExemplarPoint> | undefined;
+  onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
 }
 
 const LineChart: React.ForwardRefExoticComponent<
@@ -1015,6 +1020,37 @@ const LineChart: React.ForwardRefExoticComponent<
                       />
                     )}
                   </ReferenceLine>
+                );
+              },
+            )}
+            {/* Exemplar dots - clickable markers linking to traces */}
+            {props.formattedExemplarPoints?.map(
+              (
+                exemplar: FormattedExemplarPoint,
+                exemplarIndex: number,
+              ) => {
+                return (
+                  <ReferenceDot
+                    key={`exemplar-${exemplarIndex}`}
+                    x={exemplar.formattedX}
+                    y={exemplar.y}
+                    r={5}
+                    fill="#7c3aed"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      props.onExemplarClick?.(exemplar.original);
+                    }}
+                  >
+                    <Label
+                      value="E"
+                      position="center"
+                      fill="#ffffff"
+                      fontSize={8}
+                      fontWeight={700}
+                    />
+                  </ReferenceDot>
                 );
               },
             )}

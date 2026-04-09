@@ -36,22 +36,49 @@ export class Service extends DatabaseService<Model> {
       return existingCluster;
     }
 
-    // Create new cluster
-    const newCluster: Model = new Model();
-    newCluster.projectId = data.projectId;
-    newCluster.name = data.clusterIdentifier;
-    newCluster.clusterIdentifier = data.clusterIdentifier;
-    newCluster.otelCollectorStatus = "connected";
-    newCluster.lastSeenAt = OneUptimeDate.getCurrentDate();
+    try {
+      // Create new cluster
+      const newCluster: Model = new Model();
+      newCluster.projectId = data.projectId;
+      newCluster.name = data.clusterIdentifier;
+      newCluster.clusterIdentifier = data.clusterIdentifier;
+      newCluster.otelCollectorStatus = "connected";
+      newCluster.lastSeenAt = OneUptimeDate.getCurrentDate();
 
-    const createdCluster: Model = await this.create({
-      data: newCluster,
-      props: {
-        isRoot: true,
-      },
-    });
+      const createdCluster: Model = await this.create({
+        data: newCluster,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    return createdCluster;
+      return createdCluster;
+    } catch {
+      // Race condition: another request created the cluster concurrently.
+      // Re-fetch the existing cluster.
+      const reFetchedCluster: Model | null = await this.findOneBy({
+        query: {
+          projectId: data.projectId,
+          clusterIdentifier: data.clusterIdentifier,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          clusterIdentifier: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (reFetchedCluster) {
+        return reFetchedCluster;
+      }
+
+      throw new Error(
+        "Failed to create or find cluster: " + data.clusterIdentifier,
+      );
+    }
   }
 
   @CaptureSpan()
