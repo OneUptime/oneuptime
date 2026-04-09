@@ -5,9 +5,10 @@ import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import GlobalCache from "../Infrastructure/GlobalCache";
 
-const LAST_SEEN_THROTTLE_MS: number = 60 * 1000; // 1 minute
-const lastSeenUpdateCache: Map<string, number> = new Map();
+const LAST_SEEN_CACHE_NAMESPACE: string = "k8s-cluster-last-seen";
+const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -89,14 +90,22 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async updateLastSeen(clusterId: ObjectID): Promise<void> {
     const cacheKey: string = clusterId.toString();
-    const now: number = Date.now();
-    const lastUpdate: number | undefined = lastSeenUpdateCache.get(cacheKey);
 
-    if (lastUpdate && now - lastUpdate < LAST_SEEN_THROTTLE_MS) {
-      return; // skip — already updated recently on this pod
+    const cached: string | null = await GlobalCache.getString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+    );
+
+    if (cached) {
+      return; // another pod already updated recently
     }
 
-    lastSeenUpdateCache.set(cacheKey, now);
+    await GlobalCache.setString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+      "1",
+      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
+    );
 
     await this.updateOneById({
       id: clusterId,

@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import logger from "Common/Server/Utils/Logger";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
 export default abstract class OtelIngestBaseService {
   @CaptureSpan()
@@ -58,7 +59,8 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
-  private static clusterIdCache: Map<string, ObjectID> = new Map();
+  private static readonly CLUSTER_ID_CACHE_NAMESPACE: string = "k8s-cluster-id";
+  private static readonly CLUSTER_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
 
   @CaptureSpan()
   protected static async autoDiscoverKubernetesCluster(data: {
@@ -75,9 +77,12 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterId: ObjectID | undefined = this.clusterIdCache.get(cacheKey);
+      let clusterIdStr: string | null = await GlobalCache.getString(
+        this.CLUSTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
 
-      if (!clusterId) {
+      if (!clusterIdStr) {
         const cluster: KubernetesCluster =
           await KubernetesClusterService.findOrCreateByClusterIdentifier({
             projectId: data.projectId,
@@ -85,13 +90,20 @@ export default abstract class OtelIngestBaseService {
           });
 
         if (cluster._id) {
-          clusterId = new ObjectID(cluster._id.toString());
-          this.clusterIdCache.set(cacheKey, clusterId);
+          clusterIdStr = cluster._id.toString();
+          await GlobalCache.setString(
+            this.CLUSTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            clusterIdStr,
+            { expiresInSeconds: this.CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+          );
         }
       }
 
-      if (clusterId) {
-        await KubernetesClusterService.updateLastSeen(clusterId);
+      if (clusterIdStr) {
+        await KubernetesClusterService.updateLastSeen(
+          new ObjectID(clusterIdStr),
+        );
       }
     } catch (err) {
       logger.error(
