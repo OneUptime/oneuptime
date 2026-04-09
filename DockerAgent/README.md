@@ -79,6 +79,15 @@ Container logs are automatically collected from `/var/lib/docker/containers/` an
 
 ## Troubleshooting
 
+### Docker Socket Permission Denied
+
+The agent container must run as root (`user: "0:0"` in docker-compose.yml) to access `/var/run/docker.sock`. This is already configured in the provided `docker-compose.yml`. If you see a "permission denied" error for the Docker socket, ensure:
+
+1. The `user: "0:0"` line is present in your `docker-compose.yml`
+2. The Docker socket is mounted as a volume: `/var/run/docker.sock:/var/run/docker.sock:ro`
+
+### Common Commands
+
 ```bash
 # Check agent status
 docker compose ps
