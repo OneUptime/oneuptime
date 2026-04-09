@@ -59,4 +59,20 @@ router.post(
   },
 );
 
+/* Grafana Alloy's pyroscope.write sends profiles via the Pyroscope push protocol
+   to /pyroscope/push.v1.PusherService/Push with a protobuf-encoded PushRequest */
+router.post(
+  "/pyroscope/push.v1.PusherService/Push",
+  mapBearerTokenMiddleware,
+  setProfilesProductType,
+  TelemetryIngest.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return PyroscopeIngestService.ingestPyroscopePush(req, res, next);
+  },
+);
+
 export default router;

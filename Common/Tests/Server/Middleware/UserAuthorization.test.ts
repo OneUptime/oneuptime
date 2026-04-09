@@ -123,7 +123,7 @@ describe("UserMiddleware", () => {
 
       expect(result).toEqual({});
       expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
-      expect(spyErrorLogger).toHaveBeenCalledWith(error);
+      expect(spyErrorLogger).toHaveBeenCalledWith(error, undefined);
     });
 
     test("should return an empty object when the decoded sso-token object doesn't have projectId property", () => {

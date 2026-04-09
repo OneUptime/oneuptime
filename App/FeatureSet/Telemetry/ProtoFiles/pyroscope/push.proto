@@ -1,0 +1,27 @@
+// Protocol buffer definition for Pyroscope push API.
+// Based on https://github.com/grafana/pyroscope/blob/main/api/gen/proto/go/push/v1/push.proto
+// Used by Grafana Alloy's pyroscope.write component.
+
+syntax = "proto3";
+
+package push.v1;
+
+message PushRequest {
+  repeated RawProfileSeries series = 1;
+}
+
+message RawProfileSeries {
+  repeated LabelPair labels = 1;
+  repeated RawSample samples = 2;
+}
+
+message LabelPair {
+  string name = 1;
+  string value = 2;
+}
+
+message RawSample {
+  // raw_profile contains the pprof-encoded profile data
+  bytes raw_profile = 1;
+  string id = 2;
+}

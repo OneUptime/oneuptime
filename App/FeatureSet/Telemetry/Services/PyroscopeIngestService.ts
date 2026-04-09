@@ -22,6 +22,29 @@ const PprofProfile: protobuf.Type = PprofProto.lookupType(
   "perftools.profiles.Profile",
 );
 
+// Load Pyroscope push proto schema (used by Grafana Alloy's pyroscope.write)
+const PushProto: protobuf.Root = protobuf.loadSync(
+  path.resolve(__dirname, "..", "ProtoFiles", "pyroscope", "push.proto"),
+);
+const PushRequest: protobuf.Type =
+  PushProto.lookupType("push.v1.PushRequest");
+
+// Interfaces for parsed Pyroscope push data
+interface PyroscopeLabelPair {
+  name: string;
+  value: string;
+}
+
+interface PyroscopeRawSample {
+  rawProfile: Uint8Array;
+  id?: string;
+}
+
+interface PyroscopeRawProfileSeries {
+  labels: Array<PyroscopeLabelPair>;
+  samples: Array<PyroscopeRawSample>;
+}
+
 // Interfaces for parsed pprof data
 interface PprofValueType {
   type: number;
@@ -118,6 +141,136 @@ export default class PyroscopeIngestService {
     } catch (err) {
       return next(err);
     }
+  }
+
+  @CaptureSpan()
+  public static async ingestPyroscopePush(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      if (!(req as TelemetryRequest).projectId) {
+        throw new BadRequestException(
+          "Invalid request - projectId not found in request.",
+        );
+      }
+
+      // Extract raw body (protobuf-encoded PushRequest)
+      const rawBody: Buffer | null = this.extractRawBody(req);
+
+      if (!rawBody || rawBody.length === 0) {
+        throw new BadRequestException("No push data found in request body.");
+      }
+
+      // Decompress if gzipped
+      const decompressed: Buffer = await this.decompressIfNeeded(rawBody);
+
+      // Decode the PushRequest protobuf
+      const pushMessage: protobuf.Message = PushRequest.decode(
+        new Uint8Array(
+          decompressed.buffer,
+          decompressed.byteOffset,
+          decompressed.byteLength,
+        ),
+      );
+      const pushData: Record<string, unknown> = PushRequest.toObject(
+        pushMessage,
+        {
+          longs: Number,
+          defaults: true,
+          arrays: true,
+          bytes: Buffer,
+        },
+      ) as Record<string, unknown>;
+
+      const series: Array<PyroscopeRawProfileSeries> =
+        (pushData["series"] as Array<PyroscopeRawProfileSeries>) || [];
+
+      // Collect all OTLP resource profiles from all series/samples
+      const allResourceProfiles: Array<JSONObject> = [];
+
+      for (const s of series) {
+        // Extract service name from labels
+        const serviceNameLabel: PyroscopeLabelPair | undefined = s.labels.find(
+          (l: PyroscopeLabelPair) => {
+            return l.name === "__name__" || l.name === "service_name";
+          },
+        );
+        const rawName: string = serviceNameLabel
+          ? serviceNameLabel.value
+          : "unknown";
+        const appName: string = this.parseAppName(rawName);
+
+        for (const sample of s.samples || []) {
+          if (!sample.rawProfile || sample.rawProfile.length === 0) {
+            continue;
+          }
+
+          const profileBuffer: Buffer = Buffer.isBuffer(sample.rawProfile)
+            ? sample.rawProfile
+            : Buffer.from(sample.rawProfile);
+
+          // Decompress if the embedded profile is gzipped
+          const decompressedProfile: Buffer =
+            await this.decompressIfNeeded(profileBuffer);
+
+          // Parse the embedded pprof
+          const pprofData: PprofProfileData =
+            this.parsePprof(decompressedProfile);
+
+          // Use pprof timestamps; fall back to current time
+          const nowSeconds: number = Math.floor(Date.now() / 1000);
+          const fromSeconds: number = pprofData.timeNanos
+            ? Math.floor(Number(pprofData.timeNanos) / 1_000_000_000)
+            : nowSeconds;
+          const untilSeconds: number = pprofData.durationNanos
+            ? fromSeconds +
+              Math.floor(Number(pprofData.durationNanos) / 1_000_000_000)
+            : nowSeconds;
+
+          const otlpBody: JSONObject = this.convertPprofToOTLP({
+            pprofData,
+            appName,
+            fromSeconds,
+            untilSeconds,
+          });
+
+          const resourceProfiles: Array<JSONObject> = (
+            otlpBody as Record<string, unknown>
+          )["resourceProfiles"] as Array<JSONObject>;
+          if (resourceProfiles) {
+            allResourceProfiles.push(...resourceProfiles);
+          }
+        }
+      }
+
+      if (allResourceProfiles.length === 0) {
+        // No valid profiles found — still respond OK
+        Response.sendEmptySuccessResponse(req, res);
+        return;
+      }
+
+      // Set the merged OTLP body on the request for the queue processor
+      req.body = { resourceProfiles: allResourceProfiles };
+
+      // Respond immediately and queue for async processing
+      Response.sendEmptySuccessResponse(req, res);
+
+      await ProfilesQueueService.addProfileIngestJob(req as TelemetryRequest);
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  private static extractRawBody(req: ExpressRequest): Buffer | null {
+    if (Buffer.isBuffer(req.body)) {
+      return req.body as Buffer;
+    }
+    if (req.body instanceof Uint8Array) {
+      return Buffer.from(req.body);
+    }
+    return null;
   }
 
   private static parseAppName(name: string): string {
