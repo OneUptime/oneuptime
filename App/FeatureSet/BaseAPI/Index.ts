@@ -239,6 +239,9 @@ import IncidentTemplateService, {
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
+import DockerHostService, {
+  Service as DockerHostServiceType,
+} from "Common/Server/Services/DockerHostService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
@@ -567,6 +570,7 @@ import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemp
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
@@ -1895,6 +1899,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<KubernetesCluster, KubernetesClusterServiceType>(
         KubernetesCluster,
         KubernetesClusterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHost, DockerHostServiceType>(
+        DockerHost,
+        DockerHostService,
       ).getRouter(),
     );
 

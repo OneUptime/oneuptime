@@ -1,0 +1,18 @@
+services:
+  oneuptime-docker-agent:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: oneuptime-docker-agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
+      - ONEUPTIME_PROJECT_ID=${ONEUPTIME_PROJECT_ID}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

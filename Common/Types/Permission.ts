@@ -722,6 +722,11 @@ enum Permission {
   EditKubernetesCluster = "EditKubernetesCluster",
   ReadKubernetesCluster = "ReadKubernetesCluster",
 
+  CreateDockerHost = "CreateDockerHost",
+  DeleteDockerHost = "DeleteDockerHost",
+  EditDockerHost = "EditDockerHost",
+  ReadDockerHost = "ReadDockerHost",
+
   CreateService = "CreateService",
   DeleteService = "DeleteService",
   EditService = "EditService",
@@ -4453,6 +4458,43 @@ export class PermissionHelper {
         title: "Read Kubernetes Cluster",
         description:
           "This permission can read Kubernetes Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerHost,
+        title: "Create Docker Host",
+        description:
+          "This permission can create Docker Host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDockerHost,
+        title: "Delete Docker Host",
+        description:
+          "This permission can delete Docker Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHost,
+        title: "Edit Docker Host",
+        description:
+          "This permission can edit Docker Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHost,
+        title: "Read Docker Host",
+        description:
+          "This permission can read Docker Host of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,

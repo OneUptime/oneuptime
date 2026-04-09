@@ -141,6 +141,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             attributes: resourceAttributes_raw,
           });
 
+          // Auto-discover Docker host from resource attributes
+          await this.autoDiscoverDockerHost({
+            projectId,
+            attributes: resourceAttributes_raw,
+          });
+
           if (!serviceDictionary[serviceName]) {
             const service: {
               serviceId: ObjectID;

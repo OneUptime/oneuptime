@@ -459,7 +459,8 @@ ${contextBlock}
 
     if (
       input.monitor.monitorType === MonitorType.Metrics ||
-      input.monitor.monitorType === MonitorType.Kubernetes
+      input.monitor.monitorType === MonitorType.Kubernetes ||
+      input.monitor.monitorType === MonitorType.Docker
     ) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
@@ -569,6 +570,13 @@ ${contextBlock}
   }): Promise<string | null> {
     // Handle Kubernetes monitors with rich resource context
     if (input.monitor.monitorType === MonitorType.Kubernetes) {
+      return await MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(
+        input,
+      );
+    }
+
+    // Handle Docker monitors with rich resource context
+    if (input.monitor.monitorType === MonitorType.Docker) {
       return await MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(
         input,
       );

@@ -4,6 +4,8 @@ import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
@@ -109,6 +111,98 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.error(
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
+      );
+    }
+  }
+
+  @CaptureSpan()
+  protected static getHostNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === "host.name" &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"]
+      ) {
+        const value: JSONValue = (attribute["value"] as JSONObject)[
+          "stringValue"
+        ];
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  @CaptureSpan()
+  protected static isDockerRuntime(attributes: JSONArray): boolean {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === "container.runtime" &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"] === "docker"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =
+    "docker-host-id";
+  private static readonly DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverDockerHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      if (!this.isDockerRuntime(data.attributes)) {
+        return;
+      }
+
+      const hostName: string | null = this.getHostNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!hostName) {
+        return;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
+      let hostIdStr: string | null = await GlobalCache.getString(
+        this.DOCKER_HOST_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!hostIdStr) {
+        const host: DockerHost =
+          await DockerHostService.findOrCreateByHostIdentifier({
+            projectId: data.projectId,
+            hostIdentifier: hostName,
+          });
+
+        if (host._id) {
+          hostIdStr = host._id.toString();
+          await GlobalCache.setString(
+            this.DOCKER_HOST_ID_CACHE_NAMESPACE,
+            cacheKey,
+            hostIdStr,
+            { expiresInSeconds: this.DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (hostIdStr) {
+        await DockerHostService.updateLastSeen(new ObjectID(hostIdStr));
+      }
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Docker host: " + (err as Error).message,
       );
     }
   }

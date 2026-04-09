@@ -54,10 +54,17 @@ import Profile from "Common/Models/AnalyticsModels/Profile";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceFilters,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import MonitorStepDockerMonitor, {
+  DockerContainerFilters,
+} from "Common/Types/Monitor/MonitorStepDockerMonitor";
 import {
   getKubernetesMetricByMetricName,
   KubernetesMetricDefinition,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
+import {
+  getDockerMetricByMetricName,
+  DockerMetricDefinition,
+} from "Common/Types/Monitor/DockerMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -82,6 +89,7 @@ RunCron(
           MonitorType.Exceptions,
           MonitorType.Profiles,
           MonitorType.Kubernetes,
+          MonitorType.Docker,
         ]),
         telemetryMonitorNextMonitorAt:
           DatabaseQueryHelper.lessThanEqualToOrNull(
@@ -272,6 +280,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Kubernetes) {
     return monitorKubernetes({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Docker) {
+    return monitorDocker({
       monitorStep,
       monitorId,
       projectId,
@@ -743,6 +759,124 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     metricResult: finalResult,
     monitorId: data.monitorId,
     kubernetesResourceBreakdown: kubernetesResourceBreakdown,
+  };
+};
+
+type MonitorDockerFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorDocker: MonitorDockerFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const dockerMonitorConfig: MonitorStepDockerMonitor | undefined =
+    data.monitorStep.data?.dockerMonitor;
+
+  if (!dockerMonitorConfig) {
+    throw new BadDataException("Docker monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  for (const queryConfig of dockerMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    // Add Docker-specific attribute filters
+    if (dockerMonitorConfig.hostIdentifier) {
+      attributes["resource.host.name"] =
+        dockerMonitorConfig.hostIdentifier;
+    }
+
+    // Always filter by Docker runtime
+    attributes["resource.container.runtime"] = "docker";
+
+    if (dockerMonitorConfig.containerFilters) {
+      const containerFilters: DockerContainerFilters =
+        dockerMonitorConfig.containerFilters;
+
+      if (containerFilters.containerName) {
+        attributes["resource.container.name"] = containerFilters.containerName;
+      }
+
+      if (containerFilters.containerImage) {
+        attributes["resource.container.image.name"] =
+          containerFilters.containerImage;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
+      {
+        query: query,
+        aggregationType:
+          (queryConfig.metricQueryData.filterData
+            .aggegationType as MetricsAggregationType) ||
+          MetricsAggregationType.Avg,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    logger.debug("Docker monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+  }
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: dockerMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: finalResult,
+    monitorId: data.monitorId,
   };
 };
 

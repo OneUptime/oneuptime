@@ -1,0 +1,59 @@
+receivers:
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+    provide_per_core_cpu_metrics: true
+    # Collects: container.cpu.*, container.memory.*, container.network.io.*,
+    #           container.blockio.*, container.uptime, container.restarts,
+    #           container.pids.count
+
+  filelog:
+    include:
+      - /var/lib/docker/containers/*/*.log
+    operators:
+      - type: json_parser
+        # Docker JSON log format: {"log":"...","stream":"stdout","time":"..."}
+      - type: move
+        from: attributes.log
+        to: body
+      - type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+
+processors:
+  resource:
+    attributes:
+      - key: oneuptime.project.id
+        value: "${ONEUPTIME_PROJECT_ID}"
+        action: upsert
+      - key: container.runtime
+        value: "docker"
+        action: upsert
+  resourcedetection:
+    detectors: [env, system, docker]
+    system:
+      hostname_sources: [os]
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-service-token: "${ONEUPTIME_SERVICE_TOKEN}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [docker_stats]
+      processors: [memory_limiter, resourcedetection, resource, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [filelog]
+      processors: [memory_limiter, resourcedetection, resource, batch]
+      exporters: [otlphttp]

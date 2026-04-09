@@ -464,8 +464,10 @@ router.post(
       );
       logger.debug(monitorProbes, getLogAttributesFromRequest(req as any));
 
-      // nextPingAt is now computed during claimMonitorProbesForProbing,
-      // so no second update is needed here.
+      /*
+       * nextPingAt is now computed during claimMonitorProbesForProbing,
+       * so no second update is needed here.
+       */
 
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
