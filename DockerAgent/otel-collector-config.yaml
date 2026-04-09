@@ -7,7 +7,7 @@ receivers:
     #           container.blockio.*, container.uptime, container.restarts,
     #           container.pids.count
 
-  filelog:
+  file_log:
     include:
       - /var/lib/docker/containers/*/*.log
     operators:
@@ -30,9 +30,10 @@ processors:
         value: "docker"
         action: upsert
   resourcedetection:
-    detectors: [env, system, docker]
+    detectors: [env, system]
     system:
       hostname_sources: [os]
+    override: false
   batch:
     timeout: 10s
     send_batch_size: 1024
@@ -42,7 +43,7 @@ processors:
     spike_limit_mib: 128
 
 exporters:
-  otlphttp:
+  otlp_http:
     endpoint: "${ONEUPTIME_URL}/otlp"
     headers:
       x-oneuptime-service-token: "${ONEUPTIME_SERVICE_TOKEN}"
@@ -52,8 +53,8 @@ service:
     metrics:
       receivers: [docker_stats]
       processors: [memory_limiter, resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlp_http]
     logs:
-      receivers: [filelog]
+      receivers: [file_log]
       processors: [memory_limiter, resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlp_http]

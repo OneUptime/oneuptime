@@ -11,6 +11,7 @@ services:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - ONEUPTIME_PROJECT_ID=${ONEUPTIME_PROJECT_ID}
+      - OTEL_RESOURCE_ATTRIBUTES=host.name=${DOCKER_HOST_NAME:-docker-host}
     restart: unless-stopped
     logging:
       driver: json-file
