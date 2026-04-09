@@ -24,6 +24,7 @@ import Express, {
 import logger, { getLogAttributesFromRequest } from "./Logger";
 import "./Process";
 import Response from "./Response";
+import SpanUtil from "./Telemetry/SpanUtil";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -198,7 +199,14 @@ app.use((_req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
 });
 
 app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
-  (req as OneUptimeRequest).requestId = crypto.randomUUID();
+  const requestId: string = crypto.randomUUID();
+  (req as OneUptimeRequest).requestId = requestId;
+
+  // Tag the current span with requestId so all downstream spans inherit context
+  SpanUtil.addAttributesToCurrentSpan({
+    requestId: requestId,
+  });
+
   next();
 });
 

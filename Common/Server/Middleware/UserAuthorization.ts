@@ -14,6 +14,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -234,6 +235,18 @@ export default class UserMiddleware {
     }
 
     const userId: string = oneuptimeRequest.userAuthorization.userId.toString();
+
+    // Tag the current span with user and project context for observability
+    SpanUtil.addAttributesToCurrentSpan({
+      userId: userId,
+      userType: oneuptimeRequest.userType,
+      ...(tenantId
+        ? { projectId: tenantId.toString() }
+        : {}),
+      ...(oneuptimeRequest.requestId
+        ? { requestId: oneuptimeRequest.requestId }
+        : {}),
+    });
 
     await UserService.updateOneBy({
       query: {

@@ -11,6 +11,7 @@ import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestio
 import Response from "../Utils/Response";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -107,6 +108,11 @@ export default class TelemetryIngest {
       }
 
       (req as TelemetryRequest).projectId = projectId as ObjectID;
+
+      // Tag span with project context for telemetry ingestion observability
+      SpanUtil.addAttributesToCurrentSpan({
+        projectId: projectId.toString(),
+      });
 
       next();
     } catch (err) {

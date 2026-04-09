@@ -19,6 +19,7 @@ import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import User from "../../Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 
 export default class ProjectMiddleware {
   @CaptureSpan()
@@ -75,6 +76,11 @@ export default class ProjectMiddleware {
 
       if (tenantId) {
         (req as OneUptimeRequest).tenantId = tenantId;
+
+        // Tag the current span with project context for observability
+        SpanUtil.addAttributesToCurrentSpan({
+          projectId: tenantId.toString(),
+        });
       }
 
       if (!apiKey) {
