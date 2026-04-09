@@ -13,7 +13,6 @@ import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthoriz
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import CronTab from "Common/Server/Utils/CronTab";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -465,42 +464,8 @@ router.post(
       );
       logger.debug(monitorProbes, getLogAttributesFromRequest(req as any));
 
-      // Update the nextPingAt based on the actual monitoring interval
-      const updatePromises: Array<Promise<void>> = [];
-
-      for (const monitorProbe of monitorProbes) {
-        if (!monitorProbe.monitor) {
-          continue;
-        }
-
-        let nextPing: Date = OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
-          1,
-        );
-
-        try {
-          nextPing = CronTab.getNextExecutionTime(
-            monitorProbe?.monitor?.monitoringInterval as string,
-          );
-        } catch (err) {
-          logger.error(err, getLogAttributesFromRequest(req as any));
-        }
-
-        updatePromises.push(
-          MonitorProbeService.updateOneById({
-            id: monitorProbe.id!,
-            data: {
-              nextPingAt: nextPing,
-            },
-            props: {
-              isRoot: true,
-            },
-          }),
-        );
-      }
-
-      // Update nextPingAt in parallel - this refines the temporary value set during claiming
-      await Promise.all(updatePromises);
+      // nextPingAt is now computed during claimMonitorProbesForProbing,
+      // so no second update is needed here.
 
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
