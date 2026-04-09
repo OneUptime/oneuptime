@@ -197,7 +197,7 @@ export default class OTelIngestService {
         }),
         ...TelemetryUtil.getAttributes({
           items: (datapoint["attributes"] as JSONArray) || [],
-          prefixKeysWithString: "metricAttributes",
+          prefixKeysWithString: "",
         }),
       };
     }

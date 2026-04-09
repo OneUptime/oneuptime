@@ -236,7 +236,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     ...resourceAttributes,
                     ...TelemetryUtil.getAttributes({
                       items: (span["attributes"] as JSONArray) || [],
-                      prefixKeysWithString: "spanAttributes",
+                      prefixKeysWithString: "",
                     }),
                   };
 

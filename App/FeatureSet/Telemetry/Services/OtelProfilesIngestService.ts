@@ -261,7 +261,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         ((profileContainer as JSONObject)[
                           "attributes"
                         ] as JSONArray) || [],
-                      prefixKeysWithString: "profileAttributes",
+                      prefixKeysWithString: "",
                     }),
                   };
 

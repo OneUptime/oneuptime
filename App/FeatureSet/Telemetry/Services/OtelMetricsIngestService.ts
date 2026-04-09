@@ -241,7 +241,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     ...resourceAttributes,
                     ...TelemetryUtil.getAttributes({
                       items: (metric["attributes"] as JSONArray) || [],
-                      prefixKeysWithString: "metricAttributes",
+                      prefixKeysWithString: "",
                     }),
                   };
 
@@ -430,7 +430,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         attributes,
         TelemetryUtil.getAttributes({
           items: (data.datapoint["attributes"] as JSONArray) || [],
-          prefixKeysWithString: "metricAttributes",
+          prefixKeysWithString: "",
         }),
       );
     }
