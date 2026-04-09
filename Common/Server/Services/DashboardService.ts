@@ -140,7 +140,9 @@ export class Service extends DatabaseService<Model> {
           req.ips[0];
 
         if (!ipAccessedFrom) {
-          logger.error("IP address not found in request.", { dashboardId: dashboardId?.toString() } as LogAttributes);
+          logger.error("IP address not found in request.", {
+            dashboardId: dashboardId?.toString(),
+          } as LogAttributes);
           return {
             hasReadAccess: false,
             error: new ForbiddenException(
@@ -207,7 +209,9 @@ export class Service extends DatabaseService<Model> {
         };
       }
     } catch (err) {
-      logger.error(err, { dashboardId: dashboardId?.toString() } as LogAttributes);
+      logger.error(err, {
+        dashboardId: dashboardId?.toString(),
+      } as LogAttributes);
     }
 
     return {
@@ -239,7 +243,9 @@ export class Service extends DatabaseService<Model> {
         payload["type"] === DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER
       );
     } catch (err) {
-      logger.error(err, { dashboardId: data.dashboardId?.toString() } as LogAttributes);
+      logger.error(err, {
+        dashboardId: data.dashboardId?.toString(),
+      } as LogAttributes);
     }
 
     return false;

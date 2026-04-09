@@ -236,7 +236,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               createdScheduledMaintenance.id?.toString(),
             {
               projectId: request.projectId.toString(),
-              scheduledMaintenanceId: createdScheduledMaintenance.id?.toString(),
+              scheduledMaintenanceId:
+                createdScheduledMaintenance.id?.toString(),
             },
           );
 

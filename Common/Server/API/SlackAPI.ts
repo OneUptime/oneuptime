@@ -157,7 +157,10 @@ export default class SlackAPI {
           redirect_uri: redirectUri.toString(),
         };
 
-        logger.debug("Slack Auth Request Body: ", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack Auth Request Body: ",
+          getLogAttributesFromRequest(req as any),
+        );
         logger.debug(requestBody, getLogAttributesFromRequest(req as any));
 
         // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
@@ -177,7 +180,10 @@ export default class SlackAPI {
 
         const responseBody: JSONObject = response.data;
 
-        logger.debug("Slack Auth Request Body: ", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack Auth Request Body: ",
+          getLogAttributesFromRequest(req as any),
+        );
         logger.debug(responseBody, getLogAttributesFromRequest(req as any));
 
         let slackTeamId: string | undefined = undefined;
@@ -371,7 +377,10 @@ export default class SlackAPI {
           redirect_uri: redirectUri.toString(),
         };
 
-        logger.debug("Slack Auth Request Body: ", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack Auth Request Body: ",
+          getLogAttributesFromRequest(req as any),
+        );
         logger.debug(requestBody, getLogAttributesFromRequest(req as any));
 
         // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
@@ -391,7 +400,10 @@ export default class SlackAPI {
 
         const responseBody: JSONObject = response.data;
 
-        logger.debug("Slack User Auth Request Body: ", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack User Auth Request Body: ",
+          getLogAttributesFromRequest(req as any),
+        );
         logger.debug(responseBody, getLogAttributesFromRequest(req as any));
 
         if (
@@ -406,7 +418,10 @@ export default class SlackAPI {
               "base64",
             ).toString("utf8"),
           );
-          logger.debug("Decoded ID Token: ", getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "Decoded ID Token: ",
+            getLogAttributesFromRequest(req as any),
+          );
           logger.debug(decodedIdToken, getLogAttributesFromRequest(req as any));
           responseBody["id_token"] = decodedIdToken;
         }
@@ -462,12 +477,30 @@ export default class SlackAPI {
 
         // cehck if the workspace project id is same as the team id.
         if (projectAuth) {
-          logger.debug("Project Auth: ", getLogAttributesFromRequest(req as any));
-          logger.debug(projectAuth.workspaceProjectId, getLogAttributesFromRequest(req as any));
-          logger.debug("Response Team ID: ", getLogAttributesFromRequest(req as any));
-          logger.debug(idToken["https://slack.com/team_id"], getLogAttributesFromRequest(req as any));
-          logger.debug("Response User ID: ", getLogAttributesFromRequest(req as any));
-          logger.debug(idToken["https://slack.com/user_id"], getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "Project Auth: ",
+            getLogAttributesFromRequest(req as any),
+          );
+          logger.debug(
+            projectAuth.workspaceProjectId,
+            getLogAttributesFromRequest(req as any),
+          );
+          logger.debug(
+            "Response Team ID: ",
+            getLogAttributesFromRequest(req as any),
+          );
+          logger.debug(
+            idToken["https://slack.com/team_id"],
+            getLogAttributesFromRequest(req as any),
+          );
+          logger.debug(
+            "Response User ID: ",
+            getLogAttributesFromRequest(req as any),
+          );
+          logger.debug(
+            idToken["https://slack.com/user_id"],
+            getLogAttributesFromRequest(req as any),
+          );
 
           if (
             projectAuth.workspaceProjectId?.toString() !==
@@ -536,18 +569,27 @@ export default class SlackAPI {
       "/slack/interactive",
       SlackAuthorization.isAuthorizedSlackRequest,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.debug("Slack Interactive Request: ", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack Interactive Request: ",
+          getLogAttributesFromRequest(req as any),
+        );
 
         const authResult: SlackRequest = await SlackAuthAction.isAuthorized({
           req: req,
         });
 
-        logger.debug("Slack Interactive Auth Result: ", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack Interactive Auth Result: ",
+          getLogAttributesFromRequest(req as any),
+        );
         logger.debug(authResult, getLogAttributesFromRequest(req as any));
 
         // if slack uninstall app then,
         if (authResult.payloadType === "app_uninstall") {
-          logger.debug("Slack App Uninstall Request: ", getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "Slack App Uninstall Request: ",
+            getLogAttributesFromRequest(req as any),
+          );
 
           // remove the project auth and user auth.
 
@@ -576,7 +618,10 @@ export default class SlackAPI {
             },
           });
 
-          logger.debug("Slack App Uninstall Request: Deleted all auth tokens.", getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "Slack App Uninstall Request: Deleted all auth tokens.",
+            getLogAttributesFromRequest(req as any),
+          );
           // return empty response.
 
           return Response.sendTextResponse(req, res, "");
@@ -768,14 +813,20 @@ export default class SlackAPI {
       "/slack/events",
       SlackAuthorization.isAuthorizedSlackRequest,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.debug("Slack Events API Request received", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "Slack Events API Request received",
+          getLogAttributesFromRequest(req as any),
+        );
         logger.debug(req.body, getLogAttributesFromRequest(req as any));
 
         const payload: JSONObject = req.body;
 
         // Handle URL verification challenge from Slack
         if (payload["type"] === "url_verification") {
-          logger.debug("Slack URL verification challenge received", getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "Slack URL verification challenge received",
+            getLogAttributesFromRequest(req as any),
+          );
           return Response.sendJsonObjectResponse(req, res, {
             challenge: payload["challenge"],
           });
@@ -786,13 +837,19 @@ export default class SlackAPI {
           const event: JSONObject = payload["event"] as JSONObject;
 
           if (!event) {
-            logger.debug("No event found in payload", getLogAttributesFromRequest(req as any));
+            logger.debug(
+              "No event found in payload",
+              getLogAttributesFromRequest(req as any),
+            );
             return Response.sendTextResponse(req, res, "ok");
           }
 
           // Handle reaction_added events
           if (event["type"] === "reaction_added") {
-            logger.debug("Reaction added event received", getLogAttributesFromRequest(req as any));
+            logger.debug(
+              "Reaction added event received",
+              getLogAttributesFromRequest(req as any),
+            );
 
             /*
              * Respond immediately to Slack to prevent retry
@@ -834,21 +891,30 @@ export default class SlackAPI {
             try {
               await SlackIncidentActions.handleEmojiReaction(reactionData);
             } catch (err) {
-              logger.error("Error handling incident emoji reaction:", getLogAttributesFromRequest(req as any));
+              logger.error(
+                "Error handling incident emoji reaction:",
+                getLogAttributesFromRequest(req as any),
+              );
               logger.error(err, getLogAttributesFromRequest(req as any));
             }
 
             try {
               await SlackAlertActions.handleEmojiReaction(reactionData);
             } catch (err) {
-              logger.error("Error handling alert emoji reaction:", getLogAttributesFromRequest(req as any));
+              logger.error(
+                "Error handling alert emoji reaction:",
+                getLogAttributesFromRequest(req as any),
+              );
               logger.error(err, getLogAttributesFromRequest(req as any));
             }
 
             try {
               await SlackAlertEpisodeActions.handleEmojiReaction(reactionData);
             } catch (err) {
-              logger.error("Error handling alert episode emoji reaction:", getLogAttributesFromRequest(req as any));
+              logger.error(
+                "Error handling alert episode emoji reaction:",
+                getLogAttributesFromRequest(req as any),
+              );
               logger.error(err, getLogAttributesFromRequest(req as any));
             }
 
@@ -857,7 +923,10 @@ export default class SlackAPI {
                 reactionData,
               );
             } catch (err) {
-              logger.error("Error handling incident episode emoji reaction:", getLogAttributesFromRequest(req as any));
+              logger.error(
+                "Error handling incident episode emoji reaction:",
+                getLogAttributesFromRequest(req as any),
+              );
               logger.error(err, getLogAttributesFromRequest(req as any));
             }
 

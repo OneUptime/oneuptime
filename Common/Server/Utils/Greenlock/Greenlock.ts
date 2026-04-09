@@ -70,7 +70,10 @@ export default class GreenlockUtil {
           domain: certificate.domain,
         };
 
-        logger.debug(`Renewing certificate for domain: ${certificate.domain}`, certLogAttributes);
+        logger.debug(
+          `Renewing certificate for domain: ${certificate.domain}`,
+          certLogAttributes,
+        );
 
         try {
           //validate cname
@@ -93,7 +96,10 @@ export default class GreenlockUtil {
               certLogAttributes,
             );
           } else {
-            logger.debug(`CNAME is valid for domain: ${certificate.domain}`, certLogAttributes);
+            logger.debug(
+              `CNAME is valid for domain: ${certificate.domain}`,
+              certLogAttributes,
+            );
 
             await GreenlockUtil.orderCert({
               domain: certificate.domain,
@@ -178,16 +184,25 @@ export default class GreenlockUtil {
 
       //validate cname
 
-      logger.debug(`Validating cname for domain: ${domain}`, orderLogAttributes);
+      logger.debug(
+        `Validating cname for domain: ${domain}`,
+        orderLogAttributes,
+      );
 
       const isValidCname: boolean = await data.validateCname(domain);
 
       if (!isValidCname) {
-        logger.debug(`CNAME is not valid for domain: ${domain}`, orderLogAttributes);
+        logger.debug(
+          `CNAME is not valid for domain: ${domain}`,
+          orderLogAttributes,
+        );
         logger.debug(`Removing domain: ${domain}`, orderLogAttributes);
 
         await GreenlockUtil.removeDomain(domain);
-        logger.error(`Cname is not valid for domain: ${domain}`, orderLogAttributes);
+        logger.error(
+          `Cname is not valid for domain: ${domain}`,
+          orderLogAttributes,
+        );
         throw new BadDataException("Cname is not valid for domain " + domain);
       }
 
@@ -202,7 +217,10 @@ export default class GreenlockUtil {
         commonName: domain,
       });
 
-      logger.debug(`Ordering certificate for domain: ${domain}`, orderLogAttributes);
+      logger.debug(
+        `Ordering certificate for domain: ${domain}`,
+        orderLogAttributes,
+      );
 
       const certificate: string = await client.auto({
         csr: certificateRequest,
@@ -271,7 +289,10 @@ export default class GreenlockUtil {
         },
       });
 
-      logger.debug(`Certificate ordered for domain: ${domain}`, orderLogAttributes);
+      logger.debug(
+        `Certificate ordered for domain: ${domain}`,
+        orderLogAttributes,
+      );
 
       // get expires at date from certificate
       const cert: acme.CertificateInfo =
@@ -297,7 +318,10 @@ export default class GreenlockUtil {
         });
 
       if (existingCertificate) {
-        logger.debug(`Updating certificate for domain: ${domain}`, orderLogAttributes);
+        logger.debug(
+          `Updating certificate for domain: ${domain}`,
+          orderLogAttributes,
+        );
 
         // update the certificate
         await AcmeCertificateService.updateBy({
@@ -317,9 +341,15 @@ export default class GreenlockUtil {
           },
         });
 
-        logger.debug(`Certificate updated for domain: ${domain}`, orderLogAttributes);
+        logger.debug(
+          `Certificate updated for domain: ${domain}`,
+          orderLogAttributes,
+        );
       } else {
-        logger.debug(`Creating certificate for domain: ${domain}`, orderLogAttributes);
+        logger.debug(
+          `Creating certificate for domain: ${domain}`,
+          orderLogAttributes,
+        );
         // create the certificate
         const acmeCertificate: AcmeCertificate = new AcmeCertificate();
 
@@ -336,10 +366,16 @@ export default class GreenlockUtil {
           },
         });
 
-        logger.debug(`Certificate created for domain: ${domain}`, orderLogAttributes);
+        logger.debug(
+          `Certificate created for domain: ${domain}`,
+          orderLogAttributes,
+        );
       }
     } catch (e) {
-      logger.error(`Error ordering certificate for domain: ${data.domain}`, orderLogAttributes);
+      logger.error(
+        `Error ordering certificate for domain: ${data.domain}`,
+        orderLogAttributes,
+      );
       logger.error(e, orderLogAttributes);
 
       if (e instanceof Exception) {

@@ -54,8 +54,10 @@ export class Service extends DatabaseService<Model> {
 
       return createdCluster;
     } catch {
-      // Race condition: another request created the cluster concurrently.
-      // Re-fetch the existing cluster.
+      /*
+       * Race condition: another request created the cluster concurrently.
+       * Re-fetch the existing cluster.
+       */
       const reFetchedCluster: Model | null = await this.findOneBy({
         query: {
           projectId: data.projectId,

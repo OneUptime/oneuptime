@@ -910,7 +910,10 @@ ${contextBlock}
           const k8sLogAttributes: LogAttributes = {
             projectId: input.monitor.projectId?.toString(),
           };
-          logger.error("Failed to fetch container logs for root cause context", k8sLogAttributes);
+          logger.error(
+            "Failed to fetch container logs for root cause context",
+            k8sLogAttributes,
+          );
           logger.error(err, k8sLogAttributes);
         }
       }

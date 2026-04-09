@@ -24,7 +24,9 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
@@ -45,7 +47,10 @@ router.post(
       const calledPhoneNumber: string = req.body["To"] || req.body["Called"];
 
       if (!calledPhoneNumber) {
-        logger.error("No called phone number in request", getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          "No called phone number in request",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         res.status(400).send("Bad Request");
         return;
       }
@@ -114,18 +119,54 @@ router.post(
         (req.headers["x-twilio-signature"] as string) || "";
 
       // Debug logging
-      logger.debug("=== Incoming Call Webhook Debug ===", getLogAttributesFromRequest(req as any));
-      logger.debug(`Original URL: ${req.originalUrl}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Base URL: ${req.baseUrl}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Path: ${req.path}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Protocol: ${req.protocol}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Host header: ${req.get("host")}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`X-Forwarded-Proto: ${req.get("x-forwarded-proto")}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`X-Forwarded-Host: ${req.get("x-forwarded-host")}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Twilio Signature: ${signature}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Environment HOST: ${Host}`, getLogAttributesFromRequest(req as any));
-      logger.debug(`Environment HttpProtocol: ${HttpProtocol}`, getLogAttributesFromRequest(req as any));
-      logger.debug("=== End Debug ===", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "=== Incoming Call Webhook Debug ===",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Original URL: ${req.originalUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Base URL: ${req.baseUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Path: ${req.path}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Protocol: ${req.protocol}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Host header: ${req.get("host")}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `X-Forwarded-Proto: ${req.get("x-forwarded-proto")}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `X-Forwarded-Host: ${req.get("x-forwarded-host")}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Twilio Signature: ${signature}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Environment HOST: ${Host}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        `Environment HttpProtocol: ${HttpProtocol}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        "=== End Debug ===",
+        getLogAttributesFromRequest(req as any),
+      );
 
       if (
         !provider.validateWebhookSignature(
@@ -133,7 +174,10 @@ router.post(
           signature,
         )
       ) {
-        logger.error("Invalid webhook signature for incoming call", getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          "Invalid webhook signature for incoming call",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         res.status(403).send("Forbidden");
         return;
       }
@@ -329,7 +373,10 @@ router.post(
         });
 
       if (!callLog) {
-        logger.error(`Call log not found: ${callLogId}`, getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          `Call log not found: ${callLogId}`,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         res.status(404).send("Call log not found");
         return;
       }
@@ -354,7 +401,10 @@ router.post(
         });
 
       if (!policy || !policy.projectCallSMSConfigId) {
-        logger.error("Policy or Twilio config not found", getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          "Policy or Twilio config not found",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         res.status(400).send("Configuration error");
         return;
       }
@@ -364,7 +414,10 @@ router.post(
         await getProjectTwilioConfig(policy.projectCallSMSConfigId);
 
       if (!customTwilioConfig) {
-        logger.error("Twilio config not found for policy", getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          "Twilio config not found for policy",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         res.status(400).send("Configuration error");
         return;
       }
@@ -382,7 +435,10 @@ router.post(
           signature,
         )
       ) {
-        logger.error("Invalid webhook signature for dial status callback", getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          "Invalid webhook signature for dial status callback",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         res.status(403).send("Forbidden");
         return;
       }
@@ -406,7 +462,10 @@ router.post(
         });
 
       if (!callLogItem) {
-        logger.error(`Call log item not found: ${callLogItemId}`, getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          `Call log item not found: ${callLogItemId}`,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         const twiml: string = provider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);

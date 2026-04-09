@@ -32,7 +32,9 @@ export const getStatusPageData: (
       statusPageIdOrDomain =
         path.split("/status-page/")[1]?.split("/")[0] || "";
       isPreview = true;
-      logger.debug(`Found status page ID in URL: ${statusPageIdOrDomain}`, { service: "status-page" });
+      logger.debug(`Found status page ID in URL: ${statusPageIdOrDomain}`, {
+        service: "status-page",
+      });
     } else {
       const host: string =
         req.hostname?.toString() || req.headers["host"]?.toString() || "";
@@ -46,7 +48,9 @@ export const getStatusPageData: (
     }
 
     if (!statusPageIdOrDomain) {
-      logger.debug("No status page ID or domain found", { service: "status-page" });
+      logger.debug("No status page ID or domain found", {
+        service: "status-page",
+      });
       return null;
     }
 
@@ -73,15 +77,21 @@ export const getStatusPageData: (
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.debug(`Received error response from API: ${response}`, { service: "status-page" });
+        logger.debug(`Received error response from API: ${response}`, {
+          service: "status-page",
+        });
         return null;
       }
 
-      logger.debug("Successfully received response from API", { service: "status-page" });
+      logger.debug("Successfully received response from API", {
+        service: "status-page",
+      });
 
       statusPageId = response.data?.["_id"] as string;
       if (!statusPageId) {
-        logger.debug("No status page ID in response", { service: "status-page" });
+        logger.debug("No status page ID in response", {
+          service: "status-page",
+        });
         return null;
       }
 

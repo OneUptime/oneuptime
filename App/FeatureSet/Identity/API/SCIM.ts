@@ -12,7 +12,9 @@ import Express, {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
@@ -73,7 +75,9 @@ const handleUserTeamOperations: (
     }) || [];
 
   if (teamsIds.length === 0) {
-    logger.debug(`SCIM Team operations - no teams configured for SCIM`, { projectId: projectId?.toString() });
+    logger.debug(`SCIM Team operations - no teams configured for SCIM`, {
+      projectId: projectId?.toString(),
+    });
     return;
   }
 
@@ -96,7 +100,9 @@ const handleUserTeamOperations: (
         });
 
       if (!existingMember) {
-        logger.debug(`SCIM Team operations - adding user to team: ${team.id}`, { projectId: projectId?.toString() });
+        logger.debug(`SCIM Team operations - adding user to team: ${team.id}`, {
+          projectId: projectId?.toString(),
+        });
         const teamMember: TeamMember = new TeamMember();
         teamMember.projectId = projectId;
         teamMember.userId = userId;
@@ -111,7 +117,9 @@ const handleUserTeamOperations: (
           },
         });
 
-        logger.debug(`SCIM Team operations - user added to team: ${team.id}`, { projectId: projectId?.toString() });
+        logger.debug(`SCIM Team operations - user added to team: ${team.id}`, {
+          projectId: projectId?.toString(),
+        });
       } else {
         logger.debug(
           `SCIM Team operations - user already member of team: ${team.id}`,
@@ -393,7 +401,10 @@ router.get(
         "project",
       );
 
-      logger.debug("Project SCIM Schemas response prepared successfully", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Project SCIM Schemas response prepared successfully",
+        getLogAttributesFromRequest(req as any),
+      );
       return Response.sendJsonObjectResponse(req, res, schemasResponse);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -423,7 +434,10 @@ router.get(
         "project",
       );
 
-      logger.debug("Project SCIM ResourceTypes response prepared successfully", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Project SCIM ResourceTypes response prepared successfully",
+        getLogAttributesFromRequest(req as any),
+      );
       return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -1610,7 +1624,10 @@ router.get(
         `Paginated results: returning ${paginatedUsers.length} users (page ${Math.floor((startIndex - 1) / count) + 1})`,
       );
 
-      logger.debug(`SCIM Users response prepared with ${users.length} users`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Users response prepared with ${users.length} users`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       const responseBody: JSONObject = generateUsersListResponse(
         paginatedUsers,
@@ -1742,7 +1759,10 @@ router.get(
         );
       }
 
-      logger.debug(`SCIM Get user - found user: ${projectUser.user.id}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Get user - found user: ${projectUser.user.id}`,
+        getLogAttributesFromRequest(req as any),
+      );
       executionSteps.push(`Found user: ${projectUser.user.email?.toString()}`);
 
       const user: JSONObject = formatUserForSCIM(
@@ -1923,7 +1943,10 @@ const handleUserUpdate: (
 
     // Handle user activation by adding to teams
     if (active === true && !scimConfig.enablePushGroups) {
-      logger.debug(`SCIM Update user - user marked as active, adding to teams`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Update user - user marked as active, adding to teams`,
+        getLogAttributesFromRequest(req as any),
+      );
       executionSteps.push("User marked as active, adding to configured teams");
       await handleUserTeamOperations(
         "add",
@@ -1960,7 +1983,10 @@ const handleUserUpdate: (
         props: { isRoot: true },
       });
 
-      logger.debug(`SCIM Update user - user updated successfully`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Update user - user updated successfully`,
+        getLogAttributesFromRequest(req as any),
+      );
       executionSteps.push("User record updated successfully");
 
       // Fetch updated user
@@ -2019,7 +2045,10 @@ const handleUserUpdate: (
       }
     }
 
-    logger.debug(`SCIM Update user - no updates made, returning existing user`, getLogAttributesFromRequest(req as any));
+    logger.debug(
+      `SCIM Update user - no updates made, returning existing user`,
+      getLogAttributesFromRequest(req as any),
+    );
     executionSteps.push("No field updates required, returning existing user");
 
     // If no updates were made, return the existing user
@@ -2339,7 +2368,10 @@ router.get(
         );
       }
 
-      logger.debug(`SCIM Get group - found team: ${team.id}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Get group - found team: ${team.id}`,
+        getLogAttributesFromRequest(req as any),
+      );
       executionSteps.push(`Found team: ${team.name?.toString()}`);
 
       executionSteps.push("Formatting team as SCIM group with members");
@@ -2430,7 +2462,10 @@ router.post(
 
       const displayName: string = scimGroup["displayName"] as string;
 
-      logger.debug(`SCIM Create group - displayName: ${displayName}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Create group - displayName: ${displayName}`,
+        getLogAttributesFromRequest(req as any),
+      );
       executionSteps.push(`Group displayName: ${displayName}`);
 
       if (!displayName) {
@@ -2469,7 +2504,10 @@ router.post(
         targetTeam = existingTeam;
       } else {
         // Create new team
-        logger.debug(`SCIM Create group - creating new team: ${displayName}`, getLogAttributesFromRequest(req as any));
+        logger.debug(
+          `SCIM Create group - creating new team: ${displayName}`,
+          getLogAttributesFromRequest(req as any),
+        );
         executionSteps.push(`Creating new team: ${displayName}`);
         const team: Team = new Team();
         team.projectId = projectId;
@@ -2740,7 +2778,10 @@ router.put(
       const displayName: string = scimGroup["displayName"] as string;
       let nameUpdated: boolean = false;
       if (displayName && displayName !== team.name) {
-        logger.debug(`SCIM Update group - updating name to: ${displayName}`, getLogAttributesFromRequest(req as any));
+        logger.debug(
+          `SCIM Update group - updating name to: ${displayName}`,
+          getLogAttributesFromRequest(req as any),
+        );
         executionSteps.push(
           `Updating team name from "${team.name}" to "${displayName}"`,
         );
@@ -2828,7 +2869,10 @@ router.put(
               );
 
               membersAdded++;
-              logger.debug(`SCIM Update group - added user ${userId} to team`, getLogAttributesFromRequest(req as any));
+              logger.debug(
+                `SCIM Update group - added user ${userId} to team`,
+                getLogAttributesFromRequest(req as any),
+              );
             } else {
               membersSkipped++;
             }
@@ -2999,7 +3043,10 @@ router.delete(
         throw new BadRequestException("This group cannot be deleted");
       }
 
-      logger.debug(`SCIM Delete group - deleting team: ${team.name}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Delete group - deleting team: ${team.name}`,
+        getLogAttributesFromRequest(req as any),
+      );
       const teamName: string | undefined = team.name?.toString();
 
       // Remove all team members first
@@ -3028,7 +3075,10 @@ router.delete(
       });
       executionSteps.push("Team successfully deleted");
 
-      logger.debug(`SCIM Delete group - team successfully deleted`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Delete group - team successfully deleted`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // Log the operation
       void createProjectSCIMLog({
@@ -3174,7 +3224,10 @@ router.patch(
         if (path === "members") {
           if (op === "replace") {
             // Replace all members
-            logger.debug(`SCIM Patch group - replacing all members`, getLogAttributesFromRequest(req as any));
+            logger.debug(
+              `SCIM Patch group - replacing all members`,
+              getLogAttributesFromRequest(req as any),
+            );
             executionSteps.push(
               "Replacing all members - removing existing members",
             );
@@ -3251,7 +3304,10 @@ router.patch(
             }
           } else if (op === "add") {
             // Add members
-            logger.debug(`SCIM Patch group - adding members`, getLogAttributesFromRequest(req as any));
+            logger.debug(
+              `SCIM Patch group - adding members`,
+              getLogAttributesFromRequest(req as any),
+            );
             const members: Array<SCIMMember> = value || [];
             executionSteps.push(`Adding ${members.length} members`);
             for (const member of members) {
@@ -3311,7 +3367,10 @@ router.patch(
             }
           } else if (op === "remove") {
             // Remove members
-            logger.debug(`SCIM Patch group - removing members`, getLogAttributesFromRequest(req as any));
+            logger.debug(
+              `SCIM Patch group - removing members`,
+              getLogAttributesFromRequest(req as any),
+            );
             const members: Array<SCIMMember> = value || [];
             executionSteps.push(`Removing ${members.length} members`);
             for (const member of members) {
@@ -3501,7 +3560,10 @@ router.post(
         `Parsed user data from request: email=${email}, name=${name || "not provided"}`,
       );
 
-      logger.debug(`SCIM Create user - email: ${email}, name: ${name}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `SCIM Create user - email: ${email}, name: ${name}`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       if (!email) {
         executionSteps.push(
@@ -3726,7 +3788,10 @@ router.delete(
         executionSteps.push(
           "Auto-deprovisioning is disabled - rejecting request",
         );
-        logger.debug("SCIM Delete user - auto-deprovisioning is disabled", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "SCIM Delete user - auto-deprovisioning is disabled",
+          getLogAttributesFromRequest(req as any),
+        );
         throw new BadRequestException(
           "Auto-deprovisioning is disabled for this project",
         );
@@ -3750,7 +3815,10 @@ router.delete(
           executionSteps.push(
             "No teams configured for SCIM - cannot deprovision",
           );
-          logger.debug("SCIM Delete user - no teams configured for SCIM", getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "SCIM Delete user - no teams configured for SCIM",
+            getLogAttributesFromRequest(req as any),
+          );
           throw new BadRequestException("No teams configured for SCIM");
         }
 

@@ -64,22 +64,23 @@ export default class OTelIngestService {
           dataRententionInDays: DEFAULT_RETENTION_IN_DAYS,
         };
       } catch {
-        // Race condition: another request created the service concurrently.
-        // Re-fetch the existing service.
-        const existingService: Service | null =
-          await ServiceService.findOneBy({
-            query: {
-              projectId: data.projectId,
-              name: data.serviceName,
-            },
-            select: {
-              _id: true,
-              retainTelemetryDataForDays: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+        /*
+         * Race condition: another request created the service concurrently.
+         * Re-fetch the existing service.
+         */
+        const existingService: Service | null = await ServiceService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            name: data.serviceName,
+          },
+          select: {
+            _id: true,
+            retainTelemetryDataForDays: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
         if (existingService) {
           return {

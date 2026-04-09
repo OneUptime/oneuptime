@@ -41,7 +41,9 @@ async function authenticateRequest(
   }
 
   if (!oneuptimeToken) {
-    logger.error("gRPC: Missing metadata: x-oneuptime-token", { service: "telemetry" });
+    logger.error("gRPC: Missing metadata: x-oneuptime-token", {
+      service: "telemetry",
+    });
     return null;
   }
 
@@ -59,7 +61,9 @@ async function authenticateRequest(
     });
 
   if (!token || !token.projectId) {
-    logger.error("gRPC: Invalid service token: " + oneuptimeToken, { service: "telemetry" });
+    logger.error("gRPC: Invalid service token: " + oneuptimeToken, {
+      service: "telemetry",
+    });
     return null;
   }
 
@@ -294,7 +298,9 @@ export function startGrpcServer(): void {
         logger.error(err, { service: "telemetry" });
         return;
       }
-      logger.info(`gRPC OTLP server started on port: ${port}`, { service: "telemetry" });
+      logger.info(`gRPC OTLP server started on port: ${port}`, {
+        service: "telemetry",
+      });
     },
   );
 }

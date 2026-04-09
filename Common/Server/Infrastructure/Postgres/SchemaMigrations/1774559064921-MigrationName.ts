@@ -4,12 +4,16 @@ export class MigrationName1774559064921 implements MigrationInterface {
   public name = "MigrationName1774559064921";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // First, deduplicate existing services by keeping the oldest one (smallest _id / earliest createdAt).
-    // Reassign any foreign key references from duplicate services to the kept service,
-    // then delete the duplicates.
+    /*
+     * First, deduplicate existing services by keeping the oldest one (smallest _id / earliest createdAt).
+     * Reassign any foreign key references from duplicate services to the kept service,
+     * then delete the duplicates.
+     */
 
-    // Find and delete duplicate services, keeping the one with the earliest createdAt.
-    // For each (projectId, name) group with duplicates, keep the min(_id) row.
+    /*
+     * Find and delete duplicate services, keeping the one with the earliest createdAt.
+     * For each (projectId, name) group with duplicates, keep the min(_id) row.
+     */
     await queryRunner.query(`
       DELETE FROM "Service"
       WHERE "_id" IN (

@@ -105,7 +105,10 @@ export default class UserMiddleware {
             value as string,
           ).projectId?.toString();
         } catch (err) {
-          logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.error(
+            err,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           continue;
         }
 
@@ -147,7 +150,10 @@ export default class UserMiddleware {
               ssoTokens[projectId] = token;
             }
           } catch (err) {
-            logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
+            logger.error(
+              err,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
             continue;
           }
         }
@@ -240,9 +246,7 @@ export default class UserMiddleware {
     SpanUtil.addAttributesToCurrentSpan({
       userId: userId,
       userType: oneuptimeRequest.userType,
-      ...(tenantId
-        ? { projectId: tenantId.toString() }
-        : {}),
+      ...(tenantId ? { projectId: tenantId.toString() } : {}),
       ...(oneuptimeRequest.requestId
         ? { requestId: oneuptimeRequest.requestId }
         : {}),

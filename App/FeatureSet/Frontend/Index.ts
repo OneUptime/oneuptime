@@ -432,7 +432,9 @@ const isDashboardDomain: (hostname: string) => Promise<boolean> = async (
 
     return dashboardDomain !== null;
   } catch (err) {
-    logger.error("Error checking if domain is a dashboard domain:", { service: "frontend" });
+    logger.error("Error checking if domain is a dashboard domain:", {
+      service: "frontend",
+    });
     logger.error(err, { service: "frontend" });
     return false;
   }

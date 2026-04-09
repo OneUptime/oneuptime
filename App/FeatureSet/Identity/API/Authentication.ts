@@ -43,7 +43,9 @@ import Express, {
   headerValueToString,
 } from "Common/Server/Utils/Express";
 import CaptchaUtil from "Common/Server/Utils/Captcha";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
@@ -312,7 +314,10 @@ router.post(
           isGlobalLogin: true,
         });
 
-        logger.info("User signed up: " + savedUser.email?.toString(), getLogAttributesFromRequest(req as RequestLike));
+        logger.info(
+          "User signed up: " + savedUser.email?.toString(),
+          getLogAttributesFromRequest(req as RequestLike),
+        );
 
         if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {
           const instanceUrl: string = new URL(httpProtocol, host).toString();
@@ -406,8 +411,14 @@ router.post(
           ),
         ).toString();
 
-        logger.debug("User forgot password: " + user.email?.toString(), getLogAttributesFromRequest(req as RequestLike));
-        logger.debug("Reset Password URL: " + tokenVerifyUrl, getLogAttributesFromRequest(req as RequestLike));
+        logger.debug(
+          "User forgot password: " + user.email?.toString(),
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+        logger.debug(
+          "Reset Password URL: " + tokenVerifyUrl,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
 
         MailService.sendMail({
           toEmail: user.email!,
@@ -535,7 +546,10 @@ router.post(
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       });
 
-      logger.info("User email verified: " + user.email?.toString(), getLogAttributesFromRequest(req as RequestLike));
+      logger.info(
+        "User email verified: " + user.email?.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
@@ -634,7 +648,10 @@ router.post(
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       });
 
-      logger.info("User password reset: " + alreadySavedUser.email?.toString(), getLogAttributesFromRequest(req as RequestLike));
+      logger.info(
+        "User password reset: " + alreadySavedUser.email?.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
@@ -951,7 +968,10 @@ const login: LoginFunction = async (options: {
 
     const data: JSONObject = req.body["data"];
 
-    logger.debug("Login request data: " + JSON.stringify(req.body, null, 2), getLogAttributesFromRequest(req as RequestLike));
+    logger.debug(
+      "Login request data: " + JSON.stringify(req.body, null, 2),
+      getLogAttributesFromRequest(req as RequestLike),
+    );
 
     const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
 
@@ -1105,7 +1125,10 @@ const login: LoginFunction = async (options: {
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
       if (alreadySavedUser.password.toString() === user.password!.toString()) {
-        logger.info("User logged in: " + alreadySavedUser.email?.toString(), getLogAttributesFromRequest(req as RequestLike));
+        logger.info(
+          "User logged in: " + alreadySavedUser.email?.toString(),
+          getLogAttributesFromRequest(req as RequestLike),
+        );
 
         const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
           req,

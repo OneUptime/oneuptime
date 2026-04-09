@@ -11,7 +11,9 @@ RunCron(
   "Probe:UpdateConnectionStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    logger.debug("Checking Probe:UpdateConnectionStatus", { service: "workers" });
+    logger.debug("Checking Probe:UpdateConnectionStatus", {
+      service: "workers",
+    });
 
     const probes: Array<Probe> = await ProbeService.findAllBy({
       query: {},
@@ -86,7 +88,10 @@ RunCron(
           });
         }
       } catch (error) {
-        logger.error(error, { service: "workers", projectId: probe.projectId?.toString() });
+        logger.error(error, {
+          service: "workers",
+          projectId: probe.projectId?.toString(),
+        });
       }
     }
   },

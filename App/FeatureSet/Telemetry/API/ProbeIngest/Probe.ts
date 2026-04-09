@@ -17,7 +17,9 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";

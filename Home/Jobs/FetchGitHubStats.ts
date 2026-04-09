@@ -73,7 +73,10 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("FetchGitHubStats: Failed to fetch contributors", { service: "home", job: "FetchGitHubStats" });
+        logger.error("FetchGitHubStats: Failed to fetch contributors", {
+          service: "home",
+          job: "FetchGitHubStats",
+        });
         break;
       }
 
@@ -153,7 +156,10 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
       }
     }
   } catch (error) {
-    logger.error("FetchGitHubStats: Error fetching GitHub stats", { service: "home", job: "FetchGitHubStats" });
+    logger.error("FetchGitHubStats: Error fetching GitHub stats", {
+      service: "home",
+      job: "FetchGitHubStats",
+    });
     logger.error(error, { service: "home", job: "FetchGitHubStats" });
   }
 };
@@ -165,8 +171,14 @@ BasicCron({
     runOnStartup: true,
   },
   runFunction: async () => {
-    logger.debug("FetchGitHubStats: Start", { service: "home", job: "FetchGitHubStats" });
+    logger.debug("FetchGitHubStats: Start", {
+      service: "home",
+      job: "FetchGitHubStats",
+    });
     await fetchGitHubStats();
-    logger.debug("FetchGitHubStats: End", { service: "home", job: "FetchGitHubStats" });
+    logger.debug("FetchGitHubStats: End", {
+      service: "home",
+      job: "FetchGitHubStats",
+    });
   },
 });

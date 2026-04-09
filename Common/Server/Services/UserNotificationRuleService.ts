@@ -2207,7 +2207,10 @@ export class Service extends DatabaseService<Model> {
       incidentId: options.triggeredByIncidentId,
       userId: userId,
     }).catch((error: Error) => {
-      logger.error(error, { projectId: options.projectId?.toString(), userId: userId?.toString() } as LogAttributes);
+      logger.error(error, {
+        projectId: options.projectId?.toString(),
+        userId: userId?.toString(),
+      } as LogAttributes);
     });
   }
 
@@ -2266,7 +2269,10 @@ export class Service extends DatabaseService<Model> {
         userIds: [data.userId],
       },
     ).catch((error: Error) => {
-      logger.error(error, { projectId: data.projectId?.toString(), userId: data.userId?.toString() } as LogAttributes);
+      logger.error(error, {
+        projectId: data.projectId?.toString(),
+        userId: data.userId?.toString(),
+      } as LogAttributes);
     });
   }
 

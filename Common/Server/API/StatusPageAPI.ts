@@ -276,7 +276,10 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
           if (!statusPage || !statusPage.faviconFile) {
-            logger.debug("Favicon file not found. Returning default favicon.", getLogAttributesFromRequest(req as any));
+            logger.debug(
+              "Favicon file not found. Returning default favicon.",
+              getLogAttributesFromRequest(req as any),
+            );
 
             return Response.sendFileByPath(
               req,
@@ -686,7 +689,10 @@ export default class StatusPageAPI extends BaseAPI<
 
         const token: string = req.params["token"] as string;
 
-        logger.debug(`CNAME Verification: Host:${host}  - Token:${token}`, getLogAttributesFromRequest(req as any));
+        logger.debug(
+          `CNAME Verification: Host:${host}  - Token:${token}`,
+          getLogAttributesFromRequest(req as any),
+        );
 
         const domain: StatusPageDomain | null =
           await StatusPageDomainService.findOneBy({
@@ -3139,7 +3145,10 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
     if (!statusPage) {
-      logger.debug(`Status page not found with ID: ${statusPageId}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Status page not found with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
       throw new BadDataException("Status Page not found");
     }
 
@@ -3153,7 +3162,10 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    logger.debug(`Status page found: ${JSON.stringify(statusPage)}`, getLogAttributesFromRequest(req as any));
+    logger.debug(
+      `Status page found: ${JSON.stringify(statusPage)}`,
+      getLogAttributesFromRequest(req as any),
+    );
 
     if (
       req.body.data["subscriberEmail"] &&
@@ -3224,7 +3236,10 @@ export default class StatusPageAPI extends BaseAPI<
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
     if (email) {
-      logger.debug(`Setting subscriber email: ${email}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Setting subscriber email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           subscriberEmail: email,
@@ -3241,7 +3256,10 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (phone) {
-      logger.debug(`Setting subscriber phone: ${phone}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Setting subscriber phone: ${phone}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           subscriberPhone: phone,
@@ -3258,7 +3276,10 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (slackWorkspaceName) {
-      logger.debug(`Setting subscriber slack workspace: ${slackWorkspaceName}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Setting subscriber slack workspace: ${slackWorkspaceName}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           slackWorkspaceName: slackWorkspaceName,
@@ -3394,7 +3415,10 @@ export default class StatusPageAPI extends BaseAPI<
       req.params["statusPageId"] as string,
     );
 
-    logger.debug(`Subscribing to status page with ID: ${objectId}`, getLogAttributesFromRequest(req as any));
+    logger.debug(
+      `Subscribing to status page with ID: ${objectId}`,
+      getLogAttributesFromRequest(req as any),
+    );
 
     await this.checkHasReadAccess({
       statusPageId: objectId,
@@ -3422,7 +3446,10 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
     if (!statusPage) {
-      logger.debug(`Status page not found with ID: ${objectId}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Status page not found with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
       throw new BadDataException("Status Page not found");
     }
 
@@ -3436,7 +3463,10 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    logger.debug(`Status page found: ${JSON.stringify(statusPage)}`, getLogAttributesFromRequest(req as any));
+    logger.debug(
+      `Status page found: ${JSON.stringify(statusPage)}`,
+      getLogAttributesFromRequest(req as any),
+    );
 
     if (
       req.body.data["subscriberEmail"] &&
@@ -3565,7 +3595,10 @@ export default class StatusPageAPI extends BaseAPI<
       });
 
       if (!statusPageSubscriber) {
-        logger.debug(`Subscriber not found with ID: ${subscriberId}`, getLogAttributesFromRequest(req as any));
+        logger.debug(
+          `Subscriber not found with ID: ${subscriberId}`,
+          getLogAttributesFromRequest(req as any),
+        );
         throw new BadDataException("Subscriber not found");
       }
 
@@ -3573,17 +3606,26 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (email) {
-      logger.debug(`Setting subscriber email: ${email}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Setting subscriber email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.subscriberEmail = email;
     }
 
     if (phone) {
-      logger.debug(`Setting subscriber phone: ${phone}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Setting subscriber phone: ${phone}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.subscriberPhone = phone;
     }
 
     if (slackIncomingWebhookUrl) {
-      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Setting subscriber slack: ${slackIncomingWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
         slackIncomingWebhookUrl,
       );
@@ -3681,7 +3723,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (isUpdate) {
       // check isUnsubscribed is set to false.
-      logger.debug(`Updating subscriber with ID: ${statusPageSubscriber.id}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Updating subscriber with ID: ${statusPageSubscriber.id}`,
+        getLogAttributesFromRequest(req as any),
+      );
       statusPageSubscriber.isUnsubscribed = Boolean(
         req.body.data["isUnsubscribed"],
       );

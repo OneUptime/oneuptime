@@ -118,7 +118,10 @@ export default class MonitorIncident {
     };
 
     // check open incidents
-    logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`, incidentLogAttributes);
+    logger.debug(
+      `${input.monitor.id?.toString()} - Check open incidents.`,
+      incidentLogAttributes,
+    );
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> =
       await this.checkOpenIncidentsAndCloseIfResolved({
@@ -177,7 +180,10 @@ export default class MonitorIncident {
           continue;
         }
 
-        logger.debug(`${input.monitor.id?.toString()} - Create incident.`, incidentLogAttributes);
+        logger.debug(
+          `${input.monitor.id?.toString()} - Create incident.`,
+          incidentLogAttributes,
+        );
 
         const incident: Incident = new Incident();
         const storageMap: JSONObject =

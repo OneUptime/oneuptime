@@ -1,5 +1,10 @@
 import { AreaChart } from "../ChartLibrary/AreaChart/AreaChart";
-import React, { FunctionComponent, ReactElement, useEffect, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+} from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";

@@ -1146,10 +1146,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.debug(`Channel info obtained: ${JSON.stringify(channel)}`);
         workspaceChannelsToPostTo.push(channel);
       } catch (err) {
-        logger.error(`Error getting channel info for channel ID ${channelId}:`, {
-          projectId: data.projectId.toString(),
-          channelId: channelId,
-        });
+        logger.error(
+          `Error getting channel info for channel ID ${channelId}:`,
+          {
+            projectId: data.projectId.toString(),
+            channelId: channelId,
+          },
+        );
         logger.error(err);
       }
     }

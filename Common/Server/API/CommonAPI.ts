@@ -65,15 +65,9 @@ export default class CommonAPI {
 
     // Add context attributes to the current span for observability
     SpanUtil.addAttributesToCurrentSpan({
-      ...(props.tenantId
-        ? { projectId: props.tenantId.toString() }
-        : {}),
-      ...(props.userId
-        ? { userId: props.userId.toString() }
-        : {}),
-      ...(props.userType
-        ? { userType: props.userType }
-        : {}),
+      ...(props.tenantId ? { projectId: props.tenantId.toString() } : {}),
+      ...(props.userId ? { userId: props.userId.toString() } : {}),
+      ...(props.userType ? { userType: props.userType } : {}),
       ...((req as OneUptimeRequest).requestId
         ? { requestId: (req as OneUptimeRequest).requestId }
         : {}),

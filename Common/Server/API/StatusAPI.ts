@@ -136,7 +136,10 @@ export default class StatusAPI {
         status: "ok",
       });
     } catch (e) {
-      logger.error("Ready check: failed", getLogAttributesFromRequest(req as any));
+      logger.error(
+        "Ready check: failed",
+        getLogAttributesFromRequest(req as any),
+      );
       logger.error(e, getLogAttributesFromRequest(req as any));
 
       stausReadyFailed.add(1);
@@ -166,7 +169,10 @@ export default class StatusAPI {
         status: "ok",
       });
     } catch (e) {
-      logger.error("Live check: failed", getLogAttributesFromRequest(req as any));
+      logger.error(
+        "Live check: failed",
+        getLogAttributesFromRequest(req as any),
+      );
       logger.error(e, getLogAttributesFromRequest(req as any));
       stausLiveFailed.add(1);
       Response.sendErrorResponse(
@@ -184,13 +190,19 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Global cache check", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Global cache check",
+        getLogAttributesFromRequest(req as any),
+      );
       if (options.globalCacheCheck) {
         await options.globalCacheCheck();
       } else {
         throw new BadRequestException("Global cache check not implemented");
       }
-      logger.info("Global cache check: ok", getLogAttributesFromRequest(req as any));
+      logger.info(
+        "Global cache check: ok",
+        getLogAttributesFromRequest(req as any),
+      );
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
@@ -213,7 +225,10 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Analytics database check", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Analytics database check",
+        getLogAttributesFromRequest(req as any),
+      );
       if (options.analyticsDatabaseCheck) {
         await options.analyticsDatabaseCheck();
       } else {
@@ -221,7 +236,10 @@ export default class StatusAPI {
           "Analytics database check not implemented",
         );
       }
-      logger.info("Analytics database check: ok", getLogAttributesFromRequest(req as any));
+      logger.info(
+        "Analytics database check: ok",
+        getLogAttributesFromRequest(req as any),
+      );
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",
@@ -252,7 +270,10 @@ export default class StatusAPI {
         throw new BadRequestException("Database check not implemented");
       }
 
-      logger.info("Database check: ok", getLogAttributesFromRequest(req as any));
+      logger.info(
+        "Database check: ok",
+        getLogAttributesFromRequest(req as any),
+      );
 
       Response.sendJsonObjectResponse(req, res, {
         status: "ok",

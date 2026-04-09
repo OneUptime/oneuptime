@@ -51,7 +51,9 @@ const RunCron: RunCronFunction = (
           JobDictionary.setTimeoutInMs(jobName, options.timeoutInMS);
         }
 
-        logger.debug("Adding job to the queue: " + jobName, { service: "workers" });
+        logger.debug("Adding job to the queue: " + jobName, {
+          service: "workers",
+        });
 
         const queueName: QueueName = options.queueName || QueueName.Worker;
 

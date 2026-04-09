@@ -19,15 +19,12 @@ export interface SpanAttributes {
   [key: string]: string | number | boolean | undefined;
 }
 
-
 export default class SpanUtil {
   /**
    * Add attributes to the currently active span.
    * Safe to call even when there is no active span or telemetry is disabled.
    */
-  public static addAttributesToCurrentSpan(
-    attributes: SpanAttributes,
-  ): void {
+  public static addAttributesToCurrentSpan(attributes: SpanAttributes): void {
     if (DisableTelemetry) {
       return;
     }
@@ -64,7 +61,11 @@ export default class SpanUtil {
    * Similar to getLogAttributesFromRequest in Logger but for spans.
    */
   public static getSpanAttributesFromRequest(
-    req?: { requestId?: string; tenantId?: { toString(): string }; userAuthorization?: { userId?: { toString(): string } } } | null,
+    req?: {
+      requestId?: string;
+      tenantId?: { toString(): string };
+      userAuthorization?: { userId?: { toString(): string } };
+    } | null,
   ): SpanAttributes {
     if (!req) {
       return {};
@@ -81,8 +82,7 @@ export default class SpanUtil {
     }
 
     if (req.userAuthorization?.userId) {
-      attributes["userId"] =
-        req.userAuthorization.userId.toString();
+      attributes["userId"] = req.userAuthorization.userId.toString();
     }
 
     return attributes;

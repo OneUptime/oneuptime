@@ -22,7 +22,9 @@ export const getPublicDashboardData: (
   req: ExpressRequest,
 ): Promise<PublicDashboardData | null> => {
   try {
-    logger.debug("Getting public dashboard data", { service: "public-dashboard" });
+    logger.debug("Getting public dashboard data", {
+      service: "public-dashboard",
+    });
 
     let dashboardIdOrDomain: string = "";
     let isPreview: boolean = false;
@@ -34,18 +36,25 @@ export const getPublicDashboardData: (
       dashboardIdOrDomain =
         path.split("/public-dashboard/")[1]?.split("/")[0] || "";
       isPreview = true;
-      logger.debug(`Found dashboard ID in URL: ${dashboardIdOrDomain}`, { service: "public-dashboard" });
+      logger.debug(`Found dashboard ID in URL: ${dashboardIdOrDomain}`, {
+        service: "public-dashboard",
+      });
     } else {
       const host: string =
         req.hostname?.toString() || req.headers["host"]?.toString() || "";
       if (host) {
         dashboardIdOrDomain = host;
-        logger.debug(`Found domain in request headers: ${dashboardIdOrDomain}`, { service: "public-dashboard" });
+        logger.debug(
+          `Found domain in request headers: ${dashboardIdOrDomain}`,
+          { service: "public-dashboard" },
+        );
       }
     }
 
     if (!dashboardIdOrDomain) {
-      logger.debug("No dashboard ID or domain found", { service: "public-dashboard" });
+      logger.debug("No dashboard ID or domain found", {
+        service: "public-dashboard",
+      });
       return null;
     }
 
@@ -68,15 +77,21 @@ export const getPublicDashboardData: (
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.debug(`Received error response from API: ${response}`, { service: "public-dashboard" });
+        logger.debug(`Received error response from API: ${response}`, {
+          service: "public-dashboard",
+        });
         return null;
       }
 
-      logger.debug("Successfully received response from API", { service: "public-dashboard" });
+      logger.debug("Successfully received response from API", {
+        service: "public-dashboard",
+      });
 
       dashboardId = response.data?.["_id"] as string;
       if (!dashboardId) {
-        logger.debug("No dashboard ID in response", { service: "public-dashboard" });
+        logger.debug("No dashboard ID in response", {
+          service: "public-dashboard",
+        });
         return null;
       }
 
@@ -90,7 +105,9 @@ export const getPublicDashboardData: (
       description,
     };
   } catch (err) {
-    logger.error("Error getting public dashboard data:", { service: "public-dashboard" });
+    logger.error("Error getting public dashboard data:", {
+      service: "public-dashboard",
+    });
     logger.error(err, { service: "public-dashboard" });
     return null;
   }

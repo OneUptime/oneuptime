@@ -507,13 +507,10 @@ RunCron(
                         incidentId: incident.id!,
                       },
                     ).catch((err: Error) => {
-                      logger.error(
-                        err,
-                        {
-                          projectId: incident.projectId?.toString(),
-                          incidentId: incident.id?.toString(),
-                        },
-                      );
+                      logger.error(err, {
+                        projectId: incident.projectId?.toString(),
+                        incidentId: incident.id?.toString(),
+                      });
                     });
                   } else {
                     MailService.sendMail(
@@ -561,13 +558,10 @@ RunCron(
                         incidentId: incident.id!,
                       },
                     ).catch((err: Error) => {
-                      logger.error(
-                        err,
-                        {
-                          projectId: incident.projectId?.toString(),
-                          incidentId: incident.id?.toString(),
-                        },
-                      );
+                      logger.error(err, {
+                        projectId: incident.projectId?.toString(),
+                        incidentId: incident.id?.toString(),
+                      });
                     });
                   }
                   logger.debug(
@@ -630,13 +624,10 @@ RunCron(
                     statusPageId: statuspage.id!,
                     incidentId: incident.id!,
                   }).catch((err: Error) => {
-                    logger.error(
-                      err,
-                      {
-                        projectId: incident.projectId?.toString(),
-                        incidentId: incident.id?.toString(),
-                      },
-                    );
+                    logger.error(err, {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    });
                   });
                   logger.debug(
                     `SMS notification queued for subscriber ${subscriber._id}.`,
@@ -695,13 +686,10 @@ RunCron(
                       markdownMessage,
                     ),
                   }).catch((err: Error) => {
-                    logger.error(
-                      err,
-                      {
-                        projectId: incident.projectId?.toString(),
-                        incidentId: incident.id?.toString(),
-                      },
-                    );
+                    logger.error(err, {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    });
                   });
                   logger.debug(
                     `Slack notification queued for subscriber ${subscriber._id}.`,
@@ -754,13 +742,10 @@ RunCron(
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
                     text: teamsMarkdownMessage,
                   }).catch((err: Error) => {
-                    logger.error(
-                      err,
-                      {
-                        projectId: incident.projectId?.toString(),
-                        incidentId: incident.id?.toString(),
-                      },
-                    );
+                    logger.error(err, {
+                      projectId: incident.projectId?.toString(),
+                      incidentId: incident.id?.toString(),
+                    });
                   });
                   logger.debug(
                     `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
@@ -771,33 +756,24 @@ RunCron(
                   );
                 }
               } catch (err) {
-                logger.error(
-                  err,
-                  {
-                    projectId: incident.projectId?.toString(),
-                    incidentId: incident.id?.toString(),
-                  },
-                );
+                logger.error(err, {
+                  projectId: incident.projectId?.toString(),
+                  incidentId: incident.id?.toString(),
+                });
               }
             }
           } catch (err) {
-            logger.error(
-              err,
-              {
-                projectId: incident.projectId?.toString(),
-                incidentId: incident.id?.toString(),
-              },
-            );
+            logger.error(err, {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            });
           }
         }
 
-        logger.debug(
-          "Creating incident feed for subscriber notification",
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
-        );
+        logger.debug("Creating incident feed for subscriber notification", {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
 
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incident.id!,
@@ -811,13 +787,10 @@ RunCron(
           },
         });
 
-        logger.debug(
-          "Incident Feed created",
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
-        );
+        logger.debug("Incident Feed created", {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
 
         // If we get here, the notification was successful
         await IncidentService.updateOneById({
@@ -842,13 +815,10 @@ RunCron(
         );
       } catch (err) {
         // If there was an error, mark as failed
-        logger.error(
-          err,
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
-        );
+        logger.error(err, {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
         IncidentService.updateOneById({
           id: incident.id!,
           data: {

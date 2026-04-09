@@ -48,7 +48,9 @@ function initializeApiService(): void {
 function generateTools(): McpToolInfo[] {
   try {
     const tools: McpToolInfo[] = generateAllTools();
-    logger.info(`Generated ${tools.length} OneUptime MCP tools`, { service: APP_NAME });
+    logger.info(`Generated ${tools.length} OneUptime MCP tools`, {
+      service: APP_NAME,
+    });
     return tools;
   } catch (error) {
     logger.error(`Failed to generate tools: ${error}`, { service: APP_NAME });
@@ -109,14 +111,20 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Add default routes to the app
     await App.addDefaultRoutes();
 
-    logger.info(`OneUptime MCP Server started successfully`, { service: APP_NAME });
-    logger.info(`Available tools: ${tools.length} total`, { service: APP_NAME });
+    logger.info(`OneUptime MCP Server started successfully`, {
+      service: APP_NAME,
+    });
+    logger.info(`Available tools: ${tools.length} total`, {
+      service: APP_NAME,
+    });
 
     // Log some example tools
     const exampleTools: string[] = tools.slice(0, 5).map((t: McpToolInfo) => {
       return t.name;
     });
-    logger.info(`Example tools: ${exampleTools.join(", ")}`, { service: APP_NAME });
+    logger.info(`Example tools: ${exampleTools.join(", ")}`, {
+      service: APP_NAME,
+    });
   } catch (err) {
     logger.error("MCP Server Init Failed:", { service: APP_NAME });
     logger.error(err, { service: APP_NAME });

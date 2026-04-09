@@ -82,7 +82,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           namespace: "IncidentStateTimeline.create",
         });
       } catch (err) {
-        logger.error(err, { projectId: createBy.data.projectId?.toString(), incidentId: createBy.data.incidentId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: createBy.data.projectId?.toString(),
+          incidentId: createBy.data.incidentId?.toString(),
+        } as LogAttributes);
       }
 
       if (!createBy.data.startsAt) {
@@ -166,8 +169,14 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         }),
       ]);
 
-      logger.debug("State Before this", { projectId: createBy.data.projectId?.toString(), incidentId: createBy.data.incidentId?.toString() } as LogAttributes);
-      logger.debug(stateBeforeThis, { projectId: createBy.data.projectId?.toString(), incidentId: createBy.data.incidentId?.toString() } as LogAttributes);
+      logger.debug("State Before this", {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
+      logger.debug(stateBeforeThis, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
 
       // If this is the first state, then do not notify the owner.
       if (!stateBeforeThis) {
@@ -246,8 +255,14 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         }
       }
 
-      logger.debug("State After this", { projectId: createBy.data.projectId?.toString(), incidentId: createBy.data.incidentId?.toString() } as LogAttributes);
-      logger.debug(stateAfterThis, { projectId: createBy.data.projectId?.toString(), incidentId: createBy.data.incidentId?.toString() } as LogAttributes);
+      logger.debug("State After this", {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
+      logger.debug(stateAfterThis, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
 
       const publicNote: string | undefined = (
         createBy.miscDataProps as JSONObject | undefined
@@ -291,7 +306,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         try {
           await Semaphore.release(mutex);
         } catch (err) {
-          logger.error(err, { projectId: createBy.data.projectId?.toString(), incidentId: createBy.data.incidentId?.toString() } as LogAttributes);
+          logger.error(err, {
+            projectId: createBy.data.projectId?.toString(),
+            incidentId: createBy.data.incidentId?.toString(),
+          } as LogAttributes);
         }
       }
 
@@ -315,14 +333,32 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     }
     // update the last status as ended.
 
-    logger.debug("Status Timeline Before this", { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+    logger.debug("Status Timeline Before this", {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Status Timeline After this", { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+    logger.debug("Status Timeline After this", {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Created Item", { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-    logger.debug(createdItem, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+    logger.debug("Created Item", {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
+    logger.debug(createdItem, {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
 
     /*
      * now there are three cases.
@@ -330,7 +366,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
      */
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
-      logger.debug("This is the first status.", { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+      logger.debug("This is the first status.", {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
       /*
        * 2. This is the last status.
@@ -345,7 +384,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This is the last status.", { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+      logger.debug("This is the last status.", {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
     } else {
       /*
        * 3. This is in the middle.
@@ -371,7 +413,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This status is in the middle.", { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+      logger.debug("This status is in the middle.", {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
     }
 
     if (!createdItem.endsAt) {
@@ -408,7 +453,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       try {
         await Semaphore.release(mutex);
       } catch (err) {
-        logger.error(err, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
       }
     }
 
@@ -469,8 +517,14 @@ ${createdItem.rootCause}`,
         projectId: createdItem.projectId!,
         userId: stateChangeUserId,
       }).catch((error: Error) => {
-        logger.error(`Error while auto-assigning incident commander:`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-        logger.error(error, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+        logger.error(`Error while auto-assigning incident commander:`, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
       });
     }
 
@@ -523,8 +577,14 @@ ${createdItem.rootCause}`,
     IncidentService.refreshIncidentMetrics({
       incidentId: createdItem.incidentId,
     }).catch((error: Error) => {
-      logger.error(`Error while refreshing incident metrics:`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-      logger.error(error, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+      logger.error(`Error while refreshing incident metrics:`, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
+      logger.error(error, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
     });
 
     // Track SLA response/resolution times
@@ -538,8 +598,14 @@ ${createdItem.rootCause}`,
         onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentState
           ?.isResolvedState || false,
     }).catch((error: Error) => {
-      logger.error(`Error while tracking SLA state change:`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-      logger.error(error, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+      logger.error(`Error while tracking SLA state change:`, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
+      logger.error(error, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
     });
 
     const isLastIncidentState: boolean = await this.isLastIncidentState({
@@ -563,8 +629,14 @@ ${createdItem.rootCause}`,
           ).toString()})** is resolved. Archiving channel.`,
         },
       }).catch((error: Error) => {
-        logger.error(`Error while archiving workspace channels:`, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
-        logger.error(error, { projectId: createdItem.projectId?.toString(), incidentId: createdItem.incidentId?.toString() } as LogAttributes);
+        logger.error(`Error while archiving workspace channels:`, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
       });
     }
 
@@ -690,7 +762,11 @@ ${createdItem.rootCause}`,
     });
 
     logger.debug(
-      `Auto-assigned user ${data.userId.toString()} as Incident Commander for incident ${data.incidentId.toString()}`, { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes,
+      `Auto-assigned user ${data.userId.toString()} as Incident Commander for incident ${data.incidentId.toString()}`,
+      {
+        projectId: data.projectId?.toString(),
+        incidentId: data.incidentId?.toString(),
+      } as LogAttributes,
     );
   }
 
@@ -727,7 +803,10 @@ ${createdItem.rootCause}`,
 
           logger.info(
             `Created new SLA record for reopened incident ${data.incidentId}`,
-            { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes,
+            {
+              projectId: data.projectId?.toString(),
+              incidentId: data.incidentId?.toString(),
+            } as LogAttributes,
           );
         }
 
@@ -750,7 +829,10 @@ ${createdItem.rootCause}`,
         });
       }
     } catch (error) {
-      logger.error(`Error in trackSlaStateChange: ${error}`, { projectId: data.projectId?.toString(), incidentId: data.incidentId?.toString() } as LogAttributes);
+      logger.error(`Error in trackSlaStateChange: ${error}`, {
+        projectId: data.projectId?.toString(),
+        incidentId: data.incidentId?.toString(),
+      } as LogAttributes);
       throw error;
     }
   }
@@ -848,7 +930,9 @@ ${createdItem.rootCause}`,
 
         if (!stateBeforeThis) {
           // This is the first state, no need to update previous state.
-          logger.debug("This is the first state.", { incidentId: incidentId?.toString() } as LogAttributes);
+          logger.debug("This is the first state.", {
+            incidentId: incidentId?.toString(),
+          } as LogAttributes);
         } else if (!stateAfterThis) {
           /*
            * This is the last state.
@@ -863,7 +947,9 @@ ${createdItem.rootCause}`,
               isRoot: true,
             },
           });
-          logger.debug("This is the last state.", { incidentId: incidentId?.toString() } as LogAttributes);
+          logger.debug("This is the last state.", {
+            incidentId: incidentId?.toString(),
+          } as LogAttributes);
         } else {
           /*
            * This state is in the middle.
@@ -889,7 +975,9 @@ ${createdItem.rootCause}`,
               isRoot: true,
             },
           });
-          logger.debug("This state is in the middle.", { incidentId: incidentId?.toString() } as LogAttributes);
+          logger.debug("This state is in the middle.", {
+            incidentId: incidentId?.toString(),
+          } as LogAttributes);
         }
       }
 

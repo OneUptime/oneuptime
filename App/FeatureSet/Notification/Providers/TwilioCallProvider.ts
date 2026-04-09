@@ -298,17 +298,35 @@ export default class TwilioCallProvider implements ICallProvider {
 
     // Debug logging for signature validation
     if (!isValid) {
-      logger.debug("Twilio Webhook Signature Validation Debug:", { service: "notification" });
-      logger.debug(`  URL used for validation: ${url}`, { service: "notification" });
-      logger.debug(`  Signature received: ${signature}`, { service: "notification" });
+      logger.debug("Twilio Webhook Signature Validation Debug:", {
+        service: "notification",
+      });
+      logger.debug(`  URL used for validation: ${url}`, {
+        service: "notification",
+      });
+      logger.debug(`  Signature received: ${signature}`, {
+        service: "notification",
+      });
       logger.debug(`  Protocol: ${protocol}`, { service: "notification" });
       logger.debug(`  Host: ${host}`, { service: "notification" });
-      logger.debug(`  Original URL (from request): ${request.originalUrl}`, { service: "notification" });
-      logger.debug(`  Corrected URL path: ${originalUrl}`, { service: "notification" });
-      logger.debug(`  X-Forwarded-Proto: ${forwardedProto}`, { service: "notification" });
-      logger.debug(`  X-Forwarded-Host: ${forwardedHost}`, { service: "notification" });
-      logger.debug(`  Request protocol: ${request.protocol}`, { service: "notification" });
-      logger.debug(`  Request host header: ${request.get("host")}`, { service: "notification" });
+      logger.debug(`  Original URL (from request): ${request.originalUrl}`, {
+        service: "notification",
+      });
+      logger.debug(`  Corrected URL path: ${originalUrl}`, {
+        service: "notification",
+      });
+      logger.debug(`  X-Forwarded-Proto: ${forwardedProto}`, {
+        service: "notification",
+      });
+      logger.debug(`  X-Forwarded-Host: ${forwardedHost}`, {
+        service: "notification",
+      });
+      logger.debug(`  Request protocol: ${request.protocol}`, {
+        service: "notification",
+      });
+      logger.debug(`  Request host header: ${request.get("host")}`, {
+        service: "notification",
+      });
     }
 
     return isValid;

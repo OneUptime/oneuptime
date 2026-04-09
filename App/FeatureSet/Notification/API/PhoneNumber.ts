@@ -22,7 +22,9 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import Project from "Common/Models/DatabaseModels/Project";

@@ -96,7 +96,10 @@ export default abstract class Realtime {
     logger.debug(data, listenLogAttributes);
 
     if (!this.socketServer) {
-      logger.debug("Socket server not initialized, initializing now", listenLogAttributes);
+      logger.debug(
+        "Socket server not initialized, initializing now",
+        listenLogAttributes,
+      );
       await this.init();
     }
 
@@ -105,7 +108,10 @@ export default abstract class Realtime {
      * and to this model and to this event type
      */
 
-    logger.debug("Extracting user access token from socket", listenLogAttributes);
+    logger.debug(
+      "Extracting user access token from socket",
+      listenLogAttributes,
+    );
     const userAccessToken: string | undefined =
       this.getAccessTokenFromSocket(socket);
 
@@ -130,7 +136,10 @@ export default abstract class Realtime {
     }
 
     if (!userAuthorizationData.userId) {
-      logger.debug("User ID not found in socket, aborting joining room", listenLogAttributes);
+      logger.debug(
+        "User ID not found in socket, aborting joining room",
+        listenLogAttributes,
+      );
       return;
     }
 
@@ -138,11 +147,17 @@ export default abstract class Realtime {
     let hasAccess: boolean = false;
 
     if (userAuthorizationData.isMasterAdmin) {
-      logger.debug("User is a master admin, granting access", listenLogAttributes);
+      logger.debug(
+        "User is a master admin, granting access",
+        listenLogAttributes,
+      );
       hasAccess = true;
     }
 
-    logger.debug("Fetching user global access permissions", listenLogAttributes);
+    logger.debug(
+      "Fetching user global access permissions",
+      listenLogAttributes,
+    );
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
       await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(
         userAuthorizationData.userId,
@@ -150,7 +165,10 @@ export default abstract class Realtime {
 
     // check if the user has access to this tenant
     if (userGlobalAccessPermission && !hasAccess) {
-      logger.debug("Checking if user has access to the tenant", listenLogAttributes);
+      logger.debug(
+        "Checking if user has access to the tenant",
+        listenLogAttributes,
+      );
       const hasAccessToProjectId: boolean =
         userGlobalAccessPermission.projectIds.some((projectId: ObjectID) => {
           return projectId.toString() === data.tenantId.toString();
@@ -164,7 +182,10 @@ export default abstract class Realtime {
         return;
       }
 
-      logger.debug("User has access to the tenant, checking model access", listenLogAttributes);
+      logger.debug(
+        "User has access to the tenant, checking model access",
+        listenLogAttributes,
+      );
       const userId: ObjectID = new ObjectID(
         userAuthorizationData.userId.toString(),
       );
@@ -185,7 +206,10 @@ export default abstract class Realtime {
           data.modelName,
         )
       ) {
-        logger.debug("User has access to the model, granting access", listenLogAttributes);
+        logger.debug(
+          "User has access to the model, granting access",
+          listenLogAttributes,
+        );
         hasAccess = true;
       }
     }
@@ -231,11 +255,17 @@ export default abstract class Realtime {
       projectId: data.tenantId?.toString(),
     };
 
-    logger.debug("Stopping listening to model event with data:", stopLogAttributes);
+    logger.debug(
+      "Stopping listening to model event with data:",
+      stopLogAttributes,
+    );
     logger.debug(data, stopLogAttributes);
 
     if (!this.socketServer) {
-      logger.debug("Socket server not initialized, initializing now", stopLogAttributes);
+      logger.debug(
+        "Socket server not initialized, initializing now",
+        stopLogAttributes,
+      );
       await this.init();
     }
 
@@ -268,7 +298,10 @@ export default abstract class Realtime {
     logger.debug(`Model ID: ${data.modelId}`, emitLogAttributes);
 
     if (!this.socketServer) {
-      logger.debug("Socket server not initialized, initializing now", emitLogAttributes);
+      logger.debug(
+        "Socket server not initialized, initializing now",
+        emitLogAttributes,
+      );
       await this.init();
     }
 
@@ -279,7 +312,10 @@ export default abstract class Realtime {
     const model: BaseModel | AnalyticsBaseModel = new data.modelType();
 
     if (!model.tableName) {
-      logger.warn("Model does not have a tableName, aborting emit", emitLogAttributes);
+      logger.warn(
+        "Model does not have a tableName, aborting emit",
+        emitLogAttributes,
+      );
       return;
     }
 
@@ -296,7 +332,10 @@ export default abstract class Realtime {
       data.modelId,
     );
 
-    logger.debug(`Emitting event to room with ID: ${roomId}`, emitLogAttributes);
+    logger.debug(
+      `Emitting event to room with ID: ${roomId}`,
+      emitLogAttributes,
+    );
     logger.debug(jsonObject, emitLogAttributes);
 
     this.socketServer!.to(roomId).emit(roomId, jsonObject);

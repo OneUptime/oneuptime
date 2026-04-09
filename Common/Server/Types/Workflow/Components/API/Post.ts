@@ -58,13 +58,19 @@ export default class ApiPost extends ComponentCode {
 
     const requestBody: JSONObject = args["request-body"] as JSONObject;
 
-    logger.debug(`Request Body: ${JSON.stringify(requestBody)}`, workflowLogAttributes);
+    logger.debug(
+      `Request Body: ${JSON.stringify(requestBody)}`,
+      workflowLogAttributes,
+    );
 
     const requestHeaders: Dictionary<string> = args[
       "request-headers"
     ] as Dictionary<string>;
 
-    logger.debug(`Request Headers: ${JSON.stringify(requestHeaders)}`, workflowLogAttributes);
+    logger.debug(
+      `Request Headers: ${JSON.stringify(requestHeaders)}`,
+      workflowLogAttributes,
+    );
 
     try {
       apiResult = await API.post({
@@ -94,7 +100,10 @@ export default class ApiPost extends ComponentCode {
         });
       }
 
-      logger.debug("API Post Component is done with error.", workflowLogAttributes);
+      logger.debug(
+        "API Post Component is done with error.",
+        workflowLogAttributes,
+      );
       logger.debug(err, workflowLogAttributes);
 
       return Promise.resolve({

@@ -109,7 +109,10 @@ export default class MonitorAlert {
     };
 
     // check open alerts
-    logger.debug(`${input.monitor.id?.toString()} - Check open alerts.`, alertLogAttributes);
+    logger.debug(
+      `${input.monitor.id?.toString()} - Check open alerts.`,
+      alertLogAttributes,
+    );
     // check active alerts and if there are open alerts, do not cretae anothr alert.
     const openAlerts: Array<Alert> =
       await this.checkOpenAlertsAndCloseIfResolved({
@@ -167,7 +170,10 @@ export default class MonitorAlert {
 
         // create alert here.
 
-        logger.debug(`${input.monitor.id?.toString()} - Create alert.`, alertLogAttributes);
+        logger.debug(
+          `${input.monitor.id?.toString()} - Create alert.`,
+          alertLogAttributes,
+        );
 
         const alert: Alert = new Alert();
         const storageMap: JSONObject =

@@ -204,8 +204,12 @@ export default class AnalyticsDatabaseService<
       const dbResult: ResultSet<"JSON"> =
         await this.executeQuery(countStatement);
 
-      logger.debug(`${this.model.tableName} Count Statement executed`, { tableName: this.model.tableName } as LogAttributes);
-      logger.debug(countStatement, { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(`${this.model.tableName} Count Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
+      logger.debug(countStatement, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       const resultInJSON: ResponseJSON<JSONObject> =
         await dbResult.json<JSONObject>();
@@ -222,8 +226,12 @@ export default class AnalyticsDatabaseService<
         );
       }
 
-      logger.debug(`Result: `, { tableName: this.model.tableName } as LogAttributes);
-      logger.debug(countPositive.toNumber(), { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(`Result: `, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
+      logger.debug(countPositive.toNumber(), {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       countPositive = await this.onCountSuccess(countPositive);
       return countPositive;
@@ -251,8 +259,10 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async dropColumnInDatabase(columnName: string): Promise<void> {
-    // Drop any skip index associated with this column before dropping the column itself.
-    // ClickHouse will reject a column drop if a skip index depends on it.
+    /*
+     * Drop any skip index associated with this column before dropping the column itself.
+     * ClickHouse will reject a column drop if a skip index depends on it.
+     */
     const column: AnalyticsTableColumn | undefined =
       this.model.tableColumns.find((col: AnalyticsTableColumn) => {
         return col.key === columnName;
@@ -260,9 +270,7 @@ export default class AnalyticsDatabaseService<
 
     if (column?.skipIndex) {
       await this.execute(
-        this.statementGenerator.toDropSkipIndexStatement(
-          column.skipIndex.name,
-        ),
+        this.statementGenerator.toDropSkipIndexStatement(column.skipIndex.name),
       );
     }
 
@@ -416,7 +424,9 @@ export default class AnalyticsDatabaseService<
         findStatement.statement,
       );
 
-      logger.debug(`${this.model.tableName} Aggregate Statement executed`, { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(`${this.model.tableName} Aggregate Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       const responseJSON: ResponseJSON<JSONObject> =
         await dbResult.json<JSONObject>();
@@ -543,8 +553,12 @@ export default class AnalyticsDatabaseService<
         findStatement.statement,
       );
 
-      logger.debug(`${this.model.tableName} Find Statement executed`, { tableName: this.model.tableName } as LogAttributes);
-      logger.debug(findStatement.statement, { tableName: this.model.tableName } as LogAttributes);
+      logger.debug(`${this.model.tableName} Find Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
+      logger.debug(findStatement.statement, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       const responseJSON: ResponseJSON<JSONObject> =
         await dbResult.json<JSONObject>();

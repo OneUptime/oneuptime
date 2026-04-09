@@ -161,7 +161,10 @@ export default class WorkspaceUtil {
       projectId: data.projectId?.toString(),
     };
 
-    logger.debug("postToWorkspaceChannels called with data:", workspaceLogAttributes);
+    logger.debug(
+      "postToWorkspaceChannels called with data:",
+      workspaceLogAttributes,
+    );
     logger.debug(JSON.stringify(data, null, 2), workspaceLogAttributes);
 
     const responses: Array<WorkspaceSendMessageResponse> = [];
@@ -218,7 +221,10 @@ export default class WorkspaceUtil {
       responses.push(result);
     }
 
-    logger.debug("Message posted to workspace channels successfully", workspaceLogAttributes);
+    logger.debug(
+      "Message posted to workspace channels successfully",
+      workspaceLogAttributes,
+    );
     logger.debug("Returning thread IDs", workspaceLogAttributes);
     logger.debug(JSON.stringify(responses, null, 2), workspaceLogAttributes);
 
@@ -237,7 +243,10 @@ export default class WorkspaceUtil {
       projectId: data.projectId?.toString(),
     };
 
-    logger.debug("postToWorkspaceChannels called with data:", postLogAttributes);
+    logger.debug(
+      "postToWorkspaceChannels called with data:",
+      postLogAttributes,
+    );
     logger.debug(data, postLogAttributes);
 
     const result: WorkspaceSendMessageResponse =
@@ -248,7 +257,10 @@ export default class WorkspaceUtil {
         projectId: data.projectId,
       });
 
-    logger.debug("Message posted to workspace channels successfully", postLogAttributes);
+    logger.debug(
+      "Message posted to workspace channels successfully",
+      postLogAttributes,
+    );
     logger.debug("Returning thread IDs", postLogAttributes);
     logger.debug(result, postLogAttributes);
 

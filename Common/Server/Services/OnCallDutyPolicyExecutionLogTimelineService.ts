@@ -76,7 +76,10 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     logger.debug(
       "OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed",
-      { onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId?.toString() } as LogAttributes,
+      {
+        onCallDutyPolicyExecutionLogTimelineId:
+          data.onCallDutyPolicyExecutionLogTimelineId?.toString(),
+      } as LogAttributes,
     );
 
     const onCallDutyPolicyExecutionLogTimeline: Model | null =
@@ -124,8 +127,12 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    logger.debug("OnCallDutyPolicyExecutionLogTimeline: ", { projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString() } as LogAttributes);
-    logger.debug(onCallDutyPolicyExecutionLogTimeline, { projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString() } as LogAttributes);
+    logger.debug("OnCallDutyPolicyExecutionLogTimeline: ", {
+      projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCallDutyPolicyExecutionLogTimeline, {
+      projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+    } as LogAttributes);
 
     if (!onCallDutyPolicyExecutionLogTimeline) {
       return;
@@ -147,7 +154,9 @@ export class Service extends DatabaseService<Model> {
       const status: OnCallDutyExecutionLogTimelineStatus =
         onCallDutyPolicyExecutionLogTimeline.status!;
 
-      logger.debug("Status: " + status, { projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString() } as LogAttributes);
+      logger.debug("Status: " + status, {
+        projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+      } as LogAttributes);
 
       if (
         status &&
@@ -238,7 +247,10 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
           })}** instead, because of an override rule.`;
         }
 
-        logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, { projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString() } as LogAttributes);
+        logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, {
+          projectId:
+            onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+        } as LogAttributes);
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
           await IncidentFeedService.createIncidentFeedItem({
@@ -288,7 +300,10 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
           });
         }
 
-        logger.debug("Incident Feed created", { projectId: onCallDutyPolicyExecutionLogTimeline?.projectId?.toString() } as LogAttributes);
+        logger.debug("Incident Feed created", {
+          projectId:
+            onCallDutyPolicyExecutionLogTimeline?.projectId?.toString(),
+        } as LogAttributes);
       }
     }
   }
@@ -298,8 +313,13 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    logger.debug("OnCallDutyPolicyExecutionLogTimelineService.onCreateSuccess", { projectId: createdItem.projectId?.toString() } as LogAttributes);
-    logger.debug(createdItem, { projectId: createdItem.projectId?.toString() } as LogAttributes);
+    logger.debug(
+      "OnCallDutyPolicyExecutionLogTimelineService.onCreateSuccess",
+      { projectId: createdItem.projectId?.toString() } as LogAttributes,
+    );
+    logger.debug(createdItem, {
+      projectId: createdItem.projectId?.toString(),
+    } as LogAttributes);
 
     await this.addToIncidentOrAlertFeed({
       onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,

@@ -622,8 +622,14 @@ export default class SlackScheduledMaintenanceActions {
             isRoot: true,
           });
         } catch (err) {
-          logger.error("Error logging button interaction:", { projectId: slackRequest.projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
-          logger.error(err, { projectId: slackRequest.projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+          logger.error("Error logging button interaction:", {
+            projectId: slackRequest.projectId?.toString(),
+            scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: slackRequest.projectId?.toString(),
+            scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+          } as LogAttributes);
           // Don't throw the error, just log it so the main flow continues
         }
       }
@@ -753,8 +759,14 @@ export default class SlackScheduledMaintenanceActions {
             isRoot: true,
           });
         } catch (err) {
-          logger.error("Error logging button interaction:", { projectId: slackRequest.projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
-          logger.error(err, { projectId: slackRequest.projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+          logger.error("Error logging button interaction:", {
+            projectId: slackRequest.projectId?.toString(),
+            scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: slackRequest.projectId?.toString(),
+            scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+          } as LogAttributes);
           // Don't throw the error, just log it so the main flow continues
         }
       }
@@ -805,8 +817,12 @@ export default class SlackScheduledMaintenanceActions {
         },
       });
 
-    logger.debug("Scheduled Maintenance States: ", { projectId: data.slackRequest.projectId?.toString() } as LogAttributes);
-    logger.debug(scheduledMaintenanceStates, { projectId: data.slackRequest.projectId?.toString() } as LogAttributes);
+    logger.debug("Scheduled Maintenance States: ", {
+      projectId: data.slackRequest.projectId?.toString(),
+    } as LogAttributes);
+    logger.debug(scheduledMaintenanceStates, {
+      projectId: data.slackRequest.projectId?.toString(),
+    } as LogAttributes);
 
     const dropdownOptions: Array<DropdownOption> = scheduledMaintenanceStates
       .map((state: ScheduledMaintenanceState) => {
@@ -819,8 +835,12 @@ export default class SlackScheduledMaintenanceActions {
         return option.label !== "" || option.value !== "";
       });
 
-    logger.debug("Dropdown Options: ", { projectId: data.slackRequest.projectId?.toString() } as LogAttributes);
-    logger.debug(dropdownOptions, { projectId: data.slackRequest.projectId?.toString() } as LogAttributes);
+    logger.debug("Dropdown Options: ", {
+      projectId: data.slackRequest.projectId?.toString(),
+    } as LogAttributes);
+    logger.debug(dropdownOptions, {
+      projectId: data.slackRequest.projectId?.toString(),
+    } as LogAttributes);
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -1132,7 +1152,8 @@ export default class SlackScheduledMaintenanceActions {
     messageTs: string;
   }): Promise<void> {
     logger.debug(
-      "Handling emoji reaction for Scheduled Maintenance with data:", { channelId: data.channelId } as LogAttributes,
+      "Handling emoji reaction for Scheduled Maintenance with data:",
+      { channelId: data.channelId } as LogAttributes,
     );
     logger.debug(data, { channelId: data.channelId } as LogAttributes);
 
@@ -1144,7 +1165,8 @@ export default class SlackScheduledMaintenanceActions {
 
     if (!isPrivateNoteEmoji && !isPublicNoteEmoji) {
       logger.debug(
-        `Emoji "${reaction}" is not a supported note emoji. Ignoring.`, { channelId: data.channelId } as LogAttributes,
+        `Emoji "${reaction}" is not a supported note emoji. Ignoring.`,
+        { channelId: data.channelId } as LogAttributes,
       );
       return;
     }
@@ -1166,7 +1188,8 @@ export default class SlackScheduledMaintenanceActions {
 
     if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
       logger.debug(
-        "No project auth found for team ID. Ignoring emoji reaction.", { channelId: data.channelId } as LogAttributes,
+        "No project auth found for team ID. Ignoring emoji reaction.",
+        { channelId: data.channelId } as LogAttributes,
       );
       return;
     }
@@ -1192,7 +1215,11 @@ export default class SlackScheduledMaintenanceActions {
 
     if (!workspaceLog || !workspaceLog.scheduledMaintenanceId) {
       logger.debug(
-        "No scheduled maintenance found linked to this channel. Ignoring emoji reaction.", { projectId: projectId?.toString(), channelId: channelId } as LogAttributes,
+        "No scheduled maintenance found linked to this channel. Ignoring emoji reaction.",
+        {
+          projectId: projectId?.toString(),
+          channelId: channelId,
+        } as LogAttributes,
       );
       return;
     }
@@ -1226,7 +1253,11 @@ export default class SlackScheduledMaintenanceActions {
 
     if (!userAuth || !userAuth.userId) {
       logger.debug(
-        "No OneUptime user found for Slack user. Ignoring emoji reaction.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes,
+        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
+        {
+          projectId: projectId?.toString(),
+          scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+        } as LogAttributes,
       );
       return;
     }
@@ -1242,13 +1273,22 @@ export default class SlackScheduledMaintenanceActions {
         messageTs: messageTs,
       });
     } catch (err) {
-      logger.error("Error fetching message text:", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
-      logger.error(err, { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+      logger.error("Error fetching message text:", {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
+      logger.error(err, {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
       return;
     }
 
     if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+      logger.debug("No message text found. Ignoring emoji reaction.", {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
       return;
     }
 
@@ -1272,7 +1312,11 @@ export default class SlackScheduledMaintenanceActions {
 
         if (hasExistingNote) {
           logger.debug(
-            "Private note from this Slack message already exists. Skipping duplicate.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes,
+            "Private note from this Slack message already exists. Skipping duplicate.",
+            {
+              projectId: projectId?.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+            } as LogAttributes,
           );
           return;
         }
@@ -1284,7 +1328,10 @@ export default class SlackScheduledMaintenanceActions {
           userId: oneUptimeUserId,
           postedFromSlackMessageId: postedFromSlackMessageId,
         });
-        logger.debug("Private note added successfully.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+        logger.debug("Private note added successfully.", {
+          projectId: projectId?.toString(),
+          scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+        } as LogAttributes);
       } else if (isPublicNoteEmoji) {
         noteType = "public";
 
@@ -1297,7 +1344,11 @@ export default class SlackScheduledMaintenanceActions {
 
         if (hasExistingNote) {
           logger.debug(
-            "Public note from this Slack message already exists. Skipping duplicate.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes,
+            "Public note from this Slack message already exists. Skipping duplicate.",
+            {
+              projectId: projectId?.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+            } as LogAttributes,
           );
           return;
         }
@@ -1309,13 +1360,22 @@ export default class SlackScheduledMaintenanceActions {
           userId: oneUptimeUserId,
           postedFromSlackMessageId: postedFromSlackMessageId,
         });
-        logger.debug("Public note added successfully.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+        logger.debug("Public note added successfully.", {
+          projectId: projectId?.toString(),
+          scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+        } as LogAttributes);
       } else {
         return;
       }
     } catch (err) {
-      logger.error("Error saving note:", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
-      logger.error(err, { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+      logger.error("Error saving note:", {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
+      logger.error(err, {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
       return;
     }
 
@@ -1340,10 +1400,19 @@ export default class SlackScheduledMaintenanceActions {
         text: confirmationMessage,
       });
 
-      logger.debug("Confirmation message sent successfully.", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+      logger.debug("Confirmation message sent successfully.", {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
     } catch (err) {
-      logger.error("Error sending confirmation message:", { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
-      logger.error(err, { projectId: projectId?.toString(), scheduledMaintenanceId: scheduledMaintenanceId?.toString() } as LogAttributes);
+      logger.error("Error sending confirmation message:", {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
+      logger.error(err, {
+        projectId: projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
       // Don't throw - note was saved successfully, confirmation is best effort
     }
   }

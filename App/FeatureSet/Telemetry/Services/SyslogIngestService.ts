@@ -19,7 +19,9 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import LogService from "Common/Server/Services/LogService";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import SyslogQueueService from "./Queue/SyslogQueueService";
@@ -254,7 +256,10 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
-      logger.error("Syslog ingest: critical error", getLogAttributesFromRequest(req as RequestLike));
+      logger.error(
+        "Syslog ingest: critical error",
+        getLogAttributesFromRequest(req as RequestLike),
+      );
       logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
     }

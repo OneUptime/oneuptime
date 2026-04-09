@@ -42,7 +42,10 @@ export default class TelemetryIngest {
       }
 
       if (!oneuptimeToken) {
-        logger.error("Missing header: x-oneuptime-token", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Missing header: x-oneuptime-token",
+          getLogAttributesFromRequest(req as any),
+        );
 
         if (isOpenTelemetryAPI) {
           /*
@@ -71,7 +74,10 @@ export default class TelemetryIngest {
         });
 
       if (!token) {
-        logger.error("Invalid service token: " + oneuptimeToken, getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Invalid service token: " + oneuptimeToken,
+          getLogAttributesFromRequest(req as any),
+        );
 
         if (isOpenTelemetryAPI) {
           /*

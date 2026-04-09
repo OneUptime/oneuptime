@@ -71,7 +71,9 @@ const TelemetryFeatureSet: FeatureSet = {
       // Start gRPC OTLP server on port 4317
       startGrpcServer();
     } catch (err) {
-      logger.error("Telemetry FeatureSet Init Failed:", { service: "telemetry" });
+      logger.error("Telemetry FeatureSet Init Failed:", {
+        service: "telemetry",
+      });
       logger.error(err, { service: "telemetry" });
       throw err;
     }

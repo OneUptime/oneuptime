@@ -77,7 +77,10 @@ export default class DashboardAPI extends BaseAPI<
             try {
               dashboardId = new ObjectID(dashboardIdOrDomain);
             } catch (err) {
-              logger.error(err, getLogAttributesFromRequest(req as OneUptimeRequest));
+              logger.error(
+                err,
+                getLogAttributesFromRequest(req as OneUptimeRequest),
+              );
               return Response.sendErrorResponse(
                 req,
                 res,

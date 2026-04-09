@@ -14,7 +14,9 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import User from "Common/Models/DatabaseModels/User";
 
@@ -91,7 +93,10 @@ async function sendBroadcastEmailsInBackground(data: {
       getLogAttributesFromRequest(req as any),
     );
   } catch (err) {
-    logger.error(`Broadcast email background job failed: ${err}`, getLogAttributesFromRequest(req as any));
+    logger.error(
+      `Broadcast email background job failed: ${err}`,
+      getLogAttributesFromRequest(req as any),
+    );
   }
 }
 
@@ -180,7 +185,10 @@ router.post(
         subject,
         htmlMessage,
       }).catch((err: Error) => {
-        logger.error(`Broadcast email background job failed: ${err}`, getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          `Broadcast email background job failed: ${err}`,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
       });
     } catch (err) {
       return next(err);

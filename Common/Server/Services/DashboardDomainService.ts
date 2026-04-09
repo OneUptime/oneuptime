@@ -174,7 +174,10 @@ export class Service extends DatabaseService<DashboardDomain> {
             },
           });
 
-          logger.debug("SSL ordered for domain: " + dashboardDomain.fullDomain, { fullDomain: dashboardDomain.fullDomain } as LogAttributes);
+          logger.debug(
+            "SSL ordered for domain: " + dashboardDomain.fullDomain,
+            { fullDomain: dashboardDomain.fullDomain } as LogAttributes,
+          );
 
           await this.updateOneById({
             id: dashboardDomain.id!,
@@ -284,7 +287,9 @@ export class Service extends DatabaseService<DashboardDomain> {
   @CaptureSpan()
   public async isCnameValid(fullDomain: string): Promise<boolean> {
     try {
-      logger.debug("Checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+      logger.debug("Checking for CNAME " + fullDomain, {
+        fullDomain,
+      } as LogAttributes);
 
       const dashboardDomain: DashboardDomain | null = await this.findOneBy({
         query: {
@@ -305,7 +310,10 @@ export class Service extends DatabaseService<DashboardDomain> {
 
       const token: string = dashboardDomain.cnameVerificationToken!;
 
-      logger.debug("Checking for CNAME " + fullDomain + " with token " + token, { fullDomain } as LogAttributes);
+      logger.debug(
+        "Checking for CNAME " + fullDomain + " with token " + token,
+        { fullDomain } as LogAttributes,
+      );
 
       try {
         const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -318,7 +326,9 @@ export class Service extends DatabaseService<DashboardDomain> {
             ),
           });
 
-        logger.debug("CNAME verification result", { fullDomain } as LogAttributes);
+        logger.debug("CNAME verification result", {
+          fullDomain,
+        } as LogAttributes);
         logger.debug(result, { fullDomain } as LogAttributes);
 
         if (result.isSuccess()) {
@@ -330,7 +340,9 @@ export class Service extends DatabaseService<DashboardDomain> {
           return true;
         }
       } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+        logger.debug("Failed checking for CNAME " + fullDomain, {
+          fullDomain,
+        } as LogAttributes);
         logger.debug(err, { fullDomain } as LogAttributes);
       }
 
@@ -345,7 +357,9 @@ export class Service extends DatabaseService<DashboardDomain> {
             ),
           });
 
-        logger.debug("CNAME verification result for https", { fullDomain } as LogAttributes);
+        logger.debug("CNAME verification result for https", {
+          fullDomain,
+        } as LogAttributes);
         logger.debug(resultHttps, { fullDomain } as LogAttributes);
 
         if (resultHttps.isSuccess()) {
@@ -357,7 +371,9 @@ export class Service extends DatabaseService<DashboardDomain> {
           return true;
         }
       } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+        logger.debug("Failed checking for CNAME " + fullDomain, {
+          fullDomain,
+        } as LogAttributes);
         logger.debug(err, { fullDomain } as LogAttributes);
       }
 
@@ -408,7 +424,9 @@ export class Service extends DatabaseService<DashboardDomain> {
           );
         }
       } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain, { fullDomain } as LogAttributes);
+        logger.debug("Failed checking for CNAME " + fullDomain, {
+          fullDomain,
+        } as LogAttributes);
         logger.debug(err, { fullDomain } as LogAttributes);
       }
 
@@ -490,7 +508,9 @@ export class Service extends DatabaseService<DashboardDomain> {
             "Cannot order cert for domain: " + dashboardDomain.fullDomain,
             { fullDomain: dashboardDomain.fullDomain } as LogAttributes,
           );
-          logger.error(err, { fullDomain: dashboardDomain.fullDomain } as LogAttributes);
+          logger.error(err, {
+            fullDomain: dashboardDomain.fullDomain,
+          } as LogAttributes);
         }
       }
     } else {
@@ -531,10 +551,14 @@ export class Service extends DatabaseService<DashboardDomain> {
 
           for (const domain of domains) {
             try {
-              logger.debug("Ordering SSL for domain: " + domain.fullDomain, { fullDomain: domain.fullDomain } as LogAttributes);
+              logger.debug("Ordering SSL for domain: " + domain.fullDomain, {
+                fullDomain: domain.fullDomain,
+              } as LogAttributes);
               await this.orderCert(domain);
             } catch (e) {
-              logger.error(e, { fullDomain: domain.fullDomain } as LogAttributes);
+              logger.error(e, {
+                fullDomain: domain.fullDomain,
+              } as LogAttributes);
             }
           }
 
@@ -597,7 +621,9 @@ export class Service extends DatabaseService<DashboardDomain> {
           },
         });
 
-        logger.debug(`DomainModel removed from greenlock: ${domain}`, { fullDomain: domain } as LogAttributes);
+        logger.debug(`DomainModel removed from greenlock: ${domain}`, {
+          fullDomain: domain,
+        } as LogAttributes);
       },
     });
   }
@@ -643,7 +669,9 @@ export class Service extends DatabaseService<DashboardDomain> {
         try {
           await this.orderCert(domain);
         } catch (err) {
-          logger.error("Cannot order cert for domain: " + domain.fullDomain, { fullDomain: domain.fullDomain } as LogAttributes);
+          logger.error("Cannot order cert for domain: " + domain.fullDomain, {
+            fullDomain: domain.fullDomain,
+          } as LogAttributes);
           logger.error(err, { fullDomain: domain.fullDomain } as LogAttributes);
         }
       }

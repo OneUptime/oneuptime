@@ -51,7 +51,9 @@ export class Service extends DatabaseService<Model> {
           " at " +
           OneUptimeDate.getCurrentDateAsFormattedString(),
       );
-      logger.error(err, { projectId: data.projectId?.toString() } as LogAttributes);
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
     }
 
     let project: Project | null = await ProjectService.findOneById({
@@ -183,7 +185,9 @@ export class Service extends DatabaseService<Model> {
             " at " +
             OneUptimeDate.getCurrentDateAsFormattedString(),
         );
-        logger.error(err, { projectId: data.projectId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
       }
     }
   }

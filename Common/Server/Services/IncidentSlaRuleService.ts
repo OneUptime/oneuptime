@@ -91,7 +91,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!incident) {
-      logger.warn(`Incident ${data.incidentId} not found`, { projectId: data.projectId?.toString() } as LogAttributes);
+      logger.warn(`Incident ${data.incidentId} not found`, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
 
@@ -138,7 +140,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (rules.length === 0) {
-      logger.debug(`No enabled SLA rules found for project ${data.projectId}`, { projectId: data.projectId?.toString() } as LogAttributes);
+      logger.debug(`No enabled SLA rules found for project ${data.projectId}`, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
 
@@ -155,7 +159,9 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    logger.debug(`Incident ${data.incidentId} did not match any SLA rules`, { projectId: data.projectId?.toString() } as LogAttributes);
+    logger.debug(`Incident ${data.incidentId} did not match any SLA rules`, {
+      projectId: data.projectId?.toString(),
+    } as LogAttributes);
     return null;
   }
 

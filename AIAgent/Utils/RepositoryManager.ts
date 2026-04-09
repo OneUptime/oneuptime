@@ -138,7 +138,9 @@ export default class RepositoryManager {
       ]);
       return status.trim().length > 0;
     } catch (error) {
-      logger.error("Error checking for changes:", { repoPath } as LogAttributes);
+      logger.error("Error checking for changes:", {
+        repoPath,
+      } as LogAttributes);
       logger.error(error, { repoPath } as LogAttributes);
       return false;
     }
@@ -246,7 +248,9 @@ export default class RepositoryManager {
       await LocalFile.deleteDirectory(workDir);
       await this.log("Workspace cleaned up successfully");
     } catch (error) {
-      logger.error(`Error cleaning up workspace ${workDir}:`, { workDir } as LogAttributes);
+      logger.error(`Error cleaning up workspace ${workDir}:`, {
+        workDir,
+      } as LogAttributes);
       logger.error(error, { workDir } as LogAttributes);
     }
   }
@@ -293,7 +297,9 @@ export default class RepositoryManager {
       return arg.includes(" ") ? `"${arg}"` : arg;
     });
 
-    logger.debug(`Executing git command in ${cwd}: git ${logArgs.join(" ")}`, { repoPath: cwd } as LogAttributes);
+    logger.debug(`Executing git command in ${cwd}: git ${logArgs.join(" ")}`, {
+      repoPath: cwd,
+    } as LogAttributes);
 
     return Execute.executeCommandFile({
       command: "git",

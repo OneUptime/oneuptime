@@ -228,7 +228,10 @@ export default class StatusPageDomainAPI extends BaseAPI<
           // provision SSL
           await StatusPageDomainService.orderCert(domain);
 
-          logger.debug("SSL Provisioned for domain - " + domain.fullDomain, getLogAttributesFromRequest(req as any));
+          logger.debug(
+            "SSL Provisioned for domain - " + domain.fullDomain,
+            getLogAttributesFromRequest(req as any),
+          );
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (e) {

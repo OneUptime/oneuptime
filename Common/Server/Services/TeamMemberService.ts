@@ -180,7 +180,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             userId: user.id!,
           },
         ).catch((err: Error) => {
-          logger.error(err, { projectId: createBy.data.projectId?.toString(), userId: user?.id?.toString() } as LogAttributes);
+          logger.error(err, {
+            projectId: createBy.data.projectId?.toString(),
+            userId: user?.id?.toString(),
+          } as LogAttributes);
         });
       }
     }
@@ -326,7 +329,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         userId: member.userId!,
         endsAt: OneUptimeDate.getCurrentDate(),
       }).catch((err: Error) => {
-        logger.error(err, { projectId: member.projectId?.toString(), userId: member.userId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: member.projectId?.toString(),
+          userId: member.userId?.toString(),
+        } as LogAttributes);
       });
 
       if (member.team?.shouldHaveAtLeastOneMember) {

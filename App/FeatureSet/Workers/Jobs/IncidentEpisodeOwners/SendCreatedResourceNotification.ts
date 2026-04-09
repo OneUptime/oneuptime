@@ -214,13 +214,10 @@ RunCron(
               incidentEpisodeId: episodeId?.toString(),
             },
           );
-          logger.error(
-            e,
-            {
-              projectId: projectId?.toString(),
-              incidentEpisodeId: episodeId?.toString(),
-            },
-          );
+          logger.error(e, {
+            projectId: projectId?.toString(),
+            incidentEpisodeId: episodeId?.toString(),
+          });
         }
       }
 

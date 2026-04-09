@@ -57,13 +57,23 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
         } catch (err) {
           logger.error(
             `Error in starting time log for user ${escalationRule.userId?.toString()}`,
-            { service: "workers", userId: escalationRule.userId?.toString(), projectId: escalationRule.projectId?.toString() },
+            {
+              service: "workers",
+              userId: escalationRule.userId?.toString(),
+              projectId: escalationRule.projectId?.toString(),
+            },
           );
-          logger.error(err, { service: "workers", userId: escalationRule.userId?.toString(), projectId: escalationRule.projectId?.toString() });
+          logger.error(err, {
+            service: "workers",
+            userId: escalationRule.userId?.toString(),
+            projectId: escalationRule.projectId?.toString(),
+          });
         }
       }
 
-      logger.info("Started time logs for all users in escalation rules", { service: "workers" });
+      logger.info("Started time logs for all users in escalation rules", {
+        service: "workers",
+      });
 
       // get escalation rules for teams
       const escalationRulesForTeams: Array<OnCallDutyPolicyEscalationRuleTeam> =
@@ -102,9 +112,17 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
           } catch (err) {
             logger.error(
               `Error in starting time log for user ${user.id?.toString()}`,
-              { service: "workers", userId: user.id?.toString(), projectId: escalationRule.projectId?.toString() },
+              {
+                service: "workers",
+                userId: user.id?.toString(),
+                projectId: escalationRule.projectId?.toString(),
+              },
             );
-            logger.error(err, { service: "workers", userId: user.id?.toString(), projectId: escalationRule.projectId?.toString() });
+            logger.error(err, {
+              service: "workers",
+              userId: user.id?.toString(),
+              projectId: escalationRule.projectId?.toString(),
+            });
           }
         }
       }
@@ -149,11 +167,16 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
             `Error in starting time log for schedule ${schedule.id} and user ${schedule.onCallDutyPolicySchedule?.currentUserIdOnRoster}`,
             { service: "workers", projectId: schedule.projectId?.toString() },
           );
-          logger.error(err, { service: "workers", projectId: schedule.projectId?.toString() });
+          logger.error(err, {
+            service: "workers",
+            projectId: schedule.projectId?.toString(),
+          });
         }
       }
     } catch (err) {
-      logger.error("Error in StartOnCallUserTimeLog migration", { service: "workers" });
+      logger.error("Error in StartOnCallUserTimeLog migration", {
+        service: "workers",
+      });
       logger.error(err, { service: "workers" });
     }
   }

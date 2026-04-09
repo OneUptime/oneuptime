@@ -263,7 +263,10 @@ export class Service extends DatabaseService<Model> {
       } catch (error) {
         logger.error(
           `Error while archiving workspace channels for monitor ${monitor.id?.toString()}: ${error}`,
-          { projectId: monitor.projectId?.toString(), monitorId: monitor.id?.toString() } as LogAttributes,
+          {
+            projectId: monitor.projectId?.toString(),
+            monitorId: monitor.id?.toString(),
+          } as LogAttributes,
         );
       }
     }
@@ -621,7 +624,10 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Workspace operations failed in MonitorService.onCreateSuccess",
-            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -641,7 +647,10 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Change monitor status failed in MonitorService.onCreateSuccess",
-            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -662,7 +671,10 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Add default probes failed in MonitorService.onCreateSuccess",
-            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -679,7 +691,10 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Billing operations failed in MonitorService.onCreateSuccess",
-            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -707,7 +722,10 @@ ${createdItem.description?.trim() || "No description provided."}
           }
           return Promise.resolve();
         } catch (error) {
-          logger.error("Add owners failed in MonitorService.onCreateSuccess", { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes);
+          logger.error("Add owners failed in MonitorService.onCreateSuccess", {
+            projectId: createdItem.projectId?.toString(),
+            monitorId: createdItem.id?.toString(),
+          } as LogAttributes);
           logger.error(error as Error);
           return Promise.resolve();
         }
@@ -718,7 +736,10 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Refresh probe status failed in MonitorService.onCreateSuccess",
-            { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
           logger.error(error as Error);
           return Promise.resolve();
@@ -727,7 +748,10 @@ ${createdItem.description?.trim() || "No description provided."}
       .catch((error: Error) => {
         logger.error(
           `Critical error in MonitorService sequential operations: ${error}`,
-          { projectId: createdItem.projectId?.toString(), monitorId: createdItem.id?.toString() } as LogAttributes,
+          {
+            projectId: createdItem.projectId?.toString(),
+            monitorId: createdItem.id?.toString(),
+          } as LogAttributes,
         );
       });
 

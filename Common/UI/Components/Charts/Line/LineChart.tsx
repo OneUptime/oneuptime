@@ -1,5 +1,10 @@
 import { LineChart } from "../ChartLibrary/LineChart/LineChart";
-import React, { FunctionComponent, ReactElement, useEffect, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+} from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";

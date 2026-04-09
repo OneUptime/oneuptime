@@ -107,7 +107,10 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
               },
             );
           } catch (e) {
-            logger.error(e, getLogAttributesFromRequest(req as OneUptimeRequest));
+            logger.error(
+              e,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
           }
 
           return Response.sendEmptySuccessResponse(req, res);

@@ -140,8 +140,14 @@ export default class GitHubAPI {
 
           return Response.redirect(req, res, URL.fromString(redirectUrl));
         } catch (error) {
-          logger.error("GitHub Auth Callback Error:", getLogAttributesFromRequest(req as OneUptimeRequest));
-          logger.error(error, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.error(
+            "GitHub Auth Callback Error:",
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
+          logger.error(
+            error,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           return Response.sendErrorResponse(
             req,
             res,
@@ -195,8 +201,14 @@ export default class GitHubAPI {
 
           return Response.redirect(req, res, URL.fromString(installUrl));
         } catch (error) {
-          logger.error("GitHub Install Redirect Error:", getLogAttributesFromRequest(req as OneUptimeRequest));
-          logger.error(error, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.error(
+            "GitHub Install Redirect Error:",
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
+          logger.error(
+            error,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           return Response.sendErrorResponse(
             req,
             res,
@@ -272,8 +284,14 @@ export default class GitHubAPI {
             repositories: repositories as unknown,
           } as JSONObject);
         } catch (error) {
-          logger.error("GitHub List Repositories Error:", getLogAttributesFromRequest(req as OneUptimeRequest));
-          logger.error(error, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.error(
+            "GitHub List Repositories Error:",
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
+          logger.error(
+            error,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
 
           // Handle stale installation ID - clear it from the project and return specific error
           if (error instanceof GitHubInstallationNotFoundError) {
@@ -302,7 +320,10 @@ export default class GitHubAPI {
                   "Failed to clear stale installation ID from project:",
                   getLogAttributesFromRequest(req as OneUptimeRequest),
                 );
-                logger.error(clearError, getLogAttributesFromRequest(req as OneUptimeRequest));
+                logger.error(
+                  clearError,
+                  getLogAttributesFromRequest(req as OneUptimeRequest),
+                );
               }
             }
 
@@ -436,8 +457,14 @@ export default class GitHubAPI {
             repository: BaseModel.toJSON(createdRepository, CodeRepository),
           } as JSONObject);
         } catch (error) {
-          logger.error("GitHub Connect Repository Error:", getLogAttributesFromRequest(req as OneUptimeRequest));
-          logger.error(error, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.error(
+            "GitHub Connect Repository Error:",
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
+          logger.error(
+            error,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           return Response.sendErrorResponse(
             req,
             res,
@@ -486,7 +513,10 @@ export default class GitHubAPI {
             );
           }
 
-          logger.debug(`Received GitHub webhook event: ${event}`, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.debug(
+            `Received GitHub webhook event: ${event}`,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
 
           // Handle installation events - specifically when the app is uninstalled
           if (event === "installation") {
@@ -543,7 +573,10 @@ export default class GitHubAPI {
                   `Failed to clear GitHub App installation ${installationId} from database:`,
                   getLogAttributesFromRequest(req as OneUptimeRequest),
                 );
-                logger.error(clearError, getLogAttributesFromRequest(req as OneUptimeRequest));
+                logger.error(
+                  clearError,
+                  getLogAttributesFromRequest(req as OneUptimeRequest),
+                );
               }
             }
           }
@@ -559,8 +592,14 @@ export default class GitHubAPI {
             message: "Webhook received",
           } as JSONObject);
         } catch (error) {
-          logger.error("GitHub Webhook Error:", getLogAttributesFromRequest(req as OneUptimeRequest));
-          logger.error(error, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.error(
+            "GitHub Webhook Error:",
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
+          logger.error(
+            error,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
           return Response.sendErrorResponse(
             req,
             res,

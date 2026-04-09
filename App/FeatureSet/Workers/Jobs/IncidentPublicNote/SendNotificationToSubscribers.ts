@@ -270,13 +270,10 @@ RunCron(
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
-            logger.debug(
-              "Encountered a status page without an id; skipping.",
-              {
-                projectId: incident.projectId?.toString(),
-                incidentId: incident.id?.toString(),
-              },
-            );
+            logger.debug("Encountered a status page without an id; skipping.", {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            });
             continue;
           }
 
@@ -488,13 +485,10 @@ RunCron(
                 statusPageId: statuspage.id!,
                 incidentId: incident.id!,
               }).catch((err: Error) => {
-                logger.error(
-                  err,
-                  {
-                    projectId: incident.projectId?.toString(),
-                    incidentId: incident.id?.toString(),
-                  },
-                );
+                logger.error(err, {
+                  projectId: incident.projectId?.toString(),
+                  incidentId: incident.id?.toString(),
+                });
               });
             }
 
@@ -540,13 +534,10 @@ RunCron(
                     incidentId: incident.id!,
                   },
                 ).catch((err: Error) => {
-                  logger.error(
-                    err,
-                    {
-                      projectId: incident.projectId?.toString(),
-                      incidentId: incident.id?.toString(),
-                    },
-                  );
+                  logger.error(err, {
+                    projectId: incident.projectId?.toString(),
+                    incidentId: incident.id?.toString(),
+                  });
                 });
               } else {
                 // Use default hard-coded template
@@ -595,13 +586,10 @@ RunCron(
                     incidentId: incident.id!,
                   },
                 ).catch((err: Error) => {
-                  logger.error(
-                    err,
-                    {
-                      projectId: incident.projectId?.toString(),
-                      incidentId: incident.id?.toString(),
-                    },
-                  );
+                  logger.error(err, {
+                    projectId: incident.projectId?.toString(),
+                    incidentId: incident.id?.toString(),
+                  });
                 });
               }
               logger.debug(
@@ -650,13 +638,10 @@ ${incidentPublicNote.note || ""}
                 url: subscriber.slackIncomingWebhookUrl,
                 text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
               }).catch((err: Error) => {
-                logger.error(
-                  err,
-                  {
-                    projectId: incident.projectId?.toString(),
-                    incidentId: incident.id?.toString(),
-                  },
-                );
+                logger.error(err, {
+                  projectId: incident.projectId?.toString(),
+                  incidentId: incident.id?.toString(),
+                });
               });
               logger.debug(
                 `Slack notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
@@ -704,13 +689,10 @@ ${incidentPublicNote.note || ""}
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
                 text: markdownMessage,
               }).catch((err: Error) => {
-                logger.error(
-                  err,
-                  {
-                    projectId: incident.projectId?.toString(),
-                    incidentId: incident.id?.toString(),
-                  },
-                );
+                logger.error(err, {
+                  projectId: incident.projectId?.toString(),
+                  incidentId: incident.id?.toString(),
+                });
               });
               logger.debug(
                 `Microsoft Teams notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
@@ -747,13 +729,10 @@ ${incidentPublicNote.note}`,
             },
           });
 
-          logger.debug(
-            "Incident Feed created",
-            {
-              projectId: incident.projectId?.toString(),
-              incidentId: incident.id?.toString(),
-            },
-          );
+          logger.debug("Incident Feed created", {
+            projectId: incident.projectId?.toString(),
+            incidentId: incident.id?.toString(),
+          });
         } else {
           logger.debug(
             `No subscribers were notified for public note added to incident: ${incident.id}. All status pages either hide incidents or had no matching subscribers.`,

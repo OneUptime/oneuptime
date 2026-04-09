@@ -547,13 +547,10 @@ RunCron(
                         statusPageId: statuspage.id!,
                       },
                     ).catch((err: Error) => {
-                      logger.error(
-                        err,
-                        {
-                          projectId: episode.projectId?.toString(),
-                          incidentEpisodeId: episode.id?.toString(),
-                        },
-                      );
+                      logger.error(err, {
+                        projectId: episode.projectId?.toString(),
+                        incidentEpisodeId: episode.id?.toString(),
+                      });
                     });
                   } else {
                     // Use default hard-coded template
@@ -601,13 +598,10 @@ RunCron(
                         statusPageId: statuspage.id!,
                       },
                     ).catch((err: Error) => {
-                      logger.error(
-                        err,
-                        {
-                          projectId: episode.projectId?.toString(),
-                          incidentEpisodeId: episode.id?.toString(),
-                        },
-                      );
+                      logger.error(err, {
+                        projectId: episode.projectId?.toString(),
+                        incidentEpisodeId: episode.id?.toString(),
+                      });
                     });
                   }
                   logger.debug(
@@ -665,13 +659,10 @@ RunCron(
                       ),
                     statusPageId: statuspage.id!,
                   }).catch((err: Error) => {
-                    logger.error(
-                      err,
-                      {
-                        projectId: episode.projectId?.toString(),
-                        incidentEpisodeId: episode.id?.toString(),
-                      },
-                    );
+                    logger.error(err, {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    });
                   });
                   logger.debug(
                     `SMS notification queued for subscriber ${subscriber._id}.`,
@@ -719,13 +710,10 @@ RunCron(
                       markdownMessage,
                     ),
                   }).catch((err: Error) => {
-                    logger.error(
-                      err,
-                      {
-                        projectId: episode.projectId?.toString(),
-                        incidentEpisodeId: episode.id?.toString(),
-                      },
-                    );
+                    logger.error(err, {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    });
                   });
                   logger.debug(
                     `Slack notification queued for subscriber ${subscriber._id}.`,
@@ -767,13 +755,10 @@ RunCron(
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
                     text: markdownMessage,
                   }).catch((err: Error) => {
-                    logger.error(
-                      err,
-                      {
-                        projectId: episode.projectId?.toString(),
-                        incidentEpisodeId: episode.id?.toString(),
-                      },
-                    );
+                    logger.error(err, {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    });
                   });
                   logger.debug(
                     `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
@@ -784,34 +769,25 @@ RunCron(
                   );
                 }
               } catch (err) {
-                logger.error(
-                  err,
-                  {
-                    projectId: episode.projectId?.toString(),
-                    incidentEpisodeId: episode.id?.toString(),
-                  },
-                );
+                logger.error(err, {
+                  projectId: episode.projectId?.toString(),
+                  incidentEpisodeId: episode.id?.toString(),
+                });
               }
             }
           } catch (err) {
-            logger.error(
-              err,
-              {
-                projectId: episode.projectId?.toString(),
-                incidentEpisodeId: episode.id?.toString(),
-              },
-            );
+            logger.error(err, {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            });
           }
         }
 
         if (notificationSentToAtLeastOneSubscriber) {
-          logger.debug(
-            "Creating episode feed for subscriber notification",
-            {
-              projectId: episode.projectId?.toString(),
-              incidentEpisodeId: episode.id?.toString(),
-            },
-          );
+          logger.debug("Creating episode feed for subscriber notification", {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          });
 
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
             incidentEpisodeId: episode.id!,
@@ -822,13 +798,10 @@ RunCron(
             feedInfoInMarkdown: episodeFeedText,
           });
 
-          logger.debug(
-            "Episode Feed created",
-            {
-              projectId: episode.projectId?.toString(),
-              incidentEpisodeId: episode.id?.toString(),
-            },
-          );
+          logger.debug("Episode Feed created", {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          });
         } else {
           logger.debug(
             `No subscribers were notified for episode created: ${episode.id}. All status pages either hide episodes or had no matching subscribers.`,
@@ -873,13 +846,10 @@ RunCron(
         );
       } catch (err) {
         // If there was an error, mark as failed
-        logger.error(
-          err,
-          {
-            projectId: episode.projectId?.toString(),
-            incidentEpisodeId: episode.id?.toString(),
-          },
-        );
+        logger.error(err, {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        });
         IncidentEpisodeService.updateOneById({
           id: episode.id!,
           data: {

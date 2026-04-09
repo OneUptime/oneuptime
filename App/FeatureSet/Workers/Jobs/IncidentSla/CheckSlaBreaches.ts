@@ -165,13 +165,10 @@ RunCron(
           }
         }
       } catch (error) {
-        logger.error(
-          `Error checking SLA breach for ${sla.id}: ${error}`,
-          {
-            projectId: sla.projectId?.toString(),
-            incidentId: sla.incidentId?.toString(),
-          },
-        );
+        logger.error(`Error checking SLA breach for ${sla.id}: ${error}`, {
+          projectId: sla.projectId?.toString(),
+          incidentId: sla.incidentId?.toString(),
+        });
       }
     }
   },

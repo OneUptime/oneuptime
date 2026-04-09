@@ -8,7 +8,9 @@ import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 
 type RSSItem = {

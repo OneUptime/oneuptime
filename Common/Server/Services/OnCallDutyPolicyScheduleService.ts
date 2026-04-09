@@ -68,7 +68,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         onCallDutyPolicyScheduleId: schedule.id!,
         endsAt: OneUptimeDate.getCurrentDate(),
       }).catch((err: Error) => {
-        logger.error(err, { projectId: schedule.projectId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: schedule.projectId?.toString(),
+        } as LogAttributes);
       });
     }
 
@@ -310,9 +312,15 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 sendEmailToUserId.toString() +
                 " for schedule: " +
                 data.scheduleId.toString(),
-              { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes,
+              {
+                projectId: projectId?.toString(),
+                userId: sendEmailToUserId?.toString(),
+              } as LogAttributes,
             );
-            logger.error(err, { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes);
+            logger.error(err, {
+              projectId: projectId?.toString(),
+              userId: sendEmailToUserId?.toString(),
+            } as LogAttributes);
           });
 
           const onCallDutyPolicyId: ObjectID =
@@ -444,9 +452,15 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 sendEmailToUserId.toString() +
                 " for schedule: " +
                 data.scheduleId.toString(),
-              { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes,
+              {
+                projectId: projectId?.toString(),
+                userId: sendEmailToUserId?.toString(),
+              } as LogAttributes,
             );
-            logger.error(err, { projectId: projectId?.toString(), userId: sendEmailToUserId?.toString() } as LogAttributes);
+            logger.error(err, {
+              projectId: projectId?.toString(),
+              userId: sendEmailToUserId?.toString(),
+            } as LogAttributes);
           });
 
           const onCallDutyPolicyId: ObjectID =
@@ -688,7 +702,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       nextRosterStartAt: onCallSchedule.rosterNextStartAt || null,
     };
 
-    logger.debug(previousInformation, { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+    logger.debug(previousInformation, {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
 
     logger.debug(
       "Fetching new schedule information for scheduleId: " +
@@ -705,7 +721,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       nextRosterStartAt: Date | null;
     } = await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId);
 
-    logger.debug(newInformation, { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+    logger.debug(newInformation, {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
 
     logger.debug(
       "Updating schedule with new information for scheduleId: " +
@@ -790,20 +808,28 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       nextRosterStartAt: null,
     };
 
-    logger.debug("Fetching events for scheduleId: " + scheduleId.toString(), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+    logger.debug("Fetching events for scheduleId: " + scheduleId.toString(), {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
     const events: Array<CalendarEvent> | null =
       await this.getEventByIndexInSchedule({
         scheduleId: scheduleId,
         getNumberOfEvents: 2,
       });
 
-    logger.debug("Events fetched: " + JSON.stringify(events), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+    logger.debug("Events fetched: " + JSON.stringify(events), {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
 
     let currentEvent: CalendarEvent | null = events[0] || null;
     let nextEvent: CalendarEvent | null = events[1] || null;
 
-    logger.debug("Current event: " + JSON.stringify(currentEvent), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
-    logger.debug("Next event: " + JSON.stringify(nextEvent), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+    logger.debug("Current event: " + JSON.stringify(currentEvent), {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
+    logger.debug("Next event: " + JSON.stringify(nextEvent), {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
 
     // if the current event start time in the future then the current event is the next event.
     if (currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
@@ -816,25 +842,34 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     }
 
     if (currentEvent) {
-      logger.debug("Processing current event: " + JSON.stringify(currentEvent), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+      logger.debug(
+        "Processing current event: " + JSON.stringify(currentEvent),
+        { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
+      );
       const userId: string | undefined = currentEvent?.title; // this is user id in string.
 
       if (userId) {
-        logger.debug("Current userId: " + userId, { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+        logger.debug("Current userId: " + userId, {
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+        } as LogAttributes);
         resultReturn.currentUserId = new ObjectID(userId);
       }
 
       // get handOffTime
       const handOffTime: Date | undefined = currentEvent?.end; // this is user id in string.
       if (handOffTime) {
-        logger.debug("Current handOffTime: " + handOffTime.toISOString(), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+        logger.debug("Current handOffTime: " + handOffTime.toISOString(), {
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+        } as LogAttributes);
         resultReturn.handOffTimeAt = handOffTime;
       }
 
       // get start time
       const startTime: Date | undefined = currentEvent?.start; // this is user id in string.
       if (startTime) {
-        logger.debug("Current rosterStartAt: " + startTime.toISOString(), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+        logger.debug("Current rosterStartAt: " + startTime.toISOString(), {
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+        } as LogAttributes);
         resultReturn.rosterStartAt = startTime;
       }
     }
@@ -842,30 +877,40 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     // do the same for next event.
 
     if (nextEvent) {
-      logger.debug("Processing next event: " + JSON.stringify(nextEvent), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+      logger.debug("Processing next event: " + JSON.stringify(nextEvent), {
+        onCallDutyPolicyScheduleId: scheduleId.toString(),
+      } as LogAttributes);
       const userId: string | undefined = nextEvent?.title; // this is user id in string.
 
       if (userId) {
-        logger.debug("Next userId: " + userId, { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+        logger.debug("Next userId: " + userId, {
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+        } as LogAttributes);
         resultReturn.nextUserId = new ObjectID(userId);
       }
 
       // get handOffTime
       const handOffTime: Date | undefined = nextEvent?.end; // this is user id in string.
       if (handOffTime) {
-        logger.debug("Next handOffTime: " + handOffTime.toISOString(), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+        logger.debug("Next handOffTime: " + handOffTime.toISOString(), {
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+        } as LogAttributes);
         resultReturn.nextHandOffTimeAt = handOffTime;
       }
 
       // get start time
       const startTime: Date | undefined = nextEvent?.start; // this is user id in string.
       if (startTime) {
-        logger.debug("Next rosterStartAt: " + startTime.toISOString(), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+        logger.debug("Next rosterStartAt: " + startTime.toISOString(), {
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+        } as LogAttributes);
         resultReturn.nextRosterStartAt = startTime;
       }
     }
 
-    logger.debug("Returning result: " + JSON.stringify(resultReturn), { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes);
+    logger.debug("Returning result: " + JSON.stringify(resultReturn), {
+      onCallDutyPolicyScheduleId: scheduleId.toString(),
+    } as LogAttributes);
     return resultReturn;
   }
 
@@ -956,34 +1001,46 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   }): Promise<Array<CalendarEvent>> {
     logger.debug(
       "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
-      { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes,
+      {
+        onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+      } as LogAttributes,
     );
 
     const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
       scheduleId: data.scheduleId,
     });
 
-    logger.debug("Layer properties fetched: " + JSON.stringify(layerProps), { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes);
+    logger.debug("Layer properties fetched: " + JSON.stringify(layerProps), {
+      onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+    } as LogAttributes);
 
     if (layerProps.length === 0) {
       logger.debug(
         "No layers found for scheduleId: " + data.scheduleId.toString(),
-        { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes,
+        {
+          onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+        } as LogAttributes,
       );
       return [];
     }
 
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
-    logger.debug("Current start time: " + currentStartTime.toISOString(), { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes);
+    logger.debug("Current start time: " + currentStartTime.toISOString(), {
+      onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+    } as LogAttributes);
 
     const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
       1,
     );
-    logger.debug("Current end time: " + currentEndTime.toISOString(), { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes);
+    logger.debug("Current end time: " + currentEndTime.toISOString(), {
+      onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+    } as LogAttributes);
 
     const numberOfEventsToGet: number = data.getNumberOfEvents;
-    logger.debug("Number of events to get: " + numberOfEventsToGet, { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes);
+    logger.debug("Number of events to get: " + numberOfEventsToGet, {
+      onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+    } as LogAttributes);
 
     const events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
       {
@@ -996,7 +1053,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       },
     );
 
-    logger.debug("Events fetched: " + JSON.stringify(events), { onCallDutyPolicyScheduleId: data.scheduleId.toString() } as LogAttributes);
+    logger.debug("Events fetched: " + JSON.stringify(events), {
+      onCallDutyPolicyScheduleId: data.scheduleId.toString(),
+    } as LogAttributes);
 
     return events;
   }

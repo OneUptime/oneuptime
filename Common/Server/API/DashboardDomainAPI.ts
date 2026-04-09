@@ -220,11 +220,17 @@ export default class DashboardDomainAPI extends BaseAPI<
             );
           }
 
-          logger.debug("Ordering SSL", getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.debug(
+            "Ordering SSL",
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
 
           await DashboardDomainService.orderCert(domain);
 
-          logger.debug("SSL Provisioned for domain - " + domain.fullDomain, getLogAttributesFromRequest(req as OneUptimeRequest));
+          logger.debug(
+            "SSL Provisioned for domain - " + domain.fullDomain,
+            getLogAttributesFromRequest(req as OneUptimeRequest),
+          );
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (e) {

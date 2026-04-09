@@ -29,7 +29,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    logger.info("AI Agent Service - Starting...", { serviceName: APP_NAME } as LogAttributes);
+    logger.info("AI Agent Service - Starting...", {
+      serviceName: APP_NAME,
+    } as LogAttributes);
 
     // init the app
     await App.init({
@@ -53,12 +55,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       // Register this AI Agent.
       await Register.registerAIAgent();
 
-      logger.debug("AI Agent registered", { serviceName: APP_NAME } as LogAttributes);
+      logger.debug("AI Agent registered", {
+        serviceName: APP_NAME,
+      } as LogAttributes);
 
       AliveJob();
 
       // Register task handlers
-      logger.debug("Registering task handlers...", { serviceName: APP_NAME } as LogAttributes);
+      logger.debug("Registering task handlers...", {
+        serviceName: APP_NAME,
+      } as LogAttributes);
       const taskHandlerRegistry: ReturnType<typeof getTaskHandlerRegistry> =
         getTaskHandlerRegistry();
       taskHandlerRegistry.register(new FixExceptionTaskHandler());
@@ -69,16 +75,22 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       // Start task processing loop (runs in background)
       startTaskProcessingLoop().catch((err: Error) => {
-        logger.error("Task processing loop failed:", { serviceName: APP_NAME } as LogAttributes);
+        logger.error("Task processing loop failed:", {
+          serviceName: APP_NAME,
+        } as LogAttributes);
         logger.error(err, { serviceName: APP_NAME } as LogAttributes);
       });
     } catch (err) {
-      logger.error("Register AI Agent failed", { serviceName: APP_NAME } as LogAttributes);
+      logger.error("Register AI Agent failed", {
+        serviceName: APP_NAME,
+      } as LogAttributes);
       logger.error(err, { serviceName: APP_NAME } as LogAttributes);
       throw err;
     }
   } catch (err) {
-    logger.error("App Init Failed:", { serviceName: APP_NAME } as LogAttributes);
+    logger.error("App Init Failed:", {
+      serviceName: APP_NAME,
+    } as LogAttributes);
     logger.error(err, { serviceName: APP_NAME } as LogAttributes);
     throw err;
   }
@@ -86,6 +98,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
 init().catch((err: Error) => {
   logger.error(err, { serviceName: APP_NAME } as LogAttributes);
-  logger.error("Exiting node process", { serviceName: APP_NAME } as LogAttributes);
+  logger.error("Exiting node process", {
+    serviceName: APP_NAME,
+  } as LogAttributes);
   process.exit(1);
 });

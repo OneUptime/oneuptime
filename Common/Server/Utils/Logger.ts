@@ -171,8 +171,9 @@ export default class logger {
         return;
       }
 
-      const sanitizedAttributes: Record<string, string | number | boolean> | undefined =
-        this.sanitizeAttributes(data.attributes);
+      const sanitizedAttributes:
+        | Record<string, string | number | boolean>
+        | undefined = this.sanitizeAttributes(data.attributes);
 
       logger.emit({
         body: this.serializeLogBody(data.body),

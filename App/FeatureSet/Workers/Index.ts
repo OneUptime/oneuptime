@@ -173,7 +173,9 @@ const WorkersFeatureSet: FeatureSet = {
 
       // run async database migrations
       RunDatabaseMigrations().catch((err: Error) => {
-        logger.error("Error running database migrations", { service: "workers" });
+        logger.error("Error running database migrations", {
+          service: "workers",
+        });
         logger.error(err, { service: "workers" });
       });
 

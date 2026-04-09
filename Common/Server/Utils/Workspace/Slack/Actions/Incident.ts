@@ -1455,13 +1455,21 @@ export default class SlackIncidentActions {
         messageTs: messageTs,
       });
     } catch (err) {
-      logger.error("Error fetching message text:", { projectId: projectId.toString(), incidentId: incidentId.toString(), channelId: channelId });
+      logger.error("Error fetching message text:", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+        channelId: channelId,
+      });
       logger.error(err);
       return;
     }
 
     if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.", { projectId: projectId.toString(), incidentId: incidentId.toString(), channelId: channelId });
+      logger.debug("No message text found. Ignoring emoji reaction.", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+        channelId: channelId,
+      });
       return;
     }
 
@@ -1483,7 +1491,11 @@ export default class SlackIncidentActions {
 
         if (hasExistingNote) {
           logger.debug(
-            "Private note from this Slack message already exists. Skipping duplicate.", { projectId: projectId.toString(), incidentId: incidentId.toString() },
+            "Private note from this Slack message already exists. Skipping duplicate.",
+            {
+              projectId: projectId.toString(),
+              incidentId: incidentId.toString(),
+            },
           );
           return;
         }
@@ -1495,7 +1507,10 @@ export default class SlackIncidentActions {
           userId: oneUptimeUserId,
           postedFromSlackMessageId: postedFromSlackMessageId,
         });
-        logger.debug("Private note added successfully.", { projectId: projectId.toString(), incidentId: incidentId.toString() });
+        logger.debug("Private note added successfully.", {
+          projectId: projectId.toString(),
+          incidentId: incidentId.toString(),
+        });
       } else if (isPublicNoteEmoji) {
         noteType = "public";
 
@@ -1508,7 +1523,11 @@ export default class SlackIncidentActions {
 
         if (hasExistingNote) {
           logger.debug(
-            "Public note from this Slack message already exists. Skipping duplicate.", { projectId: projectId.toString(), incidentId: incidentId.toString() },
+            "Public note from this Slack message already exists. Skipping duplicate.",
+            {
+              projectId: projectId.toString(),
+              incidentId: incidentId.toString(),
+            },
           );
           return;
         }
@@ -1520,12 +1539,18 @@ export default class SlackIncidentActions {
           userId: oneUptimeUserId,
           postedFromSlackMessageId: postedFromSlackMessageId,
         });
-        logger.debug("Public note added successfully.", { projectId: projectId.toString(), incidentId: incidentId.toString() });
+        logger.debug("Public note added successfully.", {
+          projectId: projectId.toString(),
+          incidentId: incidentId.toString(),
+        });
       } else {
         return;
       }
     } catch (err) {
-      logger.error("Error saving note:", { projectId: projectId.toString(), incidentId: incidentId.toString() });
+      logger.error("Error saving note:", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+      });
       logger.error(err);
       return;
     }
@@ -1548,9 +1573,15 @@ export default class SlackIncidentActions {
         text: confirmationMessage,
       });
 
-      logger.debug("Confirmation message sent successfully.", { projectId: projectId.toString(), incidentId: incidentId.toString() });
+      logger.debug("Confirmation message sent successfully.", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+      });
     } catch (err) {
-      logger.error("Error sending confirmation message:", { projectId: projectId.toString(), incidentId: incidentId.toString() });
+      logger.error("Error sending confirmation message:", {
+        projectId: projectId.toString(),
+        incidentId: incidentId.toString(),
+      });
       logger.error(err);
       // Don't throw - note was saved successfully, confirmation is best effort
     }

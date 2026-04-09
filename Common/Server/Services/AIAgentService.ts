@@ -56,7 +56,9 @@ export class Service extends DatabaseService<Model> {
         OneUptimeDate.toString(lastAlive),
       );
     } catch (err) {
-      logger.error("Error in saving last alive in cache", { aiAgentId: aiAgentId?.toString() } as LogAttributes);
+      logger.error("Error in saving last alive in cache", {
+        aiAgentId: aiAgentId?.toString(),
+      } as LogAttributes);
       logger.error(err, { aiAgentId: aiAgentId?.toString() } as LogAttributes);
     }
   }
@@ -95,7 +97,9 @@ export class Service extends DatabaseService<Model> {
       await this.saveLastAliveInCache(aiAgentId, now);
     } catch (err) {
       // failed to hit the cache, so we will hit the database
-      logger.error("Error in getting last alive from cache", { aiAgentId: aiAgentId?.toString() } as LogAttributes);
+      logger.error("Error in getting last alive from cache", {
+        aiAgentId: aiAgentId?.toString(),
+      } as LogAttributes);
       logger.error(err, { aiAgentId: aiAgentId?.toString() } as LogAttributes);
     }
 
@@ -487,7 +491,9 @@ export class Service extends DatabaseService<Model> {
           "Error in sending AI agent status changed resource notification",
           { projectId: aiAgent.projectId?.toString() } as LogAttributes,
         );
-        logger.error(e, { projectId: aiAgent.projectId?.toString() } as LogAttributes);
+        logger.error(e, {
+          projectId: aiAgent.projectId?.toString(),
+        } as LogAttributes);
       }
     }
   }

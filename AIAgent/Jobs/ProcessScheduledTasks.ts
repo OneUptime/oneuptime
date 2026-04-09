@@ -130,7 +130,10 @@ const executeTask: ExecuteTaskFunction = async (
 
 const startTaskProcessingLoop: () => Promise<void> =
   async (): Promise<void> => {
-    logger.info("Starting AI Agent task processing loop...", {} as LogAttributes);
+    logger.info(
+      "Starting AI Agent task processing loop...",
+      {} as LogAttributes,
+    );
 
     const getPendingTaskUrl: URL = URL.fromString(
       ONEUPTIME_URL.toString(),
@@ -150,7 +153,10 @@ const startTaskProcessingLoop: () => Promise<void> =
         });
 
         if (!getPendingTaskResult.isSuccess()) {
-          logger.error("Failed to fetch pending task from server", {} as LogAttributes);
+          logger.error(
+            "Failed to fetch pending task from server",
+            {} as LogAttributes,
+          );
           logger.debug(
             `Sleeping for ${SLEEP_WHEN_NO_TASKS_MS / 1000} seconds before retrying...`,
             {} as LogAttributes,
@@ -175,8 +181,15 @@ const startTaskProcessingLoop: () => Promise<void> =
 
         const taskId: string = task._id;
         const taskType: string = task.taskType || "Unknown";
-        const taskLogAttrs: LogAttributes = { taskId, taskType, projectId: task.projectId } as LogAttributes;
-        logger.info(`Processing task: ${taskId} (type: ${taskType})`, taskLogAttrs);
+        const taskLogAttrs: LogAttributes = {
+          taskId,
+          taskType,
+          projectId: task.projectId,
+        } as LogAttributes;
+        logger.info(
+          `Processing task: ${taskId} (type: ${taskType})`,
+          taskLogAttrs,
+        );
 
         try {
           /* Mark task as InProgress */
@@ -191,7 +204,8 @@ const startTaskProcessingLoop: () => Promise<void> =
 
           if (!inProgressResult.isSuccess()) {
             logger.error(
-              `Failed to mark task ${taskId} as InProgress. Skipping.`, taskLogAttrs,
+              `Failed to mark task ${taskId} as InProgress. Skipping.`,
+              taskLogAttrs,
             );
             continue;
           }
@@ -213,7 +227,10 @@ const startTaskProcessingLoop: () => Promise<void> =
           });
 
           if (!completedResult.isSuccess()) {
-            logger.error(`Failed to mark task ${taskId} as Completed`, taskLogAttrs);
+            logger.error(
+              `Failed to mark task ${taskId} as Completed`,
+              taskLogAttrs,
+            );
           } else {
             /* Send task completed log */
             await AIAgentTaskLog.sendTaskCompletedLog(taskId);
@@ -236,14 +253,18 @@ const startTaskProcessingLoop: () => Promise<void> =
 
           if (!errorResult.isSuccess()) {
             logger.error(
-              `Failed to mark task ${taskId} as Error: ${errorMessage}`, taskLogAttrs,
+              `Failed to mark task ${taskId} as Error: ${errorMessage}`,
+              taskLogAttrs,
             );
           }
 
           /* Send task error log */
           await AIAgentTaskLog.sendTaskErrorLog(taskId, errorMessage);
 
-          logger.error(`Task failed: ${taskId} - ${errorMessage}`, taskLogAttrs);
+          logger.error(
+            `Task failed: ${taskId} - ${errorMessage}`,
+            taskLogAttrs,
+          );
           logger.error(error, taskLogAttrs);
         }
       } catch (error) {

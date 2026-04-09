@@ -38,11 +38,15 @@ export interface GroupingResult {
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
   public async processAlert(alert: Alert): Promise<GroupingResult> {
-    logger.debug(`Processing alert ${alert.id} for grouping`, { projectId: alert.projectId?.toString() } as LogAttributes);
+    logger.debug(`Processing alert ${alert.id} for grouping`, {
+      projectId: alert.projectId?.toString(),
+    } as LogAttributes);
 
     try {
       if (!alert.id || !alert.projectId) {
-        logger.warn("Alert missing id or projectId, skipping grouping", { projectId: alert.projectId?.toString() } as LogAttributes);
+        logger.warn("Alert missing id or projectId, skipping grouping", {
+          projectId: alert.projectId?.toString(),
+        } as LogAttributes);
         return { grouped: false };
       }
 
@@ -153,10 +157,14 @@ class AlertGroupingEngineServiceClass {
         }
       }
 
-      logger.debug(`Alert ${alert.id} did not match any grouping rules`, { projectId: alert.projectId?.toString() } as LogAttributes);
+      logger.debug(`Alert ${alert.id} did not match any grouping rules`, {
+        projectId: alert.projectId?.toString(),
+      } as LogAttributes);
       return { grouped: false };
     } catch (error) {
-      logger.error(`Error processing alert for grouping: ${error}`, { projectId: alert.projectId?.toString() } as LogAttributes);
+      logger.error(`Error processing alert for grouping: ${error}`, {
+        projectId: alert.projectId?.toString(),
+      } as LogAttributes);
       return { grouped: false };
     }
   }
@@ -847,7 +855,9 @@ class AlertGroupingEngineServiceClass {
 
       return createdEpisode;
     } catch (error) {
-      logger.error(`Error creating new episode: ${error}`, { projectId: alert.projectId?.toString() } as LogAttributes);
+      logger.error(`Error creating new episode: ${error}`, {
+        projectId: alert.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
   }
@@ -1006,7 +1016,9 @@ class AlertGroupingEngineServiceClass {
         error instanceof Error &&
         error.message.includes("already a member")
       ) {
-        logger.debug(`Alert ${alert.id} is already in episode ${episodeId}`, { projectId: alert.projectId?.toString() } as LogAttributes);
+        logger.debug(`Alert ${alert.id} is already in episode ${episodeId}`, {
+          projectId: alert.projectId?.toString(),
+        } as LogAttributes);
         return;
       }
       throw error;

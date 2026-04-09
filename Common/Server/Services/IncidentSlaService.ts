@@ -158,7 +158,10 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        logger.info(`Marked SLA ${sla.id} as responded at ${data.respondedAt}`, { incidentId: data.incidentId?.toString() } as LogAttributes);
+        logger.info(
+          `Marked SLA ${sla.id} as responded at ${data.respondedAt}`,
+          { incidentId: data.incidentId?.toString() } as LogAttributes,
+        );
       }
     }
   }
@@ -246,7 +249,9 @@ export class Service extends DatabaseService<Model> {
   public async recalculateDeadlines(data: {
     incidentId: ObjectID;
   }): Promise<void> {
-    logger.debug(`Recalculating deadlines for incident ${data.incidentId}`, { incidentId: data.incidentId?.toString() } as LogAttributes);
+    logger.debug(`Recalculating deadlines for incident ${data.incidentId}`, {
+      incidentId: data.incidentId?.toString(),
+    } as LogAttributes);
 
     // Get the incident to find the new severity and project
     const incident: Incident | null = await IncidentService.findOneById({
@@ -273,7 +278,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!incident || !incident.projectId) {
-      logger.warn(`Incident ${data.incidentId} not found`, { projectId: incident?.projectId?.toString() } as LogAttributes);
+      logger.warn(`Incident ${data.incidentId} not found`, {
+        projectId: incident?.projectId?.toString(),
+      } as LogAttributes);
       return;
     }
 

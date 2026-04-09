@@ -21,15 +21,21 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
         });
 
       if (existingMigration) {
-        logger.debug("Skipping Database Migration:" + migration.name, { service: "workers" });
+        logger.debug("Skipping Database Migration:" + migration.name, {
+          service: "workers",
+        });
         continue;
       }
 
-      logger.debug("Running Database Migration:" + migration.name, { service: "workers" });
+      logger.debug("Running Database Migration:" + migration.name, {
+        service: "workers",
+      });
 
       await migration.migrate();
 
-      logger.debug("Database Migration Complete:" + migration.name, { service: "workers" });
+      logger.debug("Database Migration Complete:" + migration.name, {
+        service: "workers",
+      });
 
       // add it to the database.
       const dataMigration: DataMigration = new DataMigration();
@@ -44,14 +50,20 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
         },
       });
     } catch (err) {
-      logger.error("Database Migration Failed:" + migration.name, { service: "workers" });
+      logger.error("Database Migration Failed:" + migration.name, {
+        service: "workers",
+      });
       logger.error(err, { service: "workers" });
-      logger.debug("Rolling back Database Migration:" + migration.name, { service: "workers" });
+      logger.debug("Rolling back Database Migration:" + migration.name, {
+        service: "workers",
+      });
 
       try {
         await migration.rollback();
       } catch (err) {
-        logger.error("Database Migration Rollback Failed:" + migration.name, { service: "workers" });
+        logger.error("Database Migration Rollback Failed:" + migration.name, {
+          service: "workers",
+        });
         logger.error(err, { service: "workers" });
       }
 

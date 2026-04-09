@@ -200,8 +200,14 @@ export class Service extends BaseService {
           // Check if auto-recharge is needed (do this async, don't wait)
           AIBillingService.rechargeIfBalanceIsLow(request.projectId).catch(
             (err: Error) => {
-              logger.error("Error during AI balance auto-recharge check:", { projectId: request.projectId?.toString(), userId: request.userId?.toString() } as LogAttributes);
-              logger.error(err, { projectId: request.projectId?.toString(), userId: request.userId?.toString() } as LogAttributes);
+              logger.error("Error during AI balance auto-recharge check:", {
+                projectId: request.projectId?.toString(),
+                userId: request.userId?.toString(),
+              } as LogAttributes);
+              logger.error(err, {
+                projectId: request.projectId?.toString(),
+                userId: request.userId?.toString(),
+              } as LogAttributes);
             },
           );
         }

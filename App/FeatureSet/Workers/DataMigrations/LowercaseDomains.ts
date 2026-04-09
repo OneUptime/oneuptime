@@ -96,7 +96,9 @@ export default class LowercaseDomains extends DataMigrationBase {
           },
         });
       } catch (err) {
-        logger.error("Error updating status page domain:", { service: "workers" });
+        logger.error("Error updating status page domain:", {
+          service: "workers",
+        });
         logger.error(err, { service: "workers" });
       }
     }

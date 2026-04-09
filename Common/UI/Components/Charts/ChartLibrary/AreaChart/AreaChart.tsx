@@ -1007,10 +1007,7 @@ const AreaChart: React.ForwardRefExoticComponent<
             )}
             {/* Exemplar dots - clickable markers linking to traces */}
             {props.formattedExemplarPoints?.map(
-              (
-                exemplar: FormattedExemplarPoint,
-                exemplarIndex: number,
-              ) => {
+              (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
                 return (
                   <ReferenceDot
                     key={`exemplar-${exemplarIndex}`}

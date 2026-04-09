@@ -26,19 +26,25 @@ const MCPFeatureSet: FeatureSet = {
       url: apiUrl,
     };
     OneUptimeApiService.initialize(config);
-    logger.info(`MCP: OneUptime API Service initialized with: ${apiUrl}`, { featureSet: "MCP" } as LogAttributes);
+    logger.info(`MCP: OneUptime API Service initialized with: ${apiUrl}`, {
+      featureSet: "MCP",
+    } as LogAttributes);
 
     // Mark MCP subsystem as initialized
     initializeMCPServer();
 
     // Generate tools (tool handlers are registered per-session in RouteHandler)
     const tools: McpToolInfo[] = generateAllTools();
-    logger.info(`MCP: Generated ${tools.length} tools`, { featureSet: "MCP" } as LogAttributes);
+    logger.info(`MCP: Generated ${tools.length} tools`, {
+      featureSet: "MCP",
+    } as LogAttributes);
 
     // Setup MCP-specific routes
     setupMCPRoutes(app, tools);
 
-    logger.info(`MCP FeatureSet initialized successfully`, { featureSet: "MCP" } as LogAttributes);
+    logger.info(`MCP FeatureSet initialized successfully`, {
+      featureSet: "MCP",
+    } as LogAttributes);
   },
 };
 

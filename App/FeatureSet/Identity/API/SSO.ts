@@ -36,7 +36,9 @@ import Express, {
   getClientIp,
   headerValueToString,
 } from "Common/Server/Utils/Express";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -616,7 +618,10 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
       const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
 
-      logger.info("User logged in with SSO (mobile): " + email.toString(), getLogAttributesFromRequest(req as RequestLike));
+      logger.info(
+        "User logged in with SSO (mobile): " + email.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
 
       return res.redirect(deepLinkUrl);
     }
@@ -640,7 +645,10 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    logger.info("User logged in with SSO: " + email.toString(), getLogAttributesFromRequest(req as RequestLike));
+    logger.info(
+      "User logged in with SSO: " + email.toString(),
+      getLogAttributesFromRequest(req as RequestLike),
+    );
 
     return Response.redirect(
       req,

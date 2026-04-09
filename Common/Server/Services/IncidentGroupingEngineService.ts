@@ -40,11 +40,15 @@ export interface GroupingResult {
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
   public async processIncident(incident: Incident): Promise<GroupingResult> {
-    logger.debug(`Processing incident ${incident.id} for grouping`, { projectId: incident.projectId?.toString() } as LogAttributes);
+    logger.debug(`Processing incident ${incident.id} for grouping`, {
+      projectId: incident.projectId?.toString(),
+    } as LogAttributes);
 
     try {
       if (!incident.id || !incident.projectId) {
-        logger.warn("Incident missing id or projectId, skipping grouping", { projectId: incident.projectId?.toString() } as LogAttributes);
+        logger.warn("Incident missing id or projectId, skipping grouping", {
+          projectId: incident.projectId?.toString(),
+        } as LogAttributes);
         return { grouped: false };
       }
 
@@ -162,10 +166,14 @@ class IncidentGroupingEngineServiceClass {
         }
       }
 
-      logger.debug(`Incident ${incident.id} did not match any grouping rules`, { projectId: incident.projectId?.toString() } as LogAttributes);
+      logger.debug(`Incident ${incident.id} did not match any grouping rules`, {
+        projectId: incident.projectId?.toString(),
+      } as LogAttributes);
       return { grouped: false };
     } catch (error) {
-      logger.error(`Error processing incident for grouping: ${error}`, { projectId: incident.projectId?.toString() } as LogAttributes);
+      logger.error(`Error processing incident for grouping: ${error}`, {
+        projectId: incident.projectId?.toString(),
+      } as LogAttributes);
       return { grouped: false };
     }
   }
@@ -950,7 +958,9 @@ class IncidentGroupingEngineServiceClass {
 
       return createdEpisode;
     } catch (error) {
-      logger.error(`Error creating new episode: ${error}`, { projectId: incident.projectId?.toString() } as LogAttributes);
+      logger.error(`Error creating new episode: ${error}`, {
+        projectId: incident.projectId?.toString(),
+      } as LogAttributes);
       return null;
     }
   }

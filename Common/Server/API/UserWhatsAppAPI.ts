@@ -116,7 +116,10 @@ export default class UserWhatsAppAPI extends BaseAPI<
               },
             );
           } catch (e) {
-            logger.error(e, getLogAttributesFromRequest(req as OneUptimeRequest));
+            logger.error(
+              e,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
           }
 
           return Response.sendEmptySuccessResponse(req, res);

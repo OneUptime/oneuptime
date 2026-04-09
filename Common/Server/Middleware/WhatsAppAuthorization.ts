@@ -19,7 +19,10 @@ export default class WhatsAppAuthorization {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
-    logger.debug("Starting WhatsApp webhook signature verification", getLogAttributesFromRequest(req));
+    logger.debug(
+      "Starting WhatsApp webhook signature verification",
+      getLogAttributesFromRequest(req),
+    );
 
     const signature: string | undefined = req.headers["x-hub-signature-256"] as
       | string
@@ -75,7 +78,10 @@ export default class WhatsAppAuthorization {
         Buffer.from(signature) as Uint8Array,
       )
     ) {
-      logger.error("WhatsApp webhook signature verification failed.", getLogAttributesFromRequest(req));
+      logger.error(
+        "WhatsApp webhook signature verification failed.",
+        getLogAttributesFromRequest(req),
+      );
       return Response.sendErrorResponse(
         req,
         res,
@@ -83,7 +89,10 @@ export default class WhatsAppAuthorization {
       );
     }
 
-    logger.debug("WhatsApp webhook signature verified successfully", getLogAttributesFromRequest(req));
+    logger.debug(
+      "WhatsApp webhook signature verified successfully",
+      getLogAttributesFromRequest(req),
+    );
     next();
   }
 }

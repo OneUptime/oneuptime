@@ -253,13 +253,10 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
               incidentId: incidentId?.toString(),
             },
           );
-          logger.error(
-            e,
-            {
-              projectId: projectId?.toString(),
-              incidentId: incidentId?.toString(),
-            },
-          );
+          logger.error(e, {
+            projectId: projectId?.toString(),
+            incidentId: incidentId?.toString(),
+          });
         }
       }
 

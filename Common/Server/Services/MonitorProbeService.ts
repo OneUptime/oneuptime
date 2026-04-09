@@ -54,7 +54,9 @@ export class Service extends DatabaseService<MonitorProbe> {
           monitorProbe?.monitor?.monitoringInterval as string,
         );
       } catch (err) {
-        logger.error(err, { monitorId: data.monitorId?.toString() } as LogAttributes);
+        logger.error(err, {
+          monitorId: data.monitorId?.toString(),
+        } as LogAttributes);
       }
 
       if (nextPing && monitorProbe.id) {

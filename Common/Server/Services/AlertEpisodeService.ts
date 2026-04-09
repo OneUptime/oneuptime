@@ -134,7 +134,10 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Workspace operations failed in AlertEpisodeService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
         }
       })
@@ -153,7 +156,10 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Handle episode state change failed in AlertEpisodeService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
         }
       })
@@ -163,7 +169,10 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create episode feed failed in AlertEpisodeService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
         }
       })
@@ -174,14 +183,20 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in AlertEpisodeService.onCreateSuccess: ${error}`,
-            { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
           );
         }
       })
       .catch((error: Error) => {
         logger.error(
           `Critical error in AlertEpisodeService.onCreateSuccess: ${error}`,
-          { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes,
+          {
+            projectId: createdItem.projectId?.toString(),
+            alertEpisodeId: createdItem.id?.toString(),
+          } as LogAttributes,
         );
       });
 
@@ -228,7 +243,10 @@ export class Service extends DatabaseService<Model> {
         });
       }
     } catch (error) {
-      logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`, { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes);
+      logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        alertEpisodeId: createdItem.id?.toString(),
+      } as LogAttributes);
       throw error;
     }
   }
@@ -355,7 +373,10 @@ export class Service extends DatabaseService<Model> {
         feedInfoInMarkdown: feedInfoInMarkdown,
       });
     } catch (error) {
-      logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`, { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.id?.toString() } as LogAttributes);
+      logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        alertEpisodeId: createdItem.id?.toString(),
+      } as LogAttributes);
       throw error;
     }
   }
@@ -490,7 +511,11 @@ export class Service extends DatabaseService<Model> {
       } catch (error) {
         logger.error(
           `Failed to cascade state change to alert ${member.alertId.toString()}: ${error}`,
-          { projectId: projectId.toString(), alertEpisodeId: episodeId.toString(), alertId: member.alertId.toString() } as LogAttributes,
+          {
+            projectId: projectId.toString(),
+            alertEpisodeId: episodeId.toString(),
+            alertId: member.alertId.toString(),
+          } as LogAttributes,
         );
       }
     }

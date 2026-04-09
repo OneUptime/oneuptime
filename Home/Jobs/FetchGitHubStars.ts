@@ -46,7 +46,10 @@ const fetchGitHubStars: () => Promise<void> = async (): Promise<void> => {
       });
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("FetchGitHubStars: Failed to fetch GitHub stars", { service: "home", job: "FetchGitHubStars" });
+      logger.error("FetchGitHubStars: Failed to fetch GitHub stars", {
+        service: "home",
+        job: "FetchGitHubStars",
+      });
       logger.error(response, { service: "home", job: "FetchGitHubStars" });
       return;
     }
@@ -59,10 +62,16 @@ const fetchGitHubStars: () => Promise<void> = async (): Promise<void> => {
         GITHUB_STARS_CACHE_KEY,
         starCount,
       );
-      logger.debug(`FetchGitHubStars: Updated star count to ${starCount}`, { service: "home", job: "FetchGitHubStars" });
+      logger.debug(`FetchGitHubStars: Updated star count to ${starCount}`, {
+        service: "home",
+        job: "FetchGitHubStars",
+      });
     }
   } catch (error) {
-    logger.error("FetchGitHubStars: Error fetching GitHub stars", { service: "home", job: "FetchGitHubStars" });
+    logger.error("FetchGitHubStars: Error fetching GitHub stars", {
+      service: "home",
+      job: "FetchGitHubStars",
+    });
     logger.error(error, { service: "home", job: "FetchGitHubStars" });
   }
 };
@@ -74,8 +83,14 @@ BasicCron({
     runOnStartup: true,
   },
   runFunction: async () => {
-    logger.debug("FetchGitHubStars: Start", { service: "home", job: "FetchGitHubStars" });
+    logger.debug("FetchGitHubStars: Start", {
+      service: "home",
+      job: "FetchGitHubStars",
+    });
     await fetchGitHubStars();
-    logger.debug("FetchGitHubStars: End", { service: "home", job: "FetchGitHubStars" });
+    logger.debug("FetchGitHubStars: End", {
+      service: "home",
+      job: "FetchGitHubStars",
+    });
   },
 });

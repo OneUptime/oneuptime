@@ -275,7 +275,10 @@ export default class CodeRepositoryUtil {
     };
 
     if (sanitizedRelativeFilePaths.length === 0) {
-      logger.debug("git add skipped because no file paths were provided", addFilesLogAttributes);
+      logger.debug(
+        "git add skipped because no file paths were provided",
+        addFilesLogAttributes,
+      );
       return;
     }
 
@@ -301,7 +304,10 @@ export default class CodeRepositoryUtil {
       repoPath: data.repoPath,
     };
 
-    logger.debug(`Setting git user.name in ${path.resolve(data.repoPath)}`, setUsernameLogAttributes);
+    logger.debug(
+      `Setting git user.name in ${path.resolve(data.repoPath)}`,
+      setUsernameLogAttributes,
+    );
 
     const stdout: string = await this.runGitCommand(data.repoPath, [
       "config",
@@ -362,7 +368,10 @@ export default class CodeRepositoryUtil {
       filePath: data.filePath,
     };
 
-    logger.debug(`Getting last commit hash for ${gitArgument} in ${repoRoot}`, commitHashLogAttributes);
+    logger.debug(
+      `Getting last commit hash for ${gitArgument} in ${repoRoot}`,
+      commitHashLogAttributes,
+    );
 
     const hash: string = await this.runGitCommand(repoRoot, [
       "log",

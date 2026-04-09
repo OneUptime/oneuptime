@@ -183,7 +183,10 @@ export class Service extends DatabaseService<Model> {
       }).catch((error: Error) => {
         logger.error(
           `Error starting time log for user ${createdModel.user?.id}: ${error}`,
-          { projectId: projectId?.toString(), userId: createdModel.user?.id?.toString() } as LogAttributes,
+          {
+            projectId: projectId?.toString(),
+            userId: createdModel.user?.id?.toString(),
+          } as LogAttributes,
         );
       });
     }
@@ -268,7 +271,10 @@ export class Service extends DatabaseService<Model> {
             userId: userId,
             endsAt: OneUptimeDate.getCurrentDate(),
           }).catch((error: Error) => {
-            logger.error(`Error ending time log for user ${userId}: ${error}`, { projectId: projectId?.toString(), userId: userId?.toString() } as LogAttributes);
+            logger.error(`Error ending time log for user ${userId}: ${error}`, {
+              projectId: projectId?.toString(),
+              userId: userId?.toString(),
+            } as LogAttributes);
           });
         }
       }

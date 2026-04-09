@@ -53,7 +53,9 @@ RunCron(
       },
       fn: async (span: Span): Promise<void> => {
         try {
-          logger.debug("Ordering SSL for domains which are not ordered yet", { service: "workers" });
+          logger.debug("Ordering SSL for domains which are not ordered yet", {
+            service: "workers",
+          });
 
           await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
           Telemetry.endSpan(span);

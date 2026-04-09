@@ -23,7 +23,9 @@ export default class WorkspaceManager {
     const workspaceName: string = `task-${taskId}-${timestamp}-${uniqueId}`;
     const workspacePath: string = path.join(this.BASE_TEMP_DIR, workspaceName);
 
-    logger.debug(`Creating workspace: ${workspacePath}`, { taskId } as LogAttributes);
+    logger.debug(`Creating workspace: ${workspacePath}`, {
+      taskId,
+    } as LogAttributes);
 
     // Create the workspace directory
     await LocalFile.makeDirectory(workspacePath);
@@ -57,7 +59,9 @@ export default class WorkspaceManager {
 
   // Delete a workspace and all its contents
   public static async deleteWorkspace(workspacePath: string): Promise<void> {
-    logger.debug(`Deleting workspace: ${workspacePath}`, { workspacePath } as LogAttributes);
+    logger.debug(`Deleting workspace: ${workspacePath}`, {
+      workspacePath,
+    } as LogAttributes);
 
     try {
       // Verify the path is within our temp directory to prevent accidental deletion
@@ -71,9 +75,13 @@ export default class WorkspaceManager {
       }
 
       await LocalFile.deleteDirectory(workspacePath);
-      logger.debug(`Workspace deleted: ${workspacePath}`, { workspacePath } as LogAttributes);
+      logger.debug(`Workspace deleted: ${workspacePath}`, {
+        workspacePath,
+      } as LogAttributes);
     } catch (error) {
-      logger.error(`Error deleting workspace ${workspacePath}:`, { workspacePath } as LogAttributes);
+      logger.error(`Error deleting workspace ${workspacePath}:`, {
+        workspacePath,
+      } as LogAttributes);
       logger.error(error, { workspacePath } as LogAttributes);
     }
   }
@@ -148,7 +156,10 @@ export default class WorkspaceManager {
   public static async cleanupOldWorkspaces(
     maxAgeHours: number = 24,
   ): Promise<number> {
-    logger.debug(`Cleaning up workspaces older than ${maxAgeHours} hours`, {} as LogAttributes);
+    logger.debug(
+      `Cleaning up workspaces older than ${maxAgeHours} hours`,
+      {} as LogAttributes,
+    );
 
     let cleanedCount: number = 0;
 
@@ -196,7 +207,10 @@ export default class WorkspaceManager {
       logger.error(error, {} as LogAttributes);
     }
 
-    logger.debug(`Cleaned up ${cleanedCount} old workspaces`, {} as LogAttributes);
+    logger.debug(
+      `Cleaned up ${cleanedCount} old workspaces`,
+      {} as LogAttributes,
+    );
 
     return cleanedCount;
   }
@@ -206,10 +220,14 @@ export default class WorkspaceManager {
     try {
       await LocalFile.makeDirectory(this.BASE_TEMP_DIR);
       logger.debug(
-        `Workspace base directory initialized: ${this.BASE_TEMP_DIR}`, {} as LogAttributes,
+        `Workspace base directory initialized: ${this.BASE_TEMP_DIR}`,
+        {} as LogAttributes,
       );
     } catch (error) {
-      logger.error("Error initializing workspace manager:", {} as LogAttributes);
+      logger.error(
+        "Error initializing workspace manager:",
+        {} as LogAttributes,
+      );
       logger.error(error, {} as LogAttributes);
     }
   }

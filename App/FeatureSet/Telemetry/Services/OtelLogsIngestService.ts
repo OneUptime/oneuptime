@@ -18,8 +18,10 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+  type RequestLike,
+} from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
@@ -89,7 +91,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
       if (!resourceLogs || !Array.isArray(resourceLogs)) {
-        logger.error("Invalid resourceLogs format in request body", getLogAttributesFromRequest(req as RequestLike));
+        logger.error(
+          "Invalid resourceLogs format in request body",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
         throw new BadRequestException("Invalid resourceLogs format");
       }
 

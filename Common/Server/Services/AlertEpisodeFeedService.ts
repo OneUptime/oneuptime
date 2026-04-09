@@ -107,12 +107,24 @@ export class Service extends DatabaseService<Model> {
           });
         }
       } catch (e) {
-        logger.error("Error in sending notification to slack and teams", { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
-        logger.error(e, { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
+        logger.error("Error in sending notification to slack and teams", {
+          projectId: data.projectId?.toString(),
+          alertEpisodeId: data.alertEpisodeId?.toString(),
+        } as LogAttributes);
+        logger.error(e, {
+          projectId: data.projectId?.toString(),
+          alertEpisodeId: data.alertEpisodeId?.toString(),
+        } as LogAttributes);
       }
     } catch (error) {
-      logger.error("AlertEpisodeFeedService.createAlertEpisodeFeedItem", { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
-      logger.error(error, { projectId: data.projectId?.toString(), alertEpisodeId: data.alertEpisodeId?.toString() } as LogAttributes);
+      logger.error("AlertEpisodeFeedService.createAlertEpisodeFeedItem", {
+        projectId: data.projectId?.toString(),
+        alertEpisodeId: data.alertEpisodeId?.toString(),
+      } as LogAttributes);
+      logger.error(error, {
+        projectId: data.projectId?.toString(),
+        alertEpisodeId: data.alertEpisodeId?.toString(),
+      } as LogAttributes);
       // we dont want to throw the error here, as this is a non-critical operation
     }
   }

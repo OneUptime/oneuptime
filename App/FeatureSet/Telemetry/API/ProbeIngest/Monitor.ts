@@ -20,7 +20,9 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
@@ -292,7 +294,10 @@ router.post(
         !(req as ProbeExpressRequest).probe ||
         !(req as ProbeExpressRequest).probe?.id
       ) {
-        logger.error("Probe not found for pending-count request", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Probe not found for pending-count request",
+          getLogAttributesFromRequest(req as any),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -304,7 +309,10 @@ router.post(
       const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
 
       if (!probeId) {
-        logger.error("Probe ID not found for pending-count request", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Probe ID not found for pending-count request",
+          getLogAttributesFromRequest(req as any),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -344,13 +352,19 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    logger.debug("Monitor list API called", getLogAttributesFromRequest(req as any));
+    logger.debug(
+      "Monitor list API called",
+      getLogAttributesFromRequest(req as any),
+    );
 
     try {
       const data: JSONObject = req.body;
       const limit: number = (data["limit"] as number) || 100;
 
-      logger.debug("Monitor list API called with limit: " + limit, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Monitor list API called with limit: " + limit,
+        getLogAttributesFromRequest(req as any),
+      );
       logger.debug("Data:", getLogAttributesFromRequest(req as any));
       logger.debug(data, getLogAttributesFromRequest(req as any));
 
@@ -358,7 +372,10 @@ router.post(
         !(req as ProbeExpressRequest).probe ||
         !(req as ProbeExpressRequest).probe?.id
       ) {
-        logger.error("Probe not found", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Probe not found",
+          getLogAttributesFromRequest(req as any),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -370,7 +387,10 @@ router.post(
       const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
 
       if (!probeId) {
-        logger.error("Probe not found", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Probe not found",
+          getLogAttributesFromRequest(req as any),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -381,7 +401,10 @@ router.post(
 
       //get list of monitors to be monitored
 
-      logger.debug("Fetching monitor list for probes", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Fetching monitor list for probes",
+        getLogAttributesFromRequest(req as any),
+      );
 
       /*
        * Atomically claim monitors for this probe instance using FOR UPDATE SKIP LOCKED
@@ -399,7 +422,10 @@ router.post(
       );
 
       if (claimedMonitorProbeIds.length === 0) {
-        logger.debug("No monitors to probe", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "No monitors to probe",
+          getLogAttributesFromRequest(req as any),
+        );
         return Response.sendEntityArrayResponse(
           req,
           res,
@@ -433,7 +459,10 @@ router.post(
           },
         });
 
-      logger.debug("Fetched monitor list", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Fetched monitor list",
+        getLogAttributesFromRequest(req as any),
+      );
       logger.debug(monitorProbes, getLogAttributesFromRequest(req as any));
 
       // Update the nextPingAt based on the actual monitoring interval
@@ -481,7 +510,10 @@ router.post(
           return Boolean(monitor._id);
         });
 
-      logger.debug("Populating secrets", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Populating secrets",
+        getLogAttributesFromRequest(req as any),
+      );
       logger.debug(monitors, getLogAttributesFromRequest(req as any));
 
       // check if the monitor needs secrets to be filled.
@@ -499,8 +531,14 @@ router.post(
         monitorWithSecretsPopulatePromises,
       );
 
-      logger.debug("Populated secrets", getLogAttributesFromRequest(req as any));
-      logger.debug(monitorsWithSecretPopulated, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Populated secrets",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        monitorsWithSecretPopulated,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // return the list of monitors to be monitored
 
@@ -527,13 +565,19 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    logger.debug("Monitor test list API called", getLogAttributesFromRequest(req as any));
+    logger.debug(
+      "Monitor test list API called",
+      getLogAttributesFromRequest(req as any),
+    );
 
     try {
       const data: JSONObject = req.body;
       const limit: number = (data["limit"] as number) || 100;
 
-      logger.debug("Monitor test list API called with limit: " + limit, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Monitor test list API called with limit: " + limit,
+        getLogAttributesFromRequest(req as any),
+      );
       logger.debug("Data:", getLogAttributesFromRequest(req as any));
       logger.debug(data, getLogAttributesFromRequest(req as any));
 
@@ -541,7 +585,10 @@ router.post(
         !(req as ProbeExpressRequest).probe ||
         !(req as ProbeExpressRequest).probe?.id
       ) {
-        logger.error("Probe not found", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Probe not found",
+          getLogAttributesFromRequest(req as any),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -553,7 +600,10 @@ router.post(
       const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
 
       if (!probeId) {
-        logger.error("Probe not found", getLogAttributesFromRequest(req as any));
+        logger.error(
+          "Probe not found",
+          getLogAttributesFromRequest(req as any),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -564,7 +614,10 @@ router.post(
 
       //get list of monitors to be monitored
 
-      logger.debug("Fetching test monitor list", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Fetching test monitor list",
+        getLogAttributesFromRequest(req as any),
+      );
 
       /*
        * Atomically claim monitor tests with FOR UPDATE SKIP LOCKED to prevent
@@ -582,7 +635,10 @@ router.post(
       );
 
       if (claimedMonitorTestIds.length === 0) {
-        logger.debug("No monitor tests to probe", getLogAttributesFromRequest(req as any));
+        logger.debug(
+          "No monitor tests to probe",
+          getLogAttributesFromRequest(req as any),
+        );
         return Response.sendEntityArrayResponse(
           req,
           res,
@@ -613,10 +669,16 @@ router.post(
         },
       });
 
-      logger.debug("Fetched monitor tests", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Fetched monitor tests",
+        getLogAttributesFromRequest(req as any),
+      );
       logger.debug(monitorTests, getLogAttributesFromRequest(req as any));
 
-      logger.debug("Populating secrets", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Populating secrets",
+        getLogAttributesFromRequest(req as any),
+      );
       logger.debug(monitorTests, getLogAttributesFromRequest(req as any));
 
       // check if the monitor needs secrets to be filled.
@@ -636,8 +698,14 @@ router.post(
         monitorTestsWithSecretsPopulatePromises,
       );
 
-      logger.debug("Populated secrets", getLogAttributesFromRequest(req as any));
-      logger.debug(monitorTestsWithSecretPopulated, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Populated secrets",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.debug(
+        monitorTestsWithSecretPopulated,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // return the list of monitors to be monitored
 

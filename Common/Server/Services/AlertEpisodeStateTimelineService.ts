@@ -50,7 +50,10 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
           namespace: "AlertEpisodeStateTimeline.create",
         });
       } catch (err) {
-        logger.error(err, { projectId: createBy.data.projectId?.toString(), alertEpisodeId: createBy.data.alertEpisodeId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: createBy.data.projectId?.toString(),
+          alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+        } as LogAttributes);
       }
 
       if (
@@ -109,8 +112,14 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
           },
         });
 
-      logger.debug("State Before this", { projectId: createBy.data.projectId?.toString(), alertEpisodeId: createBy.data.alertEpisodeId?.toString() } as LogAttributes);
-      logger.debug(stateBeforeThis, { projectId: createBy.data.projectId?.toString(), alertEpisodeId: createBy.data.alertEpisodeId?.toString() } as LogAttributes);
+      logger.debug("State Before this", {
+        projectId: createBy.data.projectId?.toString(),
+        alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+      } as LogAttributes);
+      logger.debug(stateBeforeThis, {
+        projectId: createBy.data.projectId?.toString(),
+        alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+      } as LogAttributes);
 
       // If this is the first state, then do not notify the owner.
       if (!stateBeforeThis) {
@@ -164,8 +173,14 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         }
       }
 
-      logger.debug("State After this", { projectId: createBy.data.projectId?.toString(), alertEpisodeId: createBy.data.alertEpisodeId?.toString() } as LogAttributes);
-      logger.debug(stateAfterThis, { projectId: createBy.data.projectId?.toString(), alertEpisodeId: createBy.data.alertEpisodeId?.toString() } as LogAttributes);
+      logger.debug("State After this", {
+        projectId: createBy.data.projectId?.toString(),
+        alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+      } as LogAttributes);
+      logger.debug(stateAfterThis, {
+        projectId: createBy.data.projectId?.toString(),
+        alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+      } as LogAttributes);
 
       return {
         createBy,
@@ -181,7 +196,10 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         try {
           await Semaphore.release(mutex);
         } catch (err) {
-          logger.error(err, { projectId: createBy.data.projectId?.toString(), alertEpisodeId: createBy.data.alertEpisodeId?.toString() } as LogAttributes);
+          logger.error(err, {
+            projectId: createBy.data.projectId?.toString(),
+            alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+          } as LogAttributes);
         }
       }
 
@@ -204,19 +222,40 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       throw new BadDataException("alertStateId is null");
     }
 
-    logger.debug("Status Timeline Before this", { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
-    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+    logger.debug("Status Timeline Before this", {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Status Timeline After this", { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
-    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+    logger.debug("Status Timeline After this", {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus, {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
 
-    logger.debug("Created Item", { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
-    logger.debug(createdItem, { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+    logger.debug("Created Item", {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
+    logger.debug(createdItem, {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
 
     // Handle timeline updates
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
-      logger.debug("This is the first status.", { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+      logger.debug("This is the first status.", {
+        projectId: createdItem.projectId?.toString(),
+        alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+      } as LogAttributes);
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
       // This is the last status. Update the previous status to end at the start of this status.
       await this.updateOneById({
@@ -228,7 +267,10 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This is the last status.", { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+      logger.debug("This is the last status.", {
+        projectId: createdItem.projectId?.toString(),
+        alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+      } as LogAttributes);
     } else {
       // This is in the middle. Update the previous status to end at the start of this status.
       await this.updateOneById({
@@ -251,7 +293,10 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
           isRoot: true,
         },
       });
-      logger.debug("This status is in the middle.", { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+      logger.debug("This status is in the middle.", {
+        projectId: createdItem.projectId?.toString(),
+        alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+      } as LogAttributes);
     }
 
     // Update episode's current state if this is the latest timeline entry
@@ -305,7 +350,10 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         } catch (error) {
           logger.error(
             `Failed to cascade state change to member alerts: ${error}`,
-            { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+            } as LogAttributes,
           );
         }
       }
@@ -315,7 +363,10 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       try {
         await Semaphore.release(mutex);
       } catch (err) {
-        logger.error(err, { projectId: createdItem.projectId?.toString(), alertEpisodeId: createdItem.alertEpisodeId?.toString() } as LogAttributes);
+        logger.error(err, {
+          projectId: createdItem.projectId?.toString(),
+          alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+        } as LogAttributes);
       }
     }
 
@@ -472,7 +523,9 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
 
         if (!stateBeforeThis) {
           // This is the first state, no need to update previous state.
-          logger.debug("This is the first state.", { alertEpisodeId: episodeId?.toString() } as LogAttributes);
+          logger.debug("This is the first state.", {
+            alertEpisodeId: episodeId?.toString(),
+          } as LogAttributes);
         } else if (!stateAfterThis) {
           // This is the last state. Update the previous state to end at the end of this state.
           await this.updateOneById({
@@ -484,7 +537,9 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
               isRoot: true,
             },
           });
-          logger.debug("This is the last state.", { alertEpisodeId: episodeId?.toString() } as LogAttributes);
+          logger.debug("This is the last state.", {
+            alertEpisodeId: episodeId?.toString(),
+          } as LogAttributes);
         } else {
           // This state is in the middle. Update the previous state to end at the start of the next state.
           await this.updateOneById({
@@ -507,7 +562,9 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
               isRoot: true,
             },
           });
-          logger.debug("This state is in the middle.", { alertEpisodeId: episodeId?.toString() } as LogAttributes);
+          logger.debug("This state is in the middle.", {
+            alertEpisodeId: episodeId?.toString(),
+          } as LogAttributes);
         }
       }
 

@@ -10,7 +10,9 @@ import Express, {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 import type { RequestLike } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
@@ -87,7 +89,10 @@ router.get(
         "status-page",
       );
 
-      logger.debug("Status Page SCIM Schemas response prepared successfully", getLogAttributesFromRequest(req as any));
+      logger.debug(
+        "Status Page SCIM Schemas response prepared successfully",
+        getLogAttributesFromRequest(req as any),
+      );
       return Response.sendJsonObjectResponse(req, res, schemasResponse);
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -1074,7 +1079,10 @@ router.post(
         throw new BadRequestException("Email is required for user creation");
       }
 
-      logger.debug(`Status Page SCIM Create user - email: ${email}`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Status Page SCIM Create user - email: ${email}`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // Check if user already exists for this status page
       executionSteps.push(
@@ -1376,7 +1384,10 @@ const handleStatusPageUserUpdate: (
       });
 
       executionSteps.push("User updated successfully in database");
-      logger.debug(`Status Page SCIM Update user - user updated successfully`, getLogAttributesFromRequest(req as any));
+      logger.debug(
+        `Status Page SCIM Update user - user updated successfully`,
+        getLogAttributesFromRequest(req as any),
+      );
 
       // Fetch updated user
       executionSteps.push("Fetching updated user from database");

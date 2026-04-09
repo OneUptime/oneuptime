@@ -97,7 +97,9 @@ export class Service extends DatabaseService<Model> {
   *Company:* ${createdItem.companyName?.toString() || "N/A"}`,
       }).catch((err: Error) => {
         // log this error but do not throw it. Not important enough to stop the process.
-        logger.error(err, { userId: createdItem.id?.toString() } as LogAttributes);
+        logger.error(err, {
+          userId: createdItem.id?.toString(),
+        } as LogAttributes);
       });
     }
 

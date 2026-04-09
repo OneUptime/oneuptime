@@ -80,14 +80,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         startAndEndDate,
       })
         .then((exemplars: Array<ExemplarPoint>) => {
-          setExemplarsByMetric(
-            (prev: Record<string, Array<ExemplarPoint>>) => {
-              return {
-                ...prev,
-                [metricName]: exemplars,
-              };
-            },
-          );
+          setExemplarsByMetric((prev: Record<string, Array<ExemplarPoint>>) => {
+            return {
+              ...prev,
+              [metricName]: exemplars,
+            };
+          });
         })
         .catch(() => {
           // Best-effort: don't break charts if exemplar fetch fails
@@ -320,14 +318,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const chart: Chart = {
         id: index.toString(),
         type: chartType,
-        title:
-          queryConfig.metricAliasData?.title ||
-          metricNameStr ||
-          "",
+        title: queryConfig.metricAliasData?.title || metricNameStr || "",
         description: queryConfig.metricAliasData?.description || "",
         metricInfo,
-        exemplarPoints:
-          chartExemplars.length > 0 ? chartExemplars : undefined,
+        exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
         onExemplarClick: handleExemplarClick,
         props: {
           data: chartSeries,
