@@ -26,8 +26,7 @@ const PprofProfile: protobuf.Type = PprofProto.lookupType(
 const PushProto: protobuf.Root = protobuf.loadSync(
   path.resolve(__dirname, "..", "ProtoFiles", "pyroscope", "push.proto"),
 );
-const PushRequest: protobuf.Type =
-  PushProto.lookupType("push.v1.PushRequest");
+const PushRequest: protobuf.Type = PushProto.lookupType("push.v1.PushRequest");
 
 // Interfaces for parsed Pyroscope push data
 interface PyroscopeLabelPair {

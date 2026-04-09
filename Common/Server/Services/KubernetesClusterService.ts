@@ -6,6 +6,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 
+const LAST_SEEN_THROTTLE_MS: number = 60 * 1000; // 1 minute
+const lastSeenUpdateCache: Map<string, number> = new Map();
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -85,6 +88,16 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async updateLastSeen(clusterId: ObjectID): Promise<void> {
+    const cacheKey: string = clusterId.toString();
+    const now: number = Date.now();
+    const lastUpdate: number | undefined = lastSeenUpdateCache.get(cacheKey);
+
+    if (lastUpdate && now - lastUpdate < LAST_SEEN_THROTTLE_MS) {
+      return; // skip — already updated recently on this pod
+    }
+
+    lastSeenUpdateCache.set(cacheKey, now);
+
     await this.updateOneById({
       id: clusterId,
       data: {

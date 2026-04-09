@@ -58,6 +58,8 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
+  private static clusterIdCache: Map<string, ObjectID> = new Map();
+
   @CaptureSpan()
   protected static async autoDiscoverKubernetesCluster(data: {
     projectId: ObjectID;
@@ -72,16 +74,24 @@ export default abstract class OtelIngestBaseService {
         return;
       }
 
-      const cluster: KubernetesCluster =
-        await KubernetesClusterService.findOrCreateByClusterIdentifier({
-          projectId: data.projectId,
-          clusterIdentifier: clusterName,
-        });
+      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
+      let clusterId: ObjectID | undefined = this.clusterIdCache.get(cacheKey);
 
-      if (cluster._id) {
-        await KubernetesClusterService.updateLastSeen(
-          new ObjectID(cluster._id.toString()),
-        );
+      if (!clusterId) {
+        const cluster: KubernetesCluster =
+          await KubernetesClusterService.findOrCreateByClusterIdentifier({
+            projectId: data.projectId,
+            clusterIdentifier: clusterName,
+          });
+
+        if (cluster._id) {
+          clusterId = new ObjectID(cluster._id.toString());
+          this.clusterIdCache.set(cacheKey, clusterId);
+        }
+      }
+
+      if (clusterId) {
+        await KubernetesClusterService.updateLastSeen(clusterId);
       }
     } catch (err) {
       logger.error(
