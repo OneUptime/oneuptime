@@ -130,7 +130,13 @@ spec:
         - name: postgresql-hba
           mountPath: /etc/postgresql/pg_hba.conf
           subPath: pg_hba.conf
+        - name: dshm
+          mountPath: /dev/shm
       volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
       - name: postgresql-config
         configMap:
           name: {{ .Release.Name }}-postgresql-primary-config
