@@ -1,9 +1,7 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import MetricService from "Common/Server/Services/MetricService";
+import metricService from "Common/Server/Services/MetricService";
 import Metric from "Common/Models/AnalyticsModels/Metric";
-
-const metricService: MetricService = new MetricService();
 
 export default class AddTraceIdAndSpanIdToMetricTable extends DataMigrationBase {
   public constructor() {
