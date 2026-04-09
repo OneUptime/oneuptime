@@ -108,7 +108,7 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.k8s.resource.name": options.resourceType,
+          "k8s.resource.name": options.resourceType,
         },
       },
       limit: 500, // Get enough logs to find the resource
@@ -206,7 +206,7 @@ export async function fetchRawK8sObject(
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.k8s.resource.name": options.resourceType,
+          "k8s.resource.name": options.resourceType,
         },
       },
       limit: 500,
@@ -304,7 +304,7 @@ export async function fetchK8sObjectsBatch(options: {
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.k8s.resource.name": options.resourceType,
+          "k8s.resource.name": options.resourceType,
         },
       },
       limit: 2000,
@@ -410,8 +410,8 @@ export async function fetchK8sEventsForResource(options: {
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.event.domain": "k8s",
-          "logAttributes.k8s.resource.name": "events",
+          "event.domain": "k8s",
+          "k8s.resource.name": "events",
         },
       },
       limit: 500,
@@ -551,8 +551,8 @@ export async function fetchClusterWarningEvents(options: {
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.event.domain": "k8s",
-          "logAttributes.k8s.resource.name": "events",
+          "event.domain": "k8s",
+          "k8s.resource.name": "events",
         },
       },
       limit: 500,
@@ -729,7 +729,7 @@ export async function fetchPodLogs(options: {
       .filter((log: Log) => {
         // Exclude k8s event logs — only application logs
         const attrs: JSONObject = log.attributes || {};
-        return attrs["logAttributes.event.domain"] !== "k8s";
+        return attrs["event.domain"] !== "k8s";
       })
       .map((log: Log) => {
         const attrs: JSONObject = log.attributes || {};

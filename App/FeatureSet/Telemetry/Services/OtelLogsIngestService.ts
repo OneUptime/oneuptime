@@ -200,7 +200,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     ...resourceAttributes,
                     ...TelemetryUtil.getAttributes({
                       items: (log["attributes"] as JSONArray) || [],
-                      prefixKeysWithString: "logAttributes",
+                      prefixKeysWithString: "",
                     }),
                   };
 

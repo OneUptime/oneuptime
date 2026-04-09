@@ -27,13 +27,6 @@ function getAttrValue(
   if (attrs[key] !== undefined && attrs[key] !== null) {
     return attrs[key];
   }
-  // Try with logAttributes. prefix (OTel log-level attributes)
-  if (
-    attrs[`logAttributes.${key}`] !== undefined &&
-    attrs[`logAttributes.${key}`] !== null
-  ) {
-    return attrs[`logAttributes.${key}`];
-  }
   // Try with resource. prefix (OTel resource attributes)
   if (
     attrs[`resource.${key}`] !== undefined &&

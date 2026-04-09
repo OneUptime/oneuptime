@@ -91,8 +91,8 @@ const KubernetesClusterEvents: FunctionComponent<
           projectId: ProjectUtil.getCurrentProjectId()!.toString(),
           time: new InBetween<Date>(startDate, endDate),
           attributes: {
-            "logAttributes.event.domain": "k8s",
-            "logAttributes.k8s.resource.name": "events",
+            "event.domain": "k8s",
+            "k8s.resource.name": "events",
           },
         },
         limit: 500,

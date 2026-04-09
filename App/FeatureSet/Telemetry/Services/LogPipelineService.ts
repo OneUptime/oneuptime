@@ -153,53 +153,6 @@ export class LogPipelineService {
     }
   }
 
-  private static resolveAttributeKey(
-    attrs: Record<string, unknown>,
-    key: string,
-  ): string {
-    // If the key already exists as-is, use it
-    if (attrs[key] !== undefined) {
-      return key;
-    }
-
-    // If the key doesn't have a known prefix, try with logAttributes. prefix
-    const knownPrefixes: Array<string> = [
-      "logAttributes.",
-      "resource.",
-      "scope.",
-    ];
-    const hasPrefix: boolean = knownPrefixes.some((prefix: string) => {
-      return key.startsWith(prefix);
-    });
-
-    if (!hasPrefix) {
-      const prefixedKey: string = `logAttributes.${key}`;
-      if (attrs[prefixedKey] !== undefined) {
-        return prefixedKey;
-      }
-    }
-
-    return key;
-  }
-
-  private static resolveTargetKey(key: string): string {
-    // If the target key doesn't have a known prefix, add logAttributes. prefix
-    const knownPrefixes: Array<string> = [
-      "logAttributes.",
-      "resource.",
-      "scope.",
-    ];
-    const hasPrefix: boolean = knownPrefixes.some((prefix: string) => {
-      return key.startsWith(prefix);
-    });
-
-    if (!hasPrefix) {
-      return `logAttributes.${key}`;
-    }
-
-    return key;
-  }
-
   private static applyAttributeRemapper(
     logRow: JSONObject,
     config: AttributeRemapperConfig,
@@ -208,28 +161,20 @@ export class LogPipelineService {
       ...((logRow["attributes"] as Record<string, unknown>) || {}),
     };
 
-    const resolvedSourceKey: string = LogPipelineService.resolveAttributeKey(
-      attrs,
-      config.sourceKey,
-    );
-    const sourceVal: unknown = attrs[resolvedSourceKey];
+    const sourceVal: unknown = attrs[config.sourceKey];
     if (sourceVal === undefined) {
       return logRow;
     }
 
-    const resolvedTargetKey: string = LogPipelineService.resolveTargetKey(
-      config.targetKey,
-    );
-
     const overrideOnConflict: boolean = config.overrideOnConflict !== false;
-    if (!overrideOnConflict && attrs[resolvedTargetKey] !== undefined) {
+    if (!overrideOnConflict && attrs[config.targetKey] !== undefined) {
       return logRow;
     }
 
-    attrs[resolvedTargetKey] = sourceVal;
+    attrs[config.targetKey] = sourceVal;
 
     if (!config.preserveSource) {
-      delete attrs[resolvedSourceKey];
+      delete attrs[config.sourceKey];
     }
 
     // Update attributeKeys
@@ -244,11 +189,7 @@ export class LogPipelineService {
   ): JSONObject {
     const attrs: Record<string, unknown> =
       (logRow["attributes"] as Record<string, unknown>) || {};
-    const resolvedSourceKey: string = LogPipelineService.resolveAttributeKey(
-      attrs,
-      config.sourceKey,
-    );
-    const sourceVal: unknown = attrs[resolvedSourceKey];
+    const sourceVal: unknown = attrs[config.sourceKey];
     if (sourceVal === undefined || sourceVal === null) {
       return logRow;
     }
@@ -272,15 +213,12 @@ export class LogPipelineService {
     logRow: JSONObject,
     config: CategoryProcessorConfig,
   ): JSONObject {
-    const resolvedTargetKey: string = LogPipelineService.resolveTargetKey(
-      config.targetKey,
-    );
     for (const category of config.categories || []) {
       if (evaluateFilter(logRow, category.filterQuery)) {
         const attrs: Record<string, unknown> = {
           ...((logRow["attributes"] as Record<string, unknown>) || {}),
         };
-        attrs[resolvedTargetKey] = category.name;
+        attrs[config.targetKey] = category.name;
         const attributeKeys: Array<string> = Object.keys(attrs);
         return { ...logRow, attributes: attrs as JSONObject, attributeKeys };
       }
