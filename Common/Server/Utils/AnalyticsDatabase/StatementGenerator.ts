@@ -856,6 +856,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
+  public toDropSkipIndexStatement(indexName: string): string {
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const statement: string = `ALTER TABLE ${databaseName}.${this.model.tableName} DROP INDEX IF EXISTS ${indexName}`;
+
+    logger.debug(`${this.model.tableName} Drop Skip Index Statement`);
+    logger.debug(statement);
+
+    return statement;
+  }
+
   public toDropColumnStatement(columnName: string): string {
     const statement: string = `ALTER TABLE ${this.database.getDatasourceOptions()
       .database!}.${this.model.tableName} DROP COLUMN IF EXISTS ${columnName}`;

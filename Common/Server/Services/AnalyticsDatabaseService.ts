@@ -251,6 +251,21 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async dropColumnInDatabase(columnName: string): Promise<void> {
+    // Drop any skip index associated with this column before dropping the column itself.
+    // ClickHouse will reject a column drop if a skip index depends on it.
+    const column: AnalyticsTableColumn | undefined =
+      this.model.tableColumns.find((col: AnalyticsTableColumn) => {
+        return col.key === columnName;
+      });
+
+    if (column?.skipIndex) {
+      await this.execute(
+        this.statementGenerator.toDropSkipIndexStatement(
+          column.skipIndex.name,
+        ),
+      );
+    }
+
     await this.execute(
       this.statementGenerator.toDropColumnStatement(columnName),
     );
