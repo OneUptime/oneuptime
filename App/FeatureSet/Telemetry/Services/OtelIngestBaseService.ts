@@ -60,7 +60,8 @@ export default abstract class OtelIngestBaseService {
   }
 
   private static readonly CLUSTER_ID_CACHE_NAMESPACE: string = "k8s-cluster-id";
-  private static readonly CLUSTER_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
+  private static readonly CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
 
   @CaptureSpan()
   protected static async autoDiscoverKubernetesCluster(data: {

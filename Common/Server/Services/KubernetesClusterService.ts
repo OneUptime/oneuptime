@@ -100,12 +100,9 @@ export class Service extends DatabaseService<Model> {
       return; // another pod already updated recently
     }
 
-    await GlobalCache.setString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-      "1",
-      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
-    );
+    await GlobalCache.setString(LAST_SEEN_CACHE_NAMESPACE, cacheKey, "1", {
+      expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
+    });
 
     await this.updateOneById({
       id: clusterId,
