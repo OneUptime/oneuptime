@@ -327,7 +327,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           p: ({ ...props }: any) => {
             return (
               <p
-                className="text-sm mt-2 mb-3 text-gray-700 leading-relaxed"
+                className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed"
                 {...props}
               />
             );
@@ -391,10 +391,10 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             );
           },
           ul: ({ ...props }: any) => {
-            return <ul className="list-disc pl-6 mt-1 mb-3" {...props} />;
+            return <ul className="list-disc pl-6 mt-0 mb-1" {...props} />;
           },
           ol: ({ ...props }: any) => {
-            return <ol className="list-decimal pl-6 mt-1 mb-3" {...props} />;
+            return <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />;
           },
           blockquote: ({ children, ...props }: any) => {
             return (
