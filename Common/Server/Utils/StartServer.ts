@@ -21,7 +21,10 @@ import Express, {
   RequestHandler,
   headerValueToString,
 } from "./Express";
-import logger, { getLogAttributesFromRequest } from "./Logger";
+import logger, {
+  getLogAttributesFromRequest,
+  type LogAttributes,
+} from "./Logger";
 import "./Process";
 import Response from "./Response";
 import SpanUtil from "./Telemetry/SpanUtil";
@@ -307,9 +310,8 @@ const init: InitFunction = async (
         next: NextFunction,
       ) => {
         try {
-          const renderLogAttributes = getLogAttributesFromRequest(
-            _req as OneUptimeRequest,
-          );
+          const renderLogAttributes: LogAttributes =
+            getLogAttributesFromRequest(_req as OneUptimeRequest);
 
           logger.debug("Rendering index page", renderLogAttributes);
 

@@ -26,8 +26,8 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";

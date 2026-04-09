@@ -15,11 +15,11 @@ export interface ComponentProps {
 }
 
 interface StatusPageVisibilitySettings {
-  showIncidentsOnStatusPage?: boolean;
-  showAnnouncementsOnStatusPage?: boolean;
-  showScheduledMaintenanceEventsOnStatusPage?: boolean;
-  showEpisodesOnStatusPage?: boolean;
-  enableSubscribers?: boolean;
+  showIncidentsOnStatusPage?: boolean | undefined;
+  showAnnouncementsOnStatusPage?: boolean | undefined;
+  showScheduledMaintenanceEventsOnStatusPage?: boolean | undefined;
+  showEpisodesOnStatusPage?: boolean | undefined;
+  enableSubscribers?: boolean | undefined;
 }
 
 interface WarningItem {
@@ -52,7 +52,7 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
       });
 
       if (statusPage) {
-        setSettings({
+        const newSettings: StatusPageVisibilitySettings = {
           showIncidentsOnStatusPage: statusPage.showIncidentsOnStatusPage,
           showAnnouncementsOnStatusPage:
             statusPage.showAnnouncementsOnStatusPage,
@@ -60,7 +60,8 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
             statusPage.showScheduledMaintenanceEventsOnStatusPage,
           showEpisodesOnStatusPage: statusPage.showEpisodesOnStatusPage,
           enableSubscribers: statusPage.enableSubscribers,
-        });
+        };
+        setSettings(newSettings);
       }
     } catch {
       // Fail silently - warnings won't show but functionality continues

@@ -96,8 +96,11 @@ describe("AnalyticsDatabaseService", () => {
       expect(logger.debug).toHaveBeenNthCalledWith(
         1,
         "<table-name> Count Statement",
+        { tableName: "<table-name>" },
       );
-      expect(logger.debug).toHaveBeenNthCalledWith(2, statement);
+      expect(logger.debug).toHaveBeenNthCalledWith(2, statement, {
+        tableName: "<table-name>",
+      });
 
       expect(statement.query).toBe(
         "SELECT\n" +
@@ -201,8 +204,11 @@ describe("AnalyticsDatabaseService", () => {
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
         1,
         "<table-name> Find Statement",
+        { tableName: "<table-name>" },
       );
-      expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement);
+      expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(2, statement, {
+        tableName: "<table-name>",
+      });
 
       expect(statement.query).toBe(
         "SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}",
@@ -340,8 +346,11 @@ describe("AnalyticsDatabaseService", () => {
       expect(logger.debug).toHaveBeenNthCalledWith(
         1,
         "<table-name> Delete Statement",
+        { tableName: "<table-name>" },
       );
-      expect(logger.debug).toHaveBeenNthCalledWith(2, statement);
+      expect(logger.debug).toHaveBeenNthCalledWith(2, statement, {
+        tableName: "<table-name>",
+      });
 
       expect(statement.query).toBe(
         "ALTER TABLE {p0:Identifier}.{p1:Identifier}\n" +

@@ -21,8 +21,8 @@ import OTelIngestService, {
 import LogService from "Common/Server/Services/LogService";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import SyslogQueueService from "./Queue/SyslogQueueService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";

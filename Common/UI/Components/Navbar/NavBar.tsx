@@ -61,7 +61,8 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const [moreMenuTimeout, setMoreMenuTimeout] = useState<ReturnType<
     typeof setTimeout
   > | null>(null);
-  const suppressShowRef = useRef<boolean>(false);
+  const suppressShowRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   // Use the existing outside click hook for mobile menu
   const {

@@ -24,8 +24,8 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import Phone from "Common/Types/Phone";

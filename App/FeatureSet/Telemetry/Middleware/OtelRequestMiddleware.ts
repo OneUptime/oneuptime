@@ -70,7 +70,9 @@ export default class OpenTelemetryRequestMiddleware {
 
           req.on("data", (chunk: Buffer | string) => {
             chunks.push(
-              new Uint8Array(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf-8")),
+              new Uint8Array(
+                Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf-8"),
+              ),
             );
           });
 

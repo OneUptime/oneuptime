@@ -33,8 +33,8 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";

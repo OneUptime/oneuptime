@@ -16,8 +16,8 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import User from "Common/Models/DatabaseModels/User";
 
 const router: ExpressRouter = Express.getRouter();
@@ -93,10 +93,7 @@ async function sendBroadcastEmailsInBackground(data: {
       {} as any,
     );
   } catch (err) {
-    logger.error(
-      `Broadcast email background job failed: ${err}`,
-      {} as any,
-    );
+    logger.error(`Broadcast email background job failed: ${err}`, {} as any);
   }
 }
 

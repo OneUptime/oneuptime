@@ -17,8 +17,8 @@ import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";

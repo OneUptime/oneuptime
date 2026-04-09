@@ -45,8 +45,8 @@ import Express, {
 import CaptchaUtil from "Common/Server/Utils/Captcha";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";

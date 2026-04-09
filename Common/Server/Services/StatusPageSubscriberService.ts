@@ -939,7 +939,9 @@ Stay informed about service availability! 🚀`;
 
     logger.debug(
       `Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`,
-      { statusPageSubscriberId: data.statusPageSubscriberId?.toString() } as LogAttributes,
+      {
+        statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
+      } as LogAttributes,
     );
     return confirmSubscriptionLink;
   }

@@ -1910,7 +1910,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         for (const channelName of existingChannelNames) {
           if (!channelName) {
-            logger.debug("Empty channel name found. Skipping.", {} as LogAttributes);
+            logger.debug(
+              "Empty channel name found. Skipping.",
+              {} as LogAttributes,
+            );
             continue;
           }
 
@@ -2018,7 +2021,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           }
 
           channels.push(channelData);
-          logger.debug(`Channel name ${channelName} added to the list.`, {} as LogAttributes);
+          logger.debug(
+            `Channel name ${channelName} added to the list.`,
+            {} as LogAttributes,
+          );
         } else {
           logger.debug(
             `Channel name ${channelName} already exists in the list. Skipping.`,
@@ -2083,11 +2089,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       | Array<string>
       | undefined;
   }> {
-    logger.debug("getValuesBasedOnNotificationFor called with data:", {} as LogAttributes);
+    logger.debug(
+      "getValuesBasedOnNotificationFor called with data:",
+      {} as LogAttributes,
+    );
     logger.debug(data, {} as LogAttributes);
 
     if (data.notificationFor.incidentId) {
-      logger.debug("Fetching incident details for incident ID:", {} as LogAttributes);
+      logger.debug(
+        "Fetching incident details for incident ID:",
+        {} as LogAttributes,
+      );
       logger.debug(data.notificationFor.incidentId, {} as LogAttributes);
 
       const incident: Incident | null = await IncidentService.findOneById({
@@ -2267,8 +2279,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.scheduledMaintenanceId) {
-      logger.debug("Fetching scheduled maintenance details for ID:", {} as LogAttributes);
-      logger.debug(data.notificationFor.scheduledMaintenanceId, {} as LogAttributes);
+      logger.debug(
+        "Fetching scheduled maintenance details for ID:",
+        {} as LogAttributes,
+      );
+      logger.debug(
+        data.notificationFor.scheduledMaintenanceId,
+        {} as LogAttributes,
+      );
 
       const scheduledMaintenance: ScheduledMaintenance | null =
         await ScheduledMaintenanceService.findOneById({
@@ -2286,12 +2304,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!scheduledMaintenance) {
-        logger.debug("Scheduled maintenance not found for ID:", {} as LogAttributes);
-        logger.debug(data.notificationFor.scheduledMaintenanceId, {} as LogAttributes);
+        logger.debug(
+          "Scheduled maintenance not found for ID:",
+          {} as LogAttributes,
+        );
+        logger.debug(
+          data.notificationFor.scheduledMaintenanceId,
+          {} as LogAttributes,
+        );
         throw new BadDataException("Scheduled Maintenance ID not found");
       }
 
-      logger.debug("Scheduled maintenance details retrieved:", {} as LogAttributes);
+      logger.debug(
+        "Scheduled maintenance details retrieved:",
+        {} as LogAttributes,
+      );
       logger.debug(scheduledMaintenance, {} as LogAttributes);
 
       const monitorLabels: Array<Label> =
@@ -2361,7 +2388,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.monitorId) {
-      logger.debug("Fetching monitor status timeline details for ID:", {} as LogAttributes);
+      logger.debug(
+        "Fetching monitor status timeline details for ID:",
+        {} as LogAttributes,
+      );
       logger.debug(data.notificationFor.monitorId, {} as LogAttributes);
 
       const monitor: Monitor | null = await MonitorService.findOneById({
@@ -2433,8 +2463,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.notificationFor.onCallDutyPolicyId) {
-      logger.debug("Fetching on call policy details for ID:", {} as LogAttributes);
-      logger.debug(data.notificationFor.onCallDutyPolicyId, {} as LogAttributes);
+      logger.debug(
+        "Fetching on call policy details for ID:",
+        {} as LogAttributes,
+      );
+      logger.debug(
+        data.notificationFor.onCallDutyPolicyId,
+        {} as LogAttributes,
+      );
 
       const onCallDutyPolicy: OnCallDutyPolicy | null =
         await OnCallDutyPolicyService.findOneById({
@@ -2450,8 +2486,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!onCallDutyPolicy) {
-        logger.debug("On Call Duty Policy not found for ID:", {} as LogAttributes);
-        logger.debug(data.notificationFor.onCallDutyPolicyId, {} as LogAttributes);
+        logger.debug(
+          "On Call Duty Policy not found for ID:",
+          {} as LogAttributes,
+        );
+        logger.debug(
+          data.notificationFor.onCallDutyPolicyId,
+          {} as LogAttributes,
+        );
         throw new BadDataException("On Call Duty Policy ID not found");
       }
 
@@ -2505,7 +2547,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     // Handle Incident Episode
     if (data.notificationFor.incidentEpisodeId) {
-      logger.debug("Fetching incident episode details for ID:", {} as LogAttributes);
+      logger.debug(
+        "Fetching incident episode details for ID:",
+        {} as LogAttributes,
+      );
       logger.debug(data.notificationFor.incidentEpisodeId, {} as LogAttributes);
 
       const incidentEpisode: IncidentEpisode | null =
@@ -2525,7 +2570,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (!incidentEpisode) {
         logger.debug("Incident Episode not found for ID:", {} as LogAttributes);
-        logger.debug(data.notificationFor.incidentEpisodeId, {} as LogAttributes);
+        logger.debug(
+          data.notificationFor.incidentEpisodeId,
+          {} as LogAttributes,
+        );
         throw new BadDataException("Incident Episode ID not found");
       }
 

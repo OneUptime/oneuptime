@@ -157,7 +157,6 @@ export default class GreenlockUtil {
     };
 
     try {
-
       logger.debug(
         `GreenlockUtil - Ordering certificate for domain: ${data.domain}`,
         orderLogAttributes,

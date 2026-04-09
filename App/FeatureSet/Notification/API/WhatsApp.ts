@@ -24,8 +24,8 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();

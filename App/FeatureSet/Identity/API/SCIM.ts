@@ -14,8 +14,8 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import logger, {
   getLogAttributesFromRequest,
+  type RequestLike,
 } from "Common/Server/Utils/Logger";
-import type { RequestLike } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
