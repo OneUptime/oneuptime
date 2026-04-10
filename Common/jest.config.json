@@ -26,7 +26,12 @@
         "^botbuilder-core$": "<rootDir>/Tests/__mocks__/botbuilder.js",
         "^botbuilder-stdlib$": "<rootDir>/Tests/__mocks__/botbuilder-stdlib.js",
         "^botframework-connector$": "<rootDir>/Tests/__mocks__/botbuilder.js",
-        "^@azure/(.*)$": "<rootDir>/Tests/__mocks__/azure.js"
+        "^@azure/(.*)$": "<rootDir>/Tests/__mocks__/azure.js",
+        "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
+        "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
+        "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
+        "^react-syntax-highlighter/dist/esm/.*$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
+        "^mermaid$": "<rootDir>/Tests/__mocks__/mermaid.js"
     },
     "moduleFileExtensions": [
         "ts",
