@@ -29,6 +29,10 @@ import TraceAggregationService, {
   FacetValue as TraceFacetValue,
   FacetRequest as TraceFacetRequest,
 } from "../Services/TraceAggregationService";
+import ExceptionAggregationService, {
+  HistogramBucket as ExceptionHistogramBucket,
+  HistogramRequest as ExceptionHistogramRequest,
+} from "../Services/ExceptionAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
   FunctionListRequest,
@@ -576,6 +580,97 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Exception Histogram Endpoint ---
+
+router.post(
+  "/telemetry/exceptions/histogram",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -24);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const bucketSizeInMinutes: number =
+        (body["bucketSizeInMinutes"] as number) ||
+        computeDefaultBucketSize(startTime, endTime);
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const exceptionTypes: Array<string> | undefined = body["exceptionTypes"]
+        ? (body["exceptionTypes"] as Array<string>)
+        : undefined;
+
+      const environments: Array<string> | undefined = body["environments"]
+        ? (body["environments"] as Array<string>)
+        : undefined;
+
+      const fingerprints: Array<string> | undefined = body["fingerprints"]
+        ? (body["fingerprints"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const escaped: boolean | undefined =
+        body["escaped"] === undefined ? undefined : Boolean(body["escaped"]);
+
+      const messageSearchText: string | undefined = body["messageSearchText"]
+        ? (body["messageSearchText"] as string)
+        : undefined;
+
+      const request: ExceptionHistogramRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes,
+        serviceIds,
+        exceptionTypes,
+        environments,
+        fingerprints,
+        traceIds,
+        escaped,
+        messageSearchText,
+      };
+
+      const buckets: Array<ExceptionHistogramBucket> =
+        await ExceptionAggregationService.getHistogram(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        buckets: buckets as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

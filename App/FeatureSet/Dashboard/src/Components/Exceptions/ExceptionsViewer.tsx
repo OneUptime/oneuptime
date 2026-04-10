@@ -12,6 +12,8 @@ import {
   FacetConfig,
   FacetData,
   FacetValue,
+  HistogramBucket,
+  HistogramSeriesOption,
   SearchHelpRow,
 } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
@@ -23,12 +25,21 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import API from "Common/UI/Utils/API/API";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { APP_API_URL } from "Common/UI/Config";
+import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -36,6 +47,37 @@ import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
 
 const DEFAULT_PAGE_SIZE: number = 50;
+
+const EXCEPTION_SERIES_COLORS: Record<string, string> = {
+  unhandled: "#ef4444",
+  handled: "#f59e0b",
+};
+
+async function postApi(
+  path: string,
+  data: JSONObject,
+): Promise<HTTPResponse<JSONObject>> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(path),
+      data,
+      headers: ModelAPI.getCommonHeaders(),
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return response;
+}
+
+function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
+  const totalMs: number = endTime.getTime() - startTime.getTime();
+  const targetBuckets: number = 40;
+  const raw: number = Math.max(60000, Math.floor(totalMs / targetBuckets));
+  return Math.max(1, Math.ceil(raw / 60000));
+}
 
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
@@ -86,6 +128,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [searchValue, setSearchValue] = useState<string>("");
   const [submittedSearch, setSubmittedSearch] = useState<string>("");
   const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_DAY,
+  });
+  const [histogramBuckets, setHistogramBuckets] = useState<
+    Array<HistogramBucket>
+  >([]);
+  const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
 
   // Load services once
   useEffect(() => {
@@ -195,8 +245,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       (q as Record<string, unknown>)["exceptionType"] = freeText;
     }
 
+    // Scope the list by the selected time range using lastSeenAt so the
+    // viewer + histogram share the same window.
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>(
+      dateRange.startValue,
+      dateRange.endValue,
+    );
+
     return q;
-  }, [status, activeFilters, submittedSearch, parseSearch]);
+  }, [status, activeFilters, submittedSearch, parseSearch, timeRange]);
 
   // Fetch exceptions
   const fetchExceptions: () => Promise<void> = useCallback(async () => {
@@ -235,6 +294,98 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   useEffect(() => {
     void fetchExceptions();
   }, [fetchExceptions]);
+
+  // Fetch histogram (occurrences over time, split by handled/unhandled)
+  const fetchHistogram: () => Promise<void> = useCallback(async () => {
+    setHistogramLoading(true);
+
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    const bucketSizeInMinutes: number = computeBucketSizeInMinutes(
+      dateRange.startValue,
+      dateRange.endValue,
+    );
+
+    const payload: JSONObject = {
+      startTime: dateRange.startValue.toISOString(),
+      endTime: dateRange.endValue.toISOString(),
+      bucketSizeInMinutes,
+    };
+
+    // Collect filter values from active facets + parsed search
+    const groups: Record<string, Array<string>> = {};
+    for (const f of activeFilters) {
+      if (!groups[f.facetKey]) {
+        groups[f.facetKey] = [];
+      }
+      groups[f.facetKey]!.push(f.value);
+    }
+    const { fieldFilters, freeText } = parseSearch(submittedSearch);
+    for (const key of Object.keys(fieldFilters)) {
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key]!.push(...fieldFilters[key]!);
+    }
+
+    if (groups["serviceId"] && groups["serviceId"].length > 0) {
+      payload["serviceIds"] = groups["serviceId"];
+    }
+    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
+      payload["exceptionTypes"] = groups["exceptionType"];
+    }
+    if (groups["environment"] && groups["environment"].length > 0) {
+      payload["environments"] = groups["environment"];
+    }
+    if (freeText && freeText.length > 0) {
+      payload["messageSearchText"] = freeText;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await postApi(
+        "/telemetry/exceptions/histogram",
+        payload,
+      );
+      const buckets: Array<HistogramBucket> = (response.data["buckets"] ||
+        []) as unknown as Array<HistogramBucket>;
+      setHistogramBuckets(buckets);
+    } catch {
+      // non-critical
+      setHistogramBuckets([]);
+    } finally {
+      setHistogramLoading(false);
+    }
+  }, [timeRange, activeFilters, submittedSearch, parseSearch]);
+
+  useEffect(() => {
+    void fetchHistogram();
+  }, [fetchHistogram]);
+
+  // Histogram series (handled/unhandled) — colored per level
+  const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
+    return [
+      {
+        key: "unhandled",
+        label: "Unhandled",
+        color: EXCEPTION_SERIES_COLORS["unhandled"]!,
+      },
+      {
+        key: "handled",
+        label: "Handled",
+        color: EXCEPTION_SERIES_COLORS["handled"]!,
+      },
+    ];
+  }, []);
+
+  // Histogram drag-to-zoom
+  const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
+    useCallback((start: Date, end: Date) => {
+      setTimeRange({
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(start, end),
+      });
+      setPage(1);
+    }, []);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
@@ -449,6 +600,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       error={error || undefined}
       onRefresh={() => {
         void fetchExceptions();
+        void fetchHistogram();
       }}
       emptyMessage="No exceptions found"
       itemLabel="exceptions"
@@ -487,10 +639,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
       searchHelpCombinedExample="@service:api @env:production TypeError"
-      // Time — exceptions don't currently drive time-based queries; required by shell
-      timeRange={{ range: TimeRange.PAST_ONE_DAY }}
-      onTimeRangeChange={() => {
-        // no-op: exceptions are queried by status / filter, not time range yet
+      // Time — drives both the list (via lastSeenAt) and the histogram window
+      timeRange={timeRange}
+      onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
+        setTimeRange(value);
+        setPage(1);
       }}
       toolbarLeadingActions={statusPills}
       toolbarTrailingActions={trailingActions}
@@ -503,8 +656,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       activeFilters={activeFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
-      // No histogram yet for exceptions
-      showHistogram={false}
+      // Histogram: handled / unhandled occurrences over time
+      showHistogram={true}
+      histogramBuckets={histogramBuckets}
+      histogramSeries={histogramSeries}
+      histogramTitle="Exceptions over time"
+      histogramLoading={histogramLoading}
+      onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       // Pagination
       page={page}
       pageSize={pageSize}
