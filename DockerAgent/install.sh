@@ -27,42 +27,45 @@ if [ -z "$ONEUPTIME_SERVICE_TOKEN" ]; then
     read -rp "OneUptime Service Token: " ONEUPTIME_SERVICE_TOKEN
 fi
 
-if [ -z "$ONEUPTIME_PROJECT_ID" ]; then
-    read -rp "OneUptime Project ID: " ONEUPTIME_PROJECT_ID
+if [ -z "$DOCKER_HOST_NAME" ]; then
+    read -rp "Docker host name (friendly label shown in OneUptime) [docker-host]: " DOCKER_HOST_NAME
+    DOCKER_HOST_NAME="${DOCKER_HOST_NAME:-docker-host}"
 fi
 
-# Create installation directory
-INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-docker-agent}"
+IMAGE="${ONEUPTIME_DOCKER_AGENT_IMAGE:-oneuptime/docker-agent:release}"
+
 echo ""
-echo "Installing to: $INSTALL_DIR"
-mkdir -p "$INSTALL_DIR"
+echo "Pulling image: $IMAGE"
+docker pull "$IMAGE"
 
-# Download configuration files
-REPO_BASE="https://raw.githubusercontent.com/nickatnight/OneUptime/master/DockerAgent"
+# Remove any existing container
+if docker ps -a --format '{{.Names}}' | grep -q '^oneuptime-docker-agent$'; then
+    echo "Removing existing oneuptime-docker-agent container..."
+    docker rm -f oneuptime-docker-agent
+fi
 
-echo "Downloading configuration files..."
-curl -sSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
-curl -sSL "$REPO_BASE/otel-collector-config.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
-
-# Create .env file
-cat > "$INSTALL_DIR/.env" <<EOF
-ONEUPTIME_URL=$ONEUPTIME_URL
-ONEUPTIME_SERVICE_TOKEN=$ONEUPTIME_SERVICE_TOKEN
-ONEUPTIME_PROJECT_ID=$ONEUPTIME_PROJECT_ID
-EOF
-
-# Start the agent
 echo ""
 echo "Starting OneUptime Docker Agent..."
-cd "$INSTALL_DIR"
-docker compose up -d
+docker run -d \
+    --name oneuptime-docker-agent \
+    --user 0:0 \
+    --restart unless-stopped \
+    -v /var/run/docker.sock:/var/run/docker.sock:ro \
+    -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
+    -e ONEUPTIME_URL="$ONEUPTIME_URL" \
+    -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
+    -e DOCKER_HOST_NAME="$DOCKER_HOST_NAME" \
+    --log-driver json-file \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
+    "$IMAGE"
 
 echo ""
 echo "=========================================="
 echo "  OneUptime Docker Agent is running!"
 echo "=========================================="
 echo ""
-echo "To check status:  cd $INSTALL_DIR && docker compose ps"
-echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
-echo "To stop:          cd $INSTALL_DIR && docker compose down"
-echo "To restart:       cd $INSTALL_DIR && docker compose restart"
+echo "To check status:  docker ps --filter name=oneuptime-docker-agent"
+echo "To view logs:     docker logs -f oneuptime-docker-agent"
+echo "To stop:          docker rm -f oneuptime-docker-agent"
+echo "To upgrade:       docker pull $IMAGE && docker rm -f oneuptime-docker-agent && re-run this script"

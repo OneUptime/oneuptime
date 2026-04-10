@@ -651,6 +651,90 @@ jobs:
             --image probe \
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION}"
 
+  docker-agent-docker-image-build:
+    needs: [generate-build-number, read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image docker-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./DockerAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags release \
+            --extra-enterprise-tags enterprise-release
+
+  docker-agent-docker-image-merge:
+    needs: [docker-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image docker-agent \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION},release,enterprise-release"
+
   app-docker-image-build:
     needs: [generate-build-number, read-version]
     strategy:

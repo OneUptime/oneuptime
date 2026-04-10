@@ -23,11 +23,11 @@ receivers:
 processors:
   resource:
     attributes:
-      - key: oneuptime.project.id
-        value: "${ONEUPTIME_PROJECT_ID}"
-        action: upsert
       - key: container.runtime
         value: "docker"
+        action: upsert
+      - key: host.name
+        value: "${env:DOCKER_HOST_NAME}"
         action: upsert
   resourcedetection:
     detectors: [env, system]
@@ -44,9 +44,9 @@ processors:
 
 exporters:
   otlp_http:
-    endpoint: "${ONEUPTIME_URL}/otlp"
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
     headers:
-      x-oneuptime-service-token: "${ONEUPTIME_SERVICE_TOKEN}"
+      x-oneuptime-service-token: "${env:ONEUPTIME_SERVICE_TOKEN}"
 
 service:
   pipelines:
