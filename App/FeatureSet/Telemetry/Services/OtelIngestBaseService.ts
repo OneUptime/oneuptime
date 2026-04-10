@@ -10,11 +10,16 @@ import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
 export default abstract class OtelIngestBaseService {
+  private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
+    "docker-container-name";
+  private static readonly DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
   @CaptureSpan()
-  protected static getServiceNameFromAttributes(
+  protected static async getServiceNameFromAttributes(
     req: ExpressRequest,
     attributes: JSONArray,
-  ): string {
+  ): Promise<string> {
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -37,7 +42,110 @@ export default abstract class OtelIngestBaseService {
       return serviceName;
     }
 
+    // Docker-aware fallback: when telemetry arrives from a OneUptime Docker
+    // Agent (container.runtime == "docker"), there is no explicit
+    // service.name. Synthesize a per-container service name so each
+    // container shows up as its own service in the OneUptime UI instead of
+    // every Docker log collapsing into "Unknown Service".
+    if (this.isDockerRuntime(attributes)) {
+      const dockerServiceName: string | null =
+        await this.getDockerServiceName(req, attributes);
+      if (dockerServiceName) {
+        return dockerServiceName;
+      }
+    }
+
     return "Unknown Service";
+  }
+
+  @CaptureSpan()
+  private static async getDockerServiceName(
+    req: ExpressRequest,
+    attributes: JSONArray,
+  ): Promise<string | null> {
+    const hostName: string | null = this.getHostNameFromAttributes(attributes);
+    const containerName: string | null = this.getStringAttribute(
+      attributes,
+      "container.name",
+    );
+    const containerId: string | null = this.getStringAttribute(
+      attributes,
+      "container.id",
+    );
+
+    // docker_stats metric batches carry both container.id and
+    // container.name as resource attributes, while filelog-originated log
+    // batches only carry container.id (the filelog receiver has no way to
+    // query the Docker API for names). Cache the id -> name mapping off
+    // the metrics path so later log batches for the same container can
+    // resolve to a proper service name.
+    if (containerId && containerName) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          await GlobalCache.setString(
+            this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+            containerName,
+            {
+              expiresInSeconds:
+                this.DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      } catch (err) {
+        logger.error(
+          "Error caching Docker container name: " + (err as Error).message,
+        );
+      }
+    }
+
+    if (containerName) {
+      return containerName;
+    }
+
+    // Logs path: try the id -> name cache populated by the metrics path.
+    if (containerId) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          const cached: string | null = await GlobalCache.getString(
+            this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+          );
+          if (cached) {
+            return cached;
+          }
+        }
+      } catch (err) {
+        logger.error(
+          "Error reading Docker container name cache: " +
+            (err as Error).message,
+        );
+      }
+
+      // No cache hit yet (metrics scrape every 30s so the first few log
+      // batches for a newly-started container can race ahead of the cache
+      // fill). Fall back to a stable synthetic name derived from the host
+      // and the short container id so logs are still grouped per container.
+      const shortId: string = containerId.substring(0, 12);
+      if (hostName) {
+        return `docker/${hostName}/${shortId}`;
+      }
+      return `docker/${shortId}`;
+    }
+
+    // No container identity at all — group by host so at least docker logs
+    // from the same host stick together.
+    if (hostName) {
+      return `docker/${hostName}`;
+    }
+
+    return null;
   }
 
   @CaptureSpan()

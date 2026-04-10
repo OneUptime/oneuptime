@@ -130,7 +130,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = this.getServiceNameFromAttributes(
+          const serviceName: string = await this.getServiceNameFromAttributes(
             req,
             resourceAttributes_raw,
           );

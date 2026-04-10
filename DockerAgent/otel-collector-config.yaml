@@ -61,6 +61,23 @@ receivers:
       - type: move
         from: attributes.stream
         to: attributes["log.iostream"]
+      # Docker's json-file log driver writes one JSON envelope per newline, so
+      # a multi-line stack trace (e.g. a Node.js error with "    at ..." frames)
+      # arrives as many separate log records. Recombine consecutive entries
+      # from the same container log file into a single record so exceptions
+      # show up as one log line in the OneUptime UI. We treat any line that
+      # begins with whitespace or a closing bracket/brace/paren as a
+      # continuation of the previous entry, which covers stack frames, pretty-
+      # printed JSON, and multi-line error details. source_identifier keeps
+      # records from different containers from being merged together.
+      - type: recombine
+        id: recombine-multiline
+        combine_field: body
+        combine_with: "\n"
+        is_first_entry: 'body matches "^[^\\s\\}\\)\\]]"'
+        source_identifier: attributes["log.file.path"]
+        force_flush_period: 5s
+        max_log_size: 1048576
       # Docker's json-file driver does not record a severity; OTel log records
       # have dedicated severity_number / severity_text fields that downstream
       # viewers rely on for filtering. Derive a best-effort severity from the

@@ -8,6 +8,7 @@ The agent is published as a Docker image — `oneuptime/docker-agent` — that b
 
 - Docker Engine 20.10+
 - Access to `/var/run/docker.sock`
+- Containers you want to collect logs from must use the **`json-file`** log driver (this is Docker's default). The agent tails `/var/lib/docker/containers/*/*-json.log` via the OpenTelemetry filelog receiver, which cannot parse Docker's `local` driver (binary protobuf) or any other driver. See [Log Driver Requirement](#log-driver-requirement) below.
 
 ## Quick Start — `docker run`
 
@@ -69,7 +70,50 @@ docker compose up -d
 
 ## Collected Logs
 
-Container logs are automatically collected from `/var/lib/docker/containers/` and enriched with container metadata.
+Container logs are automatically collected from `/var/lib/docker/containers/*/*-json.log` and enriched with container metadata (container id, image, runtime, host name) plus a derived severity — lines written to stderr become `ERROR` and lines written to stdout become `INFO`. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
+
+### Log Driver Requirement
+
+The agent only ingests logs from containers that use Docker's **`json-file`** log driver. This is Docker's default, but some installations override it to `local` (which writes binary protobuf chunks to `local-logs/` instead of `*-json.log` files) or to a remote driver (`journald`, `syslog`, `fluentd`, `gelf`, etc.) — none of which the filelog receiver can read.
+
+**To check a container's current log driver:**
+
+```bash
+docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
+```
+
+**To check the daemon default:**
+
+```bash
+docker info --format '{{.LoggingDriver}}'
+```
+
+**To switch a Compose service to `json-file` with sensible rotation**, add a `logging` block to each service:
+
+```yaml
+services:
+  my-app:
+    image: my-app:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+```
+
+**To switch the daemon default** (affects all containers created afterwards), edit `/etc/docker/daemon.json`:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "5"
+  }
+}
+```
+
+Then restart Docker and recreate (not just restart) the affected containers — the log driver is baked in at container create time, so an existing container will keep its old driver until it is removed and recreated.
 
 ## Upgrading
 
@@ -106,6 +150,46 @@ docker build -f ./DockerAgent/Dockerfile -t oneuptime/docker-agent:local .
 ### Docker Socket Permission Denied
 
 The agent must run as root (`--user 0:0`) to access `/var/run/docker.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present.
+
+### No Container Logs in the Dashboard
+
+If metrics show up but the **Logs** tab is empty (or only shows logs from the agent itself), the most common cause is that your containers are not using the `json-file` log driver.
+
+**Diagnose:**
+
+```bash
+# 1. Check the agent's filelog receiver — this should list each container log it is watching
+docker logs oneuptime-docker-agent 2>&1 | grep -E "Started watching file|no files match"
+
+# 2. Check which log driver your containers are actually using
+docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
+
+# 3. Check whether the log file the receiver expects actually exists
+docker run --rm --volumes-from oneuptime-docker-agent alpine:3.19 \
+  sh -c 'ls /var/lib/docker/containers/*/*-json.log 2>&1 | head'
+```
+
+If step 1 shows `no files match the configured criteria`, or step 3 returns no files for the containers you care about, those containers are not using `json-file`. See [Log Driver Requirement](#log-driver-requirement) for how to switch.
+
+After changing the log driver, you must **recreate** (not just restart) each container, because Docker binds the log driver to the container at create time:
+
+```bash
+# For docker compose
+docker compose up -d --force-recreate <service>
+
+# For plain docker
+docker rm -f <container>
+docker run ... <image>
+```
+
+### Logs Are Ingested but Don't Appear on a Specific Docker Host Page
+
+The Docker host page filters by `resource.host.name` equal to the host's `hostIdentifier`. This value is taken from the `DOCKER_HOST_NAME` environment variable passed to the agent. If you change `DOCKER_HOST_NAME` after the host is auto-registered, OneUptime will create a second host row with the new name and logs will appear under that one.
+
+```bash
+# Confirm the agent is stamping the expected host name
+docker inspect oneuptime-docker-agent --format '{{range .Config.Env}}{{println .}}{{end}}' | grep DOCKER_HOST_NAME
+```
 
 ### Common Commands
 

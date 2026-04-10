@@ -146,7 +146,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           }
           resourceProfileCounter++;
 
-          const serviceName: string = this.getServiceNameFromAttributes(
+          const serviceName: string = await this.getServiceNameFromAttributes(
             req,
             ((resourceProfile["resource"] as JSONObject)?.[
               "attributes"
