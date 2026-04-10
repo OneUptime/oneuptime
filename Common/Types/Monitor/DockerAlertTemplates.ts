@@ -235,7 +235,9 @@ const highCpuTemplate: DockerAlertTemplate = {
         metricName: "container.cpu.utilization",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Avg,
+        // Use Max so a single hot container trips the threshold instead of
+        // being diluted by idle containers on the host.
+        aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -249,7 +251,7 @@ const highCpuTemplate: DockerAlertTemplate = {
         incidentDescription: `A Docker container's CPU usage has exceeded 80%. Sustained high CPU usage can cause performance degradation and throttling. Check the root cause for the specific container and host details.`,
         criteriaName: "High CPU - Usage > 80%",
         criteriaDescription:
-          "Triggers when average container CPU usage exceeds 80% over the monitoring window.",
+          "Triggers when any container's CPU usage exceeds 80% over the monitoring window.",
       }),
       onlineCriteriaInstance: buildDockerOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -277,7 +279,9 @@ const highMemoryTemplate: DockerAlertTemplate = {
         metricName: "container.memory.percent",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Avg,
+        // Use Max so a single container breaching its limit trips the
+        // threshold instead of being diluted by idle containers.
+        aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -291,7 +295,7 @@ const highMemoryTemplate: DockerAlertTemplate = {
         incidentDescription: `A Docker container's memory usage has exceeded 85% of its limit. High memory usage can lead to OOM kills and container restarts. Check the root cause for the specific container and host details.`,
         criteriaName: "High Memory - Usage > 85%",
         criteriaDescription:
-          "Triggers when average container memory usage exceeds 85% over the monitoring window.",
+          "Triggers when any container's memory usage exceeds 85% over the monitoring window.",
       }),
       onlineCriteriaInstance: buildDockerOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -361,7 +365,9 @@ const highCpuThrottlingTemplate: DockerAlertTemplate = {
         metricName: "container.cpu.throttling_data.throttled_time",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
-        aggregationType: MetricsAggregationType.Sum,
+        // Use Max so a single throttled container trips the threshold,
+        // rather than summing throttled time across all containers.
+        aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
