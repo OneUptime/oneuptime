@@ -5,9 +5,25 @@ receivers:
     # "1.25" which modern Docker daemons reject ("client version too old").
     api_version: "1.44"
     collection_interval: 30s
-    # Collects: container.cpu.*, container.memory.*, container.network.io.*,
-    #           container.blockio.*, container.uptime, container.restarts,
-    #           container.pids.count
+    # Enable optional metrics that the OneUptime Docker monitor alert
+    # templates depend on (container restarts, uptime, pid count,
+    # CPU throttling). These are OFF by default in the contrib
+    # docker_stats receiver and must be explicitly turned on.
+    metrics:
+      container.cpu.utilization:
+        enabled: true
+      container.cpu.throttling_data.throttled_periods:
+        enabled: true
+      container.cpu.throttling_data.throttled_time:
+        enabled: true
+      container.memory.percent:
+        enabled: true
+      container.pids.count:
+        enabled: true
+      container.restarts:
+        enabled: true
+      container.uptime:
+        enabled: true
 
   filelog:
     include:

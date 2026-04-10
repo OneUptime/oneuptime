@@ -232,7 +232,7 @@ const highCpuTemplate: DockerAlertTemplate = {
     return buildDockerMonitorStep({
       dockerMonitor: buildDockerMonitorConfig({
         hostIdentifier: args.hostIdentifier,
-        metricName: "container.cpu.percent",
+        metricName: "container.cpu.utilization",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Avg,

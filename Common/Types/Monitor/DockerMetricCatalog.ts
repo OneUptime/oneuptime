@@ -29,10 +29,11 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
     unit: "ns",
   },
   {
-    id: "container-cpu-percent",
-    friendlyName: "Container CPU Percent",
-    description: "CPU usage percentage of the container",
-    metricName: "container.cpu.percent",
+    id: "container-cpu-utilization",
+    friendlyName: "Container CPU Utilization",
+    description:
+      "CPU utilization of the container as a percentage (100% = 1 full CPU core)",
+    metricName: "container.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
     unit: "%",
