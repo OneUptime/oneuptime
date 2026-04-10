@@ -164,6 +164,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "blue",
       category: "Observability",
     },
+    {
+      title: "Docker",
+      description: "Monitor Docker hosts and containers.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DOCKER_HOSTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DOCKER_HOSTS],
+      icon: IconProp.Docker,
+      iconColor: "blue",
+      category: "Observability",
+    },
     // Automation & Analytics
     {
       title: "Dashboards",

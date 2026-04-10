@@ -34,6 +34,7 @@ import IncidentStateTimelineService from "./IncidentStateTimelineService";
 //Labels.
 import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import DockerHostService from "./DockerHostService";
 import LlmProviderService from "./LlmProviderService";
 import LogService from "./LogService";
 import MailService from "./MailService";
@@ -258,6 +259,7 @@ const services: Array<BaseService> = [
 
   LabelService,
   KubernetesClusterService,
+  DockerHostService,
   LlmProviderService,
 
   MailService,

@@ -101,6 +101,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
         <Button
           title={
             props.monitorType === MonitorType.Kubernetes ||
+            props.monitorType === MonitorType.Docker ||
             props.monitorType === MonitorType.Metrics
               ? "Add Rule"
               : "Add Filter"
@@ -141,12 +142,14 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           description={
             props.monitorType === MonitorType.Kubernetes ||
+            props.monitorType === MonitorType.Docker ||
             props.monitorType === MonitorType.Metrics
               ? `At least one alert rule is required. If you don't need rules, you can delete the entire criteria instead.`
               : `We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`
           }
           title={
             props.monitorType === MonitorType.Kubernetes ||
+            props.monitorType === MonitorType.Docker ||
             props.monitorType === MonitorType.Metrics
               ? `Cannot delete last remaining rule.`
               : `Cannot delete last remaining filter.`

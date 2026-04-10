@@ -97,12 +97,11 @@ New-ServicePrincipal -AppId <application-client-id> -ObjectId <enterprise-app-ob
 4. Grant the service principal permission to send as a specific mailbox:
 
 ```powershell
-# Grant full mailbox access
+# Grant full mailbox access to the service principal
 Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal-id> -AccessRights FullAccess
-
-# OR grant SendAs permission only
-Add-RecipientPermission -Identity "sender@yourdomain.com" -Trustee <service-principal-id> -AccessRights SendAs
 ```
+
+> **Note:** Use `Add-MailboxPermission` (not `Add-RecipientPermission`). `Add-RecipientPermission` only grants `SendAs` on the recipient and is not sufficient for the service principal to send mail via SMTP with OAuth — you will get an authentication/permission error at send time. `Add-MailboxPermission` with `FullAccess` is the command that actually works.
 
 ### Step 5: Configure in OneUptime
 

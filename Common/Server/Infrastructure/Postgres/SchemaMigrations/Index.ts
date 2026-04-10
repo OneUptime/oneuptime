@@ -268,6 +268,7 @@ import { MigrationName1773402621107 } from "./1773402621107-MigrationName";
 import { MigrationName1773676206197 } from "./1773676206197-MigrationName";
 import { MigrationName1774000000000 } from "./1774000000000-MigrationName";
 import { MigrationName1774000000001 } from "./1774000000001-MigrationName";
+import { MigrationName1774000000002 } from "./1774000000002-MigrationName";
 import { MigrationName1774355321449 } from "./1774355321449-MigrationName";
 import { MigrationName1774357353502 } from "./1774357353502-MigrationName";
 import { MigrationName1774524742177 } from "./1774524742177-MigrationName";
@@ -277,6 +278,8 @@ import { MigrationName1774559064919 } from "./1774559064919-MigrationName";
 import { MigrationName1774559064920 } from "./1774559064920-MigrationName";
 import { MigrationName1774559064921 } from "./1774559064921-MigrationName";
 import { MigrationName1775735059360 } from "./1775735059360-MigrationName";
+import { MigrationName1775766676723 } from "./1775766676723-MigrationName";
+import { AddGlobalSmtpOAuth1775900000000 } from "./1775900000000-AddGlobalSmtpOAuth";
 
 export default [
   InitialMigration,
@@ -549,6 +552,7 @@ export default [
   MigrationName1773676206197,
   MigrationName1774000000000,
   MigrationName1774000000001,
+  MigrationName1774000000002,
   MigrationName1774355321449,
   MigrationName1774357353502,
   MigrationName1774524742177,
@@ -558,4 +562,6 @@ export default [
   MigrationName1774559064920,
   MigrationName1774559064921,
   MigrationName1775735059360,
+  MigrationName1775766676723,
+  AddGlobalSmtpOAuth1775900000000,
 ];

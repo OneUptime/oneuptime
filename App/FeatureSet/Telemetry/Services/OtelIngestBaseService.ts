@@ -4,15 +4,22 @@ import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
 export default abstract class OtelIngestBaseService {
+  private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
+    "docker-container-name";
+  private static readonly DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
   @CaptureSpan()
-  protected static getServiceNameFromAttributes(
+  protected static async getServiceNameFromAttributes(
     req: ExpressRequest,
     attributes: JSONArray,
-  ): string {
+  ): Promise<string> {
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -35,7 +42,161 @@ export default abstract class OtelIngestBaseService {
       return serviceName;
     }
 
+    /*
+     * Docker-aware fallback: when telemetry arrives from a OneUptime Docker
+     * Agent (container.runtime == "docker"), there is no explicit
+     * service.name. Synthesize a per-container service name so each
+     * container shows up as its own service in the OneUptime UI instead of
+     * every Docker log collapsing into "Unknown Service".
+     */
+    if (this.isDockerRuntime(attributes)) {
+      const dockerServiceName: string | null = await this.getDockerServiceName(
+        req,
+        attributes,
+      );
+      if (dockerServiceName) {
+        return dockerServiceName;
+      }
+    }
+
     return "Unknown Service";
+  }
+
+  @CaptureSpan()
+  private static async getDockerServiceName(
+    req: ExpressRequest,
+    attributes: JSONArray,
+  ): Promise<string | null> {
+    const hostName: string | null = this.getHostNameFromAttributes(attributes);
+    const containerName: string | null = this.getStringAttribute(
+      attributes,
+      "container.name",
+    );
+    const containerId: string | null = this.getStringAttribute(
+      attributes,
+      "container.id",
+    );
+
+    /*
+     * docker_stats metric batches carry both container.id and
+     * container.name as resource attributes, while filelog-originated log
+     * batches only carry container.id (the filelog receiver has no way to
+     * query the Docker API for names). Cache the id -> name mapping off
+     * the metrics path so later log batches for the same container can
+     * resolve to a proper service name.
+     */
+    if (containerId && containerName) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          await GlobalCache.setString(
+            this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+            containerName,
+            {
+              expiresInSeconds: this.DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+            },
+          );
+        }
+      } catch (err) {
+        logger.error(
+          "Error caching Docker container name: " + (err as Error).message,
+        );
+      }
+    }
+
+    if (containerName) {
+      return this.normalizeDockerContainerName(containerName);
+    }
+
+    // Logs path: try the id -> name cache populated by the metrics path.
+    if (containerId) {
+      try {
+        const projectId: ObjectID | undefined = (
+          req as ExpressRequest & { projectId?: ObjectID }
+        ).projectId;
+        if (projectId) {
+          const cached: string | null = await GlobalCache.getString(
+            this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
+            `${projectId.toString()}:${containerId}`,
+          );
+          if (cached) {
+            return this.normalizeDockerContainerName(cached);
+          }
+        }
+      } catch (err) {
+        logger.error(
+          "Error reading Docker container name cache: " +
+            (err as Error).message,
+        );
+      }
+
+      /*
+       * No cache hit yet (metrics scrape every 30s so the first few log
+       * batches for a newly-started container can race ahead of the cache
+       * fill). Fall back to a stable synthetic name derived from the host
+       * and the short container id so logs are still grouped per container.
+       */
+      const shortId: string = containerId.substring(0, 12);
+      if (hostName) {
+        return `docker/${hostName}/${shortId}`;
+      }
+      return `docker/${shortId}`;
+    }
+
+    /*
+     * No container identity at all — group by host so at least docker logs
+     * from the same host stick together.
+     */
+    if (hostName) {
+      return `docker/${hostName}`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Strip Docker Compose's replica index suffix (e.g. "-1", "-2") from a
+   * container name so that multiple replicas of the same service — and the
+   * same service running on different hosts — roll up into a single
+   * OneUptime telemetry service.
+   *
+   * Docker Compose names containers as "{project}-{service}-{index}" (or
+   * "{project}_{service}_{index}" with the legacy separator), so the
+   * trailing "-N" or "_N" is always the replica index. We only strip it
+   * when the prefix still looks like a valid service identifier, to avoid
+   * mangling container names that legitimately end in a digit.
+   *
+   * Examples:
+   *   oneuptime-postgres-1   -> oneuptime-postgres
+   *   oneuptime-probe-1-2    -> oneuptime-probe-1   (only the last "-2")
+   *   my-app_3               -> my-app
+   *   redis                  -> redis               (unchanged)
+   */
+  private static normalizeDockerContainerName(name: string): string {
+    const trimmed: string = name.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    /*
+     * Docker Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
+     * is already stripped by the docker_stats receiver, but handle it defensively.
+     */
+    const withoutSlash: string = trimmed.startsWith("/")
+      ? trimmed.substring(1)
+      : trimmed;
+
+    const match: RegExpMatchArray | null =
+      withoutSlash.match(/^(.+)[-_](\d+)$/);
+
+    if (!match || !match[1]) {
+      return withoutSlash;
+    }
+
+    return match[1];
   }
 
   @CaptureSpan()
@@ -109,6 +270,117 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.error(
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
+      );
+    }
+  }
+
+  @CaptureSpan()
+  protected static getHostNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "host.name");
+  }
+
+  @CaptureSpan()
+  protected static getStringAttribute(
+    attributes: JSONArray,
+    key: string,
+  ): string | null {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === key &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"]
+      ) {
+        const value: JSONValue = (attribute["value"] as JSONObject)[
+          "stringValue"
+        ];
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  @CaptureSpan()
+  protected static isDockerRuntime(attributes: JSONArray): boolean {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === "container.runtime" &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"] === "docker"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =
+    "docker-host-id";
+  private static readonly DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverDockerHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      if (!this.isDockerRuntime(data.attributes)) {
+        return;
+      }
+
+      const hostName: string | null = this.getHostNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!hostName) {
+        return;
+      }
+
+      const osType: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.type",
+      );
+      const osVersion: string | null =
+        this.getStringAttribute(data.attributes, "os.description") ||
+        this.getStringAttribute(data.attributes, "os.version");
+
+      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
+      let hostIdStr: string | null = await GlobalCache.getString(
+        this.DOCKER_HOST_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!hostIdStr) {
+        const host: DockerHost =
+          await DockerHostService.findOrCreateByHostIdentifier({
+            projectId: data.projectId,
+            hostIdentifier: hostName,
+          });
+
+        if (host._id) {
+          hostIdStr = host._id.toString();
+          await GlobalCache.setString(
+            this.DOCKER_HOST_ID_CACHE_NAMESPACE,
+            cacheKey,
+            hostIdStr,
+            { expiresInSeconds: this.DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (hostIdStr) {
+        await DockerHostService.updateLastSeen(new ObjectID(hostIdStr), {
+          osType: osType || undefined,
+          osVersion: osVersion || undefined,
+        });
+      }
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Docker host: " + (err as Error).message,
       );
     }
   }
