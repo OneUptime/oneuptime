@@ -12,7 +12,6 @@ import DockerHosts from "../Pages/Docker/Hosts";
 import DockerDocumentation from "../Pages/Docker/Documentation";
 import DockerHostOverview from "../Pages/Docker/View/Overview";
 import DockerHostContainers from "../Pages/Docker/View/Containers";
-import DockerHostEvents from "../Pages/Docker/View/Events";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
 import DockerHostSettings from "../Pages/Docker/View/Settings";
 import DockerHostDelete from "../Pages/Docker/View/Delete";
@@ -69,17 +68,6 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINERS] as Route
               }
-            />
-          }
-        />
-
-        {/* Events */}
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_EVENTS)}
-          element={
-            <DockerHostEvents
-              {...props}
-              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_EVENTS] as Route}
             />
           }
         />

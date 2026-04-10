@@ -104,14 +104,20 @@ const DockerHostLogs: FunctionComponent<
       for (const log of listResult.data) {
         const attrs: JSONObject = (log.attributes as JSONObject) || {};
 
+        const containerId: string =
+          (attrs["resource.container.id"] as string) || "";
+        const containerName: string =
+          (attrs["resource.container.name"] as string) ||
+          (containerId ? containerId.substring(0, 12) : "unknown");
+
         dockerLogs.push({
           timestamp: log.time
             ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
             : "",
-          containerName:
-            (attrs["resource.container.name"] as string) || "unknown",
+          containerName: containerName,
           severity: log.severityText || "info",
-          message: typeof log.body === "string" ? log.body : JSON.stringify(log.body),
+          message:
+            typeof log.body === "string" ? log.body : JSON.stringify(log.body),
         });
       }
 

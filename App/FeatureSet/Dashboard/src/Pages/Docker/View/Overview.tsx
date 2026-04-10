@@ -65,27 +65,6 @@ const DockerHostOverview: FunctionComponent<
             },
             {
               field: {
-                containersRunning: true,
-              },
-              title: "Containers Running",
-              fieldType: FieldType.Number,
-            },
-            {
-              field: {
-                containersStopped: true,
-              },
-              title: "Containers Stopped",
-              fieldType: FieldType.Number,
-            },
-            {
-              field: {
-                containersPaused: true,
-              },
-              title: "Containers Paused",
-              fieldType: FieldType.Number,
-            },
-            {
-              field: {
                 osType: true,
               },
               title: "OS Type",

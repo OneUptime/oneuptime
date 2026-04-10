@@ -23,12 +23,6 @@ export function getDockerBreadcrumbs(
       "View Host",
       "Containers",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_EVENTS, [
-      "Project",
-      "Docker",
-      "View Host",
-      "Events",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_LOGS, [
       "Project",
       "Docker",

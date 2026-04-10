@@ -119,9 +119,17 @@ export default abstract class OtelIngestBaseService {
   protected static getHostNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
+    return this.getStringAttribute(attributes, "host.name");
+  }
+
+  @CaptureSpan()
+  protected static getStringAttribute(
+    attributes: JSONArray,
+    key: string,
+  ): string | null {
     for (const attribute of attributes) {
       if (
-        attribute["key"] === "host.name" &&
+        attribute["key"] === key &&
         attribute["value"] &&
         (attribute["value"] as JSONObject)["stringValue"]
       ) {
@@ -173,6 +181,14 @@ export default abstract class OtelIngestBaseService {
         return;
       }
 
+      const osType: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.type",
+      );
+      const osVersion: string | null =
+        this.getStringAttribute(data.attributes, "os.description") ||
+        this.getStringAttribute(data.attributes, "os.version");
+
       const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
       let hostIdStr: string | null = await GlobalCache.getString(
         this.DOCKER_HOST_ID_CACHE_NAMESPACE,
@@ -198,7 +214,10 @@ export default abstract class OtelIngestBaseService {
       }
 
       if (hostIdStr) {
-        await DockerHostService.updateLastSeen(new ObjectID(hostIdStr));
+        await DockerHostService.updateLastSeen(new ObjectID(hostIdStr), {
+          osType: osType || undefined,
+          osVersion: osVersion || undefined,
+        });
       }
     } catch (err) {
       logger.error(

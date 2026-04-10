@@ -88,7 +88,13 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  public async updateLastSeen(hostId: ObjectID): Promise<void> {
+  public async updateLastSeen(
+    hostId: ObjectID,
+    extra?: {
+      osType?: string | undefined;
+      osVersion?: string | undefined;
+    },
+  ): Promise<void> {
     const cacheKey: string = hostId.toString();
 
     const cached: string | null = await GlobalCache.getString(
@@ -104,12 +110,22 @@ export class Service extends DatabaseService<Model> {
       expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {
+      lastSeenAt: OneUptimeDate.getCurrentDate(),
+      otelCollectorStatus: "connected",
+    };
+
+    if (extra?.osType) {
+      data.osType = extra.osType;
+    }
+    if (extra?.osVersion) {
+      data.osVersion = extra.osVersion;
+    }
+
     await this.updateOneById({
       id: hostId,
-      data: {
-        lastSeenAt: OneUptimeDate.getCurrentDate(),
-        otelCollectorStatus: "connected",
-      },
+      data: data,
       props: {
         isRoot: true,
       },

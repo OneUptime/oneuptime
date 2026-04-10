@@ -177,17 +177,10 @@ const DockerHosts: FunctionComponent<
           },
           {
             field: {
-              containersRunning: true,
+              lastSeenAt: true,
             },
-            title: "Running",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              containersStopped: true,
-            },
-            title: "Stopped",
-            type: FieldType.Number,
+            title: "Last Seen",
+            type: FieldType.DateTime,
           },
           {
             field: {

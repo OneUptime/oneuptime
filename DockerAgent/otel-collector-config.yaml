@@ -7,12 +7,28 @@ receivers:
     #           container.blockio.*, container.uptime, container.restarts,
     #           container.pids.count
 
-  file_log:
+  filelog:
     include:
-      - /var/lib/docker/containers/*/*.log
+      - /var/lib/docker/containers/*/*-json.log
+    start_at: end
+    include_file_path: true
+    include_file_name: false
     operators:
+      # Parse the Docker JSON log envelope
       - type: json_parser
-        # Docker JSON log format: {"log":"...","stream":"stdout","time":"..."}
+        id: parser-docker
+        timestamp:
+          parse_from: attributes.time
+          layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+      # Extract the container ID from the file path so we can display
+      # it on the Logs page and correlate with docker_stats metrics.
+      - type: regex_parser
+        id: extract-container-id
+        regex: "^/var/lib/docker/containers/(?P<container_id>[^/]+)/.+$"
+        parse_from: attributes["log.file.path"]
+      - type: move
+        from: attributes.container_id
+        to: resource["container.id"]
       - type: move
         from: attributes.log
         to: body
@@ -41,6 +57,14 @@ processors:
     check_interval: 5s
     limit_mib: 512
     spike_limit_mib: 128
+  # Drop noisy collector self-logs that slip through the filelog exclude
+  # (e.g. if DOCKER_AGENT_CONTAINER_ID is not set). Matches on the
+  # OTel Collector's characteristic error strings.
+  filter/drop_self_logs:
+    error_mode: ignore
+    logs:
+      log_record:
+        - 'IsMatch(body, ".*(otelcol|Exporting failed|exporterhelper).*")'
 
 exporters:
   otlp_http:
@@ -55,6 +79,7 @@ service:
       processors: [memory_limiter, resourcedetection, resource, batch]
       exporters: [otlp_http]
     logs:
-      receivers: [file_log]
-      processors: [memory_limiter, resourcedetection, resource, batch]
+      receivers: [filelog]
+      processors:
+        [memory_limiter, filter/drop_self_logs, resourcedetection, resource, batch]
       exporters: [otlp_http]

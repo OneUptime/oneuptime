@@ -61,10 +61,6 @@ import {
   getKubernetesMetricByMetricName,
   KubernetesMetricDefinition,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
-import {
-  getDockerMetricByMetricName,
-  DockerMetricDefinition,
-} from "Common/Types/Monitor/DockerMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
