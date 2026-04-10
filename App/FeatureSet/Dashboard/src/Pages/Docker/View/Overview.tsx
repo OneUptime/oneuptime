@@ -11,7 +11,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const DockerHostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
     <Fragment>

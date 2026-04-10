@@ -171,7 +171,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         RouteMap[PageMap.DOCKER_HOSTS] as Route,
       ),
       activeRoute: RouteMap[PageMap.DOCKER_HOSTS],
-      icon: IconProp.Cube,
+      icon: IconProp.Docker,
       iconColor: "blue",
       category: "Observability",
     },
