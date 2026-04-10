@@ -28,6 +28,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Column from "Common/UI/Components/Table/Types/Column";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 interface DockerContainerRow {
   containerName: string;
@@ -270,8 +274,31 @@ const DockerHostContainers: FunctionComponent<
         type: FieldType.Text,
         key: "networkTx",
       },
+      {
+        title: "",
+        type: FieldType.Element,
+        key: "containerName",
+        disableSort: true,
+        getElement: (row: DockerContainerRow): ReactElement => {
+          const route: Route = RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: row.containerName,
+            },
+          );
+          return (
+            <Link
+              to={route}
+              className="text-indigo-600 hover:text-indigo-900 font-medium"
+            >
+              View
+            </Link>
+          );
+        },
+      },
     ];
-  }, []);
+  }, [modelId]);
 
   const cardButtons: Array<CardButtonSchema> = [
     {

@@ -61,6 +61,28 @@ receivers:
       - type: move
         from: attributes.stream
         to: attributes["log.iostream"]
+      # Docker's json-file driver does not record a severity; OTel log records
+      # have dedicated severity_number / severity_text fields that downstream
+      # viewers rely on for filtering. Derive a best-effort severity from the
+      # stdout/stderr stream: stderr -> ERROR, stdout -> INFO.
+      - type: add
+        id: add-severity-text
+        field: attributes.severity_text
+        value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
+      # Promote the textual severity onto the LogRecord itself so OTel log
+      # consumers see a real severity_number (17 for ERROR, 9 for INFO) rather
+      # than Unspecified.
+      - type: severity_parser
+        id: severity-parser
+        parse_from: attributes.severity_text
+        mapping:
+          error: ERROR
+          info: INFO
+      # Remove the now-redundant attribute so we don't duplicate the value
+      # both as an attribute and as the record's severity field.
+      - type: remove
+        id: remove-severity-attr
+        field: attributes.severity_text
 
 processors:
   resource:
