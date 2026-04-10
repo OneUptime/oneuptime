@@ -146,7 +146,7 @@ services:
             retries: 5
             start_period: 10s
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -169,7 +169,7 @@ services:
             retries: 5
             start_period: 15s
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -191,7 +191,7 @@ services:
             retries: 5
             start_period: 15s
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
         
@@ -207,7 +207,7 @@ services:
         volumes:
             - ./LLM/Models:/app/Models
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -221,7 +221,7 @@ services:
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
             ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_TEST_SERVER}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
             
@@ -245,7 +245,7 @@ services:
             TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
             REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -257,7 +257,7 @@ services:
             <<: *common-runtime-variables
             PORT: ${HOME_PORT}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -282,7 +282,7 @@ services:
             OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
             OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -307,7 +307,7 @@ services:
             OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
             OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -322,7 +322,7 @@ services:
             ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_AI_AGENT}
             PORT: ${AI_AGENT_PORT}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -331,7 +331,7 @@ services:
           - oneuptime
         restart: always
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
     
@@ -340,7 +340,7 @@ services:
           - oneuptime
         restart: always
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -355,7 +355,7 @@ services:
             E2E_TEST_STATUS_PAGE_URL: ${E2E_TEST_STATUS_PAGE_URL}
             E2E_TESTS_FAILED_WEBHOOK_URL: ${E2E_TESTS_FAILED_WEBHOOK_URL}
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
@@ -373,7 +373,7 @@ services:
             - '${ONEUPTIME_HTTP_PORT}:7849'
             - '${STATUS_PAGE_HTTPS_PORT}:7850'
         logging:
-            driver: "local"
+            driver: "json-file"
             options:
                 max-size: "1000m"
 
