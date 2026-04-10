@@ -41,5 +41,11 @@ COPY ./DockerAgent/otel-collector-config.yaml /etc/otelcol-contrib/config.yaml
 # `${env:DOCKER_HOST_NAME}` placeholder in the baked-in config.
 ENV DOCKER_HOST_NAME=docker-host
 
+# Run as root so the collector can read the Docker socket and
+# /var/lib/docker/containers/*/*-json.log without additional user/group
+# configuration. The base image defaults to a non-root user (10001) which
+# does not have access to either resource on most hosts.
+USER 0:0
+
 # The base image already sets ENTRYPOINT to the collector binary with
 # --config=/etc/otelcol-contrib/config.yaml, so nothing else is needed.

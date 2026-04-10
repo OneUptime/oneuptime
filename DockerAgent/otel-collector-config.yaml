@@ -1,8 +1,10 @@
 receivers:
   docker_stats:
     endpoint: unix:///var/run/docker.sock
+    # Pin to a modern Docker Engine API version. The receiver default is
+    # "1.25" which modern Docker daemons reject ("client version too old").
+    api_version: "1.44"
     collection_interval: 30s
-    provide_per_core_cpu_metrics: true
     # Collects: container.cpu.*, container.memory.*, container.network.io.*,
     #           container.blockio.*, container.uptime, container.restarts,
     #           container.pids.count
@@ -10,6 +12,14 @@ receivers:
   filelog:
     include:
       - /var/lib/docker/containers/*/*-json.log
+    # Exclude the agent's own container log to avoid a feedback loop where
+    # the collector ingests and exports its own scrape/export stack traces.
+    # Inside a Docker container, HOSTNAME defaults to the short (12-char)
+    # container ID, and Docker stores each container's log under a directory
+    # named by the full container ID, so a prefix glob excludes this
+    # container's log file on start-up.
+    exclude:
+      - /var/lib/docker/containers/${env:HOSTNAME}*/*-json.log
     start_at: end
     include_file_path: true
     include_file_name: false
@@ -64,10 +74,10 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        - 'IsMatch(body, ".*(otelcol|Exporting failed|exporterhelper).*")'
+        - 'IsMatch(body, ".*(otelcol|exporterhelper|scraperhelper|opentelemetry\\.io/collector|opentelemetry-collector-contrib|dockerstatsreceiver|Error scraping metrics).*")'
 
 exporters:
-  otlp_http:
+  otlphttp:
     endpoint: "${env:ONEUPTIME_URL}/otlp"
     headers:
       x-oneuptime-service-token: "${env:ONEUPTIME_SERVICE_TOKEN}"
@@ -77,9 +87,9 @@ service:
     metrics:
       receivers: [docker_stats]
       processors: [memory_limiter, resourcedetection, resource, batch]
-      exporters: [otlp_http]
+      exporters: [otlphttp]
     logs:
       receivers: [filelog]
       processors:
         [memory_limiter, filter/drop_self_logs, resourcedetection, resource, batch]
-      exporters: [otlp_http]
+      exporters: [otlphttp]

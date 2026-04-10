@@ -6,6 +6,7 @@ import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Log from "Common/Models/AnalyticsModels/Log";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -70,12 +71,16 @@ const DockerHostLogs: FunctionComponent<
 
       const endDate: Date = OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
+      const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
+      // Fetch both logs and recent docker_stats metrics in parallel so we
+      // can enrich log rows with container names (filelog only has
+      // container.id from the file path).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queryOptions: any = {
+      const logQuery: any = {
         modelType: Log,
         query: {
-          projectId: ProjectUtil.getCurrentProjectId()!.toString(),
+          projectId: projectId,
           time: new InBetween<Date>(startDate, endDate),
           attributes: {
             "resource.host.name": host.hostIdentifier,
@@ -96,8 +101,52 @@ const DockerHostLogs: FunctionComponent<
         requestOptions: {},
       };
 
-      const listResult: ListResult<Log> =
-        await AnalyticsModelAPI.getList<Log>(queryOptions);
+      const metricStartDate: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -10,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metricQuery: any = {
+        modelType: Metric,
+        query: {
+          projectId: projectId,
+          name: "container.cpu.utilization",
+          time: new InBetween<Date>(metricStartDate, endDate),
+          attributes: {
+            "resource.host.name": host.hostIdentifier,
+            "resource.container.runtime": "docker",
+          },
+        },
+        limit: 500,
+        skip: 0,
+        select: {
+          attributes: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        requestOptions: {},
+      };
+
+      const [listResult, metricResult]: [ListResult<Log>, ListResult<Metric>] =
+        await Promise.all([
+          AnalyticsModelAPI.getList<Log>(logQuery),
+          AnalyticsModelAPI.getList<Metric>(metricQuery),
+        ]);
+
+      // Build container.id -> container.name map from recent metrics.
+      const containerIdToName: Map<string, string> = new Map();
+      for (const metric of metricResult.data) {
+        const attrs: Record<string, unknown> =
+          (metric.attributes as Record<string, unknown>) || {};
+        const cid: string = (attrs["resource.container.id"] as string) || "";
+        const cname: string =
+          (attrs["resource.container.name"] as string) || "";
+        if (cid && cname && !containerIdToName.has(cid)) {
+          containerIdToName.set(cid, cname);
+        }
+      }
 
       const dockerLogs: Array<DockerLogRow> = [];
 
@@ -108,6 +157,7 @@ const DockerHostLogs: FunctionComponent<
           (attrs["resource.container.id"] as string) || "";
         const containerName: string =
           (attrs["resource.container.name"] as string) ||
+          containerIdToName.get(containerId) ||
           (containerId ? containerId.substring(0, 12) : "unknown");
 
         dockerLogs.push({
@@ -115,7 +165,10 @@ const DockerHostLogs: FunctionComponent<
             ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
             : "",
           containerName: containerName,
-          severity: log.severityText || "info",
+          severity:
+            log.severityText && log.severityText !== "Unspecified"
+              ? log.severityText
+              : "Info",
           message:
             typeof log.body === "string" ? log.body : JSON.stringify(log.body),
         });
