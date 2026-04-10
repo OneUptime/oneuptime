@@ -23,6 +23,12 @@ import LogAggregationService, {
   AnalyticsTopItem,
   AnalyticsTableRow,
 } from "../Services/LogAggregationService";
+import TraceAggregationService, {
+  HistogramBucket as TraceHistogramBucket,
+  HistogramRequest as TraceHistogramRequest,
+  FacetValue as TraceFacetValue,
+  FacetRequest as TraceFacetRequest,
+} from "../Services/TraceAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
   FunctionListRequest,
@@ -367,6 +373,205 @@ router.post(
         };
 
         facets[facetKey] = await LogAggregationService.getFacetValues(request);
+      }
+
+      return Response.sendJsonObjectResponse(req, res, {
+        facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Histogram Endpoint ---
+
+router.post(
+  "/telemetry/traces/histogram",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const bucketSizeInMinutes: number =
+        (body["bucketSizeInMinutes"] as number) ||
+        computeDefaultBucketSize(startTime, endTime);
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const statusCodes: Array<number> | undefined = body["statusCodes"]
+        ? (body["statusCodes"] as Array<number>)
+        : undefined;
+
+      const spanKinds: Array<string> | undefined = body["spanKinds"]
+        ? (body["spanKinds"] as Array<string>)
+        : undefined;
+
+      const spanNames: Array<string> | undefined = body["spanNames"]
+        ? (body["spanNames"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const nameSearchText: string | undefined = body["nameSearchText"]
+        ? (body["nameSearchText"] as string)
+        : undefined;
+
+      const rootOnly: boolean | undefined =
+        body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
+
+      const attributes: Record<string, string> | undefined = body["attributes"]
+        ? (body["attributes"] as Record<string, string>)
+        : undefined;
+
+      const request: TraceHistogramRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes,
+        serviceIds,
+        statusCodes,
+        spanKinds,
+        spanNames,
+        traceIds,
+        nameSearchText,
+        rootOnly,
+        attributes,
+      };
+
+      const buckets: Array<TraceHistogramBucket> =
+        await TraceAggregationService.getHistogram(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        buckets: buckets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Facets Endpoint ---
+
+router.post(
+  "/telemetry/traces/facets",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const facetKeys: Array<string> = body["facetKeys"]
+        ? (body["facetKeys"] as Array<string>)
+        : ["serviceId", "statusCode", "kind", "name"];
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const limit: number = (body["limit"] as number) || 500;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const statusCodes: Array<number> | undefined = body["statusCodes"]
+        ? (body["statusCodes"] as Array<number>)
+        : undefined;
+
+      const spanKinds: Array<string> | undefined = body["spanKinds"]
+        ? (body["spanKinds"] as Array<string>)
+        : undefined;
+
+      const spanNames: Array<string> | undefined = body["spanNames"]
+        ? (body["spanNames"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const nameSearchText: string | undefined = body["nameSearchText"]
+        ? (body["nameSearchText"] as string)
+        : undefined;
+
+      const rootOnly: boolean | undefined =
+        body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
+
+      const attributes: Record<string, string> | undefined = body["attributes"]
+        ? (body["attributes"] as Record<string, string>)
+        : undefined;
+
+      const facets: Record<string, Array<TraceFacetValue>> = {};
+
+      for (const facetKey of facetKeys) {
+        const request: TraceFacetRequest = {
+          projectId: databaseProps.tenantId,
+          startTime,
+          endTime,
+          facetKey,
+          limit,
+          serviceIds,
+          statusCodes,
+          spanKinds,
+          spanNames,
+          traceIds,
+          nameSearchText,
+          rootOnly,
+          attributes,
+        };
+
+        facets[facetKey] =
+          await TraceAggregationService.getFacetValues(request);
       }
 
       return Response.sendJsonObjectResponse(req, res, {

@@ -35,17 +35,46 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { APP_API_URL } from "Common/UI/Config";
+import { JSONObject } from "Common/Types/JSON";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import TraceRow from "./TraceRow";
 
 const DEFAULT_PAGE_SIZE: number = 50;
-const HISTOGRAM_MAX_SAMPLE: number = 5000;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
+
+async function postApi(
+  path: string,
+  data: JSONObject,
+): Promise<HTTPResponse<JSONObject>> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(path),
+      data,
+      headers: ModelAPI.getCommonHeaders(),
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return response;
+}
+
+function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
+  const totalMs: number = endTime.getTime() - startTime.getTime();
+  const targetBuckets: number = 40;
+  const raw: number = Math.max(60000, Math.floor(totalMs / targetBuckets));
+  return Math.max(1, Math.ceil(raw / 60000));
+}
 
 const SPAN_STATUS_COLOR: Record<number, string> = {
   [SpanStatus.Unset]: "#9ca3af",
@@ -93,29 +122,6 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
 
 interface Props {
   serviceId?: ObjectID | undefined;
-}
-
-function computeBucketSizeMs(startTime: Date, endTime: Date): number {
-  const totalMs: number = endTime.getTime() - startTime.getTime();
-  const targetBuckets: number = 40;
-  const raw: number = Math.max(60000, Math.floor(totalMs / targetBuckets));
-  // Round to nearest minute
-  return Math.ceil(raw / 60000) * 60000;
-}
-
-function bucketKey(date: Date, bucketMs: number): string {
-  const t: number = Math.floor(date.getTime() / bucketMs) * bucketMs;
-  return new Date(t).toISOString();
-}
-
-function statusKey(status: SpanStatus | number | undefined | null): string {
-  if (status === SpanStatus.Error) {
-    return "error";
-  }
-  if (status === SpanStatus.Ok) {
-    return "ok";
-  }
-  return "unset";
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -326,104 +332,138 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     [baseQuery, page, pageSize, listSelect],
   );
 
-  // Fetch histogram + facets from an auxiliary unpaged sample
+  // Build the aggregation request payload — shared by histogram and facets
+  const aggregationRequest: JSONObject = useMemo(() => {
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    const payload: JSONObject = {
+      startTime: dateRange.startValue.toISOString(),
+      endTime: dateRange.endValue.toISOString(),
+      rootOnly: true,
+    };
+
+    // Collect filter values from both active facet filters and parsed search
+    const groups: Record<string, Array<string>> = {};
+    for (const filter of activeFilters) {
+      if (!groups[filter.facetKey]) {
+        groups[filter.facetKey] = [];
+      }
+      groups[filter.facetKey]!.push(filter.value);
+    }
+
+    const { fieldFilters, freeText } = parseSearch(submittedSearch);
+    for (const key of Object.keys(fieldFilters)) {
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key]!.push(...fieldFilters[key]!);
+    }
+
+    // Scope by serviceId prop if present
+    if (props.serviceId) {
+      if (!groups["serviceId"]) {
+        groups["serviceId"] = [];
+      }
+      groups["serviceId"]!.push(props.serviceId.toString());
+    }
+
+    if (groups["serviceId"] && groups["serviceId"].length > 0) {
+      payload["serviceIds"] = groups["serviceId"];
+    }
+
+    if (groups["statusCode"] && groups["statusCode"].length > 0) {
+      payload["statusCodes"] = groups["statusCode"].map((v: string): number => {
+        const lower: string = v.toLowerCase();
+        if (lower === "error" || v === String(SpanStatus.Error)) {
+          return SpanStatus.Error;
+        }
+        if (lower === "ok" || v === String(SpanStatus.Ok)) {
+          return SpanStatus.Ok;
+        }
+        return SpanStatus.Unset;
+      });
+    }
+
+    if (groups["kind"] && groups["kind"].length > 0) {
+      payload["spanKinds"] = groups["kind"];
+    }
+
+    if (groups["name"] && groups["name"].length > 0) {
+      payload["spanNames"] = groups["name"];
+    }
+
+    if (groups["traceId"] && groups["traceId"].length > 0) {
+      payload["traceIds"] = groups["traceId"];
+    }
+
+    if (freeText && freeText.length > 0) {
+      payload["nameSearchText"] = freeText;
+    }
+
+    return payload;
+  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.serviceId]);
+
+  // Fetch histogram + facets from dedicated backend endpoints
   const fetchHistogramAndFacets: () => Promise<void> = useCallback(async () => {
     setHistogramLoading(true);
     setFacetLoading(true);
-    try {
-      const sample: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
-        modelType: Span,
-        query: baseQuery,
-        limit: HISTOGRAM_MAX_SAMPLE,
-        skip: 0,
-        select: {
-          startTime: true,
-          statusCode: true,
-          serviceId: true,
-          name: true,
-          kind: true,
-        } as Select<Span>,
-        sort: { startTime: SortOrder.Descending } as Record<string, SortOrder>,
-        requestOptions: {},
-      });
 
-      // Histogram
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-      const bucketMs: number = computeBucketSizeMs(
-        dateRange.startValue,
-        dateRange.endValue,
-      );
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    const bucketSizeInMinutes: number = computeBucketSizeInMinutes(
+      dateRange.startValue,
+      dateRange.endValue,
+    );
 
-      const countMap: Map<string, Map<string, number>> = new Map();
-      for (const span of sample.data) {
-        if (!span.startTime) {
-          continue;
-        }
-        const d: Date = OneUptimeDate.fromString(
-          span.startTime as unknown as string,
-        );
-        const key: string = bucketKey(d, bucketMs);
-        const series: string = statusKey(span.statusCode);
-        if (!countMap.has(key)) {
-          countMap.set(key, new Map());
-        }
-        const inner: Map<string, number> = countMap.get(key)!;
-        inner.set(series, (inner.get(series) || 0) + 1);
-      }
+    const histogramPayload: JSONObject = {
+      ...aggregationRequest,
+      bucketSizeInMinutes,
+    };
 
-      const buckets: Array<HistogramBucket> = [];
-      for (const [time, inner] of countMap.entries()) {
-        for (const [series, count] of inner.entries()) {
-          buckets.push({ time, series, count });
-        }
-      }
-      buckets.sort((a: HistogramBucket, b: HistogramBucket): number => {
-        return a.time.localeCompare(b.time);
-      });
+    const facetsPayload: JSONObject = {
+      ...aggregationRequest,
+      facetKeys: ["serviceId", "statusCode", "kind", "name"],
+      limit: 20,
+    };
+
+    const [histogramResult, facetsResult] = await Promise.allSettled([
+      postApi("/telemetry/traces/histogram", histogramPayload),
+      postApi("/telemetry/traces/facets", facetsPayload),
+    ]);
+
+    if (histogramResult.status === "fulfilled") {
+      const buckets: Array<HistogramBucket> = (histogramResult.value.data[
+        "buckets"
+      ] || []) as unknown as Array<HistogramBucket>;
       setHistogramBuckets(buckets);
-
-      // Facets (computed client-side from sample)
-      const facetKeys: Array<string> = [
-        "serviceId",
-        "statusCode",
-        "kind",
-        "name",
-      ];
-      const facets: FacetData = {};
-      for (const key of facetKeys) {
-        const counts: Map<string, number> = new Map();
-        for (const span of sample.data) {
-          const raw: unknown = (span as unknown as Record<string, unknown>)[
-            key
-          ];
-          if (raw === null || raw === undefined) {
-            continue;
-          }
-          const value: string =
-            raw instanceof ObjectID ? raw.toString() : String(raw);
-          counts.set(value, (counts.get(value) || 0) + 1);
-        }
-        const sorted: Array<FacetValue> = Array.from(counts.entries())
-          .map(([value, count]: [string, number]): FacetValue => {
-            return { value, count };
-          })
-          .sort((a: FacetValue, b: FacetValue): number => {
-            return b.count - a.count;
-          })
-          .slice(0, 20);
-        facets[key] = sorted;
-      }
-      setFacetData(facets);
-    } catch {
-      // non-critical
+    } else {
       setHistogramBuckets([]);
-      setFacetData({});
-    } finally {
-      setHistogramLoading(false);
-      setFacetLoading(false);
     }
-  }, [baseQuery, timeRange]);
+
+    if (facetsResult.status === "fulfilled") {
+      const facetsRaw: Record<string, Array<FacetValue>> = (facetsResult.value
+        .data["facets"] || {}) as unknown as Record<string, Array<FacetValue>>;
+
+      // statusCode values come back as numeric strings from ClickHouse — map
+      // them to lowercase labels so TraceRow/facet config can render them.
+      const mappedFacets: FacetData = { ...facetsRaw };
+      if (facetsRaw["statusCode"]) {
+        mappedFacets["statusCode"] = facetsRaw["statusCode"].map(
+          (f: FacetValue): FacetValue => {
+            const n: number = Number(f.value);
+            return { value: String(n), count: f.count };
+          },
+        );
+      }
+      setFacetData(mappedFacets);
+    } else {
+      setFacetData({});
+    }
+
+    setHistogramLoading(false);
+    setFacetLoading(false);
+  }, [aggregationRequest, timeRange]);
 
   useEffect(() => {
     void fetchSpans();
