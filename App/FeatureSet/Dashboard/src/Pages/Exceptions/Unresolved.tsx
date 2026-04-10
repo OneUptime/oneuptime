@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ExceptionsTable from "../../Components/Exceptions/ExceptionsTable";
+import ExceptionsViewer from "../../Components/Exceptions/ExceptionsViewer";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -62,16 +62,7 @@ const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
     return <TelemetryDocumentation telemetryType="exceptions" />;
   }
 
-  return (
-    <ExceptionsTable
-      query={{
-        isResolved: false,
-        isArchived: false,
-      }}
-      title="Unresolved Exceptions"
-      description="All the exceptions that have not been resolved."
-    />
-  );
+  return <ExceptionsViewer defaultStatus="unresolved" />;
 };
 
 export default UnresolvedExceptionsPage;

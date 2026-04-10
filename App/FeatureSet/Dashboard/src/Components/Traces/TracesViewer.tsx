@@ -7,8 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useNavigate, NavigateFunction } from "react-router-dom";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TraceDetailPanel from "./TraceDetailPanel";
 import {
   ActiveFilter,
   FacetConfig,
@@ -41,8 +41,6 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import TraceRow from "./TraceRow";
 
 const DEFAULT_PAGE_SIZE: number = 50;
@@ -121,9 +119,8 @@ function statusKey(status: SpanStatus | number | undefined | null): string {
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
-  const navigate: NavigateFunction = useNavigate();
-
   const [spans, setSpans] = useState<Array<Span>>([]);
+  const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -597,20 +594,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setPage(1);
     }, []);
 
-  // Row click → navigate to trace view
-  const handleRowClick: (span: Span) => void = useCallback(
-    (span: Span) => {
-      if (!span.traceId) {
-        return;
-      }
-      const route: string = RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TRACE_VIEW]!,
-        { modelId: span.traceId.toString() },
-      ).toString();
-      navigate(route);
-    },
-    [navigate],
-  );
+  // Row click → open detail panel
+  const handleRowClick: (span: Span) => void = useCallback((span: Span) => {
+    setSelectedSpan(span);
+  }, []);
 
   return (
     <TelemetryViewer<Span>
@@ -689,6 +676,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setPageSize(size);
         setPage(1);
       }}
+      detailPanel={
+        <TraceDetailPanel
+          isOpen={selectedSpan !== null}
+          span={selectedSpan}
+          serviceById={serviceById}
+          onClose={() => {
+            setSelectedSpan(null);
+          }}
+        />
+      }
     />
   );
 };

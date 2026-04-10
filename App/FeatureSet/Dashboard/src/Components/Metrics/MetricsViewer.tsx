@@ -1,0 +1,525 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import {
+  ActiveFilter,
+  FacetConfig,
+  FacetData,
+  FacetValue,
+  SearchHelpRow,
+} from "Common/UI/Components/TelemetryViewer/types";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+import Service from "Common/Models/DatabaseModels/Service";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import ModelAPI, {
+  ListResult as ModelListResult,
+} from "Common/UI/Utils/ModelAPI/ModelAPI";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
+import ObjectID from "Common/Types/ObjectID";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import ProjectUtil from "Common/UI/Utils/Project";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
+import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import MetricRow from "./MetricRow";
+import { SparklinePoint } from "./MetricSparkline";
+
+const DEFAULT_PAGE_SIZE: number = 50;
+
+const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
+  {
+    syntax: "@name:<fragment>",
+    description: "Filter by metric name",
+    example: "@name:http.server",
+  },
+  {
+    syntax: "@service:<name>",
+    description: "Filter by service",
+    example: "@service:api",
+  },
+];
+
+const FIELD_ALIAS_MAP: Record<string, string> = {
+  name: "name",
+  service: "services.name",
+};
+
+interface Props {
+  serviceIds?: Array<ObjectID> | undefined;
+}
+
+const MetricsViewer: FunctionComponent<Props> = (
+  props: Props,
+): ReactElement => {
+  const [metrics, setMetrics] = useState<Array<MetricType>>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
+  const [services, setServices] = useState<Array<Service>>([]);
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [submittedSearch, setSubmittedSearch] = useState<string>("");
+
+  const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
+
+  // name -> sparkline data
+  const [sparklineData, setSparklineData] = useState<
+    Record<string, Array<SparklinePoint>>
+  >({});
+  const [sparklineLastValue, setSparklineLastValue] = useState<
+    Record<string, number>
+  >({});
+  const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
+
+  // Load services once
+  useEffect(() => {
+    const loadServices: () => Promise<void> = async () => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          return;
+        }
+        const result: ModelListResult<Service> = await ModelAPI.getList({
+          modelType: Service,
+          query: { projectId },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { name: true, serviceColor: true },
+          sort: { name: SortOrder.Ascending },
+        });
+        setServices(result.data || []);
+      } catch {
+        // non-critical
+      }
+    };
+    void loadServices();
+  }, []);
+
+  // Parse search string
+  const parseSearch: (raw: string) => {
+    freeText: string;
+    nameFragment: string | null;
+    serviceFragment: string | null;
+  } = useCallback((raw: string) => {
+    let nameFragment: string | null = null;
+    let serviceFragment: string | null = null;
+    const freeTextParts: Array<string> = [];
+    const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
+    for (const token of tokens) {
+      const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
+      if (match) {
+        const alias: string = match[1]!;
+        const value: string = match[2]!;
+        if (alias === "name") {
+          nameFragment = value;
+        } else if (alias === "service") {
+          serviceFragment = value;
+        }
+      } else {
+        freeTextParts.push(token);
+      }
+    }
+    return {
+      freeText: freeTextParts.join(" ").trim(),
+      nameFragment,
+      serviceFragment,
+    };
+  }, []);
+
+  // Build metric query
+  const metricQuery: Query<MetricType> = useMemo(() => {
+    const query: Query<MetricType> = {};
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (projectId) {
+      query.projectId = projectId;
+    }
+
+    // Prop-level service filter
+    const propServiceIds: Array<ObjectID> = props.serviceIds || [];
+
+    // Active facet filters for service
+    const facetServiceIds: Array<ObjectID> = [];
+    for (const filter of activeFilters) {
+      if (filter.facetKey === "serviceId") {
+        facetServiceIds.push(new ObjectID(filter.value));
+      }
+    }
+
+    const mergedServiceIds: Array<ObjectID> = [
+      ...propServiceIds,
+      ...facetServiceIds,
+    ];
+
+    if (mergedServiceIds.length > 0) {
+      (query as Record<string, unknown>)["services"] = new Includes(
+        mergedServiceIds,
+      );
+    }
+
+    // Name search (freeText + @name:)
+    const parsed: ReturnType<typeof parseSearch> = parseSearch(submittedSearch);
+    const nameQuery: string | null = parsed.nameFragment || parsed.freeText;
+    if (nameQuery) {
+      // Simple contains — the backend should honor string substring on name
+      (query as Record<string, unknown>)["name"] = nameQuery;
+    }
+
+    return query;
+  }, [props.serviceIds, activeFilters, submittedSearch, parseSearch]);
+
+  // Fetch metric list
+  const fetchMetrics: () => Promise<void> = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const result: ModelListResult<MetricType> = await ModelAPI.getList({
+        modelType: MetricType,
+        query: metricQuery,
+        limit: pageSize,
+        skip: (page - 1) * pageSize,
+        select: {
+          name: true,
+          description: true,
+          unit: true,
+          services: {
+            _id: true,
+            name: true,
+            serviceColor: true,
+          },
+        },
+        sort: { name: SortOrder.Ascending },
+      });
+      setMetrics(result.data || []);
+      setTotalCount(result.count);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [metricQuery, page, pageSize]);
+
+  useEffect(() => {
+    void fetchMetrics();
+  }, [fetchMetrics]);
+
+  // Batch-fetch sparklines for visible metric names
+  const visibleNames: Array<string> = useMemo(() => {
+    return metrics
+      .map((m: MetricType): string | undefined => {
+        return m.name || undefined;
+      })
+      .filter((n: string | undefined): n is string => {
+        return typeof n === "string" && n.length > 0;
+      });
+  }, [metrics]);
+
+  useEffect(() => {
+    if (visibleNames.length === 0) {
+      setSparklineData({});
+      setSparklineLastValue({});
+      return;
+    }
+    const fetchSparklines: () => Promise<void> = async () => {
+      setSparklineLoading(true);
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          return;
+        }
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+        const query: Query<Metric> = {
+          projectId,
+          name: new Includes(visibleNames),
+          time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
+        } as Query<Metric>;
+
+        const result: AnalyticsListResult<Metric> =
+          await AnalyticsModelAPI.getList<Metric>({
+            modelType: Metric,
+            query,
+            limit: 5000,
+            skip: 0,
+            select: {
+              name: true,
+              time: true,
+              value: true,
+            } as Select<Metric>,
+            sort: { time: SortOrder.Ascending } as Record<string, SortOrder>,
+            requestOptions: {},
+          });
+
+        // Bucket into N equal-width buckets per metric name
+        const buckets: number = 24;
+        const startMs: number = dateRange.startValue.getTime();
+        const endMs: number = dateRange.endValue.getTime();
+        const bucketMs: number = Math.max(
+          1,
+          Math.floor((endMs - startMs) / buckets),
+        );
+
+        // name -> bucketIdx -> sum + count
+        const acc: Map<string, Array<{ sum: number; count: number }>> =
+          new Map();
+        for (const name of visibleNames) {
+          const arr: Array<{ sum: number; count: number }> = [];
+          for (let i: number = 0; i < buckets; i++) {
+            arr.push({ sum: 0, count: 0 });
+          }
+          acc.set(name, arr);
+        }
+
+        const last: Record<string, number> = {};
+
+        for (const m of result.data) {
+          const name: string = m.name as unknown as string;
+          if (!name || !acc.has(name)) {
+            continue;
+          }
+          const t: Date = OneUptimeDate.fromString(m.time as unknown as string);
+          const idx: number = Math.min(
+            buckets - 1,
+            Math.max(0, Math.floor((t.getTime() - startMs) / bucketMs)),
+          );
+          const v: number = Number(m.value || 0);
+          const arr: Array<{ sum: number; count: number }> = acc.get(name)!;
+          arr[idx]!.sum += v;
+          arr[idx]!.count += 1;
+          last[name] = v;
+        }
+
+        const out: Record<string, Array<SparklinePoint>> = {};
+        for (const [name, arr] of acc.entries()) {
+          const points: Array<SparklinePoint> = arr.map(
+            (
+              bucket: { sum: number; count: number },
+              i: number,
+            ): SparklinePoint => {
+              const t: Date = new Date(startMs + i * bucketMs);
+              const v: number =
+                bucket.count > 0 ? bucket.sum / bucket.count : 0;
+              return { time: t.toISOString(), value: v };
+            },
+          );
+          out[name] = points;
+        }
+        setSparklineData(out);
+        setSparklineLastValue(last);
+      } catch {
+        setSparklineData({});
+        setSparklineLastValue({});
+      } finally {
+        setSparklineLoading(false);
+      }
+    };
+    void fetchSparklines();
+  }, [visibleNames, timeRange]);
+
+  // Facet configs
+  const facetConfigs: Array<FacetConfig> = useMemo(() => {
+    const serviceNameMap: Record<string, string> = {};
+    const serviceColorMap: Record<string, string> = {};
+    for (const service of services) {
+      if (service.id) {
+        serviceNameMap[service.id.toString()] = service.name || "Unknown";
+        if (service.serviceColor) {
+          serviceColorMap[service.id.toString()] =
+            service.serviceColor.toString();
+        }
+      }
+    }
+    return [
+      {
+        key: "serviceId",
+        title: "Service",
+        valueDisplayMap: serviceNameMap,
+        valueColorMap: serviceColorMap,
+        priority: 1,
+      },
+    ];
+  }, [services]);
+
+  // Compute facets from loaded services (and distribution isn't known without
+  // a backend aggregation, so show equal weights for v1)
+  const facetData: FacetData = useMemo(() => {
+    const values: Array<FacetValue> = services
+      .filter((s: Service): boolean => {
+        return Boolean(s.id);
+      })
+      .map((s: Service): FacetValue => {
+        return { value: s.id!.toString(), count: 0 };
+      });
+    return { serviceId: values };
+  }, [services]);
+
+  // Facet interaction
+  const handleFacetInclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string) => {
+        setActiveFilters(
+          (prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+            if (
+              prev.some((f: ActiveFilter): boolean => {
+                return f.facetKey === facetKey && f.value === value;
+              })
+            ) {
+              return prev;
+            }
+            const config: FacetConfig | undefined = facetConfigs.find(
+              (c: FacetConfig): boolean => {
+                return c.key === facetKey;
+              },
+            );
+            const displayKey: string = config?.title || facetKey;
+            const displayValue: string =
+              config?.valueDisplayMap?.[value] || value;
+            return [...prev, { facetKey, value, displayKey, displayValue }];
+          },
+        );
+        setPage(1);
+      },
+      [facetConfigs],
+    );
+
+  const handleRemoveFilter: (facetKey: string, value: string) => void =
+    useCallback((facetKey: string, value: string) => {
+      setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+        return prev.filter((f: ActiveFilter): boolean => {
+          return !(f.facetKey === facetKey && f.value === value);
+        });
+      });
+      setPage(1);
+    }, []);
+
+  const handleClearAllFilters: () => void = useCallback(() => {
+    setActiveFilters([]);
+    setPage(1);
+  }, []);
+
+  // Row click → navigate to metric viewer
+  const handleRowClick: (metric: MetricType) => void = useCallback(
+    (metric: MetricType) => {
+      const route: Route = RouteUtil.populateRouteParams(
+        RouteMap[PageMap.METRIC_VIEW]!,
+      );
+      const currentUrl: URL = Navigation.getCurrentURL();
+      const metricUrl: URL = new URL(
+        currentUrl.protocol,
+        currentUrl.hostname,
+        route,
+      );
+      const metricQueriesPayload: Array<Record<string, unknown>> = [
+        {
+          metricName: metric.name || "",
+          aggregationType: MetricsAggregationType.Avg,
+        },
+      ];
+      metricUrl.addQueryParam(
+        "metricQueries",
+        JSON.stringify(metricQueriesPayload),
+        true,
+      );
+      Navigation.navigate(metricUrl);
+    },
+    [],
+  );
+
+  return (
+    <TelemetryViewer<MetricType>
+      items={metrics}
+      isLoading={isLoading}
+      error={error || undefined}
+      onRefresh={() => {
+        void fetchMetrics();
+      }}
+      emptyMessage="No metrics found"
+      itemLabel="metrics"
+      renderRow={(metric: MetricType): ReactElement => {
+        const name: string = metric.name || "";
+        return (
+          <MetricRow
+            metric={metric}
+            sparklinePoints={sparklineData[name]}
+            sparklineLoading={sparklineLoading}
+            lastValue={sparklineLastValue[name]}
+            onClick={() => {
+              handleRowClick(metric);
+            }}
+          />
+        );
+      }}
+      getRowKey={(metric: MetricType, index: number): string => {
+        return `${metric._id?.toString() || metric.name || "row"}-${index}`;
+      }}
+      // Search
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      onSearchSubmit={() => {
+        setSubmittedSearch(searchValue);
+        setPage(1);
+      }}
+      searchPlaceholder="Search metrics — e.g. @name:http @service:api"
+      searchFieldAliasMap={FIELD_ALIAS_MAP}
+      searchHelpRows={SEARCH_HELP_ROWS}
+      searchHelpCombinedExample="@service:api http.server.duration"
+      // Time (drives sparkline range)
+      timeRange={timeRange}
+      onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
+        setTimeRange(value);
+      }}
+      // Facets
+      showFacetSidebar={true}
+      facetData={facetData}
+      facetConfigs={facetConfigs}
+      facetLoading={false}
+      onFacetInclude={handleFacetInclude}
+      // Active filters
+      activeFilters={activeFilters}
+      onRemoveFilter={handleRemoveFilter}
+      onClearAllFilters={handleClearAllFilters}
+      // No top histogram for metrics
+      showHistogram={false}
+      // Pagination
+      page={page}
+      pageSize={pageSize}
+      totalCount={totalCount}
+      onPageChange={setPage}
+      onPageSizeChange={(size: number) => {
+        setPageSize(size);
+        setPage(1);
+      }}
+    />
+  );
+};
+
+export default MetricsViewer;
