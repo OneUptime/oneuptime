@@ -103,7 +103,7 @@ export default abstract class OtelIngestBaseService {
     }
 
     if (containerName) {
-      return containerName;
+      return this.normalizeDockerContainerName(containerName);
     }
 
     // Logs path: try the id -> name cache populated by the metrics path.
@@ -118,7 +118,7 @@ export default abstract class OtelIngestBaseService {
             `${projectId.toString()}:${containerId}`,
           );
           if (cached) {
-            return cached;
+            return this.normalizeDockerContainerName(cached);
           }
         }
       } catch (err) {
@@ -146,6 +146,47 @@ export default abstract class OtelIngestBaseService {
     }
 
     return null;
+  }
+
+  /**
+   * Strip Docker Compose's replica index suffix (e.g. "-1", "-2") from a
+   * container name so that multiple replicas of the same service — and the
+   * same service running on different hosts — roll up into a single
+   * OneUptime telemetry service.
+   *
+   * Docker Compose names containers as "{project}-{service}-{index}" (or
+   * "{project}_{service}_{index}" with the legacy separator), so the
+   * trailing "-N" or "_N" is always the replica index. We only strip it
+   * when the prefix still looks like a valid service identifier, to avoid
+   * mangling container names that legitimately end in a digit.
+   *
+   * Examples:
+   *   oneuptime-postgres-1   -> oneuptime-postgres
+   *   oneuptime-probe-1-2    -> oneuptime-probe-1   (only the last "-2")
+   *   my-app_3               -> my-app
+   *   redis                  -> redis               (unchanged)
+   */
+  private static normalizeDockerContainerName(name: string): string {
+    const trimmed: string = name.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    // Docker Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
+    // is already stripped by the docker_stats receiver, but handle it defensively.
+    const withoutSlash: string = trimmed.startsWith("/")
+      ? trimmed.substring(1)
+      : trimmed;
+
+    const match: RegExpMatchArray | null = withoutSlash.match(
+      /^(.+)[-_](\d+)$/,
+    );
+
+    if (!match || !match[1]) {
+      return withoutSlash;
+    }
+
+    return match[1];
   }
 
   @CaptureSpan()
