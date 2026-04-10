@@ -102,6 +102,7 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.DOCKER_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DOCKER_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -1784,6 +1785,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_METRICS]
     }`,
   ),
 

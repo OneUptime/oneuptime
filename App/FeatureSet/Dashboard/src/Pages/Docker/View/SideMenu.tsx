@@ -56,6 +56,16 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Observability">
         <SideMenuItem
           link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
+        <SideMenuItem
+          link={{
             title: "Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_HOST_VIEW_LOGS] as Route,

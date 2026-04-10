@@ -13,6 +13,7 @@ import DockerDocumentation from "../Pages/Docker/Documentation";
 import DockerHostOverview from "../Pages/Docker/View/Overview";
 import DockerHostContainers from "../Pages/Docker/View/Containers";
 import DockerHostContainerDetail from "../Pages/Docker/View/ContainerDetail";
+import DockerHostMetrics from "../Pages/Docker/View/Metrics";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
 import DockerHostSettings from "../Pages/Docker/View/Settings";
 import DockerHostDelete from "../Pages/Docker/View/Delete";
@@ -85,6 +86,17 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL] as Route
               }
+            />
+          }
+        />
+
+        {/* Metrics */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_METRICS)}
+          element={
+            <DockerHostMetrics
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_METRICS] as Route}
             />
           }
         />
