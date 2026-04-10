@@ -42,14 +42,18 @@ export default abstract class OtelIngestBaseService {
       return serviceName;
     }
 
-    // Docker-aware fallback: when telemetry arrives from a OneUptime Docker
-    // Agent (container.runtime == "docker"), there is no explicit
-    // service.name. Synthesize a per-container service name so each
-    // container shows up as its own service in the OneUptime UI instead of
-    // every Docker log collapsing into "Unknown Service".
+    /*
+     * Docker-aware fallback: when telemetry arrives from a OneUptime Docker
+     * Agent (container.runtime == "docker"), there is no explicit
+     * service.name. Synthesize a per-container service name so each
+     * container shows up as its own service in the OneUptime UI instead of
+     * every Docker log collapsing into "Unknown Service".
+     */
     if (this.isDockerRuntime(attributes)) {
-      const dockerServiceName: string | null =
-        await this.getDockerServiceName(req, attributes);
+      const dockerServiceName: string | null = await this.getDockerServiceName(
+        req,
+        attributes,
+      );
       if (dockerServiceName) {
         return dockerServiceName;
       }
@@ -73,12 +77,14 @@ export default abstract class OtelIngestBaseService {
       "container.id",
     );
 
-    // docker_stats metric batches carry both container.id and
-    // container.name as resource attributes, while filelog-originated log
-    // batches only carry container.id (the filelog receiver has no way to
-    // query the Docker API for names). Cache the id -> name mapping off
-    // the metrics path so later log batches for the same container can
-    // resolve to a proper service name.
+    /*
+     * docker_stats metric batches carry both container.id and
+     * container.name as resource attributes, while filelog-originated log
+     * batches only carry container.id (the filelog receiver has no way to
+     * query the Docker API for names). Cache the id -> name mapping off
+     * the metrics path so later log batches for the same container can
+     * resolve to a proper service name.
+     */
     if (containerId && containerName) {
       try {
         const projectId: ObjectID | undefined = (
@@ -90,8 +96,7 @@ export default abstract class OtelIngestBaseService {
             `${projectId.toString()}:${containerId}`,
             containerName,
             {
-              expiresInSeconds:
-                this.DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+              expiresInSeconds: this.DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
             },
           );
         }
@@ -128,10 +133,12 @@ export default abstract class OtelIngestBaseService {
         );
       }
 
-      // No cache hit yet (metrics scrape every 30s so the first few log
-      // batches for a newly-started container can race ahead of the cache
-      // fill). Fall back to a stable synthetic name derived from the host
-      // and the short container id so logs are still grouped per container.
+      /*
+       * No cache hit yet (metrics scrape every 30s so the first few log
+       * batches for a newly-started container can race ahead of the cache
+       * fill). Fall back to a stable synthetic name derived from the host
+       * and the short container id so logs are still grouped per container.
+       */
       const shortId: string = containerId.substring(0, 12);
       if (hostName) {
         return `docker/${hostName}/${shortId}`;
@@ -139,8 +146,10 @@ export default abstract class OtelIngestBaseService {
       return `docker/${shortId}`;
     }
 
-    // No container identity at all — group by host so at least docker logs
-    // from the same host stick together.
+    /*
+     * No container identity at all — group by host so at least docker logs
+     * from the same host stick together.
+     */
     if (hostName) {
       return `docker/${hostName}`;
     }
@@ -172,15 +181,16 @@ export default abstract class OtelIngestBaseService {
       return trimmed;
     }
 
-    // Docker Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
-    // is already stripped by the docker_stats receiver, but handle it defensively.
+    /*
+     * Docker Compose's "/" prefix on the raw inspect output (e.g. "/oneuptime-app-1")
+     * is already stripped by the docker_stats receiver, but handle it defensively.
+     */
     const withoutSlash: string = trimmed.startsWith("/")
       ? trimmed.substring(1)
       : trimmed;
 
-    const match: RegExpMatchArray | null = withoutSlash.match(
-      /^(.+)[-_](\d+)$/,
-    );
+    const match: RegExpMatchArray | null =
+      withoutSlash.match(/^(.+)[-_](\d+)$/);
 
     if (!match || !match[1]) {
       return withoutSlash;

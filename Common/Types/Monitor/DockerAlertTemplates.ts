@@ -8,10 +8,7 @@ import MonitorStepDockerMonitor from "./MonitorStepDockerMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
-export type DockerAlertTemplateCategory =
-  | "Container"
-  | "Resource"
-  | "Host";
+export type DockerAlertTemplateCategory = "Container" | "Resource" | "Host";
 
 export type DockerAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -222,8 +219,7 @@ export function buildDockerMonitorConfig(args: {
 const highCpuTemplate: DockerAlertTemplate = {
   id: "docker-high-cpu",
   name: "High Container CPU Usage",
-  description:
-    "Alert when container CPU usage exceeds 80% sustained.",
+  description: "Alert when container CPU usage exceeds 80% sustained.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -235,8 +231,10 @@ const highCpuTemplate: DockerAlertTemplate = {
         metricName: "container.cpu.utilization",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
-        // Use Max so a single hot container trips the threshold instead of
-        // being diluted by idle containers on the host.
+        /*
+         * Use Max so a single hot container trips the threshold instead of
+         * being diluted by idle containers on the host.
+         */
         aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
@@ -266,8 +264,7 @@ const highCpuTemplate: DockerAlertTemplate = {
 const highMemoryTemplate: DockerAlertTemplate = {
   id: "docker-high-memory",
   name: "High Container Memory Usage",
-  description:
-    "Alert when container memory usage exceeds 85% of its limit.",
+  description: "Alert when container memory usage exceeds 85% of its limit.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -279,8 +276,10 @@ const highMemoryTemplate: DockerAlertTemplate = {
         metricName: "container.memory.percent",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
-        // Use Max so a single container breaching its limit trips the
-        // threshold instead of being diluted by idle containers.
+        /*
+         * Use Max so a single container breaching its limit trips the
+         * threshold instead of being diluted by idle containers.
+         */
         aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
@@ -365,8 +364,10 @@ const highCpuThrottlingTemplate: DockerAlertTemplate = {
         metricName: "container.cpu.throttling_data.throttled_time",
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
-        // Use Max so a single throttled container trips the threshold,
-        // rather than summing throttled time across all containers.
+        /*
+         * Use Max so a single throttled container trips the threshold,
+         * rather than summing throttled time across all containers.
+         */
         aggregationType: MetricsAggregationType.Max,
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
@@ -464,8 +465,7 @@ const containerUptimeTemplate: DockerAlertTemplate = {
         incidentTitle: `[Docker] Container Down - ${args.monitorName}`,
         incidentDescription: `A Docker container has stopped running. The container uptime is zero, indicating it has crashed, been stopped, or been removed. Check the container status and logs for details.`,
         criteriaName: "Container Down - Uptime = 0",
-        criteriaDescription:
-          "Triggers when container uptime drops to zero.",
+        criteriaDescription: "Triggers when container uptime drops to zero.",
       }),
       onlineCriteriaInstance: buildDockerOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -501,9 +501,7 @@ export function getDockerAlertTemplatesByCategory(
 export function getDockerAlertTemplateById(
   id: string,
 ): DockerAlertTemplate | undefined {
-  return getAllDockerAlertTemplates().find(
-    (template: DockerAlertTemplate) => {
-      return template.id === id;
-    },
-  );
+  return getAllDockerAlertTemplates().find((template: DockerAlertTemplate) => {
+    return template.id === id;
+  });
 }

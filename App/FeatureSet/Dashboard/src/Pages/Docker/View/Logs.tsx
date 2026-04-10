@@ -61,8 +61,10 @@ const DockerHostLogs: FunctionComponent<
   }, []);
 
   const logQuery: Query<Log> = useMemo(() => {
-    // Using `any` to sidestep a TS2589 "excessively deep type instantiation"
-    // error on the Query<Log> generic when inline attribute maps are used.
+    /*
+     * Using `any` to sidestep a TS2589 "excessively deep type instantiation"
+     * error on the Query<Log> generic when inline attribute maps are used.
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = {
       attributes: {

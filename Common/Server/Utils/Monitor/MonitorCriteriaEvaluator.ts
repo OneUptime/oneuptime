@@ -964,17 +964,14 @@ ${contextBlock}
         dockerMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
         dockerMonitor.metricViewConfig.queryConfigs[0]
       ) {
-        const metricName: string =
-          dockerMonitor.metricViewConfig.queryConfigs[0].metricQueryData
-            ?.filterData?.metricName as string;
+        const metricName: string = dockerMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
         if (metricName) {
           hostDetails.push(`- Metric: \`${metricName}\``);
         }
       }
 
-      sections.push(
-        `**Docker Host Details**\n${hostDetails.join("\n")}`,
-      );
+      sections.push(`**Docker Host Details**\n${hostDetails.join("\n")}`);
     }
 
     // Metric results summary
@@ -990,9 +987,7 @@ ${contextBlock}
       }
 
       if (resultDetails.length > 0) {
-        sections.push(
-          `\n\n**Metric Summary**\n${resultDetails.join("\n")}`,
-        );
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
       }
     }
 

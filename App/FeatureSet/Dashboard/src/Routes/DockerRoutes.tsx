@@ -67,9 +67,7 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
           element={
             <DockerHostContainers
               {...props}
-              pageRoute={
-                RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINERS] as Route
-              }
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINERS] as Route}
             />
           }
         />

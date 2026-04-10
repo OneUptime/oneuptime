@@ -89,18 +89,22 @@ const DockerHostContainerDetail: FunctionComponent<
 
       setHost(item);
 
-      // Look up the container's id + image from recent docker_stats metrics.
-      // filelog-ingested logs only carry resource.container.id (not name), so
-      // we resolve the name -> id mapping here so the Logs tab can filter
-      // precisely to THIS container.
+      /*
+       * Look up the container's id + image from recent docker_stats metrics.
+       * filelog-ingested logs only carry resource.container.id (not name), so
+       * we resolve the name -> id mapping here so the Logs tab can filter
+       * precisely to THIS container.
+       */
       const endDate: Date = OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -10);
       const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
-      // Same pattern as Containers.tsx — using an `any`-typed query object
-      // avoids a TS2589 "excessively deep type instantiation" error on the
-      // AnalyticsModelAPI generic select inference when combined with the
-      // attributes map filter.
+      /*
+       * Same pattern as Containers.tsx — using an `any`-typed query object
+       * avoids a TS2589 "excessively deep type instantiation" error on the
+       * AnalyticsModelAPI generic select inference when combined with the
+       * attributes map filter.
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const metricQuery: any = {
         modelType: Metric,
@@ -166,8 +170,10 @@ const DockerHostContainerDetail: FunctionComponent<
       "resource.container.runtime": "docker",
     };
 
-    // filelog records the container id (not name) from the file path.
-    // If we resolved it from docker_stats metrics, filter exactly.
+    /*
+     * filelog records the container id (not name) from the file path.
+     * If we resolved it from docker_stats metrics, filter exactly.
+     */
     if (containerId) {
       attributeFilters["resource.container.id"] = containerId;
     }

@@ -25,10 +25,11 @@ const DockerMetricPicker: FunctionComponent<ComponentProps> = (
 
   const groupedOptions: Array<DropdownOptionGroup> = allCategories.map(
     (category: DockerMetricCategory) => {
-      const categoryMetrics: Array<DockerMetricDefinition> =
-        allMetrics.filter((m: DockerMetricDefinition) => {
+      const categoryMetrics: Array<DockerMetricDefinition> = allMetrics.filter(
+        (m: DockerMetricDefinition) => {
           return m.category === category;
-        });
+        },
+      );
 
       return {
         label: category,
@@ -67,10 +68,11 @@ const DockerMetricPicker: FunctionComponent<ComponentProps> = (
           }
 
           const metricId: string = value as string;
-          const metric: DockerMetricDefinition | undefined =
-            allMetrics.find((m: DockerMetricDefinition) => {
+          const metric: DockerMetricDefinition | undefined = allMetrics.find(
+            (m: DockerMetricDefinition) => {
               return m.id === metricId;
-            });
+            },
+          );
 
           if (metric) {
             props.onMetricSelected(metric);

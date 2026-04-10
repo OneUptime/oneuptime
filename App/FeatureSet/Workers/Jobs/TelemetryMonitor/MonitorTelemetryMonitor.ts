@@ -783,8 +783,7 @@ const monitorDocker: MonitorDockerFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
-  for (const queryConfig of dockerMonitorConfig.metricViewConfig
-    .queryConfigs) {
+  for (const queryConfig of dockerMonitorConfig.metricViewConfig.queryConfigs) {
     const metricName: string =
       (queryConfig.metricQueryData.filterData.metricName as string) || "";
 
@@ -811,8 +810,7 @@ const monitorDocker: MonitorDockerFunction = async (data: {
 
     // Add Docker-specific attribute filters
     if (dockerMonitorConfig.hostIdentifier) {
-      attributes["resource.host.name"] =
-        dockerMonitorConfig.hostIdentifier;
+      attributes["resource.host.name"] = dockerMonitorConfig.hostIdentifier;
     }
 
     // Always filter by Docker runtime

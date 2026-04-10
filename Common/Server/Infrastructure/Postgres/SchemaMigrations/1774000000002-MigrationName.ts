@@ -66,15 +66,11 @@ export class MigrationName1774000000002 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "DockerHost" DROP CONSTRAINT "FK_docker_host_projectId"`,
     );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_docker_host_slug"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_docker_host_slug"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_docker_host_hostIdentifier"`,
     );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_docker_host_projectId"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_docker_host_projectId"`);
     await queryRunner.query(`DROP TABLE "DockerHost"`);
   }
 }

@@ -102,9 +102,7 @@ const DockerHostOverview: FunctionComponent<
       const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const buildQuery: (metricName: string) => any = (
-        metricName: string,
-      ) => {
+      const buildQuery: (metricName: string) => any = (metricName: string) => {
         return {
           modelType: Metric,
           query: {
@@ -189,7 +187,11 @@ const DockerHostOverview: FunctionComponent<
         if (arr.length === 0) {
           return null;
         }
-        return arr.reduce((a: number, b: number) => a + b, 0) / arr.length;
+        return (
+          arr.reduce((a: number, b: number) => {
+            return a + b;
+          }, 0) / arr.length
+        );
       };
       const max: (arr: Array<number>) => number | null = (
         arr: Array<number>,
@@ -201,17 +203,15 @@ const DockerHostOverview: FunctionComponent<
       };
 
       const topByCpu: Array<TopContainerRow> = [...rows]
-        .sort(
-          (a: TopContainerRow, b: TopContainerRow) =>
-            b.cpuPercent - a.cpuPercent,
-        )
+        .sort((a: TopContainerRow, b: TopContainerRow) => {
+          return b.cpuPercent - a.cpuPercent;
+        })
         .slice(0, 5);
 
       const topByMemory: Array<TopContainerRow> = [...rows]
-        .sort(
-          (a: TopContainerRow, b: TopContainerRow) =>
-            b.memoryPercent - a.memoryPercent,
-        )
+        .sort((a: TopContainerRow, b: TopContainerRow) => {
+          return b.memoryPercent - a.memoryPercent;
+        })
         .slice(0, 5);
 
       setStats({
@@ -251,36 +251,38 @@ const DockerHostOverview: FunctionComponent<
     { modelId: modelId },
   );
 
-  const renderAgentBanner: () => ReactElement | null = (): ReactElement | null => {
-    if (!host) {
-      return null;
-    }
+  const renderAgentBanner: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!host) {
+        return null;
+      }
 
-    const status: string = (host.otelCollectorStatus as string) || "";
-    const lastSeenAt: Date | undefined = host.lastSeenAt;
-    const lastSeenText: string = lastSeenAt
-      ? OneUptimeDate.getDateAsLocalFormattedString(lastSeenAt)
-      : "never";
+      const status: string = (host.otelCollectorStatus as string) || "";
+      const lastSeenAt: Date | undefined = host.lastSeenAt;
+      const lastSeenText: string = lastSeenAt
+        ? OneUptimeDate.getDateAsLocalFormattedString(lastSeenAt)
+        : "never";
 
-    const isConnected: boolean =
-      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
+      const isConnected: boolean =
+        status.toLowerCase() === "connected" ||
+        status.toLowerCase() === "active";
 
-    if (isConnected) {
+      if (isConnected) {
+        return (
+          <AlertBanner
+            title={`Docker agent connected — last seen ${lastSeenText}`}
+            type={AlertBannerType.Success}
+          />
+        );
+      }
+
       return (
         <AlertBanner
-          title={`Docker agent connected — last seen ${lastSeenText}`}
-          type={AlertBannerType.Success}
+          title={`Docker agent is ${status || "disconnected"} — last seen ${lastSeenText}`}
+          type={AlertBannerType.Warning}
         />
       );
-    }
-
-    return (
-      <AlertBanner
-        title={`Docker agent is ${status || "disconnected"} — last seen ${lastSeenText}`}
-        type={AlertBannerType.Warning}
-      />
-    );
-  };
+    };
 
   const renderSummaryCards: () => ReactElement = (): ReactElement => {
     if (isStatsLoading) {
@@ -322,7 +324,10 @@ const DockerHostOverview: FunctionComponent<
   };
 
   const renderTopContainers: () => ReactElement = (): ReactElement => {
-    if (!stats || (stats.topByCpu.length === 0 && stats.topByMemory.length === 0)) {
+    if (
+      !stats ||
+      (stats.topByCpu.length === 0 && stats.topByMemory.length === 0)
+    ) {
       return <Fragment />;
     }
 

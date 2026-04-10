@@ -22,9 +22,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DockerDocumentationCard from "../../Components/Docker/DocumentationCard";
 
-const DockerHosts: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");

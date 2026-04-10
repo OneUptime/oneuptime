@@ -61,15 +61,14 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
   );
 
   const monitorStepDockerMonitor: MonitorStepDockerMonitor =
-    props.monitorStepDockerMonitor ||
-    MonitorStepDockerMonitorUtil.getDefault();
+    props.monitorStepDockerMonitor || MonitorStepDockerMonitorUtil.getDefault();
 
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-  const [hostOptions, setHostOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
+  const [hostOptions, setHostOptions] = React.useState<Array<DropdownOption>>(
+    [],
+  );
 
   const [, setIsLoadingHosts] = React.useState<boolean>(true);
 
@@ -233,7 +232,9 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
             required={false}
           />
           <Input
-            value={monitorStepDockerMonitor.containerFilters.containerName || ""}
+            value={
+              monitorStepDockerMonitor.containerFilters.containerName || ""
+            }
             onChange={(value: string) => {
               props.onChange({
                 ...monitorStepDockerMonitor,
@@ -398,9 +399,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={
-                  "Select the time range for the Docker monitor."
-                }
+                description={"Select the time range for the Docker monitor."}
                 required={true}
               />
               <RollingTimePicker

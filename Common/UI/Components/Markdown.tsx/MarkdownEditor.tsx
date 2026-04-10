@@ -290,8 +290,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   }
 
   const renderPreview: () => ReactElement = (): ReactElement => {
-    // Render the preview using the same MarkdownViewer that renders the
-    // final published output, so the preview is guaranteed to match.
+    /*
+     * Render the preview using the same MarkdownViewer that renders the
+     * final published output, so the preview is guaranteed to match.
+     */
     return (
       <div className="p-4 min-h-32 bg-white">
         <MarkdownViewer text={text} />

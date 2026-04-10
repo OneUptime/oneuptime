@@ -14,8 +14,7 @@ export interface ComponentProps {
 const DockerTemplatePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const allTemplates: Array<DockerAlertTemplate> =
-    getAllDockerAlertTemplates();
+  const allTemplates: Array<DockerAlertTemplate> = getAllDockerAlertTemplates();
 
   return (
     <div className="space-y-4">
@@ -27,8 +26,7 @@ const DockerTemplatePicker: FunctionComponent<ComponentProps> = (
 
       <div className="grid grid-cols-1 gap-2">
         {allTemplates.map((template: DockerAlertTemplate) => {
-          const isSelected: boolean =
-            props.selectedTemplateId === template.id;
+          const isSelected: boolean = props.selectedTemplateId === template.id;
 
           return (
             <div
