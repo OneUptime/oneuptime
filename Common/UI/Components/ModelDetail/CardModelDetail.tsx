@@ -56,9 +56,8 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   const [refresher, setRefresher] = useState<boolean>(false);
   const model: TBaseModel = new props.modelDetailProps.modelType();
 
-  const onBeforeEditRef: React.MutableRefObject<
-    (() => boolean) | undefined
-  > = useRef<(() => boolean) | undefined>(props.onBeforeEdit);
+  const onBeforeEditRef: React.MutableRefObject<(() => boolean) | undefined> =
+    useRef<(() => boolean) | undefined>(props.onBeforeEdit);
   useEffect(() => {
     onBeforeEditRef.current = props.onBeforeEdit;
   }, [props.onBeforeEdit]);
@@ -120,10 +119,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         title: props.editButtonText || `Edit ${model.singularName}`,
         buttonStyle: ButtonStyleType.NORMAL,
         onClick: () => {
-          if (
-            onBeforeEditRef.current &&
-            onBeforeEditRef.current() === false
-          ) {
+          if (onBeforeEditRef.current && onBeforeEditRef.current() === false) {
             return;
           }
           setShowModal(true);

@@ -431,7 +431,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
-      facetKeys: ["serviceId", "statusCode", "kind", "name"],
+      facetKeys: ["serviceId", "statusCode", "kind"],
       limit: 20,
     };
 
@@ -559,11 +559,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         title: "Span Kind",
         valueDisplayMap: SPAN_KIND_LABEL,
         priority: 3,
-      },
-      {
-        key: "name",
-        title: "Span Name",
-        priority: 4,
       },
     ];
   }, [services]);

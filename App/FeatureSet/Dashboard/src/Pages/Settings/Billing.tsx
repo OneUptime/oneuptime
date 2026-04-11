@@ -79,10 +79,8 @@ const Settings: FunctionComponent<ComponentProps> = (
   const [balance, setBalance] = useState<number>(0);
 
   const [paymentMethodsCount, setPaymentMethodsCount] = useState<number>(0);
-  const [
-    showNoPaymentMethodModal,
-    setShowNoPaymentMethodModal,
-  ] = useState<boolean>(false);
+  const [showNoPaymentMethodModal, setShowNoPaymentMethodModal] =
+    useState<boolean>(false);
 
   const formRef: any = useRef<any>(null);
 
