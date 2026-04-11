@@ -359,25 +359,40 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
-      const facets: Record<string, Array<FacetValue>> = {};
+      // Run facet queries in parallel so a slow individual facet can't
+      // starve the endpoint. Per-facet errors degrade gracefully to [].
+      const facetResults: Array<readonly [string, Array<FacetValue>]> =
+        await Promise.all(
+          facetKeys.map(
+            async (
+              facetKey: string,
+            ): Promise<readonly [string, Array<FacetValue>]> => {
+              try {
+                const request: FacetRequest = {
+                  projectId: databaseProps.tenantId,
+                  startTime,
+                  endTime,
+                  facetKey,
+                  limit,
+                  serviceIds,
+                  severityTexts,
+                  bodySearchText,
+                  traceIds,
+                  spanIds,
+                  attributes,
+                };
+                const values: Array<FacetValue> =
+                  await LogAggregationService.getFacetValues(request);
+                return [facetKey, values] as const;
+              } catch {
+                return [facetKey, [] as Array<FacetValue>] as const;
+              }
+            },
+          ),
+        );
 
-      for (const facetKey of facetKeys) {
-        const request: FacetRequest = {
-          projectId: databaseProps.tenantId,
-          startTime,
-          endTime,
-          facetKey,
-          limit,
-          serviceIds,
-          severityTexts,
-          bodySearchText,
-          traceIds,
-          spanIds,
-          attributes,
-        };
-
-        facets[facetKey] = await LogAggregationService.getFacetValues(request);
-      }
+      const facets: Record<string, Array<FacetValue>> =
+        Object.fromEntries(facetResults);
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
@@ -555,28 +570,42 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
-      const facets: Record<string, Array<TraceFacetValue>> = {};
+      // Run facet queries in parallel so a slow individual facet can't
+      // starve the endpoint. Per-facet errors degrade gracefully to [].
+      const facetResults: Array<readonly [string, Array<TraceFacetValue>]> =
+        await Promise.all(
+          facetKeys.map(
+            async (
+              facetKey: string,
+            ): Promise<readonly [string, Array<TraceFacetValue>]> => {
+              try {
+                const request: TraceFacetRequest = {
+                  projectId: databaseProps.tenantId,
+                  startTime,
+                  endTime,
+                  facetKey,
+                  limit,
+                  serviceIds,
+                  statusCodes,
+                  spanKinds,
+                  spanNames,
+                  traceIds,
+                  nameSearchText,
+                  rootOnly,
+                  attributes,
+                };
+                const values: Array<TraceFacetValue> =
+                  await TraceAggregationService.getFacetValues(request);
+                return [facetKey, values] as const;
+              } catch {
+                return [facetKey, [] as Array<TraceFacetValue>] as const;
+              }
+            },
+          ),
+        );
 
-      for (const facetKey of facetKeys) {
-        const request: TraceFacetRequest = {
-          projectId: databaseProps.tenantId,
-          startTime,
-          endTime,
-          facetKey,
-          limit,
-          serviceIds,
-          statusCodes,
-          spanKinds,
-          spanNames,
-          traceIds,
-          nameSearchText,
-          rootOnly,
-          attributes,
-        };
-
-        facets[facetKey] =
-          await TraceAggregationService.getFacetValues(request);
-      }
+      const facets: Record<string, Array<TraceFacetValue>> =
+        Object.fromEntries(facetResults);
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,

@@ -49,6 +49,12 @@ import TraceRow from "./TraceRow";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
+// Facet queries over very wide windows on high-volume projects can take
+// tens of seconds per facet and exceed the upstream proxy read timeout
+// (nginx default 60s). Facets reflect "what values exist in this space"
+// and the most recent 24h is nearly always representative, so we clamp
+// the facet query window even when the list window is longer.
+const FACET_MAX_WINDOW_MS: number = 24 * 60 * 60 * 1000;
 
 async function postApi(
   path: string,
@@ -421,8 +427,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       bucketSizeInMinutes,
     };
 
+    // Clamp the facet query window to at most the trailing
+    // FACET_MAX_WINDOW_MS so wide ranges (e.g. 2 weeks) don't time out.
+    const fullStartMs: number = dateRange.startValue.getTime();
+    const endMs: number = dateRange.endValue.getTime();
+    const clampedStartMs: number = Math.max(
+      fullStartMs,
+      endMs - FACET_MAX_WINDOW_MS,
+    );
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
+      startTime: new Date(clampedStartMs).toISOString(),
+      endTime: new Date(endMs).toISOString(),
       facetKeys: ["serviceId", "statusCode", "kind", "name"],
       limit: 20,
     };
