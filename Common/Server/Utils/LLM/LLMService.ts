@@ -157,6 +157,11 @@ export default class LLMService {
     const requestData: JSONObject = {
       model: modelName,
       messages: userMessages,
+      // Anthropic's Messages API requires max_tokens. Without it the server
+      // rejects the request with `max_tokens: Field required` (400). 4096 is
+      // a conservative default that fits every current Claude model's output
+      // window and is enough for long-form generations like postmortems.
+      max_tokens: 4096,
       temperature: request.temperature ?? 0.7,
     };
 
