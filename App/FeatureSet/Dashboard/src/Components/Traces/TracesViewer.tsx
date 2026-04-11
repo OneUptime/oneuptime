@@ -49,24 +49,6 @@ import TraceRow from "./TraceRow";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
-/*
- * Facet queries over very wide windows on high-volume projects can take
- * tens of seconds per facet and exceed the upstream proxy read timeout
- * (nginx default 60s). Facets reflect "what values exist in this space"
- * and the most recent 24h is nearly always representative, so we clamp
- * the facet query window even when the list window is longer.
- */
-const FACET_MAX_WINDOW_MS: number = 24 * 60 * 60 * 1000;
-/*
- * The histogram aggregation has to read every matching span in the
- * window (the `(parentSpanId = '' OR parentSpanId IS NULL)` root-only
- * filter is not indexable), so the query cost scales linearly with
- * the window. At ~9M root spans / 14d it exceeds the ClickHouse client
- * request timeout. The histogram is a density visualization — the
- * trailing 3 days is the most actionable view — so we clamp it the
- * same way we clamp facets.
- */
-const HISTOGRAM_MAX_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1000;
 
 async function postApi(
   path: string,
@@ -430,37 +412,25 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-    /*
-     * Clamp histogram and facet windows to keep aggregation queries
-     * bounded. The list query remains on the full user-selected range.
-     */
-    const fullStartMs: number = dateRange.startValue.getTime();
-    const endMs: number = dateRange.endValue.getTime();
-    const histogramStartMs: number = Math.max(
-      fullStartMs,
-      endMs - HISTOGRAM_MAX_WINDOW_MS,
-    );
-    const facetsStartMs: number = Math.max(
-      fullStartMs,
-      endMs - FACET_MAX_WINDOW_MS,
-    );
-
     const bucketSizeInMinutes: number = computeBucketSizeInMinutes(
-      new Date(histogramStartMs),
-      new Date(endMs),
+      dateRange.startValue,
+      dateRange.endValue,
     );
 
+    /*
+     * Histogram and facets use the same window as the list so users see
+     * filter values that actually match what they can see. Aggregation
+     * queries are protected server-side by max_execution_time and the
+     * ClickHouse client request_timeout cap (see TraceAggregationService
+     * and ClickhouseConfig).
+     */
     const histogramPayload: JSONObject = {
       ...aggregationRequest,
-      startTime: new Date(histogramStartMs).toISOString(),
-      endTime: new Date(endMs).toISOString(),
       bucketSizeInMinutes,
     };
 
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
-      startTime: new Date(facetsStartMs).toISOString(),
-      endTime: new Date(endMs).toISOString(),
       facetKeys: ["serviceId", "statusCode", "kind", "name"],
       limit: 20,
     };

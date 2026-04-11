@@ -159,7 +159,7 @@ export class TraceAggregationService {
      * a density visualization.
      */
     statement.append(
-      " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
@@ -226,7 +226,7 @@ export class TraceAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;

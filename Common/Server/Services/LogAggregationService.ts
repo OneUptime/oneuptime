@@ -180,7 +180,7 @@ export class LogAggregationService {
      * rather than throwing, which is acceptable for a density viz.
      */
     statement.append(
-      " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
@@ -247,7 +247,7 @@ export class LogAggregationService {
      * 60s proxy_read_timeout so a slow facet never starves the endpoint.
      */
     statement.append(
-      " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     return statement;
