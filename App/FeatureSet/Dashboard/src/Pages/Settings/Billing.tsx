@@ -21,6 +21,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal from "Common/UI/Components/Modal/Modal";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
@@ -34,7 +35,7 @@ import {
 } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import BaseAPI from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -77,6 +78,12 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   const [balance, setBalance] = useState<number>(0);
 
+  const [paymentMethodsCount, setPaymentMethodsCount] = useState<number>(0);
+  const [
+    showNoPaymentMethodModal,
+    setShowNoPaymentMethodModal,
+  ] = useState<boolean>(false);
+
   const formRef: any = useRef<any>(null);
 
   const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -88,6 +95,28 @@ const Settings: FunctionComponent<ComponentProps> = (
           .addRoute(`/${currentProjectId.toString()}/change-plan`)
       : undefined;
 
+  const fetchPaymentMethodsCount: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        const result: ListResult<BillingPaymentMethod> =
+          await ModelAPI.getList<BillingPaymentMethod>({
+            modelType: BillingPaymentMethod,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: 1,
+            skip: 0,
+            select: {
+              _id: true,
+            },
+            sort: {},
+          });
+        setPaymentMethodsCount(result.count);
+      } catch {
+        setPaymentMethodsCount(0);
+      }
+    };
+
   useAsyncEffect(async () => {
     setIsModalLoading(true);
     setStripe(await loadStripe(BILLING_PUBLIC_KEY));
@@ -96,6 +125,8 @@ const Settings: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
+      await fetchPaymentMethodsCount();
+
       const project: Project | null = await ModelAPI.getItem<Project>({
         modelType: Project,
         id: ProjectUtil.getCurrentProjectId()!,
@@ -205,6 +236,13 @@ const Settings: FunctionComponent<ComponentProps> = (
               }}
               isEditable={true}
               editButtonText={"Change Plan"}
+              onBeforeEdit={() => {
+                if (paymentMethodsCount === 0) {
+                  setShowNoPaymentMethodModal(true);
+                  return false;
+                }
+                return true;
+              }}
               createOrUpdateApiUrl={changePlanApiUrl}
               formFields={[
                 {
@@ -507,6 +545,26 @@ const Settings: FunctionComponent<ComponentProps> = (
             ]}
           />
 
+          {showNoPaymentMethodModal ? (
+            <ConfirmModal
+              title={`Add a Payment Method`}
+              description={
+                "You need to add a payment method before you can change your plan. Please add a payment method to continue."
+              }
+              submitButtonText={"Add Payment Method"}
+              onSubmit={async () => {
+                setShowNoPaymentMethodModal(false);
+                setShowPaymentMethodModal(true);
+                await fetchSetupIntent();
+              }}
+              onClose={() => {
+                setShowNoPaymentMethodModal(false);
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
           {showPaymentMethodModal ? (
             <Modal
               title={`Add Payment Method`}
@@ -532,8 +590,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   <CheckoutForm
-                    onSuccess={() => {
+                    onSuccess={async () => {
                       setIsModalSubmitButtonLoading(false);
+                      await fetchPaymentMethodsCount();
                     }}
                     onError={(errorMessage: string) => {
                       setModalError(errorMessage);

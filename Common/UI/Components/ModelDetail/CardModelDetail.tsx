@@ -22,7 +22,7 @@ import {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   cardProps: CardProps;
@@ -40,6 +40,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   createOrUpdateApiUrl?: URL | undefined;
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
+  onBeforeEdit?: (() => boolean) | undefined;
 }
 
 const CardModelDetail: <TBaseModel extends BaseModel>(
@@ -54,6 +55,13 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
   const model: TBaseModel = new props.modelDetailProps.modelType();
+
+  const onBeforeEditRef: React.MutableRefObject<
+    (() => boolean) | undefined
+  > = useRef<(() => boolean) | undefined>(props.onBeforeEdit);
+  useEffect(() => {
+    onBeforeEditRef.current = props.onBeforeEdit;
+  }, [props.onBeforeEdit]);
 
   useEffect(() => {
     setRefresher(!refresher);
@@ -112,6 +120,12 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         title: props.editButtonText || `Edit ${model.singularName}`,
         buttonStyle: ButtonStyleType.NORMAL,
         onClick: () => {
+          if (
+            onBeforeEditRef.current &&
+            onBeforeEditRef.current() === false
+          ) {
+            return;
+          }
           setShowModal(true);
         },
         icon: IconProp.Edit,
