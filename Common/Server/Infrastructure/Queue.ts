@@ -215,11 +215,23 @@ export default class Queue {
       }
     }
 
-    const job: Job | undefined = await queue.getJob(sanitizedJobId);
-
-    if (job) {
-      await job.remove();
-    }
+    /*
+     * Historically we did `getJob(id)` + `job.remove()` before the `add`
+     * to force-replace any existing job with the same custom id. That
+     * preamble is NOT atomic: under concurrent producers generating the
+     * same nanosecond-timestamp id, or when the stalled-job recovery path
+     * interleaves with this flow, the hash can end up partially cleaned
+     * up — `data` field removed while the id is still reachable from a
+     * state set. When the worker later pulls such a record, it sees an
+     * empty payload and crashes with "Unknown telemetry type: undefined".
+     *
+     * BullMQ already deduplicates by jobId natively: `queue.add(..., { jobId })`
+     * returns the existing job if one with that id is in wait/active/delayed,
+     * rather than creating a duplicate. For the completed/failed cases,
+     * callers here generate fresh nanosecond-unique ids per enqueue (see
+     * TelemetryQueueService), so collisions are effectively impossible.
+     * Drop the non-atomic preamble and let BullMQ handle deduplication.
+     */
 
     if (options?.repeatableKey) {
       // remove existing repeatable job
