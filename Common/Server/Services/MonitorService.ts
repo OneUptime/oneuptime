@@ -284,10 +284,21 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
+    // The monitor has already been deleted from the database at this point.
+    // Any failure in the post-delete side effects below (billing reporting,
+    // metric cleanup) must NOT propagate up to the caller as a 500 — otherwise
+    // the client sees "500 Internal Server Error" even though the delete
+    // actually succeeded. Log and swallow instead.
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
-      await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        onDelete.deleteBy.props.tenantId,
-      );
+      try {
+        await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+          onDelete.deleteBy.props.tenantId,
+        );
+      } catch (error) {
+        logger.error(
+          `Error while reporting active monitor quantity to billing provider for project ${onDelete.deleteBy.props.tenantId?.toString()}: ${error}`,
+        );
+      }
     }
 
     if (onDelete.carryForward && onDelete.carryForward.monitors) {
@@ -296,15 +307,21 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
-        await MetricService.deleteBy({
-          query: {
-            projectId: monitor.projectId,
-            serviceId: monitor.id,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        try {
+          await MetricService.deleteBy({
+            query: {
+              projectId: monitor.projectId,
+              serviceId: monitor.id,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        } catch (error) {
+          logger.error(
+            `Error while deleting metrics for monitor ${monitor.id?.toString()}: ${error}`,
+          );
+        }
       }
     }
 
