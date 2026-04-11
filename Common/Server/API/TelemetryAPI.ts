@@ -359,6 +359,10 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
+      // Capture tenantId locally so TypeScript narrowing survives the
+      // async closure below (narrowing is lost across closure boundaries).
+      const projectId: ObjectID = databaseProps.tenantId;
+
       /*
        * Run facet queries in parallel so a slow individual facet can't
        * starve the endpoint. Per-facet errors degrade gracefully to [].
@@ -371,7 +375,7 @@ router.post(
             ): Promise<readonly [string, Array<FacetValue>]> => {
               try {
                 const request: FacetRequest = {
-                  projectId: databaseProps.tenantId,
+                  projectId,
                   startTime,
                   endTime,
                   facetKey,
