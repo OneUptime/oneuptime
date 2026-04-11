@@ -36,6 +36,28 @@ QueueWorker.getWorker(
       const jobData: TelemetryIngestJobData =
         job.data as TelemetryIngestJobData;
 
+      /*
+       * Defensive: BullMQ can occasionally hand us job objects whose underlying
+       * Redis hash has lost its `data` field. This happens when a stalled job
+       * is recovered concurrently with `removeOnComplete` / `removeOnFail`
+       * cleanup, leaving an orphan record that gets replayed with `job.data`
+       * materialized as an empty object. Without this guard the worker throws
+       * "Unknown telemetry type: undefined" for every such replay and the log
+       * fills up with noise that is neither actionable nor tied to a real
+       * ingestion failure. Skip silently (debug log) instead of throwing.
+       */
+      if (
+        !jobData ||
+        typeof jobData !== "object" ||
+        Object.keys(jobData as object).length === 0 ||
+        !jobData.type
+      ) {
+        logger.debug(
+          `Skipping telemetry job ${job.id ?? "?"}: missing or empty data (likely a stalled-job orphan)`,
+        );
+        return;
+      }
+
       // Process based on telemetry type
       switch (jobData.type) {
         case TelemetryType.Logs: {
