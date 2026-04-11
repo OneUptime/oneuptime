@@ -27,7 +27,7 @@ import TraceAggregationService, {
   HistogramBucket as TraceHistogramBucket,
   HistogramRequest as TraceHistogramRequest,
   FacetValue as TraceFacetValue,
-  FacetRequest as TraceFacetRequest,
+  MultiFacetRequest as TraceMultiFacetRequest,
 } from "../Services/TraceAggregationService";
 import ExceptionAggregationService, {
   HistogramBucket as ExceptionHistogramBucket,
@@ -574,44 +574,39 @@ router.post(
         : undefined;
 
       /*
-       * Run facet queries in parallel so a slow individual facet can't
-       * starve the endpoint. Per-facet errors degrade gracefully to [].
+       * Compute all facets from a single sort-key-aligned sample query
+       * (ORDER BY startTime DESC LIMIT N) and count top-K in Node. This
+       * avoids ClickHouse GROUP BY aggregations that can't return partial
+       * results under max_execution_time 'break' mode, and returns in
+       * <1s even over 14-day windows.
        */
-      const facetResults: Array<readonly [string, Array<TraceFacetValue>]> =
-        await Promise.all(
-          facetKeys.map(
-            async (
-              facetKey: string,
-            ): Promise<readonly [string, Array<TraceFacetValue>]> => {
-              try {
-                const request: TraceFacetRequest = {
-                  projectId: databaseProps.tenantId,
-                  startTime,
-                  endTime,
-                  facetKey,
-                  limit,
-                  serviceIds,
-                  statusCodes,
-                  spanKinds,
-                  spanNames,
-                  traceIds,
-                  nameSearchText,
-                  rootOnly,
-                  attributes,
-                };
-                const values: Array<TraceFacetValue> =
-                  await TraceAggregationService.getFacetValues(request);
-                return [facetKey, values] as const;
-              } catch {
-                return [facetKey, [] as Array<TraceFacetValue>] as const;
-              }
-            },
-          ),
-        );
+      const multiRequest: TraceMultiFacetRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        facetKeys,
+        limit,
+        serviceIds,
+        statusCodes,
+        spanKinds,
+        spanNames,
+        traceIds,
+        nameSearchText,
+        rootOnly,
+        attributes,
+      };
 
-      const facets: Record<string, Array<TraceFacetValue>> = Object.fromEntries(
-        facetResults,
-      );
+      let facets: Record<string, Array<TraceFacetValue>>;
+      try {
+        facets =
+          await TraceAggregationService.getFacetValuesFromSample(multiRequest);
+      } catch {
+        facets = Object.fromEntries(
+          facetKeys.map((key: string): [string, Array<TraceFacetValue>] => {
+            return [key, []];
+          }),
+        );
+      }
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
