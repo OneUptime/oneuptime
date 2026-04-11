@@ -359,8 +359,10 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
-      // Run facet queries in parallel so a slow individual facet can't
-      // starve the endpoint. Per-facet errors degrade gracefully to [].
+      /*
+       * Run facet queries in parallel so a slow individual facet can't
+       * starve the endpoint. Per-facet errors degrade gracefully to [].
+       */
       const facetResults: Array<readonly [string, Array<FacetValue>]> =
         await Promise.all(
           facetKeys.map(
@@ -391,8 +393,9 @@ router.post(
           ),
         );
 
-      const facets: Record<string, Array<FacetValue>> =
-        Object.fromEntries(facetResults);
+      const facets: Record<string, Array<FacetValue>> = Object.fromEntries(
+        facetResults,
+      );
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
@@ -570,8 +573,10 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
-      // Run facet queries in parallel so a slow individual facet can't
-      // starve the endpoint. Per-facet errors degrade gracefully to [].
+      /*
+       * Run facet queries in parallel so a slow individual facet can't
+       * starve the endpoint. Per-facet errors degrade gracefully to [].
+       */
       const facetResults: Array<readonly [string, Array<TraceFacetValue>]> =
         await Promise.all(
           facetKeys.map(
@@ -604,8 +609,9 @@ router.post(
           ),
         );
 
-      const facets: Record<string, Array<TraceFacetValue>> =
-        Object.fromEntries(facetResults);
+      const facets: Record<string, Array<TraceFacetValue>> = Object.fromEntries(
+        facetResults,
+      );
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,

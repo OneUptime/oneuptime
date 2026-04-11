@@ -79,7 +79,10 @@ function flattenAttrs(
     if (typeof value === "object" && !Array.isArray(value)) {
       out.push(...flattenAttrs(value as JSONObject, full));
     } else {
-      out.push([full, Array.isArray(value) ? JSON.stringify(value) : String(value)]);
+      out.push([
+        full,
+        Array.isArray(value) ? JSON.stringify(value) : String(value),
+      ]);
     }
   }
   return out;

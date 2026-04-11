@@ -49,12 +49,24 @@ import TraceRow from "./TraceRow";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
-// Facet queries over very wide windows on high-volume projects can take
-// tens of seconds per facet and exceed the upstream proxy read timeout
-// (nginx default 60s). Facets reflect "what values exist in this space"
-// and the most recent 24h is nearly always representative, so we clamp
-// the facet query window even when the list window is longer.
+/*
+ * Facet queries over very wide windows on high-volume projects can take
+ * tens of seconds per facet and exceed the upstream proxy read timeout
+ * (nginx default 60s). Facets reflect "what values exist in this space"
+ * and the most recent 24h is nearly always representative, so we clamp
+ * the facet query window even when the list window is longer.
+ */
 const FACET_MAX_WINDOW_MS: number = 24 * 60 * 60 * 1000;
+/*
+ * The histogram aggregation has to read every matching span in the
+ * window (the `(parentSpanId = '' OR parentSpanId IS NULL)` root-only
+ * filter is not indexable), so the query cost scales linearly with
+ * the window. At ~9M root spans / 14d it exceeds the ClickHouse client
+ * request timeout. The histogram is a density visualization — the
+ * trailing 3 days is the most actionable view — so we clamp it the
+ * same way we clamp facets.
+ */
+const HISTOGRAM_MAX_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1000;
 
 async function postApi(
   path: string,
@@ -417,27 +429,37 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    /*
+     * Clamp histogram and facet windows to keep aggregation queries
+     * bounded. The list query remains on the full user-selected range.
+     */
+    const fullStartMs: number = dateRange.startValue.getTime();
+    const endMs: number = dateRange.endValue.getTime();
+    const histogramStartMs: number = Math.max(
+      fullStartMs,
+      endMs - HISTOGRAM_MAX_WINDOW_MS,
+    );
+    const facetsStartMs: number = Math.max(
+      fullStartMs,
+      endMs - FACET_MAX_WINDOW_MS,
+    );
+
     const bucketSizeInMinutes: number = computeBucketSizeInMinutes(
-      dateRange.startValue,
-      dateRange.endValue,
+      new Date(histogramStartMs),
+      new Date(endMs),
     );
 
     const histogramPayload: JSONObject = {
       ...aggregationRequest,
+      startTime: new Date(histogramStartMs).toISOString(),
+      endTime: new Date(endMs).toISOString(),
       bucketSizeInMinutes,
     };
 
-    // Clamp the facet query window to at most the trailing
-    // FACET_MAX_WINDOW_MS so wide ranges (e.g. 2 weeks) don't time out.
-    const fullStartMs: number = dateRange.startValue.getTime();
-    const endMs: number = dateRange.endValue.getTime();
-    const clampedStartMs: number = Math.max(
-      fullStartMs,
-      endMs - FACET_MAX_WINDOW_MS,
-    );
     const facetsPayload: JSONObject = {
       ...aggregationRequest,
-      startTime: new Date(clampedStartMs).toISOString(),
+      startTime: new Date(facetsStartMs).toISOString(),
       endTime: new Date(endMs).toISOString(),
       facetKeys: ["serviceId", "statusCode", "kind", "name"],
       limit: 20,
@@ -461,8 +483,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       const facetsRaw: Record<string, Array<FacetValue>> = (facetsResult.value
         .data["facets"] || {}) as unknown as Record<string, Array<FacetValue>>;
 
-      // statusCode values come back as numeric strings from ClickHouse — map
-      // them to lowercase labels so TraceRow/facet config can render them.
+      /*
+       * statusCode values come back as numeric strings from ClickHouse — map
+       * them to lowercase labels so TraceRow/facet config can render them.
+       */
       const mappedFacets: FacetData = { ...facetsRaw };
       if (facetsRaw["statusCode"]) {
         mappedFacets["statusCode"] = facetsRaw["statusCode"].map(
@@ -595,29 +619,24 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string) => {
-        setActiveFilters(
-          (prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-            if (
-              prev.some((f: ActiveFilter): boolean => {
-                return f.facetKey === facetKey && f.value === value;
-              })
-            ) {
-              return prev;
-            }
-            const config: FacetConfig | undefined = facetConfigs.find(
-              (c: FacetConfig): boolean => {
-                return c.key === facetKey;
-              },
-            );
-            const displayKey: string = config?.title || facetKey;
-            const displayValue: string =
-              config?.valueDisplayMap?.[value] || value;
-            return [
-              ...prev,
-              { facetKey, value, displayKey, displayValue },
-            ];
-          },
-        );
+        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+          if (
+            prev.some((f: ActiveFilter): boolean => {
+              return f.facetKey === facetKey && f.value === value;
+            })
+          ) {
+            return prev;
+          }
+          const config: FacetConfig | undefined = facetConfigs.find(
+            (c: FacetConfig): boolean => {
+              return c.key === facetKey;
+            },
+          );
+          const displayKey: string = config?.title || facetKey;
+          const displayValue: string =
+            config?.valueDisplayMap?.[value] || value;
+          return [...prev, { facetKey, value, displayKey, displayValue }];
+        });
         setPage(1);
       },
       [facetConfigs],
@@ -625,13 +644,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback((facetKey: string, value: string) => {
-      setActiveFilters(
-        (prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-          return prev.filter((f: ActiveFilter): boolean => {
-            return !(f.facetKey === facetKey && f.value === value);
-          });
-        },
-      );
+      setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+        return prev.filter((f: ActiveFilter): boolean => {
+          return !(f.facetKey === facetKey && f.value === value);
+        });
+      });
       setPage(1);
     }, []);
 

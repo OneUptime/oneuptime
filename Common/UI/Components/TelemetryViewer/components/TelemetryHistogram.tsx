@@ -23,8 +23,10 @@ import OneUptimeDate from "../../../../Types/Date";
 export interface TelemetryHistogramProps {
   buckets: Array<HistogramBucket>;
   isLoading: boolean;
-  // All possible series stacked in the chart (in rendering order).
-  // Only series that have at least one bucket will be drawn + legended.
+  /*
+   * All possible series stacked in the chart (in rendering order).
+   * Only series that have at least one bucket will be drawn + legended.
+   */
   series: Array<HistogramSeriesOption>;
   title?: string | undefined;
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;

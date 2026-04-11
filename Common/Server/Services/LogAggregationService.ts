@@ -174,6 +174,15 @@ export class LogAggregationService {
 
     statement.append(" GROUP BY bucket, severityText ORDER BY bucket ASC");
 
+    /*
+     * Defense in depth: cap histogram runtime below nginx's 60s
+     * proxy_read_timeout. 'break' returns partial aggregated results
+     * rather than throwing, which is acceptable for a density viz.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
+    );
+
     return statement;
   }
 
@@ -233,8 +242,10 @@ export class LogAggregationService {
       }}`,
     );
 
-    // Defense in depth: cap individual facet query runtime below nginx's
-    // 60s proxy_read_timeout so a slow facet never starves the endpoint.
+    /*
+     * Defense in depth: cap individual facet query runtime below nginx's
+     * 60s proxy_read_timeout so a slow facet never starves the endpoint.
+     */
     statement.append(
       " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
     );

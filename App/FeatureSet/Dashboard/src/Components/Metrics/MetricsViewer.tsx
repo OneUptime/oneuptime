@@ -289,8 +289,10 @@ const MetricsViewer: FunctionComponent<Props> = (
         );
 
         // name -> bucketIdx -> sum + count
-        const acc: Map<string, Array<{ sum: number; count: number }>> =
-          new Map();
+        const acc: Map<
+          string,
+          Array<{ sum: number; count: number }>
+        > = new Map();
         for (const name of visibleNames) {
           const arr: Array<{ sum: number; count: number }> = [];
           for (let i: number = 0; i < buckets; i++) {
@@ -369,8 +371,10 @@ const MetricsViewer: FunctionComponent<Props> = (
     ];
   }, [services]);
 
-  // Compute facets from loaded services (and distribution isn't known without
-  // a backend aggregation, so show equal weights for v1)
+  /*
+   * Compute facets from loaded services (and distribution isn't known without
+   * a backend aggregation, so show equal weights for v1)
+   */
   const facetData: FacetData = useMemo(() => {
     const values: Array<FacetValue> = services
       .filter((s: Service): boolean => {
@@ -386,26 +390,24 @@ const MetricsViewer: FunctionComponent<Props> = (
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string) => {
-        setActiveFilters(
-          (prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-            if (
-              prev.some((f: ActiveFilter): boolean => {
-                return f.facetKey === facetKey && f.value === value;
-              })
-            ) {
-              return prev;
-            }
-            const config: FacetConfig | undefined = facetConfigs.find(
-              (c: FacetConfig): boolean => {
-                return c.key === facetKey;
-              },
-            );
-            const displayKey: string = config?.title || facetKey;
-            const displayValue: string =
-              config?.valueDisplayMap?.[value] || value;
-            return [...prev, { facetKey, value, displayKey, displayValue }];
-          },
-        );
+        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+          if (
+            prev.some((f: ActiveFilter): boolean => {
+              return f.facetKey === facetKey && f.value === value;
+            })
+          ) {
+            return prev;
+          }
+          const config: FacetConfig | undefined = facetConfigs.find(
+            (c: FacetConfig): boolean => {
+              return c.key === facetKey;
+            },
+          );
+          const displayKey: string = config?.title || facetKey;
+          const displayValue: string =
+            config?.valueDisplayMap?.[value] || value;
+          return [...prev, { facetKey, value, displayKey, displayValue }];
+        });
         setPage(1);
       },
       [facetConfigs],

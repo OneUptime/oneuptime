@@ -80,9 +80,7 @@ export class ExceptionAggregationService {
     return rows.map((row: JSONObject): HistogramBucket => {
       return {
         time: String(row["bucket"] || ""),
-        series: ExceptionAggregationService.mapEscapedToSeries(
-          row["escaped"],
-        ),
+        series: ExceptionAggregationService.mapEscapedToSeries(row["escaped"]),
         count: Number(row["cnt"] || 0),
       };
     });
@@ -153,6 +151,15 @@ export class ExceptionAggregationService {
 
     statement.append(" GROUP BY bucket, escaped ORDER BY bucket ASC");
 
+    /*
+     * Defense in depth: cap histogram runtime below nginx's 60s
+     * proxy_read_timeout. 'break' returns partial aggregated results
+     * rather than throwing, which is acceptable for a density viz.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
+    );
+
     return statement;
   }
 
@@ -211,8 +218,10 @@ export class ExceptionAggregationService {
       }}`,
     );
 
-    // Defense in depth: cap individual facet query runtime below nginx's
-    // 60s proxy_read_timeout so a slow facet never starves the endpoint.
+    /*
+     * Defense in depth: cap individual facet query runtime below nginx's
+     * 60s proxy_read_timeout so a slow facet never starves the endpoint.
+     */
     statement.append(
       " SETTINGS max_execution_time = 55, timeout_overflow_mode = 'break'",
     );

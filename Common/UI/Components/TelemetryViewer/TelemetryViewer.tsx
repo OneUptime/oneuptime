@@ -98,12 +98,10 @@ export interface TelemetryViewerProps<T> {
 
 const DEFAULT_PAGE_SIZE_OPTIONS: Array<number> = [25, 50, 100, 200];
 
-function TelemetryViewerInner<T>(
-  props: TelemetryViewerProps<T>,
-): ReactElement {
+function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
-    !!props.facetConfigs &&
+    Boolean(props.facetConfigs) &&
     props.facetConfigs.length > 0;
 
   const showHistogram: boolean = props.showHistogram ?? true;
@@ -147,11 +145,15 @@ function TelemetryViewerInner<T>(
             onClick={() => {
               props.live?.onToggle(!props.live.isLive);
             }}
-            title={props.live.isLive ? "Pause live updates" : "Enable live updates"}
+            title={
+              props.live.isLive ? "Pause live updates" : "Enable live updates"
+            }
           >
             <span
               className={`h-2 w-2 rounded-full ${
-                props.live.isLive ? "animate-pulse bg-emerald-500" : "bg-gray-300"
+                props.live.isLive
+                  ? "animate-pulse bg-emerald-500"
+                  : "bg-gray-300"
               }`}
             />
             <span>{props.live.isLive ? "Live" : "Paused"}</span>
@@ -187,17 +189,15 @@ function TelemetryViewerInner<T>(
       )}
 
       {/* Histogram */}
-      {showHistogram &&
-        props.histogramBuckets &&
-        props.histogramSeries && (
-          <TelemetryHistogram
-            buckets={props.histogramBuckets}
-            isLoading={props.histogramLoading || false}
-            series={props.histogramSeries}
-            title={props.histogramTitle}
-            onTimeRangeSelect={props.onHistogramTimeRangeSelect}
-          />
-        )}
+      {showHistogram && props.histogramBuckets && props.histogramSeries && (
+        <TelemetryHistogram
+          buckets={props.histogramBuckets}
+          isLoading={props.histogramLoading || false}
+          series={props.histogramSeries}
+          title={props.histogramTitle}
+          onTimeRangeSelect={props.onHistogramTimeRangeSelect}
+        />
+      )}
 
       {/* Main area: facets + list */}
       <div className="flex min-h-0 flex-1 gap-3">
@@ -260,9 +260,7 @@ function TelemetryViewerInner<T>(
             currentPage={props.page}
             totalItems={props.totalCount}
             pageSize={props.pageSize}
-            pageSizeOptions={
-              props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS
-            }
+            pageSizeOptions={props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS}
             onPageChange={props.onPageChange}
             onPageSizeChange={props.onPageSizeChange}
             isDisabled={props.isLoading}
@@ -278,11 +276,10 @@ function TelemetryViewerInner<T>(
 }
 
 // Generic functional component wrapper so TypeScript can infer <T>.
-const TelemetryViewer: <T>(
-  props: TelemetryViewerProps<T>,
-) => ReactElement = TelemetryViewerInner as unknown as <T>(
-  props: TelemetryViewerProps<T>,
-) => ReactElement;
+const TelemetryViewer: <T>(props: TelemetryViewerProps<T>) => ReactElement =
+  TelemetryViewerInner as unknown as <T>(
+    props: TelemetryViewerProps<T>,
+  ) => ReactElement;
 
 export default TelemetryViewer;
 export type { TelemetrySearchBarRef } from "./components/TelemetrySearchBar";

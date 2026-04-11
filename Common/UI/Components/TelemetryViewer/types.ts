@@ -1,5 +1,7 @@
-// Generic types for the TelemetryViewer shell. Shared by logs, traces,
-// metrics, and exceptions viewers.
+/*
+ * Generic types for the TelemetryViewer shell. Shared by logs, traces,
+ * metrics, and exceptions viewers.
+ */
 
 export interface FacetValue {
   value: string;
@@ -18,8 +20,10 @@ export interface ActiveFilter {
 
 export interface HistogramBucket {
   time: string;
-  // Series key used to color and stack the bucket (e.g. severity, statusCode,
-  // level). Each viewer decides what this means via histogramSeries config.
+  /*
+   * Series key used to color and stack the bucket (e.g. severity, statusCode,
+   * level). Each viewer decides what this means via histogramSeries config.
+   */
   series: string;
   count: number;
 }

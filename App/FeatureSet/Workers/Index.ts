@@ -130,8 +130,10 @@ import "./Jobs/AIAgent/TimeoutStuckTasks";
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
-// Metric retention is handled by ClickHouse TTL on Metric.retentionDate
-// (set at ingest from GlobalConfig), so no cleanup cron is needed here.
+/*
+ * Metric retention is handled by ClickHouse TTL on Metric.retentionDate
+ * (set at ingest from GlobalConfig), so no cleanup cron is needed here.
+ */
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 

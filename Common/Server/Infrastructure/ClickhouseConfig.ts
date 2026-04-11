@@ -26,6 +26,15 @@ const options: ClickHouseClientConfigOptions = {
   password: ClickhousePassword,
   database: ClickhouseDatabase,
   application: "oneuptime",
+  /*
+   * The default @clickhouse/client request_timeout is 30s which is too
+   * short for aggregation queries over wide time ranges on large span /
+   * log tables. Cap it just under nginx's 60s proxy_read_timeout so that
+   * (a) a slow query still has headroom and (b) nginx never hits its
+   * upstream timeout first. Per-query SETTINGS max_execution_time on
+   * aggregation statements provides the hard server-side cap.
+   */
+  request_timeout: 58_000,
 };
 
 if (ShouldClickhouseSslEnable && ClickhouseTlsCa) {

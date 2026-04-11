@@ -9,7 +9,6 @@ export interface SparklinePoint {
 export interface MetricSparklineProps {
   points: Array<SparklinePoint>;
   isLoading?: boolean | undefined;
-  color?: string | undefined;
   widthClassName?: string | undefined;
   heightClassName?: string | undefined;
 }
@@ -22,9 +21,7 @@ const MetricSparkline: FunctionComponent<MetricSparklineProps> = (
 
   if (props.isLoading) {
     return (
-      <div
-        className={`${width} ${height} animate-pulse rounded bg-gray-100`}
-      />
+      <div className={`${width} ${height} animate-pulse rounded bg-gray-100`} />
     );
   }
 

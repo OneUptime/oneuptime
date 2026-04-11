@@ -70,9 +70,8 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
       ? Math.max(2, Math.round((durationNano / maxDurationNano) * 100))
       : 0;
 
-  const divisibilityFactor: ReturnType<
-    typeof SpanUtil.getDivisibilityFactor
-  > = SpanUtil.getDivisibilityFactor(durationNano);
+  const divisibilityFactor: ReturnType<typeof SpanUtil.getDivisibilityFactor> =
+    SpanUtil.getDivisibilityFactor(durationNano);
 
   const durationLabel: string = SpanUtil.getSpanDurationAsString({
     divisibilityFactor,

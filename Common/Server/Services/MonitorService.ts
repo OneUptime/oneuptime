@@ -283,17 +283,19 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
-    // The monitor has already been deleted from the database at this point.
-    // Any failure in the post-delete side effects below (e.g. billing
-    // reporting) must NOT propagate up to the caller as a 500 — otherwise the
-    // client sees "500 Internal Server Error" even though the delete actually
-    // succeeded. Log and swallow instead.
-    //
-    // Note: we intentionally do NOT delete Metric rows for this monitor here.
-    // The Metric table has a ClickHouse TTL on retentionDate (set at ingest
-    // from GlobalConfig.monitorMetricRetentionInDays) that auto-drops rows.
-    // A synchronous ALTER TABLE … DELETE on every monitor deletion is both
-    // redundant and expensive.
+    /*
+     * The monitor has already been deleted from the database at this point.
+     * Any failure in the post-delete side effects below (e.g. billing
+     * reporting) must NOT propagate up to the caller as a 500 — otherwise the
+     * client sees "500 Internal Server Error" even though the delete actually
+     * succeeded. Log and swallow instead.
+     *
+     * Note: we intentionally do NOT delete Metric rows for this monitor here.
+     * The Metric table has a ClickHouse TTL on retentionDate (set at ingest
+     * from GlobalConfig.monitorMetricRetentionInDays) that auto-drops rows.
+     * A synchronous ALTER TABLE … DELETE on every monitor deletion is both
+     * redundant and expensive.
+     */
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
       try {
         await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(

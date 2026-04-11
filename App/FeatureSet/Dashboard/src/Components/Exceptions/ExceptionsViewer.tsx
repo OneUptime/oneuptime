@@ -245,8 +245,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       (q as Record<string, unknown>)["exceptionType"] = freeText;
     }
 
-    // Scope the list by the selected time range using lastSeenAt so the
-    // viewer + histogram share the same window.
+    /*
+     * Scope the list by the selected time range using lastSeenAt so the
+     * viewer + histogram share the same window.
+     */
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
     (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>(
@@ -459,26 +461,24 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string) => {
-        setActiveFilters(
-          (prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-            if (
-              prev.some((f: ActiveFilter): boolean => {
-                return f.facetKey === facetKey && f.value === value;
-              })
-            ) {
-              return prev;
-            }
-            const config: FacetConfig | undefined = facetConfigs.find(
-              (c: FacetConfig): boolean => {
-                return c.key === facetKey;
-              },
-            );
-            const displayKey: string = config?.title || facetKey;
-            const displayValue: string =
-              config?.valueDisplayMap?.[value] || value;
-            return [...prev, { facetKey, value, displayKey, displayValue }];
-          },
-        );
+        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+          if (
+            prev.some((f: ActiveFilter): boolean => {
+              return f.facetKey === facetKey && f.value === value;
+            })
+          ) {
+            return prev;
+          }
+          const config: FacetConfig | undefined = facetConfigs.find(
+            (c: FacetConfig): boolean => {
+              return c.key === facetKey;
+            },
+          );
+          const displayKey: string = config?.title || facetKey;
+          const displayValue: string =
+            config?.valueDisplayMap?.[value] || value;
+          return [...prev, { facetKey, value, displayKey, displayValue }];
+        });
         setPage(1);
       },
       [facetConfigs],
@@ -618,10 +618,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           />
         );
       }}
-      getRowKey={(
-        exception: TelemetryException,
-        index: number,
-      ): string => {
+      getRowKey={(exception: TelemetryException, index: number): string => {
         return `${
           (exception._id || exception.id)?.toString() ||
           exception.fingerprint ||

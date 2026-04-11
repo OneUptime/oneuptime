@@ -13,9 +13,9 @@ export interface TelemetryFacetValueRowProps {
   onExclude: (value: string) => void;
 }
 
-const TelemetryFacetValueRow: FunctionComponent<
-  TelemetryFacetValueRowProps
-> = (props: TelemetryFacetValueRowProps): ReactElement => {
+const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
+  props: TelemetryFacetValueRowProps,
+): ReactElement => {
   const barWidth: number =
     props.maxCount > 0
       ? Math.max(4, Math.round((props.count / props.maxCount) * 100))
