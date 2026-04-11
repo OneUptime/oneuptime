@@ -49,6 +49,7 @@ import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -459,7 +460,8 @@ ${contextBlock}
 
     if (
       input.monitor.monitorType === MonitorType.Metrics ||
-      input.monitor.monitorType === MonitorType.Kubernetes
+      input.monitor.monitorType === MonitorType.Kubernetes ||
+      input.monitor.monitorType === MonitorType.Docker
     ) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
@@ -572,6 +574,11 @@ ${contextBlock}
       return await MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(
         input,
       );
+    }
+
+    // Handle Docker monitors with resource context
+    if (input.monitor.monitorType === MonitorType.Docker) {
+      return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
     }
 
     const requestDetails: Array<string> = [];
@@ -920,6 +927,71 @@ ${contextBlock}
     }
 
     return sections.join("\n");
+  }
+
+  private static buildDockerRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const sections: Array<string> = [];
+
+    // Docker host context
+    const dockerMonitor: MonitorStepDockerMonitor | undefined =
+      input.monitorStep.data?.dockerMonitor;
+
+    if (dockerMonitor) {
+      const hostDetails: Array<string> = [];
+      hostDetails.push(`- Host: ${dockerMonitor.hostIdentifier || "Unknown"}`);
+
+      if (dockerMonitor.containerFilters?.containerName) {
+        hostDetails.push(
+          `- Container Name Filter: ${dockerMonitor.containerFilters.containerName}`,
+        );
+      }
+
+      if (dockerMonitor.containerFilters?.containerImage) {
+        hostDetails.push(
+          `- Container Image Filter: ${dockerMonitor.containerFilters.containerImage}`,
+        );
+      }
+
+      // Add metric name from the query config
+      if (
+        dockerMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        dockerMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = dockerMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          hostDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      sections.push(`**Docker Host Details**\n${hostDetails.join("\n")}`);
+    }
+
+    // Metric results summary
+    if (metricResponse.metricResult && metricResponse.metricResult.length > 0) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
   }
 
   private static buildKubernetesRootCauseAnalysis(input: {

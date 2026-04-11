@@ -20,6 +20,16 @@ ENV APP_VERSION=${APP_VERSION}
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 ENV NODE_OPTIONS="--use-openssl-ca"
 
+LABEL org.opencontainers.image.title="OneUptime Probe"
+LABEL org.opencontainers.image.description="OneUptime monitoring probe — runs HTTP, TCP, ping, SSL, and synthetic monitors from any location."
+LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
+LABEL org.opencontainers.image.url="https://oneuptime.com"
+LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs/probe/custom-probe"
+LABEL org.opencontainers.image.vendor="OneUptime"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
+
 ## Add Intermediate Certs 
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates

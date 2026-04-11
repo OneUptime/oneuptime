@@ -7,6 +7,7 @@ enum MonitorType {
   API = "API",
   Ping = "Ping",
   Kubernetes = "Kubernetes",
+  Docker = "Docker",
   IP = "IP",
   IncomingRequest = "Incoming Request",
   IncomingEmail = "Incoming Email",
@@ -89,6 +90,10 @@ export class MonitorTypeHelper {
         monitorTypes: [MonitorType.Kubernetes],
       },
       {
+        label: "Docker",
+        monitorTypes: [MonitorType.Docker],
+      },
+      {
         label: "Telemetry",
         monitorTypes: [
           MonitorType.Logs,
@@ -112,7 +117,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Traces ||
       monitorType === MonitorType.Exceptions ||
       monitorType === MonitorType.Profiles ||
-      monitorType === MonitorType.Kubernetes
+      monitorType === MonitorType.Kubernetes ||
+      monitorType === MonitorType.Docker
     );
   }
 
@@ -155,6 +161,13 @@ export class MonitorTypeHelper {
         title: "Kubernetes",
         description:
           "This monitor type lets you monitor Kubernetes clusters, workloads, nodes, and pods.",
+        icon: IconProp.Cube,
+      },
+      {
+        monitorType: MonitorType.Docker,
+        title: "Docker Container",
+        description:
+          "This monitor type lets you monitor Docker containers — CPU, memory, network, restarts, and lifecycle events.",
         icon: IconProp.Cube,
       },
       {
@@ -349,6 +362,7 @@ export class MonitorTypeHelper {
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
+      MonitorType.Docker,
     ];
   }
 

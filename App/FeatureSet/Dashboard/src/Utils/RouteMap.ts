@@ -98,6 +98,18 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
 };
 
+export const DockerRoutePath: Dictionary<string> = {
+  [PageMap.DOCKER_HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
+  [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
+  [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DOCKER_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.DOCKER_HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.DOCKER_DOCUMENTATION]: `documentation`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
@@ -1745,6 +1757,70 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_DOCUMENTATION]
+    }`,
+  ),
+
+  // Docker
+
+  [PageMap.DOCKER_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/*`,
+  ),
+
+  [PageMap.DOCKER_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_CONTAINERS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.DOCKER_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_DOCUMENTATION]
     }`,
   ),
 

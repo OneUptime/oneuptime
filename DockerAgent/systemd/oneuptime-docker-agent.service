@@ -1,0 +1,20 @@
+[Unit]
+Description=OneUptime Docker Agent (OpenTelemetry Collector)
+Documentation=https://oneuptime.com/docs/docker-monitoring
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/oneuptime-docker-agent
+ExecStartPre=/usr/bin/docker compose pull
+ExecStart=/usr/bin/docker compose up --remove-orphans
+ExecStop=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

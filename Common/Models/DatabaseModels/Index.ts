@@ -1,6 +1,7 @@
 import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
+import DockerHost from "./DockerHost";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -506,6 +507,7 @@ const AllModelTypes: Array<{
   StatusPageSCIMLog,
 
   KubernetesCluster,
+  DockerHost,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

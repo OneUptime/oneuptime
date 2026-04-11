@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import ExceptionsTable from "../../Components/Exceptions/ExceptionsTable";
+import ExceptionsViewer from "../../Components/Exceptions/ExceptionsViewer";
 
 const ResolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,16 +15,7 @@ const ResolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <ExceptionsTable
-      query={{
-        isResolved: true,
-        isArchived: false,
-      }}
-      title="Resolved Exceptions"
-      description="All the exceptions that have been resolved."
-    />
-  );
+  return <ExceptionsViewer defaultStatus="resolved" />;
 };
 
 export default ResolvedExceptionsPage;

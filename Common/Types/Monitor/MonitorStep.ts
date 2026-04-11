@@ -44,6 +44,9 @@ import MonitorStepExternalStatusPageMonitor, {
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
 } from "./MonitorStepKubernetesMonitor";
+import MonitorStepDockerMonitor, {
+  MonitorStepDockerMonitorUtil,
+} from "./MonitorStepDockerMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorStepType {
@@ -102,6 +105,9 @@ export interface MonitorStepType {
 
   // Kubernetes monitor
   kubernetesMonitor?: MonitorStepKubernetesMonitor | undefined;
+
+  // Docker monitor
+  dockerMonitor?: MonitorStepDockerMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -133,6 +139,7 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
+      dockerMonitor: undefined,
     };
   }
 
@@ -169,6 +176,7 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
+      dockerMonitor: undefined,
     };
 
     return monitorStep;
@@ -297,6 +305,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setDockerMonitor(
+    dockerMonitor: MonitorStepDockerMonitor,
+  ): MonitorStep {
+    this.data!.dockerMonitor = dockerMonitor;
+    return this;
+  }
+
   public setCustomCode(customCode: string): MonitorStep {
     this.data!.customCode = customCode;
     return this;
@@ -326,6 +341,7 @@ export default class MonitorStep extends DatabaseProperty {
         logMonitor: undefined,
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
+        dockerMonitor: undefined,
       },
     };
   }
@@ -446,6 +462,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Docker) {
+      if (!value.data.dockerMonitor) {
+        return "Docker monitor configuration is required";
+      }
+
+      if (!value.data.dockerMonitor.hostIdentifier) {
+        return "Docker host is required";
+      }
+    }
+
     return null;
   }
 
@@ -512,6 +538,9 @@ export default class MonitorStep extends DatabaseProperty {
             ? MonitorStepKubernetesMonitorUtil.toJSON(
                 this.data.kubernetesMonitor,
               )
+            : undefined,
+          dockerMonitor: this.data.dockerMonitor
+            ? MonitorStepDockerMonitorUtil.toJSON(this.data.dockerMonitor)
             : undefined,
         },
       });
@@ -633,6 +662,9 @@ export default class MonitorStep extends DatabaseProperty {
       kubernetesMonitor: json["kubernetesMonitor"]
         ? (json["kubernetesMonitor"] as JSONObject)
         : undefined,
+      dockerMonitor: json["dockerMonitor"]
+        ? (json["dockerMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -663,6 +695,7 @@ export default class MonitorStep extends DatabaseProperty {
         domainMonitor: Zod.any().optional(),
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
+        dockerMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

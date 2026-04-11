@@ -71,7 +71,6 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
-import MetricService from "./MetricService";
 
 export interface MonitorDestinationInfo {
   monitorDestination: string;
@@ -284,27 +283,28 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
+    /*
+     * The monitor has already been deleted from the database at this point.
+     * Any failure in the post-delete side effects below (e.g. billing
+     * reporting) must NOT propagate up to the caller as a 500 — otherwise the
+     * client sees "500 Internal Server Error" even though the delete actually
+     * succeeded. Log and swallow instead.
+     *
+     * Note: we intentionally do NOT delete Metric rows for this monitor here.
+     * The Metric table has a ClickHouse TTL on retentionDate (set at ingest
+     * from GlobalConfig.monitorMetricRetentionInDays) that auto-drops rows.
+     * A synchronous ALTER TABLE … DELETE on every monitor deletion is both
+     * redundant and expensive.
+     */
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
-      await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        onDelete.deleteBy.props.tenantId,
-      );
-    }
-
-    if (onDelete.carryForward && onDelete.carryForward.monitors) {
-      for (const monitor of onDelete.carryForward.monitors as Array<Model>) {
-        if (!monitor.projectId || !monitor.id) {
-          continue;
-        }
-
-        await MetricService.deleteBy({
-          query: {
-            projectId: monitor.projectId,
-            serviceId: monitor.id,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      try {
+        await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+          onDelete.deleteBy.props.tenantId,
+        );
+      } catch (error) {
+        logger.error(
+          `Error while reporting active monitor quantity to billing provider for project ${onDelete.deleteBy.props.tenantId?.toString()}: ${error}`,
+        );
       }
     }
 

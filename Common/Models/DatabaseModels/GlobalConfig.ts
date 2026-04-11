@@ -10,6 +10,8 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
+import OAuthProviderType from "../../Types/Email/OAuthProviderType";
+import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
@@ -205,6 +207,116 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public smtpFromName?: string = undefined;
+
+  // SMTP OAuth 2.0 Settings.
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "SMTP Authentication Type",
+    description:
+      "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
+    defaultValue: SMTPAuthenticationType.UsernamePassword,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: SMTPAuthenticationType.UsernamePassword,
+  })
+  public smtpAuthType?: SMTPAuthenticationType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "SMTP OAuth Client ID",
+    description:
+      "The Client ID from your OAuth application registration. Required for OAuth authentication.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public smtpClientId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "SMTP OAuth Client Secret",
+    description:
+      "The Client Secret from your OAuth application registration. Required for OAuth authentication. For Google service accounts, this is the private key from the JSON key file.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public smtpClientSecret?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongURL,
+    title: "SMTP OAuth Token URL",
+    description:
+      "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+  })
+  @Column({
+    type: ColumnType.LongURL,
+    nullable: true,
+  })
+  public smtpTokenUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "SMTP OAuth Scope",
+    description:
+      "The OAuth scope(s) required for SMTP access. For Microsoft 365: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public smtpScope?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "SMTP OAuth Provider Type",
+    description:
+      "The OAuth grant type to use. 'Client Credentials' for Microsoft 365 and most providers. 'JWT Bearer' for Google Workspace service accounts.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public smtpOAuthProviderType?: OAuthProviderType = undefined;
 
   // Twilio config.
 

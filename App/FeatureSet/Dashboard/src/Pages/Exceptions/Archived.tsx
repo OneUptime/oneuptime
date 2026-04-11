@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import ExceptionsTable from "../../Components/Exceptions/ExceptionsTable";
+import ExceptionsViewer from "../../Components/Exceptions/ExceptionsViewer";
 
 const ArchivedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,15 +15,7 @@ const ArchivedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <ExceptionsTable
-      query={{
-        isArchived: true,
-      }}
-      title="Archived Exceptions"
-      description="All the exceptions that have been archived. You will not be notified about these exceptions."
-    />
-  );
+  return <ExceptionsViewer defaultStatus="archived" />;
 };
 
 export default ArchivedExceptionsPage;

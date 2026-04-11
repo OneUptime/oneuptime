@@ -167,7 +167,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             await Promise.resolve();
           }
           resourceSpanCounter++;
-          const serviceName: string = this.getServiceNameFromAttributes(
+          const serviceName: string = await this.getServiceNameFromAttributes(
             req,
             ((resourceSpan["resource"] as JSONObject)?.[
               "attributes"

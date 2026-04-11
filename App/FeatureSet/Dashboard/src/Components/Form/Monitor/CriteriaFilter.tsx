@@ -41,6 +41,7 @@ const isMetricOnlyMonitorType: (monitorType: MonitorType) => boolean = (
 ): boolean => {
   return (
     monitorType === MonitorType.Kubernetes ||
+    monitorType === MonitorType.Docker ||
     monitorType === MonitorType.Metrics
   );
 };
@@ -151,10 +152,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       );
     });
 
-  // Collect metric variables from both metricMonitor and kubernetesMonitor configs
+  // Collect metric variables from metricMonitor, kubernetesMonitor, and dockerMonitor configs
   const metricViewConfig: MetricsViewConfig | undefined =
     props.monitorStep.data?.metricMonitor?.metricViewConfig ||
-    props.monitorStep.data?.kubernetesMonitor?.metricViewConfig;
+    props.monitorStep.data?.kubernetesMonitor?.metricViewConfig ||
+    props.monitorStep.data?.dockerMonitor?.metricViewConfig;
 
   let metricVariables: Array<string> =
     metricViewConfig?.queryConfigs?.map(

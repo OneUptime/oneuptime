@@ -71,6 +71,10 @@ import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStep
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import DockerMonitorStepForm from "./DockerMonitor/DockerMonitorStepForm";
+import MonitorStepDockerMonitor, {
+  MonitorStepDockerMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepDockerMonitor";
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
@@ -777,6 +781,33 @@ return {
             }
             onChange={(value: MonitorStepKubernetesMonitor) => {
               monitorStep.setKubernetesMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Docker && (
+        <Card
+          title="Docker Monitor Configuration"
+          description="Configure your Docker container monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <DockerMonitorStepForm
+            monitorStepDockerMonitor={
+              monitorStep.data?.dockerMonitor ||
+              MonitorStepDockerMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepDockerMonitor) => {
+              monitorStep.setDockerMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

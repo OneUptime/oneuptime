@@ -438,6 +438,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/docker": {
+    title:
+      "Docker Observability | Monitor Hosts, Containers & Images | OneUptime",
+    description:
+      "Complete Docker observability with real-time host monitoring, container health tracking, image insights, and automated alerting. OpenTelemetry native. Open source.",
+    canonicalPath: "/product/docker",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Docker", url: "/product/docker" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Docker Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Docker hosts, containers, and images with real-time metrics, intelligent alerting, and pre-built dashboards.",
+      features: [
+        "Multi-host fleet monitoring",
+        "Container health and metrics",
+        "Image and volume insights",
+        "OOM kill detection",
+        "Restart loop alerting",
+        "CPU and memory tracking",
+        "Network and block I/O metrics",
+        "OpenTelemetry native",
+        "Docker Compose deployment",
+        "docker_stats receiver",
+        "Container logs correlation",
+      ],
+    },
+  },
+
   "/product/profiles": {
     title:
       "Continuous Profiling | CPU, Memory & Allocation Profiling | OneUptime",

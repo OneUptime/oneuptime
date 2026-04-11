@@ -2784,6 +2784,93 @@ const Icon: FunctionComponent<ComponentProps> = ({
         {spokes}
       </>,
     );
+  } else if (icon === IconProp.Docker) {
+    // Docker whale — stack of containers on top of a whale curve, matching the official logo
+    return getSvgWrapper(
+      <>
+        {/* Container stack — bottom row (4 boxes) */}
+        <rect
+          x="3"
+          y="10"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="6.5"
+          y="10"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="10"
+          y="10"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="13.5"
+          y="10"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Container stack — middle row (3 boxes) */}
+        <rect
+          x="6.5"
+          y="6.5"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="10"
+          y="6.5"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect
+          x="13.5"
+          y="6.5"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Container stack — top row (1 box) */}
+        <rect
+          x="10"
+          y="3"
+          width="3"
+          height="3"
+          rx="0.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Whale curve carrying the containers */}
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2 14c1 2.5 3.5 4 7 4 5.5 0 9.5-2.5 11-7 1 0.2 2.2 0 3-0.7"
+        />
+      </>,
+    );
   } else if (icon === IconProp.Gauge) {
     // Gauge/speedometer icon — semicircular meter with needle
     return getSvgWrapper(

@@ -1270,7 +1270,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       <div className="relative flex gap-5">
         {/* Step indicator with connecting line */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-9 h-9 rounded-full bg-indigo-50 border-2 border-indigo-500 text-indigo-600 flex items-center justify-center text-sm font-bold z-10">
+          <div className="w-9 h-9 rounded-full bg-indigo-50 border-2 border-indigo-500 text-indigo-600 flex items-center justify-center text-sm font-bold">
             {stepNumber}
           </div>
           {!isLast && <div className="w-0.5 flex-1 bg-gray-200 mt-2 mb-0" />}

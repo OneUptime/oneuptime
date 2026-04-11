@@ -1,5 +1,4 @@
 export * from "./MonitorBreadcrumbs";
-export * from "./MonitorBreadcrumbs";
 export * from "./ScheduledMaintenanceBreadcrumbs";
 export * from "./StatusPagesBreadcrumbs";
 export * from "./WorkflowsBreadcrumbs";
@@ -12,6 +11,7 @@ export * from "./MonitorGroupBreadcrumbs";
 export * from "./ServiceBreadcrumbs";
 export * from "./CodeRepositoryBreadcrumbs";
 export * from "./KubernetesBreadcrumbs";
+export * from "./DockerBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";

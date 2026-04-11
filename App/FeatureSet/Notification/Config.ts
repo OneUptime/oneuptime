@@ -1,6 +1,9 @@
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
+import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { AdminDashboardClientURL } from "Common/Server/EnvironmentConfig";
@@ -32,6 +35,12 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
           smtpPassword: true,
           isSMTPSecure: true,
           smtpFromName: true,
+          smtpAuthType: true,
+          smtpClientId: true,
+          smtpClientSecret: true,
+          smtpTokenUrl: true,
+          smtpScope: true,
+          smtpOAuthProviderType: true,
         },
       });
 
@@ -49,6 +58,10 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
     ) {
       return null;
     }
+
+    const smtpAuthType: SMTPAuthenticationType =
+      (globalConfig.smtpAuthType as SMTPAuthenticationType) ||
+      SMTPAuthenticationType.UsernamePassword;
 
     if (!globalConfig.smtpFromEmail) {
       throw new BadDataException(
@@ -93,6 +106,16 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       secure: globalConfig.isSMTPSecure || false,
       fromEmail: globalConfig.smtpFromEmail,
       fromName: globalConfig.smtpFromName || "OneUptime",
+      authType: smtpAuthType,
+      clientId: globalConfig.smtpClientId || undefined,
+      clientSecret: globalConfig.smtpClientSecret || undefined,
+      tokenUrl: globalConfig.smtpTokenUrl
+        ? URL.fromString(globalConfig.smtpTokenUrl)
+        : undefined,
+      scope: globalConfig.smtpScope || undefined,
+      oauthProviderType:
+        (globalConfig.smtpOAuthProviderType as OAuthProviderType | undefined) ||
+        undefined,
     };
   };
 

@@ -1,11 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import TraceTable from "../../Components/Traces/TraceTable";
+import TracesViewer from "../../Components/Traces/TracesViewer";
 
 const TracesListPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  return <TraceTable />;
+  return <TracesViewer />;
 };
 
 export default TracesListPage;

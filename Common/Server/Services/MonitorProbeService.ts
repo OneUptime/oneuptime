@@ -94,13 +94,15 @@ export class Service extends DatabaseService<MonitorProbe> {
     const claimedIds: Array<ObjectID> = await this.executeTransaction(
       async (transactionalEntityManager: EntityManager) => {
         /*
-         * First, select and lock the monitor probes that need to be processed
+         * Select and lock the monitor probes that need to be processed,
+         * including the monitoringInterval so we can compute the real nextPingAt
+         * in a single UPDATE (avoiding a second round-trip).
          * FOR UPDATE SKIP LOCKED ensures that:
          * 1. Rows are locked for this transaction
          * 2. Rows already locked by other transactions are skipped
          */
         const selectQuery: string = `
-        SELECT mp."_id"
+        SELECT mp."_id", m."monitoringInterval"
         FROM "MonitorProbe" mp
         INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
         INNER JOIN "Project" p ON mp."projectId" = p."_id"
@@ -122,41 +124,60 @@ export class Service extends DatabaseService<MonitorProbe> {
         FOR UPDATE OF mp SKIP LOCKED
       `;
 
-        const selectedRows: Array<{ _id: string }> =
-          await transactionalEntityManager.query(selectQuery, [
-            data.probeId.toString(),
-            currentDate,
-            data.limit,
-          ]);
+        const selectedRows: Array<{
+          _id: string;
+          monitoringInterval: string | null;
+        }> = await transactionalEntityManager.query(selectQuery, [
+          data.probeId.toString(),
+          currentDate,
+          data.limit,
+        ]);
 
         if (selectedRows.length === 0) {
           return [];
         }
 
-        const ids: Array<string> = selectedRows.map((row: { _id: string }) => {
-          return row._id;
-        });
-
-        /*
-         * Update the claimed monitors to set nextPingAt to 1 minute from now
-         * This is a temporary value; the actual nextPingAt will be calculated
-         * based on the monitor's interval after the probe fetches the full details
-         */
-        const tempNextPingAt: Date = OneUptimeDate.addRemoveMinutes(
+        // Compute the real nextPingAt per monitor and batch-update in one query
+        const defaultNextPing: Date = OneUptimeDate.addRemoveMinutes(
           currentDate,
           1,
         );
 
+        const ids: Array<string> = [];
+        const nextPingDates: Array<Date> = [];
+        const caseFragments: Array<string> = [];
+
+        for (let i: number = 0; i < selectedRows.length; i++) {
+          const row: { _id: string; monitoringInterval: string | null } =
+            selectedRows[i]!;
+          ids.push(row._id);
+
+          let nextPing: Date = defaultNextPing;
+          if (row.monitoringInterval) {
+            try {
+              nextPing = CronTab.getNextExecutionTime(row.monitoringInterval);
+            } catch {
+              // fall back to default 1 minute
+            }
+          }
+
+          nextPingDates.push(nextPing);
+          caseFragments.push(
+            `WHEN '${row._id}'::uuid THEN $${i + 3}::timestamptz`,
+          );
+        }
+
         const updateQuery: string = `
         UPDATE "MonitorProbe"
-        SET "lastPingAt" = $1, "nextPingAt" = $2
-        WHERE "_id" = ANY($3::uuid[])
+        SET "lastPingAt" = $1,
+            "nextPingAt" = CASE "_id" ${caseFragments.join(" ")} END
+        WHERE "_id" = ANY($2::uuid[])
       `;
 
         await transactionalEntityManager.query(updateQuery, [
           currentDate,
-          tempNextPingAt,
           ids,
+          ...nextPingDates,
         ]);
 
         return ids.map((id: string) => {

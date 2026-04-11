@@ -21,6 +21,16 @@ ENV APP_VERSION=${APP_VERSION}
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
+LABEL org.opencontainers.image.title="OneUptime App"
+LABEL org.opencontainers.image.description="OneUptime core application server — dashboard API, workers, and telemetry ingestion."
+LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
+LABEL org.opencontainers.image.url="https://oneuptime.com"
+LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
+LABEL org.opencontainers.image.vendor="OneUptime"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
+
 
 # IF APP_VERSION is not set, set it to 1.0.0
 RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi

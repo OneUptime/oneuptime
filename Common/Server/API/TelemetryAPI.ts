@@ -23,6 +23,16 @@ import LogAggregationService, {
   AnalyticsTopItem,
   AnalyticsTableRow,
 } from "../Services/LogAggregationService";
+import TraceAggregationService, {
+  HistogramBucket as TraceHistogramBucket,
+  HistogramRequest as TraceHistogramRequest,
+  FacetValue as TraceFacetValue,
+  FacetRequest as TraceFacetRequest,
+} from "../Services/TraceAggregationService";
+import ExceptionAggregationService, {
+  HistogramBucket as ExceptionHistogramBucket,
+  HistogramRequest as ExceptionHistogramRequest,
+} from "../Services/ExceptionAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
   FunctionListRequest,
@@ -349,28 +359,353 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
-      const facets: Record<string, Array<FacetValue>> = {};
+      /*
+       * Run facet queries in parallel so a slow individual facet can't
+       * starve the endpoint. Per-facet errors degrade gracefully to [].
+       */
+      const facetResults: Array<readonly [string, Array<FacetValue>]> =
+        await Promise.all(
+          facetKeys.map(
+            async (
+              facetKey: string,
+            ): Promise<readonly [string, Array<FacetValue>]> => {
+              try {
+                const request: FacetRequest = {
+                  projectId: databaseProps.tenantId,
+                  startTime,
+                  endTime,
+                  facetKey,
+                  limit,
+                  serviceIds,
+                  severityTexts,
+                  bodySearchText,
+                  traceIds,
+                  spanIds,
+                  attributes,
+                };
+                const values: Array<FacetValue> =
+                  await LogAggregationService.getFacetValues(request);
+                return [facetKey, values] as const;
+              } catch {
+                return [facetKey, [] as Array<FacetValue>] as const;
+              }
+            },
+          ),
+        );
 
-      for (const facetKey of facetKeys) {
-        const request: FacetRequest = {
-          projectId: databaseProps.tenantId,
-          startTime,
-          endTime,
-          facetKey,
-          limit,
-          serviceIds,
-          severityTexts,
-          bodySearchText,
-          traceIds,
-          spanIds,
-          attributes,
-        };
-
-        facets[facetKey] = await LogAggregationService.getFacetValues(request);
-      }
+      const facets: Record<string, Array<FacetValue>> = Object.fromEntries(
+        facetResults,
+      );
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Histogram Endpoint ---
+
+router.post(
+  "/telemetry/traces/histogram",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const bucketSizeInMinutes: number =
+        (body["bucketSizeInMinutes"] as number) ||
+        computeDefaultBucketSize(startTime, endTime);
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const statusCodes: Array<number> | undefined = body["statusCodes"]
+        ? (body["statusCodes"] as Array<number>)
+        : undefined;
+
+      const spanKinds: Array<string> | undefined = body["spanKinds"]
+        ? (body["spanKinds"] as Array<string>)
+        : undefined;
+
+      const spanNames: Array<string> | undefined = body["spanNames"]
+        ? (body["spanNames"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const nameSearchText: string | undefined = body["nameSearchText"]
+        ? (body["nameSearchText"] as string)
+        : undefined;
+
+      const rootOnly: boolean | undefined =
+        body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
+
+      const attributes: Record<string, string> | undefined = body["attributes"]
+        ? (body["attributes"] as Record<string, string>)
+        : undefined;
+
+      const request: TraceHistogramRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes,
+        serviceIds,
+        statusCodes,
+        spanKinds,
+        spanNames,
+        traceIds,
+        nameSearchText,
+        rootOnly,
+        attributes,
+      };
+
+      const buckets: Array<TraceHistogramBucket> =
+        await TraceAggregationService.getHistogram(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        buckets: buckets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Facets Endpoint ---
+
+router.post(
+  "/telemetry/traces/facets",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const facetKeys: Array<string> = body["facetKeys"]
+        ? (body["facetKeys"] as Array<string>)
+        : ["serviceId", "statusCode", "kind", "name"];
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const limit: number = (body["limit"] as number) || 500;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const statusCodes: Array<number> | undefined = body["statusCodes"]
+        ? (body["statusCodes"] as Array<number>)
+        : undefined;
+
+      const spanKinds: Array<string> | undefined = body["spanKinds"]
+        ? (body["spanKinds"] as Array<string>)
+        : undefined;
+
+      const spanNames: Array<string> | undefined = body["spanNames"]
+        ? (body["spanNames"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const nameSearchText: string | undefined = body["nameSearchText"]
+        ? (body["nameSearchText"] as string)
+        : undefined;
+
+      const rootOnly: boolean | undefined =
+        body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]);
+
+      const attributes: Record<string, string> | undefined = body["attributes"]
+        ? (body["attributes"] as Record<string, string>)
+        : undefined;
+
+      /*
+       * Run facet queries in parallel so a slow individual facet can't
+       * starve the endpoint. Per-facet errors degrade gracefully to [].
+       */
+      const facetResults: Array<readonly [string, Array<TraceFacetValue>]> =
+        await Promise.all(
+          facetKeys.map(
+            async (
+              facetKey: string,
+            ): Promise<readonly [string, Array<TraceFacetValue>]> => {
+              try {
+                const request: TraceFacetRequest = {
+                  projectId: databaseProps.tenantId,
+                  startTime,
+                  endTime,
+                  facetKey,
+                  limit,
+                  serviceIds,
+                  statusCodes,
+                  spanKinds,
+                  spanNames,
+                  traceIds,
+                  nameSearchText,
+                  rootOnly,
+                  attributes,
+                };
+                const values: Array<TraceFacetValue> =
+                  await TraceAggregationService.getFacetValues(request);
+                return [facetKey, values] as const;
+              } catch {
+                return [facetKey, [] as Array<TraceFacetValue>] as const;
+              }
+            },
+          ),
+        );
+
+      const facets: Record<string, Array<TraceFacetValue>> = Object.fromEntries(
+        facetResults,
+      );
+
+      return Response.sendJsonObjectResponse(req, res, {
+        facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Exception Histogram Endpoint ---
+
+router.post(
+  "/telemetry/exceptions/histogram",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -24);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const bucketSizeInMinutes: number =
+        (body["bucketSizeInMinutes"] as number) ||
+        computeDefaultBucketSize(startTime, endTime);
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const exceptionTypes: Array<string> | undefined = body["exceptionTypes"]
+        ? (body["exceptionTypes"] as Array<string>)
+        : undefined;
+
+      const environments: Array<string> | undefined = body["environments"]
+        ? (body["environments"] as Array<string>)
+        : undefined;
+
+      const fingerprints: Array<string> | undefined = body["fingerprints"]
+        ? (body["fingerprints"] as Array<string>)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const escaped: boolean | undefined =
+        body["escaped"] === undefined ? undefined : Boolean(body["escaped"]);
+
+      const messageSearchText: string | undefined = body["messageSearchText"]
+        ? (body["messageSearchText"] as string)
+        : undefined;
+
+      const request: ExceptionHistogramRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes,
+        serviceIds,
+        exceptionTypes,
+        environments,
+        fingerprints,
+        traceIds,
+        escaped,
+        messageSearchText,
+      };
+
+      const buckets: Array<ExceptionHistogramBucket> =
+        await ExceptionAggregationService.getHistogram(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        buckets: buckets as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);
