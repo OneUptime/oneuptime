@@ -290,10 +290,10 @@ export class Service extends DatabaseService<Model> {
     // succeeded. Log and swallow instead.
     //
     // Note: we intentionally do NOT delete Metric rows for this monitor here.
-    // The Metric table has a ClickHouse TTL on retentionDate that auto-drops
-    // rows, and the Metric:DeleteMonitorMetricsOlderThanXDays cron sweeps
-    // monitor metrics daily. A synchronous ALTER TABLE … DELETE on every
-    // monitor deletion is both redundant and expensive.
+    // The Metric table has a ClickHouse TTL on retentionDate (set at ingest
+    // from GlobalConfig.monitorMetricRetentionInDays) that auto-drops rows.
+    // A synchronous ALTER TABLE … DELETE on every monitor deletion is both
+    // redundant and expensive.
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
       try {
         await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
