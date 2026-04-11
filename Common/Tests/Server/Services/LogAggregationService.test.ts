@@ -31,7 +31,7 @@ describe("LogAggregationService", () => {
     });
 
     expect(statement.query).toBe(
-      "SELECT toString({p0:Identifier}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} GROUP BY val ORDER BY cnt DESC LIMIT {p5:Int32}",
+      "SELECT toString({p0:Identifier}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} GROUP BY val ORDER BY cnt DESC LIMIT {p5:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     expect(statement.query_params).toStrictEqual({
@@ -51,7 +51,7 @@ describe("LogAggregationService", () => {
     });
 
     expect(statement.query).toBe(
-      "SELECT JSONExtractRaw(attributes, {p0:String}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND JSONHas(attributes, {p5:String}) = 1 GROUP BY val ORDER BY cnt DESC LIMIT {p6:Int32}",
+      "SELECT JSONExtractRaw(attributes, {p0:String}) AS val, count() AS cnt FROM {p1:Identifier} WHERE projectId = {p2:String} AND time >= {p3:DateTime} AND time <= {p4:DateTime} AND JSONHas(attributes, {p5:String}) = 1 GROUP BY val ORDER BY cnt DESC LIMIT {p6:Int32} SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
     );
 
     expect(statement.query_params).toStrictEqual({
