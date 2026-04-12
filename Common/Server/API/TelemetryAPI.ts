@@ -359,8 +359,10 @@ router.post(
         ? (body["attributes"] as Record<string, string>)
         : undefined;
 
-      // Capture tenantId locally so TypeScript narrowing survives the
-      // async closure below (narrowing is lost across closure boundaries).
+      /*
+       * Capture tenantId locally so TypeScript narrowing survives the
+       * async closure below (narrowing is lost across closure boundaries).
+       */
       const projectId: ObjectID = databaseProps.tenantId;
 
       /*

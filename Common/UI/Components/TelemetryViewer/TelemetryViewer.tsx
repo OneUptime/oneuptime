@@ -101,7 +101,7 @@ const DEFAULT_PAGE_SIZE_OPTIONS: Array<number> = [25, 50, 100, 200];
 function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
-    Boolean(props.facetConfigs) &&
+    props.facetConfigs !== undefined &&
     props.facetConfigs.length > 0;
 
   const showHistogram: boolean = props.showHistogram ?? true;
