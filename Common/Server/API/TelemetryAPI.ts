@@ -88,6 +88,14 @@ router.post(
   },
 );
 
+router.post(
+  "/telemetry/traces/get-attribute-values",
+  UserMiddleware.getUserMiddleware,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributeValues(req, res, next, TelemetryType.Trace);
+  },
+);
+
 type GetAttributesFunction = (
   req: ExpressRequest,
   res: ExpressResponse,

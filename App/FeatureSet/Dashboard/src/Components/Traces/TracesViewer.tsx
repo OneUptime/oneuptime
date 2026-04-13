@@ -48,6 +48,9 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
+import Search from "Common/Types/BaseDatabase/Search";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import LessThan from "Common/Types/BaseDatabase/LessThan";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -94,24 +97,54 @@ const SPAN_KIND_LABEL: Record<string, string> = {
 
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
-    syntax: "@service:<name>",
+    syntax: "service:<name>",
     description: "Filter by service name",
-    example: "@service:api",
+    example: "service:api",
   },
   {
-    syntax: "@status:ok|error|unset",
+    syntax: "status:ok|error|unset",
     description: "Filter by span status",
-    example: "@status:error",
+    example: "status:error",
   },
   {
-    syntax: "@name:<span name>",
-    description: "Filter by span name",
-    example: "@name:GET /users",
+    syntax: "name:<span name>",
+    description: "Filter by span name (substring match)",
+    example: "name:GET /users",
   },
   {
-    syntax: "@trace:<trace id>",
+    syntax: "trace:<trace id>",
     description: "Filter by trace id",
-    example: "@trace:abc123",
+    example: "trace:abc123",
+  },
+  {
+    syntax: "span:<span id>",
+    description: "Filter by span id",
+    example: "span:def456",
+  },
+  {
+    syntax: "kind:<span kind>",
+    description: "Filter by span kind",
+    example: "kind:server",
+  },
+  {
+    syntax: "hasException:true|false",
+    description: "Filter spans with/without exceptions",
+    example: "hasException:true",
+  },
+  {
+    syntax: "statusMessage:<text>",
+    description: "Filter by status message (substring match)",
+    example: "statusMessage:timeout",
+  },
+  {
+    syntax: "duration:>N or duration:<N",
+    description: "Filter by duration in milliseconds",
+    example: "duration:>500",
+  },
+  {
+    syntax: "@<attribute>:<value>",
+    description: "Filter by span attribute",
+    example: "@http.method:GET",
   },
 ];
 
@@ -120,7 +153,33 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
   status: "statusCode",
   name: "name",
   trace: "traceId",
+  span: "spanId",
+  kind: "kind",
+  hasexception: "hasException",
+  statusmessage: "statusMessage",
+  duration: "durationUnixNano",
 };
+
+/** Map user-friendly kind values to the backend enum strings */
+const SPAN_KIND_VALUE_MAP: Record<string, string> = {
+  server: "SPAN_KIND_SERVER",
+  client: "SPAN_KIND_CLIENT",
+  producer: "SPAN_KIND_PRODUCER",
+  consumer: "SPAN_KIND_CONSUMER",
+  internal: "SPAN_KIND_INTERNAL",
+};
+
+const KNOWN_FIELD_KEYS: Set<string> = new Set([
+  "service",
+  "status",
+  "name",
+  "trace",
+  "span",
+  "kind",
+  "hasexception",
+  "statusmessage",
+  "duration",
+]);
 
 interface Props {
   serviceId?: ObjectID | undefined;
@@ -157,6 +216,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     typeof setInterval
   > | null> = useRef(null);
 
+  // Telemetry attribute state for attribute-based search
+  const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
+    [],
+  );
+  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
+    Record<string, Array<string>>
+  >({});
+  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
+    useRef<string>("");
+
   // Service lookup map
   const serviceById: Record<string, Service> = useMemo(() => {
     const map: Record<string, Service> = {};
@@ -168,29 +237,46 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return map;
   }, [services]);
 
-  // Parse search string (simple @field:value + free text)
+  /*
+   * Parse search string — log syntax: field:value (no @) for known fields,
+   * @attribute:value (with @) for span attributes
+   */
   const parseSearch: (raw: string) => {
     freeText: string;
     fieldFilters: Record<string, Array<string>>;
+    attributes: Record<string, string>;
   } = useCallback((raw: string) => {
     const fieldFilters: Record<string, Array<string>> = {};
+    const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
     const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     for (const token of tokens) {
-      const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-      if (match) {
-        const alias: string = match[1]!;
-        const value: string = match[2]!;
-        const backendField: string = FIELD_ALIAS_MAP[alias] || alias;
-        if (!fieldFilters[backendField]) {
-          fieldFilters[backendField] = [];
-        }
-        fieldFilters[backendField]!.push(value);
-      } else {
-        freeTextParts.push(token);
+      // @attribute:value → attribute filter
+      const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
+      if (attrMatch) {
+        attributes[attrMatch[1]!] = attrMatch[2]!;
+        continue;
       }
+      // field:value (no @) → known field filter
+      const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
+      if (fieldMatch) {
+        const fieldName: string = fieldMatch[1]!.toLowerCase();
+        if (KNOWN_FIELD_KEYS.has(fieldName)) {
+          const backendField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
+          if (!fieldFilters[backendField]) {
+            fieldFilters[backendField] = [];
+          }
+          fieldFilters[backendField]!.push(fieldMatch[2]!);
+          continue;
+        }
+      }
+      freeTextParts.push(token);
     }
-    return { freeText: freeTextParts.join(" ").trim(), fieldFilters };
+    return {
+      freeText: freeTextParts.join(" ").trim(),
+      fieldFilters,
+      attributes,
+    };
   }, []);
 
   const baseQuery: Query<Span> = useMemo(() => {
@@ -233,10 +319,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     // Apply search field filters
-    const { fieldFilters } = parseSearch(submittedSearch);
+    const { fieldFilters, attributes } = parseSearch(submittedSearch);
     for (const key of Object.keys(fieldFilters)) {
       const values: Array<string> = fieldFilters[key]!;
+
       if (key === "statusCode") {
+        // Map friendly status names to numeric codes
         const mapped: Array<number> = values.map((v: string): number => {
           if (v.toLowerCase() === "error") {
             return SpanStatus.Error;
@@ -248,11 +336,57 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         });
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
+      } else if (key === "name" || key === "statusMessage") {
+        // Substring matching for text fields
+        if (values.length === 1) {
+          (query as Record<string, unknown>)[key] = new Search(values[0]!);
+        }
+      } else if (key === "kind") {
+        // Map friendly kind names (server, client, etc.) to backend enum
+        const mapped: Array<string> = values.map((v: string): string => {
+          return SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v;
+        });
+        (query as Record<string, unknown>)[key] =
+          mapped.length === 1 ? mapped[0] : new Includes(mapped);
+      } else if (key === "hasException") {
+        // Boolean field
+        const boolVal: boolean = values[0]!.toLowerCase() === "true";
+        (query as Record<string, unknown>)[key] = boolVal;
+      } else if (key === "durationUnixNano") {
+        // Duration filter: duration:>500 or duration:<200 (in milliseconds)
+        const raw: string = values[0]!;
+        const msToNano: number = 1_000_000;
+        if (raw.startsWith(">")) {
+          const ms: number = Number(raw.substring(1));
+          if (!isNaN(ms)) {
+            (query as Record<string, unknown>)[key] = new GreaterThan(
+              ms * msToNano,
+            );
+          }
+        } else if (raw.startsWith("<")) {
+          const ms: number = Number(raw.substring(1));
+          if (!isNaN(ms)) {
+            (query as Record<string, unknown>)[key] = new LessThan(
+              ms * msToNano,
+            );
+          }
+        } else {
+          // Exact match in ms
+          const ms: number = Number(raw);
+          if (!isNaN(ms)) {
+            (query as Record<string, unknown>)[key] = ms * msToNano;
+          }
+        }
       } else if (values.length === 1) {
         (query as Record<string, unknown>)[key] = values[0]!;
       } else {
         (query as Record<string, unknown>)[key] = new Includes(values);
       }
+    }
+
+    // Apply attribute filters (@attribute:value)
+    if (Object.keys(attributes).length > 0) {
+      (query as Record<string, unknown>)["attributes"] = attributes;
     }
 
     return query;
@@ -297,6 +431,82 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     };
     void loadServices();
   }, []);
+
+  // Load telemetry attributes for search suggestions
+  useEffect(() => {
+    const loadAttributes: () => Promise<void> = async () => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/traces/get-attributes",
+            ),
+            data: {},
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+        setTelemetryAttributes(
+          (response.data["attributes"] || []) as Array<string>,
+        );
+      } catch {
+        // non-critical
+      }
+    };
+    void loadAttributes();
+  }, []);
+
+  // Load attribute values when user types @attribute: in search bar
+  useEffect(() => {
+    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
+    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
+      return;
+    }
+    const colonIdx: number = currentWord.indexOf(":");
+    const attrKey: string = currentWord.substring(1, colonIdx);
+
+    if (
+      !attrKey ||
+      KNOWN_FIELD_KEYS.has(attrKey) ||
+      attrKey === lastValueSuggestionKeyRef.current
+    ) {
+      return;
+    }
+    lastValueSuggestionKeyRef.current = attrKey;
+
+    const loadValues: () => Promise<void> = async () => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/traces/get-attribute-values",
+            ),
+            data: { attributeKey: attrKey },
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+        const values: Array<string> = (response.data["values"] ||
+          []) as Array<string>;
+        setAttributeValueSuggestions(
+          (
+            prev: Record<string, Array<string>>,
+          ): Record<string, Array<string>> => {
+            return { ...prev, [attrKey]: values };
+          },
+        );
+      } catch {
+        // non-critical
+      }
+    };
+    void loadValues();
+  }, [searchValue]);
 
   // Fetch spans list
   const fetchSpans: (options?: {
@@ -353,12 +563,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       groups[filter.facetKey]!.push(filter.value);
     }
 
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
+    const { fieldFilters, freeText, attributes } = parseSearch(submittedSearch);
     for (const key of Object.keys(fieldFilters)) {
       if (!groups[key]) {
         groups[key] = [];
       }
       groups[key]!.push(...fieldFilters[key]!);
+    }
+
+    // Pass attribute filters to aggregation
+    if (Object.keys(attributes).length > 0) {
+      payload["attributes"] = attributes;
     }
 
     // Scope by serviceId prop if present
@@ -387,7 +602,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (groups["kind"] && groups["kind"].length > 0) {
-      payload["spanKinds"] = groups["kind"];
+      // Map friendly kind names to backend enum values
+      payload["spanKinds"] = groups["kind"].map((v: string): string => {
+        return SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v;
+      });
     }
 
     if (groups["name"] && groups["name"].length > 0) {
@@ -396,6 +614,35 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     if (groups["traceId"] && groups["traceId"].length > 0) {
       payload["traceIds"] = groups["traceId"];
+    }
+
+    if (groups["spanId"] && groups["spanId"].length > 0) {
+      payload["spanIds"] = groups["spanId"];
+    }
+
+    if (groups["hasException"] && groups["hasException"].length > 0) {
+      payload["hasException"] =
+        groups["hasException"][0]!.toLowerCase() === "true";
+    }
+
+    if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
+      payload["statusMessageSearchText"] = groups["statusMessage"][0];
+    }
+
+    if (groups["durationUnixNano"] && groups["durationUnixNano"].length > 0) {
+      const raw: string = groups["durationUnixNano"][0]!;
+      const msToNano: number = 1_000_000;
+      if (raw.startsWith(">")) {
+        const ms: number = Number(raw.substring(1));
+        if (!isNaN(ms)) {
+          payload["minDurationNano"] = ms * msToNano;
+        }
+      } else if (raw.startsWith("<")) {
+        const ms: number = Number(raw.substring(1));
+        if (!isNaN(ms)) {
+          payload["maxDurationNano"] = ms * msToNano;
+        }
+      }
     }
 
     if (freeText && freeText.length > 0) {
@@ -680,10 +927,34 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setSubmittedSearch(searchValue);
         setPage(1);
       }}
-      searchPlaceholder="Search traces — e.g. @service:api @status:error"
+      searchPlaceholder="Search traces — e.g. service:api status:error @http.method:GET"
+      searchSuggestions={[
+        "service",
+        "status",
+        "name",
+        "trace",
+        "span",
+        "kind",
+        "hasException",
+        "statusMessage",
+        "duration",
+        ...telemetryAttributes.map((attr: string): string => {
+          return `@${attr}`;
+        }),
+      ]}
+      searchValueSuggestions={attributeValueSuggestions}
+      onSearchFieldValueSelect={(fieldKey: string, value: string) => {
+        const isKnownField: boolean = KNOWN_FIELD_KEYS.has(fieldKey);
+        const newSearch: string = isKnownField
+          ? `${fieldKey}:${value}`
+          : `@${fieldKey}:${value}`;
+        setSearchValue(newSearch);
+        setSubmittedSearch(newSearch);
+        setPage(1);
+      }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
-      searchHelpCombinedExample="@service:api @status:error checkout"
+      searchHelpCombinedExample="service:api status:error @http.method:GET checkout"
       // Time
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
