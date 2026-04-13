@@ -49,6 +49,8 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
 import Search from "Common/Types/BaseDatabase/Search";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import LessThan from "Common/Types/BaseDatabase/LessThan";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -106,13 +108,38 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   },
   {
     syntax: "name:<span name>",
-    description: "Filter by span name",
+    description: "Filter by span name (substring match)",
     example: "name:GET /users",
   },
   {
     syntax: "trace:<trace id>",
     description: "Filter by trace id",
     example: "trace:abc123",
+  },
+  {
+    syntax: "span:<span id>",
+    description: "Filter by span id",
+    example: "span:def456",
+  },
+  {
+    syntax: "kind:<span kind>",
+    description: "Filter by span kind",
+    example: "kind:server",
+  },
+  {
+    syntax: "hasException:true|false",
+    description: "Filter spans with/without exceptions",
+    example: "hasException:true",
+  },
+  {
+    syntax: "statusMessage:<text>",
+    description: "Filter by status message (substring match)",
+    example: "statusMessage:timeout",
+  },
+  {
+    syntax: "duration:>N or duration:<N",
+    description: "Filter by duration in milliseconds",
+    example: "duration:>500",
   },
   {
     syntax: "@<attribute>:<value>",
@@ -126,6 +153,20 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
   status: "statusCode",
   name: "name",
   trace: "traceId",
+  span: "spanId",
+  kind: "kind",
+  hasexception: "hasException",
+  statusmessage: "statusMessage",
+  duration: "durationUnixNano",
+};
+
+/** Map user-friendly kind values to the backend enum strings */
+const SPAN_KIND_VALUE_MAP: Record<string, string> = {
+  server: "SPAN_KIND_SERVER",
+  client: "SPAN_KIND_CLIENT",
+  producer: "SPAN_KIND_PRODUCER",
+  consumer: "SPAN_KIND_CONSUMER",
+  internal: "SPAN_KIND_INTERNAL",
 };
 
 const KNOWN_FIELD_KEYS: Set<string> = new Set([
@@ -133,6 +174,11 @@ const KNOWN_FIELD_KEYS: Set<string> = new Set([
   "status",
   "name",
   "trace",
+  "span",
+  "kind",
+  "hasexception",
+  "statusmessage",
+  "duration",
 ]);
 
 interface Props {
@@ -279,7 +325,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const { fieldFilters, attributes } = parseSearch(submittedSearch);
     for (const key of Object.keys(fieldFilters)) {
       const values: Array<string> = fieldFilters[key]!;
+
       if (key === "statusCode") {
+        // Map friendly status names to numeric codes
         const mapped: Array<number> = values.map((v: string): number => {
           if (v.toLowerCase() === "error") {
             return SpanStatus.Error;
@@ -291,9 +339,49 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         });
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
-      } else if (key === "name" && values.length === 1) {
-        // Use Search for substring matching on name
-        (query as Record<string, unknown>)[key] = new Search(values[0]!);
+      } else if (key === "name" || key === "statusMessage") {
+        // Substring matching for text fields
+        if (values.length === 1) {
+          (query as Record<string, unknown>)[key] = new Search(values[0]!);
+        }
+      } else if (key === "kind") {
+        // Map friendly kind names (server, client, etc.) to backend enum
+        const mapped: Array<string> = values.map((v: string): string => {
+          return (
+            SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v
+          );
+        });
+        (query as Record<string, unknown>)[key] =
+          mapped.length === 1 ? mapped[0] : new Includes(mapped);
+      } else if (key === "hasException") {
+        // Boolean field
+        const boolVal: boolean = values[0]!.toLowerCase() === "true";
+        (query as Record<string, unknown>)[key] = boolVal;
+      } else if (key === "durationUnixNano") {
+        // Duration filter: duration:>500 or duration:<200 (in milliseconds)
+        const raw: string = values[0]!;
+        const msToNano: number = 1_000_000;
+        if (raw.startsWith(">")) {
+          const ms: number = Number(raw.substring(1));
+          if (!isNaN(ms)) {
+            (query as Record<string, unknown>)[key] = new GreaterThan(
+              ms * msToNano,
+            );
+          }
+        } else if (raw.startsWith("<")) {
+          const ms: number = Number(raw.substring(1));
+          if (!isNaN(ms)) {
+            (query as Record<string, unknown>)[key] = new LessThan(
+              ms * msToNano,
+            );
+          }
+        } else {
+          // Exact match in ms
+          const ms: number = Number(raw);
+          if (!isNaN(ms)) {
+            (query as Record<string, unknown>)[key] = ms * msToNano;
+          }
+        }
       } else if (values.length === 1) {
         (query as Record<string, unknown>)[key] = values[0]!;
       } else {
@@ -519,7 +607,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (groups["kind"] && groups["kind"].length > 0) {
-      payload["spanKinds"] = groups["kind"];
+      // Map friendly kind names to backend enum values
+      payload["spanKinds"] = groups["kind"].map((v: string): string => {
+        return SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v;
+      });
     }
 
     if (groups["name"] && groups["name"].length > 0) {
@@ -528,6 +619,35 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     if (groups["traceId"] && groups["traceId"].length > 0) {
       payload["traceIds"] = groups["traceId"];
+    }
+
+    if (groups["spanId"] && groups["spanId"].length > 0) {
+      payload["spanIds"] = groups["spanId"];
+    }
+
+    if (groups["hasException"] && groups["hasException"].length > 0) {
+      payload["hasException"] =
+        groups["hasException"][0]!.toLowerCase() === "true";
+    }
+
+    if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
+      payload["statusMessageSearchText"] = groups["statusMessage"][0];
+    }
+
+    if (groups["durationUnixNano"] && groups["durationUnixNano"].length > 0) {
+      const raw: string = groups["durationUnixNano"][0]!;
+      const msToNano: number = 1_000_000;
+      if (raw.startsWith(">")) {
+        const ms: number = Number(raw.substring(1));
+        if (!isNaN(ms)) {
+          payload["minDurationNano"] = ms * msToNano;
+        }
+      } else if (raw.startsWith("<")) {
+        const ms: number = Number(raw.substring(1));
+        if (!isNaN(ms)) {
+          payload["maxDurationNano"] = ms * msToNano;
+        }
+      }
     }
 
     if (freeText && freeText.length > 0) {
@@ -818,6 +938,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "status",
         "name",
         "trace",
+        "span",
+        "kind",
+        "hasException",
+        "statusMessage",
+        "duration",
         ...telemetryAttributes.map((attr: string): string => {
           return `@${attr}`;
         }),
