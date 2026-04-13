@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
@@ -45,6 +46,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
+import MetricUtil from "./Utils/Metrics";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -59,12 +61,19 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
     description: "Filter by service",
     example: "@service:api",
   },
+  {
+    syntax: "@<attribute>:<value>",
+    description: "Filter by attribute",
+    example: "@container.name:postgres",
+  },
 ];
 
 const FIELD_ALIAS_MAP: Record<string, string> = {
   name: "name",
   service: "services.name",
 };
+
+const KNOWN_FIELD_KEYS: Set<string> = new Set(["name", "service"]);
 
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
@@ -91,6 +100,22 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
 
+  // Telemetry attributes for autocomplete
+  const [telemetryAttributes, setTelemetryAttributes] = useState<
+    Array<string>
+  >([]);
+
+  // Metric names that match attribute filters (null = no attribute filter active)
+  const [attributeMatchedNames, setAttributeMatchedNames] = useState<
+    Array<string> | null
+  >(null);
+  const [attributeFilterLoading, setAttributeFilterLoading] =
+    useState<boolean>(false);
+
+  // Track the last submitted attribute filters to avoid redundant queries
+  const lastAttributeFilterRef: React.MutableRefObject<string> =
+    useRef<string>("");
+
   // name -> sparkline data
   const [sparklineData, setSparklineData] = useState<
     Record<string, Array<SparklinePoint>>
@@ -100,7 +125,7 @@ const MetricsViewer: FunctionComponent<Props> = (
   >({});
   const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
 
-  // Load services once
+  // Load services and telemetry attributes once
   useEffect(() => {
     const loadServices: () => Promise<void> = async () => {
       try {
@@ -124,14 +149,30 @@ const MetricsViewer: FunctionComponent<Props> = (
     void loadServices();
   }, []);
 
+  // Load telemetry attributes for autocomplete
+  useEffect(() => {
+    const loadAttributes: () => Promise<void> = async () => {
+      try {
+        const attrs: Array<string> =
+          await MetricUtil.getTelemetryAttributes();
+        setTelemetryAttributes(attrs);
+      } catch {
+        // non-critical
+      }
+    };
+    void loadAttributes();
+  }, []);
+
   // Parse search string
   const parseSearch: (raw: string) => {
     freeText: string;
     nameFragment: string | null;
     serviceFragment: string | null;
+    attributes: Record<string, string>;
   } = useCallback((raw: string) => {
     let nameFragment: string | null = null;
     let serviceFragment: string | null = null;
+    const attributes: Record<string, string> = {};
     const freeTextParts: Array<string> = [];
     const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     for (const token of tokens) {
@@ -143,6 +184,8 @@ const MetricsViewer: FunctionComponent<Props> = (
           nameFragment = value;
         } else if (alias === "service") {
           serviceFragment = value;
+        } else if (!KNOWN_FIELD_KEYS.has(alias)) {
+          attributes[alias] = value;
         }
       } else {
         freeTextParts.push(token);
@@ -152,8 +195,79 @@ const MetricsViewer: FunctionComponent<Props> = (
       freeText: freeTextParts.join(" ").trim(),
       nameFragment,
       serviceFragment,
+      attributes,
     };
   }, []);
+
+  // Parsed search (memoized from submitted search)
+  const parsedSearch: ReturnType<typeof parseSearch> = useMemo(() => {
+    return parseSearch(submittedSearch);
+  }, [submittedSearch, parseSearch]);
+
+  // When attribute filters change, query the Metric analytics model for matching metric names
+  useEffect(() => {
+    const attributeKeys: Array<string> = Object.keys(parsedSearch.attributes);
+    const filterKey: string = JSON.stringify(parsedSearch.attributes);
+
+    if (attributeKeys.length === 0) {
+      setAttributeMatchedNames(null);
+      lastAttributeFilterRef.current = "";
+      return;
+    }
+
+    // Skip if same filter as last time
+    if (filterKey === lastAttributeFilterRef.current) {
+      return;
+    }
+    lastAttributeFilterRef.current = filterKey;
+
+    const fetchMatchingNames: () => Promise<void> = async () => {
+      setAttributeFilterLoading(true);
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          setAttributeMatchedNames([]);
+          return;
+        }
+
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+        const analyticsQuery: Query<Metric> = {
+          projectId,
+          time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
+          attributes: parsedSearch.attributes,
+        } as Query<Metric>;
+
+        const result: AnalyticsListResult<Metric> =
+          await AnalyticsModelAPI.getList<Metric>({
+            modelType: Metric,
+            query: analyticsQuery,
+            limit: 5000,
+            skip: 0,
+            select: {
+              name: true,
+            } as Select<Metric>,
+            sort: { time: SortOrder.Descending } as Record<string, SortOrder>,
+            requestOptions: {},
+          });
+
+        const uniqueNames: Set<string> = new Set<string>();
+        for (const m of result.data) {
+          const name: string = m.name as unknown as string;
+          if (name) {
+            uniqueNames.add(name);
+          }
+        }
+        setAttributeMatchedNames(Array.from(uniqueNames));
+      } catch {
+        setAttributeMatchedNames([]);
+      } finally {
+        setAttributeFilterLoading(false);
+      }
+    };
+    void fetchMatchingNames();
+  }, [parsedSearch.attributes, timeRange]);
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -186,15 +300,43 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
 
     // Name search (freeText + @name:)
-    const parsed: ReturnType<typeof parseSearch> = parseSearch(submittedSearch);
-    const nameQuery: string | null = parsed.nameFragment || parsed.freeText;
-    if (nameQuery) {
-      // Simple contains — the backend should honor string substring on name
+    const nameQuery: string | null =
+      parsedSearch.nameFragment || parsedSearch.freeText;
+
+    // When attribute filters are active, restrict to matched metric names
+    if (attributeMatchedNames !== null) {
+      if (attributeMatchedNames.length === 0) {
+        // No metrics match the attribute filter — force empty results
+        (query as Record<string, unknown>)["name"] = "__no_match__";
+      } else if (nameQuery) {
+        // Intersect: only show attribute-matched names that also contain the name fragment
+        const lowerNameQuery: string = nameQuery.toLowerCase();
+        const filtered: Array<string> = attributeMatchedNames.filter(
+          (n: string): boolean => {
+            return n.toLowerCase().includes(lowerNameQuery);
+          },
+        );
+        if (filtered.length === 0) {
+          (query as Record<string, unknown>)["name"] = "__no_match__";
+        } else {
+          (query as Record<string, unknown>)["name"] = new Includes(filtered);
+        }
+      } else {
+        (query as Record<string, unknown>)["name"] = new Includes(
+          attributeMatchedNames,
+        );
+      }
+    } else if (nameQuery) {
       (query as Record<string, unknown>)["name"] = nameQuery;
     }
 
     return query;
-  }, [props.serviceIds, activeFilters, submittedSearch, parseSearch]);
+  }, [
+    props.serviceIds,
+    activeFilters,
+    parsedSearch,
+    attributeMatchedNames,
+  ]);
 
   // Fetch metric list
   const fetchMetrics: () => Promise<void> = useCallback(async () => {
@@ -262,6 +404,9 @@ const MetricsViewer: FunctionComponent<Props> = (
           projectId,
           name: new Includes(visibleNames),
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
+          ...(Object.keys(parsedSearch.attributes).length > 0
+            ? { attributes: parsedSearch.attributes }
+            : {}),
         } as Query<Metric>;
 
         const result: AnalyticsListResult<Metric> =
@@ -345,7 +490,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchSparklines();
-  }, [visibleNames, timeRange]);
+  }, [visibleNames, timeRange, parsedSearch.attributes]);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
@@ -459,7 +604,7 @@ const MetricsViewer: FunctionComponent<Props> = (
   return (
     <TelemetryViewer<MetricType>
       items={metrics}
-      isLoading={isLoading}
+      isLoading={isLoading || attributeFilterLoading}
       error={error || undefined}
       onRefresh={() => {
         void fetchMetrics();
@@ -490,10 +635,13 @@ const MetricsViewer: FunctionComponent<Props> = (
         setSubmittedSearch(searchValue);
         setPage(1);
       }}
-      searchPlaceholder="Search metrics — e.g. @name:http @service:api"
+      searchPlaceholder="Search metrics — e.g. @name:http @service:api @container.name:postgres"
+      searchSuggestions={telemetryAttributes.map((attr: string): string => {
+        return `@${attr}`;
+      })}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
-      searchHelpCombinedExample="@service:api http.server.duration"
+      searchHelpCombinedExample="@service:api @container.name:postgres http.server.duration"
       // Time (drives sparkline range)
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
