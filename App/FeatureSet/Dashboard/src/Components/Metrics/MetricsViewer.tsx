@@ -53,14 +53,14 @@ const DEFAULT_PAGE_SIZE: number = 50;
 
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
-    syntax: "@name:<fragment>",
+    syntax: "name:<fragment>",
     description: "Filter by metric name",
-    example: "@name:http.server",
+    example: "name:http.server",
   },
   {
-    syntax: "@service:<name>",
+    syntax: "service:<name>",
     description: "Filter by service",
-    example: "@service:api",
+    example: "service:api",
   },
   {
     syntax: "@<attribute>:<value>",
@@ -211,6 +211,8 @@ const MetricsViewer: FunctionComponent<Props> = (
   }, [searchValue]);
 
   // Parse search string
+  // Follows log syntax: name:value, service:value (no @) for fields;
+  // @attribute:value (with @) for attributes
   const parseSearch: (raw: string) => {
     freeText: string;
     nameFragment: string | null;
@@ -223,20 +225,33 @@ const MetricsViewer: FunctionComponent<Props> = (
     const freeTextParts: Array<string> = [];
     const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     for (const token of tokens) {
-      const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-      if (match) {
-        const alias: string = match[1]!;
-        const value: string = match[2]!;
-        if (alias === "name") {
-          nameFragment = value;
-        } else if (alias === "service") {
-          serviceFragment = value;
-        } else if (!KNOWN_FIELD_KEYS.has(alias)) {
-          attributes[alias] = value;
-        }
-      } else {
-        freeTextParts.push(token);
+      // @attribute:value → attribute filter
+      const attrMatch: RegExpMatchArray | null = token.match(
+        /^@([^:]+):(.*)$/,
+      );
+      if (attrMatch) {
+        const attrKey: string = attrMatch[1]!;
+        const attrValue: string = attrMatch[2]!;
+        attributes[attrKey] = attrValue;
+        continue;
       }
+      // field:value (no @) → known field filter
+      const fieldMatch: RegExpMatchArray | null = token.match(
+        /^([^:]+):(.*)$/,
+      );
+      if (fieldMatch) {
+        const fieldName: string = fieldMatch[1]!.toLowerCase();
+        const fieldValue: string = fieldMatch[2]!;
+        if (fieldName === "name") {
+          nameFragment = fieldValue;
+        } else if (fieldName === "service") {
+          serviceFragment = fieldValue;
+        } else {
+          freeTextParts.push(token);
+        }
+        continue;
+      }
+      freeTextParts.push(token);
     }
     return {
       freeText: freeTextParts.join(" ").trim(),
@@ -684,21 +699,27 @@ const MetricsViewer: FunctionComponent<Props> = (
         setSubmittedSearch(searchValue);
         setPage(1);
       }}
-      searchPlaceholder="Search metrics — e.g. @name:http @service:api @container.name:postgres"
-      searchSuggestions={telemetryAttributes.map((attr: string): string => {
-        return `@${attr}`;
-      })}
+      searchPlaceholder="Search metrics — e.g. name:http service:api @container.name:postgres"
+      searchSuggestions={[
+        "name",
+        "service",
+        ...telemetryAttributes.map((attr: string): string => {
+          return `@${attr}`;
+        }),
+      ]}
       searchValueSuggestions={attributeValueSuggestions}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
-        // When user selects a value suggestion, add @field:value to search and submit
-        const newSearch: string = `@${fieldKey}:${value}`;
+        const isKnownField: boolean = KNOWN_FIELD_KEYS.has(fieldKey);
+        const newSearch: string = isKnownField
+          ? `${fieldKey}:${value}`
+          : `@${fieldKey}:${value}`;
         setSearchValue(newSearch);
         setSubmittedSearch(newSearch);
         setPage(1);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
-      searchHelpCombinedExample="@service:api @container.name:postgres http.server.duration"
+      searchHelpCombinedExample="service:api @container.name:postgres http.server.duration"
       // Time (drives sparkline range)
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
