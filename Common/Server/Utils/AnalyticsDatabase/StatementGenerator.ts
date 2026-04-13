@@ -278,10 +278,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     if (column.type === TableColumnType.MapStringString) {
       const mapObj: Record<string, string> = value as Record<string, string>;
       const entries: Array<string> = Object.entries(mapObj)
-        .filter(
-          ([k, v]: [string, string | undefined]) =>
-            k !== undefined && k !== null && v !== undefined && v !== null,
-        )
+        .filter(([k, v]: [string, string | undefined]) => {
+          return k !== undefined && k !== null && v !== undefined && v !== null;
+        })
         .map(([k, v]: [string, string]) => {
           return `${this.escapeStringLiteral(k)}, ${this.escapeStringLiteral(v)}`;
         });
