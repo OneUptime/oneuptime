@@ -46,6 +46,15 @@ export interface FacetRequest extends TraceFilters {
   limit?: number | undefined;
 }
 
+export interface MultiFacetRequest extends TraceFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  facetKeys: Array<string>;
+  limit?: number | undefined;
+  sampleSize?: number | undefined;
+}
+
 export class TraceAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string = AnalyticsTableName.Span;
@@ -110,6 +119,161 @@ export class TraceAggregationService {
       .filter((facet: FacetValue): boolean => {
         return facet.value.length > 0;
       });
+  }
+
+  /*
+   * Sample-based facet computation. Runs a single sort-key aligned query
+   * (ORDER BY startTime DESC LIMIT sampleSize) and computes top-K per facet
+   * in Node.js. This avoids ClickHouse GROUP BY aggregations that can't
+   * return partial results under max_execution_time 'break' mode, and
+   * leverages the (projectId, startTime, ...) primary key for efficient
+   * backwards scans. Facet values reflect the most recent N root spans in
+   * the window — the most actionable view for filtering.
+   */
+  @CaptureSpan()
+  public static async getFacetValuesFromSample(
+    request: MultiFacetRequest,
+  ): Promise<Record<string, Array<FacetValue>>> {
+    const limit: number =
+      request.limit ?? TraceAggregationService.DEFAULT_FACET_LIMIT;
+    const sampleSize: number = request.sampleSize ?? 1000;
+
+    for (const facetKey of request.facetKeys) {
+      TraceAggregationService.validateFacetKey(facetKey);
+    }
+
+    const topLevelKeys: Array<string> = request.facetKeys.filter(
+      (key: string): boolean => {
+        return TraceAggregationService.isTopLevelColumn(key);
+      },
+    );
+    const attributeKeys: Array<string> = request.facetKeys.filter(
+      (key: string): boolean => {
+        return !TraceAggregationService.isTopLevelColumn(key);
+      },
+    );
+
+    const selectColumns: Array<string> = [];
+    if (topLevelKeys.length > 0) {
+      selectColumns.push(...topLevelKeys);
+    }
+    if (attributeKeys.length > 0) {
+      selectColumns.push("attributes");
+    }
+    if (selectColumns.length === 0) {
+      return {};
+    }
+
+    /*
+     * Safe to interpolate: top-level column names come from a hardcoded
+     * allowlist (TOP_LEVEL_COLUMNS) and "attributes" is a literal. TABLE_NAME
+     * is also a private constant.
+     */
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT ${selectColumns.join(", ")} FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND startTime >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND startTime <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(
+      SQL` ORDER BY startTime DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: sampleSize,
+      }}`,
+    );
+
+    /*
+     * Defense in depth: the sample query is sort-key aligned and should
+     * return in well under a second, but cap runtime below nginx's 60s
+     * proxy_read_timeout regardless.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    const counts: Record<string, Map<string, number>> = {};
+    for (const key of request.facetKeys) {
+      counts[key] = new Map<string, number>();
+    }
+
+    for (const row of rows) {
+      for (const key of topLevelKeys) {
+        const raw: unknown = row[key];
+        if (raw === undefined || raw === null) {
+          continue;
+        }
+        const value: string = String(raw);
+        if (value.length === 0) {
+          continue;
+        }
+        const map: Map<string, number> = counts[key]!;
+        map.set(value, (map.get(value) || 0) + 1);
+      }
+
+      if (attributeKeys.length > 0) {
+        const attrs: unknown = row["attributes"];
+        let parsed: Record<string, unknown> | null = null;
+        if (attrs && typeof attrs === "object") {
+          parsed = attrs as Record<string, unknown>;
+        } else if (typeof attrs === "string" && attrs.length > 0) {
+          try {
+            parsed = JSON.parse(attrs) as Record<string, unknown>;
+          } catch {
+            parsed = null;
+          }
+        }
+        if (parsed) {
+          for (const key of attributeKeys) {
+            const raw: unknown = parsed[key];
+            if (raw === undefined || raw === null) {
+              continue;
+            }
+            const value: string =
+              typeof raw === "object" ? JSON.stringify(raw) : String(raw);
+            if (value.length === 0) {
+              continue;
+            }
+            const map: Map<string, number> = counts[key]!;
+            map.set(value, (map.get(value) || 0) + 1);
+          }
+        }
+      }
+    }
+
+    const result: Record<string, Array<FacetValue>> = {};
+    for (const key of request.facetKeys) {
+      const entries: Array<FacetValue> = Array.from(counts[key]!.entries()).map(
+        ([value, count]: [string, number]): FacetValue => {
+          return { value, count };
+        },
+      );
+      entries.sort((a: FacetValue, b: FacetValue): number => {
+        return b.count - a.count;
+      });
+      result[key] = entries.slice(0, limit);
+    }
+
+    return result;
   }
 
   private static mapStatusCodeToSeries(code: number): string {

@@ -110,7 +110,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
       isFocused &&
       props.value.length === 0 &&
       !shouldShowSuggestions &&
-      Boolean(props.helpRows) &&
+      props.helpRows !== undefined &&
       props.helpRows.length > 0;
 
     useEffect(() => {

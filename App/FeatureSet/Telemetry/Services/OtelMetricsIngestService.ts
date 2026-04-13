@@ -594,7 +594,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
     if (typeof value === "string") {
       const parsed: number = Number.parseFloat(value);
-      return isNaN(parsed) ? null : parsed;
+      /*
+       * `Number.isFinite` is stricter than `!isNaN`: it rejects both NaN
+       * and +/-Infinity. OTLP histograms routinely contain "+Inf" as the
+       * trailing explicitBound value when the histogram has an unbounded
+       * final bucket; `parseFloat("Infinity")` returns `Infinity`, which
+       * `isNaN` would accept and which then fails to serialize into the
+       * ClickHouse JSONEachRow format with:
+       *   Cannot read array from text, expected comma or end of array,
+       *   found 'e': (while reading the value of key explicitBounds)
+       * dropping the entire metrics batch. Filter non-finite values here
+       * so they are coerced to null and then dropped by the caller's
+       * `.filter(entry !== null)` step.
+       */
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
     return null;
