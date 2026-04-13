@@ -47,6 +47,7 @@ import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
+import Search from "Common/Types/BaseDatabase/Search";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -105,6 +106,13 @@ const MetricsViewer: FunctionComponent<Props> = (
     Array<string>
   >([]);
 
+  // Attribute value suggestions: attributeKey -> Array<value>
+  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
+    Record<string, Array<string>>
+  >({});
+  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
+    useRef<string>("");
+
   // Metric names that match attribute filters (null = no attribute filter active)
   const [attributeMatchedNames, setAttributeMatchedNames] = useState<
     Array<string> | null
@@ -162,6 +170,45 @@ const MetricsViewer: FunctionComponent<Props> = (
     };
     void loadAttributes();
   }, []);
+
+  // Load attribute values when the user types @attribute: in the search bar
+  useEffect(() => {
+    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
+    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
+      return;
+    }
+    const colonIdx: number = currentWord.indexOf(":");
+    const attrKey: string = currentWord.substring(1, colonIdx);
+
+    if (
+      !attrKey ||
+      KNOWN_FIELD_KEYS.has(attrKey) ||
+      attrKey === lastValueSuggestionKeyRef.current
+    ) {
+      return;
+    }
+    lastValueSuggestionKeyRef.current = attrKey;
+
+    const loadValues: () => Promise<void> = async () => {
+      try {
+        const values: Array<string> =
+          await MetricUtil.getTelemetryAttributeValues({
+            attributeKey: attrKey,
+          });
+        setAttributeValueSuggestions(
+          (prev: Record<string, Array<string>>): Record<
+            string,
+            Array<string>
+          > => {
+            return { ...prev, [attrKey]: values };
+          },
+        );
+      } catch {
+        // non-critical
+      }
+    };
+    void loadValues();
+  }, [searchValue]);
 
   // Parse search string
   const parseSearch: (raw: string) => {
@@ -327,7 +374,9 @@ const MetricsViewer: FunctionComponent<Props> = (
         );
       }
     } else if (nameQuery) {
-      (query as Record<string, unknown>)["name"] = nameQuery;
+      // Use substring matching so @name:container.blockio matches
+      // container.blockio.io_service_bytes_recursive
+      (query as Record<string, unknown>)["name"] = new Search(nameQuery);
     }
 
     return query;
@@ -639,6 +688,14 @@ const MetricsViewer: FunctionComponent<Props> = (
       searchSuggestions={telemetryAttributes.map((attr: string): string => {
         return `@${attr}`;
       })}
+      searchValueSuggestions={attributeValueSuggestions}
+      onSearchFieldValueSelect={(fieldKey: string, value: string) => {
+        // When user selects a value suggestion, add @field:value to search and submit
+        const newSearch: string = `@${fieldKey}:${value}`;
+        setSearchValue(newSearch);
+        setSubmittedSearch(newSearch);
+        setPage(1);
+      }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
       searchHelpCombinedExample="@service:api @container.name:postgres http.server.duration"
