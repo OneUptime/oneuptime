@@ -8,7 +8,9 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
-import TraceDetailPanel from "./TraceDetailPanel";
+import Navigation from "Common/UI/Utils/Navigation";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import {
   ActiveFilter,
   FacetConfig,
@@ -126,7 +128,6 @@ interface Props {
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [spans, setSpans] = useState<Array<Span>>([]);
-  const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -632,9 +633,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setPage(1);
     }, []);
 
-  // Row click → open detail panel
+  // Row click → navigate to trace view page
   const handleRowClick: (span: Span) => void = useCallback((span: Span) => {
-    setSelectedSpan(span);
+    if (span.traceId) {
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+          modelId: span.traceId.toString(),
+        }),
+      );
+    }
   }, []);
 
   return (
@@ -714,16 +721,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setPageSize(size);
         setPage(1);
       }}
-      detailPanel={
-        <TraceDetailPanel
-          isOpen={selectedSpan !== null}
-          span={selectedSpan}
-          serviceById={serviceById}
-          onClose={() => {
-            setSelectedSpan(null);
-          }}
-        />
-      }
     />
   );
 };
