@@ -102,9 +102,9 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
 
   // Telemetry attributes for autocomplete
-  const [telemetryAttributes, setTelemetryAttributes] = useState<
-    Array<string>
-  >([]);
+  const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
+    [],
+  );
 
   // Attribute value suggestions: attributeKey -> Array<value>
   const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
@@ -114,9 +114,8 @@ const MetricsViewer: FunctionComponent<Props> = (
     useRef<string>("");
 
   // Metric names that match attribute filters (null = no attribute filter active)
-  const [attributeMatchedNames, setAttributeMatchedNames] = useState<
-    Array<string> | null
-  >(null);
+  const [attributeMatchedNames, setAttributeMatchedNames] =
+    useState<Array<string> | null>(null);
   const [attributeFilterLoading, setAttributeFilterLoading] =
     useState<boolean>(false);
 
@@ -161,8 +160,7 @@ const MetricsViewer: FunctionComponent<Props> = (
   useEffect(() => {
     const loadAttributes: () => Promise<void> = async () => {
       try {
-        const attrs: Array<string> =
-          await MetricUtil.getTelemetryAttributes();
+        const attrs: Array<string> = await MetricUtil.getTelemetryAttributes();
         setTelemetryAttributes(attrs);
       } catch {
         // non-critical
@@ -196,10 +194,9 @@ const MetricsViewer: FunctionComponent<Props> = (
             attributeKey: attrKey,
           });
         setAttributeValueSuggestions(
-          (prev: Record<string, Array<string>>): Record<
-            string,
-            Array<string>
-          > => {
+          (
+            prev: Record<string, Array<string>>,
+          ): Record<string, Array<string>> => {
             return { ...prev, [attrKey]: values };
           },
         );
@@ -210,9 +207,11 @@ const MetricsViewer: FunctionComponent<Props> = (
     void loadValues();
   }, [searchValue]);
 
-  // Parse search string
-  // Follows log syntax: name:value, service:value (no @) for fields;
-  // @attribute:value (with @) for attributes
+  /*
+   * Parse search string
+   * Follows log syntax: name:value, service:value (no @) for fields;
+   * @attribute:value (with @) for attributes
+   */
   const parseSearch: (raw: string) => {
     freeText: string;
     nameFragment: string | null;
@@ -226,9 +225,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     for (const token of tokens) {
       // @attribute:value → attribute filter
-      const attrMatch: RegExpMatchArray | null = token.match(
-        /^@([^:]+):(.*)$/,
-      );
+      const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
         const attrKey: string = attrMatch[1]!;
         const attrValue: string = attrMatch[2]!;
@@ -236,9 +233,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         continue;
       }
       // field:value (no @) → known field filter
-      const fieldMatch: RegExpMatchArray | null = token.match(
-        /^([^:]+):(.*)$/,
-      );
+      const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
         const fieldValue: string = fieldMatch[2]!;
@@ -389,18 +384,15 @@ const MetricsViewer: FunctionComponent<Props> = (
         );
       }
     } else if (nameQuery) {
-      // Use substring matching so @name:container.blockio matches
-      // container.blockio.io_service_bytes_recursive
+      /*
+       * Use substring matching so @name:container.blockio matches
+       * container.blockio.io_service_bytes_recursive
+       */
       (query as Record<string, unknown>)["name"] = new Search(nameQuery);
     }
 
     return query;
-  }, [
-    props.serviceIds,
-    activeFilters,
-    parsedSearch,
-    attributeMatchedNames,
-  ]);
+  }, [props.serviceIds, activeFilters, parsedSearch, attributeMatchedNames]);
 
   // Fetch metric list
   const fetchMetrics: () => Promise<void> = useCallback(async () => {

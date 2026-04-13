@@ -237,8 +237,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return map;
   }, [services]);
 
-  // Parse search string — log syntax: field:value (no @) for known fields,
-  // @attribute:value (with @) for span attributes
+  /*
+   * Parse search string — log syntax: field:value (no @) for known fields,
+   * @attribute:value (with @) for span attributes
+   */
   const parseSearch: (raw: string) => {
     freeText: string;
     fieldFilters: Record<string, Array<string>>;
@@ -250,22 +252,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     const tokens: Array<string> = raw.match(/@\S+:[^\s]+|\S+/g) || [];
     for (const token of tokens) {
       // @attribute:value → attribute filter
-      const attrMatch: RegExpMatchArray | null = token.match(
-        /^@([^:]+):(.*)$/,
-      );
+      const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
       if (attrMatch) {
         attributes[attrMatch[1]!] = attrMatch[2]!;
         continue;
       }
       // field:value (no @) → known field filter
-      const fieldMatch: RegExpMatchArray | null = token.match(
-        /^([^:]+):(.*)$/,
-      );
+      const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
       if (fieldMatch) {
         const fieldName: string = fieldMatch[1]!.toLowerCase();
         if (KNOWN_FIELD_KEYS.has(fieldName)) {
-          const backendField: string =
-            FIELD_ALIAS_MAP[fieldName] || fieldName;
+          const backendField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
           if (!fieldFilters[backendField]) {
             fieldFilters[backendField] = [];
           }
@@ -347,9 +344,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       } else if (key === "kind") {
         // Map friendly kind names (server, client, etc.) to backend enum
         const mapped: Array<string> = values.map((v: string): string => {
-          return (
-            SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v
-          );
+          return SPAN_KIND_VALUE_MAP[v.toLowerCase()] || v;
         });
         (query as Record<string, unknown>)[key] =
           mapped.length === 1 ? mapped[0] : new Includes(mapped);
