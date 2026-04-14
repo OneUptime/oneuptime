@@ -30,11 +30,11 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={TracesRoutePath[PageMap.TRACES_LIST] || ""}
+          path={TracesRoutePath[PageMap.TRACES_INSIGHTS] || ""}
           element={
             <TracesListPage
               {...props}
-              pageRoute={RouteMap[PageMap.TRACES_LIST] as Route}
+              pageRoute={RouteMap[PageMap.TRACES_INSIGHTS] as Route}
             />
           }
         />

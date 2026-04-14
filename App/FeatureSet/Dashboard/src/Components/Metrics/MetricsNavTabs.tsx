@@ -29,7 +29,7 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       label: "Insights",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_LIST] as Route,
+        RouteMap[PageMap.METRICS_INSIGHTS] as Route,
       ),
     },
     {

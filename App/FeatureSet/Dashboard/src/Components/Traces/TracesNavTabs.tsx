@@ -29,7 +29,7 @@ const TracesNavTabs: FunctionComponent<Props> = (
       label: "Insights",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TRACES_LIST] as Route,
+        RouteMap[PageMap.TRACES_INSIGHTS] as Route,
       ),
     },
     {

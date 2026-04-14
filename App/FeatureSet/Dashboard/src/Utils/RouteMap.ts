@@ -138,7 +138,7 @@ export const LogsRoutePath: Dictionary<string> = {
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
-  [PageMap.METRICS_LIST]: "insights",
+  [PageMap.METRICS_INSIGHTS]: "insights",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
 };
@@ -146,7 +146,7 @@ export const MetricsRoutePath: Dictionary<string> = {
 // Traces product routes
 export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES]: "",
-  [PageMap.TRACES_LIST]: "insights",
+  [PageMap.TRACES_INSIGHTS]: "insights",
   [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.TRACES_DOCUMENTATION]: "documentation",
 };
@@ -154,7 +154,7 @@ export const TracesRoutePath: Dictionary<string> = {
 // Profiles product routes
 export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES]: "",
-  [PageMap.PROFILES_LIST]: "insights",
+  [PageMap.PROFILES_INSIGHTS]: "insights",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
@@ -2366,9 +2366,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.METRICS]: new Route(`/dashboard/${RouteParams.ProjectID}/metrics`),
 
-  [PageMap.METRICS_LIST]: new Route(
+  [PageMap.METRICS_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
-      MetricsRoutePath[PageMap.METRICS_LIST]
+      MetricsRoutePath[PageMap.METRICS_INSIGHTS]
     }`,
   ),
 
@@ -2391,9 +2391,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.TRACES]: new Route(`/dashboard/${RouteParams.ProjectID}/traces`),
 
-  [PageMap.TRACES_LIST]: new Route(
+  [PageMap.TRACES_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
-      TracesRoutePath[PageMap.TRACES_LIST]
+      TracesRoutePath[PageMap.TRACES_INSIGHTS]
     }`,
   ),
 
@@ -2416,9 +2416,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.PROFILES]: new Route(`/dashboard/${RouteParams.ProjectID}/profiles`),
 
-  [PageMap.PROFILES_LIST]: new Route(
+  [PageMap.PROFILES_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/${
-      ProfilesRoutePath[PageMap.PROFILES_LIST]
+      ProfilesRoutePath[PageMap.PROFILES_INSIGHTS]
     }`,
   ),
 

@@ -446,7 +446,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           <AppLink
             className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
             to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.PROFILES_LIST] as Route,
+              RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
             )}
           >
             View all profiles

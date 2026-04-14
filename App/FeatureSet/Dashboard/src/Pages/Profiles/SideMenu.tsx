@@ -25,7 +25,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           link: {
             title: "All Profiles",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.PROFILES_LIST] as Route,
+              RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
             ),
           },
           icon: IconProp.Fire,

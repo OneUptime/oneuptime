@@ -9,7 +9,7 @@ export function getProfilesBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Performance Profiles",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_LIST, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_INSIGHTS, [
       "Project",
       "Performance Profiles",
       "All Profiles",

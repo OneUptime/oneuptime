@@ -30,7 +30,7 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={MetricsRoutePath[PageMap.METRICS_LIST] || ""}
+          path={MetricsRoutePath[PageMap.METRICS_INSIGHTS] || ""}
           element={<MetricsListPage />}
         />
         <PageRoute
