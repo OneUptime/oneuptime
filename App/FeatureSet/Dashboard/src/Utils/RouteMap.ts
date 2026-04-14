@@ -138,7 +138,7 @@ export const LogsRoutePath: Dictionary<string> = {
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
-  [PageMap.METRICS_LIST]: "list",
+  [PageMap.METRICS_LIST]: "insights",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
 };
@@ -146,7 +146,7 @@ export const MetricsRoutePath: Dictionary<string> = {
 // Traces product routes
 export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES]: "",
-  [PageMap.TRACES_LIST]: "list",
+  [PageMap.TRACES_LIST]: "insights",
   [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.TRACES_DOCUMENTATION]: "documentation",
 };
@@ -154,7 +154,7 @@ export const TracesRoutePath: Dictionary<string> = {
 // Profiles product routes
 export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES]: "",
-  [PageMap.PROFILES_LIST]: "list",
+  [PageMap.PROFILES_LIST]: "insights",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
