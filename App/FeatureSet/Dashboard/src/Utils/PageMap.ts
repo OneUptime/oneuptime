@@ -11,6 +11,8 @@ enum PageMap {
   // Logs (standalone product)
   LOGS_ROOT = "LOGS_ROOT",
   LOGS = "LOGS",
+  LOGS_INSIGHTS = "LOGS_INSIGHTS",
+  LOGS_DOCUMENTATION = "LOGS_DOCUMENTATION",
 
   // Metrics (standalone product)
   METRICS_ROOT = "METRICS_ROOT",

@@ -1,6 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -8,6 +9,7 @@ import React, {
 } from "react";
 import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
 import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
+import LogsNavTabs from "../../Components/Logs/LogsNavTabs";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -23,7 +25,6 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
   const [serviceCount, setServiceCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [showDocs, setShowDocs] = useState<boolean>(false);
 
   const fetchServiceCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -59,32 +60,26 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (showDocs) {
+  if (serviceCount === 0) {
     return (
-      <TelemetryDocumentation
-        telemetryType="logs"
-        onClose={() => {
-          setShowDocs(false);
-        }}
-      />
+      <Fragment>
+        <LogsNavTabs active="viewer" />
+        <TelemetryDocumentation telemetryType="logs" />
+      </Fragment>
     );
   }
 
-  if (serviceCount === 0) {
-    return <TelemetryDocumentation telemetryType="logs" />;
-  }
-
   return (
-    <DashboardLogsViewer
-      showFilters={true}
-      serviceIds={[]}
-      limit={100}
-      enableRealtime={true}
-      id="logs"
-      onShowDocumentation={() => {
-        setShowDocs(true);
-      }}
-    />
+    <Fragment>
+      <LogsNavTabs active="viewer" />
+      <DashboardLogsViewer
+        showFilters={true}
+        serviceIds={[]}
+        limit={100}
+        enableRealtime={true}
+        id="logs"
+      />
+    </Fragment>
   );
 };
 

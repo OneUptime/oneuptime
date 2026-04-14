@@ -131,6 +131,8 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
 // Logs product routes
 export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS]: "",
+  [PageMap.LOGS_INSIGHTS]: "insights",
+  [PageMap.LOGS_DOCUMENTATION]: "documentation",
 };
 
 // Metrics product routes
@@ -2344,6 +2346,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/*`),
 
   [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs`),
+
+  [PageMap.LOGS_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.LOGS_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_DOCUMENTATION]
+    }`,
+  ),
 
   // Metrics Product Routes
   [PageMap.METRICS_ROOT]: new Route(
