@@ -87,7 +87,7 @@ export class TraceAggregationService {
         data?: Array<JSONObject>;
       }>();
       rows = response.data || [];
-    } catch (_parseError) {
+    } catch {
       /*
        * When max_execution_time fires with timeout_overflow_mode='break',
        * ClickHouse may return a truncated JSON response. Return an empty

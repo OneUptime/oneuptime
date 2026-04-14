@@ -144,3 +144,4 @@ App/FeatureSet/Dashboard/public/sw.js
 
 RFP/
 .gstack/
+.claude/scheduled_tasks.lock

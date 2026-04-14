@@ -227,7 +227,7 @@ export default class AnalyticsDatabaseService<
             resultInJSON.data[0]["count"] as string,
           );
         }
-      } catch (parseError) {
+      } catch {
         /*
          * When max_execution_time fires with timeout_overflow_mode='break',
          * ClickHouse may return a truncated response for count() queries
