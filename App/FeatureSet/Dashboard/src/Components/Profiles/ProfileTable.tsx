@@ -408,9 +408,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 );
 
                 const shortId: string =
-                  traceId.length > 12
-                    ? `${traceId.substring(0, 8)}…`
-                    : traceId;
+                  traceId.length > 12 ? `${traceId.substring(0, 8)}…` : traceId;
 
                 return (
                   <Link

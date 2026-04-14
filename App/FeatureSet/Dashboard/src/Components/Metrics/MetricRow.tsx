@@ -81,7 +81,9 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
                 {props.lastValue.toLocaleString()}
               </span>
               {metric.unit && (
-                <span className="ml-1 text-xs text-gray-400">{metric.unit}</span>
+                <span className="ml-1 text-xs text-gray-400">
+                  {metric.unit}
+                </span>
               )}
             </div>
           )}

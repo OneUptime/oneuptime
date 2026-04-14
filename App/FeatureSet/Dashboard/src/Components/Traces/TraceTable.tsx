@@ -38,7 +38,6 @@ import ServiceElement from "../Service/ServiceElement";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 
-
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
   spanQuery?: Query<Span> | undefined;

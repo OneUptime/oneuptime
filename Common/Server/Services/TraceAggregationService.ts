@@ -93,7 +93,9 @@ export class TraceAggregationService {
        * ClickHouse may return a truncated JSON response. Return an empty
        * histogram rather than failing — the user still sees the span list.
        */
-      logger.warn("Histogram query returned unparseable response, returning empty result");
+      logger.warn(
+        "Histogram query returned unparseable response, returning empty result",
+      );
     }
 
     return rows.map((row: JSONObject): HistogramBucket => {

@@ -71,9 +71,11 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       | undefined;
     const startTimeFilter: unknown = query["startTime"];
 
-    // Projection only helps when both projectId and a time range are bound —
-    // these are the partition pruning / primary key conditions the optimizer
-    // needs to see in projection-form.
+    /*
+     * Projection only helps when both projectId and a time range are bound —
+     * these are the partition pruning / primary key conditions the optimizer
+     * needs to see in projection-form.
+     */
     if (!projectId || !(startTimeFilter instanceof InBetween)) {
       return null;
     }
