@@ -1,8 +1,14 @@
-import React, { FunctionComponent, ReactElement } from "react";
-import MetricsViewer from "../../Components/Metrics/MetricsViewer";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import MetricsDashboard from "../../Components/Metrics/MetricsDashboard";
+import MetricsNavTabs from "../../Components/Metrics/MetricsNavTabs";
 
-const MetricsListPage: FunctionComponent = (): ReactElement => {
-  return <MetricsViewer />;
+const MetricsInsightsPage: FunctionComponent = (): ReactElement => {
+  return (
+    <Fragment>
+      <MetricsNavTabs active="insights" />
+      <MetricsDashboard />
+    </Fragment>
+  );
 };
 
-export default MetricsListPage;
+export default MetricsInsightsPage;

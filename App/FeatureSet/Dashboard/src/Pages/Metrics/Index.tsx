@@ -2,12 +2,14 @@ import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import MetricsDashboard from "../../Components/Metrics/MetricsDashboard";
+import MetricsViewer from "../../Components/Metrics/MetricsViewer";
+import MetricsNavTabs from "../../Components/Metrics/MetricsNavTabs";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -59,10 +61,20 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
   }
 
   if (serviceCount === 0) {
-    return <TelemetryDocumentation telemetryType="metrics" />;
+    return (
+      <Fragment>
+        <MetricsNavTabs active="viewer" />
+        <TelemetryDocumentation telemetryType="metrics" />
+      </Fragment>
+    );
   }
 
-  return <MetricsDashboard />;
+  return (
+    <Fragment>
+      <MetricsNavTabs active="viewer" />
+      <MetricsViewer />
+    </Fragment>
+  );
 };
 
 export default MetricsPage;

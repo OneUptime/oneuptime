@@ -9,7 +9,7 @@ export function getMetricsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_LIST, [
       "Project",
       "Metrics",
-      "All Metrics",
+      "Insights",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.METRIC_VIEW, [
       "Project",
