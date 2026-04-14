@@ -16,19 +16,21 @@ export interface MetricSparklineProps {
 const MetricSparkline: FunctionComponent<MetricSparklineProps> = (
   props: MetricSparklineProps,
 ): ReactElement => {
-  const width: string = props.widthClassName || "w-32";
-  const height: string = props.heightClassName || "h-8";
+  const width: string = props.widthClassName || "w-40";
+  const height: string = props.heightClassName || "h-10";
 
   if (props.isLoading) {
     return (
-      <div className={`${width} ${height} animate-pulse rounded bg-gray-100`} />
+      <div
+        className={`${width} ${height} animate-pulse rounded-md bg-gray-100`}
+      />
     );
   }
 
   if (!props.points || props.points.length < 2) {
     return (
       <div
-        className={`${width} ${height} flex items-center justify-center text-[10px] text-gray-300`}
+        className={`${width} ${height} flex items-center justify-center rounded-md border border-dashed border-gray-200 text-[10px] text-gray-300`}
       >
         no data
       </div>
@@ -36,12 +38,12 @@ const MetricSparkline: FunctionComponent<MetricSparklineProps> = (
   }
 
   return (
-    <div className={`${width} ${height}`}>
+    <div className={`${width} ${height} rounded-md`}>
       <SparkAreaChart
         data={props.points as unknown as Array<Record<string, unknown>>}
         categories={["value"]}
         index="time"
-        colors={["blue"]}
+        colors={["indigo"]}
         fill="gradient"
         className="h-full w-full"
       />

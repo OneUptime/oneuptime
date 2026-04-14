@@ -37,7 +37,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
+
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -132,7 +132,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
 
     if (activeTab === "root") {
-      baseQuery.parentSpanId = new IsNull();
+      baseQuery.isRootSpan = true;
     }
 
     return baseQuery;

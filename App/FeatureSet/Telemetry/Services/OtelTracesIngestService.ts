@@ -377,6 +377,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     events: spanEvents,
                     links: spanLinks,
                     hasException: hasException,
+                    isRootSpan: !parentSpanId || parentSpanId === "",
                     dataRententionInDays:
                       serviceDictionary[serviceName]!.dataRententionInDays,
                   });
@@ -678,6 +679,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     events: Array<JSONObject>;
     links: Array<JSONObject>;
     hasException: boolean;
+    isRootSpan: boolean;
     dataRententionInDays: number;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
@@ -712,6 +714,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       events: data.events,
       links: data.links,
       hasException: data.hasException,
+      isRootSpan: data.isRootSpan,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }

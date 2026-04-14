@@ -8,6 +8,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import logger from "../Utils/Logger";
 
 export interface HistogramBucket {
   time: string;
@@ -66,6 +67,7 @@ export class TraceAggregationService {
     "name",
     "kind",
     "statusCode",
+    "isRootSpan",
   ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
@@ -78,11 +80,21 @@ export class TraceAggregationService {
       TraceAggregationService.buildHistogramStatement(request);
 
     const dbResult: Results = await SpanService.executeQuery(statement);
-    const response: DbJSONResponse = await dbResult.json<{
-      data?: Array<JSONObject>;
-    }>();
 
-    const rows: Array<JSONObject> = response.data || [];
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch (_parseError) {
+      /*
+       * When max_execution_time fires with timeout_overflow_mode='break',
+       * ClickHouse may return a truncated JSON response. Return an empty
+       * histogram rather than failing — the user still sees the span list.
+       */
+      logger.warn("Histogram query returned unparseable response, returning empty result");
+    }
 
     return rows.map((row: JSONObject): HistogramBucket => {
       return {
@@ -401,7 +413,7 @@ export class TraceAggregationService {
     request: TraceFilters,
   ): void {
     if (request.rootOnly) {
-      statement.append(" AND (parentSpanId = '' OR parentSpanId IS NULL)");
+      statement.append(" AND isRootSpan = 1");
     }
 
     if (request.serviceIds && request.serviceIds.length > 0) {

@@ -211,18 +211,33 @@ export default class AnalyticsDatabaseService<
         tableName: this.model.tableName,
       } as LogAttributes);
 
-      const resultInJSON: ResponseJSON<JSONObject> =
-        await dbResult.json<JSONObject>();
-
       let countPositive: PositiveNumber = new PositiveNumber(0);
-      if (
-        resultInJSON.data &&
-        resultInJSON.data[0] &&
-        resultInJSON.data[0]["count"] &&
-        typeof resultInJSON.data[0]["count"] === "string"
-      ) {
-        countPositive = new PositiveNumber(
-          resultInJSON.data[0]["count"] as string,
+
+      try {
+        const resultInJSON: ResponseJSON<JSONObject> =
+          await dbResult.json<JSONObject>();
+
+        if (
+          resultInJSON.data &&
+          resultInJSON.data[0] &&
+          resultInJSON.data[0]["count"] &&
+          typeof resultInJSON.data[0]["count"] === "string"
+        ) {
+          countPositive = new PositiveNumber(
+            resultInJSON.data[0]["count"] as string,
+          );
+        }
+      } catch (parseError) {
+        /*
+         * When max_execution_time fires with timeout_overflow_mode='break',
+         * ClickHouse may return a truncated response for count() queries
+         * (the aggregation has no partial row to emit). Treat this as
+         * "count unavailable" rather than a fatal error — the list query
+         * itself still succeeds.
+         */
+        logger.warn(
+          `${this.model.tableName} count query returned unparseable response, defaulting to 0`,
+          { tableName: this.model.tableName } as LogAttributes,
         );
       }
 
@@ -689,6 +704,19 @@ export default class AnalyticsDatabaseService<
             }}
             `);
     }
+
+    /*
+     * Cap count query runtime below the ClickHouse client's 58s
+     * request_timeout. Wide time-range queries on large tables (e.g. Span)
+     * can scan billions of rows; without a cap the query runs until the
+     * HTTP client disconnects, wasting ClickHouse resources. With 'break'
+     * mode ClickHouse returns a partial (lower-bound) count rather than
+     * throwing, which is acceptable for pagination display.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
     logger.debug(`${this.model.tableName} Count Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
@@ -812,6 +840,17 @@ export default class AnalyticsDatabaseService<
       type: TableColumnType.Number,
     }}
         `);
+
+    /*
+     * Defense in depth: cap find-query runtime below the ClickHouse
+     * client's 58s request_timeout. The LIMIT clause keeps most queries
+     * fast, but complex WHERE filters (e.g. parentSpanId IS NULL) on
+     * wide time ranges can still cause long scans. 'break' mode returns
+     * partial results rather than throwing.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
 
     logger.debug(`${this.model.tableName} Find Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);

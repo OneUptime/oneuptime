@@ -33,7 +33,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import ObjectID from "Common/Types/ObjectID";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
+
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
@@ -281,7 +281,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   const baseQuery: Query<Span> = useMemo(() => {
     const query: Query<Span> = {
-      parentSpanId: new IsNull(),
+      isRootSpan: true,
     };
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();

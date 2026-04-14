@@ -565,6 +565,37 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
+    const isRootSpanColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isRootSpan",
+      title: "Is Root Span",
+      description:
+        "Whether this span is a root span (has no parent), populated at ingest time for fast root-only filtering",
+      required: true,
+      defaultValue: false,
+      type: TableColumnType.Boolean,
+      skipIndex: {
+        name: "idx_is_root_span",
+        type: SkipIndexType.Set,
+        params: [2],
+        granularity: 4,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       title: "Retention Date",
@@ -628,6 +659,7 @@ export default class Span extends AnalyticsBaseModel {
         nameColumn,
         kindColumn,
         hasExceptionColumn,
+        isRootSpanColumn,
         retentionDateColumn,
       ],
       projections: [
@@ -807,6 +839,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set hasException(v: boolean | undefined) {
     this.setColumnValue("hasException", v);
+  }
+
+  public get isRootSpan(): boolean | undefined {
+    return this.getColumnValue("isRootSpan") as boolean | undefined;
+  }
+
+  public set isRootSpan(v: boolean | undefined) {
+    this.setColumnValue("isRootSpan", v);
   }
 
   public get retentionDate(): Date | undefined {
