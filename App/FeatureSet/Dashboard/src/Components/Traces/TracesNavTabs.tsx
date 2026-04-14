@@ -7,14 +7,14 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type MetricsTabKey = "viewer" | "insights" | "setup";
+export type TracesTabKey = "viewer" | "insights" | "setup";
 
 interface Props {
-  active: MetricsTabKey;
+  active: TracesTabKey;
   trailing?: ReactElement | undefined;
 }
 
-const MetricsNavTabs: FunctionComponent<Props> = (
+const TracesNavTabs: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
   const tabs: Array<TelemetryTab> = [
@@ -22,14 +22,14 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       key: "viewer",
       label: "Viewer",
       icon: IconProp.List,
-      to: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
     },
     {
       key: "insights",
       label: "Insights",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_LIST] as Route,
+        RouteMap[PageMap.TRACES_LIST] as Route,
       ),
     },
     {
@@ -37,7 +37,7 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       label: "Setup Guide",
       icon: IconProp.Book,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_DOCUMENTATION] as Route,
+        RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
       ),
     },
   ];
@@ -51,4 +51,4 @@ const MetricsNavTabs: FunctionComponent<Props> = (
   );
 };
 
-export default MetricsNavTabs;
+export default TracesNavTabs;

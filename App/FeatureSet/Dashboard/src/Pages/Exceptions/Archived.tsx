@@ -1,7 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ExceptionsViewer from "../../Components/Exceptions/ExceptionsViewer";
+import ExceptionsNavTabs from "../../Components/Exceptions/ExceptionsNavTabs";
 
 const ArchivedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +16,12 @@ const ArchivedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <ExceptionsViewer defaultStatus="archived" />;
+  return (
+    <Fragment>
+      <ExceptionsNavTabs active="archived" />
+      <ExceptionsViewer defaultStatus="archived" />
+    </Fragment>
+  );
 };
 
 export default ArchivedExceptionsPage;

@@ -2,12 +2,14 @@ import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
 import ExceptionsDashboard from "../../Components/Exceptions/ExceptionsDashboard";
+import ExceptionsNavTabs from "../../Components/Exceptions/ExceptionsNavTabs";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -59,10 +61,20 @@ const ExceptionsOverviewPage: FunctionComponent<PageComponentProps> = (
   }
 
   if (serviceCount === 0) {
-    return <TelemetryDocumentation telemetryType="exceptions" />;
+    return (
+      <Fragment>
+        <ExceptionsNavTabs active="overview" />
+        <TelemetryDocumentation telemetryType="exceptions" />
+      </Fragment>
+    );
   }
 
-  return <ExceptionsDashboard />;
+  return (
+    <Fragment>
+      <ExceptionsNavTabs active="overview" />
+      <ExceptionsDashboard />
+    </Fragment>
+  );
 };
 
 export default ExceptionsOverviewPage;

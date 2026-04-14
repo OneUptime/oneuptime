@@ -2,7 +2,6 @@ import { getExceptionsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import SideMenu from "./SideMenu";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -25,7 +24,6 @@ const ExceptionsLayout: FunctionComponent<
     <Page
       title="Exceptions"
       breadcrumbLinks={getExceptionsBreadcrumbs(path)}
-      sideMenu={<SideMenu />}
     >
       <Outlet />
     </Page>

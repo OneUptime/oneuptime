@@ -7,7 +7,6 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import Includes from "../../Types/BaseDatabase/Includes";
 import ObjectID from "../../Types/ObjectID";
-import logger from "../Utils/Logger";
 
 /**
  * Columns the proj_hist_by_minute projection can answer with. If a count
@@ -30,6 +29,23 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
   }
 
   /**
+   * Normalize a JSON-deserialized date value to a Date instance. When a query
+   * crosses the API boundary, InBetween's startValue/endValue come back as ISO
+   * strings (or numeric epoch ms) rather than Date objects. Returns null if
+   * the value is unusable.
+   */
+  private static coerceToDate(value: unknown): Date | null {
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === "string" || typeof value === "number") {
+      const parsed: Date = new Date(value);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return null;
+  }
+
+  /**
    * Override the count statement to route eligible queries through the
    * proj_hist_by_minute projection. The projection is keyed on
    * (projectId, toStartOfMinute(startTime), serviceId, statusCode, isRootSpan)
@@ -43,9 +59,6 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
   public override toCountStatement(countBy: CountBy<Span>): Statement {
     const projectionStatement: Statement | null =
       this.tryBuildProjectionCountStatement(countBy);
-    logger.info(
-      `[SpanService] toCountStatement invoked. projectionUsed=${Boolean(projectionStatement)} queryKeys=${Object.keys((countBy.query || {}) as object).join(",")}`,
-    );
     if (projectionStatement) {
       return projectionStatement;
     }
@@ -81,9 +94,6 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
      * needs to see in projection-form.
      */
     if (!projectId || !(startTimeFilter instanceof InBetween)) {
-      logger.info(
-        `[SpanService] projection bail: projectId=${Boolean(projectId)} startTimeIsInBetween=${startTimeFilter instanceof InBetween} startTimeCtor=${(startTimeFilter as { constructor?: { name?: string } })?.constructor?.name} startTimeKeys=${startTimeFilter && typeof startTimeFilter === "object" ? Object.keys(startTimeFilter as object).join(",") : typeof startTimeFilter}`,
-      );
       return null;
     }
 
@@ -92,9 +102,13 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     }
     const databaseName: string = this.database.getDatasourceOptions().database!;
 
-    const startValue: unknown = startTimeFilter.startValue;
-    const endValue: unknown = startTimeFilter.endValue;
-    if (!(startValue instanceof Date) || !(endValue instanceof Date)) {
+    const startValue: Date | null = SpanService.coerceToDate(
+      startTimeFilter.startValue,
+    );
+    const endValue: Date | null = SpanService.coerceToDate(
+      startTimeFilter.endValue,
+    );
+    if (!startValue || !endValue) {
       return null;
     }
 

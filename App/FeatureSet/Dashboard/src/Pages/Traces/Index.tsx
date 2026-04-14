@@ -2,12 +2,14 @@ import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import TracesDashboard from "../../Components/Traces/TracesDashboard";
+import TracesViewer from "../../Components/Traces/TracesViewer";
+import TracesNavTabs from "../../Components/Traces/TracesNavTabs";
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -59,10 +61,20 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
   }
 
   if (serviceCount === 0) {
-    return <TelemetryDocumentation telemetryType="traces" />;
+    return (
+      <Fragment>
+        <TracesNavTabs active="viewer" />
+        <TelemetryDocumentation telemetryType="traces" />
+      </Fragment>
+    );
   }
 
-  return <TracesDashboard />;
+  return (
+    <Fragment>
+      <TracesNavTabs active="viewer" />
+      <TracesViewer />
+    </Fragment>
+  );
 };
 
 export default TracesPage;
