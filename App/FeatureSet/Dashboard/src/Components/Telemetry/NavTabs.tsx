@@ -37,7 +37,8 @@ const TelemetryNavTabs: FunctionComponent<Props> = (
         {props.tabs.map((tab: TelemetryTab): ReactElement => {
           const isActive: boolean = tab.key === props.activeKey;
           const badgeTone: string =
-            BADGE_TONES[tab.badge?.tone || "default"] || BADGE_TONES["default"]!;
+            BADGE_TONES[tab.badge?.tone || "default"] ||
+            BADGE_TONES["default"]!;
           return (
             <AppLink
               key={tab.key}

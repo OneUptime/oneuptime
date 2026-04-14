@@ -144,10 +144,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           modelType: Log,
           query: {
             projectId,
-            time: new InBetween<Date>(
-              dateRange.startValue,
-              dateRange.endValue,
-            ),
+            time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
           } as Query<Log>,
           limit: 5000,
           skip: 0,
@@ -249,10 +246,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         };
       })
       .sort((a: SeverityBucket, b: SeverityBucket): number => {
-        const oa: number =
-          SEVERITY_STYLES[a.severity as string]?.order ?? 99;
-        const ob: number =
-          SEVERITY_STYLES[b.severity as string]?.order ?? 99;
+        const oa: number = SEVERITY_STYLES[a.severity as string]?.order ?? 99;
+        const ob: number = SEVERITY_STYLES[b.severity as string]?.order ?? 99;
         return oa - ob;
       });
   }, [stats.severityCounts]);
@@ -359,8 +354,9 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             No logs in {rangeLabel}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
-            Once your services start shipping logs via OpenTelemetry, you&apos;ll
-            see severity distribution, error rate, and per-service volume here.
+            Once your services start shipping logs via OpenTelemetry,
+            you&apos;ll see severity distribution, error rate, and per-service
+            volume here.
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
@@ -467,9 +463,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           <div className="mt-3 flex flex-wrap gap-2">
             {severityBuckets.map((b: SeverityBucket): ReactElement => {
               const pct: number =
-                stats.total > 0
-                  ? Math.round((b.count / stats.total) * 100)
-                  : 0;
+                stats.total > 0 ? Math.round((b.count / stats.total) * 100) : 0;
               return (
                 <div
                   key={b.severity as string}

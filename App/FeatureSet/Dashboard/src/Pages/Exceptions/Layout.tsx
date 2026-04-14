@@ -21,10 +21,7 @@ const ExceptionsLayout: FunctionComponent<
   }
 
   return (
-    <Page
-      title="Exceptions"
-      breadcrumbLinks={getExceptionsBreadcrumbs(path)}
-    >
+    <Page title="Exceptions" breadcrumbLinks={getExceptionsBreadcrumbs(path)}>
       <Outlet />
     </Page>
   );

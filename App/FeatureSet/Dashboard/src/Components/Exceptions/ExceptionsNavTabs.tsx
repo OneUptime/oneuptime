@@ -4,9 +4,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TelemetryNavTabs, {
-  TelemetryTab,
-} from "../Telemetry/NavTabs";
+import TelemetryNavTabs, { TelemetryTab } from "../Telemetry/NavTabs";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
@@ -81,8 +79,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
       ...(unresolvedCount !== null && unresolvedCount > 0
         ? {
             badge: {
-              text:
-                unresolvedCount > 99 ? "99+" : unresolvedCount.toString(),
+              text: unresolvedCount > 99 ? "99+" : unresolvedCount.toString(),
               tone: "danger" as const,
             },
           }

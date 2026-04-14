@@ -1,7 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import TelemetryNavTabs, {
-  TelemetryTab,
-} from "../Telemetry/NavTabs";
+import TelemetryNavTabs, { TelemetryTab } from "../Telemetry/NavTabs";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";

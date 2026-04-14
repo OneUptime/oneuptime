@@ -472,9 +472,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           label={dormantServices > 0 ? "Quiet services" : "Coverage"}
           value={dormantServices > 0 ? dormantServices : reportingServices}
           subtext={
-            dormantServices > 0
-              ? "no metrics in range"
-              : "all services covered"
+            dormantServices > 0 ? "no metrics in range" : "all services covered"
           }
           icon={dormantServices > 0 ? IconProp.Alert : IconProp.Check}
           tone={dormantServices > 0 ? "amber" : "emerald"}

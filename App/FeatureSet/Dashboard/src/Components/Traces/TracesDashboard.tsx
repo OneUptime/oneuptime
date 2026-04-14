@@ -108,224 +108,226 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     range: TimeRange.PAST_ONE_DAY,
   });
 
-  const loadDashboard: () => Promise<void> = useCallback(async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const loadDashboard: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError("");
 
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-      const startDate: Date = dateRange.startValue;
-      const endDate: Date = dateRange.endValue;
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+        const startDate: Date = dateRange.startValue;
+        const endDate: Date = dateRange.endValue;
 
-      const [servicesResult, spansResult] = await Promise.all([
-        ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        }),
-        AnalyticsModelAPI.getList({
-          modelType: Span,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            startTime: new InBetween(startDate, endDate),
-          },
-          select: {
-            traceId: true,
-            spanId: true,
-            parentSpanId: true,
-            serviceId: true,
-            name: true,
-            startTime: true,
-            statusCode: true,
-            durationUnixNano: true,
-          },
-          limit: 5000,
-          skip: 0,
-          sort: {
-            startTime: SortOrder.Descending,
-          },
-        }),
-      ]);
+        const [servicesResult, spansResult] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            select: {
+              serviceColor: true,
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          AnalyticsModelAPI.getList({
+            modelType: Span,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              startTime: new InBetween(startDate, endDate),
+            },
+            select: {
+              traceId: true,
+              spanId: true,
+              parentSpanId: true,
+              serviceId: true,
+              name: true,
+              startTime: true,
+              statusCode: true,
+              durationUnixNano: true,
+            },
+            limit: 5000,
+            skip: 0,
+            sort: {
+              startTime: SortOrder.Descending,
+            },
+          }),
+        ]);
 
-      const loadedServices: Array<Service> = servicesResult.data || [];
-      setServices(loadedServices);
+        const loadedServices: Array<Service> = servicesResult.data || [];
+        setServices(loadedServices);
 
-      const allSpans: Array<Span> = spansResult.data || [];
+        const allSpans: Array<Span> = spansResult.data || [];
 
-      // Build per-service summaries
-      const summaryMap: Map<string, ServiceTraceSummary> = new Map();
+        // Build per-service summaries
+        const summaryMap: Map<string, ServiceTraceSummary> = new Map();
 
-      for (const service of loadedServices) {
-        const serviceId: string = service.id?.toString() || "";
-        summaryMap.set(serviceId, {
-          service,
-          totalTraces: 0,
-          errorTraces: 0,
-          latestTraceTime: null,
-          p50Nanos: 0,
-          p95Nanos: 0,
-          durations: [],
-        });
-      }
-
-      const serviceTraceIds: Map<string, Set<string>> = new Map();
-      const serviceErrorTraceIds: Map<string, Set<string>> = new Map();
-      const errorTraces: Array<RecentTrace> = [];
-      const allTraces: Array<RecentTrace> = [];
-      const seenTraceIds: Set<string> = new Set();
-      const seenErrorTraceIds: Set<string> = new Set();
-      const allDurations: Array<number> = [];
-
-      for (const span of allSpans) {
-        const serviceId: string = span.serviceId?.toString() || "";
-        const traceId: string = span.traceId?.toString() || "";
-        const duration: number = (span.durationUnixNano as number) || 0;
-        const summary: ServiceTraceSummary | undefined =
-          summaryMap.get(serviceId);
-
-        if (duration > 0) {
-          allDurations.push(duration);
+        for (const service of loadedServices) {
+          const serviceId: string = service.id?.toString() || "";
+          summaryMap.set(serviceId, {
+            service,
+            totalTraces: 0,
+            errorTraces: 0,
+            latestTraceTime: null,
+            p50Nanos: 0,
+            p95Nanos: 0,
+            durations: [],
+          });
         }
 
-        if (summary) {
-          if (!serviceTraceIds.has(serviceId)) {
-            serviceTraceIds.set(serviceId, new Set());
-          }
-          if (!serviceErrorTraceIds.has(serviceId)) {
-            serviceErrorTraceIds.set(serviceId, new Set());
-          }
+        const serviceTraceIds: Map<string, Set<string>> = new Map();
+        const serviceErrorTraceIds: Map<string, Set<string>> = new Map();
+        const errorTraces: Array<RecentTrace> = [];
+        const allTraces: Array<RecentTrace> = [];
+        const seenTraceIds: Set<string> = new Set();
+        const seenErrorTraceIds: Set<string> = new Set();
+        const allDurations: Array<number> = [];
 
-          const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
-          if (!traceSet.has(traceId)) {
-            traceSet.add(traceId);
-            summary.totalTraces += 1;
-          }
+        for (const span of allSpans) {
+          const serviceId: string = span.serviceId?.toString() || "";
+          const traceId: string = span.traceId?.toString() || "";
+          const duration: number = (span.durationUnixNano as number) || 0;
+          const summary: ServiceTraceSummary | undefined =
+            summaryMap.get(serviceId);
 
           if (duration > 0) {
-            summary.durations.push(duration);
+            allDurations.push(duration);
           }
 
-          if (span.statusCode === SpanStatus.Error) {
-            const errorSet: Set<string> = serviceErrorTraceIds.get(serviceId)!;
-            if (!errorSet.has(traceId)) {
-              errorSet.add(traceId);
-              summary.errorTraces += 1;
+          if (summary) {
+            if (!serviceTraceIds.has(serviceId)) {
+              serviceTraceIds.set(serviceId, new Set());
+            }
+            if (!serviceErrorTraceIds.has(serviceId)) {
+              serviceErrorTraceIds.set(serviceId, new Set());
+            }
+
+            const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
+            if (!traceSet.has(traceId)) {
+              traceSet.add(traceId);
+              summary.totalTraces += 1;
+            }
+
+            if (duration > 0) {
+              summary.durations.push(duration);
+            }
+
+            if (span.statusCode === SpanStatus.Error) {
+              const errorSet: Set<string> =
+                serviceErrorTraceIds.get(serviceId)!;
+              if (!errorSet.has(traceId)) {
+                errorSet.add(traceId);
+                summary.errorTraces += 1;
+              }
+            }
+
+            const spanTime: Date | undefined = span.startTime
+              ? OneUptimeDate.fromString(span.startTime)
+              : undefined;
+            if (
+              spanTime &&
+              (!summary.latestTraceTime || spanTime > summary.latestTraceTime)
+            ) {
+              summary.latestTraceTime = spanTime;
             }
           }
 
-          const spanTime: Date | undefined = span.startTime
-            ? OneUptimeDate.fromString(span.startTime)
-            : undefined;
+          if (!seenTraceIds.has(traceId) && traceId) {
+            seenTraceIds.add(traceId);
+            allTraces.push({
+              traceId,
+              name: span.name?.toString() || "Unknown",
+              serviceId,
+              startTime: span.startTime
+                ? OneUptimeDate.fromString(span.startTime)
+                : new Date(),
+              statusCode: span.statusCode || SpanStatus.Unset,
+              durationNano: duration,
+            });
+          }
+
           if (
-            spanTime &&
-            (!summary.latestTraceTime || spanTime > summary.latestTraceTime)
+            span.statusCode === SpanStatus.Error &&
+            traceId &&
+            !seenErrorTraceIds.has(traceId)
           ) {
-            summary.latestTraceTime = spanTime;
+            seenErrorTraceIds.add(traceId);
+            errorTraces.push({
+              traceId,
+              name: span.name?.toString() || "Unknown",
+              serviceId,
+              startTime: span.startTime
+                ? OneUptimeDate.fromString(span.startTime)
+                : new Date(),
+              statusCode: span.statusCode,
+              durationNano: duration,
+            });
           }
         }
 
-        if (!seenTraceIds.has(traceId) && traceId) {
-          seenTraceIds.add(traceId);
-          allTraces.push({
-            traceId,
-            name: span.name?.toString() || "Unknown",
-            serviceId,
-            startTime: span.startTime
-              ? OneUptimeDate.fromString(span.startTime)
-              : new Date(),
-            statusCode: span.statusCode || SpanStatus.Unset,
-            durationNano: duration,
+        // Compute global percentiles
+        setGlobalP50(getPercentile(allDurations, 50));
+        setGlobalP95(getPercentile(allDurations, 95));
+        setGlobalP99(getPercentile(allDurations, 99));
+
+        // Compute per-service percentiles and filter
+        const summariesWithData: Array<ServiceTraceSummary> = Array.from(
+          summaryMap.values(),
+        )
+          .filter((s: ServiceTraceSummary) => {
+            return s.totalTraces > 0;
+          })
+          .map((s: ServiceTraceSummary) => {
+            return {
+              ...s,
+              p50Nanos: getPercentile(s.durations, 50),
+              p95Nanos: getPercentile(s.durations, 95),
+            };
           });
+
+        // Sort: highest error rate first, then by total traces
+        summariesWithData.sort(
+          (a: ServiceTraceSummary, b: ServiceTraceSummary) => {
+            const aErrorRate: number =
+              a.totalTraces > 0 ? a.errorTraces / a.totalTraces : 0;
+            const bErrorRate: number =
+              b.totalTraces > 0 ? b.errorTraces / b.totalTraces : 0;
+            if (bErrorRate !== aErrorRate) {
+              return bErrorRate - aErrorRate;
+            }
+            return b.totalTraces - a.totalTraces;
+          },
+        );
+
+        let totalReqs: number = 0;
+        let totalErrs: number = 0;
+        for (const s of summariesWithData) {
+          totalReqs += s.totalTraces;
+          totalErrs += s.errorTraces;
         }
+        setTotalRequests(totalReqs);
+        setTotalErrors(totalErrs);
 
-        if (
-          span.statusCode === SpanStatus.Error &&
-          traceId &&
-          !seenErrorTraceIds.has(traceId)
-        ) {
-          seenErrorTraceIds.add(traceId);
-          errorTraces.push({
-            traceId,
-            name: span.name?.toString() || "Unknown",
-            serviceId,
-            startTime: span.startTime
-              ? OneUptimeDate.fromString(span.startTime)
-              : new Date(),
-            statusCode: span.statusCode,
-            durationNano: duration,
-          });
-        }
+        setServiceSummaries(summariesWithData);
+        setRecentErrorTraces(errorTraces.slice(0, 8));
+
+        const slowTraces: Array<RecentTrace> = [...allTraces]
+          .sort((a: RecentTrace, b: RecentTrace) => {
+            return b.durationNano - a.durationNano;
+          })
+          .slice(0, 8);
+        setRecentSlowTraces(slowTraces);
+      } catch (err) {
+        setError(API.getFriendlyErrorMessage(err as Error));
+      } finally {
+        setIsLoading(false);
       }
-
-      // Compute global percentiles
-      setGlobalP50(getPercentile(allDurations, 50));
-      setGlobalP95(getPercentile(allDurations, 95));
-      setGlobalP99(getPercentile(allDurations, 99));
-
-      // Compute per-service percentiles and filter
-      const summariesWithData: Array<ServiceTraceSummary> = Array.from(
-        summaryMap.values(),
-      )
-        .filter((s: ServiceTraceSummary) => {
-          return s.totalTraces > 0;
-        })
-        .map((s: ServiceTraceSummary) => {
-          return {
-            ...s,
-            p50Nanos: getPercentile(s.durations, 50),
-            p95Nanos: getPercentile(s.durations, 95),
-          };
-        });
-
-      // Sort: highest error rate first, then by total traces
-      summariesWithData.sort(
-        (a: ServiceTraceSummary, b: ServiceTraceSummary) => {
-          const aErrorRate: number =
-            a.totalTraces > 0 ? a.errorTraces / a.totalTraces : 0;
-          const bErrorRate: number =
-            b.totalTraces > 0 ? b.errorTraces / b.totalTraces : 0;
-          if (bErrorRate !== aErrorRate) {
-            return bErrorRate - aErrorRate;
-          }
-          return b.totalTraces - a.totalTraces;
-        },
-      );
-
-      let totalReqs: number = 0;
-      let totalErrs: number = 0;
-      for (const s of summariesWithData) {
-        totalReqs += s.totalTraces;
-        totalErrs += s.errorTraces;
-      }
-      setTotalRequests(totalReqs);
-      setTotalErrors(totalErrs);
-
-      setServiceSummaries(summariesWithData);
-      setRecentErrorTraces(errorTraces.slice(0, 8));
-
-      const slowTraces: Array<RecentTrace> = [...allTraces]
-        .sort((a: RecentTrace, b: RecentTrace) => {
-          return b.durationNano - a.durationNano;
-        })
-        .slice(0, 8);
-      setRecentSlowTraces(slowTraces);
-    } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Error));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [timeRange]);
+    }, [timeRange]);
 
   useEffect(() => {
     void loadDashboard();
@@ -742,9 +744,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           </div>
           {recentSlowTraces.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-              <p className="text-sm text-gray-500">
-                No traces in {rangeLabel}
-              </p>
+              <p className="text-sm text-gray-500">No traces in {rangeLabel}</p>
             </div>
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
