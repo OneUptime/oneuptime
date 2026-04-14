@@ -1578,8 +1578,33 @@ jobs:
         env:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
-          /usr/libexec/PlistBuddy -c "Add :teamID string $IOS_TEAM_ID" MobileApp/ios/ExportOptions.plist || \
-          /usr/libexec/PlistBuddy -c "Set :teamID $IOS_TEAM_ID" MobileApp/ios/ExportOptions.plist
+          # Overwrite the expo-prebuild-generated ExportOptions.plist (which defaults to
+          # method=development and requires an iOS Development cert we don't import) with
+          # an explicit app-store + manual-signing configuration matching the imported
+          # Distribution cert and provisioning profile.
+          cat > MobileApp/ios/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${IOS_TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.oneuptime.oncall</key>
+              <string>${{ env.PROFILE_UUID }}</string>
+            </dict>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
 
       - name: Export IPA
         run: |
