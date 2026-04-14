@@ -41,6 +41,13 @@ async function authenticateRequest(
   }
 
   if (!oneuptimeToken) {
+    const ingestionKeyValues: grpc.MetadataValue[] = metadata.get(
+      "x-oneuptime-ingestion-key",
+    );
+    oneuptimeToken = ingestionKeyValues[0]?.toString();
+  }
+
+  if (!oneuptimeToken) {
     logger.error("gRPC: Missing metadata: x-oneuptime-token", {
       service: "telemetry",
     });
