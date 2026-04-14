@@ -301,41 +301,60 @@ export class TraceAggregationService {
   private static buildHistogramStatement(request: HistogramRequest): Statement {
     const intervalSeconds: number = request.bucketSizeInMinutes * 60;
 
+    /*
+     * Two-stage aggregation. The inner query groups by minute + statusCode,
+     * which exactly matches the proj_hist_by_minute projection. With
+     * optimize_use_projections=1 (default in modern ClickHouse), the inner
+     * scan reads pre-aggregated rows instead of the 1.8B-row span table —
+     * even for multi-week ranges. The outer query then re-buckets the tiny
+     * minute-level result to the requested bucket size.
+     *
+     * If any non-projection filter (kind, name, traceId, nameSearchText,
+     * attributes) is active, ClickHouse transparently falls back to
+     * scanning the main table for the inner query — same cost as before.
+     */
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(startTime, INTERVAL ${{
+        toStartOfInterval(minute, INTERVAL ${{
           type: TableColumnType.Number,
           value: intervalSeconds,
         }} SECOND) AS bucket,
         statusCode,
-        count() AS cnt
-      FROM ${TraceAggregationService.TABLE_NAME}
-      WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: request.projectId,
-      }}
-        AND startTime >= ${{
-          type: TableColumnType.Date,
-          value: request.startTime,
+        sum(cnt_minute) AS cnt
+      FROM (
+        SELECT
+          toStartOfMinute(startTime) AS minute,
+          statusCode,
+          count() AS cnt_minute
+        FROM ${TraceAggregationService.TABLE_NAME}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
         }}
-        AND startTime <= ${{
-          type: TableColumnType.Date,
-          value: request.endTime,
-        }}
+          AND startTime >= ${{
+            type: TableColumnType.Date,
+            value: request.startTime,
+          }}
+          AND startTime <= ${{
+            type: TableColumnType.Date,
+            value: request.endTime,
+          }}
     `;
 
     TraceAggregationService.appendCommonFilters(statement, request);
 
-    statement.append(" GROUP BY bucket, statusCode ORDER BY bucket ASC");
+    statement.append(
+      " GROUP BY minute, statusCode ) GROUP BY bucket, statusCode ORDER BY bucket ASC",
+    );
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
      * proxy_read_timeout. ClickHouse returns partial aggregated results
      * with 'break' mode rather than throwing, which is acceptable for
-     * a density visualization.
+     * a density visualization. Explicitly enable projection use.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', optimize_use_projections = 1",
     );
 
     return statement;

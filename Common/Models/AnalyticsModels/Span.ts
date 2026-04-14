@@ -673,6 +673,11 @@ export default class Span extends AnalyticsBaseModel {
           query:
             "SELECT projectId, traceId, startTime, serviceId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
         },
+        {
+          name: "proj_hist_by_minute",
+          query:
+            "SELECT projectId, toStartOfMinute(startTime) AS minute, serviceId, statusCode, isRootSpan, count() AS cnt GROUP BY projectId, minute, serviceId, statusCode, isRootSpan",
+        },
       ],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
