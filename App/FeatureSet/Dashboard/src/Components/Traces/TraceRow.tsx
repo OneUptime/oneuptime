@@ -12,8 +12,10 @@ export interface TraceRowProps {
 }
 
 type StatusTheme = {
-  stripe: string;
+  dot: string;
+  ring: string;
   bar: string;
+  barTrack: string;
   pillBg: string;
   pillText: string;
   label: string;
@@ -22,8 +24,10 @@ type StatusTheme = {
 function getStatusTheme(status: number | undefined | null): StatusTheme {
   if (status === SpanStatus.Error) {
     return {
-      stripe: "bg-red-500",
-      bar: "bg-red-400",
+      dot: "bg-red-500",
+      ring: "ring-red-100",
+      bar: "bg-red-500",
+      barTrack: "bg-red-50",
       pillBg: "bg-red-50",
       pillText: "text-red-700",
       label: "Error",
@@ -31,16 +35,20 @@ function getStatusTheme(status: number | undefined | null): StatusTheme {
   }
   if (status === SpanStatus.Ok) {
     return {
-      stripe: "bg-emerald-500",
-      bar: "bg-emerald-400",
+      dot: "bg-emerald-500",
+      ring: "ring-emerald-100",
+      bar: "bg-emerald-500",
+      barTrack: "bg-gray-100",
       pillBg: "bg-emerald-50",
       pillText: "text-emerald-700",
       label: "Ok",
     };
   }
   return {
-    stripe: "bg-gray-300",
-    bar: "bg-gray-300",
+    dot: "bg-gray-300",
+    ring: "ring-gray-100",
+    bar: "bg-gray-400",
+    barTrack: "bg-gray-100",
     pillBg: "bg-gray-50",
     pillText: "text-gray-500",
     label: "Unset",
@@ -63,7 +71,15 @@ function formatRelativeTime(time: Date): string {
     return `${hr}h ago`;
   }
   const day: number = Math.floor(hr / 24);
-  return `${day}d ago`;
+  if (day < 30) {
+    return `${day}d ago`;
+  }
+  const mo: number = Math.floor(day / 30);
+  if (mo < 12) {
+    return `${mo}mo ago`;
+  }
+  const yr: number = Math.floor(mo / 12);
+  return `${yr}y ago`;
 }
 
 function formatAbsoluteTime(time: Date): string {
@@ -83,7 +99,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
   const durationNano: number = Number(span.durationUnixNano || 0);
   const durationPct: number =
     maxDurationNano > 0
-      ? Math.max(1, Math.min(100, (durationNano / maxDurationNano) * 100))
+      ? Math.max(2, Math.min(100, (durationNano / maxDurationNano) * 100))
       : 0;
 
   const divisibilityFactor: ReturnType<typeof SpanUtil.getDivisibilityFactor> =
@@ -104,40 +120,61 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
   const spanName: string = span.name || "(unnamed)";
   const traceIdStr: string = span.traceId?.toString() || "";
   const shortTraceId: string =
-    traceIdStr.length > 14 ? `${traceIdStr.slice(0, 14)}…` : traceIdStr;
+    traceIdStr.length > 16 ? `${traceIdStr.slice(0, 16)}…` : traceIdStr;
 
   const theme: StatusTheme = getStatusTheme(span.statusCode);
 
-  const kindLabel: string | null = span.kind
-    ? SpanUtil.getSpanKindFriendlyName(span.kind as SpanKind)
-    : null;
+  // Only surface kind when it's meaningful (non-internal)
+  const kindRaw: SpanKind | undefined = span.kind as SpanKind | undefined;
+  const kindLabel: string | null =
+    kindRaw && kindRaw !== SpanKind.Internal
+      ? SpanUtil.getSpanKindFriendlyName(kindRaw)
+      : null;
 
   const statusMessage: string | undefined =
     (span as unknown as { statusMessage?: string }).statusMessage || undefined;
 
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      className="group relative block w-full overflow-hidden border-l-2 border-transparent bg-white text-left transition-colors hover:bg-indigo-50/40 focus:outline-none focus-visible:bg-indigo-50/60"
-    >
-      {/* Status stripe (left edge) */}
-      <span
-        aria-hidden="true"
-        className={`absolute left-0 top-0 h-full w-0.5 ${theme.stripe}`}
-      />
+  const isError: boolean = span.statusCode === SpanStatus.Error;
 
-      <div className="px-4 pt-3 pb-2.5">
-        {/* Primary row: service · span name · kind  ·············· duration */}
-        <div className="flex min-w-0 items-center gap-2.5">
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={props.onClick}
+      onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          props.onClick?.();
+        }
+      }}
+      className="group relative cursor-pointer border-b border-gray-100 bg-white transition-colors duration-150 last:border-b-0 hover:bg-gray-50/70 focus:outline-none focus-visible:bg-indigo-50/40 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-indigo-300"
+    >
+      <div className="flex items-center gap-4 px-5 py-3">
+        {/* Status indicator */}
+        <span
+          aria-label={`Status: ${theme.label}`}
+          className={`relative flex h-2 w-2 flex-shrink-0 items-center justify-center`}
+        >
+          <span
+            className={`absolute inline-flex h-full w-full rounded-full ${theme.dot} opacity-60 ${
+              isError ? "animate-ping" : ""
+            }`}
+          />
+          <span
+            className={`relative inline-flex h-2 w-2 rounded-full ${theme.dot} ring-2 ${theme.ring}`}
+          />
+        </span>
+
+        {/* Service + Span name + (kind) — main content, takes available width */}
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           {/* Service pill */}
           <span
-            className="inline-flex max-w-[160px] items-center gap-1.5 truncate rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[11px] font-medium text-gray-700"
-            style={
-              serviceColor
-                ? { borderColor: `${serviceColor}40`, color: serviceColor }
-                : undefined
-            }
+            className="inline-flex max-w-[180px] flex-shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium"
+            style={{
+              borderColor: serviceColor ? `${serviceColor}33` : "#e5e7eb",
+              backgroundColor: serviceColor ? `${serviceColor}0d` : "#f9fafb",
+              color: serviceColor || "#374151",
+            }}
             title={serviceName}
           >
             <span
@@ -155,34 +192,59 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
             {spanName}
           </span>
 
-          {/* Kind tag */}
+          {/* Kind — only when meaningful */}
           {kindLabel && (
-            <span className="hidden flex-shrink-0 rounded border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:inline-block">
+            <span className="hidden flex-shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 md:inline-block">
               {kindLabel}
             </span>
           )}
 
-          {/* Status pill (only shown when meaningful) */}
-          {span.statusCode === SpanStatus.Error && (
+          {/* Error pill */}
+          {isError && (
             <span
-              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${theme.pillBg} ${theme.pillText}`}
+              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${theme.pillBg} ${theme.pillText}`}
             >
               {theme.label}
             </span>
           )}
+        </div>
 
-          {/* Duration */}
-          <span className="flex-shrink-0 font-mono text-sm font-semibold tabular-nums text-gray-900">
+        {/* Right column: inline duration sparkbar + value + time, fixed width for tabular alignment */}
+        <div className="flex flex-shrink-0 items-center gap-4">
+          {/* Inline duration bar */}
+          <div className="hidden items-center gap-2 sm:flex">
+            <div
+              className={`relative h-1 w-24 overflow-hidden rounded-full ${theme.barTrack}`}
+            >
+              <div
+                className={`absolute left-0 top-0 h-full rounded-full ${theme.bar} transition-all duration-300`}
+                style={{ width: `${durationPct}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Duration value */}
+          <div className="w-16 text-right font-mono text-sm font-semibold tabular-nums text-gray-900">
             {durationLabel}
-          </span>
+          </div>
 
-          {/* Chevron — appears on hover */}
+          {/* Time */}
+          {startTimeDate && (
+            <div
+              className="hidden w-20 text-right text-xs text-gray-400 md:block"
+              title={`${formatAbsoluteTime(startTimeDate)} — ${startTimeDate.toISOString()}`}
+            >
+              {formatRelativeTime(startTimeDate)}
+            </div>
+          )}
+
+          {/* Chevron */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
-            className="ml-0.5 h-4 w-4 flex-shrink-0 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100"
             aria-hidden="true"
+            className="h-4 w-4 flex-shrink-0 text-gray-300 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-gray-500"
           >
             <path
               fillRule="evenodd"
@@ -191,52 +253,45 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
             />
           </svg>
         </div>
+      </div>
 
-        {/* Secondary row: trace id · time · status message */}
-        <div className="mt-1 flex min-w-0 items-center gap-2 text-[11px] text-gray-400">
-          {shortTraceId && (
-            <span
-              className="truncate font-mono text-gray-500"
-              title={traceIdStr}
-            >
-              {shortTraceId}
+      {/* Sub-row: trace id + status message (error only) */}
+      <div className="flex items-center gap-3 px-5 pb-2.5 pl-[3.25rem] text-[11px] text-gray-400">
+        {shortTraceId && (
+          <span
+            className="font-mono tracking-tight text-gray-400 transition-colors group-hover:text-gray-500"
+            title={`trace ${traceIdStr}`}
+          >
+            {shortTraceId}
+          </span>
+        )}
+
+        {startTimeDate && (
+          <>
+            <span aria-hidden="true" className="text-gray-300">
+              ·
             </span>
-          )}
+            <span className="tabular-nums">
+              {formatAbsoluteTime(startTimeDate)}
+            </span>
+          </>
+        )}
 
-          {startTimeDate && (
-            <>
-              <span className="text-gray-300">·</span>
-              <span title={startTimeDate.toISOString()}>
-                {formatRelativeTime(startTimeDate)}
-              </span>
-              <span className="text-gray-300">
-                {formatAbsoluteTime(startTimeDate)}
-              </span>
-            </>
-          )}
-
-          {statusMessage && span.statusCode === SpanStatus.Error && (
-            <>
-              <span className="text-gray-300">·</span>
-              <span
-                className="truncate text-red-500"
-                title={statusMessage}
-              >
-                {statusMessage}
-              </span>
-            </>
-          )}
-        </div>
+        {isError && statusMessage && (
+          <>
+            <span aria-hidden="true" className="text-gray-300">
+              ·
+            </span>
+            <span
+              className="min-w-0 truncate text-red-500"
+              title={statusMessage}
+            >
+              {statusMessage}
+            </span>
+          </>
+        )}
       </div>
-
-      {/* Duration bar — full-width track at the bottom edge */}
-      <div className="relative h-0.5 w-full bg-gray-50">
-        <div
-          className={`absolute left-0 top-0 h-full ${theme.bar} transition-all duration-300`}
-          style={{ width: `${durationPct}%` }}
-        />
-      </div>
-    </button>
+    </div>
   );
 };
 
