@@ -303,6 +303,7 @@
                 <option value="/legal/privacy" <%= section === 'privacy' ? 'selected' : '' %>>Privacy Policy</option>
                 <option value="/legal/code-of-conduct" <%= section === 'code-of-conduct' ? 'selected' : '' %>>Code of Conduct</option>
                 <option value="/legal/sla" <%= section === 'sla' ? 'selected' : '' %>>Service Level Agreement</option>
+                <option value="/legal/security" <%= section === 'security' ? 'selected' : '' %>>Security</option>
               </optgroup>
               <optgroup label="Privacy & Data">
                 <option value="/legal/gdpr" <%= section === 'gdpr' ? 'selected' : '' %>>GDPR</option>
@@ -311,6 +312,7 @@
                 <option value="/legal/data-residency" <%= section === 'data-residency' ? 'selected' : '' %>>Data Residency</option>
                 <option value="/legal/subprocessors" <%= section === 'subprocessors' ? 'selected' : '' %>>Subprocessors</option>
                 <option value="/legal/dpa" <%= section === 'dpa' ? 'selected' : '' %>>Data Processing Agreement</option>
+                <option value="/legal/cookies" <%= section === 'cookies' ? 'selected' : '' %>>Cookie Policy</option>
               </optgroup>
               <optgroup label="Security Certifications">
                 <option value="/legal/iso-27001" <%= section === 'iso-27001' ? 'selected' : '' %>>ISO/IEC 27001</option>
@@ -366,6 +368,11 @@
                     Service Level Agreement
                   </a>
                 </li>
+                <li>
+                  <a href="/legal/security" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'security' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Security
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -406,6 +413,11 @@
                 <li>
                   <a href="/legal/dpa" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'dpa' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
                     Data Processing Agreement
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/cookies" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'cookies' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Cookie Policy
                   </a>
                 </li>
               </ul>
@@ -615,6 +627,10 @@
           <%- include('dpa') -%>
           <% } %>
 
+          <% if(section === "cookies") { %>
+          <%- include('cookies') -%>
+          <% } %>
+
           <% if(section === "21-cfr-part-11") { %>
           <%- include('21-cfr-part-11') -%>
           <% } %>
@@ -645,6 +661,10 @@
 
           <% if(section === "vpat") { %>
           <%- include('vpat') -%>
+          <% } %>
+
+          <% if(section === "security") { %>
+          <%- include('security') -%>
           <% } %>
 
           <!-- Document Footer -->

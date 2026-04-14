@@ -1,0 +1,94 @@
+<header id="pagmt">
+  <h1>Security at OneUptime</h1>
+  <p>Last updated: April 14, 2026</p>
+</header>
+
+<section>
+
+  <p>Security is foundational to OneUptime. Our customers trust us to monitor their production systems, so we hold ourselves to a high standard for how we design, operate, and audit the Service. This page summarizes the administrative, technical, and physical safeguards we use to protect your data. For specific regulatory programs, see the linked compliance pages.</p>
+
+  <p>If you believe you've found a vulnerability, please email <a href="mailto:security@oneuptime.com">security@oneuptime.com</a>. We acknowledge reports within 2 business days and welcome coordinated disclosure.</p>
+
+  <h3>1. Organizational security</h3>
+  <ul>
+    <li><strong>Background checks</strong> for all employees and contractors with access to production systems, where permitted by local law.</li>
+    <li><strong>Security training</strong> during onboarding and at least annually thereafter, covering data handling, phishing, secure development, and incident response.</li>
+    <li><strong>Confidentiality obligations</strong> in every employee and contractor agreement, surviving termination.</li>
+    <li><strong>Least-privilege access</strong> to production systems, reviewed quarterly, granted via role-based access control and revoked promptly when roles change.</li>
+    <li><strong>MFA required</strong> for all employee accounts with access to production or customer data.</li>
+  </ul>
+
+  <h3>2. Product and application security</h3>
+  <ul>
+    <li><strong>Secure SDLC.</strong> Code changes require peer review and pass automated tests before reaching production.</li>
+    <li><strong>Dependency scanning</strong> runs on every build to catch known vulnerabilities in open-source dependencies.</li>
+    <li><strong>Static analysis and secret scanning</strong> run in CI to prevent common vulnerability classes and accidental credential leaks.</li>
+    <li><strong>Penetration testing</strong> is performed by an independent third party at least annually. Summary reports are available under NDA for qualifying customers — contact <a href="mailto:security@oneuptime.com">security@oneuptime.com</a>.</li>
+    <li><strong>Vulnerability management.</strong> We triage reports by severity and target remediation within industry-standard SLAs (critical: 7 days, high: 30 days, medium: 90 days).</li>
+  </ul>
+
+  <h3>3. Data protection</h3>
+  <ul>
+    <li><strong>Encryption in transit.</strong> All traffic to and from the Service is encrypted using TLS 1.2 or higher.</li>
+    <li><strong>Encryption at rest.</strong> Customer data is encrypted at rest using AES-256 (or equivalent) on managed database and object-storage services.</li>
+    <li><strong>Key management.</strong> Encryption keys are managed by our cloud providers' key management services with regular rotation and audit logging.</li>
+    <li><strong>Tenant isolation.</strong> Customer data is logically segregated; access is enforced at the application and database layers.</li>
+    <li><strong>Secrets.</strong> Production credentials are stored in a dedicated secrets manager, never in source code or build artifacts.</li>
+  </ul>
+
+  <h3>4. Infrastructure and availability</h3>
+  <ul>
+    <li><strong>Hosted on vetted cloud providers.</strong> See the current list of subprocessors at <a href="/legal/subprocessors">/legal/subprocessors</a>.</li>
+    <li><strong>Network security.</strong> Production systems run in private networks behind firewalls, with intrusion detection and continuous monitoring.</li>
+    <li><strong>Backups.</strong> Customer data is backed up on a regular cycle described in our <a href="/legal/dpa">DPA</a>, with periodic restore testing.</li>
+    <li><strong>Disaster recovery.</strong> We maintain a documented disaster-recovery plan with defined Recovery Time and Recovery Point Objectives, reviewed at least annually.</li>
+    <li><strong>Uptime.</strong> Real-time and historical availability are published at <a href="https://status.oneuptime.com">status.oneuptime.com</a>. Service-credit commitments are in the <a href="/legal/sla">SLA</a>.</li>
+  </ul>
+
+  <h3>5. Incident response</h3>
+  <p>We maintain a written incident-response plan covering detection, triage, containment, eradication, recovery, and post-incident review. If a security incident affects your data, we will notify you without undue delay, and in any event within the timelines required by applicable law (including the 72-hour window under the GDPR where it applies). Notifications describe what happened, what data was affected, what we've done, and what you can do. See also Section 7 of our <a href="/legal/dpa">DPA</a>.</p>
+
+  <h3>6. Customer controls</h3>
+  <p>Security is a shared responsibility. OneUptime provides the following controls so you can secure your own account:</p>
+  <ul>
+    <li>Single sign-on (SSO) and SCIM provisioning on eligible plans.</li>
+    <li>Multi-factor authentication for all user accounts.</li>
+    <li>Role-based access control within your workspace.</li>
+    <li>Audit logs of security-relevant actions.</li>
+    <li>API keys with scoped permissions and rotation.</li>
+    <li>IP allow-listing on eligible plans.</li>
+  </ul>
+
+  <h3>7. Certifications and compliance</h3>
+  <p>We maintain the following programs. Each page explains scope, how to request evidence, and what it means for you as a customer:</p>
+  <ul>
+    <li><a href="/legal/soc-2">SOC 2</a> and <a href="/legal/soc-3">SOC 3</a></li>
+    <li><a href="/legal/iso-27001">ISO/IEC 27001</a>, <a href="/legal/iso-27017">ISO/IEC 27017</a>, and <a href="/legal/iso-27018">ISO/IEC 27018</a></li>
+    <li><a href="/legal/gdpr">GDPR</a> and <a href="/legal/ccpa">CCPA</a></li>
+    <li><a href="/legal/hipaa">HIPAA</a></li>
+    <li><a href="/legal/pci">PCI DSS</a></li>
+    <li><a href="/legal/csa-star">CSA STAR</a></li>
+    <li><a href="/legal/fedramp">FedRAMP</a></li>
+    <li><a href="/legal/iso-9001">ISO 9001</a></li>
+  </ul>
+  <p>For regulated industries, see our pages on <a href="/legal/21-cfr-part-11">21 CFR Part 11</a>, <a href="/legal/annex-11">EU GMP Annex 11</a>, <a href="/legal/gamp-5">GAMP 5</a>, and <a href="/legal/gxp-cloud">GxP Cloud</a>.</p>
+
+  <h3>8. Reporting a vulnerability</h3>
+  <p>We appreciate responsible disclosure. Please email <a href="mailto:security@oneuptime.com">security@oneuptime.com</a> with:</p>
+  <ul>
+    <li>A description of the issue and potential impact.</li>
+    <li>Steps to reproduce.</li>
+    <li>Any proof-of-concept code or screenshots (if available).</li>
+  </ul>
+  <p>Please don't exfiltrate data, disrupt service for other customers, or pivot into other systems. We will not pursue legal action against researchers who act in good faith under these guidelines.</p>
+
+  <h3>9. Questions</h3>
+  <ul>
+    <li>Security questions, questionnaires, and evidence requests: <a href="mailto:security@oneuptime.com">security@oneuptime.com</a></li>
+    <li>Privacy and data protection: <a href="mailto:privacy@oneuptime.com">privacy@oneuptime.com</a></li>
+    <li>Contracts and DPA: <a href="mailto:legal@oneuptime.com">legal@oneuptime.com</a></li>
+  </ul>
+
+  <p>HackerBay, Inc. (doing business as OneUptime), Delaware, USA.</p>
+
+</section>

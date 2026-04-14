@@ -762,6 +762,20 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     ],
   },
 
+  "/legal/cookies": {
+    title: "Cookie Policy | OneUptime",
+    description:
+      "OneUptime cookie policy. Learn what cookies we use, why we use them, and how to control them.",
+    canonicalPath: "/legal/cookies",
+    twitterCard: "summary",
+    pageType: "legal",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Legal", url: "/legal" },
+      { name: "Cookie Policy", url: "/legal/cookies" },
+    ],
+  },
+
   "/legal/gdpr": {
     title: "GDPR Compliance | OneUptime",
     description:
