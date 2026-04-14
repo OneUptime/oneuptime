@@ -29,6 +29,25 @@ import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import ProfileUtil from "../../Utils/ProfileUtil";
+import Route from "Common/Types/API/Route";
+import Link from "Common/UI/Components/Link/Link";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+
+const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: "CPU Usage", value: "cpu" },
+  { label: "CPU Samples", value: "samples" },
+  { label: "Wall Clock Time", value: "wall" },
+  { label: "Memory Objects in Use", value: "inuse_objects" },
+  { label: "Memory Space in Use", value: "inuse_space" },
+  { label: "Memory Allocations (Count)", value: "alloc_objects" },
+  { label: "Memory Allocations (Size)", value: "alloc_space" },
+  { label: "Heap Memory", value: "heap" },
+  { label: "Goroutines", value: "goroutine" },
+  { label: "Lock Contention", value: "contention" },
+  { label: "Mutex Contention", value: "mutex" },
+  { label: "Blocking Operations", value: "block" },
+];
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -207,18 +226,21 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               : {
                   title: "Performance Profiles",
                   description:
-                    "See where your application spends the most time and memory. Use profiles to find slow functions and optimize performance.",
+                    "Each row is a snapshot of your service's CPU or memory usage over a short window. Open a profile to see which functions consumed the most resources, drill down to call stacks, and find what to optimize. Filter by service and type to investigate a specific symptom (slow endpoint, memory leak, lock contention), or paste a Trace ID to find the profile attached to a specific slow request.",
                 }
           }
           query={query}
           selectMoreFields={{
             profileId: true,
+            durationNano: true,
+            traceId: true,
+            unit: true,
           }}
           showViewIdButton={true}
           noItemsMessage={
             props.noItemsMessage
               ? props.noItemsMessage
-              : "No performance profiles found. Once your services start sending profiling data, they will appear here."
+              : "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions."
           }
           showRefreshButton={true}
           sortBy="startTime"
@@ -250,7 +272,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               field: {
                 profileType: true,
               },
-              type: FieldType.Text,
+              type: FieldType.MultiSelectDropdown,
+              filterDropdownOptions: PROFILE_TYPE_FILTER_OPTIONS,
               title: "Type",
             },
             {
@@ -330,8 +353,76 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               field: {
                 sampleCount: true,
               },
-              title: "Data Points",
-              type: FieldType.Number,
+              title: "Duration / Samples",
+              description:
+                "How long the recording covers, and how many samples were collected. More samples = higher fidelity.",
+              type: FieldType.Element,
+              getElement: (profile: Profile): ReactElement => {
+                const durationNano: number = profile.durationNano
+                  ? Number(profile.durationNano)
+                  : 0;
+                const sampleCount: number = profile.sampleCount
+                  ? Number(profile.sampleCount)
+                  : 0;
+
+                const durationLabel: string =
+                  durationNano > 0
+                    ? ProfileUtil.formatProfileValue(
+                        durationNano,
+                        "nanoseconds",
+                      )
+                    : "—";
+
+                return (
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900">
+                      {durationLabel}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {sampleCount.toLocaleString()} samples
+                    </span>
+                  </div>
+                );
+              },
+            },
+            {
+              field: {
+                traceId: true,
+              },
+              title: "Linked Trace",
+              description:
+                "If the profile was captured during a traced request, click to jump to the trace.",
+              type: FieldType.Element,
+              getElement: (profile: Profile): ReactElement => {
+                const traceId: string | undefined = profile.traceId?.toString();
+
+                if (!traceId) {
+                  return <span className="text-xs text-gray-400">—</span>;
+                }
+
+                const traceRoute: Route = RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.TRACE_VIEW]!,
+                  {
+                    modelId: traceId,
+                  },
+                );
+
+                const shortId: string =
+                  traceId.length > 12
+                    ? `${traceId.substring(0, 8)}…`
+                    : traceId;
+
+                return (
+                  <Link
+                    to={traceRoute}
+                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
+                    title={`Open trace ${traceId}`}
+                  >
+                    <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
+                    <span className="font-mono">{shortId}</span>
+                  </Link>
+                );
+              },
             },
             {
               field: {
