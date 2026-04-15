@@ -6,6 +6,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import IconProp from "../../../Types/Icon/IconProp";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -52,7 +53,7 @@ function useBulkLabelActions<T extends BaseModel>(
   useEffect(() => {
     const fetchLabels: () => Promise<void> = async (): Promise<void> => {
       try {
-        const result = await ModelAPI.getList<Label>({
+        const result: ListResult<Label> = await ModelAPI.getList<Label>({
           modelType: Label,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -106,8 +107,10 @@ function useBulkLabelActions<T extends BaseModel>(
           throw new BadDataException("Item ID not found");
         }
 
-        // Fetch current labels for this item so we can merge/subtract
-        // the selected label ids and avoid clobbering existing ones.
+        /*
+         * Fetch current labels for this item so we can merge/subtract
+         * the selected label ids and avoid clobbering existing ones.
+         */
         const currentItem: T | null = await ModelAPI.getItem<T>({
           modelType: config.modelType,
           id: item.id,
@@ -140,8 +143,10 @@ function useBulkLabelActions<T extends BaseModel>(
           });
         }
 
-        // No-op short-circuit: if nothing changed, still report as success
-        // so the user sees the item as processed.
+        /*
+         * No-op short-circuit: if nothing changed, still report as success
+         * so the user sees the item as processed.
+         */
         if (
           newLabelIds.length === existingLabelIds.length &&
           newLabelIds.every((id: string) => {
@@ -180,20 +185,19 @@ function useBulkLabelActions<T extends BaseModel>(
     setBulkActionProps(null);
   };
 
-  const labelDropdownOptions = labels.map((label: Label) => {
-    return {
-      label: label.name || "",
-      value: label._id?.toString() || "",
-    };
-  });
+  const labelDropdownOptions: Array<{ label: string; value: string }> =
+    labels.map((label: Label) => {
+      return {
+        label: label.name || "",
+        value: label._id?.toString() || "",
+      };
+    });
 
   const addLabelsAction: BulkActionButtonSchema<T> = {
     title: "Add Labels",
     buttonStyleType: ButtonStyleType.NORMAL,
     icon: IconProp.Label,
-    onClick: async (
-      actionProps: BulkActionOnClickProps<T>,
-    ): Promise<void> => {
+    onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
       setShowAddModal(true);
     },
@@ -203,9 +207,7 @@ function useBulkLabelActions<T extends BaseModel>(
     title: "Remove Labels",
     buttonStyleType: ButtonStyleType.NORMAL,
     icon: IconProp.Close,
-    onClick: async (
-      actionProps: BulkActionOnClickProps<T>,
-    ): Promise<void> => {
+    onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
       setShowRemoveModal(true);
     },

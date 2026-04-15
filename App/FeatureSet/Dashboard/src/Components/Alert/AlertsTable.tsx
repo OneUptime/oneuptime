@@ -70,10 +70,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Alert> | null>(null);
 
-  const {
-    bulkActions: labelBulkActions,
-    modals: labelBulkActionModals,
-  } = useBulkLabelActions<Alert>({ modelType: Alert });
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Alert>({ modelType: Alert });
 
   // Fetch alert states on mount
   useEffect(() => {

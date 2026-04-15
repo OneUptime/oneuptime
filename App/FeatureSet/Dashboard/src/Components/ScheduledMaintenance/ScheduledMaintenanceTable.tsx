@@ -79,12 +79,10 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<ScheduledMaintenance> | null>(null);
 
-  const {
-    bulkActions: labelBulkActions,
-    modals: labelBulkActionModals,
-  } = useBulkLabelActions<ScheduledMaintenance>({
-    modelType: ScheduledMaintenance,
-  });
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<ScheduledMaintenance>({
+      modelType: ScheduledMaintenance,
+    });
 
   // Fetch scheduled maintenance states on mount
   useEffect(() => {

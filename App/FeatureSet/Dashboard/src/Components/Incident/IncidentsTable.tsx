@@ -75,10 +75,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Incident> | null>(null);
 
-  const {
-    bulkActions: labelBulkActions,
-    modals: labelBulkActionModals,
-  } = useBulkLabelActions<Incident>({ modelType: Incident });
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Incident>({ modelType: Incident });
 
   // Fetch incident states on mount
   useEffect(() => {

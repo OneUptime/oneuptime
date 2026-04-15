@@ -14,6 +14,7 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -26,12 +27,14 @@ export default class MetricUtil {
   }): Promise<Array<AggregatedResult>> {
     const metricViewData: MetricViewData = data.metricViewData;
 
-    // Fire all aggregate queries in parallel. Kubernetes overview pages
-    // render many charts (CPU/memory/network/etc.), and fetching them
-    // sequentially made page load O(N * perQueryLatency). With Promise.all
-    // it becomes O(max(perQueryLatency)).
+    /*
+     * Fire all aggregate queries in parallel. Kubernetes overview pages
+     * render many charts (CPU/memory/network/etc.), and fetching them
+     * sequentially made page load O(N * perQueryLatency). With Promise.all
+     * it becomes O(max(perQueryLatency)).
+     */
     const results: Array<AggregatedResult> = await Promise.all(
-      metricViewData.queryConfigs.map((queryConfig) => {
+      metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
         return AnalyticsModelAPI.aggregate({
           modelType: Metric,
           aggregateBy: {

@@ -72,10 +72,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Monitor> | null>(null);
 
-  const {
-    bulkActions: labelBulkActions,
-    modals: labelBulkActionModals,
-  } = useBulkLabelActions<Monitor>({ modelType: Monitor });
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Monitor>({ modelType: Monitor });
 
   useEffect(() => {
     const fetchProbes: () => Promise<void> = async (): Promise<void> => {
