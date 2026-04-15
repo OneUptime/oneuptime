@@ -77,6 +77,9 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
               return id.toString();
             }),
             profileType: props.profileType,
+            profileTypes: ProfileUtil.getRawProfileTypesForCategory(
+              props.profileType,
+            ),
           },
           headers: {
             ...ModelAPI.getCommonHeaders(),

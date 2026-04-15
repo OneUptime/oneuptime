@@ -88,6 +88,52 @@ export default class ProfileUtil {
   }
 
   /**
+   * Inverse of getProfileCategory: given a single raw profileType string
+   * (the value carried by the UI pill), return every raw type stored in
+   * ClickHouse that should be considered part of the same category.
+   *
+   * Why this matters: agents store the raw type with whatever name the
+   * runtime emits ("samples" for Node CPU, "cpu" for Go CPU, "inuse_space"
+   * vs "heap" for memory, etc.). The pill stores a single canonical value,
+   * so a literal `WHERE profileType = 'cpu'` filter would miss the user's
+   * actual rows. Backend filters with `IN (...)` instead.
+   *
+   * Returning `undefined` means "do not filter" — caller must pass
+   * undefined to the backend, not an empty array.
+   */
+  public static getRawProfileTypesForCategory(
+    profileType: string | undefined,
+  ): Array<string> | undefined {
+    if (!profileType) {
+      return undefined;
+    }
+    const category: ProfileCategory =
+      ProfileUtil.getProfileCategory(profileType);
+    switch (category) {
+      case "cpu":
+        return ["cpu", "samples"];
+      case "memory":
+        return [
+          "inuse_space",
+          "inuse_objects",
+          "alloc_space",
+          "alloc_objects",
+          "heap",
+        ];
+      case "locks":
+        return ["mutex", "contention", "block"];
+      case "wall":
+        return ["wall"];
+      case "goroutines":
+        return ["goroutine"];
+      default:
+        // Unknown / advanced specific type — pass through verbatim so the
+        // backend filters on exactly the chosen value.
+        return [profileType];
+    }
+  }
+
+  /**
    * Bucket a raw profileType string into one of three user-facing pills.
    */
   public static getProfileCategory(profileType: string): ProfileCategory {

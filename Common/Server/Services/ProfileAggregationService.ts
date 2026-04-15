@@ -26,7 +26,17 @@ export interface FlamegraphRequest {
   startTime?: Date;
   endTime?: Date;
   serviceIds?: Array<ObjectID>;
+  /**
+   * Single profile type to filter on. Kept for backwards compat. When
+   * `profileTypes` is also supplied, `profileTypes` wins.
+   */
   profileType?: string;
+  /**
+   * Multiple raw profile-type strings to OR together. The UI maps a
+   * user-facing category (e.g. "CPU") to all the raw type strings real
+   * agents actually emit (e.g. ["cpu", "samples"]).
+   */
+  profileTypes?: Array<string>;
 }
 
 export interface FunctionListItem {
@@ -44,6 +54,7 @@ export interface FunctionListRequest {
   endTime: Date;
   serviceIds?: Array<ObjectID>;
   profileType?: string;
+  profileTypes?: Array<string>;
   limit?: number;
   sortBy?: "selfValue" | "totalValue" | "sampleCount";
 }
@@ -56,6 +67,7 @@ export interface DiffFlamegraphRequest {
   comparisonEndTime: Date;
   serviceIds?: Array<ObjectID>;
   profileType?: string;
+  profileTypes?: Array<string>;
 }
 
 export interface DiffFlamegraphNode {
@@ -302,6 +314,9 @@ export class ProfileAggregationService {
         ...(request.profileType !== undefined && {
           profileType: request.profileType,
         }),
+        ...(request.profileTypes !== undefined && {
+          profileTypes: request.profileTypes,
+        }),
       });
 
     const comparisonTree: ProfileFlamegraphNode =
@@ -314,6 +329,9 @@ export class ProfileAggregationService {
         }),
         ...(request.profileType !== undefined && {
           profileType: request.profileType,
+        }),
+        ...(request.profileTypes !== undefined && {
+          profileTypes: request.profileTypes,
         }),
       });
 
@@ -490,7 +508,10 @@ export class ProfileAggregationService {
 
   private static appendCommonFilters(
     statement: Statement,
-    request: Pick<FlamegraphRequest, "serviceIds" | "profileType">,
+    request: Pick<
+      FlamegraphRequest,
+      "serviceIds" | "profileType" | "profileTypes"
+    >,
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       statement.append(
@@ -505,7 +526,16 @@ export class ProfileAggregationService {
       );
     }
 
-    if (request.profileType) {
+    // profileTypes (array) wins over profileType (single) so the UI can
+    // OR together every raw type string in a category.
+    if (request.profileTypes && request.profileTypes.length > 0) {
+      statement.append(
+        SQL` AND profileType IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.profileTypes),
+        }})`,
+      );
+    } else if (request.profileType) {
       statement.append(
         SQL` AND profileType = ${{
           type: TableColumnType.Text,

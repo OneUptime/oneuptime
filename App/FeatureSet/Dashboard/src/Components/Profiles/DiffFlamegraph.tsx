@@ -81,6 +81,9 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
               return id.toString();
             }),
             profileType: props.profileType,
+            profileTypes: ProfileUtil.getRawProfileTypesForCategory(
+              props.profileType,
+            ),
           },
           headers: {
             ...ModelAPI.getCommonHeaders(),

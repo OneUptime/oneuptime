@@ -163,6 +163,8 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                 return id.toString();
               }),
               profileType,
+              profileTypes:
+                ProfileUtil.getRawProfileTypesForCategory(profileType),
               limit: 8,
               sortBy: "selfValue",
             },
