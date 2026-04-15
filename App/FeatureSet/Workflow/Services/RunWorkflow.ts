@@ -152,6 +152,22 @@ export default class RunWorkflow {
 
       const runStack: RunStack = await this.makeRunStack(workflow.graph);
 
+      // Guard against workflows that have no executable entry point. This
+      // commonly happens when:
+      //   - The workflow graph is empty (no nodes at all).
+      //   - The graph has components but no Trigger node to start from.
+      // Without this check, the runner would push an empty-string component
+      // id onto the execution stack and fail with a confusing
+      // "Component with ID  not found" error.
+      if (
+        Object.keys(runStack.stack).length === 0 ||
+        !runStack.startWithComponentId
+      ) {
+        throw new BadDataException(
+          "This workflow has no components to execute. Please open the workflow and add a Trigger (e.g. a Manual trigger) along with at least one component connected to it.",
+        );
+      }
+
       const getVariableResult: {
         storageMap: StorageMap;
         variables: Array<WorkflowVariable>;
