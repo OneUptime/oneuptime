@@ -7,7 +7,15 @@ import VariableModal from "./VariableModal";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { Argument, NodeDataProp } from "../../../Types/Workflow/Component";
+import {
+  Argument,
+  ComponentInputType,
+  NodeDataProp,
+} from "../../../Types/Workflow/Component";
+import { DropdownOption } from "../Dropdown/Dropdown";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import Workflow from "../../../Models/DatabaseModels/Workflow";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -39,6 +47,79 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   >({});
 
   const [selectedArgId, setSelectedArgId] = useState<string>("");
+
+  // Workflows in the current project, used to populate dropdowns for any
+  // argument of type WorkflowSelect (e.g. the "Workflow" field on the
+  // Execute Workflow component). Empty until the fetch completes.
+  const [workflowDropdownOptions, setWorkflowDropdownOptions] = useState<
+    Array<DropdownOption>
+  >([]);
+
+  const hasWorkflowSelectArg: boolean = Boolean(
+    component.metadata.arguments?.some((arg: Argument) => {
+      return arg.type === ComponentInputType.WorkflowSelect;
+    }),
+  );
+
+  useEffect(() => {
+    if (!hasWorkflowSelectArg) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    const loadWorkflows: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<Workflow> =
+          await ModelAPI.getList<Workflow>({
+            modelType: Workflow,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+            },
+            sort: {
+              name: "Ascending" as any,
+            },
+          });
+
+        if (cancelled) {
+          return;
+        }
+
+        const currentWorkflowIdStr: string = props.workflowId.toString();
+
+        const options: Array<DropdownOption> = result.data
+          .filter((wf: Workflow) => {
+            // Exclude the current workflow — can't pick yourself.
+            return wf._id?.toString() !== currentWorkflowIdStr;
+          })
+          .map((wf: Workflow) => {
+            return {
+              label: (wf.name as string) || (wf._id?.toString() ?? ""),
+              value: wf._id?.toString() ?? "",
+            };
+          });
+
+        setWorkflowDropdownOptions(options);
+      } catch {
+        // Swallow: the dropdown will simply be empty and the user can try
+        // again by re-opening the settings panel.
+        if (!cancelled) {
+          setWorkflowDropdownOptions([]);
+        }
+      }
+    };
+
+    void loadWorkflows();
+
+    return () => {
+      cancelled = true;
+    };
+    // Only re-fetch when the component in the settings panel changes identity.
+  }, [component.id, hasWorkflowSelectArg]);
 
   useEffect(() => {
     props.onHasFormValidationErrors(hasFormValidationErrors);
@@ -89,9 +170,30 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               fields={
                 component.metadata.arguments &&
                 component.metadata.arguments.map((arg: Argument) => {
+                  const isWorkflowSelect: boolean =
+                    arg.type === ComponentInputType.WorkflowSelect;
+
+                  const baseField: {
+                    fieldType: import("../Forms/Types/FormFieldSchemaType").default;
+                    dropdownOptions?: Array<DropdownOption> | undefined;
+                  } = componentInputTypeToFormFieldType(
+                    arg.type,
+                    component.arguments && component.arguments[arg.id]
+                      ? component.arguments[arg.id]
+                      : null,
+                  );
+
+                  // For WorkflowSelect, inject the dynamically fetched list
+                  // of workflows as dropdown options.
+                  if (isWorkflowSelect) {
+                    baseField.dropdownOptions = workflowDropdownOptions;
+                  }
+
                   return {
                     title: `${arg.name}`,
-                    footerElement: (
+                    // WorkflowSelect has no "pick from component/variable"
+                    // footer — it's a bound dropdown, not a free-text field.
+                    footerElement: isWorkflowSelect ? undefined : (
                       <div className="text-gray-500">
                         <p className="text-sm">
                           Pick this value from other{" "}
@@ -125,12 +227,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     },
                     required: arg.required,
                     placeholder: arg.placeholder,
-                    ...componentInputTypeToFormFieldType(
-                      arg.type,
-                      component.arguments && component.arguments[arg.id]
-                        ? component.arguments[arg.id]
-                        : null,
-                    ),
+                    ...baseField,
                   };
                 })
               }

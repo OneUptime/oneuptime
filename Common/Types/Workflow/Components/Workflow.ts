@@ -15,13 +15,13 @@ const components: Array<ComponentMetadata> = [
     componentType: ComponentType.Component,
     arguments: [
       {
-        type: ComponentInputType.Text,
-        name: "Workflow ID",
+        type: ComponentInputType.WorkflowSelect,
+        name: "Workflow",
         description:
-          "ID of the workflow to execute. The workflow must be in the same project and be enabled. It must have a Manual trigger to receive the arguments passed below.",
+          "Pick the workflow to execute. The workflow must be in the same project and be enabled. It must have a Manual trigger to receive the arguments passed below.",
         required: true,
         id: "workflowId",
-        placeholder: "e.g. 64a0f7c9e3b2c1a4d5e6f7a8",
+        placeholder: "Select a workflow",
       },
       {
         type: ComponentInputType.JSON,

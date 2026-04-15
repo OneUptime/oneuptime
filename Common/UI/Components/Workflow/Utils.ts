@@ -233,6 +233,15 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
       };
     }
 
+    if (componentInputType === ComponentInputType.WorkflowSelect) {
+      // Dropdown options are injected at render time by ArgumentsForm,
+      // which fetches the list of workflows in the current project.
+      return {
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: [],
+      };
+    }
+
     if (componentInputType === ComponentInputType.ValueType) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,

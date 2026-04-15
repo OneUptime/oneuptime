@@ -27,6 +27,7 @@ export enum ComponentInputType {
   Operator = "Operator",
   Markdown = "Markdown",
   ValueType = "Value Type",
+  WorkflowSelect = "Workflow Select",
 }
 
 export enum ComponentType {
