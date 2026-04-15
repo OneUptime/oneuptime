@@ -14,6 +14,12 @@ export interface ExecuteChildWorkflow {
   returnValues: JSONObject;
 }
 
+/**
+ * Maximum depth of nested workflow invocations (Execute Workflow component).
+ * Catches pathological fanout even when no direct cycle exists.
+ */
+export const MAX_WORKFLOW_CALL_DEPTH: number = 10;
+
 export interface RunOptions {
   log: (item: string | JSONObject | Error | JSONArray | JSONValue) => void;
   workflowLogId: ObjectID;

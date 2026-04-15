@@ -356,6 +356,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     const attributeTable: JSONArray =
                       (profile["attributeTable"] as JSONArray) || [];
 
+                    let firstSampleTraceId: string = "";
+                    let firstSampleSpanId: string = "";
+
                     let sampleCounter: number = 0;
                     for (const sample of samples) {
                       try {
@@ -385,25 +388,39 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           .update(resolvedStack.frames.join("|"))
                           .digest("hex");
 
-                        // Resolve trace/span correlation from link table
+                        // Resolve trace/span correlation from link table.
+                        // Per OTLP profiles convention, linkTable[0] is a
+                        // sentinel empty link. We only honour linkIndex when
+                        // it is explicitly set on the sample.
                         let traceId: string = "";
                         let spanId: string = "";
-                        const linkIndex: number =
-                          (sampleObj["linkIndex"] as number) || 0;
+                        const linkIndexRaw: unknown = sampleObj["linkIndex"];
                         if (
-                          linkTable.length > 0 &&
-                          linkIndex >= 0 &&
-                          linkIndex < linkTable.length
+                          linkIndexRaw !== undefined &&
+                          linkIndexRaw !== null
                         ) {
-                          const link: JSONObject = linkTable[
-                            linkIndex
-                          ] as JSONObject;
-                          traceId = this.convertBase64ToHexSafe(
-                            link["traceId"] as string | undefined,
-                          );
-                          spanId = this.convertBase64ToHexSafe(
-                            link["spanId"] as string | undefined,
-                          );
+                          const linkIndex: number = Number(linkIndexRaw);
+                          if (
+                            Number.isFinite(linkIndex) &&
+                            linkIndex > 0 &&
+                            linkIndex < linkTable.length
+                          ) {
+                            const link: JSONObject = linkTable[
+                              linkIndex
+                            ] as JSONObject;
+                            traceId = this.convertBase64ToHexSafe(
+                              link["traceId"] as string | undefined,
+                            );
+                            spanId = this.convertBase64ToHexSafe(
+                              link["spanId"] as string | undefined,
+                            );
+                            if (this.isEmptyHexId(traceId)) {
+                              traceId = "";
+                            }
+                            if (this.isEmptyHexId(spanId)) {
+                              spanId = "";
+                            }
+                          }
                         }
 
                         // Extract sample value (first value from values array)
@@ -452,6 +469,27 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           }
                         }
 
+                        // Fallback: some agents (Pyroscope-style) attach
+                        // trace_id / span_id as sample labels instead of via
+                        // the link table.
+                        if (!traceId) {
+                          traceId = this.findCorrelationValue(
+                            sampleLabels,
+                            OtelProfilesIngestService.TRACE_ID_KEYS,
+                          );
+                        }
+                        if (!spanId) {
+                          spanId = this.findCorrelationValue(
+                            sampleLabels,
+                            OtelProfilesIngestService.SPAN_ID_KEYS,
+                          );
+                        }
+
+                        if (traceId && !firstSampleTraceId) {
+                          firstSampleTraceId = traceId;
+                          firstSampleSpanId = spanId;
+                        }
+
                         const sampleRow: JSONObject = this.buildSampleRow({
                           projectId: projectId,
                           serviceId: serviceId,
@@ -482,16 +520,56 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                       }
                     }
 
-                    // Also extract trace/span from first link if available for the profile-level record
-                    let profileTraceId: string = "";
-                    let profileSpanId: string = "";
-                    if (linkTable.length > 0) {
-                      const firstLink: JSONObject = linkTable[0] as JSONObject;
-                      profileTraceId = this.convertBase64ToHexSafe(
-                        firstLink["traceId"] as string | undefined,
+                    // Resolve the profile-level trace/span correlation.
+                    // Precedence: any sample that carried one (most reliable) ->
+                    // first non-sentinel entry in the link table ->
+                    // container/resource attributes (e.g. trace.id set by the
+                    // agent on the profile envelope).
+                    let profileTraceId: string = firstSampleTraceId;
+                    let profileSpanId: string = firstSampleSpanId;
+
+                    if (!profileTraceId) {
+                      for (
+                        let linkIdx: number = 1;
+                        linkIdx < linkTable.length;
+                        linkIdx++
+                      ) {
+                        const link: JSONObject = linkTable[
+                          linkIdx
+                        ] as JSONObject;
+                        const candidateTraceId: string =
+                          this.convertBase64ToHexSafe(
+                            link["traceId"] as string | undefined,
+                          );
+                        const candidateSpanId: string =
+                          this.convertBase64ToHexSafe(
+                            link["spanId"] as string | undefined,
+                          );
+                        if (
+                          !this.isEmptyHexId(candidateTraceId) ||
+                          !this.isEmptyHexId(candidateSpanId)
+                        ) {
+                          profileTraceId = this.isEmptyHexId(candidateTraceId)
+                            ? ""
+                            : candidateTraceId;
+                          profileSpanId = this.isEmptyHexId(candidateSpanId)
+                            ? ""
+                            : candidateSpanId;
+                          break;
+                        }
+                      }
+                    }
+
+                    if (!profileTraceId) {
+                      profileTraceId = this.findCorrelationValue(
+                        containerAttributes,
+                        OtelProfilesIngestService.TRACE_ID_KEYS,
                       );
-                      profileSpanId = this.convertBase64ToHexSafe(
-                        firstLink["spanId"] as string | undefined,
+                    }
+                    if (!profileSpanId) {
+                      profileSpanId = this.findCorrelationValue(
+                        containerAttributes,
+                        OtelProfilesIngestService.SPAN_ID_KEYS,
                       );
                     }
 
@@ -823,6 +901,60 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       iso: iso,
       date: date,
     };
+  }
+
+  // Common attribute/label keys that agents use to carry OTel trace
+  // correlation alongside a profile. Checked in order; first non-empty wins.
+  private static readonly TRACE_ID_KEYS: Array<string> = [
+    "trace_id",
+    "traceId",
+    "trace.id",
+    "profile.trace_id",
+    "profile.traceId",
+    "resource.trace_id",
+    "resource.traceId",
+    "resource.trace.id",
+  ];
+
+  private static readonly SPAN_ID_KEYS: Array<string> = [
+    "span_id",
+    "spanId",
+    "span.id",
+    "profile.span_id",
+    "profile.spanId",
+    "resource.span_id",
+    "resource.spanId",
+    "resource.span.id",
+  ];
+
+  // A trace or span id of all zeros is the OTel convention for "unset".
+  // Length sanity check rejects obvious junk (trace = 32 hex chars,
+  // span = 16 hex chars, but agents occasionally emit shorter forms — we
+  // only filter the all-zero case).
+  private static isEmptyHexId(value: string): boolean {
+    if (!value) {
+      return true;
+    }
+    return /^0+$/.test(value);
+  }
+
+  private static findCorrelationValue(
+    source: Dictionary<unknown>,
+    keys: Array<string>,
+  ): string {
+    for (const key of keys) {
+      const raw: unknown = source[key];
+      let candidate: string = "";
+      if (typeof raw === "string") {
+        candidate = raw;
+      } else if (typeof raw === "number" || typeof raw === "bigint") {
+        candidate = raw.toString();
+      }
+      if (candidate && !this.isEmptyHexId(candidate)) {
+        return candidate;
+      }
+    }
+    return "";
   }
 
   private static convertBase64ToHexSafe(value: string | undefined): string {

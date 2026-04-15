@@ -21,6 +21,7 @@ import WorkflowVariableService from "Common/Server/Services/WorkflowVariableServ
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ComponentCode, {
   ExecuteChildWorkflow,
+  MAX_WORKFLOW_CALL_DEPTH,
   RunReturnType,
 } from "Common/Server/Types/Workflow/ComponentCode";
 import Components from "Common/Server/Types/Workflow/Components/Index";
@@ -63,6 +64,7 @@ export default class RunWorkflow {
   private workflowId: ObjectID | null = null;
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
+  private callChain: Array<string> = [];
 
   private getLogAttributes(): LogAttributes {
     return {
@@ -80,6 +82,7 @@ export default class RunWorkflow {
     try {
       this.workflowId = runProps.workflowId;
       this.workflowLogId = runProps.workflowLogId;
+      this.callChain = runProps.callChain || [];
 
       let didWorkflowTimeOut: boolean = false;
       let didWorkflowErrorOut: boolean = false;
@@ -421,6 +424,36 @@ export default class RunWorkflow {
         executeWorkflow: async (
           child: ExecuteChildWorkflow,
         ): Promise<void> => {
+          const callingWorkflowIdStr: string = this.workflowId!.toString();
+          const childWorkflowIdStr: string = child.workflowId.toString();
+
+          // Build the chain that the child run will see: everything that led
+          // to THIS run, plus this run itself.
+          const newChain: Array<string> = [
+            ...this.callChain,
+            callingWorkflowIdStr,
+          ];
+
+          // Cycle detection across workflow boundaries.
+          // e.g. A -> B -> A, or A -> B -> C -> A.
+          if (newChain.includes(childWorkflowIdStr)) {
+            throw new BadDataException(
+              "Workflow cycle detected: " +
+                [...newChain, childWorkflowIdStr].join(" -> ") +
+                ". Refusing to enqueue to prevent infinite recursion.",
+            );
+          }
+
+          // Depth cap — catches non-cyclic but pathologically deep chains.
+          if (newChain.length >= MAX_WORKFLOW_CALL_DEPTH) {
+            throw new BadDataException(
+              "Workflow call depth exceeded (max " +
+                MAX_WORKFLOW_CALL_DEPTH +
+                "). Chain: " +
+                newChain.join(" -> "),
+            );
+          }
+
           // Enforce that child workflow belongs to the same project as the
           // calling workflow. This prevents cross-project triggering.
           const targetWorkflow: Workflow | null =
@@ -453,6 +486,7 @@ export default class RunWorkflow {
           await QueueWorkflow.addWorkflowToQueue({
             workflowId: child.workflowId,
             returnValues: child.returnValues,
+            callChain: newChain,
           });
         },
       });

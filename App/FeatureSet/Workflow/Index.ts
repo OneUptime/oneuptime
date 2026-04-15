@@ -69,6 +69,8 @@ const WorkflowFeatureSet: FeatureSet = {
               : null,
             arguments: job.data.data as JSONObject,
             timeout: WorkflowTimeoutInMs || 5000,
+            callChain:
+              (job.data["callChain"] as Array<string> | undefined) || [],
           });
         },
         { concurrency: 100 },
