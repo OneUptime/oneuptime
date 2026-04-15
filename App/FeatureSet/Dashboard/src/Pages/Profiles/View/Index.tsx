@@ -17,6 +17,7 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -58,6 +59,9 @@ const ProfileViewPage: FunctionComponent<
               traceId: true,
               spanId: true,
               unit: true,
+            },
+            sort: {
+              startTime: SortOrder.Descending,
             },
             limit: 1,
             skip: 0,
