@@ -3,6 +3,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -12,6 +13,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
+
   return (
     <Fragment>
       <ModelTable<OnCallDutySchedule>
@@ -24,6 +28,9 @@ const OnCallDutyPage: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         cardProps={{
           title: "On-Call Duty Schedules",
           description:
@@ -138,6 +145,7 @@ const OnCallDutyPage: FunctionComponent<
           },
         ]}
       />
+      {labelBulkActionModals}
     </Fragment>
   );
 };

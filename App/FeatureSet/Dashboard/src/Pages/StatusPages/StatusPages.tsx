@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -12,6 +13,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<StatusPage>({ modelType: StatusPage });
+
   return (
     <div>
       <ModelTable<StatusPage>
@@ -21,6 +25,9 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         name="Status Pages"
         isViewable={true}
         cardProps={{
@@ -136,6 +143,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {labelBulkActionModals}
     </div>
   );
 };

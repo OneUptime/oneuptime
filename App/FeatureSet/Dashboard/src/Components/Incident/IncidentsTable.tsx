@@ -16,6 +16,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -73,6 +74,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Incident> | null>(null);
+
+  const {
+    bulkActions: labelBulkActions,
+    modals: labelBulkActionModals,
+  } = useBulkLabelActions<Incident>({ modelType: Incident });
 
   // Fetch incident states on mount
   useEffect(() => {
@@ -287,6 +293,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         bulkActions={{
           buttons: [
             getBulkChangeStateAction(),
+            ...labelBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -617,6 +624,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       ) : (
         <> </>
       )}
+
+      {labelBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BasicFormModal

@@ -2,6 +2,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -28,12 +29,21 @@ export interface ComponentProps {
 const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const {
+    bulkActions: labelBulkActions,
+    modals: labelBulkActionModals,
+  } = useBulkLabelActions<Service>({ modelType: Service });
+
   return (
+    <Fragment>
     <ModelTable<Service>
       modelType={Service}
       id="services-table"
       isDeleteable={false}
       isEditable={false}
+      bulkActions={{
+        buttons: [...labelBulkActions],
+      }}
       userPreferencesKey="telemetry-services-table"
       query={props.query || {}}
       // Default sort: by Name ascending
@@ -154,6 +164,8 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
         },
       ]}
     />
+    {labelBulkActionModals}
+    </Fragment>
   );
 };
 

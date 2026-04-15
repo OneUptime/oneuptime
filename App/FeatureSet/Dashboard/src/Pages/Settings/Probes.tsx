@@ -8,6 +8,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
@@ -28,6 +29,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Probe>({ modelType: Probe });
 
   return (
     <Fragment>
@@ -113,6 +117,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={false}
           isViewable={true}
           isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
           cardProps={{
             title: "Custom Probes",
             description:
@@ -316,6 +323,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+
+        {labelBulkActionModals}
 
         {showKeyModal && currentProbe ? (
           <ConfirmModal

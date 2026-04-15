@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -13,6 +14,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<OnCallDutyPolicy>({ modelType: OnCallDutyPolicy });
+
   return (
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
@@ -25,6 +29,9 @@ const OnCallDutyPage: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         cardProps={{
           title: "On-Call Duty Policies",
           description:
@@ -141,6 +148,7 @@ const OnCallDutyPage: FunctionComponent<
           },
         ]}
       />
+      {labelBulkActionModals}
     </Fragment>
   );
 };

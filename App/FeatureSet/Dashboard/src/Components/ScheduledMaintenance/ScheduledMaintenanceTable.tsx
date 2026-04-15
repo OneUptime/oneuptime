@@ -6,6 +6,7 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -77,6 +78,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<ScheduledMaintenance> | null>(null);
+
+  const {
+    bulkActions: labelBulkActions,
+    modals: labelBulkActionModals,
+  } = useBulkLabelActions<ScheduledMaintenance>({
+    modelType: ScheduledMaintenance,
+  });
 
   // Fetch scheduled maintenance states on mount
   useEffect(() => {
@@ -295,6 +303,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         bulkActions={{
           buttons: [
             getBulkChangeStateAction(),
+            ...labelBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -642,6 +651,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       ) : (
         <> </>
       )}
+
+      {labelBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BasicFormModal

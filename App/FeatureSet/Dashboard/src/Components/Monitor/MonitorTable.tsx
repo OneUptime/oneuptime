@@ -20,6 +20,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -70,6 +71,11 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Monitor> | null>(null);
+
+  const {
+    bulkActions: labelBulkActions,
+    modals: labelBulkActionModals,
+  } = useBulkLabelActions<Monitor>({ modelType: Monitor });
 
   useEffect(() => {
     const fetchProbes: () => Promise<void> = async (): Promise<void> => {
@@ -459,6 +465,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             },
             getBulkAddProbesAction(),
             getBulkRemoveProbesAction(),
+            ...labelBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -680,6 +687,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
+
+      {labelBulkActionModals}
 
       {showRemoveProbesModal && (
         <BasicFormModal

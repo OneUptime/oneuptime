@@ -4,6 +4,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -13,7 +14,11 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const ServicesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Service>({ modelType: Service });
+
   return (
+    <Fragment>
     <ModelTable<Service>
       modelType={Service}
       id="service-table"
@@ -21,6 +26,9 @@ const ServicesPage: FunctionComponent<
       isDeleteable={false}
       isEditable={false}
       isCreateable={true}
+      bulkActions={{
+        buttons: [...labelBulkActions],
+      }}
       name="Services"
       isViewable={true}
       cardProps={{
@@ -145,6 +153,8 @@ const ServicesPage: FunctionComponent<
         },
       ]}
     />
+      {labelBulkActionModals}
+    </Fragment>
   );
 };
 

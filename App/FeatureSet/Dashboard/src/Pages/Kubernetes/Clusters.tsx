@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -28,6 +29,9 @@ const KubernetesClusters: FunctionComponent<
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
 
   const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -78,6 +82,9 @@ const KubernetesClusters: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         name="Kubernetes Clusters"
         isViewable={true}
         filters={[]}
@@ -218,6 +225,7 @@ const KubernetesClusters: FunctionComponent<
           );
         }}
       />
+      {labelBulkActionModals}
     </Fragment>
   );
 };
