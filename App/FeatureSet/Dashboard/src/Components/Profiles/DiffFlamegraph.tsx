@@ -16,6 +16,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ProfileUtil from "../../Utils/ProfileUtil";
 
 export interface DiffFlamegraphProps {
   baselineStartTime: Date;
@@ -365,9 +366,16 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
             <div className="text-gray-300">{tooltip.fileName}</div>
           )}
           <div className="mt-1">
-            Before: {tooltip.baselineValue.toLocaleString()}
+            Before:{" "}
+            {ProfileUtil.formatProfileValue(tooltip.baselineValue, "nanoseconds")}
           </div>
-          <div>After: {tooltip.comparisonValue.toLocaleString()}</div>
+          <div>
+            After:{" "}
+            {ProfileUtil.formatProfileValue(
+              tooltip.comparisonValue,
+              "nanoseconds",
+            )}
+          </div>
           <div
             className={
               tooltip.delta > 0

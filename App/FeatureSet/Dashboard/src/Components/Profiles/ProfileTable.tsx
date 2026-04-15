@@ -35,18 +35,18 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
-  { label: "CPU Usage", value: "cpu" },
-  { label: "CPU Samples", value: "samples" },
-  { label: "Wall Clock Time", value: "wall" },
-  { label: "Memory Objects in Use", value: "inuse_objects" },
-  { label: "Memory Space in Use", value: "inuse_space" },
-  { label: "Memory Allocations (Count)", value: "alloc_objects" },
-  { label: "Memory Allocations (Size)", value: "alloc_space" },
-  { label: "Heap Memory", value: "heap" },
+  { label: "CPU time", value: "cpu" },
+  { label: "CPU samples", value: "samples" },
+  { label: "Wall time", value: "wall" },
+  { label: "Live memory (objects)", value: "inuse_objects" },
+  { label: "Live memory (bytes)", value: "inuse_space" },
+  { label: "Allocations (count)", value: "alloc_objects" },
+  { label: "Allocations (bytes)", value: "alloc_space" },
+  { label: "Heap memory", value: "heap" },
   { label: "Goroutines", value: "goroutine" },
-  { label: "Lock Contention", value: "contention" },
-  { label: "Mutex Contention", value: "mutex" },
-  { label: "Blocking Operations", value: "block" },
+  { label: "Lock contention", value: "contention" },
+  { label: "Mutex contention", value: "mutex" },
+  { label: "Blocking operations", value: "block" },
 ];
 
 export interface ComponentProps {
@@ -224,9 +224,9 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             props.isMinimalTable
               ? undefined
               : {
-                  title: "Performance Profiles",
+                  title: "All profiles",
                   description:
-                    "Each row is a snapshot of your service's CPU or memory usage over a short window. Open a profile to see which functions consumed the most resources, drill down to call stacks, and find what to optimize. Filter by service and type to investigate a specific symptom (slow endpoint, memory leak, lock contention), or paste a Trace ID to find the profile attached to a specific slow request.",
+                    "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \u201cwhat is slow right now\u201d \u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).",
                 }
           }
           query={query}
@@ -389,15 +389,17 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               field: {
                 traceId: true,
               },
-              title: "Linked Trace",
+              title: "Trace",
               description:
-                "If the profile was captured during a traced request, click to jump to the trace.",
+                "If this profile was captured during a traced request, click to jump to the trace.",
               type: FieldType.Element,
               getElement: (profile: Profile): ReactElement => {
                 const traceId: string | undefined = profile.traceId?.toString();
 
                 if (!traceId) {
-                  return <span className="text-xs text-gray-400">—</span>;
+                  // Most profiles today aren't attached to a specific
+                  // request; show nothing rather than a confusing em-dash.
+                  return <span className="text-xs text-gray-300">—</span>;
                 }
 
                 const traceRoute: Route = RouteUtil.populateRouteParams(
@@ -426,7 +428,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               field: {
                 startTime: true,
               },
-              title: "Captured At",
+              title: "Captured",
               type: FieldType.DateTime,
             },
           ]}

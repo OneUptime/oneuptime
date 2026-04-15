@@ -12,7 +12,7 @@ const ProfilesViewLayout: FunctionComponent<
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
     <Page
-      title="Profile Details"
+      title="Profile"
       breadcrumbLinks={getProfilesBreadcrumbs(path)}
     >
       <Outlet />

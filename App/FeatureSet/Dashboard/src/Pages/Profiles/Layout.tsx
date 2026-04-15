@@ -14,7 +14,7 @@ const ProfilesLayout: FunctionComponent<
 
   return (
     <Page
-      title="Performance Profiles"
+      title="Profiler"
       breadcrumbLinks={getProfilesBreadcrumbs(path)}
       sideMenu={<SideMenu />}
     >

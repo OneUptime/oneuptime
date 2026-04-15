@@ -10,25 +10,25 @@ import React, { FunctionComponent, ReactElement } from "react";
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Performance",
+      title: "Profiler",
       items: [
         {
           link: {
-            title: "Overview",
+            title: "Find what's slow",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES] as Route,
             ),
           },
-          icon: IconProp.Home,
+          icon: IconProp.Bolt,
         },
         {
           link: {
-            title: "All Profiles",
+            title: "Browse raw profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES_INSIGHTS] as Route,
             ),
           },
-          icon: IconProp.Fire,
+          icon: IconProp.List,
         },
       ],
     },
@@ -37,7 +37,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Setup Guide",
+            title: "Setup guide",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
             ),

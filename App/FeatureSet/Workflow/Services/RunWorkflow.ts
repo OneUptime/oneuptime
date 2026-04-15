@@ -20,9 +20,11 @@ import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ComponentCode, {
+  ExecuteChildWorkflow,
   RunReturnType,
 } from "Common/Server/Types/Workflow/ComponentCode";
 import Components from "Common/Server/Types/Workflow/Components/Index";
+import QueueWorkflow from "./QueueWorkflow";
 import { RunProps } from "Common/Server/Types/Workflow/Workflow";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import VMAPI from "Common/Server/Utils/VM/VMAPI";
@@ -403,17 +405,55 @@ export default class RunWorkflow {
 
     if (ComponentCode) {
       const instance: ComponentCode = ComponentCode;
+      const callingProjectId: ObjectID = this.projectId!;
       return await instance.run(args, {
         log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
           this.log(data);
         },
         workflowId: this.workflowId!,
         workflowLogId: this.workflowLogId!,
-        projectId: this.projectId!,
+        projectId: callingProjectId,
         onError: (exception: Exception) => {
           this.log(exception);
           onError();
           return exception;
+        },
+        executeWorkflow: async (
+          child: ExecuteChildWorkflow,
+        ): Promise<void> => {
+          // Enforce that child workflow belongs to the same project as the
+          // calling workflow. This prevents cross-project triggering.
+          const targetWorkflow: Workflow | null =
+            await WorkflowService.findOneById({
+              id: child.workflowId,
+              select: {
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!targetWorkflow) {
+            throw new BadDataException(
+              "Target workflow not found: " + child.workflowId.toString(),
+            );
+          }
+
+          if (
+            !targetWorkflow.projectId ||
+            targetWorkflow.projectId.toString() !==
+              callingProjectId.toString()
+          ) {
+            throw new BadDataException(
+              "Target workflow does not belong to this project.",
+            );
+          }
+
+          await QueueWorkflow.addWorkflowToQueue({
+            workflowId: child.workflowId,
+            returnValues: child.returnValues,
+          });
         },
       });
     }
