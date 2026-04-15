@@ -1204,7 +1204,7 @@ export class PermissionHelper {
         title: "Create Dashboard",
         description: "This permission can create Dashboards of this project",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Settings,
       },
       {
@@ -3023,7 +3023,7 @@ export class PermissionHelper {
         description:
           "This permission can delete incoming call policies of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.OnCallDutyPolicy,
       },
       {
@@ -3032,7 +3032,7 @@ export class PermissionHelper {
         description:
           "This permission can edit incoming call policies of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.OnCallDutyPolicy,
       },
       {
@@ -3041,7 +3041,7 @@ export class PermissionHelper {
         description:
           "This permission can read incoming call policies of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.OnCallDutyPolicy,
       },
 
@@ -3408,7 +3408,7 @@ export class PermissionHelper {
         title: "Create Probe",
         description: "This permission can create probe this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Probe,
       },
       {
@@ -3441,7 +3441,7 @@ export class PermissionHelper {
         title: "Create AI Agent",
         description: "This permission can create AI agents for this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.AIAgent,
       },
       {
@@ -4432,7 +4432,7 @@ export class PermissionHelper {
         description:
           "This permission can create Kubernetes Cluster in this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,
       },
       {
@@ -4441,7 +4441,7 @@ export class PermissionHelper {
         description:
           "This permission can delete Kubernetes Cluster of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Telemetry,
       },
       {
@@ -4450,7 +4450,7 @@ export class PermissionHelper {
         description:
           "This permission can edit Kubernetes Cluster of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Telemetry,
       },
       {
@@ -4459,7 +4459,7 @@ export class PermissionHelper {
         description:
           "This permission can read Kubernetes Cluster of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Telemetry,
       },
 
@@ -4468,7 +4468,7 @@ export class PermissionHelper {
         title: "Create Docker Host",
         description: "This permission can create Docker Host in this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,
       },
       {
@@ -4476,7 +4476,7 @@ export class PermissionHelper {
         title: "Delete Docker Host",
         description: "This permission can delete Docker Host of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Telemetry,
       },
       {
@@ -4484,7 +4484,7 @@ export class PermissionHelper {
         title: "Edit Docker Host",
         description: "This permission can edit Docker Host of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Telemetry,
       },
       {
@@ -4492,7 +4492,7 @@ export class PermissionHelper {
         title: "Read Docker Host",
         description: "This permission can read Docker Host of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Telemetry,
       },
 
@@ -4684,7 +4684,7 @@ export class PermissionHelper {
         description:
           "This permission can create Code Repositories in this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.ServiceCatalog,
       },
       {
@@ -5174,7 +5174,7 @@ export class PermissionHelper {
         description:
           "This permission can delete Incident Template of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Incident,
       },
       {
@@ -5183,7 +5183,7 @@ export class PermissionHelper {
         description:
           "This permission can edit Incident Template of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Incident,
       },
       {
@@ -5192,7 +5192,7 @@ export class PermissionHelper {
         description:
           "This permission can read Incident Template of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.Incident,
       },
 
@@ -5941,7 +5941,7 @@ export class PermissionHelper {
         description:
           "This permission can delete scheduled maintenance template in the project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.ScheduledMaintenance,
       },
       {
@@ -5950,7 +5950,7 @@ export class PermissionHelper {
         description:
           "This permission can edit scheduled maintenance template in the project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.ScheduledMaintenance,
       },
       {
@@ -5959,7 +5959,7 @@ export class PermissionHelper {
         description:
           "This permission can read scheduled maintenance template in the project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
         group: PermissionGroup.ScheduledMaintenance,
       },
 
@@ -6231,7 +6231,7 @@ export class PermissionHelper {
         description:
           "This permission can create Alert Episodes in this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Alert,
       },
       {
@@ -6524,7 +6524,7 @@ export class PermissionHelper {
         description:
           "This permission can create Incident Episodes in this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: true,
+        isAccessControlPermission: false,
         group: PermissionGroup.Incident,
       },
       {
