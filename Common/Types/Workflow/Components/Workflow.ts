@@ -10,7 +10,8 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.WorkflowRun,
     title: "Execute Workflow",
     category: "Utils",
-    description: "Execute another workflow in the same project (fire-and-forget)",
+    description:
+      "Execute another workflow in the same project (fire-and-forget)",
     iconProp: IconProp.Workflow,
     componentType: ComponentType.Component,
     arguments: [

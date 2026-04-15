@@ -397,8 +397,10 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 const traceId: string | undefined = profile.traceId?.toString();
 
                 if (!traceId) {
-                  // Most profiles today aren't attached to a specific
-                  // request; show nothing rather than a confusing em-dash.
+                  /*
+                   * Most profiles today aren't attached to a specific
+                   * request; show nothing rather than a confusing em-dash.
+                   */
                   return <span className="text-xs text-gray-300">—</span>;
                 }
 

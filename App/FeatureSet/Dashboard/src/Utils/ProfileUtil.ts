@@ -25,7 +25,12 @@ export type ProfileCategory =
  * a human can actually read: your code stands out, library code is
  * present but muted, runtime code is quiet.
  */
-export type ModuleCategory = "own" | "vendor" | "runtime" | "native" | "unknown";
+export type ModuleCategory =
+  | "own"
+  | "vendor"
+  | "runtime"
+  | "native"
+  | "unknown";
 
 export default class ProfileUtil {
   /**
@@ -69,7 +74,8 @@ export default class ProfileUtil {
    * what they're looking at.
    */
   public static getProfileTypeDescription(profileType: string): string {
-    const category: ProfileCategory = ProfileUtil.getProfileCategory(profileType);
+    const category: ProfileCategory =
+      ProfileUtil.getProfileCategory(profileType);
 
     switch (category) {
       case "cpu":
@@ -127,8 +133,10 @@ export default class ProfileUtil {
       case "goroutines":
         return ["goroutine"];
       default:
-        // Unknown / advanced specific type — pass through verbatim so the
-        // backend filters on exactly the chosen value.
+        /*
+         * Unknown / advanced specific type — pass through verbatim so the
+         * backend filters on exactly the chosen value.
+         */
         return [profileType];
     }
   }
@@ -189,7 +197,8 @@ export default class ProfileUtil {
    * numbers the user can't interpret.
    */
   public static getProfileTypeUnit(profileType: string): string {
-    const category: ProfileCategory = ProfileUtil.getProfileCategory(profileType);
+    const category: ProfileCategory =
+      ProfileUtil.getProfileCategory(profileType);
 
     switch (category) {
       case "cpu":
@@ -217,7 +226,8 @@ export default class ProfileUtil {
    * wall=purple, goroutines=green.
    */
   public static getProfileTypeBadgeColor(profileType: string): string {
-    const category: ProfileCategory = ProfileUtil.getProfileCategory(profileType);
+    const category: ProfileCategory =
+      ProfileUtil.getProfileCategory(profileType);
 
     switch (category) {
       case "cpu":
@@ -290,7 +300,11 @@ export default class ProfileUtil {
     }
 
     // Third-party dependencies
-    if (f.includes("node_modules") || f.includes("site-packages") || f.includes("vendor/")) {
+    if (
+      f.includes("node_modules") ||
+      f.includes("site-packages") ||
+      f.includes("vendor/")
+    ) {
       return "vendor";
     }
 

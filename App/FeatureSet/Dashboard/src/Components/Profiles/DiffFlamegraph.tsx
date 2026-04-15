@@ -370,7 +370,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
           )}
           <div className="mt-1">
             Before:{" "}
-            {ProfileUtil.formatProfileValue(tooltip.baselineValue, "nanoseconds")}
+            {ProfileUtil.formatProfileValue(
+              tooltip.baselineValue,
+              "nanoseconds",
+            )}
           </div>
           <div>
             After:{" "}

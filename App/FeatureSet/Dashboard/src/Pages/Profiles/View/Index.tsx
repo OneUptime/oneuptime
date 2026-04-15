@@ -32,14 +32,16 @@ const ProfileViewPage: FunctionComponent<
   >(undefined);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  // Load the profile's metadata so we can show the right unit, the
-  // captured-at timestamp, and — if present — the linked trace.
+  /*
+   * Load the profile's metadata so we can show the right unit, the
+   * captured-at timestamp, and — if present — the linked trace.
+   */
   useEffect(() => {
     let cancelled: boolean = false;
     void (async (): Promise<void> => {
       try {
-        const result: { data: Array<Profile> } = await AnalyticsModelAPI.getList(
-          {
+        const result: { data: Array<Profile> } =
+          await AnalyticsModelAPI.getList({
             modelType: Profile,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
@@ -59,8 +61,7 @@ const ProfileViewPage: FunctionComponent<
             },
             limit: 1,
             skip: 0,
-          },
-        );
+          });
         if (!cancelled && result.data.length > 0) {
           setProfile(result.data[0]!);
           if (!selectedProfileType && result.data[0]!.profileType) {
@@ -80,7 +81,9 @@ const ProfileViewPage: FunctionComponent<
     selectedProfileType || profile?.profileType || undefined;
   const resolvedUnit: string =
     profile?.unit ||
-    (resolvedType ? ProfileUtil.getProfileTypeUnit(resolvedType) : "nanoseconds");
+    (resolvedType
+      ? ProfileUtil.getProfileTypeUnit(resolvedType)
+      : "nanoseconds");
 
   const tabs: Array<Tab> = [
     {
@@ -134,9 +137,7 @@ const ProfileViewPage: FunctionComponent<
 
   return (
     <div>
-      {profile && (
-        <ProfileSummaryCard profile={profile} unit={resolvedUnit} />
-      )}
+      {profile && <ProfileSummaryCard profile={profile} />}
 
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <ProfileTypeSelector
@@ -176,11 +177,12 @@ const ExplainerCard: FunctionComponent<ExplainerCardProps> = (
 
 interface ProfileSummaryCardProps {
   profile: Profile;
-  unit: string;
 }
 
-// Summary strip shown above the tabs: service, type, captured at,
-// duration, samples, and (when present) a link to the linked trace.
+/*
+ * Summary strip shown above the tabs: service, type, captured at,
+ * duration, samples, and (when present) a link to the linked trace.
+ */
 const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   props: ProfileSummaryCardProps,
 ): ReactElement => {

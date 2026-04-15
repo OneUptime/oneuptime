@@ -78,22 +78,23 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   const [topFunctionsLoading, setTopFunctionsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [isServicesLoading, setIsServicesLoading] = useState<boolean>(true);
-  const [servicesWithProfiles, setServicesWithProfiles] = useState<
-    Set<string>
-  >(new Set());
+  const [servicesWithProfiles, setServicesWithProfiles] = useState<Set<string>>(
+    new Set(),
+  );
 
-  // Stable time window. We want a single (startTime, endTime) pair
-  // shared between the flame graph and the top-functions list so they
-  // agree on the same period. We bump a nonce on refresh to force a
-  // re-fetch even if the range hasn't changed (otherwise React would
-  // see the same Date object and skip the effect).
+  /*
+   * Stable time window. We want a single (startTime, endTime) pair
+   * shared between the flame graph and the top-functions list so they
+   * agree on the same period. We bump a nonce on refresh to force a
+   * re-fetch even if the range hasn't changed (otherwise React would
+   * see the same Date object and skip the effect).
+   */
   const [nonce, setNonce] = useState<number>(0);
   const { startTime, endTime } = useMemo(() => {
     const now: Date = OneUptimeDate.getCurrentDate();
     const start: Date = OneUptimeDate.addRemoveMinutes(now, -rangeMinutes);
     return { startTime: start, endTime: now };
     // nonce is intentionally part of the dep list so refresh works.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rangeMinutes, nonce]);
 
   const selectedServiceIds: Array<ObjectID> | undefined = useMemo(() => {
@@ -144,8 +145,10 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     };
   }, []);
 
-  // Top-functions fetch: keyed on window + service + type so it stays
-  // in sync with the flame graph.
+  /*
+   * Top-functions fetch: keyed on window + service + type so it stays
+   * in sync with the flame graph.
+   */
   useEffect(() => {
     let cancelled: boolean = false;
     void (async (): Promise<void> => {
@@ -183,8 +186,10 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           []) as unknown as Array<TopFunction>;
         setTopFunctions(fns);
 
-        // While we're here, capture which services actually have data
-        // — used to badge the service list below.
+        /*
+         * While we're here, capture which services actually have data
+         * — used to badge the service list below.
+         */
         const fresh: Set<string> = new Set<string>();
         for (const fn of fns) {
           if ((fn as unknown as { serviceId?: string }).serviceId) {
@@ -209,13 +214,16 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     startTime.getTime(),
     endTime.getTime(),
     profileType,
     selectedServiceIds
-      ? selectedServiceIds.map((i: ObjectID) => i.toString()).join(",")
+      ? selectedServiceIds
+          .map((i: ObjectID) => {
+            return i.toString();
+          })
+          .join(",")
       : "all",
   ]);
 
@@ -340,7 +348,6 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
       {/* Headline insight */}
       <HeadlineInsight
         topFunctions={topFunctions}
-        unit={unit}
         profileType={profileType}
         serviceName={selectedServiceName}
         rangeMinutes={rangeMinutes}
@@ -355,8 +362,8 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
               Where the time is going
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Every profile captured in the window, merged into one view.
-              Click a frame to zoom in.
+              Every profile captured in the window, merged into one view. Click
+              a frame to zoom in.
             </p>
           </div>
         </div>
@@ -438,7 +445,6 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
  */
 interface HeadlineInsightProps {
   topFunctions: Array<TopFunction>;
-  unit: string;
   profileType: string | undefined;
   serviceName: string;
   rangeMinutes: number;
@@ -517,7 +523,9 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
             {topN.length >= 2 && (
               <>
                 {" "}
-                The top <span className="font-semibold">{topN.length}</span>{" "}
+                The top <span className="font-semibold">
+                  {topN.length}
+                </span>{" "}
                 functions account for{" "}
                 <span className="font-semibold">
                   {ProfileUtil.formatPercent(topShare)}
@@ -647,10 +655,10 @@ const EmptyState: FunctionComponent = (): ReactElement => {
         No services profiling yet
       </h3>
       <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-        Add a service and enable the OneUptime profiler agent (Node, Go,
-        Python, Java, or Ruby). Once samples start arriving, this page will
-        show a merged flame graph and the functions consuming the most
-        resources across every recent recording.
+        Add a service and enable the OneUptime profiler agent (Node, Go, Python,
+        Java, or Ruby). Once samples start arriving, this page will show a
+        merged flame graph and the functions consuming the most resources across
+        every recent recording.
       </p>
     </div>
   );

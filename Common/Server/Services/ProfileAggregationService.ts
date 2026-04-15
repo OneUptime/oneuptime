@@ -526,8 +526,10 @@ export class ProfileAggregationService {
       );
     }
 
-    // profileTypes (array) wins over profileType (single) so the UI can
-    // OR together every raw type string in a category.
+    /*
+     * profileTypes (array) wins over profileType (single) so the UI can
+     * OR together every raw type string in a category.
+     */
     if (request.profileTypes && request.profileTypes.length > 0) {
       statement.append(
         SQL` AND profileType IN (${{

@@ -64,8 +64,10 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
   const activeRoot: FlamegraphNode =
     zoomStack.length > 0 ? zoomStack[zoomStack.length - 1]! : props.root;
 
-  // Find the hottest self value across the whole tree so we can scale
-  // color intensity proportionally.
+  /*
+   * Find the hottest self value across the whole tree so we can scale
+   * color intensity proportionally.
+   */
   const maxSelfValue: number = useMemo(() => {
     let max: number = 0;
     const walk: (n: FlamegraphNode) => void = (n: FlamegraphNode): void => {
@@ -268,8 +270,8 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         </div>
         <p className="text-sm font-medium text-gray-900 mb-1">No data yet</p>
         <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          No samples were captured in this window. Try expanding the time
-          range, or check that your profiler agent is running.
+          No samples were captured in this window. Try expanding the time range,
+          or check that your profiler agent is running.
         </p>
       </div>
     );

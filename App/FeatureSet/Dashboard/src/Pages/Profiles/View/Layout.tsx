@@ -11,10 +11,7 @@ const ProfilesViewLayout: FunctionComponent<
 > = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
-    <Page
-      title="Profile"
-      breadcrumbLinks={getProfilesBreadcrumbs(path)}
-    >
+    <Page title="Profile" breadcrumbLinks={getProfilesBreadcrumbs(path)}>
       <Outlet />
     </Page>
   );

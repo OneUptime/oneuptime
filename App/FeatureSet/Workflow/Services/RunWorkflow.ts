@@ -152,13 +152,15 @@ export default class RunWorkflow {
 
       const runStack: RunStack = await this.makeRunStack(workflow.graph);
 
-      // Guard against workflows that have no executable entry point. This
-      // commonly happens when:
-      //   - The workflow graph is empty (no nodes at all).
-      //   - The graph has components but no Trigger node to start from.
-      // Without this check, the runner would push an empty-string component
-      // id onto the execution stack and fail with a confusing
-      // "Component with ID  not found" error.
+      /*
+       * Guard against workflows that have no executable entry point. This
+       * commonly happens when:
+       *   - The workflow graph is empty (no nodes at all).
+       *   - The graph has components but no Trigger node to start from.
+       * Without this check, the runner would push an empty-string component
+       * id onto the execution stack and fail with a confusing
+       * "Component with ID  not found" error.
+       */
       if (
         Object.keys(runStack.stack).length === 0 ||
         !runStack.startWithComponentId
@@ -437,21 +439,23 @@ export default class RunWorkflow {
           onError();
           return exception;
         },
-        executeWorkflow: async (
-          child: ExecuteChildWorkflow,
-        ): Promise<void> => {
+        executeWorkflow: async (child: ExecuteChildWorkflow): Promise<void> => {
           const callingWorkflowIdStr: string = this.workflowId!.toString();
           const childWorkflowIdStr: string = child.workflowId.toString();
 
-          // Build the chain that the child run will see: everything that led
-          // to THIS run, plus this run itself.
+          /*
+           * Build the chain that the child run will see: everything that led
+           * to THIS run, plus this run itself.
+           */
           const newChain: Array<string> = [
             ...this.callChain,
             callingWorkflowIdStr,
           ];
 
-          // Cycle detection across workflow boundaries.
-          // e.g. A -> B -> A, or A -> B -> C -> A.
+          /*
+           * Cycle detection across workflow boundaries.
+           * e.g. A -> B -> A, or A -> B -> C -> A.
+           */
           if (newChain.includes(childWorkflowIdStr)) {
             throw new BadDataException(
               "Workflow cycle detected: " +
@@ -470,8 +474,10 @@ export default class RunWorkflow {
             );
           }
 
-          // Enforce that child workflow belongs to the same project as the
-          // calling workflow. This prevents cross-project triggering.
+          /*
+           * Enforce that child workflow belongs to the same project as the
+           * calling workflow. This prevents cross-project triggering.
+           */
           const targetWorkflow: Workflow | null =
             await WorkflowService.findOneById({
               id: child.workflowId,
@@ -491,8 +497,7 @@ export default class RunWorkflow {
 
           if (
             !targetWorkflow.projectId ||
-            targetWorkflow.projectId.toString() !==
-              callingProjectId.toString()
+            targetWorkflow.projectId.toString() !== callingProjectId.toString()
           ) {
             throw new BadDataException(
               "Target workflow does not belong to this project.",

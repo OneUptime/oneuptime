@@ -115,8 +115,7 @@ export default class ExecuteWorkflow extends ComponentCode {
         executePort: successPort,
       };
     } catch (err: unknown) {
-      const message: string =
-        err instanceof Error ? err.message : String(err);
+      const message: string = err instanceof Error ? err.message : String(err);
       options.log("Failed to execute child workflow: " + message);
 
       return {

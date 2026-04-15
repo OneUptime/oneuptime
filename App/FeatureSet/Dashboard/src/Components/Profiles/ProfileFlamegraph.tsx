@@ -106,9 +106,7 @@ const ProfileFlamegraph: FunctionComponent<ProfileFlamegraphProps> = (
  * tree. Nodes with the same (name, file, line) at the same position
  * merge into one.
  */
-function buildTreeFromSamples(
-  samples: Array<ProfileSample>,
-): FlamegraphNode {
+function buildTreeFromSamples(samples: Array<ProfileSample>): FlamegraphNode {
   const root: FlamegraphNode = {
     name: "(all)",
     fileName: "",
@@ -120,10 +118,14 @@ function buildTreeFromSamples(
     children: [],
   };
 
-  // Temporary index so we can look children up in O(1) by frame string
-  // during construction, without mutating the final tree shape.
-  const childIndex: WeakMap<FlamegraphNode, Map<string, FlamegraphNode>> =
-    new WeakMap();
+  /*
+   * Temporary index so we can look children up in O(1) by frame string
+   * during construction, without mutating the final tree shape.
+   */
+  const childIndex: WeakMap<
+    FlamegraphNode,
+    Map<string, FlamegraphNode>
+  > = new WeakMap();
 
   const getOrCreateChild: (
     parent: FlamegraphNode,

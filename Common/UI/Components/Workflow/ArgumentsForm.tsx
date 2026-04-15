@@ -49,9 +49,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
   const [selectedArgId, setSelectedArgId] = useState<string>("");
 
-  // Workflows in the current project, used to populate dropdowns for any
-  // argument of type WorkflowSelect (e.g. the "Workflow" field on the
-  // Execute Workflow component). Empty until the fetch completes.
+  /*
+   * Workflows in the current project, used to populate dropdowns for any
+   * argument of type WorkflowSelect (e.g. the "Workflow" field on the
+   * Execute Workflow component). Empty until the fetch completes.
+   */
   const [workflowDropdownOptions, setWorkflowDropdownOptions] = useState<
     Array<DropdownOption>
   >([]);
@@ -73,20 +75,19 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
     const loadWorkflows: () => Promise<void> = async (): Promise<void> => {
       try {
-        const result: ListResult<Workflow> =
-          await ModelAPI.getList<Workflow>({
-            modelType: Workflow,
-            query: {},
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-            },
-            sort: {
-              name: "Ascending" as any,
-            },
-          });
+        const result: ListResult<Workflow> = await ModelAPI.getList<Workflow>({
+          modelType: Workflow,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+          },
+          sort: {
+            name: "Ascending" as any,
+          },
+        });
 
         if (cancelled) {
           return;
@@ -108,8 +109,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
         setWorkflowDropdownOptions(options);
       } catch {
-        // Swallow: the dropdown will simply be empty and the user can try
-        // again by re-opening the settings panel.
+        /*
+         * Swallow: the dropdown will simply be empty and the user can try
+         * again by re-opening the settings panel.
+         */
         if (!cancelled) {
           setWorkflowDropdownOptions([]);
         }
@@ -197,16 +200,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       : null,
                   );
 
-                  // For WorkflowSelect, inject the dynamically fetched list
-                  // of workflows as dropdown options.
+                  /*
+                   * For WorkflowSelect, inject the dynamically fetched list
+                   * of workflows as dropdown options.
+                   */
                   if (isWorkflowSelect) {
                     baseField.dropdownOptions = workflowDropdownOptions;
                   }
 
                   return {
                     title: `${arg.name}`,
-                    // WorkflowSelect has no "pick from component/variable"
-                    // footer — it's a bound dropdown, not a free-text field.
+                    /*
+                     * WorkflowSelect has no "pick from component/variable"
+                     * footer — it's a bound dropdown, not a free-text field.
+                     */
                     footerElement: isWorkflowSelect ? undefined : (
                       <div className="text-gray-500">
                         <p className="text-sm">

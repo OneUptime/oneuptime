@@ -1951,20 +1951,17 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
-    app.get(
-      "/legal/security",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: IsBillingEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "security",
-          requestDemoCta: false,
-        });
-      },
-    );
+    app.get("/legal/security", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "security",
+        requestDemoCta: false,
+      });
+    });
 
     app.get(
       "/compare/:product",

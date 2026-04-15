@@ -15,16 +15,20 @@ export interface ProfileTypeSelectorProps {
 interface Pill {
   label: string;
   description: string;
-  // The profileType value sent to the backend. `undefined` means "any".
-  // For Memory we pick `inuse_space` as the canonical representative;
-  // the backend can aggregate across all memory subtypes at a later date.
+  /*
+   * The profileType value sent to the backend. `undefined` means "any".
+   * For Memory we pick `inuse_space` as the canonical representative;
+   * the backend can aggregate across all memory subtypes at a later date.
+   */
   value: string | undefined;
   category: ProfileCategory | "all";
   icon: string;
 }
 
-// The three pills are the primary mental model for "what am I looking
-// at". Anything more specific goes into the advanced dropdown.
+/*
+ * The three pills are the primary mental model for "what am I looking
+ * at". Anything more specific goes into the advanced dropdown.
+ */
 const PRIMARY_PILLS: Array<Pill> = [
   {
     label: "Everything",

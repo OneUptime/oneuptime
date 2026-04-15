@@ -388,10 +388,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           .update(resolvedStack.frames.join("|"))
                           .digest("hex");
 
-                        // Resolve trace/span correlation from link table.
-                        // Per OTLP profiles convention, linkTable[0] is a
-                        // sentinel empty link. We only honour linkIndex when
-                        // it is explicitly set on the sample.
+                        /*
+                         * Resolve trace/span correlation from link table.
+                         * Per OTLP profiles convention, linkTable[0] is a
+                         * sentinel empty link. We only honour linkIndex when
+                         * it is explicitly set on the sample.
+                         */
                         let traceId: string = "";
                         let spanId: string = "";
                         const linkIndexRaw: unknown = sampleObj["linkIndex"];
@@ -469,9 +471,11 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           }
                         }
 
-                        // Fallback: some agents (Pyroscope-style) attach
-                        // trace_id / span_id as sample labels instead of via
-                        // the link table.
+                        /*
+                         * Fallback: some agents (Pyroscope-style) attach
+                         * trace_id / span_id as sample labels instead of via
+                         * the link table.
+                         */
                         if (!traceId) {
                           traceId = this.findCorrelationValue(
                             sampleLabels,
@@ -520,11 +524,13 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                       }
                     }
 
-                    // Resolve the profile-level trace/span correlation.
-                    // Precedence: any sample that carried one (most reliable) ->
-                    // first non-sentinel entry in the link table ->
-                    // container/resource attributes (e.g. trace.id set by the
-                    // agent on the profile envelope).
+                    /*
+                     * Resolve the profile-level trace/span correlation.
+                     * Precedence: any sample that carried one (most reliable) ->
+                     * first non-sentinel entry in the link table ->
+                     * container/resource attributes (e.g. trace.id set by the
+                     * agent on the profile envelope).
+                     */
                     let profileTraceId: string = firstSampleTraceId;
                     let profileSpanId: string = firstSampleSpanId;
 
@@ -903,8 +909,10 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     };
   }
 
-  // Common attribute/label keys that agents use to carry OTel trace
-  // correlation alongside a profile. Checked in order; first non-empty wins.
+  /*
+   * Common attribute/label keys that agents use to carry OTel trace
+   * correlation alongside a profile. Checked in order; first non-empty wins.
+   */
   private static readonly TRACE_ID_KEYS: Array<string> = [
     "trace_id",
     "traceId",
@@ -927,15 +935,18 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     "resource.span.id",
   ];
 
-  // A trace or span id of all zeros is the OTel convention for "unset".
-  // Length sanity check rejects obvious junk (trace = 32 hex chars,
-  // span = 16 hex chars, but agents occasionally emit shorter forms — we
-  // only filter the all-zero case).
+  /*
+   * A trace or span id of all zeros is the OTel convention for "unset".
+   * Length sanity check rejects obvious junk (trace = 32 hex chars,
+   * span = 16 hex chars, but agents occasionally emit shorter forms — we
+   * only filter the all-zero case).
+   */
   private static isEmptyHexId(value: string): boolean {
     if (!value) {
       return true;
     }
-    return /^0+$/.test(value);
+    const allZerosRegex: RegExp = /^0+$/;
+    return allZerosRegex.test(value);
   }
 
   private static findCorrelationValue(

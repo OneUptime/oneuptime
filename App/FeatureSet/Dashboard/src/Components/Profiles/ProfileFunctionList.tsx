@@ -341,9 +341,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                   <div className="mt-1.5 ml-4 w-full max-w-lg h-1 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
-                        rankMode === "self"
-                          ? "bg-orange-400"
-                          : "bg-indigo-400"
+                        rankMode === "self" ? "bg-orange-400" : "bg-indigo-400"
                       }`}
                       style={{ width: `${barPct}%` }}
                     />

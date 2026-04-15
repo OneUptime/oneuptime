@@ -31,9 +31,11 @@ interface Preset {
   offsetMinutes: number;
 }
 
-// Presets are the whole point of this component: "show me what got
-// slower since {X}" is the question engineers actually ask. Free-form
-// time pickers bury this behind three clicks and a mental calculation.
+/*
+ * Presets are the whole point of this component: "show me what got
+ * slower since {X}" is the question engineers actually ask. Free-form
+ * time pickers bury this behind three clicks and a mental calculation.
+ */
 const PRESETS: Array<Preset> = [
   {
     key: "1h",
