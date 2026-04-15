@@ -24,50 +24,50 @@ export default class MetricUtil {
   public static async fetchResults(data: {
     metricViewData: MetricViewData;
   }): Promise<Array<AggregatedResult>> {
-    const results: Array<AggregatedResult> = [];
-
     const metricViewData: MetricViewData = data.metricViewData;
 
-    for (const queryConfig of metricViewData.queryConfigs) {
-      const result: AggregatedResult = await AnalyticsModelAPI.aggregate({
-        modelType: Metric,
-        aggregateBy: {
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            time: metricViewData.startAndEndDate!,
-            name: queryConfig.metricQueryData.filterData.metricName!,
-            attributes: queryConfig.metricQueryData.filterData
-              .attributes as any,
+    // Fire all aggregate queries in parallel. Kubernetes overview pages
+    // render many charts (CPU/memory/network/etc.), and fetching them
+    // sequentially made page load O(N * perQueryLatency). With Promise.all
+    // it becomes O(max(perQueryLatency)).
+    const results: Array<AggregatedResult> = await Promise.all(
+      metricViewData.queryConfigs.map((queryConfig) => {
+        return AnalyticsModelAPI.aggregate({
+          modelType: Metric,
+          aggregateBy: {
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              time: metricViewData.startAndEndDate!,
+              name: queryConfig.metricQueryData.filterData.metricName!,
+              attributes: queryConfig.metricQueryData.filterData
+                .attributes as any,
+            },
+            aggregationType:
+              (queryConfig.metricQueryData.filterData
+                .aggegationType as MetricsAggregationType) ||
+              MetricsAggregationType.Avg,
+            aggregateColumnName: "value",
+            aggregationTimestampColumnName: "time",
+            startTimestamp:
+              (metricViewData.startAndEndDate?.startValue as Date) ||
+              OneUptimeDate.getCurrentDate(),
+            endTimestamp:
+              (metricViewData.startAndEndDate?.endValue as Date) ||
+              OneUptimeDate.getCurrentDate(),
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            groupBy: queryConfig.metricQueryData.groupBy,
           },
-          aggregationType:
-            (queryConfig.metricQueryData.filterData
-              .aggegationType as MetricsAggregationType) ||
-            MetricsAggregationType.Avg,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          startTimestamp:
-            (metricViewData.startAndEndDate?.startValue as Date) ||
-            OneUptimeDate.getCurrentDate(),
-          endTimestamp:
-            (metricViewData.startAndEndDate?.endValue as Date) ||
-            OneUptimeDate.getCurrentDate(),
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          groupBy: queryConfig.metricQueryData.groupBy,
-        },
-      });
+        });
+      }),
+    );
 
-      result.data.map((data: AggregatedModel) => {
-        // convert to int from float
-
-        if (data.value) {
-          data.value = Math.round(data.value);
+    for (const result of results) {
+      for (const row of result.data as Array<AggregatedModel>) {
+        if (row.value) {
+          row.value = Math.round(row.value);
         }
-
-        return data;
-      });
-
-      results.push(result);
+      }
     }
 
     return results;
