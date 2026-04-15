@@ -1,3 +1,4 @@
+import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormValues from "../Forms/Types/FormValues";
@@ -54,6 +55,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   const [workflowDropdownOptions, setWorkflowDropdownOptions] = useState<
     Array<DropdownOption>
   >([]);
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState<boolean>(false);
 
   const hasWorkflowSelectArg: boolean = Boolean(
     component.metadata.arguments?.some((arg: Argument) => {
@@ -67,6 +69,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     }
 
     let cancelled: boolean = false;
+    setIsLoadingWorkflows(true);
 
     const loadWorkflows: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -110,6 +113,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         if (!cancelled) {
           setWorkflowDropdownOptions([]);
         }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingWorkflows(false);
+        }
       }
     };
 
@@ -142,8 +149,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               message={"This component does not take any arguments."}
             />
           )}
+        {/*
+          If any argument is a WorkflowSelect and we're still fetching the
+          list of workflows, show a loader instead of the form. Otherwise
+          the user briefly sees an empty dropdown which is confusing.
+        */}
+        {hasWorkflowSelectArg && isLoadingWorkflows && <ComponentLoader />}
         {component.metadata.arguments &&
-          component.metadata.arguments.length > 0 && (
+          component.metadata.arguments.length > 0 &&
+          !(hasWorkflowSelectArg && isLoadingWorkflows) && (
             <BasicForm
               hideSubmitButton={true}
               ref={formRef}
