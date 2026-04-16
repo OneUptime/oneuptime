@@ -943,6 +943,16 @@ export class PermissionHelper {
     });
   }
 
+  public static getRolePermissionProps(): Array<PermissionProps> {
+    return this.getTenantPermissionProps().filter((item: PermissionProps) => {
+      return (
+        item.permission === Permission.ProjectOwner ||
+        item.permission === Permission.ProjectAdmin ||
+        item.permission === Permission.ProjectMember
+      );
+    });
+  }
+
   public static getAccessControlPermissionProps(): Array<PermissionProps> {
     return this.getAllPermissionProps().filter((item: PermissionProps) => {
       return item.isAccessControlPermission;

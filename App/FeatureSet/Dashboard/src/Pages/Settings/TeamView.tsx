@@ -10,7 +10,10 @@ import URL from "Common/Types/API/URL";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
@@ -31,11 +34,16 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import User from "Common/Models/DatabaseModels/User";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useState,
 } from "react";
 import TeamComplianceStatusTable, {
   TeamComplianceStatusTableRef,
@@ -47,6 +55,11 @@ import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
   BlockPermissions = "BlockPermissions",
+}
+
+enum CreatePermissionType {
+  RoleBased = "RoleBased",
+  Granular = "Granular",
 }
 
 const TeamView: FunctionComponent<PageComponentProps> = (
@@ -80,19 +93,24 @@ const TeamView: FunctionComponent<PageComponentProps> = (
     checkScim();
   }, [props.currentProject]);
 
-  type GetTeamPermissionTable = (data: {
+  type TeamPermissionTableProps = {
     permissionType: PermissionType;
-  }) => ReactElement;
+  };
 
-  const getTeamPermissionTable: GetTeamPermissionTable = (data: {
-    permissionType: PermissionType;
-  }) => {
+  const TeamPermissionTable: FunctionComponent<TeamPermissionTableProps> = (
+    data: TeamPermissionTableProps,
+  ) => {
     const { permissionType } = data;
 
     const formRef: MutableRefObject<FormProps<FormValues<TeamPermission>>> =
       React.useRef<FormProps<FormValues<TeamPermission>>>() as MutableRefObject<
         FormProps<FormValues<TeamPermission>>
       >;
+
+    const [createPermissionType, setCreatePermissionType] =
+      useState<CreatePermissionType>(CreatePermissionType.RoleBased);
+
+    const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
 
     let tableTitle: string = "Allow Permissions";
 
@@ -108,6 +126,41 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         "Here you can manage block permissions for this team. This will override any allow permissions set for this team.";
     }
 
+    const roleDropdownOptions: Array<DropdownOption> =
+      PermissionHelper.getRolePermissionProps().map((p: PermissionProps) => {
+        return {
+          value: p.permission,
+          label: p.title,
+        };
+      });
+
+    const createButtons: Array<CardButtonSchema> = [
+      {
+        title: "Add Role",
+        icon: IconProp.User,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          setCreatePermissionType(CreatePermissionType.RoleBased);
+          setShowCreateForm(false);
+          setTimeout(() => {
+            setShowCreateForm(true);
+          }, 0);
+        },
+      },
+      {
+        title: "Add Permission",
+        icon: IconProp.Lock,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          setCreatePermissionType(CreatePermissionType.Granular);
+          setShowCreateForm(false);
+          setTimeout(() => {
+            setShowCreateForm(true);
+          }, 0);
+        },
+      },
+    ];
+
     return (
       <ModelTable<TeamPermission>
         modelType={TeamPermission}
@@ -115,9 +168,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         id={"table-team-permission-" + permissionType}
         isDeleteable={true}
         isEditable={true}
-        isCreateable={true}
+        isCreateable={false}
+        showCreateForm={showCreateForm}
         name={"Settings > Team > Permissions-" + permissionType}
-        createEditModalWidth={ModalWidth.Large}
+        createEditModalWidth={
+          createPermissionType === CreatePermissionType.Granular
+            ? ModalWidth.Large
+            : ModalWidth.Normal
+        }
         isViewable={false}
         createEditFromRef={formRef}
         query={{
@@ -138,73 +196,93 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: tableTitle,
           description: tableDescription,
+          buttons: createButtons,
         }}
         noItemsMessage={"No permisisons created for this team so far."}
-        formFields={[
-          {
-            field: {
-              permission: true,
-            },
-            onChange: async (_value: any): Promise<void> => {
-              await formRef.current.setFieldValue("labels", [], true);
-            },
-            title: "Permission",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: true,
-            placeholder: "Search permissions...",
-            getCustomElement: (
-              _values: FormValues<TeamPermission>,
-              customElementProps: CustomElementProps,
-            ) => {
-              return (
-                <PermissionPicker
-                  onChange={(value: Permission | null) => {
-                    customElementProps.onChange?.(value);
-                  }}
-                  onBlur={customElementProps.onBlur}
-                  tabIndex={customElementProps.tabIndex}
-                  initialValue={
-                    customElementProps.initialValue as Permission | undefined
-                  }
-                  placeholder={customElementProps.placeholder}
-                  error={customElementProps.error}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Restrict to Labels",
-            description:
-              "If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            showIf: (values: FormValues<TeamPermission>): boolean => {
-              if (!values["permission"]) {
-                return false;
-              }
+        formFields={
+          createPermissionType === CreatePermissionType.RoleBased
+            ? [
+                {
+                  field: {
+                    permission: true,
+                  },
+                  title: "Role",
+                  description:
+                    "Select a role to assign to this team. Roles provide a predefined set of permissions.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: roleDropdownOptions,
+                  required: true,
+                  placeholder: "Select a role",
+                },
+              ]
+            : [
+                {
+                  field: {
+                    permission: true,
+                  },
+                  onChange: async (_value: any): Promise<void> => {
+                    await formRef.current.setFieldValue("labels", [], true);
+                  },
+                  title: "Permission",
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  required: true,
+                  placeholder: "Search permissions...",
+                  getCustomElement: (
+                    _values: FormValues<TeamPermission>,
+                    customElementProps: CustomElementProps,
+                  ) => {
+                    return (
+                      <PermissionPicker
+                        onChange={(value: Permission | null) => {
+                          customElementProps.onChange?.(value);
+                        }}
+                        onBlur={customElementProps.onBlur}
+                        tabIndex={customElementProps.tabIndex}
+                        initialValue={
+                          customElementProps.initialValue as
+                            | Permission
+                            | undefined
+                        }
+                        placeholder={customElementProps.placeholder}
+                        error={customElementProps.error}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    labels: true,
+                  },
+                  title: "Restrict to Labels",
+                  description:
+                    "If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    if (!values["permission"]) {
+                      return false;
+                    }
 
-              if (
-                values["permission"] &&
-                !PermissionHelper.isAccessControlPermission(
-                  values["permission"] as Permission,
-                )
-              ) {
-                return false;
-              }
+                    if (
+                      values["permission"] &&
+                      !PermissionHelper.isAccessControlPermission(
+                        values["permission"] as Permission,
+                      )
+                    ) {
+                      return false;
+                    }
 
-              return true;
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+                    return true;
+                  },
+                  required: false,
+                  placeholder: "Labels",
+                },
+              ]
+        }
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -636,14 +714,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Team Permisison Table */}
-      {getTeamPermissionTable({
-        permissionType: PermissionType.AllowPermissions,
-      })}
+      <TeamPermissionTable
+        permissionType={PermissionType.AllowPermissions}
+      />
 
       {/* Team Block Permisison Table */}
-      {getTeamPermissionTable({
-        permissionType: PermissionType.BlockPermissions,
-      })}
+      <TeamPermissionTable
+        permissionType={PermissionType.BlockPermissions}
+      />
 
       {/* Delete Team */}
       <ModelDelete
