@@ -435,7 +435,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               buttons: [
                 {
                   title: "Add in Bulk",
-                  icon: IconProp.Add,
                   buttonStyle: ButtonStyleType.NORMAL,
                   onClick: () => {
                     setShowBulkAddModal(true);

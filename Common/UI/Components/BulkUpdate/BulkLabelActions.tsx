@@ -92,6 +92,10 @@ function useBulkLabelActions<T extends BaseModel>(
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
 
+    // Close the form modal first so the progress modal is visible
+    setShowAddModal(false);
+    setShowRemoveModal(false);
+
     onBulkActionStart();
 
     const totalItems: Array<T> = [...items];
@@ -180,8 +184,6 @@ function useBulkLabelActions<T extends BaseModel>(
     }
 
     onBulkActionEnd();
-    setShowAddModal(false);
-    setShowRemoveModal(false);
     setBulkActionProps(null);
   };
 
