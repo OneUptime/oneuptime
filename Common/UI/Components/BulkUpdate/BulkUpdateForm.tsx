@@ -89,12 +89,20 @@ const BulkUpdateForm: <T extends GenericObject>(
   const showProgressInfo: GetReactElementFunction = (): ReactElement => {
     if (actionInProgress && progressInfo) {
       return (
-        <ProgressBar
-          count={progressInfo.successItems.length + progressInfo.failed.length}
-          totalCount={progressInfo.totalItems.length}
-          suffix={props.pluralLabel}
-          size={ProgressBarSize.Small}
-        />
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Please wait while the bulk action is being performed. This may take
+            a moment.
+          </p>
+          <ProgressBar
+            count={
+              progressInfo.successItems.length + progressInfo.failed.length
+            }
+            totalCount={progressInfo.totalItems.length}
+            suffix={props.pluralLabel}
+            size={ProgressBarSize.Small}
+          />
+        </div>
       );
     }
 
