@@ -58,9 +58,7 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
         >
           {props.count} of {props.totalCount} {props.suffix}
         </div>
-        <div className="text-sm font-medium text-indigo-600">
-          {percent}%
-        </div>
+        <div className="text-sm font-medium text-indigo-600">{percent}%</div>
       </div>
       <div
         className={`w-full ${progressBarSize} bg-gray-200 rounded-full overflow-hidden`}
