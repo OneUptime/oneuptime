@@ -438,7 +438,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
               buttons: [
                 {
                   title: "Add in Bulk",
-                  buttonStyle: ButtonStyleType.NORMAL,
+                  buttonStyle: ButtonStyleType.OUTLINE,
                   onClick: () => {
                     setShowBulkAddModal(true);
                   },
