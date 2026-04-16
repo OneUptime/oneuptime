@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import URL from "Common/Types/API/URL";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Green, Red } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -10,14 +10,19 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import CSVFileUpload, {
+  CSVColumn,
+  CSVRow,
+} from "Common/UI/Components/CSVFileUpload/CSVFileUpload";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import ProgressBar, {
@@ -132,71 +137,40 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
     total: number;
     succeeded: number;
     failed: Array<{ webhookUrl: string; error: string }>;
-    skippedInvalid: Array<string>;
   }>({
     completed: 0,
     total: 0,
     succeeded: 0,
     failed: [],
-    skippedInvalid: [],
   });
   const [refreshToggle, setRefreshToggle] = useState<string>(
     Date.now().toString(),
   );
+  const [csvRows, setCsvRows] = useState<Array<CSVRow>>([]);
+  const [sendNotification, setSendNotification] = useState<boolean>(false);
 
-  const parseBulkWebhookUrls: (input: string) => {
-    valid: Array<string>;
-    invalid: Array<string>;
-  } = (input: string) => {
-    const tokens: Array<string> = (input || "")
-      .split(/[\n,;]+/)
-      .map((t: string) => {
-        return t.trim();
-      })
-      .filter((t: string) => {
-        return t.length > 0;
-      });
+  const slackCsvColumns: Array<CSVColumn> = [
+    {
+      key: "workspaceName",
+      title: "Workspace Name",
+      required: true,
+      description: "Name of the Slack workspace for identification",
+    },
+    {
+      key: "webhookUrl",
+      title: "Incoming Webhook URL",
+      required: true,
+      description: "Slack incoming webhook URL",
+    },
+  ];
 
-    const seen: Set<string> = new Set<string>();
-    const valid: Array<string> = [];
-    const invalid: Array<string> = [];
-
-    for (const token of tokens) {
-      if (seen.has(token)) {
-        continue;
-      }
-      seen.add(token);
-
-      try {
-        new URL(token);
-        valid.push(token);
-      } catch {
-        invalid.push(token);
-      }
-    }
-
-    return { valid, invalid };
-  };
-
-  interface BulkAddFormData {
-    webhookUrls: string;
-    workspaceName: string;
-    sendYouHaveSubscribedMessage: boolean;
-  }
-
-  const handleBulkAddSubmit: (data: BulkAddFormData) => Promise<void> = async (
-    data: BulkAddFormData,
-  ): Promise<void> => {
+  const handleBulkAddSubmit: () => Promise<void> = async (): Promise<void> => {
     if (!props.currentProject || !props.currentProject._id) {
       throw new BadDataException("Project ID cannot be null");
     }
 
-    const { valid, invalid } = parseBulkWebhookUrls(data.webhookUrls);
-
-    if (valid.length === 0) {
-      throw new BadDataException(
-        "No valid webhook URLs found. Please enter one URL per line.",
-      );
+    if (csvRows.length === 0) {
+      return;
     }
 
     setShowBulkAddModal(false);
@@ -204,27 +178,27 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
     setBulkActionInProgress(true);
     setBulkProgress({
       completed: 0,
-      total: valid.length,
+      total: csvRows.length,
       succeeded: 0,
       failed: [],
-      skippedInvalid: invalid,
     });
 
     const projectId: ObjectID = new ObjectID(props.currentProject._id);
     let succeeded: number = 0;
     const failed: Array<{ webhookUrl: string; error: string }> = [];
 
-    for (let i: number = 0; i < valid.length; i++) {
-      const urlStr: string = valid[i]!;
+    for (let i: number = 0; i < csvRows.length; i++) {
+      const row: CSVRow = csvRows[i]!;
+      const urlStr: string = row["webhookUrl"] || "";
+      const workspaceName: string = row["workspaceName"] || "";
 
       try {
         const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
         subscriber.slackIncomingWebhookUrl = new URL(urlStr);
-        subscriber.slackWorkspaceName = data.workspaceName;
+        subscriber.slackWorkspaceName = workspaceName;
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;
-        subscriber.sendYouHaveSubscribedMessage =
-          data.sendYouHaveSubscribedMessage;
+        subscriber.sendYouHaveSubscribedMessage = sendNotification;
 
         await ModelAPI.create<StatusPageSubscriber>({
           model: subscriber,
@@ -240,10 +214,9 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
 
       setBulkProgress({
         completed: i + 1,
-        total: valid.length,
+        total: csvRows.length,
         succeeded,
         failed: [...failed],
-        skippedInvalid: invalid,
       });
     }
 
@@ -528,47 +501,48 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
           />
 
           {showBulkAddModal && (
-            <BasicFormModal<BulkAddFormData>
+            <Modal
               title="Add Slack Subscribers in Bulk"
-              description="Paste Slack incoming webhook URLs below. These subscribers will be added to this status page."
+              description="Upload a CSV file with Slack workspace names and webhook URLs. Download the template to get started."
               submitButtonText="Add Subscribers"
+              modalWidth={ModalWidth.Large}
               onClose={() => {
                 setShowBulkAddModal(false);
+                setCsvRows([]);
+                setSendNotification(false);
               }}
-              onSubmit={handleBulkAddSubmit}
-              formProps={{
-                name: "Bulk Add Slack Subscribers",
-                fields: [
-                  {
-                    field: { workspaceName: true },
-                    title: "Slack Workspace Name",
-                    description:
-                      "Name of the Slack workspace for identification.",
-                    fieldType: FormFieldSchemaType.Text,
-                    required: true,
-                    placeholder: "my-company-workspace",
-                  },
-                  {
-                    field: { webhookUrls: true },
-                    title: "Incoming Webhook URLs",
-                    description:
-                      "One Slack incoming webhook URL per line (or separated by commas or semicolons). Invalid or duplicate entries will be skipped.",
-                    fieldType: FormFieldSchemaType.LongText,
-                    required: true,
-                    placeholder:
-                      "https://hooks.slack.com/services/...\nhttps://hooks.slack.com/services/...",
-                  },
-                  {
-                    field: { sendYouHaveSubscribedMessage: true },
-                    title: "Send Subscription Notification",
-                    description:
-                      "Send a notification to the Slack channels confirming the subscription.",
-                    fieldType: FormFieldSchemaType.Toggle,
-                    required: false,
-                  },
-                ],
+              disableSubmitButton={csvRows.length === 0}
+              onSubmit={() => {
+                handleBulkAddSubmit();
               }}
-            />
+            >
+              <div className="space-y-4">
+                <CSVFileUpload
+                  columns={slackCsvColumns}
+                  onDataChanged={(data: Array<CSVRow>) => {
+                    setCsvRows(data);
+                  }}
+                  templateFileName="slack-subscribers-template.csv"
+                />
+                <div className="flex items-center space-x-3 pt-2">
+                  <Toggle
+                    value={sendNotification}
+                    onChange={(value: boolean) => {
+                      setSendNotification(value);
+                    }}
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-gray-700">
+                      Send Subscription Notification
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Send a notification to the Slack channels confirming the
+                      subscription.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Modal>
           )}
 
           {showProgressModal && (
@@ -619,22 +593,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
                                 ? "subscriber"
                                 : "subscribers"}{" "}
                               failed
-                            </div>
-                          </div>
-                        )}
-                        {bulkProgress.skippedInvalid.length > 0 && (
-                          <div className="flex items-center rounded-lg bg-yellow-50 p-3">
-                            <Icon
-                              className="h-5 w-5 flex-shrink-0"
-                              icon={IconProp.Alert}
-                              color={Yellow}
-                            />
-                            <div className="ml-2 text-sm font-medium text-yellow-800">
-                              {bulkProgress.skippedInvalid.length} invalid{" "}
-                              {bulkProgress.skippedInvalid.length === 1
-                                ? "URL"
-                                : "URLs"}{" "}
-                              skipped
                             </div>
                           </div>
                         )}
