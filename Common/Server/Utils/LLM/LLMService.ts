@@ -68,6 +68,11 @@ export default class LLMService {
     const baseUrl: string = config.baseUrl || "https://api.openai.com/v1";
     const modelName: string = config.modelName || "gpt-4o";
 
+    const isAzure: boolean = baseUrl.includes(".azure.com");
+    const authHeaders: { [key: string]: string } = isAzure
+      ? { "api-key": config.apiKey }
+      : { Authorization: `Bearer ${config.apiKey}` };
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(`${baseUrl}/chat/completions`),
@@ -82,7 +87,7 @@ export default class LLMService {
           temperature: request.temperature ?? 0.7,
         },
         headers: {
-          Authorization: `Bearer ${config.apiKey}`,
+          ...authHeaders,
           "Content-Type": "application/json",
         },
         options: {
