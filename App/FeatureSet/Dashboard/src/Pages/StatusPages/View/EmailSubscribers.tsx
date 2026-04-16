@@ -6,7 +6,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ButtonStyleType from "Common/UI/Components/Button/ButtonStyleType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
