@@ -194,7 +194,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
 
       try {
         const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
-        subscriber.slackIncomingWebhookUrl = new URL(urlStr);
+        subscriber.slackIncomingWebhookUrl = URL.fromString(urlStr);
         subscriber.slackWorkspaceName = workspaceName;
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;

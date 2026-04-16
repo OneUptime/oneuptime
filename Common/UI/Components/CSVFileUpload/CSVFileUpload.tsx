@@ -1,4 +1,5 @@
 import Button, { ButtonStyleType } from "../Button/Button";
+import Color from "../../../Types/Color";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, {
@@ -269,7 +270,7 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
           </div>
           <p className="text-xs text-gray-500">CSV files only</p>
           <input
-            ref={fileInputRef}
+            ref={fileInputRef as React.RefObject<HTMLInputElement>}
             type="file"
             accept=".csv"
             className="sr-only"
@@ -284,7 +285,7 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
           <Icon
             className="h-5 w-5 flex-shrink-0"
             icon={IconProp.CheckCircle}
-            color="#16a34a"
+            color={new Color("#16a34a")}
           />
           <div className="ml-2 text-sm font-medium text-green-800">
             {fileName} - {parsedRows.length} row(s) ready to import
