@@ -185,8 +185,8 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Bring Your Own Large Language Model",
             description: BILLING_ENABLED
-              ? "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers. You will not be charged for AI usage when you bring your own models."
-              : "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
+              ? "Configure LLM Providers for AI features. Connect to OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other providers. You will not be charged for AI usage when you bring your own models."
+              : "Configure LLM Providers for AI features. Connect to OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other providers.",
           }}
           documentationLink={Route.fromString("/docs/ai/llm-provider")}
           selectMoreFields={{
@@ -251,7 +251,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "sk-...",
               description:
-                "Required for OpenAI and Anthropic. Not required for Ollama if self-hosted.",
+                "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Not required for Ollama if self-hosted.",
             },
             {
               field: {
@@ -261,9 +261,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.Text,
               required: false,
-              placeholder: "gpt-4, claude-3-opus, llama2",
+              placeholder: "gpt-4o, gpt-5.4-mini, claude-3-opus, llama2",
               description:
-                "The specific model to use (e.g., gpt-4, claude-3-opus, llama2).",
+                "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq).",
             },
             {
               field: {
@@ -275,7 +275,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "http://localhost:11434",
               description:
-                "Required for Ollama. Optional for others to use custom endpoints.",
+                "Required for Azure OpenAI and Ollama. For Azure OpenAI use your endpoint (e.g. https://<resource>.services.ai.azure.com/api/projects/<project>/openai/v1). Optional for others to override the default endpoint.",
             },
             {
               field: {

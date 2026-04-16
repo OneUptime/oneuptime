@@ -276,7 +276,7 @@
         "bannerTitle": "Need help with setting up LLM Providers?",
         "bannerDescription": "LLM Providers enable AI features. You can configure global LLM Providers that are available to all projects.",
         "cardTitle": "Global LLM Providers",
-        "cardDescription": "Global LLM Providers are available to all projects for AI features. Configure OpenAI, Anthropic, Ollama, or other LLM providers.",
+        "cardDescription": "Global LLM Providers are available to all projects for AI features. Configure OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other LLM providers.",
         "noItems": "No LLM Providers configured. Add an LLM Provider to enable AI features.",
         "stepBasicInfo": "Basic Info",
         "stepProviderSettings": "Provider Settings",

@@ -46,7 +46,11 @@ export default class LLMService {
 
     switch (config.llmType) {
       case LlmType.OpenAI:
-        return await this.getOpenAICompletion(config, request);
+      case LlmType.Groq:
+      case LlmType.Mistral:
+        return await this.getOpenAICompatibleCompletion(config, request);
+      case LlmType.AzureOpenAI:
+        return await this.getAzureOpenAICompletion(config, request);
       case LlmType.Anthropic:
         return await this.getAnthropicCompletion(config, request);
       case LlmType.Ollama:
@@ -57,17 +61,32 @@ export default class LLMService {
   }
 
   @CaptureSpan()
-  private static async getOpenAICompletion(
+  private static async getOpenAICompatibleCompletion(
     config: LLMProviderConfig,
     request: LLMCompletionRequest,
   ): Promise<LLMCompletionResponse> {
     if (!config.apiKey) {
-      throw new BadDataException("OpenAI API key is required");
+      throw new BadDataException(`${config.llmType} API key is required`);
     }
 
-    const baseUrl: string = config.baseUrl || "https://api.openai.com/v1";
-    const modelName: string = config.modelName || "gpt-4o";
+    const defaultBaseUrls: Record<string, string> = {
+      [LlmType.OpenAI]: "https://api.openai.com/v1",
+      [LlmType.Groq]: "https://api.groq.com/openai/v1",
+      [LlmType.Mistral]: "https://api.mistral.ai/v1",
+    };
 
+    const defaultModels: Record<string, string> = {
+      [LlmType.OpenAI]: "gpt-4o",
+      [LlmType.Groq]: "llama-3.3-70b-versatile",
+      [LlmType.Mistral]: "mistral-large-latest",
+    };
+
+    const baseUrl: string =
+      config.baseUrl ||
+      defaultBaseUrls[config.llmType] ||
+      "https://api.openai.com/v1";
+    const modelName: string =
+      config.modelName || defaultModels[config.llmType] || "gpt-4o";
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(`${baseUrl}/chat/completions`),
@@ -88,20 +107,20 @@ export default class LLMService {
         options: {
           retries: 2,
           exponentialBackoff: true,
-          timeout: 120000, // 2 minutes timeout for LLM calls
+          timeout: 120000,
         },
       });
 
-    const openAILogAttributes: LogAttributes = {
+    const logAttributes: LogAttributes = {
       llmType: config.llmType,
       modelName: modelName,
     };
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from OpenAI API:", openAILogAttributes);
-      logger.error(response, openAILogAttributes);
+      logger.error(`Error from ${config.llmType} API:`, logAttributes);
+      logger.error(response, logAttributes);
       throw new BadDataException(
-        `OpenAI API error: ${JSON.stringify(response.jsonData)}`,
+        `${config.llmType} API error: ${JSON.stringify(response.jsonData)}`,
       );
     }
 
@@ -109,7 +128,83 @@ export default class LLMService {
     const choices: Array<JSONObject> = jsonData["choices"] as Array<JSONObject>;
 
     if (!choices || choices.length === 0) {
-      throw new BadDataException("No response from OpenAI");
+      throw new BadDataException(`No response from ${config.llmType}`);
+    }
+
+    const message: JSONObject = choices[0]!["message"] as JSONObject;
+    const usage: JSONObject = jsonData["usage"] as JSONObject;
+
+    return {
+      content: message["content"] as string,
+      usage: usage
+        ? {
+            promptTokens: usage["prompt_tokens"] as number,
+            completionTokens: usage["completion_tokens"] as number,
+            totalTokens: usage["total_tokens"] as number,
+          }
+        : undefined,
+    };
+  }
+
+  @CaptureSpan()
+  private static async getAzureOpenAICompletion(
+    config: LLMProviderConfig,
+    request: LLMCompletionRequest,
+  ): Promise<LLMCompletionResponse> {
+    if (!config.apiKey) {
+      throw new BadDataException("Azure OpenAI API key is required");
+    }
+
+    if (!config.baseUrl) {
+      throw new BadDataException(
+        "Azure OpenAI Base URL is required (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>/)",
+      );
+    }
+
+    const modelName: string = config.modelName || "gpt-4o";
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>({
+        url: URL.fromString(`${config.baseUrl}/chat/completions`),
+        data: {
+          model: modelName,
+          messages: request.messages.map((msg: LLMMessage) => {
+            return {
+              role: msg.role,
+              content: msg.content,
+            };
+          }),
+          temperature: request.temperature ?? 0.7,
+        },
+        headers: {
+          "api-key": config.apiKey,
+          "Content-Type": "application/json",
+        },
+        options: {
+          retries: 2,
+          exponentialBackoff: true,
+          timeout: 120000,
+        },
+      });
+
+    const logAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error from Azure OpenAI API:", logAttributes);
+      logger.error(response, logAttributes);
+      throw new BadDataException(
+        `Azure OpenAI API error: ${JSON.stringify(response.jsonData)}`,
+      );
+    }
+
+    const jsonData: JSONObject = response.jsonData as JSONObject;
+    const choices: Array<JSONObject> = jsonData["choices"] as Array<JSONObject>;
+
+    if (!choices || choices.length === 0) {
+      throw new BadDataException("No response from Azure OpenAI");
     }
 
     const message: JSONObject = choices[0]!["message"] as JSONObject;
