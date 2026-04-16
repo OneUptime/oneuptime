@@ -755,14 +755,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Team Permisison Table */}
-      <TeamPermissionTable
-        permissionType={PermissionType.AllowPermissions}
-      />
+      <TeamPermissionTable permissionType={PermissionType.AllowPermissions} />
 
       {/* Team Block Permisison Table */}
-      <TeamPermissionTable
-        permissionType={PermissionType.BlockPermissions}
-      />
+      <TeamPermissionTable permissionType={PermissionType.BlockPermissions} />
 
       {/* Delete Team */}
       <ModelDelete
