@@ -10,10 +10,7 @@ import URL from "Common/Types/API/URL";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  PermissionProps,
-} from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
@@ -36,7 +33,10 @@ import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSe
 import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  CardSelectOption,
+  CardSelectOptionGroup,
+} from "Common/UI/Components/CardSelect/CardSelect";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, {
   Fragment,
@@ -126,13 +126,58 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         "Here you can manage block permissions for this team. This will override any allow permissions set for this team.";
     }
 
-    const roleDropdownOptions: Array<DropdownOption> =
-      PermissionHelper.getRolePermissionProps().map((p: PermissionProps) => {
-        return {
-          value: p.permission,
-          label: p.title,
-        };
-      });
+    const roleIconMap: Record<string, IconProp> = {
+      [Permission.ProjectOwner]: IconProp.ShieldCheck,
+      [Permission.ProjectAdmin]: IconProp.User,
+      [Permission.ProjectMember]: IconProp.Team,
+      [Permission.IncidentManager]: IconProp.Alert,
+      [Permission.AlertManager]: IconProp.BellAlert,
+      [Permission.MonitorManager]: IconProp.Activity,
+      [Permission.StatusPageManager]: IconProp.Globe,
+      [Permission.OnCallManager]: IconProp.Phone,
+      [Permission.ScheduledMaintenanceManager]: IconProp.Calendar,
+      [Permission.TelemetryManager]: IconProp.ChartBar,
+      [Permission.SettingsManager]: IconProp.Settings,
+      [Permission.BillingManager]: IconProp.CreditCard,
+      [Permission.Viewer]: IconProp.Eye,
+      [Permission.WorkflowManager]: IconProp.Workflow,
+    };
+
+    const projectRoles: Array<CardSelectOption> = [];
+    const domainRoles: Array<CardSelectOption> = [];
+
+    for (const p of PermissionHelper.getRolePermissionProps()) {
+      const option: CardSelectOption = {
+        value: p.permission,
+        title: p.title,
+        description: p.description,
+        icon: roleIconMap[p.permission] || IconProp.Lock,
+      };
+
+      if (
+        p.permission === Permission.ProjectOwner ||
+        p.permission === Permission.ProjectAdmin ||
+        p.permission === Permission.ProjectMember ||
+        p.permission === Permission.Viewer
+      ) {
+        projectRoles.push(option);
+      } else {
+        domainRoles.push(option);
+      }
+    }
+
+    const roleCardSelectOptions: Array<
+      CardSelectOption | CardSelectOptionGroup
+    > = [
+      {
+        label: "Project Roles",
+        options: projectRoles,
+      },
+      {
+        label: "Domain Roles",
+        options: domainRoles,
+      },
+    ];
 
     const createButtons: Array<CardButtonSchema> = [
       {
@@ -171,11 +216,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         isCreateable={false}
         showCreateForm={showCreateForm}
         name={"Settings > Team > Permissions-" + permissionType}
-        createEditModalWidth={
-          createPermissionType === CreatePermissionType.Granular
-            ? ModalWidth.Large
-            : ModalWidth.Normal
-        }
+        createEditModalWidth={ModalWidth.Large}
         isViewable={false}
         createEditFromRef={formRef}
         query={{
@@ -209,8 +250,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   title: "Role",
                   description:
                     "Select a role to assign to this team. Roles provide a predefined set of permissions.",
-                  fieldType: FormFieldSchemaType.Dropdown,
-                  dropdownOptions: roleDropdownOptions,
+                  fieldType: FormFieldSchemaType.CardSelect,
+                  cardSelectOptions: roleCardSelectOptions,
                   required: true,
                   placeholder: "Select a role",
                 },
