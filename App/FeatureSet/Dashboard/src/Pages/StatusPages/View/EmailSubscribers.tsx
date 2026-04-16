@@ -7,8 +7,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -18,6 +20,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProgressBar, {
+  ProgressBarSize,
+} from "Common/UI/Components/ProgressBar/ProgressBar";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -119,11 +124,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   >([]);
 
   const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
-  const [bulkAddResult, setBulkAddResult] = useState<{
-    created: number;
-    skippedInvalid: Array<string>;
+  const [showProgressModal, setShowProgressModal] = useState<boolean>(false);
+  const [bulkActionInProgress, setBulkActionInProgress] =
+    useState<boolean>(false);
+  const [bulkProgress, setBulkProgress] = useState<{
+    completed: number;
+    total: number;
+    succeeded: number;
     failed: Array<{ email: string; error: string }>;
-  } | null>(null);
+    skippedInvalid: Array<string>;
+  }>({
+    completed: 0,
+    total: 0,
+    succeeded: 0,
+    failed: [],
+    skippedInvalid: [],
+  });
   const [refreshToggle, setRefreshToggle] = useState<string>(
     Date.now().toString(),
   );
@@ -183,11 +199,25 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       );
     }
 
+    // Close the form modal and show the progress modal
+    setShowBulkAddModal(false);
+    setShowProgressModal(true);
+    setBulkActionInProgress(true);
+    setBulkProgress({
+      completed: 0,
+      total: valid.length,
+      succeeded: 0,
+      failed: [],
+      skippedInvalid: invalid,
+    });
+
     const projectId: ObjectID = new ObjectID(props.currentProject._id);
-    let created: number = 0;
+    let succeeded: number = 0;
     const failed: Array<{ email: string; error: string }> = [];
 
-    for (const emailStr of valid) {
+    for (let i: number = 0; i < valid.length; i++) {
+      const emailStr: string = valid[i]!;
+
       try {
         const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
         subscriber.subscriberEmail = new Email(emailStr);
@@ -201,21 +231,24 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           model: subscriber,
           modelType: StatusPageSubscriber,
         });
-        created++;
+        succeeded++;
       } catch (err) {
         failed.push({
           email: emailStr,
           error: API.getFriendlyMessage(err),
         });
       }
+
+      setBulkProgress({
+        completed: i + 1,
+        total: valid.length,
+        succeeded,
+        failed: [...failed],
+        skippedInvalid: invalid,
+      });
     }
 
-    setBulkAddResult({
-      created,
-      skippedInvalid: invalid,
-      failed,
-    });
-    setShowBulkAddModal(false);
+    setBulkActionInProgress(false);
     setRefreshToggle(Date.now().toString());
   };
 
@@ -364,39 +397,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
           )}
           <SubscriberNotificationWarnings statusPageId={modelId} />
-          {bulkAddResult && (
-            <Alert
-              type={
-                bulkAddResult.failed.length > 0 ||
-                bulkAddResult.skippedInvalid.length > 0
-                  ? AlertType.WARNING
-                  : AlertType.SUCCESS
-              }
-              title={`Bulk add complete: ${bulkAddResult.created} subscriber(s) created${
-                bulkAddResult.skippedInvalid.length > 0
-                  ? `, ${bulkAddResult.skippedInvalid.length} invalid email(s) skipped (${bulkAddResult.skippedInvalid
-                      .slice(0, 5)
-                      .join(", ")}${
-                      bulkAddResult.skippedInvalid.length > 5 ? ", ..." : ""
-                    })`
-                  : ""
-              }${
-                bulkAddResult.failed.length > 0
-                  ? `, ${bulkAddResult.failed.length} failed (${bulkAddResult.failed
-                      .slice(0, 3)
-                      .map((f: { email: string; error: string }) => {
-                        return `${f.email}: ${f.error}`;
-                      })
-                      .join("; ")}${
-                      bulkAddResult.failed.length > 3 ? "; ..." : ""
-                    })`
-                  : ""
-              }.`}
-              onClose={() => {
-                setBulkAddResult(null);
-              }}
-            />
-          )}
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-subscriber"
@@ -438,7 +438,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   icon: IconProp.Add,
                   buttonStyle: ButtonStyleType.NORMAL,
                   onClick: () => {
-                    setBulkAddResult(null);
                     setShowBulkAddModal(true);
                   },
                 } as CardButtonSchema,
@@ -571,6 +570,114 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     required: false,
                   },
                 ],
+              }}
+            />
+          )}
+
+          {showProgressModal && (
+            <ConfirmModal
+              title={
+                bulkActionInProgress
+                  ? "Adding Subscribers..."
+                  : "Bulk Add Complete"
+              }
+              description={
+                <div>
+                  {bulkActionInProgress ? (
+                    <ProgressBar
+                      count={bulkProgress.completed}
+                      totalCount={bulkProgress.total}
+                      suffix="subscribers"
+                      size={ProgressBarSize.Small}
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex flex-col space-y-3">
+                        {bulkProgress.succeeded > 0 && (
+                          <div className="flex items-center rounded-lg bg-green-50 p-3">
+                            <Icon
+                              className="h-5 w-5 flex-shrink-0"
+                              icon={IconProp.CheckCircle}
+                              color={Green}
+                            />
+                            <div className="ml-2 text-sm font-medium text-green-800">
+                              {bulkProgress.succeeded}{" "}
+                              {bulkProgress.succeeded === 1
+                                ? "subscriber"
+                                : "subscribers"}{" "}
+                              added successfully
+                            </div>
+                          </div>
+                        )}
+                        {bulkProgress.failed.length > 0 && (
+                          <div className="flex items-center rounded-lg bg-red-50 p-3">
+                            <Icon
+                              className="h-5 w-5 flex-shrink-0"
+                              icon={IconProp.Close}
+                              color={Red}
+                            />
+                            <div className="ml-2 text-sm font-medium text-red-800">
+                              {bulkProgress.failed.length}{" "}
+                              {bulkProgress.failed.length === 1
+                                ? "subscriber"
+                                : "subscribers"}{" "}
+                              failed
+                            </div>
+                          </div>
+                        )}
+                        {bulkProgress.skippedInvalid.length > 0 && (
+                          <div className="flex items-center rounded-lg bg-yellow-50 p-3">
+                            <Icon
+                              className="h-5 w-5 flex-shrink-0"
+                              icon={IconProp.Alert}
+                              color={Yellow}
+                            />
+                            <div className="ml-2 text-sm font-medium text-yellow-800">
+                              {bulkProgress.skippedInvalid.length} invalid{" "}
+                              {bulkProgress.skippedInvalid.length === 1
+                                ? "email"
+                                : "emails"}{" "}
+                              skipped
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {bulkProgress.failed.length > 0 && (
+                        <div className="rounded-lg border border-gray-200 overflow-hidden">
+                          <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+                            {bulkProgress.failed.map(
+                              (
+                                failedItem: {
+                                  email: string;
+                                  error: string;
+                                },
+                                i: number,
+                              ) => {
+                                return (
+                                  <div className="px-4 py-3 text-sm" key={i}>
+                                    <div className="font-medium text-gray-900">
+                                      {failedItem.email}
+                                    </div>
+                                    <div className="text-gray-500 mt-0.5">
+                                      {failedItem.error}
+                                    </div>
+                                  </div>
+                                );
+                              },
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              }
+              submitButtonType={ButtonStyleType.NORMAL}
+              disableSubmitButton={bulkActionInProgress}
+              submitButtonText="Close"
+              onSubmit={() => {
+                setShowProgressModal(false);
               }}
             />
           )}
