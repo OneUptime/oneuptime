@@ -583,12 +583,18 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               description={
                 <div>
                   {bulkActionInProgress ? (
-                    <ProgressBar
-                      count={bulkProgress.completed}
-                      totalCount={bulkProgress.total}
-                      suffix="subscribers"
-                      size={ProgressBarSize.Small}
-                    />
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-500">
+                        Please wait while subscribers are being added. This may
+                        take a moment.
+                      </p>
+                      <ProgressBar
+                        count={bulkProgress.completed}
+                        totalCount={bulkProgress.total}
+                        suffix="subscribers"
+                        size={ProgressBarSize.Small}
+                      />
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <div className="flex flex-col space-y-3">

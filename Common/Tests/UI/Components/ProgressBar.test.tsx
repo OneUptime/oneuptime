@@ -22,14 +22,9 @@ describe("ProgressBar Component", () => {
   test("should display the correct count and total count with suffix", () => {
     render(<ProgressBar count={30} totalCount={99} suffix="items" />);
     const countText: HTMLElement = screen.getByTestId("progress-bar-count");
-    const totalCountText: HTMLElement = screen.getByTestId(
-      "progress-bar-total-count",
-    );
     expect(countText).toBeInTheDocument();
-    expect(totalCountText).toBeInTheDocument();
 
-    expect(countText.innerHTML).toEqual("30 items");
-    expect(totalCountText.innerHTML).toEqual("99 items");
+    expect(countText.innerHTML).toEqual("30 of 99 items");
   });
 
   test("should handle zero total count without crashing", () => {

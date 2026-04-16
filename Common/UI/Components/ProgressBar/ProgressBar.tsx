@@ -44,35 +44,37 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
   let progressBarSize: string = "h-4";
 
   if (props.size === ProgressBarSize.Small) {
-    progressBarSize = "h-2";
+    progressBarSize = "h-2.5";
   } else if (props.size === ProgressBarSize.Large) {
     progressBarSize = "h-6";
   }
 
   return (
-    <div
-      className={`w-full ${progressBarSize} mb-4 bg-gray-200 rounded-full`}
-      role="progressbar"
-      aria-valuenow={percent}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-label={`Progress: ${props.count} of ${props.totalCount} ${props.suffix} (${percent}%)`}
-    >
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <div
+          data-testid="progress-bar-count"
+          className="text-sm font-medium text-gray-700"
+        >
+          {props.count} of {props.totalCount} {props.suffix}
+        </div>
+        <div className="text-sm font-medium text-indigo-600">
+          {percent}%
+        </div>
+      </div>
       <div
-        data-testid="progress-bar"
-        className={`${progressBarSize} bg-indigo-600 rounded-full `}
-        style={{ width: percent + "%" }}
-      ></div>
-      <div
-        className="text-sm text-gray-400 mt-1 flex justify-between"
-        aria-hidden="true"
+        className={`w-full ${progressBarSize} bg-gray-200 rounded-full overflow-hidden`}
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Progress: ${props.count} of ${props.totalCount} ${props.suffix} (${percent}%)`}
       >
-        <div data-testid="progress-bar-count">
-          {props.count} {props.suffix}
-        </div>
-        <div data-testid="progress-bar-total-count">
-          {props.totalCount} {props.suffix}
-        </div>
+        <div
+          data-testid="progress-bar"
+          className={`${progressBarSize} bg-indigo-600 rounded-full transition-all duration-300 ease-out`}
+          style={{ width: percent + "%" }}
+        ></div>
       </div>
     </div>
   );
