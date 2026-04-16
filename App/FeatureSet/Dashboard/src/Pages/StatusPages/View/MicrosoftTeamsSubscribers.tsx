@@ -198,7 +198,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
 
       try {
         const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
-        subscriber.microsoftTeamsIncomingWebhookUrl = new URL(urlStr);
+        subscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(urlStr);
         subscriber.microsoftTeamsWorkspaceName = workspaceName;
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;
