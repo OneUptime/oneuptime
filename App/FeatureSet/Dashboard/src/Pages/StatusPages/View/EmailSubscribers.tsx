@@ -4,12 +4,17 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
+import Email from "Common/Types/Email";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ButtonStyleType from "Common/UI/Components/Button/ButtonStyleType";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -112,6 +117,99 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   const [formFields, setFormFields] = React.useState<
     Array<ModelField<StatusPageSubscriber>>
   >([]);
+
+  const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
+  const [bulkAddResult, setBulkAddResult] = useState<{
+    created: number;
+    skippedInvalid: Array<string>;
+    failed: Array<{ email: string; error: string }>;
+  } | null>(null);
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    Date.now().toString(),
+  );
+
+  const parseBulkEmails: (input: string) => {
+    valid: Array<string>;
+    invalid: Array<string>;
+  } = (input: string) => {
+    const tokens: Array<string> = (input || "")
+      .split(/[\s,;]+/)
+      .map((t: string) => {
+        return t.trim();
+      })
+      .filter((t: string) => {
+        return t.length > 0;
+      });
+
+    const seen: Set<string> = new Set<string>();
+    const valid: Array<string> = [];
+    const invalid: Array<string> = [];
+
+    for (const token of tokens) {
+      const normalized: string = token.toLowerCase();
+      if (seen.has(normalized)) {
+        continue;
+      }
+      seen.add(normalized);
+
+      if (Email.isValid(normalized)) {
+        valid.push(normalized);
+      } else {
+        invalid.push(token);
+      }
+    }
+
+    return { valid, invalid };
+  };
+
+  const handleBulkAddSubmit: (data: {
+    emails: string;
+  }) => Promise<void> = async (data: { emails: string }): Promise<void> => {
+    if (!props.currentProject || !props.currentProject._id) {
+      throw new BadDataException("Project ID cannot be null");
+    }
+
+    const { valid, invalid } = parseBulkEmails(data.emails);
+
+    if (valid.length === 0) {
+      throw new BadDataException(
+        "No valid email addresses found. Please enter one email per line.",
+      );
+    }
+
+    const projectId: ObjectID = new ObjectID(props.currentProject._id);
+    let created: number = 0;
+    const failed: Array<{ email: string; error: string }> = [];
+
+    for (const emailStr of valid) {
+      try {
+        const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+        subscriber.subscriberEmail = new Email(emailStr);
+        subscriber.statusPageId = modelId;
+        subscriber.projectId = projectId;
+        subscriber.isSubscriptionConfirmed = true;
+
+        await ModelAPI.create<StatusPageSubscriber>({
+          model: subscriber,
+          modelType: StatusPageSubscriber,
+        });
+        created++;
+      } catch (err) {
+        failed.push({
+          email: emailStr,
+          error: API.getFriendlyMessage(err),
+        });
+      }
+    }
+
+    setBulkAddResult({
+      created,
+      skippedInvalid: invalid,
+      failed,
+    });
+    setShowBulkAddModal(false);
+    setRefreshToggle(Date.now().toString());
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -258,6 +356,39 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
           )}
           <SubscriberNotificationWarnings statusPageId={modelId} />
+          {bulkAddResult && (
+            <Alert
+              type={
+                bulkAddResult.failed.length > 0 ||
+                bulkAddResult.skippedInvalid.length > 0
+                  ? AlertType.WARNING
+                  : AlertType.SUCCESS
+              }
+              title={`Bulk add complete: ${bulkAddResult.created} subscriber(s) created${
+                bulkAddResult.skippedInvalid.length > 0
+                  ? `, ${bulkAddResult.skippedInvalid.length} invalid email(s) skipped (${bulkAddResult.skippedInvalid
+                      .slice(0, 5)
+                      .join(", ")}${
+                      bulkAddResult.skippedInvalid.length > 5 ? ", ..." : ""
+                    })`
+                  : ""
+              }${
+                bulkAddResult.failed.length > 0
+                  ? `, ${bulkAddResult.failed.length} failed (${bulkAddResult.failed
+                      .slice(0, 3)
+                      .map((f: { email: string; error: string }) => {
+                        return `${f.email}: ${f.error}`;
+                      })
+                      .join("; ")}${
+                      bulkAddResult.failed.length > 3 ? "; ..." : ""
+                    })`
+                  : ""
+              }.`}
+              onClose={() => {
+                setBulkAddResult(null);
+              }}
+            />
+          )}
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-subscriber"
@@ -288,10 +419,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               item.projectId = new ObjectID(props.currentProject._id);
               return Promise.resolve(item);
             }}
+            refreshToggle={refreshToggle}
             cardProps={{
               title: "Email Subscribers",
               description:
                 "Here are the list of subscribers who have subscribed to the status page.",
+              buttons: [
+                {
+                  title: "Add in Bulk",
+                  icon: IconProp.Add,
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  onClick: () => {
+                    setBulkAddResult(null);
+                    setShowBulkAddModal(true);
+                  },
+                } as CardButtonSchema,
+              ],
             }}
             noItemsMessage={"No subscribers found."}
             formSteps={[
@@ -379,6 +522,33 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
             ]}
           />
+
+          {showBulkAddModal && (
+            <BasicFormModal<{ emails: string }>
+              title="Add Email Subscribers in Bulk"
+              description="Paste one email address per line (or separated by commas, semicolons, or spaces). These subscribers will be added to this status page and marked as confirmed."
+              submitButtonText="Add Subscribers"
+              onClose={() => {
+                setShowBulkAddModal(false);
+              }}
+              onSubmit={handleBulkAddSubmit}
+              formProps={{
+                name: "Bulk Add Subscribers",
+                fields: [
+                  {
+                    field: { emails: true },
+                    title: "Emails",
+                    description:
+                      "One email per line. Invalid or duplicate entries will be skipped.",
+                    fieldType: FormFieldSchemaType.LongText,
+                    required: true,
+                    placeholder:
+                      "user1@example.com\nuser2@example.com\nuser3@example.com",
+                  },
+                ],
+              }}
+            />
+          )}
         </>
       ) : (
         <></>
