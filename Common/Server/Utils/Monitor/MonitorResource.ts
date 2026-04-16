@@ -727,6 +727,15 @@ export default class MonitorResourceUtil {
         evaluationSummary: evaluationSummary,
       });
 
+      await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        monitorId: monitor.id!,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        rootCause: "No monitoring criteria met. Change to default status.",
+        criteriaInstance: null, // no criteria met!
+        dataToProcess: dataToProcess,
+        evaluationSummary: evaluationSummary,
+      });
+
       // get last monitor status timeline.
       const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
         await MonitorStatusTimelineService.findOneBy({
