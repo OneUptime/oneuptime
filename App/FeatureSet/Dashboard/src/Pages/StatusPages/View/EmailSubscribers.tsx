@@ -162,9 +162,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     return { valid, invalid };
   };
 
-  const handleBulkAddSubmit: (data: {
+  interface BulkAddFormData {
     emails: string;
-  }) => Promise<void> = async (data: { emails: string }): Promise<void> => {
+    isSubscriptionConfirmed: boolean;
+    sendYouHaveSubscribedMessage: boolean;
+  }
+
+  const handleBulkAddSubmit: (data: BulkAddFormData) => Promise<void> = async (
+    data: BulkAddFormData,
+  ): Promise<void> => {
     if (!props.currentProject || !props.currentProject._id) {
       throw new BadDataException("Project ID cannot be null");
     }
@@ -187,7 +193,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         subscriber.subscriberEmail = new Email(emailStr);
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;
-        subscriber.isSubscriptionConfirmed = true;
+        subscriber.isSubscriptionConfirmed = data.isSubscriptionConfirmed;
+        subscriber.sendYouHaveSubscribedMessage =
+          data.sendYouHaveSubscribedMessage;
 
         await ModelAPI.create<StatusPageSubscriber>({
           model: subscriber,
@@ -524,9 +532,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           />
 
           {showBulkAddModal && (
-            <BasicFormModal<{ emails: string }>
+            <BasicFormModal<BulkAddFormData>
               title="Add Email Subscribers in Bulk"
-              description="Paste one email address per line (or separated by commas, semicolons, or spaces). These subscribers will be added to this status page and marked as confirmed."
+              description="Paste email addresses below. These subscribers will be added to this status page."
               submitButtonText="Add Subscribers"
               onClose={() => {
                 setShowBulkAddModal(false);
@@ -539,11 +547,28 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     field: { emails: true },
                     title: "Emails",
                     description:
-                      "One email per line. Invalid or duplicate entries will be skipped.",
+                      "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder:
                       "user1@example.com\nuser2@example.com\nuser3@example.com",
+                  },
+                  {
+                    field: { isSubscriptionConfirmed: true },
+                    title: "Do not send confirmation link",
+                    description:
+                      "If this option is checked, then no confirmation link will be sent to the subscribers.",
+                    fieldType: FormFieldSchemaType.Toggle,
+                    required: false,
+                    defaultValue: true,
+                  },
+                  {
+                    field: { sendYouHaveSubscribedMessage: true },
+                    title: "Send Subscription Email",
+                    description:
+                      "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.",
+                    fieldType: FormFieldSchemaType.Toggle,
+                    required: false,
                   },
                 ],
               }}
