@@ -283,6 +283,7 @@ import { AddGlobalSmtpOAuth1775900000000 } from "./1775900000000-AddGlobalSmtpOA
 import { AddMetricPipelineRules1776430228051 } from "./1776430228051-AddMetricPipelineRules";
 import { AddKubernetesDockerOwners1776500000000 } from "./1776500000000-AddKubernetesDockerOwners";
 import { AddMetricRecordingRules1776600000000 } from "./1776600000000-AddMetricRecordingRules";
+import { AddKubernetesResourceInventory1776700000000 } from "./1776700000000-AddKubernetesResourceInventory";
 
 export default [
   InitialMigration,
@@ -570,4 +571,5 @@ export default [
   AddMetricPipelineRules1776430228051,
   AddKubernetesDockerOwners1776500000000,
   AddMetricRecordingRules1776600000000,
+  AddKubernetesResourceInventory1776700000000,
 ];

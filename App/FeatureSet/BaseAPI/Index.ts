@@ -87,6 +87,7 @@ import AlertCustomFieldService, {
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
+import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import AlertNoteTemplateService, {
   Service as AlertNoteTemplateServiceType,
 } from "Common/Server/Services/AlertNoteTemplateService";
@@ -1249,6 +1250,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new TelemetryExceptionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new KubernetesResourceAPI().getRouter(),
     );
 
     // scheduled maintenance template

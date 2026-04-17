@@ -31,6 +31,21 @@ import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
 import LogDropFilterService from "./LogDropFilterService";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogScrubRuleService from "./LogScrubRuleService";
+import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
+import {
+  extractInventoryResource,
+  INVENTORIED_RESOURCE_TYPES,
+  ParsedKubernetesResource,
+} from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
+
+const K8S_INVENTORY_DISABLED: boolean =
+  process.env["DISABLE_K8S_INVENTORY_INGEST"] === "true";
+
+const INVENTORIED_TYPE_SET: Set<string> = new Set(
+  INVENTORIED_RESOURCE_TYPES.map((t: string) => {
+    return t.toLowerCase();
+  }),
+);
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static async flushLogsBuffer(
@@ -102,6 +117,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
+      // Buffer for k8s object snapshots flushed to the KubernetesResource
+      // inventory table once per batch, keyed by clusterId. Populated only
+      // when a log record carries the k8sobjects attribute set; otherwise
+      // zero cost.
+      const k8sInventoryBuffer: Map<
+        string,
+        Array<ParsedKubernetesResource>
+      > = new Map();
+
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
@@ -136,11 +160,29 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             resourceAttributes_raw,
           );
 
-          // Auto-discover Kubernetes cluster from resource attributes
-          await this.autoDiscoverKubernetesCluster({
-            projectId,
-            attributes: resourceAttributes_raw,
-          });
+          // Auto-discover Kubernetes cluster from resource attributes.
+          // Returns the cluster ID so the inventory hook can key its buffer.
+          const kubernetesClusterId: ObjectID | null =
+            await this.autoDiscoverKubernetesCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          // Detect whether this batch of log records carries k8sobjects
+          // snapshots. The OTel k8sobjects receiver tags the resource
+          // with `k8s.resource.name` (plural lowercase kind) — absent on
+          // non-k8sobjects data, so the inventory hook stays free.
+          const k8sResourceType: string | null = K8S_INVENTORY_DISABLED
+            ? null
+            : this.getStringAttribute(
+                resourceAttributes_raw,
+                "k8s.resource.name",
+              );
+          const isK8sInventoryBatch: boolean = Boolean(
+            k8sResourceType &&
+              kubernetesClusterId &&
+              INVENTORIED_TYPE_SET.has(k8sResourceType.toLowerCase()),
+          );
 
           // Auto-discover Docker host from resource attributes
           await this.autoDiscoverDockerHost({
@@ -306,6 +348,42 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     body = String(log["body"] || "");
                   }
 
+                  // Kubernetes inventory hook: convert the k8sobjects log
+                  // body into a row for the inventory upsert. Buffered per
+                  // cluster and flushed once per request batch below. Uses
+                  // the agent-observed timestamp so out-of-order delivery
+                  // doesn't regress newer snapshots.
+                  if (
+                    isK8sInventoryBatch &&
+                    kubernetesClusterId &&
+                    k8sResourceType &&
+                    body
+                  ) {
+                    try {
+                      const parsed: ParsedKubernetesResource | null =
+                        extractInventoryResource({
+                          resourceType: k8sResourceType,
+                          logBody: body,
+                          lastSeenAt: timeDate,
+                        });
+                      if (parsed) {
+                        const key: string = kubernetesClusterId.toString();
+                        let bucket: Array<ParsedKubernetesResource> | undefined =
+                          k8sInventoryBuffer.get(key);
+                        if (!bucket) {
+                          bucket = [];
+                          k8sInventoryBuffer.set(key, bucket);
+                        }
+                        bucket.push(parsed);
+                      }
+                    } catch (invErr) {
+                      // Inventory parsing must never fail log ingest.
+                      logger.warn(
+                        `K8s inventory parse failed for resourceType=${k8sResourceType}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                      );
+                    }
+                  }
+
                   let traceId: string = "";
                   try {
                     traceId = Text.convertBase64ToHex(log["traceId"] as string);
@@ -435,6 +513,27 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       await this.flushLogsBuffer(dbLogs, true);
+
+      // Flush the k8s inventory buffer — one upsert per cluster. Failures
+      // must not affect log ingest; they're logged and swallowed.
+      if (k8sInventoryBuffer.size > 0) {
+        for (const [clusterIdStr, resources] of k8sInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await KubernetesResourceService.bulkUpsert({
+              projectId,
+              kubernetesClusterId: new ObjectID(clusterIdStr),
+              resources,
+            });
+          } catch (invErr) {
+            logger.error(
+              `Error upserting KubernetesResource inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
 
       if (totalLogsProcessed === 0) {
         logger.warn("No valid logs were processed from the request");

@@ -28,15 +28,14 @@ import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
 import {
-  fetchK8sObjectsBatch,
   fetchClusterWarningEvents,
-  KubernetesObjectType,
   KubernetesEvent,
 } from "../Utils/KubernetesObjectFetcher";
-import {
-  KubernetesPodObject,
-  KubernetesNodeObject,
-} from "../Utils/KubernetesObjectParser";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
@@ -144,252 +143,99 @@ const KubernetesClusterOverview: FunctionComponent<
       setCluster(item);
 
       if (item?.clusterIdentifier) {
-        // Fetch counts dynamically from metrics data
-        const [nodes, pods, namespaces]: [
-          Array<KubernetesResource>,
-          Array<KubernetesResource>,
-          Array<KubernetesResource>,
-        ] = await Promise.all([
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.node.cpu.utilization",
-            resourceNameAttribute: "resource.k8s.node.name",
-            namespaceAttribute: "resource.k8s.node.name",
-          }),
-          KubernetesResourceUtils.fetchResourceListWithMemory({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.pod.cpu.utilization",
-            resourceNameAttribute: "resource.k8s.pod.name",
-            memoryMetricName: "k8s.pod.memory.usage",
-          }),
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.pod.cpu.utilization",
-            resourceNameAttribute: "resource.k8s.namespace.name",
-            namespaceAttribute: "resource.k8s.namespace.name",
-          }),
-        ]);
+        // Fetch counts + phase/ready/pressure summaries from the
+        // KubernetesResource inventory table in a single round-trip.
+        // Replaces the 18 ClickHouse groupBy + batch-log queries the
+        // overview used to issue on every load.
+        const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
+          .addRoute("/kubernetes-resource/inventory-summary/")
+          .addRoute(modelId.toString());
 
-        setNodeCount(nodes.length);
-        setPodCount(pods.length);
-        setNamespaceCount(namespaces.length);
-
-        // Fetch additional resource counts from metrics
-        const [
-          deployments,
-          statefulSets,
-          daemonSets,
-          jobs,
-          cronJobs,
-          containers,
-        ] = await Promise.all([
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.deployment.desired",
-            resourceNameAttribute: "resource.k8s.deployment.name",
-          }),
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.statefulset.desired_pods",
-            resourceNameAttribute: "resource.k8s.statefulset.name",
-          }),
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.daemonset.desired_scheduled_nodes",
-            resourceNameAttribute: "resource.k8s.daemonset.name",
-          }),
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.job.active_pods",
-            resourceNameAttribute: "resource.k8s.job.name",
-          }),
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "k8s.cronjob.active_jobs",
-            resourceNameAttribute: "resource.k8s.cronjob.name",
-          }),
-          KubernetesResourceUtils.fetchResourceList({
-            clusterIdentifier: item.clusterIdentifier,
-            metricName: "container.cpu.utilization",
-            resourceNameAttribute: "resource.k8s.container.name",
-          }),
-        ]);
-
-        setDeploymentCount(deployments.length);
-        setStatefulSetCount(statefulSets.length);
-        setDaemonSetCount(daemonSets.length);
-        setJobCount(jobs.length);
-        setCronJobCount(cronJobs.length);
-        setContainerCount(containers.length);
-
-        // Top resource consumers
-        const sortedByCpu: Array<KubernetesResource> = [...pods]
-          .filter((p: KubernetesResource) => {
-            return p.cpuUtilization !== null && p.cpuUtilization !== undefined;
-          })
-          .sort((a: KubernetesResource, b: KubernetesResource) => {
-            return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
-          })
-          .slice(0, 5);
-        setTopCpuPods(sortedByCpu);
-
-        const sortedByMemory: Array<KubernetesResource> = [...pods]
-          .filter((p: KubernetesResource) => {
-            return (
-              p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
-            );
-          })
-          .sort((a: KubernetesResource, b: KubernetesResource) => {
-            return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
-          })
-          .slice(0, 5);
-        setTopMemoryPods(sortedByMemory);
-
-        // Fetch k8s objects for health status and fallback counts
+        let summary: JSONObject | null = null;
         try {
-          const objectResults: Array<Map<string, KubernetesObjectType>> =
-            await Promise.all([
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "pods",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "nodes",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "persistentvolumeclaims",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "persistentvolumes",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "deployments",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "statefulsets",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "daemonsets",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "jobs",
-              }),
-              fetchK8sObjectsBatch({
-                clusterIdentifier: item.clusterIdentifier,
-                resourceType: "cronjobs",
-              }),
-            ]);
+          const summaryResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.post({
+              url: summaryUrl,
+              data: {},
+              headers: {
+                ...ModelAPI.getCommonHeaders(),
+              },
+            });
+          if (summaryResponse instanceof HTTPErrorResponse) {
+            throw summaryResponse;
+          }
+          summary = summaryResponse.data;
+        } catch {
+          // Inventory summary is best-effort; leave counts at 0 rather
+          // than fail the page. Top-N pods + cluster metadata still
+          // render so the user isn't staring at an error.
+          summary = null;
+        }
 
-          const podObjects: Map<string, KubernetesObjectType> =
-            objectResults[0]!;
-          const nodeObjects: Map<string, KubernetesObjectType> =
-            objectResults[1]!;
-          const pvcObjects: Map<string, KubernetesObjectType> =
-            objectResults[2]!;
-          const pvObjects: Map<string, KubernetesObjectType> =
-            objectResults[3]!;
-          const deploymentObjects: Map<string, KubernetesObjectType> =
-            objectResults[4]!;
-          const statefulSetObjects: Map<string, KubernetesObjectType> =
-            objectResults[5]!;
-          const daemonSetObjects: Map<string, KubernetesObjectType> =
-            objectResults[6]!;
-          const jobObjects: Map<string, KubernetesObjectType> =
-            objectResults[7]!;
-          const cronJobObjects: Map<string, KubernetesObjectType> =
-            objectResults[8]!;
+        if (summary) {
+          const readNum: (k: string) => number = (k: string): number => {
+            const v: unknown = summary?.[k];
+            return typeof v === "number" ? v : 0;
+          };
 
-          setPvcCount(pvcObjects.size);
-          setPvCount(pvObjects.size);
+          setNodeCount(readNum("nodeCount"));
+          setPodCount(readNum("podCount"));
+          setNamespaceCount(readNum("namespaceCount"));
+          setDeploymentCount(readNum("deploymentCount"));
+          setStatefulSetCount(readNum("statefulSetCount"));
+          setDaemonSetCount(readNum("daemonSetCount"));
+          setJobCount(readNum("jobCount"));
+          setCronJobCount(readNum("cronJobCount"));
+          setPvcCount(readNum("pvcCount"));
+          setPvCount(readNum("pvCount"));
+          // Overview's "container count" was previously derived from
+          // metrics for running containers and fell back to pod count.
+          // The agent's k8sobjects receiver doesn't enumerate containers
+          // as a top-level resource kind, so pod count is the closest
+          // sensible value here.
+          setContainerCount(readNum("podCount"));
 
-          // Use k8s object counts as fallback when metric-based counts are 0
-          if (deploymentCount === 0 && deploymentObjects.size > 0) {
-            setDeploymentCount(deploymentObjects.size);
-          }
-          if (statefulSetCount === 0 && statefulSetObjects.size > 0) {
-            setStatefulSetCount(statefulSetObjects.size);
-          }
-          if (daemonSetCount === 0 && daemonSetObjects.size > 0) {
-            setDaemonSetCount(daemonSetObjects.size);
-          }
-          if (jobCount === 0 && jobObjects.size > 0) {
-            setJobCount(jobObjects.size);
-          }
-          if (cronJobCount === 0 && cronJobObjects.size > 0) {
-            setCronJobCount(cronJobObjects.size);
-          }
-          if (containerCount === 0 && podObjects.size > 0) {
-            setContainerCount(podObjects.size);
-          }
-
-          // Calculate pod health
-          let running: number = 0;
-          let pending: number = 0;
-          let failed: number = 0;
-          let succeeded: number = 0;
-
-          for (const podObj of podObjects.values()) {
-            const pod: KubernetesPodObject = podObj as KubernetesPodObject;
-            const phase: string = pod.status.phase || "Unknown";
-            if (phase === "Running") {
-              running++;
-            } else if (phase === "Pending") {
-              pending++;
-            } else if (phase === "Failed") {
-              failed++;
-            } else if (phase === "Succeeded") {
-              succeeded++;
-            }
-          }
+          const podPhase: JSONObject =
+            (summary["podPhaseCounts"] as JSONObject) || {};
+          const running: number =
+            typeof podPhase["running"] === "number" ? podPhase["running"] : 0;
+          const pending: number =
+            typeof podPhase["pending"] === "number" ? podPhase["pending"] : 0;
+          const failed: number =
+            typeof podPhase["failed"] === "number" ? podPhase["failed"] : 0;
+          const succeeded: number =
+            typeof podPhase["succeeded"] === "number"
+              ? podPhase["succeeded"]
+              : 0;
           setPodHealthSummary({ running, pending, failed, succeeded });
 
-          // Calculate node health and pressure
-          let ready: number = 0;
-          let notReady: number = 0;
-          let memPressure: number = 0;
-          let diskPressure: number = 0;
-          let pidPressure: number = 0;
-
-          for (const nodeObj of nodeObjects.values()) {
-            const node: KubernetesNodeObject = nodeObj as KubernetesNodeObject;
-            const readyCondition: boolean = node.status.conditions.some(
-              (c: { type: string; status: string }) => {
-                return c.type === "Ready" && c.status === "True";
-              },
-            );
-            if (readyCondition) {
-              ready++;
-            } else {
-              notReady++;
-            }
-            // Check pressure conditions
-            for (const cond of node.status.conditions) {
-              if (cond.type === "MemoryPressure" && cond.status === "True") {
-                memPressure++;
-              }
-              if (cond.type === "DiskPressure" && cond.status === "True") {
-                diskPressure++;
-              }
-              if (cond.type === "PIDPressure" && cond.status === "True") {
-                pidPressure++;
-              }
-            }
-          }
+          const nodeReady: JSONObject =
+            (summary["nodeReadyCounts"] as JSONObject) || {};
+          const ready: number =
+            typeof nodeReady["ready"] === "number" ? nodeReady["ready"] : 0;
+          const notReady: number =
+            typeof nodeReady["notReady"] === "number"
+              ? nodeReady["notReady"]
+              : 0;
           setNodeHealthSummary({ ready, notReady });
+
+          const pressure: JSONObject =
+            (summary["nodePressureCounts"] as JSONObject) || {};
           setNodePressure({
-            memoryPressure: memPressure,
-            diskPressure: diskPressure,
-            pidPressure: pidPressure,
+            memoryPressure:
+              typeof pressure["memoryPressure"] === "number"
+                ? pressure["memoryPressure"]
+                : 0,
+            diskPressure:
+              typeof pressure["diskPressure"] === "number"
+                ? pressure["diskPressure"]
+                : 0,
+            pidPressure:
+              typeof pressure["pidPressure"] === "number"
+                ? pressure["pidPressure"]
+                : 0,
           });
 
-          // Determine overall health
           if (failed > 0 || notReady > 0) {
             setClusterHealth("Unhealthy");
           } else if (pending > 0) {
@@ -397,11 +243,49 @@ const KubernetesClusterOverview: FunctionComponent<
           } else {
             setClusterHealth("Healthy");
           }
-        } catch {
-          // Health data is supplementary, don't fail
         }
 
-        // Fetch recent warning events
+        // Top-N CPU/memory pods — still comes from ClickHouse metrics
+        // because it carries utilization values that aren't in the
+        // inventory table. Cheap and unchanged.
+        try {
+          const pods: Array<KubernetesResource> =
+            await KubernetesResourceUtils.fetchResourceListWithMemory({
+              clusterIdentifier: item.clusterIdentifier,
+              metricName: "k8s.pod.cpu.utilization",
+              resourceNameAttribute: "resource.k8s.pod.name",
+              memoryMetricName: "k8s.pod.memory.usage",
+            });
+
+          const sortedByCpu: Array<KubernetesResource> = [...pods]
+            .filter((p: KubernetesResource) => {
+              return (
+                p.cpuUtilization !== null && p.cpuUtilization !== undefined
+              );
+            })
+            .sort((a: KubernetesResource, b: KubernetesResource) => {
+              return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
+            })
+            .slice(0, 5);
+          setTopCpuPods(sortedByCpu);
+
+          const sortedByMemory: Array<KubernetesResource> = [...pods]
+            .filter((p: KubernetesResource) => {
+              return (
+                p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
+              );
+            })
+            .sort((a: KubernetesResource, b: KubernetesResource) => {
+              return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
+            })
+            .slice(0, 5);
+          setTopMemoryPods(sortedByMemory);
+        } catch {
+          // Top-N is supplementary; leave lists empty on failure.
+        }
+
+        // Fetch recent warning events (still on ClickHouse — genuinely
+        // log-shaped).
         try {
           const warnings: Array<KubernetesEvent> =
             await fetchClusterWarningEvents({

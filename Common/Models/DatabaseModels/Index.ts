@@ -3,6 +3,7 @@ import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
 import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
+import KubernetesResource from "./KubernetesResource";
 import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -517,6 +518,7 @@ const AllModelTypes: Array<{
   KubernetesCluster,
   KubernetesClusterOwnerTeam,
   KubernetesClusterOwnerUser,
+  KubernetesResource,
   DockerHost,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

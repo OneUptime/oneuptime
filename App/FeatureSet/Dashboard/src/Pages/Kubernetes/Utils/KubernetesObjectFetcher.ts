@@ -1,17 +1,21 @@
 import Log from "Common/Models/AnalyticsModels/Log";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI, {
+  ListResult as ModelListResult,
+} from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import {
-  extractObjectFromLogBody,
   getKvStringValue,
   getKvValue,
-  kvListToPlainObject,
   KubernetesPodObject,
   KubernetesNodeObject,
   KubernetesDeploymentObject,
@@ -24,19 +28,31 @@ import {
   KubernetesPVObject,
   KubernetesHPAObject,
   KubernetesVPAObject,
-  parsePodObject,
-  parseNodeObject,
-  parseDeploymentObject,
-  parseStatefulSetObject,
-  parseDaemonSetObject,
-  parseJobObject,
-  parseCronJobObject,
-  parseNamespaceObject,
-  parsePVCObject,
-  parsePVObject,
-  parseHPAObject,
-  parseVPAObject,
-} from "./KubernetesObjectParser";
+} from "Common/Types/Kubernetes/KubernetesObjectParser";
+import { kindFromResourceType } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
+
+/*
+ * ------------------------------------------------------------------
+ * KubernetesObjectFetcher
+ *
+ * Dashboard-side helpers for reading Kubernetes object snapshots.
+ *
+ * Post-migration:
+ *   - fetchLatestK8sObject / fetchK8sObjectsBatch / fetchRawK8sObject
+ *     read from the Postgres KubernetesResource table populated by
+ *     the OTel logs ingest path. This replaces 24h scans of the
+ *     ClickHouse Log table for object specs and is orders of
+ *     magnitude faster.
+ *   - fetchK8sEventsForResource / fetchClusterWarningEvents /
+ *     fetchPodLogs continue to read from the Log table — they ARE
+ *     genuinely log-shaped (k8s events, application logs).
+ *
+ * The public signatures are unchanged; callers pass the cluster
+ * identifier string as before. We resolve it to the cluster UUID
+ * once via ModelAPI and cache the mapping in-memory for 60 s so
+ * back-to-back fetches on the same page share one lookup.
+ * ------------------------------------------------------------------
+ */
 
 export type KubernetesObjectType =
   | KubernetesPodObject
@@ -59,216 +75,241 @@ export interface FetchK8sObjectOptions {
   namespace?: string | undefined; // Not needed for cluster-scoped resources (nodes, namespaces)
 }
 
-type ParserFunction = (kvList: JSONObject) => KubernetesObjectType | null;
+// --- cluster-id cache ----------------------------------------------
 
-function getParser(resourceType: string): ParserFunction | null {
-  const parsers: Record<string, ParserFunction> = {
-    pods: parsePodObject,
-    nodes: parseNodeObject,
-    deployments: parseDeploymentObject,
-    statefulsets: parseStatefulSetObject,
-    daemonsets: parseDaemonSetObject,
-    jobs: parseJobObject,
-    cronjobs: parseCronJobObject,
-    namespaces: parseNamespaceObject,
-    persistentvolumeclaims: parsePVCObject,
-    persistentvolumes: parsePVObject,
-    horizontalpodautoscalers: parseHPAObject,
-    verticalpodautoscalers: parseVPAObject,
-  };
-  return parsers[resourceType] || null;
+interface CacheEntry {
+  id: ObjectID | null; // null = lookup failed (e.g. cluster not provisioned)
+  expiresAt: number;
 }
 
+const CLUSTER_ID_CACHE_TTL_MS: number = 60_000;
+const clusterIdCache: Map<string, CacheEntry> = new Map();
+
+async function resolveClusterId(
+  clusterIdentifier: string,
+): Promise<ObjectID | null> {
+  const now: number = Date.now();
+  const cached: CacheEntry | undefined = clusterIdCache.get(clusterIdentifier);
+  if (cached && cached.expiresAt > now) {
+    return cached.id;
+  }
+
+  try {
+    const listResult: ModelListResult<KubernetesCluster> =
+      await ModelAPI.getList<KubernetesCluster>({
+        modelType: KubernetesCluster,
+        query: {
+          clusterIdentifier: clusterIdentifier,
+        },
+        select: {
+          _id: true,
+        },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      });
+
+    const id: ObjectID | null =
+      listResult.data[0] && listResult.data[0]._id
+        ? new ObjectID(listResult.data[0]._id.toString())
+        : null;
+    clusterIdCache.set(clusterIdentifier, {
+      id,
+      expiresAt: now + CLUSTER_ID_CACHE_TTL_MS,
+    });
+    return id;
+  } catch {
+    // Don't cache failures — retry on next call.
+    return null;
+  }
+}
+
+// --- spec/status reconstruction ------------------------------------
+
 /**
- * Fetch the latest K8s resource object from the Log table.
- * The k8sobjects pull mode stores full K8s API objects as log entries.
+ * Pull a KubernetesResource row and cast back into the typed
+ * K8s object shape the detail pages expect. The rows store
+ * spec/status/labels/annotations/ownerReferences as JSONB so we
+ * simply reassemble them under a `metadata` envelope.
  */
+function rowToTypedObject<T extends KubernetesObjectType>(
+  row: KubernetesResource,
+): T | null {
+  if (!row.name) {
+    return null;
+  }
+
+  // Re-raise the OwnerReferences array from its {items: [...]} wrapper.
+  let ownerReferences: Array<{ kind: string; name: string }> = [];
+  if (row.ownerReferences) {
+    const ownerRefsAny: unknown = row.ownerReferences as unknown;
+    const items: unknown = (
+      ownerRefsAny as { items?: unknown } | null
+    )?.items;
+    if (Array.isArray(items)) {
+      ownerReferences = items as Array<{ kind: string; name: string }>;
+    } else if (Array.isArray(ownerRefsAny)) {
+      ownerReferences = ownerRefsAny as Array<{ kind: string; name: string }>;
+    }
+  }
+
+  const metadata: Record<string, unknown> = {
+    name: row.name,
+    namespace: row.namespaceKey && row.namespaceKey !== "" ? row.namespaceKey : "",
+    uid: row.uid || "",
+    creationTimestamp: row.resourceCreationTimestamp
+      ? OneUptimeDate.toString(row.resourceCreationTimestamp)
+      : "",
+    labels: (row.labels as Record<string, string>) || {},
+    annotations: (row.annotations as Record<string, string>) || {},
+    ownerReferences,
+  };
+
+  const spec: Record<string, unknown> =
+    (row.spec as Record<string, unknown>) || {};
+  const status: Record<string, unknown> =
+    (row.status as Record<string, unknown>) || {};
+
+  // All parsed K8s object interfaces share this structural shape.
+  // Casting to T is safe because each caller already knows which
+  // KubernetesObjectType they asked for.
+  return {
+    metadata,
+    spec,
+    status,
+  } as unknown as T;
+}
+
+// --- public fetchers -----------------------------------------------
+
 export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
   options: FetchK8sObjectOptions,
 ): Promise<T | null> {
-  const parser: ParserFunction | null = getParser(options.resourceType);
-  if (!parser) {
+  const kind: string | null = kindFromResourceType(options.resourceType);
+  if (!kind) {
     return null;
   }
 
-  const projectId: string | undefined =
-    ProjectUtil.getCurrentProjectId()?.toString();
-  if (!projectId) {
+  const clusterId: ObjectID | null = await resolveClusterId(
+    options.clusterIdentifier,
+  );
+  if (!clusterId) {
     return null;
   }
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const queryOptions: any = {
-      modelType: Log,
-      query: {
-        projectId: projectId,
-        time: new InBetween<Date>(startDate, endDate),
-        attributes: {
-          "k8s.resource.name": options.resourceType,
+    const listResult: ModelListResult<KubernetesResource> =
+      await ModelAPI.getList<KubernetesResource>({
+        modelType: KubernetesResource,
+        query: {
+          kubernetesClusterId: clusterId,
+          kind: kind,
+          namespaceKey: options.namespace || "",
+          name: options.resourceName,
         },
-      },
-      limit: 500, // Get enough logs to find the resource
-      skip: 0,
-      select: {
-        time: true,
-        body: true,
-        attributes: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      requestOptions: {},
-    };
-    const listResult: ListResult<Log> =
-      await AnalyticsModelAPI.getList<Log>(queryOptions);
+        select: {
+          _id: true,
+          name: true,
+          namespaceKey: true,
+          uid: true,
+          labels: true,
+          annotations: true,
+          ownerReferences: true,
+          spec: true,
+          status: true,
+          resourceCreationTimestamp: true,
+        },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      });
 
-    // Parse each log body and find the matching resource
-    for (const log of listResult.data) {
-      const attrs: JSONObject = log.attributes || {};
-
-      // Filter to this cluster
-      if (
-        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
-        attrs["k8s.cluster.name"] !== options.clusterIdentifier
-      ) {
-        continue;
-      }
-
-      if (typeof log.body !== "string") {
-        continue;
-      }
-
-      const objectKvList: JSONObject | null = extractObjectFromLogBody(
-        log.body,
-      );
-      if (!objectKvList) {
-        continue;
-      }
-
-      // Check if this is the resource we're looking for
-      const metadataKv: string | JSONObject | null = getKvValue(
-        objectKvList,
-        "metadata",
-      );
-      if (!metadataKv || typeof metadataKv === "string") {
-        continue;
-      }
-
-      const name: string = getKvStringValue(metadataKv, "name");
-      const namespace: string = getKvStringValue(metadataKv, "namespace");
-
-      if (name !== options.resourceName) {
-        continue;
-      }
-
-      // For namespaced resources, also match namespace
-      if (options.namespace && namespace && namespace !== options.namespace) {
-        continue;
-      }
-
-      const parsed: KubernetesObjectType | null = parser(objectKvList);
-      if (parsed) {
-        return parsed as T;
-      }
+    const row: KubernetesResource | undefined = listResult.data[0];
+    if (!row) {
+      return null;
     }
-
-    return null;
+    return rowToTypedObject<T>(row);
   } catch {
     return null;
   }
 }
 
 /**
- * Fetch the raw K8s resource object (as a plain JS object, not parsed into typed interfaces).
- * This preserves the complete original K8s manifest for YAML display.
+ * Fetch the raw K8s manifest shape (flat JS object) for the YAML
+ * viewer. Reconstructed from the stored columns rather than the
+ * original OTLP kvlistValue blob.
  */
 export async function fetchRawK8sObject(
   options: FetchK8sObjectOptions,
 ): Promise<Record<string, unknown> | null> {
-  const projectId: string | undefined =
-    ProjectUtil.getCurrentProjectId()?.toString();
-  if (!projectId) {
+  const kind: string | null = kindFromResourceType(options.resourceType);
+  if (!kind) {
     return null;
   }
 
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
+  const clusterId: ObjectID | null = await resolveClusterId(
+    options.clusterIdentifier,
+  );
+  if (!clusterId) {
+    return null;
+  }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const queryOptions: any = {
-      modelType: Log,
-      query: {
-        projectId: projectId,
-        time: new InBetween<Date>(startDate, endDate),
-        attributes: {
-          "k8s.resource.name": options.resourceType,
+    const listResult: ModelListResult<KubernetesResource> =
+      await ModelAPI.getList<KubernetesResource>({
+        modelType: KubernetesResource,
+        query: {
+          kubernetesClusterId: clusterId,
+          kind: kind,
+          namespaceKey: options.namespace || "",
+          name: options.resourceName,
         },
-      },
-      limit: 500,
-      skip: 0,
-      select: {
-        time: true,
-        body: true,
-        attributes: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      requestOptions: {},
-    };
-    const listResult: ListResult<Log> =
-      await AnalyticsModelAPI.getList<Log>(queryOptions);
+        select: {
+          _id: true,
+          name: true,
+          namespaceKey: true,
+          uid: true,
+          labels: true,
+          annotations: true,
+          ownerReferences: true,
+          spec: true,
+          status: true,
+          resourceCreationTimestamp: true,
+        },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      });
 
-    for (const log of listResult.data) {
-      const attrs: JSONObject = log.attributes || {};
-
-      if (
-        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
-        attrs["k8s.cluster.name"] !== options.clusterIdentifier
-      ) {
-        continue;
-      }
-
-      if (typeof log.body !== "string") {
-        continue;
-      }
-
-      const objectKvList: JSONObject | null = extractObjectFromLogBody(
-        log.body,
-      );
-      if (!objectKvList) {
-        continue;
-      }
-
-      const metadataKv: string | JSONObject | null = getKvValue(
-        objectKvList,
-        "metadata",
-      );
-      if (!metadataKv || typeof metadataKv === "string") {
-        continue;
-      }
-
-      const name: string = getKvStringValue(metadataKv, "name");
-      const namespace: string = getKvStringValue(metadataKv, "namespace");
-
-      if (name !== options.resourceName) {
-        continue;
-      }
-
-      if (options.namespace && namespace && namespace !== options.namespace) {
-        continue;
-      }
-
-      // Convert the raw OTLP kvList to a plain JS object
-      return kvListToPlainObject(objectKvList);
+    const row: KubernetesResource | undefined = listResult.data[0];
+    if (!row || !row.name) {
+      return null;
     }
 
-    return null;
+    // Rebuild a K8s-ish object (kind/apiVersion not stored; the
+    // YAML viewer only cares about the full body for reference).
+    return {
+      kind,
+      metadata: {
+        name: row.name,
+        namespace:
+          row.namespaceKey && row.namespaceKey !== ""
+            ? row.namespaceKey
+            : undefined,
+        uid: row.uid || undefined,
+        creationTimestamp: row.resourceCreationTimestamp
+          ? OneUptimeDate.toString(row.resourceCreationTimestamp)
+          : undefined,
+        labels: row.labels || undefined,
+        annotations: row.annotations || undefined,
+        ownerReferences:
+          (row.ownerReferences as { items?: unknown } | null)?.items ||
+          row.ownerReferences ||
+          undefined,
+      },
+      spec: row.spec || undefined,
+      status: row.status || undefined,
+    };
   } catch {
     return null;
   }
@@ -276,106 +317,79 @@ export async function fetchRawK8sObject(
 
 /**
  * Batch fetch all K8s objects of a given type for a cluster.
- * Returns a Map keyed by "namespace/name" (or just "name" for cluster-scoped resources).
+ * Returns a Map keyed by "namespace/name" for namespaced resources,
+ * or "name" for cluster-scoped resources.
  */
 export async function fetchK8sObjectsBatch(options: {
   clusterIdentifier: string;
   resourceType: string;
 }): Promise<Map<string, KubernetesObjectType>> {
-  const parser: ParserFunction | null = getParser(options.resourceType);
-  if (!parser) {
+  const kind: string | null = kindFromResourceType(options.resourceType);
+  if (!kind) {
     return new Map();
   }
 
-  const projectId: string | undefined =
-    ProjectUtil.getCurrentProjectId()?.toString();
-  if (!projectId) {
+  const clusterId: ObjectID | null = await resolveClusterId(
+    options.clusterIdentifier,
+  );
+  if (!clusterId) {
     return new Map();
   }
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const queryOptions: any = {
-      modelType: Log,
-      query: {
-        projectId: projectId,
-        time: new InBetween<Date>(startDate, endDate),
-        attributes: {
-          "k8s.resource.name": options.resourceType,
+    const listResult: ModelListResult<KubernetesResource> =
+      await ModelAPI.getList<KubernetesResource>({
+        modelType: KubernetesResource,
+        query: {
+          kubernetesClusterId: clusterId,
+          kind: kind,
         },
-      },
-      limit: 2000,
-      skip: 0,
-      select: {
-        time: true,
-        body: true,
-        attributes: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      requestOptions: {},
-    };
-    const listResult: ListResult<Log> =
-      await AnalyticsModelAPI.getList<Log>(queryOptions);
+        select: {
+          _id: true,
+          name: true,
+          namespaceKey: true,
+          uid: true,
+          labels: true,
+          annotations: true,
+          ownerReferences: true,
+          spec: true,
+          status: true,
+          resourceCreationTimestamp: true,
+        },
+        // LIMIT_PER_PROJECT-style cap. Inventory tables for a single
+        // cluster of a single kind shouldn't realistically exceed this.
+        limit: 5000,
+        skip: 0,
+        sort: {},
+      });
 
     const resultMap: Map<string, KubernetesObjectType> = new Map();
-
-    for (const log of listResult.data) {
-      const attrs: JSONObject = log.attributes || {};
-
-      if (
-        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
-        attrs["k8s.cluster.name"] !== options.clusterIdentifier
-      ) {
+    for (const row of listResult.data) {
+      if (!row.name) {
         continue;
       }
-
-      if (typeof log.body !== "string") {
-        continue;
-      }
-
-      const objectKvList: JSONObject | null = extractObjectFromLogBody(
-        log.body,
-      );
-      if (!objectKvList) {
-        continue;
-      }
-
-      const metadataKv: string | JSONObject | null = getKvValue(
-        objectKvList,
-        "metadata",
-      );
-      if (!metadataKv || typeof metadataKv === "string") {
-        continue;
-      }
-
-      const name: string = getKvStringValue(metadataKv, "name");
-      const namespace: string = getKvStringValue(metadataKv, "namespace");
-      const key: string = namespace ? `${namespace}/${name}` : name;
-
-      // Only keep the latest (first encountered since sorted desc)
-      if (resultMap.has(key)) {
-        continue;
-      }
-
-      const parsed: KubernetesObjectType | null = parser(objectKvList);
-      if (parsed) {
-        resultMap.set(key, parsed);
+      const key: string =
+        row.namespaceKey && row.namespaceKey !== ""
+          ? `${row.namespaceKey}/${row.name}`
+          : row.name;
+      const typed: KubernetesObjectType | null =
+        rowToTypedObject<KubernetesObjectType>(row);
+      if (typed) {
+        resultMap.set(key, typed);
       }
     }
-
     return resultMap;
   } catch {
     return new Map();
   }
 }
 
+// --- events + logs (still on ClickHouse) ---------------------------
+
 /**
- * Fetch K8s events related to a specific resource.
+ * Fetch K8s events related to a specific resource. Events arrive
+ * from the k8sobjects watch mode and remain log-shaped; we keep them
+ * on ClickHouse.
  */
 export interface KubernetesEvent {
   timestamp: string;
@@ -389,7 +403,7 @@ export interface KubernetesEvent {
 
 export async function fetchK8sEventsForResource(options: {
   clusterIdentifier: string;
-  resourceKind: string; // "Pod", "Node", "Deployment", etc.
+  resourceKind: string;
   resourceName: string;
   namespace?: string | undefined;
 }): Promise<Array<KubernetesEvent>> {
@@ -434,7 +448,6 @@ export async function fetchK8sEventsForResource(options: {
     for (const log of listResult.data) {
       const attrs: JSONObject = log.attributes || {};
 
-      // Filter to this cluster
       if (
         attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
         attrs["k8s.cluster.name"] !== options.clusterIdentifier
@@ -460,7 +473,6 @@ export async function fetchK8sEventsForResource(options: {
         continue;
       }
 
-      // Get the "object" which is the actual k8s Event
       const objectVal: string | JSONObject | null = getKvValue(
         topKvList,
         "object",
@@ -470,12 +482,10 @@ export async function fetchK8sEventsForResource(options: {
       }
       const objectKvList: JSONObject = objectVal;
 
-      // Get event details
       const eventType: string = getKvStringValue(objectKvList, "type") || "";
       const reason: string = getKvStringValue(objectKvList, "reason") || "";
       const note: string = getKvStringValue(objectKvList, "note") || "";
 
-      // Get regarding object
       const regardingKind: string =
         getKvStringValue(
           getKvValue(objectKvList, "regarding") as JSONObject | undefined,
@@ -492,7 +502,6 @@ export async function fetchK8sEventsForResource(options: {
           "namespace",
         ) || "";
 
-      // Filter to events for this specific resource
       if (
         regardingKind.toLowerCase() !== options.resourceKind.toLowerCase() ||
         regardingName !== options.resourceName
@@ -527,9 +536,6 @@ export async function fetchK8sEventsForResource(options: {
   }
 }
 
-/**
- * Fetch recent warning events for an entire cluster.
- */
 export async function fetchClusterWarningEvents(options: {
   clusterIdentifier: string;
   limit?: number | undefined;
@@ -616,7 +622,6 @@ export async function fetchClusterWarningEvents(options: {
 
       const eventType: string = getKvStringValue(objectKvList, "type") || "";
 
-      // Only include Warning events
       if (eventType !== "Warning") {
         continue;
       }
@@ -686,7 +691,6 @@ export async function fetchPodLogs(options: {
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
 
-  // Build attribute filters for filelog data
   const attributeFilters: Record<string, string> = {
     "resource.k8s.cluster.name": options.clusterIdentifier,
     "resource.k8s.pod.name": options.podName,
@@ -727,7 +731,6 @@ export async function fetchPodLogs(options: {
 
     return listResult.data
       .filter((log: Log) => {
-        // Exclude k8s event logs — only application logs
         const attrs: JSONObject = log.attributes || {};
         return attrs["event.domain"] !== "k8s";
       })
@@ -739,7 +742,8 @@ export async function fetchPodLogs(options: {
             : "",
           body: typeof log.body === "string" ? log.body : "",
           severity: log.severityText || "INFO",
-          containerName: (attrs["resource.k8s.container.name"] as string) || "",
+          containerName:
+            (attrs["resource.k8s.container.name"] as string) || "",
         };
       });
   } catch {
