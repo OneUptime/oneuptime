@@ -127,15 +127,20 @@ export default class MetricPipelineRuleService {
     row: MutableMetricRow,
     rule: MetricPipelineRule,
   ): MutableMetricRow | null {
-    if (!this.matches(row, rule)) {
+    const matched: boolean = this.matches(row, rule);
+
+    // Filter has inverse semantics: it is an allowlist.
+    // A Filter rule keeps matched rows and drops everything else.
+    if (rule.ruleType === MetricPipelineRuleType.Filter) {
+      return matched ? row : null;
+    }
+
+    // All other rule types are no-ops for non-matching rows.
+    if (!matched) {
       return row;
     }
 
     switch (rule.ruleType) {
-      case MetricPipelineRuleType.Filter:
-        // Filter = keep only matches. Since we matched, keep.
-        return row;
-
       case MetricPipelineRuleType.Drop:
         return null;
 
