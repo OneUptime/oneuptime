@@ -132,6 +132,12 @@ enum Permission {
   EditProjectMetricPipelineRule = "EditProjectMetricPipelineRule",
   ReadProjectMetricPipelineRule = "ReadProjectMetricPipelineRule",
 
+  // Metric Recording Rules (derived metrics)
+  CreateProjectMetricRecordingRule = "CreateProjectMetricRecordingRule",
+  DeleteProjectMetricRecordingRule = "DeleteProjectMetricRecordingRule",
+  EditProjectMetricRecordingRule = "EditProjectMetricRecordingRule",
+  ReadProjectMetricRecordingRule = "ReadProjectMetricRecordingRule",
+
   // Exceptions
   CreateTelemetryException = "CreateTelemetryException",
   DeleteTelemetryException = "DeleteTelemetryException",
@@ -4807,6 +4813,48 @@ export class PermissionHelper {
         title: "Read Metric Pipeline Rule",
         description:
           "This permission can read Metric Pipeline Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Metric Recording Rule Permissions (derived metrics)
+      {
+        permission: Permission.CreateProjectMetricRecordingRule,
+        title: "Create Metric Recording Rule",
+        description:
+          "This permission can create Metric Recording Rules (derived metrics) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectMetricRecordingRule,
+        title: "Delete Metric Recording Rule",
+        description:
+          "This permission can delete Metric Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectMetricRecordingRule,
+        title: "Edit Metric Recording Rule",
+        description:
+          "This permission can edit Metric Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectMetricRecordingRule,
+        title: "Read Metric Recording Rule",
+        description:
+          "This permission can read Metric Recording Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

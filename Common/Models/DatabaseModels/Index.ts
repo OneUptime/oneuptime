@@ -48,6 +48,7 @@ import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
+import MetricRecordingRule from "./MetricRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -270,6 +271,7 @@ const AllModelTypes: Array<{
   LogDropFilter,
   LogScrubRule,
   MetricPipelineRule,
+  MetricRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
