@@ -280,6 +280,7 @@ import { MigrationName1774559064921 } from "./1774559064921-MigrationName";
 import { MigrationName1775735059360 } from "./1775735059360-MigrationName";
 import { MigrationName1775766676723 } from "./1775766676723-MigrationName";
 import { AddGlobalSmtpOAuth1775900000000 } from "./1775900000000-AddGlobalSmtpOAuth";
+import { AddMetricPipelineRules1776430228051 } from "./1776430228051-AddMetricPipelineRules";
 
 export default [
   InitialMigration,
@@ -564,4 +565,5 @@ export default [
   MigrationName1775735059360,
   MigrationName1775766676723,
   AddGlobalSmtpOAuth1775900000000,
+  AddMetricPipelineRules1776430228051,
 ];
