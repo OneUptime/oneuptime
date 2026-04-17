@@ -95,6 +95,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.ChartBar,
         },
+        {
+          link: {
+            title: "Recording Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_METRIC_RECORDING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Calculator,
+        },
       ],
     },
     {

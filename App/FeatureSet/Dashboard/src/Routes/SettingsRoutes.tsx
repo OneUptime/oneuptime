@@ -65,6 +65,7 @@ import SettingsLogDropFilters from "../Pages/Settings/LogDropFilters";
 import SettingsLogDropFilterView from "../Pages/Settings/LogDropFilterView";
 import SettingsLogScrubRules from "../Pages/Settings/LogScrubRules";
 import SettingsMetricPipelineRules from "../Pages/Settings/MetricPipelineRules";
+import SettingsMetricRecordingRules from "../Pages/Settings/MetricRecordingRules";
 import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
@@ -457,6 +458,19 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SETTINGS_METRIC_PIPELINE_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_METRIC_RECORDING_RULES,
+          )}
+          element={
+            <SettingsMetricRecordingRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_METRIC_RECORDING_RULES] as Route
               }
             />
           }
