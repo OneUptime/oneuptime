@@ -45,6 +45,7 @@ import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import Hostname from "../../../Types/API/Hostname";
 import Port from "../../../Types/Port";
+import { DashboardClientUrl } from "../../EnvironmentConfig";
 import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
@@ -605,6 +606,7 @@ ${contextBlock}
     ) {
       return MonitorCriteriaEvaluator.buildMetricRootCauseContext({
         criteriaInstance: input.criteriaInstance,
+        monitor: input.monitor,
       });
     }
 
@@ -718,6 +720,7 @@ ${contextBlock}
 
   private static buildMetricRootCauseContext(input: {
     criteriaInstance: MonitorCriteriaInstance;
+    monitor: Monitor;
   }): string | null {
     // Pick the first populated metric context across the instance's filters.
     // Only metric-value filters populate this at evaluation time, so this
@@ -794,7 +797,67 @@ ${contextBlock}
       sections.push(`\n\n**Breaching Series**\n${sampleLines.join("\n")}`);
     }
 
+    const deepLink: string | null =
+      MonitorCriteriaEvaluator.buildMetricExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+      });
+
+    if (deepLink) {
+      sections.push(`\n\n[Open metric in dashboard](${deepLink})`);
+    }
+
     return sections.join("\n");
+  }
+
+  private static buildMetricExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+  }): string | null {
+    const projectId: string | undefined =
+      input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    // Metric explorer expects a JSON-encoded `metricQueries` param plus
+    // optional start/end times. The shape is documented by
+    // MetricExplorer.getMetricQueriesFromQuery(): it reads metricName,
+    // attributes, and aggregationType (correctly spelled, unlike the
+    // internal persisted field).
+    const aggregationType: string | undefined =
+      input.ctx.aggregationType || undefined;
+
+    const query: {
+      metricName: string;
+      attributes: JSONObject;
+      aggregationType?: string;
+    } = {
+      metricName: input.ctx.metricName,
+      attributes: input.ctx.filterAttributes || {},
+      ...(aggregationType ? { aggregationType } : {}),
+    };
+
+    // Time window: breach moment +- 15 minutes (or fall back to last hour).
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const breachTime: Date | undefined =
+      input.ctx.breachingSample?.timestamp;
+    const startTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, -30)
+      : OneUptimeDate.addRemoveHours(now, -1);
+    const endTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, 15)
+      : now;
+
+    const params: URLSearchParams = new URLSearchParams();
+    params.set("metricQueries", JSON.stringify([query]));
+    params.set("startTime", OneUptimeDate.toString(startTime));
+    params.set("endTime", OneUptimeDate.toString(endTime));
+
+    // The route that actually reads these URL params is the metric
+    // explorer at /metrics/view — the /metrics index is the metric list.
+    return `${DashboardClientUrl.toString()}/${projectId}/metrics/view?${params.toString()}`;
   }
 
   private static async buildKubernetesRootCauseContext(input: {

@@ -11,6 +11,7 @@ import {
   EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   FilterType,
+  NoDataPolicy,
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -297,6 +298,49 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       ...criteriaFilter?.metricMonitorOptions,
                       metricAggregationType:
                         value?.toString() as EvaluateOverTimeType,
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn === CheckOn.MetricValue && (
+            <div className="mt-1">
+              <FieldLabelElement
+                title="If No Data"
+                description="What should happen when the query returns no data points in the evaluation window?"
+              />
+              <Dropdown
+                value={(() => {
+                  const v: NoDataPolicy =
+                    criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
+                    NoDataPolicy.Ignore;
+                  return { value: v, label: v };
+                })()}
+                options={[
+                  {
+                    value: NoDataPolicy.Ignore,
+                    label: NoDataPolicy.Ignore,
+                  },
+                  {
+                    value: NoDataPolicy.TreatAsZero,
+                    label: NoDataPolicy.TreatAsZero,
+                  },
+                  {
+                    value: NoDataPolicy.Trigger,
+                    label: NoDataPolicy.Trigger,
+                  },
+                ]}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  props.onChange?.({
+                    ...criteriaFilter,
+                    metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
+                      onNoDataPolicy: value?.toString() as NoDataPolicy,
                     },
                   });
                 }}

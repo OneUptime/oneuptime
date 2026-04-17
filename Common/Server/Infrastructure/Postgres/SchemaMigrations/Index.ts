@@ -282,6 +282,7 @@ import { MigrationName1775766676723 } from "./1775766676723-MigrationName";
 import { AddGlobalSmtpOAuth1775900000000 } from "./1775900000000-AddGlobalSmtpOAuth";
 import { AddMetricPipelineRules1776430228051 } from "./1776430228051-AddMetricPipelineRules";
 import { AddKubernetesDockerOwners1776500000000 } from "./1776500000000-AddKubernetesDockerOwners";
+import { AddMetricRecordingRules1776600000000 } from "./1776600000000-AddMetricRecordingRules";
 
 export default [
   InitialMigration,
@@ -568,4 +569,5 @@ export default [
   AddGlobalSmtpOAuth1775900000000,
   AddMetricPipelineRules1776430228051,
   AddKubernetesDockerOwners1776500000000,
+  AddMetricRecordingRules1776600000000,
 ];

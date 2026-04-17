@@ -3,11 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import IncidentRootCauseMetricChart from "../../../Components/Incident/IncidentRootCauseMetricChart";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
@@ -15,6 +16,7 @@ const IncidentDelete: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
+    <Fragment>
     <CardModelDetail
       name="Root Cause"
       cardProps={{
@@ -57,6 +59,8 @@ const IncidentDelete: FunctionComponent<
         modelId: modelId,
       }}
     />
+    <IncidentRootCauseMetricChart incidentId={modelId} />
+    </Fragment>
   );
 };
 

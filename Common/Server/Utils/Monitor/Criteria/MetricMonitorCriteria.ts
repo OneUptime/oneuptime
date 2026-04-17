@@ -14,6 +14,7 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
+  NoDataPolicy,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -111,15 +112,32 @@ export default class MetricMonitorCriteria {
 
     input.criteriaFilter.metricCriteriaContext = metricContext;
 
-    if (!aggregatedResult) {
-      return null;
-    }
-
     if (threshold === null) {
       return null;
     }
 
-    const samples: Array<AggregateModel> = aggregatedResult.data || [];
+    const samples: Array<AggregateModel> =
+      (aggregatedResult && aggregatedResult.data) || [];
+
+    // Respect the configured no-data policy. Without this guard, the
+    // evaluator silently treats missing data as a value of 0 and can
+    // trigger incidents for monitors that simply haven't received data.
+    if (samples.length === 0) {
+      const policy: NoDataPolicy =
+        input.criteriaFilter.metricMonitorOptions?.onNoDataPolicy ||
+        NoDataPolicy.Ignore;
+
+      if (policy === NoDataPolicy.Ignore) {
+        return null;
+      }
+
+      if (policy === NoDataPolicy.Trigger) {
+        return `No data received for ${metricContext.metricName} in the evaluation window — triggering per no-data policy.`;
+      }
+
+      // TreatAsZero: fall through to the comparator with value 0.
+    }
+
     const numbers: Array<number> = samples.map((d: AggregateModel) => {
       return d.value;
     });

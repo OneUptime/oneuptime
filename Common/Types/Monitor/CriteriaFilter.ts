@@ -104,9 +104,27 @@ export enum EvaluateOverTimeType {
   AnyValue = "Any Value",
 }
 
+export enum NoDataPolicy {
+  // Do not treat missing data as a breach. The criterion simply does
+  // not fire. This is the safest default and matches most SaaS tooling.
+  Ignore = "Ignore",
+  // Treat missing data points as zero. Preserves the original behavior
+  // prior to this policy being configurable — useful for counters where
+  // "no events" genuinely means zero.
+  TreatAsZero = "Treat As Zero",
+  // Trigger the criterion as a breach regardless of threshold. Use for
+  // heartbeat-style metrics where the absence of data is itself the
+  // problem.
+  Trigger = "Trigger",
+}
+
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
+  // Governs how the evaluator handles the case where the metric query
+  // returned zero samples in the evaluation window. Defaults to Ignore
+  // when unset.
+  onNoDataPolicy?: NoDataPolicy | undefined;
 }
 
 export enum EvaluateOverTimeMinutes {
@@ -280,6 +298,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   metricMonitorOptions: Zod.object({
     metricAlias: Zod.string().optional(),
     metricAggregationType: Zod.string().optional(),
+    onNoDataPolicy: Zod.string().optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),
