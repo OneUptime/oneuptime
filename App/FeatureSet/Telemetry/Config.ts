@@ -100,3 +100,11 @@ export const ENABLE_METRIC_TIER_ROUTING: boolean = parseBoolFlag(
   "ENABLE_METRIC_TIER_ROUTING",
   false,
 );
+
+// Runs the Recording Rules cron that computes derived metrics each minute
+// from user-defined expressions over existing metrics. Off by default so
+// the feature can land and be enabled per-deployment.
+export const ENABLE_DERIVED_METRICS: boolean = parseBoolFlag(
+  "ENABLE_DERIVED_METRICS",
+  false,
+);
