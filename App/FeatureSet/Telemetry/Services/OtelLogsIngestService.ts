@@ -38,9 +38,6 @@ import {
   ParsedKubernetesResource,
 } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
 
-const K8S_INVENTORY_DISABLED: boolean =
-  process.env["DISABLE_K8S_INVENTORY_INGEST"] === "true";
-
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
     return t.toLowerCase();
@@ -172,12 +169,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           // snapshots. The OTel k8sobjects receiver tags the resource
           // with `k8s.resource.name` (plural lowercase kind) — absent on
           // non-k8sobjects data, so the inventory hook stays free.
-          const k8sResourceType: string | null = K8S_INVENTORY_DISABLED
-            ? null
-            : this.getStringAttribute(
-                resourceAttributes_raw,
-                "k8s.resource.name",
-              );
+          const k8sResourceType: string | null = this.getStringAttribute(
+            resourceAttributes_raw,
+            "k8s.resource.name",
+          );
           const isK8sInventoryBatch: boolean = Boolean(
             k8sResourceType &&
               kubernetesClusterId &&
