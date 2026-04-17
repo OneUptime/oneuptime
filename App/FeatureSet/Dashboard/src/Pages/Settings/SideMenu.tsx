@@ -88,7 +88,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
-            title: "Metric Pipeline Rules",
+            title: "Metric Pipeline",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_METRIC_PIPELINE_RULES] as Route,
             ),

@@ -418,8 +418,8 @@ const MetricPipelineRules: FunctionComponent<
                 <Pill
                   text={config.label}
                   color={config.color}
-                  icon={config.icon}
                   tooltip={config.tooltip}
+                  isMinimal={true}
                 />
               );
             },
@@ -431,19 +431,14 @@ const MetricPipelineRules: FunctionComponent<
             getElement: (item: MetricPipelineRule): ReactElement => {
               if (item.service?.name) {
                 return (
-                  <Pill
-                    text={`Service: ${item.service.name}`}
-                    color={Indigo500}
-                    icon={IconProp.SquareStack}
-                  />
+                  <span className="inline-flex items-center text-sm font-medium text-gray-900">
+                    <span className="text-gray-400 mr-1">Service:</span>
+                    {item.service.name}
+                  </span>
                 );
               }
               return (
-                <Pill
-                  text="Project-wide"
-                  color={Gray500}
-                  icon={IconProp.Globe}
-                />
+                <span className="text-sm text-gray-500">Project-wide</span>
               );
             },
           },
