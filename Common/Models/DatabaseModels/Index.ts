@@ -1,7 +1,11 @@
 import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
+import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import DockerHost from "./DockerHost";
+import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
+import DockerHostOwnerUser from "./DockerHostOwnerUser";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -509,7 +513,11 @@ const AllModelTypes: Array<{
   StatusPageSCIMLog,
 
   KubernetesCluster,
+  KubernetesClusterOwnerTeam,
+  KubernetesClusterOwnerUser,
   DockerHost,
+  DockerHostOwnerTeam,
+  DockerHostOwnerUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

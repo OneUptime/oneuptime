@@ -39,6 +39,7 @@ import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
+import KubernetesClusterViewOwners from "../Pages/Kubernetes/View/Owners";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
@@ -524,6 +525,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH] as Route
+              }
+            />
+          }
+        />
+
+        {/* Owners */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS,
+          )}
+          element={
+            <KubernetesClusterViewOwners
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS] as Route
               }
             />
           }

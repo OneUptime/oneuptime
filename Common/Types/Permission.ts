@@ -742,10 +742,30 @@ enum Permission {
   EditKubernetesCluster = "EditKubernetesCluster",
   ReadKubernetesCluster = "ReadKubernetesCluster",
 
+  CreateKubernetesClusterOwnerTeam = "CreateKubernetesClusterOwnerTeam",
+  DeleteKubernetesClusterOwnerTeam = "DeleteKubernetesClusterOwnerTeam",
+  EditKubernetesClusterOwnerTeam = "EditKubernetesClusterOwnerTeam",
+  ReadKubernetesClusterOwnerTeam = "ReadKubernetesClusterOwnerTeam",
+
+  CreateKubernetesClusterOwnerUser = "CreateKubernetesClusterOwnerUser",
+  DeleteKubernetesClusterOwnerUser = "DeleteKubernetesClusterOwnerUser",
+  EditKubernetesClusterOwnerUser = "EditKubernetesClusterOwnerUser",
+  ReadKubernetesClusterOwnerUser = "ReadKubernetesClusterOwnerUser",
+
   CreateDockerHost = "CreateDockerHost",
   DeleteDockerHost = "DeleteDockerHost",
   EditDockerHost = "EditDockerHost",
   ReadDockerHost = "ReadDockerHost",
+
+  CreateDockerHostOwnerTeam = "CreateDockerHostOwnerTeam",
+  DeleteDockerHostOwnerTeam = "DeleteDockerHostOwnerTeam",
+  EditDockerHostOwnerTeam = "EditDockerHostOwnerTeam",
+  ReadDockerHostOwnerTeam = "ReadDockerHostOwnerTeam",
+
+  CreateDockerHostOwnerUser = "CreateDockerHostOwnerUser",
+  DeleteDockerHostOwnerUser = "DeleteDockerHostOwnerUser",
+  EditDockerHostOwnerUser = "EditDockerHostOwnerUser",
+  ReadDockerHostOwnerUser = "ReadDockerHostOwnerUser",
 
   CreateService = "CreateService",
   DeleteService = "DeleteService",
@@ -5056,6 +5076,170 @@ export class PermissionHelper {
         description: "This permission can read Docker Host of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateKubernetesClusterOwnerTeam,
+        title: "Create Kubernetes Cluster Team Owner",
+        description:
+          "This permission can create Kubernetes Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteKubernetesClusterOwnerTeam,
+        title: "Delete Kubernetes Cluster Team Owner",
+        description:
+          "This permission can delete Kubernetes Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesClusterOwnerTeam,
+        title: "Edit Kubernetes Cluster Team Owner",
+        description:
+          "This permission can edit Kubernetes Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesClusterOwnerTeam,
+        title: "Read Kubernetes Cluster Team Owner",
+        description:
+          "This permission can read Kubernetes Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateKubernetesClusterOwnerUser,
+        title: "Create Kubernetes Cluster User Owner",
+        description:
+          "This permission can create Kubernetes Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteKubernetesClusterOwnerUser,
+        title: "Delete Kubernetes Cluster User Owner",
+        description:
+          "This permission can delete Kubernetes Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesClusterOwnerUser,
+        title: "Edit Kubernetes Cluster User Owner",
+        description:
+          "This permission can edit Kubernetes Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesClusterOwnerUser,
+        title: "Read Kubernetes Cluster User Owner",
+        description:
+          "This permission can read Kubernetes Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerHostOwnerTeam,
+        title: "Create Docker Host Team Owner",
+        description:
+          "This permission can create Docker Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDockerHostOwnerTeam,
+        title: "Delete Docker Host Team Owner",
+        description:
+          "This permission can delete Docker Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHostOwnerTeam,
+        title: "Edit Docker Host Team Owner",
+        description:
+          "This permission can edit Docker Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHostOwnerTeam,
+        title: "Read Docker Host Team Owner",
+        description:
+          "This permission can read Docker Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerHostOwnerUser,
+        title: "Create Docker Host User Owner",
+        description:
+          "This permission can create Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDockerHostOwnerUser,
+        title: "Delete Docker Host User Owner",
+        description:
+          "This permission can delete Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHostOwnerUser,
+        title: "Edit Docker Host User Owner",
+        description:
+          "This permission can edit Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHostOwnerUser,
+        title: "Read Docker Host User Owner",
+        description:
+          "This permission can read Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
