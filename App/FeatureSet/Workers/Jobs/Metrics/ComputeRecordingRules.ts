@@ -64,6 +64,10 @@ RunCron(
         return;
       }
 
+      logger.debug(
+        `ComputeRecordingRules: evaluating ${rules.length} enabled rule(s)`,
+      );
+
       // Compute one 1-minute bucket that ends EVALUATION_LAG_SECONDS ago,
       // rounded to the prior minute boundary.
       const now: Date = OneUptimeDate.getCurrentDate();
@@ -102,8 +106,25 @@ async function evaluateRuleForBucket(args: {
     return;
   }
 
-  const def: RecordingRuleDefinition =
-    rule.definition as RecordingRuleDefinition;
+  // The FormFieldSchemaType.JSON field in the Dashboard stores the value
+  // JSON-encoded as a string inside the JSONB column, so we handle both
+  // shapes defensively.
+  let def: RecordingRuleDefinition;
+  const raw: unknown = rule.definition as unknown;
+  if (typeof raw === "string") {
+    try {
+      def = JSON.parse(raw) as RecordingRuleDefinition;
+    } catch (err) {
+      logger.warn(
+        `Recording rule ${rule._id} has unparseable definition JSON: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return;
+    }
+  } else {
+    def = raw as RecordingRuleDefinition;
+  }
   if (!def.sources || def.sources.length === 0 || !def.expression) {
     return;
   }
@@ -179,7 +200,7 @@ async function evaluateRuleForBucket(args: {
   await MetricService.insertJsonRows(outRows);
 
   logger.debug(
-    `Recording rule ${rule._id} wrote ${outRows.length} derived row(s) for bucket ${startTime.toISOString()}`,
+    `Recording rule ${rule._id?.toString() ?? "?"} wrote ${outRows.length} derived row(s) for bucket ${startTime.toISOString()}`,
   );
 }
 
@@ -194,51 +215,46 @@ async function runSourceQuery(args: {
 
   const aggregateSql: string = toAggregateSql(source.aggregationType);
 
+  // We build a plain SQL string with values escaped ourselves. Inputs are
+  // tightly constrained (UUID projectId, validated metric name, ISO dates,
+  // optional single-attribute key/value from the same user who authored the
+  // rule). No untrusted end-user data reaches this path.
+  const projectIdStr: string = projectId.toString();
   const startIso: string = OneUptimeDate.toClickhouseDateTime64(startTime);
   const endIso: string = OneUptimeDate.toClickhouseDateTime64(endTime);
 
-  // Parameters are safely quoted/escaped via ClickHouse typed parameters.
-  const params: Record<string, unknown> = {
-    projectId: projectId.toString(),
-    metricName: source.metricName,
-    startTime: startIso,
-    endTime: endIso,
+  const esc: (s: string) => string = (s: string): string => {
+    return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   };
 
   let filterSql: string = "";
   if (source.filterAttributeKey && source.filterAttributeValue) {
-    params["filterKey"] = source.filterAttributeKey;
-    params["filterValue"] = source.filterAttributeValue;
-    filterSql = "AND attributes[{filterKey:String}] = {filterValue:String}";
+    filterSql = `AND attributes['${esc(source.filterAttributeKey)}'] = '${esc(source.filterAttributeValue)}'`;
   }
 
   let groupSqlSelect: string = "'' AS groupKey";
   let groupSqlGroupBy: string = "";
   if (groupByAttribute) {
-    params["groupKey"] = groupByAttribute;
-    groupSqlSelect = "attributes[{groupKey:String}] AS groupKey";
+    groupSqlSelect = `attributes['${esc(groupByAttribute)}'] AS groupKey`;
     groupSqlGroupBy = "GROUP BY groupKey";
   }
 
   const sql: string = `
     SELECT ${groupSqlSelect}, ${aggregateSql} AS value
     FROM oneuptime.MetricItemV2
-    WHERE projectId = {projectId:String}
-      AND name = {metricName:String}
-      AND time >= {startTime:DateTime64(9)}
-      AND time < {endTime:DateTime64(9)}
+    WHERE projectId = '${esc(projectIdStr)}'
+      AND name = '${esc(source.metricName)}'
+      AND time >= toDateTime64('${startIso}', 9)
+      AND time < toDateTime64('${endIso}', 9)
       ${filterSql}
     ${groupSqlGroupBy}
   `;
 
   const resultSet: {
-    json: () => Promise<{ data: Array<{ groupKey: string; value: number | string }> }>;
-  } = (await MetricService.executeQuery({
-    // Caller accepts Statement | string; for our hand-rolled parameterized
-    // SQL we go through executeQuery's raw overload via a thin wrapper.
-    query: sql,
-    query_params: params,
-  } as unknown as string)) as unknown as {
+    json: () => Promise<{
+      data: Array<{ groupKey: string; value: number | string }>;
+    }>;
+  } = (await MetricService.executeQuery(sql)) as unknown as {
     json: () => Promise<{
       data: Array<{ groupKey: string; value: number | string }>;
     }>;
@@ -299,9 +315,9 @@ function buildDerivedMetricRow(args: {
   return {
     _id: ObjectID.generate().toString(),
     projectId: rule.projectId!.toString(),
-    createdAt: OneUptimeDate.toClickhouseDateTime64(now),
-    updatedAt: OneUptimeDate.toClickhouseDateTime64(now),
-    time: OneUptimeDate.toClickhouseDateTime64(bucketStart),
+    createdAt: OneUptimeDate.toClickhouseDateTime(now),
+    updatedAt: OneUptimeDate.toClickhouseDateTime(now),
+    time: OneUptimeDate.toClickhouseDateTime(bucketStart),
     timeUnixNano: (bucketStart.getTime() * 1_000_000).toString(),
     serviceType: ServiceType.OpenTelemetry,
     name: rule.outputMetricName,
@@ -309,7 +325,7 @@ function buildDerivedMetricRow(args: {
     value: value,
     attributes: attributes,
     attributeKeys: Object.keys(attributes).sort(),
-    retentionDate: OneUptimeDate.toClickhouseDateTime64(retentionDate),
+    retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
   };
 }
 

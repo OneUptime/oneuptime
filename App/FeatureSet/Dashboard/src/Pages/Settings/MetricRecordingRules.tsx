@@ -184,9 +184,21 @@ const MetricRecordingRules: FunctionComponent<
             title: "Expression",
             type: FieldType.Element,
             getElement: (item: MetricRecordingRule): ReactElement => {
-              const expr: string =
-                (item.definition as { expression?: string } | undefined)
-                  ?.expression || "";
+              // The form stores definition as a JSON-encoded string, but
+              // future writes (or API-created rows) may land as plain
+              // objects. Handle both.
+              const raw: unknown = item.definition as unknown;
+              let expr: string = "";
+              if (typeof raw === "string") {
+                try {
+                  const parsed: { expression?: string } = JSON.parse(raw);
+                  expr = parsed.expression ?? "";
+                } catch {
+                  expr = "";
+                }
+              } else if (raw && typeof raw === "object") {
+                expr = (raw as { expression?: string }).expression ?? "";
+              }
               return (
                 <code className="text-sm font-mono text-gray-700">{expr}</code>
               );
