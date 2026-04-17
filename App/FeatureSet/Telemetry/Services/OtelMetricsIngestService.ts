@@ -29,10 +29,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import {
-  ENABLE_METRIC_PIPELINE_RULES,
-  TELEMETRY_METRIC_FLUSH_BATCH_SIZE,
-} from "../Config";
+import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
   MetricRulesForProject,
 } from "./MetricPipelineRuleService";
@@ -126,18 +123,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
-      if (ENABLE_METRIC_PIPELINE_RULES) {
-        try {
-          pipelineRules =
-            await MetricPipelineRuleService.loadRules(projectId);
-        } catch (err) {
-          logger.warn(
-            `Failed to load metric pipeline rules for project ${projectId.toString()}; skipping: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
-          pipelineRules = null;
-        }
+      try {
+        pipelineRules = await MetricPipelineRuleService.loadRules(projectId);
+      } catch (err) {
+        logger.warn(
+          `Failed to load metric pipeline rules for project ${projectId.toString()}; skipping: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        pipelineRules = null;
       }
 
       let resourceMetricCounter: number = 0;
@@ -350,14 +344,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         // Apply user-defined pipeline rules (filter/drop/
                         // rename/redact/sample) before buffering for insert.
                         // null from applyRules means the row was dropped.
-                        const transformed: JSONObject | null =
-                          ENABLE_METRIC_PIPELINE_RULES && pipelineRules
-                            ? MetricPipelineRuleService.applyRules(
-                                metricRow,
-                                serviceMetadata.serviceId,
-                                pipelineRules,
-                              )
-                            : metricRow;
+                        const transformed: JSONObject | null = pipelineRules
+                          ? MetricPipelineRuleService.applyRules(
+                              metricRow,
+                              serviceMetadata.serviceId,
+                              pipelineRules,
+                            )
+                          : metricRow;
 
                         if (transformed === null) {
                           continue;

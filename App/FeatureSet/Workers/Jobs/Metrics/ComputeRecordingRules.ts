@@ -16,7 +16,6 @@ import {
   ServiceType,
 } from "Common/Models/AnalyticsModels/Metric";
 import { JSONObject } from "Common/Types/JSON";
-import { ENABLE_DERIVED_METRICS } from "../../../Telemetry/Config";
 import {
   evaluate,
   parse as parseExpression,
@@ -46,10 +45,6 @@ RunCron(
   "Metrics:ComputeRecordingRules",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    if (!ENABLE_DERIVED_METRICS) {
-      return;
-    }
-
     try {
       const rules: Array<MetricRecordingRule> =
         await MetricRecordingRuleService.findBy({
