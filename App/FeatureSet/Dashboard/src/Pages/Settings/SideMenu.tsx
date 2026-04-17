@@ -86,6 +86,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Filter,
         },
+        {
+          link: {
+            title: "Metric Pipeline Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_METRIC_PIPELINE_RULES] as Route,
+            ),
+          },
+          icon: IconProp.ChartBar,
+        },
       ],
     },
     {

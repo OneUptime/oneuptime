@@ -203,6 +203,9 @@ import LogDropFilterService, {
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
+import MetricPipelineRuleService, {
+  Service as MetricPipelineRuleServiceType,
+} from "Common/Server/Services/MetricPipelineRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -669,6 +672,7 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -1586,6 +1590,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<LogScrubRule, LogScrubRuleServiceType>(
         LogScrubRule,
         LogScrubRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MetricPipelineRule, MetricPipelineRuleServiceType>(
+        MetricPipelineRule,
+        MetricPipelineRuleService,
       ).getRouter(),
     );
 
