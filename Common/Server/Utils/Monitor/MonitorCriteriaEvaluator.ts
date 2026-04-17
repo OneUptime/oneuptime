@@ -49,6 +49,9 @@ import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricCriteriaContext, {
+  MetricBreachingSample,
+} from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 
 export default class MonitorCriteriaEvaluator {
@@ -108,13 +111,9 @@ export default class MonitorCriteriaEvaluator {
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = `
-**Created because the following criteria was met**: 
+**Created because the following criteria was met**:
 
 **Criteria Name**: ${criteriaInstance.data?.name}
-`;
-
-        input.probeApiIngestResponse.rootCause += `
-**Filter Conditions Met**: ${rootCause}
 `;
 
         const contextBlock: string | null =
@@ -122,9 +121,26 @@ export default class MonitorCriteriaEvaluator {
             dataToProcess: input.dataToProcess,
             monitorStep: input.monitorStep,
             monitor: input.monitor,
+            criteriaInstance: criteriaInstance,
           });
 
-        if (contextBlock) {
+        // For metric monitors, render the metric identity (name, unit,
+        // filter attrs, breaching series) before the comparison line so
+        // the reader has context when they reach "Filter Conditions Met".
+        const isMetricMonitor: boolean =
+          input.monitor.monitorType === MonitorType.Metrics;
+
+        if (contextBlock && isMetricMonitor) {
+          input.probeApiIngestResponse.rootCause += `
+${contextBlock}
+`;
+        }
+
+        input.probeApiIngestResponse.rootCause += `
+**Filter Conditions Met**: ${rootCause}
+`;
+
+        if (contextBlock && !isMetricMonitor) {
           input.probeApiIngestResponse.rootCause += `
 ${contextBlock}
 `;
@@ -568,6 +584,7 @@ ${contextBlock}
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance;
   }): Promise<string | null> {
     // Handle Kubernetes monitors with rich resource context
     if (input.monitor.monitorType === MonitorType.Kubernetes) {
@@ -579,6 +596,16 @@ ${contextBlock}
     // Handle Docker monitors with resource context
     if (input.monitor.monitorType === MonitorType.Docker) {
       return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle generic Metric monitors with metric identity + breaching series
+    if (
+      input.monitor.monitorType === MonitorType.Metrics &&
+      input.criteriaInstance
+    ) {
+      return MonitorCriteriaEvaluator.buildMetricRootCauseContext({
+        criteriaInstance: input.criteriaInstance,
+      });
     }
 
     const requestDetails: Array<string> = [];
@@ -684,6 +711,87 @@ ${contextBlock}
 
     if (!sections.length) {
       return null;
+    }
+
+    return sections.join("\n");
+  }
+
+  private static buildMetricRootCauseContext(input: {
+    criteriaInstance: MonitorCriteriaInstance;
+  }): string | null {
+    // Pick the first populated metric context across the instance's filters.
+    // Only metric-value filters populate this at evaluation time, so this
+    // effectively returns the context for the filter that ran.
+    const ctx: MetricCriteriaContext | undefined = (
+      input.criteriaInstance.data?.filters || []
+    )
+      .map((f: CriteriaFilter) => {
+        return f.metricCriteriaContext;
+      })
+      .find((c: MetricCriteriaContext | undefined): c is MetricCriteriaContext => {
+        return Boolean(c);
+      });
+
+    if (!ctx) {
+      return null;
+    }
+
+    const lines: Array<string> = [];
+    lines.push(`- Metric: \`${ctx.metricName}\``);
+    if (ctx.alias) {
+      lines.push(`- Alias: \`${ctx.alias}\``);
+    }
+    if (ctx.unit) {
+      lines.push(`- Unit: ${ctx.unit}`);
+    }
+    if (ctx.aggregationType) {
+      lines.push(`- Aggregation: ${ctx.aggregationType}`);
+    }
+    if (ctx.isFormula && ctx.formulaExpression) {
+      lines.push(`- Formula: \`${ctx.formulaExpression}\``);
+    }
+    if (ctx.timeWindowMinutes) {
+      lines.push(`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
+    }
+
+    const filterKeys: Array<string> = Object.keys(ctx.filterAttributes || {});
+    if (filterKeys.length > 0) {
+      const filterLines: Array<string> = filterKeys.map((k: string) => {
+        const v: unknown = (ctx.filterAttributes as Record<string, unknown>)[k];
+        return `  - \`${k}\` = \`${String(v)}\``;
+      });
+      lines.push(`- Filters:\n${filterLines.join("\n")}`);
+    }
+
+    if (ctx.groupBy.length > 0) {
+      lines.push(
+        `- Grouped By: ${ctx.groupBy
+          .map((g: string) => {
+            return `\`${g}\``;
+          })
+          .join(", ")}`,
+      );
+    }
+
+    const sections: Array<string> = [
+      `**Metric Details**\n${lines.join("\n")}`,
+    ];
+
+    if (ctx.breachingSample) {
+      const s: MetricBreachingSample = ctx.breachingSample;
+      const sampleLines: Array<string> = [
+        `- Value: ${s.value}${ctx.unit ? ` ${ctx.unit}` : ""}`,
+        `- At: ${OneUptimeDate.toString(s.timestamp)}`,
+      ];
+      const attrKeys: Array<string> = Object.keys(s.attributes || {});
+      if (attrKeys.length > 0) {
+        const attrLines: Array<string> = attrKeys.map((k: string) => {
+          const v: unknown = (s.attributes as Record<string, unknown>)[k];
+          return `  - \`${k}\` = \`${String(v)}\``;
+        });
+        sampleLines.push(`- Series Attributes:\n${attrLines.join("\n")}`);
+      }
+      sections.push(`\n\n**Breaching Series**\n${sampleLines.join("\n")}`);
     }
 
     return sections.join("\n");

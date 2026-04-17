@@ -389,6 +389,8 @@ export default class CompareCriteria {
     value: Array<number> | number;
     threshold: number;
     criteriaFilter: CriteriaFilter;
+    metricDisplayName?: string | undefined;
+    unit?: string | undefined;
   }): string | null {
     if (data.value === null || data.value === undefined) {
       return null;
@@ -412,6 +414,8 @@ export default class CompareCriteria {
           values: data.value,
           threshold: data.threshold as number,
           criteriaFilter: data.criteriaFilter,
+          metricDisplayName: data.metricDisplayName,
+          unit: data.unit,
         });
       }
 
@@ -432,6 +436,8 @@ export default class CompareCriteria {
           values: data.value,
           threshold: data.threshold as number,
           criteriaFilter: data.criteriaFilter,
+          metricDisplayName: data.metricDisplayName,
+          unit: data.unit,
         });
       }
 
@@ -452,6 +458,8 @@ export default class CompareCriteria {
           values: data.value,
           threshold: data.threshold as number,
           criteriaFilter: data.criteriaFilter,
+          metricDisplayName: data.metricDisplayName,
+          unit: data.unit,
         });
       }
 
@@ -472,6 +480,8 @@ export default class CompareCriteria {
           values: data.value,
           threshold: data.threshold as number,
           criteriaFilter: data.criteriaFilter,
+          metricDisplayName: data.metricDisplayName,
+          unit: data.unit,
         });
       }
 
@@ -492,6 +502,8 @@ export default class CompareCriteria {
           values: data.value,
           threshold: data.threshold as number,
           criteriaFilter: data.criteriaFilter,
+          metricDisplayName: data.metricDisplayName,
+          unit: data.unit,
         });
       }
 
@@ -512,6 +524,8 @@ export default class CompareCriteria {
           values: data.value,
           threshold: data.threshold as number,
           criteriaFilter: data.criteriaFilter,
+          metricDisplayName: data.metricDisplayName,
+          unit: data.unit,
         });
       }
 
@@ -526,6 +540,8 @@ export default class CompareCriteria {
     values: Array<number | boolean> | number | boolean | string;
     threshold: number | string | boolean;
     criteriaFilter: CriteriaFilter;
+    metricDisplayName?: string | undefined;
+    unit?: string | undefined;
   }): string {
     // CPU Percent over the last 5 minutes is 10 which is less than the threshold of 20
     let message: string = "";
@@ -546,7 +562,15 @@ export default class CompareCriteria {
       message += "All values of";
     }
 
-    message += ` ${data.criteriaFilter.checkOn}`;
+    // Prefer a metric-specific display name over the generic "Metric Value"
+    // label when evaluating metric monitors.
+    const label: string =
+      data.metricDisplayName &&
+      data.criteriaFilter.checkOn === CheckOn.MetricValue
+        ? data.metricDisplayName
+        : data.criteriaFilter.checkOn;
+
+    message += ` ${label}`;
 
     if (data.criteriaFilter.checkOn === CheckOn.DiskUsagePercent) {
       const diskPath: string =
@@ -562,6 +586,8 @@ export default class CompareCriteria {
       message += ` over the last ${data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes} minutes`;
     }
 
+    const unitSuffix: string = data.unit ? ` ${data.unit}` : "";
+
     if (
       data.criteriaFilter.filterType !== FilterType.True &&
       data.criteriaFilter.filterType !== FilterType.False
@@ -570,29 +596,29 @@ export default class CompareCriteria {
         data.values,
       );
 
-      message += ` is ${formattedValues}`;
+      message += ` is ${formattedValues}${unitSuffix}`;
 
       message += " which is";
     }
 
     switch (data.criteriaFilter.filterType) {
       case FilterType.GreaterThan:
-        message += ` greater than ${CompareCriteria.formatSingleValue(data.threshold)}. `;
+        message += ` greater than ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
         break;
       case FilterType.GreaterThanOrEqualTo:
-        message += ` greater than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
+        message += ` greater than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
         break;
       case FilterType.LessThan:
-        message += ` less than ${CompareCriteria.formatSingleValue(data.threshold)}. `;
+        message += ` less than ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
         break;
       case FilterType.LessThanOrEqualTo:
-        message += ` less than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
+        message += ` less than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
         break;
       case FilterType.NotEqualTo:
-        message += ` not equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
+        message += ` not equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
         break;
       case FilterType.EqualTo:
-        message += ` equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
+        message += ` equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
         break;
       case FilterType.Contains:
         message += ` contains ${CompareCriteria.formatSingleValue(data.threshold)}. `;

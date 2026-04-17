@@ -1,4 +1,5 @@
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
+import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -134,6 +135,11 @@ export interface CriteriaFilter {
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
   evaluateOverTimeOptions?: EvaluateOverTimeOptions | undefined;
+  // Populated at evaluation time for metric monitors so downstream code
+  // (e.g. the root cause builder) can include metric-specific context
+  // like metric name, unit, filter/group-by attributes, and the series
+  // that actually breached. Not persisted.
+  metricCriteriaContext?: MetricCriteriaContext | undefined;
 }
 
 export enum FilterType {
