@@ -9,6 +9,7 @@ import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType"
 import Service from "Common/Models/DatabaseModels/Service";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -30,6 +31,69 @@ interface PillConfig {
   icon: IconProp;
   tooltip: string;
 }
+
+// Rich explanations used in the create/edit wizard's rule-type picker.
+// Each entry becomes a card the user can click to understand what the rule
+// does before committing to it. Keep titles short (≤ 20 chars) and
+// descriptions to one or two sentences.
+const ruleTypeCardOptions: Array<CardSelectOption> = [
+  {
+    value: MetricPipelineRuleType.Filter,
+    title: "Filter (allowlist)",
+    description:
+      "Keep only data points matching the criteria. Everything that does not match is dropped at ingest. Useful for strict allowlists.",
+    icon: IconProp.Filter,
+  },
+  {
+    value: MetricPipelineRuleType.Drop,
+    title: "Drop",
+    description:
+      "Drop data points matching the criteria. Everything else passes through unchanged. Useful for silencing noisy metrics.",
+    icon: IconProp.Trash,
+  },
+  {
+    value: MetricPipelineRuleType.RenameMetric,
+    title: "Rename Metric",
+    description:
+      "Rename the metric itself. Use this to standardize names across SDK versions or to align with your internal naming convention.",
+    icon: IconProp.Edit,
+  },
+  {
+    value: MetricPipelineRuleType.RenameAttribute,
+    title: "Rename Attribute",
+    description:
+      "Rename an attribute key on matched rows (values are preserved). Useful for normalizing attribute naming between services.",
+    icon: IconProp.Edit,
+  },
+  {
+    value: MetricPipelineRuleType.AddAttribute,
+    title: "Add Attribute",
+    description:
+      "Attach a new attribute (key = value) to matched rows. Great for tagging by environment, region, or ownership at ingest.",
+    icon: IconProp.Add,
+  },
+  {
+    value: MetricPipelineRuleType.RemoveAttribute,
+    title: "Remove Attribute",
+    description:
+      "Delete an attribute from matched rows. Useful when an SDK emits a high-cardinality attribute you do not want stored.",
+    icon: IconProp.Close,
+  },
+  {
+    value: MetricPipelineRuleType.RedactAttribute,
+    title: "Redact Attribute",
+    description:
+      "Replace an attribute's value with a redaction placeholder (default [REDACTED]). Keeps the key visible but hides sensitive data.",
+    icon: IconProp.EyeSlash,
+  },
+  {
+    value: MetricPipelineRuleType.Sample,
+    title: "Sample",
+    description:
+      "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.",
+    icon: IconProp.Percent,
+  },
+];
 
 const ruleTypeConfig: Record<string, PillConfig> = {
   [MetricPipelineRuleType.Filter]: {
@@ -182,14 +246,12 @@ const MetricPipelineRules: FunctionComponent<
           {
             field: { ruleType: true },
             title: "Rule Type",
+            description:
+              "Pick the action this rule will perform when a metric data point matches the criteria above.",
             stepId: "action",
-            fieldType: FormFieldSchemaType.Dropdown,
+            fieldType: FormFieldSchemaType.CardSelect,
             required: true,
-            dropdownOptions: Object.values(MetricPipelineRuleType).map(
-              (v: string) => {
-                return { label: ruleTypeConfig[v]?.label ?? v, value: v };
-              },
-            ),
+            cardSelectOptions: ruleTypeCardOptions,
           },
           {
             field: { matchMetricNameRegex: true },
