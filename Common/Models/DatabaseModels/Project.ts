@@ -1,3 +1,4 @@
+import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
@@ -1991,4 +1992,56 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public gitHubAppInstallationId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Default Metric Cardinality Budget",
+    description:
+      "Project-wide default max distinct series per metric. Services without a per-service override use this value.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 10000,
+  })
+  public defaultMetricCardinalityBudget?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Default Metric Downsampling Retention (days per tier)",
+    description:
+      "Project-wide default retention for each downsampling tier (raw, 1m, 5m, 1h, 1d) in days.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public defaultMetricDownsamplingRetentionDays?: MetricDownsamplingRetentionDays =
+    undefined;
 }

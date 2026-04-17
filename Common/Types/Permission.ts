@@ -126,6 +126,12 @@ enum Permission {
   EditProjectLogScrubRule = "EditProjectLogScrubRule",
   ReadProjectLogScrubRule = "ReadProjectLogScrubRule",
 
+  // Metric Pipeline Rules
+  CreateProjectMetricPipelineRule = "CreateProjectMetricPipelineRule",
+  DeleteProjectMetricPipelineRule = "DeleteProjectMetricPipelineRule",
+  EditProjectMetricPipelineRule = "EditProjectMetricPipelineRule",
+  ReadProjectMetricPipelineRule = "ReadProjectMetricPipelineRule",
+
   // Exceptions
   CreateTelemetryException = "CreateTelemetryException",
   DeleteTelemetryException = "DeleteTelemetryException",
@@ -4739,6 +4745,48 @@ export class PermissionHelper {
         title: "Read Log Scrub Rule",
         description:
           "This permission can read Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Metric Pipeline Rule Permissions
+      {
+        permission: Permission.CreateProjectMetricPipelineRule,
+        title: "Create Metric Pipeline Rule",
+        description:
+          "This permission can create Metric Pipeline Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectMetricPipelineRule,
+        title: "Delete Metric Pipeline Rule",
+        description:
+          "This permission can delete Metric Pipeline Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectMetricPipelineRule,
+        title: "Edit Metric Pipeline Rule",
+        description:
+          "This permission can edit Metric Pipeline Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectMetricPipelineRule,
+        title: "Read Metric Pipeline Rule",
+        description:
+          "This permission can read Metric Pipeline Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
