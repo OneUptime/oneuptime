@@ -133,6 +133,9 @@ import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";
 
+// Derived metrics from spans.
+import "./Jobs/Traces/ComputeTraceRecordingRules";
+
 // Kubernetes inventory cleanup.
 import "./Jobs/Kubernetes/CleanupStaleResources";
 

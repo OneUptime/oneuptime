@@ -33,10 +33,22 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import TraceDropFilterService from "./TraceDropFilterService";
+import TraceScrubRuleService from "./TraceScrubRuleService";
+import TracePipelineService, {
+  LoadedTracePipeline,
+} from "./TracePipelineService";
+import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
 } from "../Config";
+
+type CompiledTraceScrubRule = {
+  rule: TraceScrubRule;
+  regex: RegExp;
+};
 
 type ParsedUnixNano = {
   unixNano: number;
@@ -160,6 +172,29 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalSpansProcessed: number = 0;
 
+      const projectId: ObjectID = (req as TelemetryRequest).projectId;
+
+      // Load trace pipeline artifacts once per batch (60s cached inside services).
+      let dropFilters: Array<TraceDropFilter> = [];
+      let scrubRules: Array<CompiledTraceScrubRule> = [];
+      let pipelines: Array<LoadedTracePipeline> = [];
+      try {
+        [dropFilters, scrubRules, pipelines] = await Promise.all([
+          TraceDropFilterService.loadDropFilters(projectId),
+          TraceScrubRuleService.loadScrubRules(projectId),
+          TracePipelineService.loadPipelines(projectId),
+        ]);
+      } catch (err) {
+        logger.warn(
+          `Failed to load trace pipeline rules for project ${projectId.toString()}; skipping: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        dropFilters = [];
+        scrubRules = [];
+        pipelines = [];
+      }
+
       let resourceSpanCounter: number = 0;
       for (const resourceSpan of resourceSpans) {
         try {
@@ -262,8 +297,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const attributeKeys: Array<string> =
                     TelemetryUtil.getAttributeKeys(spanAttributes);
 
-                  const projectId: ObjectID = (req as TelemetryRequest)
-                    .projectId;
                   const serviceId: ObjectID =
                     serviceDictionary[serviceName]!.serviceId!;
 
@@ -358,7 +391,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanLinks = [];
                   }
 
-                  const spanRow: JSONObject = this.buildSpanRow({
+                  let spanRow: JSONObject = this.buildSpanRow({
                     projectId: projectId,
                     serviceId: serviceId,
                     attributes: spanAttributes,
@@ -381,6 +414,29 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     dataRententionInDays:
                       serviceDictionary[serviceName]!.dataRententionInDays,
                   });
+
+                  // Apply trace pipeline: drop filter -> scrub -> pipeline.
+                  // Order matches logs: a dropped span never reaches scrub/pipeline.
+                  if (
+                    dropFilters.length > 0 &&
+                    TraceDropFilterService.shouldDropSpan(spanRow, dropFilters)
+                  ) {
+                    continue;
+                  }
+
+                  if (scrubRules.length > 0) {
+                    spanRow = TraceScrubRuleService.scrubSpan(
+                      spanRow,
+                      scrubRules,
+                    );
+                  }
+
+                  if (pipelines.length > 0) {
+                    spanRow = TracePipelineService.processSpan(
+                      spanRow,
+                      pipelines,
+                    );
+                  }
 
                   dbSpans.push(spanRow);
                   totalSpansProcessed++;

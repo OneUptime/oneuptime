@@ -5,7 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type TracesTabKey = "viewer" | "insights" | "setup";
+export type TracesTabKey = "viewer" | "insights" | "setup" | "settings";
 
 interface Props {
   active: TracesTabKey;
@@ -36,6 +36,14 @@ const TracesNavTabs: FunctionComponent<Props> = (
       icon: IconProp.Book,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
+      ),
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      icon: IconProp.Settings,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.TRACES_SETTINGS_PIPELINES] as Route,
       ),
     },
   ];

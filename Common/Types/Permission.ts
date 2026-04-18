@@ -138,6 +138,36 @@ enum Permission {
   EditProjectMetricRecordingRule = "EditProjectMetricRecordingRule",
   ReadProjectMetricRecordingRule = "ReadProjectMetricRecordingRule",
 
+  // Trace Pipelines
+  CreateProjectTracePipeline = "CreateProjectTracePipeline",
+  DeleteProjectTracePipeline = "DeleteProjectTracePipeline",
+  EditProjectTracePipeline = "EditProjectTracePipeline",
+  ReadProjectTracePipeline = "ReadProjectTracePipeline",
+
+  // Trace Pipeline Processors
+  CreateProjectTracePipelineProcessor = "CreateProjectTracePipelineProcessor",
+  DeleteProjectTracePipelineProcessor = "DeleteProjectTracePipelineProcessor",
+  EditProjectTracePipelineProcessor = "EditProjectTracePipelineProcessor",
+  ReadProjectTracePipelineProcessor = "ReadProjectTracePipelineProcessor",
+
+  // Trace Drop Filters
+  CreateProjectTraceDropFilter = "CreateProjectTraceDropFilter",
+  DeleteProjectTraceDropFilter = "DeleteProjectTraceDropFilter",
+  EditProjectTraceDropFilter = "EditProjectTraceDropFilter",
+  ReadProjectTraceDropFilter = "ReadProjectTraceDropFilter",
+
+  // Trace Scrub Rules
+  CreateProjectTraceScrubRule = "CreateProjectTraceScrubRule",
+  DeleteProjectTraceScrubRule = "DeleteProjectTraceScrubRule",
+  EditProjectTraceScrubRule = "EditProjectTraceScrubRule",
+  ReadProjectTraceScrubRule = "ReadProjectTraceScrubRule",
+
+  // Trace Recording Rules (derived metrics from spans)
+  CreateProjectTraceRecordingRule = "CreateProjectTraceRecordingRule",
+  DeleteProjectTraceRecordingRule = "DeleteProjectTraceRecordingRule",
+  EditProjectTraceRecordingRule = "EditProjectTraceRecordingRule",
+  ReadProjectTraceRecordingRule = "ReadProjectTraceRecordingRule",
+
   // Exceptions
   CreateTelemetryException = "CreateTelemetryException",
   DeleteTelemetryException = "DeleteTelemetryException",
@@ -4855,6 +4885,216 @@ export class PermissionHelper {
         title: "Read Metric Recording Rule",
         description:
           "This permission can read Metric Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Trace Pipeline Permissions
+      {
+        permission: Permission.CreateProjectTracePipeline,
+        title: "Create Trace Pipeline",
+        description:
+          "This permission can create Trace Pipelines in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectTracePipeline,
+        title: "Delete Trace Pipeline",
+        description:
+          "This permission can delete Trace Pipelines of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectTracePipeline,
+        title: "Edit Trace Pipeline",
+        description:
+          "This permission can edit Trace Pipelines of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectTracePipeline,
+        title: "Read Trace Pipeline",
+        description:
+          "This permission can read Trace Pipelines of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Trace Pipeline Processor Permissions
+      {
+        permission: Permission.CreateProjectTracePipelineProcessor,
+        title: "Create Trace Pipeline Processor",
+        description:
+          "This permission can create Trace Pipeline Processors in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectTracePipelineProcessor,
+        title: "Delete Trace Pipeline Processor",
+        description:
+          "This permission can delete Trace Pipeline Processors of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectTracePipelineProcessor,
+        title: "Edit Trace Pipeline Processor",
+        description:
+          "This permission can edit Trace Pipeline Processors of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectTracePipelineProcessor,
+        title: "Read Trace Pipeline Processor",
+        description:
+          "This permission can read Trace Pipeline Processors of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Trace Drop Filter Permissions
+      {
+        permission: Permission.CreateProjectTraceDropFilter,
+        title: "Create Trace Drop Filter",
+        description:
+          "This permission can create Trace Drop Filters in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectTraceDropFilter,
+        title: "Delete Trace Drop Filter",
+        description:
+          "This permission can delete Trace Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectTraceDropFilter,
+        title: "Edit Trace Drop Filter",
+        description:
+          "This permission can edit Trace Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectTraceDropFilter,
+        title: "Read Trace Drop Filter",
+        description:
+          "This permission can read Trace Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Trace Scrub Rule Permissions
+      {
+        permission: Permission.CreateProjectTraceScrubRule,
+        title: "Create Trace Scrub Rule",
+        description:
+          "This permission can create Trace Scrub Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectTraceScrubRule,
+        title: "Delete Trace Scrub Rule",
+        description:
+          "This permission can delete Trace Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectTraceScrubRule,
+        title: "Edit Trace Scrub Rule",
+        description:
+          "This permission can edit Trace Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectTraceScrubRule,
+        title: "Read Trace Scrub Rule",
+        description:
+          "This permission can read Trace Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Trace Recording Rule Permissions (derived metrics from spans)
+      {
+        permission: Permission.CreateProjectTraceRecordingRule,
+        title: "Create Trace Recording Rule",
+        description:
+          "This permission can create Trace Recording Rules (derived metrics from spans) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectTraceRecordingRule,
+        title: "Delete Trace Recording Rule",
+        description:
+          "This permission can delete Trace Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectTraceRecordingRule,
+        title: "Edit Trace Recording Rule",
+        description:
+          "This permission can edit Trace Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectTraceRecordingRule,
+        title: "Read Trace Recording Rule",
+        description:
+          "This permission can read Trace Recording Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

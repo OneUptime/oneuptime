@@ -1,5 +1,6 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import TracesLayout from "../Pages/Traces/Layout";
+import TracesSettingsLayout from "../Pages/Traces/Settings/Layout";
 import TracesViewLayout from "../Pages/Traces/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, TracesRoutePath } from "../Utils/RouteMap";
@@ -11,6 +12,12 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import TracesPage from "../Pages/Traces/Index";
 import TracesListPage from "../Pages/Traces/List";
 import TracesDocumentationPage from "../Pages/Traces/Documentation";
+import TracesSettingsPipelines from "../Pages/Traces/Settings/Pipelines";
+import TracesSettingsPipelineView from "../Pages/Traces/Settings/PipelineView";
+import TracesSettingsDropFilters from "../Pages/Traces/Settings/DropFilters";
+import TracesSettingsDropFilterView from "../Pages/Traces/Settings/DropFilterView";
+import TracesSettingsScrubRules from "../Pages/Traces/Settings/ScrubRules";
+import TracesSettingsRecordingRules from "../Pages/Traces/Settings/RecordingRules";
 
 import TraceViewPage from "../Pages/Traces/View/Index";
 
@@ -47,6 +54,78 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {/* Settings Routes */}
+        <PageRoute element={<TracesSettingsLayout />}>
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_SETTINGS_PIPELINES] || ""}
+            element={
+              <TracesSettingsPipelines
+                {...props}
+                pageRoute={RouteMap[PageMap.TRACES_SETTINGS_PIPELINES] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_SETTINGS_PIPELINE_VIEW] || ""}
+            element={
+              <TracesSettingsPipelineView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.TRACES_SETTINGS_PIPELINE_VIEW] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_SETTINGS_DROP_FILTERS] || ""}
+            element={
+              <TracesSettingsDropFilters
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.TRACES_SETTINGS_DROP_FILTERS] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={
+              TracesRoutePath[PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW] || ""
+            }
+            element={
+              <TracesSettingsDropFilterView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_SETTINGS_SCRUB_RULES] || ""}
+            element={
+              <TracesSettingsScrubRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.TRACES_SETTINGS_SCRUB_RULES] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={
+              TracesRoutePath[PageMap.TRACES_SETTINGS_RECORDING_RULES] || ""
+            }
+            element={
+              <TracesSettingsRecordingRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.TRACES_SETTINGS_RECORDING_RULES] as Route
+                }
+              />
+            }
+          />
+        </PageRoute>
       </PageRoute>
 
       {/* Trace View */}

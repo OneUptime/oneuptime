@@ -158,6 +158,12 @@ export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES_INSIGHTS]: "insights",
   [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.TRACES_DOCUMENTATION]: "documentation",
+  [PageMap.TRACES_SETTINGS_PIPELINES]: "settings/pipelines",
+  [PageMap.TRACES_SETTINGS_PIPELINE_VIEW]: `settings/pipelines/${RouteParams.ModelID}`,
+  [PageMap.TRACES_SETTINGS_DROP_FILTERS]: "settings/drop-filters",
+  [PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
+  [PageMap.TRACES_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
+  [PageMap.TRACES_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
 };
 
 // Profiles product routes
@@ -2464,6 +2470,42 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TRACES_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
       TracesRoutePath[PageMap.TRACES_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.TRACES_SETTINGS_PIPELINES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_SETTINGS_PIPELINES]
+    }`,
+  ),
+
+  [PageMap.TRACES_SETTINGS_PIPELINE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_SETTINGS_PIPELINE_VIEW]
+    }`,
+  ),
+
+  [PageMap.TRACES_SETTINGS_DROP_FILTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_SETTINGS_DROP_FILTERS]
+    }`,
+  ),
+
+  [PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.TRACES_SETTINGS_SCRUB_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_SETTINGS_SCRUB_RULES]
+    }`,
+  ),
+
+  [PageMap.TRACES_SETTINGS_RECORDING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_SETTINGS_RECORDING_RULES]
     }`,
   ),
 
