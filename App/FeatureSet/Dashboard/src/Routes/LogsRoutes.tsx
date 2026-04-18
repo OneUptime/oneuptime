@@ -1,5 +1,6 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import LogsLayout from "../Pages/Logs/Layout";
+import LogsSettingsLayout from "../Pages/Logs/Settings/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { LogsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -48,53 +49,57 @@ const LogsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/* Settings Routes */}
-        <PageRoute
-          path={LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINES] || ""}
-          element={
-            <LogsSettingsPipelines
-              {...props}
-              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_PIPELINES] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] || ""}
-          element={
-            <LogsSettingsPipelineView
-              {...props}
-              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTERS] || ""}
-          element={
-            <LogsSettingsDropFilters
-              {...props}
-              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW] || ""}
-          element={
-            <LogsSettingsDropFilterView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW] as Route
-              }
-            />
-          }
-        />
-        <PageRoute
-          path={LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES] || ""}
-          element={
-            <LogsSettingsScrubRules
-              {...props}
-              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES] as Route}
-            />
-          }
-        />
+        <PageRoute element={<LogsSettingsLayout />}>
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINES] || ""}
+            element={
+              <LogsSettingsPipelines
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_SETTINGS_PIPELINES] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] || ""}
+            element={
+              <LogsSettingsPipelineView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTERS] || ""}
+            element={
+              <LogsSettingsDropFilters
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW] || ""}
+            element={
+              <LogsSettingsDropFilterView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES] || ""}
+            element={
+              <LogsSettingsScrubRules
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES] as Route}
+              />
+            }
+          />
+        </PageRoute>
       </PageRoute>
     </Routes>
   );

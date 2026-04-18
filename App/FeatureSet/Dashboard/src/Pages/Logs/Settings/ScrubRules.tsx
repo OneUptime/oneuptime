@@ -1,6 +1,4 @@
 import PageComponentProps from "../../PageComponentProps";
-import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
-import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -21,7 +19,7 @@ import {
   Teal500,
   Indigo500,
 } from "Common/Types/BrandColors";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 interface PillConfig {
   label: string;
@@ -176,322 +174,318 @@ const LogScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
-    <Fragment>
-      <LogsNavTabs active="settings" />
-      <LogsSettingsNavTabs active="scrub-rules" />
-      <ModelTable<LogScrubRule>
-        modelType={LogScrubRule}
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        id="log-scrub-rules-table"
-        name="Logs > Settings > Scrub Rules"
-        userPreferencesKey="log-scrub-rules-table"
-        isDeleteable={true}
-        isEditable={true}
-        isCreateable={true}
-        sortBy="sortOrder"
-        sortOrder={SortOrder.Ascending}
-        enableDragAndDrop={true}
-        dragDropIndexField="sortOrder"
-        cardProps={{
-          title: "Log Scrub Rules",
+    <ModelTable<LogScrubRule>
+      modelType={LogScrubRule}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      }}
+      id="log-scrub-rules-table"
+      name="Logs > Settings > Scrub Rules"
+      userPreferencesKey="log-scrub-rules-table"
+      isDeleteable={true}
+      isEditable={true}
+      isCreateable={true}
+      sortBy="sortOrder"
+      sortOrder={SortOrder.Ascending}
+      enableDragAndDrop={true}
+      dragDropIndexField="sortOrder"
+      cardProps={{
+        title: "Log Scrub Rules",
+        description:
+          "Automatically detect and scrub sensitive data (PII) from logs at ingest time. Matching patterns are masked, hashed, or redacted before storage. Drag to reorder.",
+      }}
+      helpContent={{
+        title: "How Log Scrub Rules Work",
+        description:
+          "Understanding pattern types, scrub actions, and how sensitive data is removed from logs at ingest time",
+        markdown: documentationMarkdown,
+      }}
+      noItemsMessage={"No scrub rules found."}
+      formSteps={[
+        {
+          title: "Basic Info",
+          id: "basic-info",
+        },
+        {
+          title: "Pattern Configuration",
+          id: "pattern-config",
+        },
+        {
+          title: "Scrub Settings",
+          id: "scrub-settings",
+        },
+      ]}
+      formFields={[
+        {
+          field: {
+            name: true,
+          },
+          title: "Name",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "e.g. Scrub Email Addresses",
+          validation: {
+            minLength: 2,
+          },
+        },
+        {
+          field: {
+            description: true,
+          },
+          title: "Description",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "Describe what this scrub rule does.",
+        },
+        {
+          field: {
+            patternType: true,
+          },
+          title: "Pattern Type",
+          stepId: "pattern-config",
           description:
-            "Automatically detect and scrub sensitive data (PII) from logs at ingest time. Matching patterns are masked, hashed, or redacted before storage. Drag to reorder.",
-        }}
-        helpContent={{
-          title: "How Log Scrub Rules Work",
+            "The type of sensitive data to detect. Select 'Custom' to provide your own regex pattern.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: true,
+          dropdownOptions: [
+            {
+              label: "Email Address",
+              value: "email",
+            },
+            {
+              label: "Credit Card Number",
+              value: "creditCard",
+            },
+            {
+              label: "SSN (Social Security Number)",
+              value: "ssn",
+            },
+            {
+              label: "Phone Number",
+              value: "phoneNumber",
+            },
+            {
+              label: "IP Address",
+              value: "ipAddress",
+            },
+            {
+              label: "Custom Regex",
+              value: "custom",
+            },
+          ],
+        },
+        {
+          field: {
+            customRegex: true,
+          },
+          title: "Custom Regex Pattern",
+          stepId: "pattern-config",
+          description: "A regular expression to match sensitive data.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "e.g. \\bSECRET-[A-Z0-9]+\\b",
+          showIf: (values: FormValues<LogScrubRule>): boolean => {
+            return values.patternType === "custom";
+          },
+        },
+        {
+          field: {
+            scrubAction: true,
+          },
+          title: "Scrub Action",
+          stepId: "scrub-settings",
           description:
-            "Understanding pattern types, scrub actions, and how sensitive data is removed from logs at ingest time",
-          markdown: documentationMarkdown,
-        }}
-        noItemsMessage={"No scrub rules found."}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Pattern Configuration",
-            id: "pattern-config",
-          },
-          {
-            title: "Scrub Settings",
-            id: "scrub-settings",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
+            "How to handle matched data. Mask: partially hide (e.g. j***@***.com). Hash: replace with deterministic hash. Redact: replace with [REDACTED].",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: true,
+          dropdownOptions: [
+            {
+              label: "Redact",
+              value: "redact",
             },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Scrub Email Addresses",
-            validation: {
-              minLength: 2,
+            {
+              label: "Mask",
+              value: "mask",
             },
+            {
+              label: "Hash",
+              value: "hash",
+            },
+          ],
+        },
+        {
+          field: {
+            fieldsToScrub: true,
           },
-          {
-            field: {
-              description: true,
+          title: "Fields to Scrub",
+          stepId: "scrub-settings",
+          description:
+            "Which parts of the log to scrub: the log body (message), attribute values, or both.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: true,
+          dropdownOptions: [
+            {
+              label: "Both (Body & Attributes)",
+              value: "both",
             },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Describe what this scrub rule does.",
+            {
+              label: "Body Only",
+              value: "body",
+            },
+            {
+              label: "Attributes Only",
+              value: "attributes",
+            },
+          ],
+        },
+        {
+          field: {
+            isEnabled: true,
           },
-          {
-            field: {
-              patternType: true,
-            },
-            title: "Pattern Type",
-            stepId: "pattern-config",
-            description:
-              "The type of sensitive data to detect. Select 'Custom' to provide your own regex pattern.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Email Address",
-                value: "email",
-              },
-              {
-                label: "Credit Card Number",
-                value: "creditCard",
-              },
-              {
-                label: "SSN (Social Security Number)",
-                value: "ssn",
-              },
-              {
-                label: "Phone Number",
-                value: "phoneNumber",
-              },
-              {
-                label: "IP Address",
-                value: "ipAddress",
-              },
-              {
-                label: "Custom Regex",
-                value: "custom",
-              },
-            ],
+          title: "Enabled",
+          stepId: "scrub-settings",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+      ]}
+      showRefreshButton={true}
+      showViewIdButton={true}
+      filters={[
+        {
+          field: {
+            name: true,
           },
-          {
-            field: {
-              customRegex: true,
-            },
-            title: "Custom Regex Pattern",
-            stepId: "pattern-config",
-            description: "A regular expression to match sensitive data.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "e.g. \\bSECRET-[A-Z0-9]+\\b",
-            showIf: (values: FormValues<LogScrubRule>): boolean => {
-              return values.patternType === "custom";
-            },
+          type: FieldType.Text,
+          title: "Name",
+        },
+        {
+          field: {
+            patternType: true,
           },
-          {
-            field: {
-              scrubAction: true,
-            },
-            title: "Scrub Action",
-            stepId: "scrub-settings",
-            description:
-              "How to handle matched data. Mask: partially hide (e.g. j***@***.com). Hash: replace with deterministic hash. Redact: replace with [REDACTED].",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Redact",
-                value: "redact",
-              },
-              {
-                label: "Mask",
-                value: "mask",
-              },
-              {
-                label: "Hash",
-                value: "hash",
-              },
-            ],
+          type: FieldType.Text,
+          title: "Pattern Type",
+        },
+        {
+          field: {
+            scrubAction: true,
           },
-          {
-            field: {
-              fieldsToScrub: true,
-            },
-            title: "Fields to Scrub",
-            stepId: "scrub-settings",
-            description:
-              "Which parts of the log to scrub: the log body (message), attribute values, or both.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Both (Body & Attributes)",
-                value: "both",
-              },
-              {
-                label: "Body Only",
-                value: "body",
-              },
-              {
-                label: "Attributes Only",
-                value: "attributes",
-              },
-            ],
+          type: FieldType.Text,
+          title: "Scrub Action",
+        },
+        {
+          field: {
+            isEnabled: true,
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "scrub-settings",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+          type: FieldType.Boolean,
+          title: "Enabled",
+        },
+      ]}
+      columns={[
+        {
+          field: {
+            name: true,
+            description: true,
           },
-        ]}
-        showRefreshButton={true}
-        showViewIdButton={true}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            type: FieldType.Text,
-            title: "Name",
-          },
-          {
-            field: {
-              patternType: true,
-            },
-            type: FieldType.Text,
-            title: "Pattern Type",
-          },
-          {
-            field: {
-              scrubAction: true,
-            },
-            type: FieldType.Text,
-            title: "Scrub Action",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            type: FieldType.Boolean,
-            title: "Enabled",
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-              description: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: LogScrubRule): ReactElement => {
-              return (
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {item.name || "Untitled"}
-                  </div>
-                  {item.description && (
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {item.description}
-                    </div>
-                  )}
+          title: "Name",
+          type: FieldType.Element,
+          getElement: (item: LogScrubRule): ReactElement => {
+            return (
+              <div>
+                <div className="font-medium text-gray-900">
+                  {item.name || "Untitled"}
                 </div>
-              );
-            },
+                {item.description && (
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {item.description}
+                  </div>
+                )}
+              </div>
+            );
           },
-          {
-            field: {
-              patternType: true,
-            },
-            title: "Pattern Type",
-            type: FieldType.Element,
-            getElement: (item: LogScrubRule): ReactElement => {
-              const key: string = (item.patternType as string) || "unknown";
-              const config: PillConfig = patternTypeConfig[key] || {
-                label: key,
-                color: Blue500,
-                icon: IconProp.ShieldCheck,
-                tooltip: key,
-              };
-              return (
-                <Pill
-                  text={config.label}
-                  color={config.color}
-                  icon={config.icon}
-                  tooltip={config.tooltip}
-                />
-              );
-            },
+        },
+        {
+          field: {
+            patternType: true,
           },
-          {
-            field: {
-              scrubAction: true,
-            },
-            title: "Scrub Action",
-            type: FieldType.Element,
-            getElement: (item: LogScrubRule): ReactElement => {
-              const key: string = (item.scrubAction as string) || "unknown";
-              const config: PillConfig = scrubActionConfig[key] || {
-                label: key,
-                color: Blue500,
-                icon: IconProp.ShieldCheck,
-                tooltip: key,
-              };
-              return (
-                <Pill
-                  text={config.label}
-                  color={config.color}
-                  icon={config.icon}
-                  tooltip={config.tooltip}
-                />
-              );
-            },
+          title: "Pattern Type",
+          type: FieldType.Element,
+          getElement: (item: LogScrubRule): ReactElement => {
+            const key: string = (item.patternType as string) || "unknown";
+            const config: PillConfig = patternTypeConfig[key] || {
+              label: key,
+              color: Blue500,
+              icon: IconProp.ShieldCheck,
+              tooltip: key,
+            };
+            return (
+              <Pill
+                text={config.label}
+                color={config.color}
+                icon={config.icon}
+                tooltip={config.tooltip}
+              />
+            );
           },
-          {
-            field: {
-              fieldsToScrub: true,
-            },
-            title: "Fields",
-            type: FieldType.Element,
-            getElement: (item: LogScrubRule): ReactElement => {
-              const key: string = (item.fieldsToScrub as string) || "unknown";
-              const config: PillConfig = fieldsToScrubConfig[key] || {
-                label: key,
-                color: Blue500,
-                icon: IconProp.ShieldCheck,
-                tooltip: key,
-              };
-              return (
-                <Pill
-                  text={config.label}
-                  color={config.color}
-                  icon={config.icon}
-                  tooltip={config.tooltip}
-                />
-              );
-            },
+        },
+        {
+          field: {
+            scrubAction: true,
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            type: FieldType.Boolean,
+          title: "Scrub Action",
+          type: FieldType.Element,
+          getElement: (item: LogScrubRule): ReactElement => {
+            const key: string = (item.scrubAction as string) || "unknown";
+            const config: PillConfig = scrubActionConfig[key] || {
+              label: key,
+              color: Blue500,
+              icon: IconProp.ShieldCheck,
+              tooltip: key,
+            };
+            return (
+              <Pill
+                text={config.label}
+                color={config.color}
+                icon={config.icon}
+                tooltip={config.tooltip}
+              />
+            );
           },
-        ]}
-      />
-    </Fragment>
+        },
+        {
+          field: {
+            fieldsToScrub: true,
+          },
+          title: "Fields",
+          type: FieldType.Element,
+          getElement: (item: LogScrubRule): ReactElement => {
+            const key: string = (item.fieldsToScrub as string) || "unknown";
+            const config: PillConfig = fieldsToScrubConfig[key] || {
+              label: key,
+              color: Blue500,
+              icon: IconProp.ShieldCheck,
+              tooltip: key,
+            };
+            return (
+              <Pill
+                text={config.label}
+                color={config.color}
+                icon={config.icon}
+                tooltip={config.tooltip}
+              />
+            );
+          },
+        },
+        {
+          field: {
+            isEnabled: true,
+          },
+          title: "Enabled",
+          type: FieldType.Boolean,
+        },
+      ]}
+    />
   );
 };
 

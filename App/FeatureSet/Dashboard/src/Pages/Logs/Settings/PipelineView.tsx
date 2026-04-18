@@ -1,8 +1,6 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
-import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -106,9 +104,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <LogsNavTabs active="settings" />
-      <LogsSettingsNavTabs active="pipelines" />
-
       {/* Section 1: Pipeline Details */}
       <CardModelDetail<LogPipeline>
         name="Log Pipeline Details"

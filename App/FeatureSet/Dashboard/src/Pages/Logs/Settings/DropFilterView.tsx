@@ -1,8 +1,6 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
-import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -24,9 +22,6 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <LogsNavTabs active="settings" />
-      <LogsSettingsNavTabs active="drop-filters" />
-
       {/* Section 1: Basic Details */}
       <CardModelDetail<LogDropFilter>
         name="Log Drop Filter Details"

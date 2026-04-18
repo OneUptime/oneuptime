@@ -1,6 +1,4 @@
 import PageComponentProps from "../../PageComponentProps";
-import MetricsNavTabs from "../../../Components/Metrics/MetricsNavTabs";
-import MetricsSettingsNavTabs from "../../../Components/Metrics/MetricsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -25,7 +23,7 @@ import {
   Indigo500,
   Gray500,
 } from "Common/Types/BrandColors";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 interface PillConfig {
   label: string;
@@ -176,281 +174,274 @@ const MetricPipelineRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
-    <Fragment>
-      <MetricsNavTabs active="settings" />
-      <MetricsSettingsNavTabs active="pipeline-rules" />
-      <ModelTable<MetricPipelineRule>
-        modelType={MetricPipelineRule}
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        id="metric-pipeline-rules-table"
-        name="Metrics > Settings > Pipeline Rules"
-        userPreferencesKey="metric-pipeline-rules-table"
-        isDeleteable={true}
-        isEditable={true}
-        isCreateable={true}
-        sortBy="sortOrder"
-        sortOrder={SortOrder.Ascending}
-        enableDragAndDrop={true}
-        dragDropIndexField="sortOrder"
-        cardProps={{
-          title: "Metric Pipeline Rules",
+    <ModelTable<MetricPipelineRule>
+      modelType={MetricPipelineRule}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      }}
+      id="metric-pipeline-rules-table"
+      name="Metrics > Settings > Pipeline Rules"
+      userPreferencesKey="metric-pipeline-rules-table"
+      isDeleteable={true}
+      isEditable={true}
+      isCreateable={true}
+      sortBy="sortOrder"
+      sortOrder={SortOrder.Ascending}
+      enableDragAndDrop={true}
+      dragDropIndexField="sortOrder"
+      cardProps={{
+        title: "Metric Pipeline Rules",
+        description:
+          "Filter, drop, rename, enrich, redact, or sample OpenTelemetry metrics at ingest time. Drag to reorder.",
+      }}
+      helpContent={{
+        title: "How Metric Pipeline Rules Work",
+        description:
+          "Understanding rule types, match criteria, and service-vs-project scope.",
+        markdown: documentationMarkdown,
+      }}
+      noItemsMessage={"No metric pipeline rules found."}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Match", id: "match" },
+        { title: "Action", id: "action" },
+      ]}
+      formFields={[
+        {
+          field: { name: true },
+          title: "Name",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "e.g. Drop noisy http.server.duration",
+          validation: { minLength: 2 },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule does and why it's needed.",
+        },
+        {
+          field: { service: true },
+          title: "Service (optional)",
+          stepId: "basic-info",
           description:
-            "Filter, drop, rename, enrich, redact, or sample OpenTelemetry metrics at ingest time. Drag to reorder.",
-        }}
-        helpContent={{
-          title: "How Metric Pipeline Rules Work",
+            "Scope this rule to a single service. Leave empty for a project-wide rule.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: false,
+          dropdownModal: {
+            type: Service,
+            labelField: "name",
+            valueField: "_id",
+          },
+        },
+        {
+          field: { ruleType: true },
+          title: "Rule Type",
           description:
-            "Understanding rule types, match criteria, and service-vs-project scope.",
-          markdown: documentationMarkdown,
-        }}
-        noItemsMessage={"No metric pipeline rules found."}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match", id: "match" },
-          { title: "Action", id: "action" },
-        ]}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Drop noisy http.server.duration",
-            validation: { minLength: 2 },
+            "Pick the action this rule will perform when a metric data point matches the criteria above.",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.CardSelect,
+          required: true,
+          cardSelectOptions: ruleTypeCardOptions,
+        },
+        {
+          field: { matchMetricNameRegex: true },
+          title: "Match Metric Name Regex",
+          stepId: "match",
+          description:
+            "Regex matched against the metric name. Leave blank to match all metrics.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "^http\\.server\\.duration$",
+        },
+        {
+          field: { matchAttributeKey: true },
+          title: "Match Attribute Key",
+          stepId: "match",
+          description: "Only fire when this attribute key is present.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "http.method",
+        },
+        {
+          field: { matchAttributeValueRegex: true },
+          title: "Match Attribute Value Regex",
+          stepId: "match",
+          description: "Requires Match Attribute Key.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "^GET$",
+        },
+        {
+          field: { renameFromKey: true },
+          title: "Rename From",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return (
+              values.ruleType === MetricPipelineRuleType.RenameMetric ||
+              values.ruleType === MetricPipelineRuleType.RenameAttribute
+            );
           },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "What this rule does and why it's needed.",
+        },
+        {
+          field: { renameToKey: true },
+          title: "Rename To",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return (
+              values.ruleType === MetricPipelineRuleType.RenameMetric ||
+              values.ruleType === MetricPipelineRuleType.RenameAttribute
+            );
           },
-          {
-            field: { service: true },
-            title: "Service (optional)",
-            stepId: "basic-info",
-            description:
-              "Scope this rule to a single service. Leave empty for a project-wide rule.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: false,
-            dropdownModal: {
-              type: Service,
-              labelField: "name",
-              valueField: "_id",
-            },
+        },
+        {
+          field: { addAttributeKey: true },
+          title: "Attribute Key",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return (
+              values.ruleType === MetricPipelineRuleType.AddAttribute ||
+              values.ruleType === MetricPipelineRuleType.RemoveAttribute ||
+              values.ruleType === MetricPipelineRuleType.RedactAttribute
+            );
           },
-          {
-            field: { ruleType: true },
-            title: "Rule Type",
-            description:
-              "Pick the action this rule will perform when a metric data point matches the criteria above.",
-            stepId: "action",
-            fieldType: FormFieldSchemaType.CardSelect,
-            required: true,
-            cardSelectOptions: ruleTypeCardOptions,
+        },
+        {
+          field: { addAttributeValue: true },
+          title: "Attribute Value",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return values.ruleType === MetricPipelineRuleType.AddAttribute;
           },
-          {
-            field: { matchMetricNameRegex: true },
-            title: "Match Metric Name Regex",
-            stepId: "match",
-            description:
-              "Regex matched against the metric name. Leave blank to match all metrics.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "^http\\.server\\.duration$",
+        },
+        {
+          field: { redactReplacement: true },
+          title: "Redact Replacement",
+          stepId: "action",
+          description: "Literal string to use in place of the original value.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "[REDACTED]",
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return values.ruleType === MetricPipelineRuleType.RedactAttribute;
           },
-          {
-            field: { matchAttributeKey: true },
-            title: "Match Attribute Key",
-            stepId: "match",
-            description: "Only fire when this attribute key is present.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "http.method",
+        },
+        {
+          field: { samplePercentage: true },
+          title: "Sample Percentage (% to keep)",
+          stepId: "action",
+          description: "0 drops everything, 100 keeps everything.",
+          fieldType: FormFieldSchemaType.Number,
+          required: false,
+          placeholder: "10",
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return values.ruleType === MetricPipelineRuleType.Sample;
           },
-          {
-            field: { matchAttributeValueRegex: true },
-            title: "Match Attribute Value Regex",
-            stepId: "match",
-            description: "Requires Match Attribute Key.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "^GET$",
-          },
-          {
-            field: { renameFromKey: true },
-            title: "Rename From",
-            stepId: "action",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: (values: FormValues<MetricPipelineRule>): boolean => {
-              return (
-                values.ruleType === MetricPipelineRuleType.RenameMetric ||
-                values.ruleType === MetricPipelineRuleType.RenameAttribute
-              );
-            },
-          },
-          {
-            field: { renameToKey: true },
-            title: "Rename To",
-            stepId: "action",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: (values: FormValues<MetricPipelineRule>): boolean => {
-              return (
-                values.ruleType === MetricPipelineRuleType.RenameMetric ||
-                values.ruleType === MetricPipelineRuleType.RenameAttribute
-              );
-            },
-          },
-          {
-            field: { addAttributeKey: true },
-            title: "Attribute Key",
-            stepId: "action",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: (values: FormValues<MetricPipelineRule>): boolean => {
-              return (
-                values.ruleType === MetricPipelineRuleType.AddAttribute ||
-                values.ruleType === MetricPipelineRuleType.RemoveAttribute ||
-                values.ruleType === MetricPipelineRuleType.RedactAttribute
-              );
-            },
-          },
-          {
-            field: { addAttributeValue: true },
-            title: "Attribute Value",
-            stepId: "action",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: (values: FormValues<MetricPipelineRule>): boolean => {
-              return values.ruleType === MetricPipelineRuleType.AddAttribute;
-            },
-          },
-          {
-            field: { redactReplacement: true },
-            title: "Redact Replacement",
-            stepId: "action",
-            description:
-              "Literal string to use in place of the original value.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "[REDACTED]",
-            showIf: (values: FormValues<MetricPipelineRule>): boolean => {
-              return values.ruleType === MetricPipelineRuleType.RedactAttribute;
-            },
-          },
-          {
-            field: { samplePercentage: true },
-            title: "Sample Percentage (% to keep)",
-            stepId: "action",
-            description: "0 drops everything, 100 keeps everything.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "10",
-            showIf: (values: FormValues<MetricPipelineRule>): boolean => {
-              return values.ruleType === MetricPipelineRuleType.Sample;
-            },
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "action",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        showRefreshButton={true}
-        showViewIdButton={true}
-        filters={[
-          {
-            field: { name: true },
-            type: FieldType.Text,
-            title: "Name",
-          },
-          {
-            field: { ruleType: true },
-            type: FieldType.Text,
-            title: "Rule Type",
-          },
-          {
-            field: { isEnabled: true },
-            type: FieldType.Boolean,
-            title: "Enabled",
-          },
-        ]}
-        columns={[
-          {
-            field: { name: true, description: true },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: MetricPipelineRule): ReactElement => {
-              return (
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {item.name || "Untitled"}
-                  </div>
-                  {item.description && (
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {item.description}
-                    </div>
-                  )}
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+      ]}
+      showRefreshButton={true}
+      showViewIdButton={true}
+      filters={[
+        {
+          field: { name: true },
+          type: FieldType.Text,
+          title: "Name",
+        },
+        {
+          field: { ruleType: true },
+          type: FieldType.Text,
+          title: "Rule Type",
+        },
+        {
+          field: { isEnabled: true },
+          type: FieldType.Boolean,
+          title: "Enabled",
+        },
+      ]}
+      columns={[
+        {
+          field: { name: true, description: true },
+          title: "Name",
+          type: FieldType.Element,
+          getElement: (item: MetricPipelineRule): ReactElement => {
+            return (
+              <div>
+                <div className="font-medium text-gray-900">
+                  {item.name || "Untitled"}
                 </div>
-              );
-            },
+                {item.description && (
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {item.description}
+                  </div>
+                )}
+              </div>
+            );
           },
-          {
-            field: { ruleType: true },
-            title: "Rule Type",
-            type: FieldType.Element,
-            getElement: (item: MetricPipelineRule): ReactElement => {
-              const key: string = (item.ruleType as string) || "unknown";
-              const config: PillConfig = ruleTypeConfig[key] || {
-                label: key,
-                color: Gray500,
-                icon: IconProp.Filter,
-                tooltip: key,
-              };
+        },
+        {
+          field: { ruleType: true },
+          title: "Rule Type",
+          type: FieldType.Element,
+          getElement: (item: MetricPipelineRule): ReactElement => {
+            const key: string = (item.ruleType as string) || "unknown";
+            const config: PillConfig = ruleTypeConfig[key] || {
+              label: key,
+              color: Gray500,
+              icon: IconProp.Filter,
+              tooltip: key,
+            };
+            return (
+              <Pill
+                text={config.label}
+                color={config.color}
+                tooltip={config.tooltip}
+                isMinimal={true}
+              />
+            );
+          },
+        },
+        {
+          field: { service: { name: true } },
+          title: "Scope",
+          type: FieldType.Element,
+          getElement: (item: MetricPipelineRule): ReactElement => {
+            if (item.service?.name) {
               return (
-                <Pill
-                  text={config.label}
-                  color={config.color}
-                  tooltip={config.tooltip}
-                  isMinimal={true}
-                />
+                <span className="inline-flex items-center text-sm font-medium text-gray-900">
+                  <span className="text-gray-400 mr-1">Service:</span>
+                  {item.service.name}
+                </span>
               );
-            },
+            }
+            return <span className="text-sm text-gray-500">Project-wide</span>;
           },
-          {
-            field: { service: { name: true } },
-            title: "Scope",
-            type: FieldType.Element,
-            getElement: (item: MetricPipelineRule): ReactElement => {
-              if (item.service?.name) {
-                return (
-                  <span className="inline-flex items-center text-sm font-medium text-gray-900">
-                    <span className="text-gray-400 mr-1">Service:</span>
-                    {item.service.name}
-                  </span>
-                );
-              }
-              return (
-                <span className="text-sm text-gray-500">Project-wide</span>
-              );
-            },
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            type: FieldType.Boolean,
-          },
-        ]}
-      />
-    </Fragment>
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          type: FieldType.Boolean,
+        },
+      ]}
+    />
   );
 };
 

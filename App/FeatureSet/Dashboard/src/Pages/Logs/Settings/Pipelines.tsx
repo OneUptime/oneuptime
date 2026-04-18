@@ -1,6 +1,4 @@
 import PageComponentProps from "../../PageComponentProps";
-import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
-import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -10,7 +8,7 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
 ### How Log Pipelines Work
@@ -102,126 +100,122 @@ const LogPipelines: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
-    <Fragment>
-      <LogsNavTabs active="settings" />
-      <LogsSettingsNavTabs active="pipelines" />
-      <ModelTable<LogPipeline>
-        modelType={LogPipeline}
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        id="log-pipelines-table"
-        name="Logs > Settings > Pipelines"
-        userPreferencesKey="log-pipelines-table"
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        isViewable={true}
-        sortBy="sortOrder"
-        sortOrder={SortOrder.Ascending}
-        enableDragAndDrop={true}
-        dragDropIndexField="sortOrder"
-        cardProps={{
-          title: "Log Pipelines",
-          description:
-            "Transform and enrich logs at ingest time. Each pipeline matches logs using a filter, then runs processors in order to modify them. Click a pipeline to configure its filter and processors.",
-        }}
-        helpContent={{
-          title: "How Log Pipelines Work",
-          description:
-            "Understanding filters, processors, and how logs are transformed at ingest time",
-          markdown: documentationMarkdown,
-        }}
-        noItemsMessage={"No log pipelines found."}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        createInitialValues={{
-          isEnabled: true,
-        }}
-        onBeforeCreate={async (item: LogPipeline) => {
-          item.sortOrder = 1;
-          return item;
-        }}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Parse Nginx Logs",
-            validation: {
-              minLength: 2,
-            },
+    <ModelTable<LogPipeline>
+      modelType={LogPipeline}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      }}
+      id="log-pipelines-table"
+      name="Logs > Settings > Pipelines"
+      userPreferencesKey="log-pipelines-table"
+      isDeleteable={false}
+      isEditable={false}
+      isCreateable={true}
+      isViewable={true}
+      sortBy="sortOrder"
+      sortOrder={SortOrder.Ascending}
+      enableDragAndDrop={true}
+      dragDropIndexField="sortOrder"
+      cardProps={{
+        title: "Log Pipelines",
+        description:
+          "Transform and enrich logs at ingest time. Each pipeline matches logs using a filter, then runs processors in order to modify them. Click a pipeline to configure its filter and processors.",
+      }}
+      helpContent={{
+        title: "How Log Pipelines Work",
+        description:
+          "Understanding filters, processors, and how logs are transformed at ingest time",
+        markdown: documentationMarkdown,
+      }}
+      noItemsMessage={"No log pipelines found."}
+      viewPageRoute={Navigation.getCurrentRoute()}
+      createInitialValues={{
+        isEnabled: true,
+      }}
+      onBeforeCreate={async (item: LogPipeline) => {
+        item.sortOrder = 1;
+        return item;
+      }}
+      formFields={[
+        {
+          field: {
+            name: true,
           },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Describe what this pipeline does.",
+          title: "Name",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "e.g. Parse Nginx Logs",
+          validation: {
+            minLength: 2,
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+        },
+        {
+          field: {
+            description: true,
           },
-        ]}
-        showRefreshButton={true}
-        showViewIdButton={true}
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            type: FieldType.Text,
-            title: "Name",
+          title: "Description",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "Describe what this pipeline does.",
+        },
+        {
+          field: {
+            isEnabled: true,
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            type: FieldType.Boolean,
-            title: "Enabled",
+          title: "Enabled",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+      ]}
+      showRefreshButton={true}
+      showViewIdButton={true}
+      filters={[
+        {
+          field: {
+            name: true,
           },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
+          type: FieldType.Text,
+          title: "Name",
+        },
+        {
+          field: {
+            isEnabled: true,
           },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
+          type: FieldType.Boolean,
+          title: "Enabled",
+        },
+      ]}
+      columns={[
+        {
+          field: {
+            name: true,
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Status",
-            type: FieldType.Boolean,
-            getElement: (item: LogPipeline): ReactElement => {
-              if (item.isEnabled) {
-                return <Pill color={Green} text="Enabled" />;
-              }
-              return <Pill color={Red} text="Disabled" />;
-            },
+          title: "Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            description: true,
           },
-        ]}
-      />
-    </Fragment>
+          noValueMessage: "-",
+          title: "Description",
+          type: FieldType.LongText,
+        },
+        {
+          field: {
+            isEnabled: true,
+          },
+          title: "Status",
+          type: FieldType.Boolean,
+          getElement: (item: LogPipeline): ReactElement => {
+            if (item.isEnabled) {
+              return <Pill color={Green} text="Enabled" />;
+            }
+            return <Pill color={Red} text="Disabled" />;
+          },
+        },
+      ]}
+    />
   );
 };
 

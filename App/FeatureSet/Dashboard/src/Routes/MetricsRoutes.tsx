@@ -1,5 +1,6 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import MetricsLayout from "../Pages/Metrics/Layout";
+import MetricsSettingsLayout from "../Pages/Metrics/Settings/Layout";
 import MetricsViewLayout from "../Pages/Metrics/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, MetricsRoutePath } from "../Utils/RouteMap";
@@ -46,30 +47,34 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/* Settings Routes */}
-        <PageRoute
-          path={MetricsRoutePath[PageMap.METRICS_SETTINGS_PIPELINE_RULES] || ""}
-          element={
-            <MetricsSettingsPipelineRules
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.METRICS_SETTINGS_PIPELINE_RULES] as Route
-              }
-            />
-          }
-        />
-        <PageRoute
-          path={
-            MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES] || ""
-          }
-          element={
-            <MetricsSettingsRecordingRules
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.METRICS_SETTINGS_RECORDING_RULES] as Route
-              }
-            />
-          }
-        />
+        <PageRoute element={<MetricsSettingsLayout />}>
+          <PageRoute
+            path={
+              MetricsRoutePath[PageMap.METRICS_SETTINGS_PIPELINE_RULES] || ""
+            }
+            element={
+              <MetricsSettingsPipelineRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.METRICS_SETTINGS_PIPELINE_RULES] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={
+              MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES] || ""
+            }
+            element={
+              <MetricsSettingsRecordingRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.METRICS_SETTINGS_RECORDING_RULES] as Route
+                }
+              />
+            }
+          />
+        </PageRoute>
       </PageRoute>
 
       {/* Metric View */}
