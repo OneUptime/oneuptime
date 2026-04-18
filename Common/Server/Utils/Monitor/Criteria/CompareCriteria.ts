@@ -562,8 +562,10 @@ export default class CompareCriteria {
       message += "All values of";
     }
 
-    // Prefer a metric-specific display name over the generic "Metric Value"
-    // label when evaluating metric monitors.
+    /*
+     * Prefer a metric-specific display name over the generic "Metric Value"
+     * label when evaluating metric monitors.
+     */
     const label: string =
       data.metricDisplayName &&
       data.criteriaFilter.checkOn === CheckOn.MetricValue

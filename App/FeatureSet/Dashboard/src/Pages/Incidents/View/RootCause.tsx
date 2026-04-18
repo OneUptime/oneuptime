@@ -17,49 +17,49 @@ const IncidentDelete: FunctionComponent<
 
   return (
     <Fragment>
-    <CardModelDetail
-      name="Root Cause"
-      cardProps={{
-        title: "Root Cause",
-        description:
-          "Why did this incident happen? Here is the root cause of this incident.",
-      }}
-      createEditModalWidth={ModalWidth.Large}
-      isEditable={true}
-      editButtonText="Edit Root Cause"
-      formFields={[
-        {
-          field: {
-            rootCause: true,
-          },
+      <CardModelDetail
+        name="Root Cause"
+        cardProps={{
           title: "Root Cause",
-
-          fieldType: FormFieldSchemaType.Markdown,
-          required: false,
-          placeholder: "Root Cause",
-          description: MarkdownUtil.getMarkdownCheatsheet(
-            "Describe the root cause of this incident here",
-          ),
-        },
-      ]}
-      modelDetailProps={{
-        showDetailsInNumberOfColumns: 1,
-        modelType: Incident,
-        id: "model-detail-incident-root-cause",
-        fields: [
+          description:
+            "Why did this incident happen? Here is the root cause of this incident.",
+        }}
+        createEditModalWidth={ModalWidth.Large}
+        isEditable={true}
+        editButtonText="Edit Root Cause"
+        formFields={[
           {
             field: {
               rootCause: true,
             },
-            title: "",
-            placeholder: "No root cause identified for this incident.",
-            fieldType: FieldType.Markdown,
+            title: "Root Cause",
+
+            fieldType: FormFieldSchemaType.Markdown,
+            required: false,
+            placeholder: "Root Cause",
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Describe the root cause of this incident here",
+            ),
           },
-        ],
-        modelId: modelId,
-      }}
-    />
-    <IncidentRootCauseMetricChart incidentId={modelId} />
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: Incident,
+          id: "model-detail-incident-root-cause",
+          fields: [
+            {
+              field: {
+                rootCause: true,
+              },
+              title: "",
+              placeholder: "No root cause identified for this incident.",
+              fieldType: FieldType.Markdown,
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+      <IncidentRootCauseMetricChart incidentId={modelId} />
     </Fragment>
   );
 };

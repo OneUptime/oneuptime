@@ -341,9 +341,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             : {}),
                         });
 
-                        // Apply user-defined pipeline rules (filter/drop/
-                        // rename/redact/sample) before buffering for insert.
-                        // null from applyRules means the row was dropped.
+                        /*
+                         * Apply user-defined pipeline rules (filter/drop/
+                         * rename/redact/sample) before buffering for insert.
+                         * null from applyRules means the row was dropped.
+                         */
                         const transformed: JSONObject | null = pipelineRules
                           ? MetricPipelineRuleService.applyRules(
                               metricRow,

@@ -213,9 +213,7 @@ export class AddKubernetesDockerOwners1776500000000
     );
 
     // Drop indexes and tables
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_dh_owner_user_notified"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_dh_owner_user_notified"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_dh_owner_user_hostId"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_dh_owner_user_userId"`);
     await queryRunner.query(
@@ -223,9 +221,7 @@ export class AddKubernetesDockerOwners1776500000000
     );
     await queryRunner.query(`DROP TABLE "DockerHostOwnerUser"`);
 
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_dh_owner_team_notified"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_dh_owner_team_notified"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_dh_owner_team_hostId"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_dh_owner_team_teamId"`);
     await queryRunner.query(
@@ -233,9 +229,7 @@ export class AddKubernetesDockerOwners1776500000000
     );
     await queryRunner.query(`DROP TABLE "DockerHostOwnerTeam"`);
 
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_kc_owner_user_notified"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_kc_owner_user_notified"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_kc_owner_user_clusterId"`,
     );
@@ -245,9 +239,7 @@ export class AddKubernetesDockerOwners1776500000000
     );
     await queryRunner.query(`DROP TABLE "KubernetesClusterOwnerUser"`);
 
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_kc_owner_team_notified"`,
-    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_kc_owner_team_notified"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_kc_owner_team_clusterId"`,
     );

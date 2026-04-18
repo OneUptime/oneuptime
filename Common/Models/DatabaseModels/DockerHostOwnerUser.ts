@@ -243,7 +243,8 @@ export default class DockerHostOwnerUser extends BaseModel {
     type: TableColumnType.Entity,
     modelType: DockerHost,
     title: "Docker Host",
-    description: "Relation to Docker Host Resource in which this object belongs",
+    description:
+      "Relation to Docker Host Resource in which this object belongs",
   })
   @ManyToOne(
     () => {

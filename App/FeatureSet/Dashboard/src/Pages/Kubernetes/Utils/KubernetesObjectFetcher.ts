@@ -143,9 +143,7 @@ function rowToTypedObject<T extends KubernetesObjectType>(
   let ownerReferences: Array<{ kind: string; name: string }> = [];
   if (row.ownerReferences) {
     const ownerRefsAny: unknown = row.ownerReferences as unknown;
-    const items: unknown = (
-      ownerRefsAny as { items?: unknown } | null
-    )?.items;
+    const items: unknown = (ownerRefsAny as { items?: unknown } | null)?.items;
     if (Array.isArray(items)) {
       ownerReferences = items as Array<{ kind: string; name: string }>;
     } else if (Array.isArray(ownerRefsAny)) {
@@ -155,7 +153,8 @@ function rowToTypedObject<T extends KubernetesObjectType>(
 
   const metadata: Record<string, unknown> = {
     name: row.name,
-    namespace: row.namespaceKey && row.namespaceKey !== "" ? row.namespaceKey : "",
+    namespace:
+      row.namespaceKey && row.namespaceKey !== "" ? row.namespaceKey : "",
     uid: row.uid || "",
     creationTimestamp: row.resourceCreationTimestamp
       ? OneUptimeDate.toString(row.resourceCreationTimestamp)
@@ -170,9 +169,11 @@ function rowToTypedObject<T extends KubernetesObjectType>(
   const status: Record<string, unknown> =
     (row.status as Record<string, unknown>) || {};
 
-  // All parsed K8s object interfaces share this structural shape.
-  // Casting to T is safe because each caller already knows which
-  // KubernetesObjectType they asked for.
+  /*
+   * All parsed K8s object interfaces share this structural shape.
+   * Casting to T is safe because each caller already knows which
+   * KubernetesObjectType they asked for.
+   */
   return {
     metadata,
     spec,
@@ -198,10 +199,12 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
   }
 
   try {
-    // Callers may not know the namespace (routes only encode the name),
-    // so omit namespaceKey from the query when no namespace is given.
-    // For cluster-scoped resources (Node, Namespace, PV) the DB value is
-    // "" which still matches a broad query.
+    /*
+     * Callers may not know the namespace (routes only encode the name),
+     * so omit namespaceKey from the query when no namespace is given.
+     * For cluster-scoped resources (Node, Namespace, PV) the DB value is
+     * "" which still matches a broad query.
+     */
     const query: Record<string, unknown> = {
       kubernetesClusterId: clusterId,
       kind: kind,
@@ -263,9 +266,11 @@ export async function fetchRawK8sObject(
   }
 
   try {
-    // Match fetchLatestK8sObject: omit namespaceKey from the query when
-    // the caller didn't pass one, so routes that only carry the name
-    // (e.g. /pods/:name) can still resolve namespaced resources.
+    /*
+     * Match fetchLatestK8sObject: omit namespaceKey from the query when
+     * the caller didn't pass one, so routes that only carry the name
+     * (e.g. /pods/:name) can still resolve namespaced resources.
+     */
     const query: Record<string, unknown> = {
       kubernetesClusterId: clusterId,
       kind: kind,
@@ -301,8 +306,10 @@ export async function fetchRawK8sObject(
       return null;
     }
 
-    // Rebuild a K8s-ish object (kind/apiVersion not stored; the
-    // YAML viewer only cares about the full body for reference).
+    /*
+     * Rebuild a K8s-ish object (kind/apiVersion not stored; the
+     * YAML viewer only cares about the full body for reference).
+     */
     return {
       kind,
       metadata: {
@@ -371,8 +378,10 @@ export async function fetchK8sObjectsBatch(options: {
           status: true,
           resourceCreationTimestamp: true,
         },
-        // LIMIT_PER_PROJECT-style cap. Inventory tables for a single
-        // cluster of a single kind shouldn't realistically exceed this.
+        /*
+         * LIMIT_PER_PROJECT-style cap. Inventory tables for a single
+         * cluster of a single kind shouldn't realistically exceed this.
+         */
         limit: 5000,
         skip: 0,
         sort: {},
@@ -757,8 +766,7 @@ export async function fetchPodLogs(options: {
             : "",
           body: typeof log.body === "string" ? log.body : "",
           severity: log.severityText || "INFO",
-          containerName:
-            (attrs["resource.k8s.container.name"] as string) || "",
+          containerName: (attrs["resource.k8s.container.name"] as string) || "",
         };
       });
   } catch {

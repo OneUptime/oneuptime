@@ -114,10 +114,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
-      // Buffer for k8s object snapshots flushed to the KubernetesResource
-      // inventory table once per batch, keyed by clusterId. Populated only
-      // when a log record carries the k8sobjects attribute set; otherwise
-      // zero cost.
+      /*
+       * Buffer for k8s object snapshots flushed to the KubernetesResource
+       * inventory table once per batch, keyed by clusterId. Populated only
+       * when a log record carries the k8sobjects attribute set; otherwise
+       * zero cost.
+       */
       const k8sInventoryBuffer: Map<
         string,
         Array<ParsedKubernetesResource>
@@ -157,22 +159,24 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             resourceAttributes_raw,
           );
 
-          // Auto-discover Kubernetes cluster from resource attributes.
-          // Returns the cluster ID so the inventory hook can key its buffer.
+          /*
+           * Auto-discover Kubernetes cluster from resource attributes.
+           * Returns the cluster ID so the inventory hook can key its buffer.
+           */
           const kubernetesClusterId: ObjectID | null =
             await this.autoDiscoverKubernetesCluster({
               projectId,
               attributes: resourceAttributes_raw,
             });
 
-          // The OTel k8sobjects receiver tags each log record (not the
-          // resource envelope) with `k8s.resource.name` (plural lowercase
-          // kind). We check that per-record inside the loop below and
-          // only parse when the cluster is known and the kind is
-          // inventoried — zero cost on non-k8sobjects batches.
-          const isK8sInventoryEligible: boolean = Boolean(
-            kubernetesClusterId,
-          );
+          /*
+           * The OTel k8sobjects receiver tags each log record (not the
+           * resource envelope) with `k8s.resource.name` (plural lowercase
+           * kind). We check that per-record inside the loop below and
+           * only parse when the cluster is known and the kind is
+           * inventoried — zero cost on non-k8sobjects batches.
+           */
+          const isK8sInventoryEligible: boolean = Boolean(kubernetesClusterId);
 
           // Auto-discover Docker host from resource attributes
           await this.autoDiscoverDockerHost({
@@ -338,15 +342,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     body = String(log["body"] || "");
                   }
 
-                  // Kubernetes inventory hook: convert the k8sobjects log
-                  // body into a row for the inventory upsert. Buffered per
-                  // cluster and flushed once per request batch below. Uses
-                  // the agent-observed timestamp so out-of-order delivery
-                  // doesn't regress newer snapshots.
-                  //
-                  // k8s.resource.name sits on each log record (not the
-                  // resource envelope), so we read it from the record's
-                  // attributes dictionary built a few lines above.
+                  /*
+                   * Kubernetes inventory hook: convert the k8sobjects log
+                   * body into a row for the inventory upsert. Buffered per
+                   * cluster and flushed once per request batch below. Uses
+                   * the agent-observed timestamp so out-of-order delivery
+                   * doesn't regress newer snapshots.
+                   *
+                   * k8s.resource.name sits on each log record (not the
+                   * resource envelope), so we read it from the record's
+                   * attributes dictionary built a few lines above.
+                   */
                   if (isK8sInventoryEligible && kubernetesClusterId && body) {
                     const recordK8sResourceType: unknown =
                       attributesObject["k8s.resource.name"];
@@ -513,8 +519,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
       await this.flushLogsBuffer(dbLogs, true);
 
-      // Flush the k8s inventory buffer — one upsert per cluster. Failures
-      // must not affect log ingest; they're logged and swallowed.
+      /*
+       * Flush the k8s inventory buffer — one upsert per cluster. Failures
+       * must not affect log ingest; they're logged and swallowed.
+       */
       if (k8sInventoryBuffer.size > 0) {
         for (const [clusterIdStr, resources] of k8sInventoryBuffer.entries()) {
           if (resources.length === 0) {

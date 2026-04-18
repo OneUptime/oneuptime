@@ -45,8 +45,10 @@ export interface InventorySummary {
 const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
-// Column order used by both bulkUpsert() and its generated parameter tuples.
-// Keep this and the INSERT column list in perfect sync.
+/*
+ * Column order used by both bulkUpsert() and its generated parameter tuples.
+ * Keep this and the INSERT column list in perfect sync.
+ */
 const UPSERT_COLUMNS: Array<keyof ParsedKubernetesResource | string> = [
   "projectId",
   "kubernetesClusterId",
@@ -293,8 +295,7 @@ export class Service extends DatabaseService<Model> {
         notReady: parseInt(nodeRow?.notReady || "0", 10) || 0,
       },
       nodePressureCounts: {
-        memoryPressure:
-          parseInt(nodeRow?.memoryPressure || "0", 10) || 0,
+        memoryPressure: parseInt(nodeRow?.memoryPressure || "0", 10) || 0,
         diskPressure: parseInt(nodeRow?.diskPressure || "0", 10) || 0,
         pidPressure: parseInt(nodeRow?.pidPressure || "0", 10) || 0,
       },
@@ -314,8 +315,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public getStaleThresholdMinutes(): number {
-    const raw: string | undefined =
-      process.env["K8S_INVENTORY_STALE_MINUTES"];
+    const raw: string | undefined = process.env["K8S_INVENTORY_STALE_MINUTES"];
     if (raw) {
       const parsed: number = parseInt(raw, 10);
       if (!isNaN(parsed) && parsed >= 5) {

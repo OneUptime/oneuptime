@@ -105,25 +105,33 @@ export enum EvaluateOverTimeType {
 }
 
 export enum NoDataPolicy {
-  // Do not treat missing data as a breach. The criterion simply does
-  // not fire. This is the safest default and matches most SaaS tooling.
+  /*
+   * Do not treat missing data as a breach. The criterion simply does
+   * not fire. This is the safest default and matches most SaaS tooling.
+   */
   Ignore = "Ignore",
-  // Treat missing data points as zero. Preserves the original behavior
-  // prior to this policy being configurable — useful for counters where
-  // "no events" genuinely means zero.
+  /*
+   * Treat missing data points as zero. Preserves the original behavior
+   * prior to this policy being configurable — useful for counters where
+   * "no events" genuinely means zero.
+   */
   TreatAsZero = "Treat As Zero",
-  // Trigger the criterion as a breach regardless of threshold. Use for
-  // heartbeat-style metrics where the absence of data is itself the
-  // problem.
+  /*
+   * Trigger the criterion as a breach regardless of threshold. Use for
+   * heartbeat-style metrics where the absence of data is itself the
+   * problem.
+   */
   Trigger = "Trigger",
 }
 
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
-  // Governs how the evaluator handles the case where the metric query
-  // returned zero samples in the evaluation window. Defaults to Ignore
-  // when unset.
+  /*
+   * Governs how the evaluator handles the case where the metric query
+   * returned zero samples in the evaluation window. Defaults to Ignore
+   * when unset.
+   */
   onNoDataPolicy?: NoDataPolicy | undefined;
 }
 
@@ -153,10 +161,12 @@ export interface CriteriaFilter {
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
   evaluateOverTimeOptions?: EvaluateOverTimeOptions | undefined;
-  // Populated at evaluation time for metric monitors so downstream code
-  // (e.g. the root cause builder) can include metric-specific context
-  // like metric name, unit, filter/group-by attributes, and the series
-  // that actually breached. Not persisted.
+  /*
+   * Populated at evaluation time for metric monitors so downstream code
+   * (e.g. the root cause builder) can include metric-specific context
+   * like metric name, unit, filter/group-by attributes, and the series
+   * that actually breached. Not persisted.
+   */
   metricCriteriaContext?: MetricCriteriaContext | undefined;
 }
 

@@ -143,10 +143,12 @@ const KubernetesClusterOverview: FunctionComponent<
       setCluster(item);
 
       if (item?.clusterIdentifier) {
-        // Fetch counts + phase/ready/pressure summaries from the
-        // KubernetesResource inventory table in a single round-trip.
-        // Replaces the 18 ClickHouse groupBy + batch-log queries the
-        // overview used to issue on every load.
+        /*
+         * Fetch counts + phase/ready/pressure summaries from the
+         * KubernetesResource inventory table in a single round-trip.
+         * Replaces the 18 ClickHouse groupBy + batch-log queries the
+         * overview used to issue on every load.
+         */
         const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
           .addRoute("/kubernetes-resource/inventory-summary/")
           .addRoute(modelId.toString());
@@ -166,9 +168,11 @@ const KubernetesClusterOverview: FunctionComponent<
           }
           summary = summaryResponse.data;
         } catch {
-          // Inventory summary is best-effort; leave counts at 0 rather
-          // than fail the page. Top-N pods + cluster metadata still
-          // render so the user isn't staring at an error.
+          /*
+           * Inventory summary is best-effort; leave counts at 0 rather
+           * than fail the page. Top-N pods + cluster metadata still
+           * render so the user isn't staring at an error.
+           */
           summary = null;
         }
 
@@ -188,11 +192,13 @@ const KubernetesClusterOverview: FunctionComponent<
           setCronJobCount(readNum("cronJobCount"));
           setPvcCount(readNum("pvcCount"));
           setPvCount(readNum("pvCount"));
-          // Overview's "container count" was previously derived from
-          // metrics for running containers and fell back to pod count.
-          // The agent's k8sobjects receiver doesn't enumerate containers
-          // as a top-level resource kind, so pod count is the closest
-          // sensible value here.
+          /*
+           * Overview's "container count" was previously derived from
+           * metrics for running containers and fell back to pod count.
+           * The agent's k8sobjects receiver doesn't enumerate containers
+           * as a top-level resource kind, so pod count is the closest
+           * sensible value here.
+           */
           setContainerCount(readNum("podCount"));
 
           const podPhase: JSONObject =
@@ -245,9 +251,11 @@ const KubernetesClusterOverview: FunctionComponent<
           }
         }
 
-        // Top-N CPU/memory pods — still comes from ClickHouse metrics
-        // because it carries utilization values that aren't in the
-        // inventory table. Cheap and unchanged.
+        /*
+         * Top-N CPU/memory pods — still comes from ClickHouse metrics
+         * because it carries utilization values that aren't in the
+         * inventory table. Cheap and unchanged.
+         */
         try {
           const pods: Array<KubernetesResource> =
             await KubernetesResourceUtils.fetchResourceListWithMemory({
@@ -284,8 +292,10 @@ const KubernetesClusterOverview: FunctionComponent<
           // Top-N is supplementary; leave lists empty on failure.
         }
 
-        // Fetch recent warning events (still on ClickHouse — genuinely
-        // log-shaped).
+        /*
+         * Fetch recent warning events (still on ClickHouse — genuinely
+         * log-shaped).
+         */
         try {
           const warnings: Array<KubernetesEvent> =
             await fetchClusterWarningEvents({

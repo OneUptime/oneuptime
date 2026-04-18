@@ -20,8 +20,10 @@ interface CacheEntry {
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
 const ruleCache: Map<string, CacheEntry> = new Map();
 
-// Treat the metric row's attributes as a loose JSONObject. The ingest pipeline
-// builds rows with `attributes: JSONObject` and `attributeKeys: string[]`.
+/*
+ * Treat the metric row's attributes as a loose JSONObject. The ingest pipeline
+ * builds rows with `attributes: JSONObject` and `attributeKeys: string[]`.
+ */
 interface MutableMetricRow extends JSONObject {
   name?: JSONValue;
   attributes?: JSONValue;
@@ -90,10 +92,12 @@ export default class MetricPipelineRuleService {
     return result;
   }
 
-  // Returns a mutated row, or null if the row should be dropped.
-  //
-  // Evaluation order: service-scoped rules first (may drop via Drop/Filter/Sample),
-  // then project-wide rules on whatever survives.
+  /*
+   * Returns a mutated row, or null if the row should be dropped.
+   *
+   * Evaluation order: service-scoped rules first (may drop via Drop/Filter/Sample),
+   * then project-wide rules on whatever survives.
+   */
   public static applyRules(
     row: MutableMetricRow,
     serviceId: ObjectID | undefined,
@@ -101,7 +105,7 @@ export default class MetricPipelineRuleService {
   ): MutableMetricRow | null {
     const serviceKey: string | undefined = serviceId?.toString();
     const serviceRules: Array<MetricPipelineRule> = serviceKey
-      ? (rules.rulesByServiceId.get(serviceKey) ?? [])
+      ? rules.rulesByServiceId.get(serviceKey) ?? []
       : [];
 
     let current: MutableMetricRow | null = row;
@@ -129,8 +133,10 @@ export default class MetricPipelineRuleService {
   ): MutableMetricRow | null {
     const matched: boolean = this.matches(row, rule);
 
-    // Filter has inverse semantics: it is an allowlist.
-    // A Filter rule keeps matched rows and drops everything else.
+    /*
+     * Filter has inverse semantics: it is an allowlist.
+     * A Filter rule keeps matched rows and drops everything else.
+     */
     if (rule.ruleType === MetricPipelineRuleType.Filter) {
       return matched ? row : null;
     }
@@ -251,13 +257,17 @@ export default class MetricPipelineRuleService {
 
     if (rule.matchAttributeKey) {
       const attrs: JSONObject = this.getAttributes(row);
-      if (!Object.prototype.hasOwnProperty.call(attrs, rule.matchAttributeKey)) {
+      if (
+        !Object.prototype.hasOwnProperty.call(attrs, rule.matchAttributeKey)
+      ) {
         return false;
       }
       if (rule.matchAttributeValueRegex) {
         try {
           const re: RegExp = new RegExp(rule.matchAttributeValueRegex);
-          const rawValue: JSONValue = attrs[rule.matchAttributeKey] as JSONValue;
+          const rawValue: JSONValue = attrs[
+            rule.matchAttributeKey
+          ] as JSONValue;
           const value: string =
             typeof rawValue === "string" ? rawValue : String(rawValue ?? "");
           if (!re.test(value)) {

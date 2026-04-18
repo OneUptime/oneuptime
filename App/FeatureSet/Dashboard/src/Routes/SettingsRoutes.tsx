@@ -386,7 +386,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
-
       </PageRoute>
     </Routes>
   );

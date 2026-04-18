@@ -26,10 +26,12 @@ export interface ComponentProps {
   incidentId: ObjectID;
 }
 
-// Renders the metric that triggered an incident inline with the root
-// cause. The chart is scoped to a window centered on the incident's
-// declared-at time so on-call can see exactly what the evaluator saw
-// without leaving the page.
+/*
+ * Renders the metric that triggered an incident inline with the root
+ * cause. The chart is scoped to a window centered on the incident's
+ * declared-at time so on-call can see exactly what the evaluator saw
+ * without leaving the page.
+ */
 const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
@@ -103,9 +105,11 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        // Center the chart on the incident's creation time: 30 minutes
-        // before to 15 minutes after. Fall back to last hour if createdAt
-        // is missing.
+        /*
+         * Center the chart on the incident's creation time: 30 minutes
+         * before to 15 minutes after. Fall back to last hour if createdAt
+         * is missing.
+         */
         const anchor: Date = incident.createdAt
           ? new Date(incident.createdAt as unknown as string | Date)
           : OneUptimeDate.getCurrentDate();

@@ -24,21 +24,27 @@ import {
   type ParseResult,
 } from "Common/Utils/Metrics/RecordingRuleExpression";
 
-// ClickHouse side: we reach into AnalyticsDatabaseService.executeQuery
-// (inherited by MetricService) to run the grouped aggregation per source.
-// Using SQL directly keeps the cron tight and avoids bending the existing
-// AggregateBy type (which is designed for charting, not rule-compute).
+/*
+ * ClickHouse side: we reach into AnalyticsDatabaseService.executeQuery
+ * (inherited by MetricService) to run the grouped aggregation per source.
+ * Using SQL directly keeps the cron tight and avoids bending the existing
+ * AggregateBy type (which is designed for charting, not rule-compute).
+ */
 
-// The empty string is used as the "no-group" group key when the rule has no
-// groupByAttribute set. We round source timestamps to the evaluation bucket
-// so a cron tick that arrives late still aggregates the full 1-minute slice.
+/*
+ * The empty string is used as the "no-group" group key when the rule has no
+ * groupByAttribute set. We round source timestamps to the evaluation bucket
+ * so a cron tick that arrives late still aggregates the full 1-minute slice.
+ */
 
 type PerGroupBindings = Map<string, Record<string, number>>;
 
-// Evaluate-window lag: we wait this long before computing the window so late
-// data points (up to this amount late) still get included. Trades point
-// freshness for completeness. Kept small since a long lag defeats the point
-// of sub-minute cadence.
+/*
+ * Evaluate-window lag: we wait this long before computing the window so late
+ * data points (up to this amount late) still get included. Trades point
+ * freshness for completeness. Kept small since a long lag defeats the point
+ * of sub-minute cadence.
+ */
 const EVALUATION_LAG_SECONDS: number = 30;
 
 RunCron(
@@ -68,8 +74,10 @@ RunCron(
         `ComputeRecordingRules: evaluating ${rules.length} enabled rule(s)`,
       );
 
-      // Compute one 1-minute bucket that ends EVALUATION_LAG_SECONDS ago,
-      // rounded to the prior minute boundary.
+      /*
+       * Compute one 1-minute bucket that ends EVALUATION_LAG_SECONDS ago,
+       * rounded to the prior minute boundary.
+       */
       const now: Date = OneUptimeDate.getCurrentDate();
       const endTime: Date = startOfMinute(
         OneUptimeDate.addRemoveSeconds(now, -EVALUATION_LAG_SECONDS),
@@ -106,9 +114,11 @@ async function evaluateRuleForBucket(args: {
     return;
   }
 
-  // The FormFieldSchemaType.JSON field in the Dashboard stores the value
-  // JSON-encoded as a string inside the JSONB column, so we handle both
-  // shapes defensively.
+  /*
+   * The FormFieldSchemaType.JSON field in the Dashboard stores the value
+   * JSON-encoded as a string inside the JSONB column, so we handle both
+   * shapes defensively.
+   */
   let def: RecordingRuleDefinition;
   const raw: unknown = rule.definition as unknown;
   if (typeof raw === "string") {
@@ -129,8 +139,10 @@ async function evaluateRuleForBucket(args: {
     return;
   }
 
-  // Parse the expression once per rule evaluation — cheap, and lets us bail
-  // early on bad input without touching ClickHouse.
+  /*
+   * Parse the expression once per rule evaluation — cheap, and lets us bail
+   * early on bad input without touching ClickHouse.
+   */
   const parsed: ParseResult | ParseError = parseExpression(def.expression);
   if (!parsed.ok) {
     logger.warn(
@@ -140,22 +152,23 @@ async function evaluateRuleForBucket(args: {
   }
   const ast: ExpressionNode = parsed.ast;
 
-  // Query each source separately and collect per-group values. For simple
-  // v1 volumes this is fine; if per-cron query count becomes the bottleneck
-  // later, we can union them into one query.
+  /*
+   * Query each source separately and collect per-group values. For simple
+   * v1 volumes this is fine; if per-cron query count becomes the bottleneck
+   * later, we can union them into one query.
+   */
   const bindingsByGroup: PerGroupBindings = new Map();
 
   for (const source of def.sources) {
-    const rows: Array<{ group: string; value: number }> =
-      await runSourceQuery({
-        projectId: rule.projectId,
-        source,
-        startTime,
-        endTime,
-        ...(def.groupByAttribute
-          ? { groupByAttribute: def.groupByAttribute }
-          : {}),
-      });
+    const rows: Array<{ group: string; value: number }> = await runSourceQuery({
+      projectId: rule.projectId,
+      source,
+      startTime,
+      endTime,
+      ...(def.groupByAttribute
+        ? { groupByAttribute: def.groupByAttribute }
+        : {}),
+    });
 
     for (const row of rows) {
       let bucket: Record<string, number> | undefined = bindingsByGroup.get(
@@ -173,9 +186,11 @@ async function evaluateRuleForBucket(args: {
     return;
   }
 
-  // Evaluate the expression per group. Skip groups with a non-finite result
-  // (division by zero, missing binding, overflow) — we don't want to write
-  // bad data points.
+  /*
+   * Evaluate the expression per group. Skip groups with a non-finite result
+   * (division by zero, missing binding, overflow) — we don't want to write
+   * bad data points.
+   */
   const outRows: Array<JSONObject> = [];
   for (const [groupValue, bindings] of bindingsByGroup.entries()) {
     const result: number | null = evaluate(ast, bindings);
@@ -215,10 +230,12 @@ async function runSourceQuery(args: {
 
   const aggregateSql: string = toAggregateSql(source.aggregationType);
 
-  // We build a plain SQL string with values escaped ourselves. Inputs are
-  // tightly constrained (UUID projectId, validated metric name, ISO dates,
-  // optional single-attribute key/value from the same user who authored the
-  // rule). No untrusted end-user data reaches this path.
+  /*
+   * We build a plain SQL string with values escaped ourselves. Inputs are
+   * tightly constrained (UUID projectId, validated metric name, ISO dates,
+   * optional single-attribute key/value from the same user who authored the
+   * rule). No untrusted end-user data reaches this path.
+   */
   const projectIdStr: string = projectId.toString();
   const startIso: string = OneUptimeDate.toClickhouseDateTime64(startTime);
   const endIso: string = OneUptimeDate.toClickhouseDateTime64(endTime);
@@ -308,8 +325,10 @@ function buildDerivedMetricRow(args: {
   }
 
   const now: Date = OneUptimeDate.getCurrentDate();
-  // Derived rows inherit project default retention since they may span
-  // many services. 15 days matches the Service default.
+  /*
+   * Derived rows inherit project default retention since they may span
+   * many services. 15 days matches the Service default.
+   */
   const retentionDate: Date = OneUptimeDate.addRemoveDays(now, 15);
 
   return {

@@ -335,7 +335,8 @@ const MetricPipelineRules: FunctionComponent<
             field: { redactReplacement: true },
             title: "Redact Replacement",
             stepId: "action",
-            description: "Literal string to use in place of the original value.",
+            description:
+              "Literal string to use in place of the original value.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "[REDACTED]",

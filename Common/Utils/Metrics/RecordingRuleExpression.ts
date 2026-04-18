@@ -1,20 +1,22 @@
-// Recording-rule expression DSL.
-//
-// Grammar (recursive descent):
-//
-//   expr    := term (('+' | '-') term)*
-//   term    := factor (('*' | '/') factor)*
-//   factor  := number | identifier | '(' expr ')' | '-' factor
-//   number  := digits ('.' digits)?
-//   identifier := [A-Za-z_][A-Za-z0-9_]*
-//
-// Evaluation returns `null` when the result is not a finite real number —
-// division by zero, missing binding, overflow, or NaN. Callers treat `null`
-// as "skip this bucket".
-//
-// Intentionally small: no function calls, no power operator, no comparisons.
-// A future version can grow this DSL without breaking stored rules because
-// the whole expression is one string column on the model.
+/*
+ * Recording-rule expression DSL.
+ *
+ * Grammar (recursive descent):
+ *
+ *   expr    := term (('+' | '-') term)*
+ *   term    := factor (('*' | '/') factor)*
+ *   factor  := number | identifier | '(' expr ')' | '-' factor
+ *   number  := digits ('.' digits)?
+ *   identifier := [A-Za-z_][A-Za-z0-9_]*
+ *
+ * Evaluation returns `null` when the result is not a finite real number —
+ * division by zero, missing binding, overflow, or NaN. Callers treat `null`
+ * as "skip this bucket".
+ *
+ * Intentionally small: no function calls, no power operator, no comparisons.
+ * A future version can grow this DSL without breaking stored rules because
+ * the whole expression is one string column on the model.
+ */
 
 const MAX_DEPTH: number = 32;
 
@@ -106,11 +108,7 @@ export function tokenize(input: string): Array<Token> | ParseError {
 }
 
 function isIdentStart(ch: string): boolean {
-  return (
-    (ch >= "A" && ch <= "Z") ||
-    (ch >= "a" && ch <= "z") ||
-    ch === "_"
-  );
+  return (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || ch === "_";
 }
 
 function isIdentPart(ch: string): boolean {
@@ -270,9 +268,11 @@ export function parse(input: string): ParseResult | ParseError {
   };
 }
 
-// Evaluate an AST against the given variable bindings. Returns null when
-// the result is not a finite real number (division by zero, missing binding,
-// NaN, Infinity). The caller skips any output row whose result is null.
+/*
+ * Evaluate an AST against the given variable bindings. Returns null when
+ * the result is not a finite real number (division by zero, missing binding,
+ * NaN, Infinity). The caller skips any output row whose result is null.
+ */
 export function evaluate(
   node: Node,
   bindings: Record<string, number>,
@@ -326,8 +326,10 @@ export function evaluate(
   }
 }
 
-// Parse + check that every identifier in the expression is in `allowed`.
-// Used at rule-save time so the form can fail fast before the cron runs.
+/*
+ * Parse + check that every identifier in the expression is in `allowed`.
+ * Used at rule-save time so the form can fail fast before the cron runs.
+ */
 export function validate(
   expression: string,
   allowed: Array<string>,

@@ -125,9 +125,11 @@ export default class MonitorCriteriaEvaluator {
             criteriaInstance: criteriaInstance,
           });
 
-        // For metric monitors, render the metric identity (name, unit,
-        // filter attrs, breaching series) before the comparison line so
-        // the reader has context when they reach "Filter Conditions Met".
+        /*
+         * For metric monitors, render the metric identity (name, unit,
+         * filter attrs, breaching series) before the comparison line so
+         * the reader has context when they reach "Filter Conditions Met".
+         */
         const isMetricMonitor: boolean =
           input.monitor.monitorType === MonitorType.Metrics;
 
@@ -722,18 +724,22 @@ ${contextBlock}
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
   }): string | null {
-    // Pick the first populated metric context across the instance's filters.
-    // Only metric-value filters populate this at evaluation time, so this
-    // effectively returns the context for the filter that ran.
+    /*
+     * Pick the first populated metric context across the instance's filters.
+     * Only metric-value filters populate this at evaluation time, so this
+     * effectively returns the context for the filter that ran.
+     */
     const ctx: MetricCriteriaContext | undefined = (
       input.criteriaInstance.data?.filters || []
     )
       .map((f: CriteriaFilter) => {
         return f.metricCriteriaContext;
       })
-      .find((c: MetricCriteriaContext | undefined): c is MetricCriteriaContext => {
-        return Boolean(c);
-      });
+      .find(
+        (c: MetricCriteriaContext | undefined): c is MetricCriteriaContext => {
+          return Boolean(c);
+        },
+      );
 
     if (!ctx) {
       return null;
@@ -776,9 +782,7 @@ ${contextBlock}
       );
     }
 
-    const sections: Array<string> = [
-      `**Metric Details**\n${lines.join("\n")}`,
-    ];
+    const sections: Array<string> = [`**Metric Details**\n${lines.join("\n")}`];
 
     if (ctx.breachingSample) {
       const s: MetricBreachingSample = ctx.breachingSample;
@@ -814,18 +818,19 @@ ${contextBlock}
     monitor: Monitor;
     ctx: MetricCriteriaContext;
   }): string | null {
-    const projectId: string | undefined =
-      input.monitor.projectId?.toString();
+    const projectId: string | undefined = input.monitor.projectId?.toString();
 
     if (!projectId) {
       return null;
     }
 
-    // Metric explorer expects a JSON-encoded `metricQueries` param plus
-    // optional start/end times. The shape is documented by
-    // MetricExplorer.getMetricQueriesFromQuery(): it reads metricName,
-    // attributes, and aggregationType (correctly spelled, unlike the
-    // internal persisted field).
+    /*
+     * Metric explorer expects a JSON-encoded `metricQueries` param plus
+     * optional start/end times. The shape is documented by
+     * MetricExplorer.getMetricQueriesFromQuery(): it reads metricName,
+     * attributes, and aggregationType (correctly spelled, unlike the
+     * internal persisted field).
+     */
     const aggregationType: string | undefined =
       input.ctx.aggregationType || undefined;
 
@@ -841,8 +846,7 @@ ${contextBlock}
 
     // Time window: breach moment +- 15 minutes (or fall back to last hour).
     const now: Date = OneUptimeDate.getCurrentDate();
-    const breachTime: Date | undefined =
-      input.ctx.breachingSample?.timestamp;
+    const breachTime: Date | undefined = input.ctx.breachingSample?.timestamp;
     const startTime: Date = breachTime
       ? OneUptimeDate.addRemoveMinutes(breachTime, -30)
       : OneUptimeDate.addRemoveHours(now, -1);
@@ -855,8 +859,10 @@ ${contextBlock}
     params.set("startTime", OneUptimeDate.toString(startTime));
     params.set("endTime", OneUptimeDate.toString(endTime));
 
-    // The route that actually reads these URL params is the metric
-    // explorer at /metrics/view — the /metrics index is the metric list.
+    /*
+     * The route that actually reads these URL params is the metric
+     * explorer at /metrics/view — the /metrics index is the metric list.
+     */
     return `${DashboardClientUrl.toString()}/${projectId}/metrics/view?${params.toString()}`;
   }
 

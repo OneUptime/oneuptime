@@ -1,9 +1,11 @@
-// Per-tier retention (in days) for downsampled metric storage.
-//
-// On Project, this is the default that applies to all services.
-// On Service, this is an optional override — null fields inherit from the project default.
-//
-// Keys are tier identifiers: "raw" (untouched OTel data points), "1m", "5m", "1h", "1d".
+/*
+ * Per-tier retention (in days) for downsampled metric storage.
+ *
+ * On Project, this is the default that applies to all services.
+ * On Service, this is an optional override — null fields inherit from the project default.
+ *
+ * Keys are tier identifiers: "raw" (untouched OTel data points), "1m", "5m", "1h", "1d".
+ */
 
 export default interface MetricDownsamplingRetentionDays {
   raw?: number | null;
@@ -26,8 +28,10 @@ export const DEFAULT_METRIC_DOWNSAMPLING_RETENTION_DAYS: Record<
 
 export const DEFAULT_METRIC_CARDINALITY_BUDGET: number = 10000;
 
-// Resolves the effective retention days for a given tier, falling back through
-// service override → project default → hardcoded default.
+/*
+ * Resolves the effective retention days for a given tier, falling back through
+ * service override → project default → hardcoded default.
+ */
 export function resolveTierRetentionDays(
   tier: keyof MetricDownsamplingRetentionDays,
   serviceOverride: MetricDownsamplingRetentionDays | null | undefined,

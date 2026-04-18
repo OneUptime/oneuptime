@@ -90,7 +90,8 @@ export default class MetricPipelineRule extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Project,
     title: "Project",
-    description: "Relation to the project this metric pipeline rule belongs to.",
+    description:
+      "Relation to the project this metric pipeline rule belongs to.",
   })
   @ManyToOne(
     () => {
@@ -704,7 +705,8 @@ export default class MetricPipelineRule extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
-    description: "Evaluation order within its scope (service-level or project-level).",
+    description:
+      "Evaluation order within its scope (service-level or project-level).",
     defaultValue: 0,
   })
   @Column({

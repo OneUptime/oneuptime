@@ -30,8 +30,10 @@ export class AddKubernetesResourceUpsertIndexes1776800000000
       `CREATE INDEX "IDX_k8sres_cluster_lastSeen" ON "KubernetesResource" ("kubernetesClusterId", "lastSeenAt")`,
     );
 
-    // JSONB compression (Postgres 14+ with lz4 build). Swallow per-column
-    // failures so older PG builds keep the default pglz compression.
+    /*
+     * JSONB compression (Postgres 14+ with lz4 build). Swallow per-column
+     * failures so older PG builds keep the default pglz compression.
+     */
     try {
       await queryRunner.query(
         `ALTER TABLE "KubernetesResource" ALTER COLUMN "spec" SET COMPRESSION lz4`,

@@ -78,10 +78,12 @@ export default class KubernetesResourceAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Authorize: the caller must be able to read the parent cluster.
-    // findOneById applies the full ACL chain; a null return means 404
-    // (either the cluster doesn't exist or the caller cannot see it —
-    // indistinguishable on purpose).
+    /*
+     * Authorize: the caller must be able to read the parent cluster.
+     * findOneById applies the full ACL chain; a null return means 404
+     * (either the cluster doesn't exist or the caller cannot see it —
+     * indistinguishable on purpose).
+     */
     const cluster: KubernetesCluster | null =
       await KubernetesClusterService.findOneById({
         id: kubernetesClusterId,
@@ -96,18 +98,16 @@ export default class KubernetesResourceAPI extends BaseAPI<
       throw new NotFoundException("Kubernetes Cluster not found");
     }
 
-    const summary: InventorySummary =
-      await this.service.getInventorySummary({
-        projectId: cluster.projectId,
-        kubernetesClusterId,
-      });
+    const summary: InventorySummary = await this.service.getInventorySummary({
+      projectId: cluster.projectId,
+      kubernetesClusterId,
+    });
 
     const responseBody: JSONObject = {
       countsByKind: summary.countsByKind as unknown as JSONObject,
       podPhaseCounts: summary.podPhaseCounts as unknown as JSONObject,
       nodeReadyCounts: summary.nodeReadyCounts as unknown as JSONObject,
-      nodePressureCounts:
-        summary.nodePressureCounts as unknown as JSONObject,
+      nodePressureCounts: summary.nodePressureCounts as unknown as JSONObject,
       // Convenience fields so the UI doesn't have to repeat COALESCE:
       pvcCount: summary.countsByKind["PersistentVolumeClaim"] || 0,
       pvCount: summary.countsByKind["PersistentVolume"] || 0,

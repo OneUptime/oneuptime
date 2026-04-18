@@ -30,9 +30,11 @@ RunCron(
   { schedule: EVERY_FIVE_MINUTE, runOnStartup: false },
   async () => {
     try {
-      // Step 1: flip stale clusters to disconnected so step 2 skips
-      // them. This was previously dormant — this cron is the first
-      // scheduled caller.
+      /*
+       * Step 1: flip stale clusters to disconnected so step 2 skips
+       * them. This was previously dormant — this cron is the first
+       * scheduled caller.
+       */
       try {
         await KubernetesClusterService.markDisconnectedClusters();
       } catch (err) {
@@ -41,8 +43,10 @@ RunCron(
         );
       }
 
-      // Step 2: prune stale resource rows for clusters that are still
-      // believed to be connected.
+      /*
+       * Step 2: prune stale resource rows for clusters that are still
+       * believed to be connected.
+       */
       const connectedClusters: Array<KubernetesCluster> =
         await KubernetesClusterService.findBy({
           query: {
@@ -60,8 +64,7 @@ RunCron(
         return;
       }
 
-      const cutoff: Date =
-        KubernetesResourceService.getStaleThresholdDate();
+      const cutoff: Date = KubernetesResourceService.getStaleThresholdDate();
 
       let totalDeleted: number = 0;
       for (const cluster of connectedClusters) {

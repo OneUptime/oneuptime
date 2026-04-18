@@ -58,9 +58,11 @@ export default class MetricMonitorCriteria {
       input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
       [];
 
-    // Resolve which query/formula the alias refers to. Use explicit index
-    // checks (not `findIndex() || -1`, which incorrectly falls back to -1
-    // when the first element matches).
+    /*
+     * Resolve which query/formula the alias refers to. Use explicit index
+     * checks (not `findIndex() || -1`, which incorrectly falls back to -1
+     * when the first element matches).
+     */
     let matchedQuery: MetricQueryConfigData | null = null;
     let matchedFormula: MetricFormulaConfigData | null = null;
     let aliasIndex: number = -1;
@@ -89,8 +91,10 @@ export default class MetricMonitorCriteria {
       }
     }
 
-    // If no alias was configured or it didn't match anything, fall back to
-    // the first aggregated result / query for a best-effort comparison.
+    /*
+     * If no alias was configured or it didn't match anything, fall back to
+     * the first aggregated result / query for a best-effort comparison.
+     */
     const aggregatedResult: AggregatedResult | undefined =
       aliasIndex >= 0
         ? metricAggregatedResult[aliasIndex]
@@ -100,8 +104,10 @@ export default class MetricMonitorCriteria {
       matchedQuery = queryConfigs[0];
     }
 
-    // Build the metric context regardless of whether the threshold breaches,
-    // so the filter message can still reference the metric if needed.
+    /*
+     * Build the metric context regardless of whether the threshold breaches,
+     * so the filter message can still reference the metric if needed.
+     */
     const metricContext: MetricCriteriaContext =
       MetricMonitorCriteria.buildContext({
         matchedQuery,
@@ -119,9 +125,11 @@ export default class MetricMonitorCriteria {
     const samples: Array<AggregateModel> =
       (aggregatedResult && aggregatedResult.data) || [];
 
-    // Respect the configured no-data policy. Without this guard, the
-    // evaluator silently treats missing data as a value of 0 and can
-    // trigger incidents for monitors that simply haven't received data.
+    /*
+     * Respect the configured no-data policy. Without this guard, the
+     * evaluator silently treats missing data as a value of 0 and can
+     * trigger incidents for monitors that simply haven't received data.
+     */
     if (samples.length === 0) {
       const policy: NoDataPolicy =
         input.criteriaFilter.metricMonitorOptions?.onNoDataPolicy ||
@@ -155,8 +163,10 @@ export default class MetricMonitorCriteria {
       return null;
     }
 
-    // Identify which specific sample breached so we can surface its
-    // attributes (pod/host/etc.) and timestamp in the root cause.
+    /*
+     * Identify which specific sample breached so we can surface its
+     * attributes (pod/host/etc.) and timestamp in the root cause.
+     */
     const breaching: AggregateModel | undefined = samples.find(
       (s: AggregateModel) => {
         return MetricMonitorCriteria.sampleBreaches(
@@ -202,9 +212,11 @@ export default class MetricMonitorCriteria {
   }
 
   private static extractLabelAttributes(sample: AggregateModel): JSONObject {
-    // AggregatedModel has a string index signature that holds group-by
-    // attributes alongside `timestamp` and `value`. Strip the known keys
-    // to get the label dictionary.
+    /*
+     * AggregatedModel has a string index signature that holds group-by
+     * attributes alongside `timestamp` and `value`. Strip the known keys
+     * to get the label dictionary.
+     */
     const labels: JSONObject = {};
     for (const key of Object.keys(sample)) {
       if (key === "timestamp" || key === "value") {

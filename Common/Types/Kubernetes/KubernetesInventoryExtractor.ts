@@ -43,8 +43,10 @@ import {
  * ------------------------------------------------------------------
  */
 
-// Union of all typed parser outputs. Each one has .metadata; most
-// also have .spec and .status.
+/*
+ * Union of all typed parser outputs. Each one has .metadata; most
+ * also have .spec and .status.
+ */
 type AnyKubernetesObject =
   | KubernetesPodObject
   | KubernetesNodeObject
@@ -172,9 +174,11 @@ function deriveNodeConditionFlags(
     }
   }
 
-  // For pressure flags we only treat a Node as having a signal when the
-  // condition was actually reported. If the agent didn't include it,
-  // leave as null rather than false — avoids false-negative alerting.
+  /*
+   * For pressure flags we only treat a Node as having a signal when the
+   * condition was actually reported. If the agent didn't include it,
+   * leave as null rather than false — avoids false-negative alerting.
+   */
   return {
     isReady,
     hasMemoryPressure: memPressure === null ? false : memPressure,
@@ -274,11 +278,13 @@ export function extractInventoryResource(data: {
     nodeFlags = deriveNodeConditionFlags(nodeStatus?.conditions);
   }
 
-  // Collect spec/status blocks when the typed parser exposed them.
-  // Some kinds (Namespace) don't carry spec/status, so these are
-  // nullable.
-  // Cast to a minimal structural shape so TS permits optional access
-  // across the heterogeneous union.
+  /*
+   * Collect spec/status blocks when the typed parser exposed them.
+   * Some kinds (Namespace) don't carry spec/status, so these are
+   * nullable.
+   * Cast to a minimal structural shape so TS permits optional access
+   * across the heterogeneous union.
+   */
   const anyParsed: {
     spec?: unknown;
     status?: unknown;

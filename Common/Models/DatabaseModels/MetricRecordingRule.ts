@@ -304,8 +304,7 @@ export default class MetricRecordingRule extends BaseModel {
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
     title: "Enabled",
-    description:
-      "Whether this rule is evaluated by the recording rule cron.",
+    description: "Whether this rule is evaluated by the recording rule cron.",
     defaultValue: true,
   })
   @Column({
