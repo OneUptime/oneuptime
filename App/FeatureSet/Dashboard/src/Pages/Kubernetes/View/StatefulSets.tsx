@@ -48,79 +48,38 @@ const KubernetesClusterStatefulSets: FunctionComponent<
         return;
       }
 
-      const [statefulsetList, statefulsetObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.statefulset.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "statefulsets",
-        }),
-      ]);
+      const statefulsetList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "StatefulSet",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
+            const readyReplicas: number =
+              (status["readyReplicas"] as number) || 0;
+            const replicas: number = (spec["replicas"] as number) || 0;
 
-      // Build a set of resource keys we already have from metrics
-      const existingKeys: Set<string> = new Set<string>();
-
-      for (const resource of statefulsetList) {
-        const key: string = `${resource.namespace}/${resource.name}`;
-        existingKeys.add(key);
-        const stsObj: KubernetesObjectType | undefined =
-          statefulsetObjects.get(key);
-        if (stsObj) {
-          const sts: KubernetesStatefulSetObject =
-            stsObj as KubernetesStatefulSetObject;
-
-          const readyReplicas: number = sts.status.readyReplicas;
-          const replicas: number = sts.spec.replicas;
-
-          resource.status =
-            readyReplicas === replicas && replicas > 0
-              ? "Ready"
-              : "Progressing";
-
-          resource.additionalAttributes["ready"] =
-            `${readyReplicas}/${replicas}`;
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            sts.metadata.creationTimestamp,
-          );
-        }
-      }
-
-      // Add statefulsets from k8s objects that were not found via metrics
-      for (const [key, stsObj] of statefulsetObjects.entries()) {
-        if (existingKeys.has(key)) {
-          continue;
-        }
-        const sts: KubernetesStatefulSetObject =
-          stsObj as KubernetesStatefulSetObject;
-        const readyReplicas: number = sts.status.readyReplicas ?? 0;
-        const replicas: number = sts.spec.replicas ?? 0;
-
-        statefulsetList.push({
-          name: sts.metadata.name,
-          namespace: sts.metadata.namespace,
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status:
-            readyReplicas === replicas && replicas > 0
-              ? "Ready"
-              : "Progressing",
-          age: KubernetesResourceUtils.formatAge(
-            sts.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {
-            ready: `${readyReplicas}/${replicas}`,
+            resource.status =
+              readyReplicas === replicas && replicas > 0
+                ? "Ready"
+                : "Progressing";
+            resource.additionalAttributes["ready"] =
+              `${readyReplicas}/${replicas}`;
           },
         });
-      }
+
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: statefulsetList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.pod.cpu.utilization",
+        memoryMetricName: "k8s.pod.memory.usage",
+        resourceNameAttribute: "resource.k8s.statefulset.name",
+      });
 
       setResources(statefulsetList);
     } catch (err) {
