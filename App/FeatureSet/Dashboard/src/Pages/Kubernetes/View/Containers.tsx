@@ -20,14 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import {
-  KubernetesContainerStatus,
-  KubernetesPodObject,
-} from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterContainers: FunctionComponent<
   PageComponentProps
@@ -55,61 +48,94 @@ const KubernetesClusterContainers: FunctionComponent<
         return;
       }
 
-      const [containerList, podObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "container.cpu.utilization",
-          memoryMetricName: "container.memory.usage",
-          resourceNameAttribute: "resource.k8s.container.name",
-          additionalAttributes: ["resource.k8s.pod.name"],
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "pods",
-        }),
-      ]);
+      /*
+       * Containers aren't tracked as a top-level kind in the inventory
+       * — they're part of a Pod's spec. Expand each Pod row into one
+       * row per container so the page and the sidebar badge (which
+       * counts pods as a proxy) agree.
+       */
+      const pods: Array<KubernetesResource> = [];
+      const podRows: Map<string, KubernetesResourceModel> = new Map();
 
-      for (const resource of containerList) {
-        const podName: string =
-          resource.additionalAttributes["resource.k8s.pod.name"] || "";
-        const podKey: string = resource.namespace
-          ? `${resource.namespace}/${podName}`
-          : podName;
-        const podObj: KubernetesObjectType | undefined = podObjects.get(podKey);
-        if (podObj) {
-          const pod: KubernetesPodObject = podObj as KubernetesPodObject;
+      await KubernetesResourceUtils.fetchInventoryResources({
+        kubernetesClusterId: modelId,
+        kind: "Pod",
+        transform: (resource: KubernetesResource, row: KubernetesResourceModel) => {
+          pods.push(resource);
+          podRows.set(`${resource.namespace}/${resource.name}`, row);
+        },
+      });
 
-          // Find the container status matching this container name
-          const containerStatus: KubernetesContainerStatus | undefined =
-            pod.status.containerStatuses.find(
-              (cs: KubernetesContainerStatus) => {
-                return cs.name === resource.name;
-              },
-            );
+      const containerList: Array<KubernetesResource> = [];
 
-          if (containerStatus) {
-            if (containerStatus.state === "running") {
-              resource.status = containerStatus.ready ? "Running" : "NotReady";
-            } else if (containerStatus.state === "waiting") {
-              resource.status = "Waiting";
-            } else if (containerStatus.state === "terminated") {
-              resource.status = "Terminated";
-            } else {
-              resource.status = containerStatus.state || "Unknown";
-            }
+      for (const pod of pods) {
+        const row: KubernetesResourceModel | undefined = podRows.get(
+          `${pod.namespace}/${pod.name}`,
+        );
+        if (!row) {
+          continue;
+        }
+        const spec: Record<string, unknown> =
+          (row.spec as unknown as Record<string, unknown>) || {};
+        const status: Record<string, unknown> =
+          (row.status as unknown as Record<string, unknown>) || {};
+        const containers: Array<Record<string, unknown>> =
+          (spec["containers"] as Array<Record<string, unknown>>) || [];
+        const containerStatuses: Array<Record<string, unknown>> =
+          (status["containerStatuses"] as Array<
+            Record<string, unknown>
+          >) || [];
 
-            resource.additionalAttributes["restarts"] =
-              `${containerStatus.restartCount}`;
+        for (const c of containers) {
+          const name: string = (c["name"] as string) || "";
+          if (!name) {
+            continue;
           }
 
-          resource.age = KubernetesResourceUtils.formatAge(
-            pod.metadata.creationTimestamp,
-          );
+          const cs: Record<string, unknown> | undefined =
+            containerStatuses.find((s: Record<string, unknown>) => {
+              return s["name"] === name;
+            });
+
+          let displayStatus: string = "Unknown";
+          let restarts: string = "0";
+          if (cs) {
+            const state: unknown = cs["state"];
+            if (state === "running") {
+              displayStatus = cs["ready"] ? "Running" : "NotReady";
+            } else if (state === "waiting") {
+              displayStatus = "Waiting";
+            } else if (state === "terminated") {
+              displayStatus = "Terminated";
+            } else if (typeof state === "string") {
+              displayStatus = state;
+            }
+            restarts = `${(cs["restartCount"] as number) || 0}`;
+          }
+
+          containerList.push({
+            name,
+            namespace: pod.namespace,
+            cpuUtilization: null,
+            memoryUsageBytes: null,
+            memoryLimitBytes: null,
+            status: displayStatus,
+            age: pod.age,
+            additionalAttributes: {
+              "resource.k8s.pod.name": pod.name,
+              restarts,
+            },
+          });
         }
       }
+
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: containerList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "container.cpu.utilization",
+        memoryMetricName: "container.memory.usage",
+        resourceNameAttribute: "resource.k8s.container.name",
+      });
 
       setResources(containerList);
     } catch (err) {

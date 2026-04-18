@@ -24,6 +24,13 @@ export type { ParsedKubernetesResource };
 
 export interface InventorySummary {
   countsByKind: Record<string, number>;
+  /*
+   * Sum of `jsonb_array_length(spec->'containers')` across all pods in
+   * the cluster. Containers aren't a top-level kind in the inventory,
+   * so we derive the total server-side so the sidebar badge and the
+   * Containers page agree.
+   */
+  containerCount: number;
   podPhaseCounts: {
     running: number;
     pending: number;
@@ -211,7 +218,7 @@ export class Service extends DatabaseService<Model> {
     const manager: ReturnType<Service["getRepository"]>["manager"] =
       this.getRepository().manager;
 
-    const [kindRows, podRows, nodeRows]: [
+    const [kindRows, podRows, nodeRows, containerRows]: [
       Array<{ kind: string; count: string }>,
       Array<{ phase: string | null; count: string }>,
       Array<{
@@ -221,6 +228,7 @@ export class Service extends DatabaseService<Model> {
         diskPressure: string;
         pidPressure: string;
       }>,
+      Array<{ total: string }>,
     ] = await Promise.all([
       manager.query(
         `SELECT "kind", COUNT(*)::text AS count
@@ -245,6 +253,16 @@ export class Service extends DatabaseService<Model> {
            COUNT(*) FILTER (WHERE "hasPidPressure" IS TRUE)::text AS "pidPressure"
          FROM "KubernetesResource"
          WHERE "projectId" = $1 AND "kubernetesClusterId" = $2 AND "kind" = 'Node' AND "deletedAt" IS NULL`,
+        [data.projectId.toString(), data.kubernetesClusterId.toString()],
+      ),
+      manager.query(
+        `SELECT COALESCE(SUM(
+           CASE WHEN jsonb_typeof("spec"->'containers') = 'array'
+                THEN jsonb_array_length("spec"->'containers')
+                ELSE 0 END
+         ), 0)::text AS total
+         FROM "KubernetesResource"
+         WHERE "projectId" = $1 AND "kubernetesClusterId" = $2 AND "kind" = 'Pod' AND "deletedAt" IS NULL`,
         [data.projectId.toString(), data.kubernetesClusterId.toString()],
       ),
     ]);
@@ -287,8 +305,12 @@ export class Service extends DatabaseService<Model> {
         }
       | undefined = nodeRows[0];
 
+    const containerCount: number =
+      parseInt(containerRows[0]?.total || "0", 10) || 0;
+
     return {
       countsByKind,
+      containerCount,
       podPhaseCounts,
       nodeReadyCounts: {
         ready: parseInt(nodeRow?.ready || "0", 10) || 0,

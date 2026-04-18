@@ -192,14 +192,7 @@ const KubernetesClusterOverview: FunctionComponent<
           setCronJobCount(readNum("cronJobCount"));
           setPvcCount(readNum("pvcCount"));
           setPvCount(readNum("pvCount"));
-          /*
-           * Overview's "container count" was previously derived from
-           * metrics for running containers and fell back to pod count.
-           * The agent's k8sobjects receiver doesn't enumerate containers
-           * as a top-level resource kind, so pod count is the closest
-           * sensible value here.
-           */
-          setContainerCount(readNum("podCount"));
+          setContainerCount(readNum("containerCount"));
 
           const podPhase: JSONObject =
             (summary["podPhaseCounts"] as JSONObject) || {};

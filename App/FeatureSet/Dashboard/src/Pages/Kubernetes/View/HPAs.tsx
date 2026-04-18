@@ -20,11 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesHPAObject } from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterHPAs: FunctionComponent<
   PageComponentProps
@@ -52,48 +48,53 @@ const KubernetesClusterHPAs: FunctionComponent<
         return;
       }
 
-      const hpaObjects: Map<string, KubernetesObjectType> =
-        await fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "horizontalpodautoscalers",
-        });
+      const hpaResources: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "HorizontalPodAutoscaler",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
+            const scaleTargetRef: Record<string, unknown> =
+              (spec["scaleTargetRef"] as Record<string, unknown>) || {};
+            const currentReplicas: number =
+              (status["currentReplicas"] as number) || 0;
+            const desiredReplicas: number =
+              (status["desiredReplicas"] as number) || 0;
 
-      const hpaResources: Array<KubernetesResource> = [];
+            if (!resource.namespace) {
+              resource.namespace = "default";
+            }
 
-      for (const hpaObj of hpaObjects.values()) {
-        const hpa: KubernetesHPAObject = hpaObj as KubernetesHPAObject;
+            if (currentReplicas === desiredReplicas && currentReplicas > 0) {
+              resource.status = "Active";
+            } else if (currentReplicas < desiredReplicas) {
+              resource.status = "Scaling Up";
+            } else if (currentReplicas > desiredReplicas) {
+              resource.status = "Scaling Down";
+            } else {
+              resource.status = "Active";
+            }
 
-        const currentReplicas: number = hpa.status.currentReplicas;
-        const desiredReplicas: number = hpa.status.desiredReplicas;
-
-        let status: string = "Active";
-        if (currentReplicas === desiredReplicas && currentReplicas > 0) {
-          status = "Active";
-        } else if (currentReplicas < desiredReplicas) {
-          status = "Scaling Up";
-        } else if (currentReplicas > desiredReplicas) {
-          status = "Scaling Down";
-        }
-
-        hpaResources.push({
-          name: hpa.metadata.name,
-          namespace: hpa.metadata.namespace || "default",
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: status,
-          age: KubernetesResourceUtils.formatAge(
-            hpa.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {
-            target: `${hpa.spec.scaleTargetRef.kind}/${hpa.spec.scaleTargetRef.name}`,
-            minReplicas: String(hpa.spec.minReplicas),
-            maxReplicas: String(hpa.spec.maxReplicas),
-            currentReplicas: String(currentReplicas),
-            desiredReplicas: String(desiredReplicas),
+            resource.additionalAttributes["target"] =
+              `${scaleTargetRef["kind"] || ""}/${scaleTargetRef["name"] || ""}`;
+            resource.additionalAttributes["minReplicas"] = String(
+              spec["minReplicas"] ?? "",
+            );
+            resource.additionalAttributes["maxReplicas"] = String(
+              spec["maxReplicas"] ?? "",
+            );
+            resource.additionalAttributes["currentReplicas"] =
+              String(currentReplicas);
+            resource.additionalAttributes["desiredReplicas"] =
+              String(desiredReplicas);
           },
         });
-      }
 
       setResources(hpaResources);
     } catch (err) {

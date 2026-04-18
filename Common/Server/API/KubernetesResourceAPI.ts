@@ -121,6 +121,7 @@ export default class KubernetesResourceAPI extends BaseAPI<
       cronJobCount: summary.countsByKind["CronJob"] || 0,
       hpaCount: summary.countsByKind["HorizontalPodAutoscaler"] || 0,
       vpaCount: summary.countsByKind["VerticalPodAutoscaler"] || 0,
+      containerCount: summary.containerCount,
     };
 
     return Response.sendJsonObjectResponse(req, res, responseBody);

@@ -20,11 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesVPAObject } from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterVPAs: FunctionComponent<
   PageComponentProps
@@ -52,36 +48,40 @@ const KubernetesClusterVPAs: FunctionComponent<
         return;
       }
 
-      const vpaObjects: Map<string, KubernetesObjectType> =
-        await fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "verticalpodautoscalers",
-        });
+      const vpaResources: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "VerticalPodAutoscaler",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
+            const targetRef: Record<string, unknown> =
+              (spec["targetRef"] as Record<string, unknown>) || {};
+            const updatePolicy: Record<string, unknown> =
+              (spec["updatePolicy"] as Record<string, unknown>) || {};
+            const recommendation: Record<string, unknown> =
+              (status["recommendation"] as Record<string, unknown>) || {};
+            const containerRecommendations: Array<unknown> =
+              (recommendation["containerRecommendations"] as Array<unknown>) ||
+              [];
 
-      const vpaResources: Array<KubernetesResource> = [];
+            if (!resource.namespace) {
+              resource.namespace = "default";
+            }
 
-      for (const vpaObj of vpaObjects.values()) {
-        const vpa: KubernetesVPAObject = vpaObj as KubernetesVPAObject;
-
-        const hasRecommendations: boolean =
-          vpa.status.recommendation.containerRecommendations.length > 0;
-
-        vpaResources.push({
-          name: vpa.metadata.name,
-          namespace: vpa.metadata.namespace || "default",
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: hasRecommendations ? "Active" : "Pending",
-          age: KubernetesResourceUtils.formatAge(
-            vpa.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {
-            target: `${vpa.spec.targetRef.kind}/${vpa.spec.targetRef.name}`,
-            updateMode: vpa.spec.updatePolicy.updateMode || "N/A",
+            resource.status =
+              containerRecommendations.length > 0 ? "Active" : "Pending";
+            resource.additionalAttributes["target"] =
+              `${targetRef["kind"] || ""}/${targetRef["name"] || ""}`;
+            resource.additionalAttributes["updateMode"] =
+              (updatePolicy["updateMode"] as string) || "N/A";
           },
         });
-      }
 
       setResources(vpaResources);
     } catch (err) {

@@ -48,77 +48,39 @@ const KubernetesClusterJobs: FunctionComponent<
         return;
       }
 
-      const [jobList, jobObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.job.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "jobs",
-        }),
-      ]);
+      const jobList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "Job",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
+            const completionTime: unknown = status["completionTime"];
+            const failed: number = (status["failed"] as number) || 0;
+            const active: number = (status["active"] as number) || 0;
 
-      // Build a set of resource keys we already have from metrics
-      const existingKeys: Set<string> = new Set<string>();
-
-      for (const resource of jobList) {
-        const key: string = `${resource.namespace}/${resource.name}`;
-        existingKeys.add(key);
-        const jobObj: KubernetesObjectType | undefined = jobObjects.get(key);
-        if (jobObj) {
-          const job: KubernetesJobObject = jobObj as KubernetesJobObject;
-
-          if (job.status.completionTime) {
-            resource.status = "Complete";
-          } else if (job.status.failed > 0) {
-            resource.status = "Failed";
-          } else if (job.status.active > 0) {
-            resource.status = "Running";
-          } else {
-            resource.status = "Pending";
-          }
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            job.metadata.creationTimestamp,
-          );
-        }
-      }
-
-      // Add jobs from k8s objects that were not found via metrics
-      for (const [key, jobObj] of jobObjects.entries()) {
-        if (existingKeys.has(key)) {
-          continue;
-        }
-        const job: KubernetesJobObject = jobObj as KubernetesJobObject;
-
-        let status: string = "Pending";
-        if (job.status.completionTime) {
-          status = "Complete";
-        } else if (job.status.failed > 0) {
-          status = "Failed";
-        } else if (job.status.active > 0) {
-          status = "Running";
-        }
-
-        jobList.push({
-          name: job.metadata.name,
-          namespace: job.metadata.namespace,
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: status,
-          age: KubernetesResourceUtils.formatAge(
-            job.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {},
+            if (completionTime) {
+              resource.status = "Complete";
+            } else if (failed > 0) {
+              resource.status = "Failed";
+            } else if (active > 0) {
+              resource.status = "Running";
+            } else {
+              resource.status = "Pending";
+            }
+          },
         });
-      }
+
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: jobList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.pod.cpu.utilization",
+        memoryMetricName: "k8s.pod.memory.usage",
+        resourceNameAttribute: "resource.k8s.job.name",
+      });
 
       setResources(jobList);
     } catch (err) {

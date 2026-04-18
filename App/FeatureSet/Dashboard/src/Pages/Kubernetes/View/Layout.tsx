@@ -77,12 +77,7 @@ const KubernetesClusterViewLayout: FunctionComponent<
           daemonSets: readNum("daemonSetCount"),
           jobs: readNum("jobCount"),
           cronJobs: readNum("cronJobCount"),
-          /*
-           * The inventory doesn't track individual containers — the agent's
-           * k8sobjects receiver enumerates pods, not containers. Use pod
-           * count so the sidebar matches the overview card.
-           */
-          containers: podCount,
+          containers: readNum("containerCount"),
           pvcs: readNum("pvcCount"),
           pvs: readNum("pvCount"),
           hpas: readNum("hpaCount"),
