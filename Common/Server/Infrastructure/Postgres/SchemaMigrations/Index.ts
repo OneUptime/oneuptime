@@ -568,10 +568,5 @@ export default [
   MigrationName1774559064921,
   MigrationName1775735059360,
   MigrationName1775766676723,
-  AddGlobalSmtpOAuth1775900000000,
-  AddMetricPipelineRules1776430228051,
-  AddKubernetesDockerOwners1776500000000,
-  AddMetricRecordingRules1776600000000,
-  MigrationName1776455442241,
-  AddKubernetesResourceUpsertIndexes1776800000000,
+  AddGlobalSmtpOAuth1775900000000
 ];
