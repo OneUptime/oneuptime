@@ -280,12 +280,7 @@ import { MigrationName1774559064921 } from "./1774559064921-MigrationName";
 import { MigrationName1775735059360 } from "./1775735059360-MigrationName";
 import { MigrationName1775766676723 } from "./1775766676723-MigrationName";
 import { AddGlobalSmtpOAuth1775900000000 } from "./1775900000000-AddGlobalSmtpOAuth";
-import { AddMetricPipelineRules1776430228051 } from "./1776430228051-AddMetricPipelineRules";
-import { MigrationName1776455442241 } from "./1776455442241-MigrationName";
-import { AddKubernetesDockerOwners1776500000000 } from "./1776500000000-AddKubernetesDockerOwners";
-import { AddMetricRecordingRules1776600000000 } from "./1776600000000-AddMetricRecordingRules";
-import { AddKubernetesResourceUpsertIndexes1776800000000 } from "./1776800000000-AddKubernetesResourceUpsertIndexes";
-
+import { MigrationName1776504277320 } from "./1776504277320-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -568,5 +563,6 @@ export default [
   MigrationName1774559064921,
   MigrationName1775735059360,
   MigrationName1775766676723,
-  AddGlobalSmtpOAuth1775900000000
+  AddGlobalSmtpOAuth1775900000000,
+  MigrationName1776504277320
 ];
