@@ -20,11 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 function parseMemoryString(memory: string): number {
   if (!memory) {
@@ -78,59 +74,66 @@ const KubernetesClusterPods: FunctionComponent<
         return;
       }
 
-      const [podList, podObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.pod.name",
-          additionalAttributes: [
-            "resource.k8s.node.name",
-            "resource.k8s.deployment.name",
-          ],
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "pods",
-        }),
-      ]);
+      const podList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "Pod",
+          transform: (resource: KubernetesResource, row: KubernetesResourceModel) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
 
-      for (const resource of podList) {
-        const key: string = `${resource.namespace}/${resource.name}`;
-        const podObj: KubernetesObjectType | undefined = podObjects.get(key);
-        if (podObj) {
-          const pod: KubernetesPodObject = podObj as KubernetesPodObject;
-          resource.status = pod.status.phase || "Unknown";
-
-          for (const cs of pod.status.containerStatuses) {
-            if (cs.state === "waiting" && cs.reason) {
-              resource.status = cs.reason;
-              break;
+            /*
+             * A waiting container with a reason (ImagePullBackOff, CrashLoopBackOff)
+             * is more useful to surface than the pod's broad phase.
+             */
+            const containerStatuses: Array<Record<string, unknown>> =
+              (status["containerStatuses"] as Array<
+                Record<string, unknown>
+              >) || [];
+            for (const cs of containerStatuses) {
+              if (cs["state"] === "waiting" && cs["reason"]) {
+                resource.status = cs["reason"] as string;
+                break;
+              }
             }
-          }
 
-          resource.age = KubernetesResourceUtils.formatAge(
-            pod.metadata.creationTimestamp,
-          );
-          resource.additionalAttributes["containers"] =
-            `${pod.spec.containers.length}`;
+            const containers: Array<Record<string, unknown>> =
+              (spec["containers"] as Array<Record<string, unknown>>) || [];
+            resource.additionalAttributes["containers"] =
+              `${containers.length}`;
 
-          let totalMemoryLimit: number = 0;
-          for (const container of pod.spec.containers) {
-            if (container.resources.limits["memory"]) {
-              totalMemoryLimit += parseMemoryString(
-                container.resources.limits["memory"],
-              );
+            const nodeName: unknown = spec["nodeName"];
+            if (typeof nodeName === "string" && nodeName) {
+              resource.additionalAttributes["resource.k8s.node.name"] =
+                nodeName;
             }
-          }
-          if (totalMemoryLimit > 0) {
-            resource.memoryLimitBytes = totalMemoryLimit;
-          }
-        }
-      }
+
+            let totalMemoryLimit: number = 0;
+            for (const container of containers) {
+              const resources: Record<string, unknown> =
+                (container["resources"] as Record<string, unknown>) || {};
+              const limits: Record<string, unknown> =
+                (resources["limits"] as Record<string, unknown>) || {};
+              const memLimit: unknown = limits["memory"];
+              if (typeof memLimit === "string" && memLimit) {
+                totalMemoryLimit += parseMemoryString(memLimit);
+              }
+            }
+            if (totalMemoryLimit > 0) {
+              resource.memoryLimitBytes = totalMemoryLimit;
+            }
+          },
+        });
+
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: podList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.pod.cpu.utilization",
+        memoryMetricName: "k8s.pod.memory.usage",
+        resourceNameAttribute: "resource.k8s.pod.name",
+      });
 
       setResources(podList);
     } catch (err) {

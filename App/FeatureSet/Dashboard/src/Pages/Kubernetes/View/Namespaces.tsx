@@ -20,11 +20,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesNamespaceObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterNamespaces: FunctionComponent<
   PageComponentProps
@@ -52,38 +47,27 @@ const KubernetesClusterNamespaces: FunctionComponent<
         return;
       }
 
-      const [namespaceList, namespaceObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.namespace.name",
-          namespaceAttribute: "resource.k8s.namespace.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "namespaces",
-        }),
-      ]);
+      /*
+       * List of namespaces comes from the Postgres inventory (the same
+       * source that drives the sidebar badge), so the page and the
+       * badge always agree. CPU/memory are enriched from ClickHouse
+       * metrics — missing rows simply render as 0% / N/A.
+       */
+      const namespaceList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "Namespace",
+        });
 
-      for (const resource of namespaceList) {
-        const key: string = resource.name;
-        const nsObj: KubernetesObjectType | undefined =
-          namespaceObjects.get(key);
-        if (nsObj) {
-          const ns: KubernetesNamespaceObject =
-            nsObj as KubernetesNamespaceObject;
-
-          resource.status = ns.status.phase || "Unknown";
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            ns.metadata.creationTimestamp,
-          );
-        }
-      }
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: namespaceList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.pod.cpu.utilization",
+        memoryMetricName: "k8s.pod.memory.usage",
+        resourceNameAttribute: "resource.k8s.namespace.name",
+        namespaceAttribute: "resource.k8s.namespace.name",
+        resourceKey: "byName",
+      });
 
       setResources(namespaceList);
     } catch (err) {
