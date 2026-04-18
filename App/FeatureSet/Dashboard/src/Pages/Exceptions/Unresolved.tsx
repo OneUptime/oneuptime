@@ -1,8 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ExceptionsViewer from "../../Components/Exceptions/ExceptionsViewer";
-import ExceptionsNavTabs from "../../Components/Exceptions/ExceptionsNavTabs";
 
 const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,12 +15,7 @@ const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <Fragment>
-      <ExceptionsNavTabs active="unresolved" />
-      <ExceptionsViewer defaultStatus="unresolved" />
-    </Fragment>
-  );
+  return <ExceptionsViewer defaultStatus="unresolved" />;
 };
 
 export default UnresolvedExceptionsPage;

@@ -1,8 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ExceptionsDashboard from "../../Components/Exceptions/ExceptionsDashboard";
-import ExceptionsNavTabs from "../../Components/Exceptions/ExceptionsNavTabs";
 
 const ExceptionsOverviewPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,12 +15,7 @@ const ExceptionsOverviewPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <Fragment>
-      <ExceptionsNavTabs active="overview" />
-      <ExceptionsDashboard />
-    </Fragment>
-  );
+  return <ExceptionsDashboard />;
 };
 
 export default ExceptionsOverviewPage;

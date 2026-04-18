@@ -1,8 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import MetricsViewer from "../../Components/Metrics/MetricsViewer";
-import MetricsNavTabs from "../../Components/Metrics/MetricsNavTabs";
 
 const MetricsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,12 +15,7 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <Fragment>
-      <MetricsNavTabs active="viewer" />
-      <MetricsViewer />
-    </Fragment>
-  );
+  return <MetricsViewer />;
 };
 
 export default MetricsPage;
