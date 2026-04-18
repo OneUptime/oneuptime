@@ -283,6 +283,7 @@ import { AddGlobalSmtpOAuth1775900000000 } from "./1775900000000-AddGlobalSmtpOA
 import { MigrationName1776504277320 } from "./1776504277320-MigrationName";
 import { AddTracePipelineTables1776505976155 } from "./1776505976155-AddTracePipelineTables";
 import { MigrationName1776509413763 } from "./1776509413763-MigrationName";
+import { MigrationName1776541018853 } from "./1776541018853-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -569,4 +570,5 @@ export default [
   MigrationName1776504277320,
   AddTracePipelineTables1776505976155,
   MigrationName1776509413763,
+  MigrationName1776541018853,
 ];

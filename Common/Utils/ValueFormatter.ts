@@ -89,6 +89,98 @@ const unitTableMap: Record<string, Array<UnitThreshold>> = {
   ns: nanosecondUnits,
 };
 
+// Maps UCUM / OpenTelemetry unit codes to human-readable unit names.
+// Used for labelling (e.g. badges) where the raw code "By" is hard to read.
+const readableUnitMap: Record<string, string> = {
+  // Dimensionless — OpenTelemetry uses "1" for unitless counts
+  "1": "",
+
+  // Bytes (decimal)
+  by: "Bytes",
+  byte: "Bytes",
+  bytes: "Bytes",
+  b: "Bytes",
+  kby: "Kilobytes",
+  mby: "Megabytes",
+  gby: "Gigabytes",
+  tby: "Terabytes",
+  pby: "Petabytes",
+
+  // Bytes (binary)
+  kiby: "Kibibytes",
+  miby: "Mebibytes",
+  giby: "Gibibytes",
+  tiby: "Tebibytes",
+  piby: "Pebibytes",
+
+  // Bits
+  bit: "Bits",
+  bits: "Bits",
+  kbit: "Kilobits",
+  mbit: "Megabits",
+  gbit: "Gigabits",
+
+  // Time
+  ns: "Nanoseconds",
+  nanosecond: "Nanoseconds",
+  nanoseconds: "Nanoseconds",
+  us: "Microseconds",
+  µs: "Microseconds",
+  microsecond: "Microseconds",
+  microseconds: "Microseconds",
+  ms: "Milliseconds",
+  millisecond: "Milliseconds",
+  milliseconds: "Milliseconds",
+  s: "Seconds",
+  sec: "Seconds",
+  second: "Seconds",
+  seconds: "Seconds",
+  min: "Minutes",
+  minute: "Minutes",
+  minutes: "Minutes",
+  h: "Hours",
+  hr: "Hours",
+  hour: "Hours",
+  hours: "Hours",
+  d: "Days",
+  day: "Days",
+  days: "Days",
+
+  // Percent
+  "%": "Percent",
+  percent: "Percent",
+
+  // Frequency
+  hz: "Hertz",
+  khz: "Kilohertz",
+  mhz: "Megahertz",
+  ghz: "Gigahertz",
+
+  // Temperature
+  cel: "Celsius",
+  "[degf]": "Fahrenheit",
+  k: "Kelvin",
+
+  // Electrical
+  v: "Volts",
+  a: "Amperes",
+  w: "Watts",
+  kw: "Kilowatts",
+  j: "Joules",
+};
+
+function normalizeUnit(unit: string): string {
+  return unit.trim().toLowerCase();
+}
+
+function getReadableUnitPart(unit: string): string {
+  const normalized: string = normalizeUnit(unit);
+  if (readableUnitMap[normalized] !== undefined) {
+    return readableUnitMap[normalized]!;
+  }
+  return unit;
+}
+
 function formatWithThresholds(
   value: number,
   thresholds: Array<UnitThreshold>,
@@ -144,11 +236,12 @@ export default class ValueFormatter {
    * e.g. formatValue(42, "%") → "42 %"  (passthrough for unknown units)
    */
   public static formatValue(value: number, unit: string): string {
-    if (!unit || unit.trim() === "") {
+    // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
+    if (!unit || unit.trim() === "" || unit.trim() === "1") {
       return formatNumber(value);
     }
 
-    const normalizedUnit: string = unit.trim().toLowerCase();
+    const normalizedUnit: string = normalizeUnit(unit);
     const thresholds: Array<UnitThreshold> | undefined =
       unitTableMap[normalizedUnit];
 
@@ -156,8 +249,8 @@ export default class ValueFormatter {
       return formatWithThresholds(value, thresholds).formatted;
     }
 
-    // Unknown unit — just format the number and append the unit as-is
-    return `${formatNumber(value)} ${unit}`;
+    // Unknown unit — format number and show the readable unit name when we have one.
+    return `${formatNumber(value)} ${ValueFormatter.getReadableUnit(unit)}`;
   }
 
   // Check if a unit is one we can auto-scale (bytes, seconds, etc.)
@@ -165,6 +258,35 @@ export default class ValueFormatter {
     if (!unit || unit.trim() === "") {
       return false;
     }
-    return unitTableMap[unit.trim().toLowerCase()] !== undefined;
+    return unitTableMap[normalizeUnit(unit)] !== undefined;
+  }
+
+  /*
+   * Convert a UCUM / OpenTelemetry unit code into a human-readable name.
+   * e.g. "By" → "Bytes", "s" → "Seconds", "By/s" → "Bytes per Second",
+   * "1" → "" (dimensionless). Falls back to the original string when unknown.
+   */
+  public static getReadableUnit(unit: string): string {
+    if (!unit || unit.trim() === "" || unit.trim() === "1") {
+      return "";
+    }
+
+    // Handle compound rate units like "By/s" → "Bytes per Second"
+    if (unit.includes("/")) {
+      const parts: Array<string> = unit.split("/");
+      const readableParts: Array<string> = parts.map((part: string): string => {
+        return getReadableUnitPart(part);
+      });
+      // Singularize the denominator ("Seconds" → "Second") for nicer rate reading.
+      const [numerator, ...denominators] = readableParts;
+      const denominator: string = denominators
+        .map((d: string): string => {
+          return d.endsWith("s") ? d.slice(0, -1) : d;
+        })
+        .join(" per ");
+      return `${numerator} per ${denominator}`;
+    }
+
+    return getReadableUnitPart(unit);
   }
 }

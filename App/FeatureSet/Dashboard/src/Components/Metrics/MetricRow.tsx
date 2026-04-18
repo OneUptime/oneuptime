@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 
 export interface MetricRowProps {
@@ -17,6 +18,8 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
   const { metric } = props;
 
   const services: Array<Service> = metric.services || [];
+  const rawUnit: string = metric.unit || "";
+  const readableUnit: string = ValueFormatter.getReadableUnit(rawUnit);
 
   return (
     <button
@@ -32,9 +35,9 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             <span className="truncate font-mono text-sm font-semibold text-gray-900 group-hover:text-indigo-700">
               {metric.name || "(unnamed)"}
             </span>
-            {metric.unit && (
+            {readableUnit && (
               <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
-                {metric.unit}
+                {readableUnit}
               </span>
             )}
           </div>
@@ -78,13 +81,8 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
           {props.lastValue !== undefined && (
             <div className="text-right">
               <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-                {props.lastValue.toLocaleString()}
+                {ValueFormatter.formatValue(props.lastValue, rawUnit)}
               </span>
-              {metric.unit && (
-                <span className="ml-1 text-xs text-gray-400">
-                  {metric.unit}
-                </span>
-              )}
             </div>
           )}
           <MetricSparkline
