@@ -20,6 +20,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   DropdownOption,
@@ -307,44 +308,64 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
-            <div className="mt-1">
-              <FieldLabelElement
-                title="If No Data"
-                description="What should happen when the query returns no data points in the evaluation window?"
-              />
-              <Dropdown
-                value={(() => {
-                  const v: NoDataPolicy =
-                    criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
-                    NoDataPolicy.Ignore;
-                  return { value: v, label: v };
-                })()}
-                options={[
-                  {
-                    value: NoDataPolicy.Ignore,
-                    label: NoDataPolicy.Ignore,
-                  },
-                  {
-                    value: NoDataPolicy.TreatAsZero,
-                    label: NoDataPolicy.TreatAsZero,
-                  },
-                  {
-                    value: NoDataPolicy.Trigger,
-                    label: NoDataPolicy.Trigger,
-                  },
-                ]}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  props.onChange?.({
-                    ...criteriaFilter,
-                    metricMonitorOptions: {
-                      ...criteriaFilter?.metricMonitorOptions,
-                      onNoDataPolicy: value?.toString() as NoDataPolicy,
-                    },
-                  });
-                }}
-              />
+            <div className="mt-3">
+              <CollapsibleSection
+                title="Advanced Options"
+                description="No-data handling and other fine-grained controls"
+                variant="card"
+                defaultCollapsed={
+                  !criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
+                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ===
+                    NoDataPolicy.Ignore
+                }
+                badge={
+                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy &&
+                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy !==
+                    NoDataPolicy.Ignore
+                    ? "Configured"
+                    : undefined
+                }
+              >
+                <div>
+                  <FieldLabelElement
+                    title="If No Data"
+                    description="What should happen when the query returns no data points in the evaluation window?"
+                  />
+                  <Dropdown
+                    value={(() => {
+                      const v: NoDataPolicy =
+                        criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
+                        NoDataPolicy.Ignore;
+                      return { value: v, label: v };
+                    })()}
+                    options={[
+                      {
+                        value: NoDataPolicy.Ignore,
+                        label: NoDataPolicy.Ignore,
+                      },
+                      {
+                        value: NoDataPolicy.TreatAsZero,
+                        label: NoDataPolicy.TreatAsZero,
+                      },
+                      {
+                        value: NoDataPolicy.Trigger,
+                        label: NoDataPolicy.Trigger,
+                      },
+                    ]}
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      props.onChange?.({
+                        ...criteriaFilter,
+                        metricMonitorOptions: {
+                          ...criteriaFilter?.metricMonitorOptions,
+                          onNoDataPolicy: value?.toString() as NoDataPolicy,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              </CollapsibleSection>
             </div>
           )}
 
