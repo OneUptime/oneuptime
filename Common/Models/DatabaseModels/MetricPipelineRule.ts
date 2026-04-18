@@ -18,6 +18,8 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import MetricPipelineRuleType from "../../Types/Metrics/MetricPipelineRuleType";
+import MetricPipelineRuleFilterCondition from "../../Types/Metrics/MetricPipelineRuleFilterCondition";
+import FilterCondition from "../../Types/Filter/FilterCondition";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -348,53 +350,20 @@ export default class MetricPipelineRule extends BaseModel {
     ],
   })
   @TableColumn({
-    required: false,
-    type: TableColumnType.LongText,
-    title: "Match Metric Name Regex",
-    description:
-      "Regex matched against the metric name (row.name). Leave blank to match all metrics.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public matchMetricNameRegex?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectMetricPipelineRule,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryManager,
-      Permission.ReadProjectMetricPipelineRule,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectMetricPipelineRule,
-    ],
-  })
-  @TableColumn({
-    required: false,
+    required: true,
     type: TableColumnType.ShortText,
-    title: "Match Attribute Key",
+    title: "Filter Condition",
     description:
-      "If set, the rule only fires when the metric has this attribute key.",
+      "How to combine filters: 'All' requires every filter to match (AND), 'Any' requires at least one to match (OR).",
+    defaultValue: FilterCondition.All,
   })
   @Column({
-    nullable: true,
+    nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
+    default: FilterCondition.All,
   })
-  public matchAttributeKey?: string = undefined;
+  public filterCondition?: FilterCondition = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -419,17 +388,16 @@ export default class MetricPipelineRule extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
-    title: "Match Attribute Value Regex",
+    type: TableColumnType.JSON,
+    title: "Filters",
     description:
-      "Regex matched against the attribute value for matchAttributeKey. Requires matchAttributeKey.",
+      "List of filters evaluated against each metric data point. An empty list matches every data point.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.JSON,
   })
-  public matchAttributeValueRegex?: string = undefined;
+  public filters?: Array<MetricPipelineRuleFilterCondition> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -1,30 +1,17 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import TraceRecordingRuleDefinition, {
+  TraceRecordingRuleDefinitionUtil,
+} from "Common/Types/Trace/TraceRecordingRuleDefinition";
+import TraceRecordingRuleDefinitionEditor from "../../../Components/Traces/RecordingRule/TraceRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
-
-const exampleDefinition: string = JSON.stringify(
-  {
-    sources: [
-      {
-        alias: "A",
-        aggregationType: "ErrorCount",
-      },
-      {
-        alias: "B",
-        aggregationType: "Count",
-      },
-    ],
-    expression: "A / B * 100",
-    groupByAttribute: "service.name",
-  },
-  null,
-  2,
-);
 
 const documentationMarkdown: string = `
 ### How Trace Recording Rules Work
@@ -33,17 +20,17 @@ A Trace Recording Rule computes a new metric from span aggregations on a schedul
 
 ### Definition
 
-JSON with three parts:
+A rule is made of three parts:
 
-- **sources** — list of span aggregations, each with an \`alias\` (A, B, C, …) and an \`aggregationType\`:
+- **Span Sources** — up to 4 span aggregations. Each gets an alias (A, B, C, D) and an aggregation type:
   - \`Count\` — count of matching spans
   - \`ErrorCount\` — count of spans with status = error
-  - \`AvgDurationSeconds\`, \`P50DurationSeconds\`, \`P95DurationSeconds\`, \`P99DurationSeconds\`, \`MaxDurationSeconds\`, \`MinDurationSeconds\`
+  - \`Avg / p50 / p95 / p99 / Max / Min Duration (s)\` — duration percentiles and extremes
 
-  Optional filters per source: \`spanNameRegex\`, \`spanKind\`, \`onlyErrors\`, \`filterAttributeKey\` + \`filterAttributeValue\`.
+  Optional per-source filters: span name regex, span kind, only-errors toggle, or attribute key/value.
 
-- **expression** — arithmetic over aliases. Operators: \`+ - * /\`, parentheses, numeric literals. Example: \`A / B * 100\`.
-- **groupByAttribute** — optional attribute key (e.g. \`service.name\`). One derived data point per distinct value per bucket.
+- **Expression** — arithmetic over aliases. Operators: \`+ - * /\`, parentheses, numeric literals. Example: \`A / B * 100\`.
+- **Group By** — optional attribute key (e.g. \`service.name\`). One derived data point per distinct value per bucket.
 
 ### Null semantics
 
@@ -85,6 +72,7 @@ const TraceRecordingRules: FunctionComponent<
       noItemsMessage={"No recording rules found."}
       createInitialValues={{
         isEnabled: true,
+        definition: TraceRecordingRuleDefinitionUtil.getEmptyDefinition(),
       }}
       onBeforeCreate={async (item: TraceRecordingRule) => {
         if (!item.sortOrder) {
@@ -95,10 +83,15 @@ const TraceRecordingRules: FunctionComponent<
         }
         return item;
       }}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Definition", id: "definition" },
+      ]}
       formFields={[
         {
           field: { name: true },
           title: "Name",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. HTTP error rate (from spans)",
@@ -107,6 +100,8 @@ const TraceRecordingRules: FunctionComponent<
         {
           field: { description: true },
           title: "Description",
+          stepId: "basic-info",
+          description: "What this rule computes and why.",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "What this rule computes and why.",
@@ -114,6 +109,7 @@ const TraceRecordingRules: FunctionComponent<
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
+          stepId: "basic-info",
           description:
             "Name of the new derived metric. Must be unique per project.",
           fieldType: FormFieldSchemaType.Text,
@@ -121,20 +117,42 @@ const TraceRecordingRules: FunctionComponent<
           placeholder: "e.g. http.server.error_rate",
         },
         {
-          field: { definition: true },
-          title: "Definition (JSON)",
-          description:
-            "Sources, expression, and optional group-by attribute. See Help for the schema.",
-          fieldType: FormFieldSchemaType.JSON,
-          required: true,
-          defaultValue: JSON.parse(exampleDefinition),
-          placeholder: exampleDefinition,
-        },
-        {
           field: { isEnabled: true },
           title: "Enabled",
+          stepId: "basic-info",
+          description:
+            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
+        },
+        {
+          field: { definition: true },
+          title: "Definition",
+          stepId: "definition",
+          description:
+            "Pick your span sources, write the expression that combines them, and optionally split the result by an attribute.",
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: true,
+          customValidation: (values: FormValues<TraceRecordingRule>) => {
+            return TraceRecordingRuleDefinitionUtil.getValidationError(
+              values.definition as TraceRecordingRuleDefinition | undefined,
+            );
+          },
+          getCustomElement: (
+            values: FormValues<TraceRecordingRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <TraceRecordingRuleDefinitionEditor
+                value={
+                  values.definition as TraceRecordingRuleDefinition | undefined
+                }
+                onChange={(next: TraceRecordingRuleDefinition) => {
+                  elementProps.onChange?.(next);
+                }}
+              />
+            );
+          },
         },
       ]}
       showRefreshButton={true}

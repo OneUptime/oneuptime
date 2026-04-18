@@ -284,6 +284,7 @@ import { MigrationName1776504277320 } from "./1776504277320-MigrationName";
 import { AddTracePipelineTables1776505976155 } from "./1776505976155-AddTracePipelineTables";
 import { MigrationName1776509413763 } from "./1776509413763-MigrationName";
 import { MigrationName1776541018853 } from "./1776541018853-MigrationName";
+import { MigrationName1776544084793 } from "./1776544084793-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -571,4 +572,5 @@ export default [
   AddTracePipelineTables1776505976155,
   MigrationName1776509413763,
   MigrationName1776541018853,
+  MigrationName1776544084793,
 ];

@@ -1,5 +1,10 @@
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
+import MetricPipelineRuleFilterCondition, {
+  MetricPipelineRuleFilterCheckOn,
+  MetricPipelineRuleFilterConditionType,
+} from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -58,9 +63,8 @@ export default class MetricPipelineRuleService {
         _id: true,
         serviceId: true,
         ruleType: true,
-        matchMetricNameRegex: true,
-        matchAttributeKey: true,
-        matchAttributeValueRegex: true,
+        filterCondition: true,
+        filters: true,
         renameFromKey: true,
         renameToKey: true,
         addAttributeKey: true,
@@ -236,55 +240,155 @@ export default class MetricPipelineRuleService {
     row: MutableMetricRow,
     rule: MetricPipelineRule,
   ): boolean {
-    const metricName: string =
-      typeof row.name === "string" ? row.name : String(row.name ?? "");
+    const filters: Array<MetricPipelineRuleFilterCondition> = Array.isArray(
+      rule.filters,
+    )
+      ? rule.filters
+      : [];
 
-    if (rule.matchMetricNameRegex) {
-      try {
-        const re: RegExp = new RegExp(rule.matchMetricNameRegex);
-        if (!re.test(metricName)) {
-          return false;
+    // No filters means match everything (keeps parity with Workspace Notification Rule).
+    if (filters.length === 0) {
+      return true;
+    }
+
+    const combineWith: FilterCondition =
+      rule.filterCondition === FilterCondition.Any
+        ? FilterCondition.Any
+        : FilterCondition.All;
+
+    if (combineWith === FilterCondition.Any) {
+      for (const filter of filters) {
+        if (this.evaluateFilter(row, filter, rule)) {
+          return true;
         }
-      } catch (err) {
-        logger.warn(
-          `Invalid matchMetricNameRegex on rule ${String(rule._id)}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
+      }
+      return false;
+    }
+
+    for (const filter of filters) {
+      if (!this.evaluateFilter(row, filter, rule)) {
         return false;
       }
     }
+    return true;
+  }
 
-    if (rule.matchAttributeKey) {
-      const attrs: JSONObject = this.getAttributes(row);
-      if (
-        !Object.prototype.hasOwnProperty.call(attrs, rule.matchAttributeKey)
-      ) {
+  private static evaluateFilter(
+    row: MutableMetricRow,
+    filter: MetricPipelineRuleFilterCondition,
+    rule: MetricPipelineRule,
+  ): boolean {
+    if (!filter || !filter.checkOn || !filter.conditionType) {
+      return false;
+    }
+
+    if (filter.checkOn === MetricPipelineRuleFilterCheckOn.MetricName) {
+      const metricName: string =
+        typeof row.name === "string" ? row.name : String(row.name ?? "");
+      return this.compareStringValue(
+        metricName,
+        filter.conditionType,
+        filter.value,
+        rule,
+      );
+    }
+
+    if (filter.checkOn === MetricPipelineRuleFilterCheckOn.Attribute) {
+      const key: string | undefined = filter.attributeKey?.trim() || undefined;
+      if (!key) {
         return false;
       }
-      if (rule.matchAttributeValueRegex) {
+      const attrs: JSONObject = this.getAttributes(row);
+      const keyExists: boolean = Object.prototype.hasOwnProperty.call(
+        attrs,
+        key,
+      );
+
+      if (filter.conditionType === MetricPipelineRuleFilterConditionType.IsPresent) {
+        return keyExists;
+      }
+      if (
+        filter.conditionType === MetricPipelineRuleFilterConditionType.IsNotPresent
+      ) {
+        return !keyExists;
+      }
+
+      const rawValue: JSONValue = keyExists
+        ? (attrs[key] as JSONValue)
+        : (undefined as unknown as JSONValue);
+      const valueAsString: string =
+        typeof rawValue === "string"
+          ? rawValue
+          : rawValue === undefined || rawValue === null
+            ? ""
+            : String(rawValue);
+
+      if (filter.conditionType === MetricPipelineRuleFilterConditionType.IsEmpty) {
+        return !keyExists || valueAsString === "";
+      }
+      if (
+        filter.conditionType === MetricPipelineRuleFilterConditionType.IsNotEmpty
+      ) {
+        return keyExists && valueAsString !== "";
+      }
+
+      // Value-based comparisons require the key to be present.
+      if (!keyExists) {
+        return false;
+      }
+      return this.compareStringValue(
+        valueAsString,
+        filter.conditionType,
+        filter.value,
+        rule,
+      );
+    }
+
+    return false;
+  }
+
+  private static compareStringValue(
+    actual: string,
+    conditionType: MetricPipelineRuleFilterConditionType,
+    expected: string | undefined,
+    rule: MetricPipelineRule,
+  ): boolean {
+    const expectedValue: string = expected ?? "";
+
+    switch (conditionType) {
+      case MetricPipelineRuleFilterConditionType.EqualTo:
+        return actual === expectedValue;
+      case MetricPipelineRuleFilterConditionType.NotEqualTo:
+        return actual !== expectedValue;
+      case MetricPipelineRuleFilterConditionType.Contains:
+        return actual.includes(expectedValue);
+      case MetricPipelineRuleFilterConditionType.NotContains:
+        return !actual.includes(expectedValue);
+      case MetricPipelineRuleFilterConditionType.StartsWith:
+        return actual.startsWith(expectedValue);
+      case MetricPipelineRuleFilterConditionType.EndsWith:
+        return actual.endsWith(expectedValue);
+      case MetricPipelineRuleFilterConditionType.MatchesRegex:
+      case MetricPipelineRuleFilterConditionType.DoesNotMatchRegex: {
         try {
-          const re: RegExp = new RegExp(rule.matchAttributeValueRegex);
-          const rawValue: JSONValue = attrs[
-            rule.matchAttributeKey
-          ] as JSONValue;
-          const value: string =
-            typeof rawValue === "string" ? rawValue : String(rawValue ?? "");
-          if (!re.test(value)) {
-            return false;
-          }
+          const re: RegExp = new RegExp(expectedValue);
+          const matched: boolean = re.test(actual);
+          return conditionType ===
+            MetricPipelineRuleFilterConditionType.MatchesRegex
+            ? matched
+            : !matched;
         } catch (err) {
           logger.warn(
-            `Invalid matchAttributeValueRegex on rule ${String(rule._id)}: ${
+            `Invalid regex on MetricPipelineRule ${String(rule._id)}: ${
               err instanceof Error ? err.message : String(err)
             }`,
           );
           return false;
         }
       }
+      default:
+        return false;
     }
-
-    return true;
   }
 
   private static getAttributes(row: MutableMetricRow): JSONObject {

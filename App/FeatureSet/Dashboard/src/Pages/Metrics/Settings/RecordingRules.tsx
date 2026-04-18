@@ -1,32 +1,17 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
+import RecordingRuleDefinition, {
+  RecordingRuleDefinitionUtil,
+} from "Common/Types/Metrics/RecordingRuleDefinition";
+import MetricRecordingRuleDefinitionEditor from "../../../Components/Metrics/RecordingRule/MetricRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
-
-const exampleDefinition: string = JSON.stringify(
-  {
-    sources: [
-      {
-        alias: "A",
-        metricName: "http.errors",
-        aggregationType: "Sum",
-      },
-      {
-        alias: "B",
-        metricName: "http.requests",
-        aggregationType: "Sum",
-      },
-    ],
-    expression: "A / B * 100",
-    groupByAttribute: "service.name",
-  },
-  null,
-  2,
-);
 
 const documentationMarkdown: string = `
 ### How Recording Rules Work
@@ -37,11 +22,11 @@ Every minute, the Recording Rules worker evaluates each enabled rule for the **p
 
 ### Definition
 
-The \`definition\` field is JSON with three parts:
+A rule is made of three parts:
 
-- **sources** — list of input metrics, each with an \`alias\` (A, B, C, …), a \`metricName\`, and an \`aggregationType\` (Sum, Avg, Count, Min, Max). Optional \`filterAttributeKey\` + \`filterAttributeValue\` narrow the input.
-- **expression** — an arithmetic expression over the aliases. Operators: \`+ - * /\`, parentheses, numeric literals. Example: \`A / B * 100\`.
-- **groupByAttribute** — optional attribute key (e.g. \`service.name\`). When set, one derived data point is produced per distinct value of that attribute.
+- **Sources** — up to 4 input metrics. Each gets an alias (A, B, C, D), a metric name, and an aggregation (Sum, Avg, Count, Min, Max). You can optionally filter a source by a single attribute key/value.
+- **Expression** — arithmetic over the aliases. Operators: \`+ - * /\`, parentheses, numeric literals. Example: \`A / B * 100\`.
+- **Group By** — optional attribute key (e.g. \`service.name\`). When set, one derived data point is produced per distinct value of that attribute.
 
 ### Null semantics
 
@@ -69,6 +54,10 @@ const MetricRecordingRules: FunctionComponent<
       isCreateable={true}
       sortBy="sortOrder"
       sortOrder={SortOrder.Ascending}
+      createInitialValues={{
+        isEnabled: true,
+        definition: RecordingRuleDefinitionUtil.getEmptyDefinition(),
+      }}
       cardProps={{
         title: "Recording Rules",
         description:
@@ -81,10 +70,15 @@ const MetricRecordingRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No recording rules found."}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Definition", id: "definition" },
+      ]}
       formFields={[
         {
           field: { name: true },
           title: "Name",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. HTTP 5xx error rate",
@@ -93,6 +87,8 @@ const MetricRecordingRules: FunctionComponent<
         {
           field: { description: true },
           title: "Description",
+          stepId: "basic-info",
+          description: "What this rule computes and why.",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "What this rule computes and why.",
@@ -100,6 +96,7 @@ const MetricRecordingRules: FunctionComponent<
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
+          stepId: "basic-info",
           description:
             "The name the new derived metric will be written under. Must be unique per project.",
           fieldType: FormFieldSchemaType.Text,
@@ -107,20 +104,42 @@ const MetricRecordingRules: FunctionComponent<
           placeholder: "e.g. http.error_rate",
         },
         {
-          field: { definition: true },
-          title: "Definition (JSON)",
-          description:
-            "Sources, expression, and optional group-by attribute. See Help for the schema.",
-          fieldType: FormFieldSchemaType.JSON,
-          required: true,
-          defaultValue: JSON.parse(exampleDefinition),
-          placeholder: exampleDefinition,
-        },
-        {
           field: { isEnabled: true },
           title: "Enabled",
+          stepId: "basic-info",
+          description:
+            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
+        },
+        {
+          field: { definition: true },
+          title: "Definition",
+          stepId: "definition",
+          description:
+            "Pick your source metrics, write the expression that combines them, and optionally split the result by an attribute.",
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: true,
+          customValidation: (values: FormValues<MetricRecordingRule>) => {
+            return RecordingRuleDefinitionUtil.getValidationError(
+              values.definition as RecordingRuleDefinition | undefined,
+            );
+          },
+          getCustomElement: (
+            values: FormValues<MetricRecordingRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <MetricRecordingRuleDefinitionEditor
+                value={
+                  values.definition as RecordingRuleDefinition | undefined
+                }
+                onChange={(next: RecordingRuleDefinition) => {
+                  elementProps.onChange?.(next);
+                }}
+              />
+            );
+          },
         },
       ]}
       showRefreshButton={true}

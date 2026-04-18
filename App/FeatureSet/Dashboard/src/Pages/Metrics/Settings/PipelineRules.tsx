@@ -2,10 +2,16 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
+import MetricPipelineRuleFilterCondition, {
+  MetricPipelineRuleFilterConditionUtil,
+} from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import MetricPipelineRuleFilters from "../../../Components/Metrics/PipelineRuleFilter/MetricPipelineRuleFilters";
 import Service from "Common/Models/DatabaseModels/Service";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -160,9 +166,17 @@ Pipeline rules run **at metric ingest time**, after the OTel data point has been
 
 ### Match Criteria
 
-- **Match Metric Name Regex** — if set, the rule only applies when the metric name matches.
-- **Match Attribute Key** — if set, the rule only applies when this attribute is present.
-- **Match Attribute Value Regex** — if set (requires Match Attribute Key), the rule only applies when the attribute's value matches.
+Add one or more **Filters** to decide which data points the rule fires on:
+
+- **Metric Name** — match on the metric name with conditions like Equal To, Contains, Starts With, Matches Regex, etc.
+- **Attribute** — match on a specific attribute key. Choose Is Present / Is Not Present / Is Empty / Is Not Empty for key-based checks, or Equal To / Contains / Matches Regex (etc.) to compare the attribute value.
+
+Use **Filter Condition** to decide how filters are combined:
+
+- **All** (AND) — the data point must match every filter.
+- **Any** (OR) — the data point matches if at least one filter matches.
+
+If no filters are added, the rule applies to every metric data point.
 
 ### Scope
 
@@ -249,32 +263,51 @@ const MetricPipelineRules: FunctionComponent<
           cardSelectOptions: ruleTypeCardOptions,
         },
         {
-          field: { matchMetricNameRegex: true },
-          title: "Match Metric Name Regex",
+          field: { filterCondition: true },
+          title: "Filter Condition",
           stepId: "match",
           description:
-            "Regex matched against the metric name. Leave blank to match all metrics.",
-          fieldType: FormFieldSchemaType.Text,
-          required: false,
-          placeholder: "^http\\.server\\.duration$",
+            "How to combine filters below. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).",
+          fieldType: FormFieldSchemaType.RadioButton,
+          required: true,
+          defaultValue: FilterCondition.All,
+          radioButtonOptions: [
+            { title: "All", value: FilterCondition.All },
+            { title: "Any", value: FilterCondition.Any },
+          ],
         },
         {
-          field: { matchAttributeKey: true },
-          title: "Match Attribute Key",
+          field: { filters: true },
+          title: "Filters",
           stepId: "match",
-          description: "Only fire when this attribute key is present.",
-          fieldType: FormFieldSchemaType.Text,
+          description:
+            "Add filters to decide which metric data points this rule fires on. Leave empty to match every data point.",
+          fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
-          placeholder: "http.method",
-        },
-        {
-          field: { matchAttributeValueRegex: true },
-          title: "Match Attribute Value Regex",
-          stepId: "match",
-          description: "Requires Match Attribute Key.",
-          fieldType: FormFieldSchemaType.Text,
-          required: false,
-          placeholder: "^GET$",
+          customValidation: (values: FormValues<MetricPipelineRule>) => {
+            return MetricPipelineRuleFilterConditionUtil.getValidationError(
+              values.filters as Array<MetricPipelineRuleFilterCondition>,
+            );
+          },
+          getCustomElement: (
+            values: FormValues<MetricPipelineRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <MetricPipelineRuleFilters
+                value={
+                  values.filters as
+                    | Array<MetricPipelineRuleFilterCondition>
+                    | undefined
+                }
+                onChange={(
+                  next: Array<MetricPipelineRuleFilterCondition>,
+                ) => {
+                  elementProps.onChange?.(next);
+                }}
+              />
+            );
+          },
         },
         {
           field: { renameFromKey: true },
