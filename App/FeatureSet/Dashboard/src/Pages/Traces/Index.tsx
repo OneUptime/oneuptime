@@ -1,8 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import TracesViewer from "../../Components/Traces/TracesViewer";
-import TracesNavTabs from "../../Components/Traces/TracesNavTabs";
 
 const TracesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,12 +15,7 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <Fragment>
-      <TracesNavTabs active="viewer" />
-      <TracesViewer />
-    </Fragment>
-  );
+  return <TracesViewer />;
 };
 
 export default TracesPage;

@@ -1,8 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
-import LogsNavTabs from "../../Components/Logs/LogsNavTabs";
 
 const LogsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -17,16 +16,13 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
   }
 
   return (
-    <Fragment>
-      <LogsNavTabs active="viewer" />
-      <DashboardLogsViewer
-        showFilters={true}
-        serviceIds={[]}
-        limit={100}
-        enableRealtime={true}
-        id="logs"
-      />
-    </Fragment>
+    <DashboardLogsViewer
+      showFilters={true}
+      serviceIds={[]}
+      limit={100}
+      enableRealtime={true}
+      id="logs"
+    />
   );
 };
 

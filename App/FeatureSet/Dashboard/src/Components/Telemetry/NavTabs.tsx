@@ -32,7 +32,7 @@ const TelemetryNavTabs: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <nav className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
         {props.tabs.map((tab: TelemetryTab): ReactElement => {
           const isActive: boolean = tab.key === props.activeKey;

@@ -1,8 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import LogsDashboard from "../../Components/Logs/LogsDashboard";
-import LogsNavTabs from "../../Components/Logs/LogsNavTabs";
 
 const LogsInsightsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,12 +15,7 @@ const LogsInsightsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <Fragment>
-      <LogsNavTabs active="insights" />
-      <LogsDashboard />
-    </Fragment>
-  );
+  return <LogsDashboard />;
 };
 
 export default LogsInsightsPage;
