@@ -119,6 +119,8 @@ export default class KubernetesResourceAPI extends BaseAPI<
       daemonSetCount: summary.countsByKind["DaemonSet"] || 0,
       jobCount: summary.countsByKind["Job"] || 0,
       cronJobCount: summary.countsByKind["CronJob"] || 0,
+      hpaCount: summary.countsByKind["HorizontalPodAutoscaler"] || 0,
+      vpaCount: summary.countsByKind["VerticalPodAutoscaler"] || 0,
     };
 
     return Response.sendJsonObjectResponse(req, res, responseBody);

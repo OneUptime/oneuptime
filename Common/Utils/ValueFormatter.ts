@@ -25,34 +25,34 @@ const byteUnits: Array<UnitThreshold> = [
 ];
 
 const secondUnits: Array<UnitThreshold> = [
-  { threshold: 86400, unit: "d", divisor: 86400 },
-  { threshold: 3600, unit: "hr", divisor: 3600 },
+  { threshold: 86400, unit: "days", divisor: 86400 },
+  { threshold: 3600, unit: "hours", divisor: 3600 },
   { threshold: 60, unit: "min", divisor: 60 },
-  { threshold: 1, unit: "s", divisor: 1 },
+  { threshold: 1, unit: "sec", divisor: 1 },
   { threshold: 0.001, unit: "ms", divisor: 0.001 },
   { threshold: 0.000001, unit: "µs", divisor: 0.000001 },
   { threshold: 0, unit: "ns", divisor: 0.000000001 },
 ];
 
 const millisecondUnits: Array<UnitThreshold> = [
-  { threshold: 86400000, unit: "d", divisor: 86400000 },
-  { threshold: 3600000, unit: "hr", divisor: 3600000 },
+  { threshold: 86400000, unit: "days", divisor: 86400000 },
+  { threshold: 3600000, unit: "hours", divisor: 3600000 },
   { threshold: 60000, unit: "min", divisor: 60000 },
-  { threshold: 1000, unit: "s", divisor: 1000 },
+  { threshold: 1000, unit: "sec", divisor: 1000 },
   { threshold: 1, unit: "ms", divisor: 1 },
   { threshold: 0.001, unit: "µs", divisor: 0.001 },
   { threshold: 0, unit: "ns", divisor: 0.000001 },
 ];
 
 const microsecondUnits: Array<UnitThreshold> = [
-  { threshold: 1e6, unit: "s", divisor: 1e6 },
+  { threshold: 1e6, unit: "sec", divisor: 1e6 },
   { threshold: 1e3, unit: "ms", divisor: 1e3 },
   { threshold: 1, unit: "µs", divisor: 1 },
   { threshold: 0, unit: "ns", divisor: 0.001 },
 ];
 
 const nanosecondUnits: Array<UnitThreshold> = [
-  { threshold: 1e9, unit: "s", divisor: 1e9 },
+  { threshold: 1e9, unit: "sec", divisor: 1e9 },
   { threshold: 1e6, unit: "ms", divisor: 1e6 },
   { threshold: 1e3, unit: "µs", divisor: 1e3 },
   { threshold: 0, unit: "ns", divisor: 1 },
