@@ -198,15 +198,23 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
   }
 
   try {
+    // Callers may not know the namespace (routes only encode the name),
+    // so omit namespaceKey from the query when no namespace is given.
+    // For cluster-scoped resources (Node, Namespace, PV) the DB value is
+    // "" which still matches a broad query.
+    const query: Record<string, unknown> = {
+      kubernetesClusterId: clusterId,
+      kind: kind,
+      name: options.resourceName,
+    };
+    if (options.namespace) {
+      query["namespaceKey"] = options.namespace;
+    }
+
     const listResult: ModelListResult<KubernetesResource> =
       await ModelAPI.getList<KubernetesResource>({
         modelType: KubernetesResource,
-        query: {
-          kubernetesClusterId: clusterId,
-          kind: kind,
-          namespaceKey: options.namespace || "",
-          name: options.resourceName,
-        },
+        query,
         select: {
           _id: true,
           name: true,
@@ -255,15 +263,22 @@ export async function fetchRawK8sObject(
   }
 
   try {
+    // Match fetchLatestK8sObject: omit namespaceKey from the query when
+    // the caller didn't pass one, so routes that only carry the name
+    // (e.g. /pods/:name) can still resolve namespaced resources.
+    const query: Record<string, unknown> = {
+      kubernetesClusterId: clusterId,
+      kind: kind,
+      name: options.resourceName,
+    };
+    if (options.namespace) {
+      query["namespaceKey"] = options.namespace;
+    }
+
     const listResult: ModelListResult<KubernetesResource> =
       await ModelAPI.getList<KubernetesResource>({
         modelType: KubernetesResource,
-        query: {
-          kubernetesClusterId: clusterId,
-          kind: kind,
-          namespaceKey: options.namespace || "",
-          name: options.resourceName,
-        },
+        query,
         select: {
           _id: true,
           name: true,

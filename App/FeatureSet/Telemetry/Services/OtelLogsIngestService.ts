@@ -165,18 +165,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             });
 
-          // Detect whether this batch of log records carries k8sobjects
-          // snapshots. The OTel k8sobjects receiver tags the resource
-          // with `k8s.resource.name` (plural lowercase kind) — absent on
-          // non-k8sobjects data, so the inventory hook stays free.
-          const k8sResourceType: string | null = this.getStringAttribute(
-            resourceAttributes_raw,
-            "k8s.resource.name",
-          );
-          const isK8sInventoryBatch: boolean = Boolean(
-            k8sResourceType &&
-              kubernetesClusterId &&
-              INVENTORIED_TYPE_SET.has(k8sResourceType.toLowerCase()),
+          // The OTel k8sobjects receiver tags each log record (not the
+          // resource envelope) with `k8s.resource.name` (plural lowercase
+          // kind). We check that per-record inside the loop below and
+          // only parse when the cluster is known and the kind is
+          // inventoried — zero cost on non-k8sobjects batches.
+          const isK8sInventoryEligible: boolean = Boolean(
+            kubernetesClusterId,
           );
 
           // Auto-discover Docker host from resource attributes
@@ -348,34 +343,43 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   // cluster and flushed once per request batch below. Uses
                   // the agent-observed timestamp so out-of-order delivery
                   // doesn't regress newer snapshots.
-                  if (
-                    isK8sInventoryBatch &&
-                    kubernetesClusterId &&
-                    k8sResourceType &&
-                    body
-                  ) {
-                    try {
-                      const parsed: ParsedKubernetesResource | null =
-                        extractInventoryResource({
-                          resourceType: k8sResourceType,
-                          logBody: body,
-                          lastSeenAt: timeDate,
-                        });
-                      if (parsed) {
-                        const key: string = kubernetesClusterId.toString();
-                        let bucket: Array<ParsedKubernetesResource> | undefined =
-                          k8sInventoryBuffer.get(key);
-                        if (!bucket) {
-                          bucket = [];
-                          k8sInventoryBuffer.set(key, bucket);
+                  //
+                  // k8s.resource.name sits on each log record (not the
+                  // resource envelope), so we read it from the record's
+                  // attributes dictionary built a few lines above.
+                  if (isK8sInventoryEligible && kubernetesClusterId && body) {
+                    const recordK8sResourceType: unknown =
+                      attributesObject["k8s.resource.name"];
+                    if (
+                      typeof recordK8sResourceType === "string" &&
+                      INVENTORIED_TYPE_SET.has(
+                        recordK8sResourceType.toLowerCase(),
+                      )
+                    ) {
+                      try {
+                        const parsed: ParsedKubernetesResource | null =
+                          extractInventoryResource({
+                            resourceType: recordK8sResourceType,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = kubernetesClusterId.toString();
+                          let bucket:
+                            | Array<ParsedKubernetesResource>
+                            | undefined = k8sInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            k8sInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed);
                         }
-                        bucket.push(parsed);
+                      } catch (invErr) {
+                        // Inventory parsing must never fail log ingest.
+                        logger.warn(
+                          `K8s inventory parse failed for resourceType=${recordK8sResourceType}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
                       }
-                    } catch (invErr) {
-                      // Inventory parsing must never fail log ingest.
-                      logger.warn(
-                        `K8s inventory parse failed for resourceType=${k8sResourceType}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
-                      );
                     }
                   }
 

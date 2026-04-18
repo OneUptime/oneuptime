@@ -284,7 +284,7 @@ import { AddMetricPipelineRules1776430228051 } from "./1776430228051-AddMetricPi
 import { MigrationName1776455442241 } from "./1776455442241-MigrationName";
 import { AddKubernetesDockerOwners1776500000000 } from "./1776500000000-AddKubernetesDockerOwners";
 import { AddMetricRecordingRules1776600000000 } from "./1776600000000-AddMetricRecordingRules";
-import { AddKubernetesResourceInventory1776700000000 } from "./1776700000000-AddKubernetesResourceInventory";
+import { AddKubernetesResourceUpsertIndexes1776800000000 } from "./1776800000000-AddKubernetesResourceUpsertIndexes";
 
 export default [
   InitialMigration,
@@ -572,6 +572,6 @@ export default [
   AddMetricPipelineRules1776430228051,
   AddKubernetesDockerOwners1776500000000,
   AddMetricRecordingRules1776600000000,
-  AddKubernetesResourceInventory1776700000000,
-  MigrationName1776455442241
+  MigrationName1776455442241,
+  AddKubernetesResourceUpsertIndexes1776800000000,
 ];
