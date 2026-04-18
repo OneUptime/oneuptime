@@ -20,14 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import {
-  KubernetesCondition,
-  KubernetesDeploymentObject,
-} from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterDeployments: FunctionComponent<
   PageComponentProps
@@ -55,87 +48,52 @@ const KubernetesClusterDeployments: FunctionComponent<
         return;
       }
 
-      const [deploymentList, deploymentObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.deployment.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "deployments",
-        }),
-      ]);
+      const deploymentList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "Deployment",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
 
-      const existingKeys: Set<string> = new Set<string>();
+            const readyReplicas: number =
+              (status["readyReplicas"] as number) || 0;
+            const replicas: number = (spec["replicas"] as number) || 0;
 
-      for (const resource of deploymentList) {
-        const key: string = `${resource.namespace}/${resource.name}`;
-        existingKeys.add(key);
-        const depObj: KubernetesObjectType | undefined =
-          deploymentObjects.get(key);
-        if (depObj) {
-          const deployment: KubernetesDeploymentObject =
-            depObj as KubernetesDeploymentObject;
+            if (readyReplicas === replicas && replicas > 0) {
+              resource.status = "Ready";
+            } else if (readyReplicas < replicas) {
+              const conditions: Array<Record<string, unknown>> =
+                (status["conditions"] as Array<
+                  Record<string, unknown>
+                >) || [];
+              const failed: boolean = conditions.some(
+                (c: Record<string, unknown>) => {
+                  return c["type"] === "Available" && c["status"] === "False";
+                },
+              );
+              resource.status = failed ? "Failed" : "Progressing";
+            } else {
+              resource.status = "Progressing";
+            }
 
-          const readyReplicas: number = deployment.status.readyReplicas;
-          const replicas: number = deployment.spec.replicas;
-
-          if (readyReplicas === replicas && replicas > 0) {
-            resource.status = "Ready";
-          } else if (readyReplicas < replicas) {
-            const failedCondition: KubernetesCondition | undefined =
-              deployment.status.conditions.find((c: KubernetesCondition) => {
-                return c.type === "Available" && c.status === "False";
-              });
-            resource.status = failedCondition ? "Failed" : "Progressing";
-          } else {
-            resource.status = "Progressing";
-          }
-
-          resource.additionalAttributes["ready"] =
-            `${readyReplicas}/${replicas}`;
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            deployment.metadata.creationTimestamp,
-          );
-        }
-      }
-
-      // Add deployments from k8s objects that were not found via metrics
-      for (const [key, depObj] of deploymentObjects.entries()) {
-        if (existingKeys.has(key)) {
-          continue;
-        }
-        const deployment: KubernetesDeploymentObject =
-          depObj as KubernetesDeploymentObject;
-        const readyReplicas: number = deployment.status.readyReplicas ?? 0;
-        const replicas: number = deployment.spec.replicas ?? 0;
-
-        let status: string = "Progressing";
-        if (readyReplicas === replicas && replicas > 0) {
-          status = "Ready";
-        }
-
-        deploymentList.push({
-          name: deployment.metadata.name,
-          namespace: deployment.metadata.namespace,
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: status,
-          age: KubernetesResourceUtils.formatAge(
-            deployment.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {
-            ready: `${readyReplicas}/${replicas}`,
+            resource.additionalAttributes["ready"] =
+              `${readyReplicas}/${replicas}`;
           },
         });
-      }
+
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: deploymentList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.pod.cpu.utilization",
+        memoryMetricName: "k8s.pod.memory.usage",
+        resourceNameAttribute: "resource.k8s.deployment.name",
+      });
 
       setResources(deploymentList);
     } catch (err) {

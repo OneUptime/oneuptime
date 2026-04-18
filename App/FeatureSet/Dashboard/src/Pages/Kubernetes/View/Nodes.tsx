@@ -20,14 +20,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import {
-  KubernetesCondition,
-  KubernetesNodeObject,
-} from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterNodes: FunctionComponent<
   PageComponentProps
@@ -55,44 +47,21 @@ const KubernetesClusterNodes: FunctionComponent<
         return;
       }
 
-      const [nodeList, nodeObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.node.cpu.utilization",
-          memoryMetricName: "k8s.node.memory.usage",
-          resourceNameAttribute: "resource.k8s.node.name",
-          namespaceAttribute: "resource.k8s.node.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "nodes",
-        }),
-      ]);
+      const nodeList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "Node",
+        });
 
-      for (const resource of nodeList) {
-        const key: string = resource.name;
-        const nodeObj: KubernetesObjectType | undefined = nodeObjects.get(key);
-        if (nodeObj) {
-          const node: KubernetesNodeObject = nodeObj as KubernetesNodeObject;
-
-          // Check conditions for Ready status
-          const readyCondition: KubernetesCondition | undefined =
-            node.status.conditions.find((c: KubernetesCondition) => {
-              return c.type === "Ready";
-            });
-          resource.status =
-            readyCondition && readyCondition.status === "True"
-              ? "Ready"
-              : "NotReady";
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            node.metadata.creationTimestamp,
-          );
-        }
-      }
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: nodeList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.node.cpu.utilization",
+        memoryMetricName: "k8s.node.memory.usage",
+        resourceNameAttribute: "resource.k8s.node.name",
+        namespaceAttribute: "resource.k8s.node.name",
+        resourceKey: "byName",
+      });
 
       setResources(nodeList);
     } catch (err) {
