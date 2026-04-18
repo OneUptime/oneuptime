@@ -16,6 +16,38 @@ export function getLogsBreadcrumbs(path: string): Array<Link> | undefined {
       "Logs",
       "Setup Guide",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_SETTINGS_PIPELINES, [
+      "Project",
+      "Logs",
+      "Settings",
+      "Pipelines",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_SETTINGS_PIPELINE_VIEW, [
+      "Project",
+      "Logs",
+      "Settings",
+      "Pipelines",
+      "View",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_SETTINGS_DROP_FILTERS, [
+      "Project",
+      "Logs",
+      "Settings",
+      "Drop Filters",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW, [
+      "Project",
+      "Logs",
+      "Settings",
+      "Drop Filters",
+      "View",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_SETTINGS_SCRUB_RULES, [
+      "Project",
+      "Logs",
+      "Settings",
+      "Scrub Rules",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

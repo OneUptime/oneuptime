@@ -1,6 +1,8 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
+import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
+import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,7 +14,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
-import FilterQueryBuilder from "../../Components/LogPipeline/FilterQueryBuilder";
+import FilterQueryBuilder from "../../../Components/LogPipeline/FilterQueryBuilder";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const LogDropFilterView: FunctionComponent<PageComponentProps> = (
@@ -22,6 +24,9 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <LogsNavTabs active="settings" />
+      <LogsSettingsNavTabs active="drop-filters" />
+
       {/* Section 1: Basic Details */}
       <CardModelDetail<LogDropFilter>
         name="Log Drop Filter Details"
@@ -237,7 +242,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route,
+              RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route,
               { modelId },
             ),
           );

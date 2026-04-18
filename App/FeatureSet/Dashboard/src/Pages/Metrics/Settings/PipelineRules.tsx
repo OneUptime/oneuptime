@@ -1,4 +1,6 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
+import MetricsNavTabs from "../../../Components/Metrics/MetricsNavTabs";
+import MetricsSettingsNavTabs from "../../../Components/Metrics/MetricsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -32,10 +34,6 @@ interface PillConfig {
   tooltip: string;
 }
 
-// Rich explanations used in the create/edit wizard's rule-type picker.
-// Each entry becomes a card the user can click to understand what the rule
-// does before committing to it. Keep titles short (≤ 20 chars) and
-// descriptions to one or two sentences.
 const ruleTypeCardOptions: Array<CardSelectOption> = [
   {
     value: MetricPipelineRuleType.Filter,
@@ -179,13 +177,15 @@ const MetricPipelineRules: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
+      <MetricsNavTabs active="settings" />
+      <MetricsSettingsNavTabs active="pipeline-rules" />
       <ModelTable<MetricPipelineRule>
         modelType={MetricPipelineRule}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="metric-pipeline-rules-table"
-        name="Settings > Telemetry & APM > Metric Pipeline Rules"
+        name="Metrics > Settings > Pipeline Rules"
         userPreferencesKey="metric-pipeline-rules-table"
         isDeleteable={true}
         isEditable={true}

@@ -10,6 +10,11 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import LogsPage from "../Pages/Logs/Index";
 import LogsInsightsPage from "../Pages/Logs/Insights";
 import LogsDocumentationPage from "../Pages/Logs/Documentation";
+import LogsSettingsPipelines from "../Pages/Logs/Settings/Pipelines";
+import LogsSettingsPipelineView from "../Pages/Logs/Settings/PipelineView";
+import LogsSettingsDropFilters from "../Pages/Logs/Settings/DropFilters";
+import LogsSettingsDropFilterView from "../Pages/Logs/Settings/DropFilterView";
+import LogsSettingsScrubRules from "../Pages/Logs/Settings/ScrubRules";
 
 const LogsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -38,6 +43,55 @@ const LogsRoutes: FunctionComponent<ComponentProps> = (
             <LogsDocumentationPage
               {...props}
               pageRoute={RouteMap[PageMap.LOGS_DOCUMENTATION] as Route}
+            />
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINES] || ""}
+          element={
+            <LogsSettingsPipelines
+              {...props}
+              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_PIPELINES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] || ""}
+          element={
+            <LogsSettingsPipelineView
+              {...props}
+              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTERS] || ""}
+          element={
+            <LogsSettingsDropFilters
+              {...props}
+              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW] || ""}
+          element={
+            <LogsSettingsDropFilterView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES] || ""}
+          element={
+            <LogsSettingsScrubRules
+              {...props}
+              pageRoute={RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES] as Route}
             />
           }
         />

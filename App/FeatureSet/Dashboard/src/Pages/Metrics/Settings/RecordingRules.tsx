@@ -1,16 +1,14 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
+import MetricsNavTabs from "../../../Components/Metrics/MetricsNavTabs";
+import MetricsSettingsNavTabs from "../../../Components/Metrics/MetricsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
 import ProjectUtil from "Common/UI/Utils/Project";
-import IconProp from "Common/Types/Icon/IconProp";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-// Starter example shown as the default value for the definition field. Users
-// edit it in place. JSON keeps the form small for v1; a visual builder can
-// come later without changing the stored schema.
 const exampleDefinition: string = JSON.stringify(
   {
     sources: [
@@ -61,13 +59,15 @@ const MetricRecordingRules: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
+      <MetricsNavTabs active="settings" />
+      <MetricsSettingsNavTabs active="recording-rules" />
       <ModelTable<MetricRecordingRule>
         modelType={MetricRecordingRule}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="metric-recording-rules-table"
-        name="Settings > Telemetry & APM > Recording Rules"
+        name="Metrics > Settings > Recording Rules"
         userPreferencesKey="metric-recording-rules-table"
         isDeleteable={true}
         isEditable={true}
@@ -184,9 +184,6 @@ const MetricRecordingRules: FunctionComponent<
             title: "Expression",
             type: FieldType.Element,
             getElement: (item: MetricRecordingRule): ReactElement => {
-              // The form stores definition as a JSON-encoded string, but
-              // future writes (or API-created rows) may land as plain
-              // objects. Handle both.
               const raw: unknown = item.definition as unknown;
               let expr: string = "";
               if (typeof raw === "string") {
@@ -216,6 +213,3 @@ const MetricRecordingRules: FunctionComponent<
 };
 
 export default MetricRecordingRules;
-
-// Re-export to silence unused-import lint for icon import if needed later.
-export const RECORDING_RULE_ICON: IconProp = IconProp.Calculator;

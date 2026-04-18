@@ -135,6 +135,11 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS]: "",
   [PageMap.LOGS_INSIGHTS]: "insights",
   [PageMap.LOGS_DOCUMENTATION]: "documentation",
+  [PageMap.LOGS_SETTINGS_PIPELINES]: "settings/pipelines",
+  [PageMap.LOGS_SETTINGS_PIPELINE_VIEW]: `settings/pipelines/${RouteParams.ModelID}`,
+  [PageMap.LOGS_SETTINGS_DROP_FILTERS]: "settings/drop-filters",
+  [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
+  [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
 };
 
 // Metrics product routes
@@ -143,6 +148,8 @@ export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS_INSIGHTS]: "insights",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
+  [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: "settings/pipeline-rules",
+  [PageMap.METRICS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
 };
 
 // Traces product routes
@@ -377,13 +384,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_LOG_PIPELINES]: `log-pipelines`,
-  [PageMap.SETTINGS_LOG_PIPELINE_VIEW]: `log-pipelines/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_LOG_DROP_FILTERS]: `log-drop-filters`,
-  [PageMap.SETTINGS_LOG_DROP_FILTER_VIEW]: `log-drop-filters/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_LOG_SCRUB_RULES]: `log-scrub-rules`,
-  [PageMap.SETTINGS_METRIC_PIPELINE_RULES]: `metric-pipeline-rules`,
-  [PageMap.SETTINGS_METRIC_RECORDING_RULES]: `metric-recording-rules`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
 
@@ -2375,6 +2375,36 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.LOGS_SETTINGS_PIPELINES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINES]
+    }`,
+  ),
+
+  [PageMap.LOGS_SETTINGS_PIPELINE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_PIPELINE_VIEW]
+    }`,
+  ),
+
+  [PageMap.LOGS_SETTINGS_DROP_FILTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTERS]
+    }`,
+  ),
+
+  [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.LOGS_SETTINGS_SCRUB_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES]
+    }`,
+  ),
+
   // Metrics Product Routes
   [PageMap.METRICS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/*`,
@@ -2397,6 +2427,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.METRICS_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
       MetricsRoutePath[PageMap.METRICS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_SETTINGS_PIPELINE_RULES]
+    }`,
+  ),
+
+  [PageMap.METRICS_SETTINGS_RECORDING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES]
     }`,
   ),
 
@@ -2588,48 +2630,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_LOG_PIPELINES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_LOG_PIPELINES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_LOG_PIPELINE_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_LOG_PIPELINE_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_LOG_DROP_FILTERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_LOG_DROP_FILTERS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_LOG_DROP_FILTER_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_LOG_DROP_FILTER_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_LOG_SCRUB_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_LOG_SCRUB_RULES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_METRIC_PIPELINE_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_METRIC_PIPELINE_RULES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_METRIC_RECORDING_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_METRIC_RECORDING_RULES]
     }`,
   ),
 

@@ -5,45 +5,39 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type MetricsTabKey = "viewer" | "insights" | "setup" | "settings";
+export type LogsSettingsTabKey = "pipelines" | "drop-filters" | "scrub-rules";
 
 interface Props {
-  active: MetricsTabKey;
+  active: LogsSettingsTabKey;
   trailing?: ReactElement | undefined;
 }
 
-const MetricsNavTabs: FunctionComponent<Props> = (
+const LogsSettingsNavTabs: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
   const tabs: Array<TelemetryTab> = [
     {
-      key: "viewer",
-      label: "Viewer",
-      icon: IconProp.List,
-      to: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
-    },
-    {
-      key: "insights",
-      label: "Insights",
-      icon: IconProp.ChartBar,
+      key: "pipelines",
+      label: "Pipelines",
+      icon: IconProp.Logs,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_INSIGHTS] as Route,
+        RouteMap[PageMap.LOGS_SETTINGS_PIPELINES] as Route,
       ),
     },
     {
-      key: "setup",
-      label: "Setup Guide",
-      icon: IconProp.Book,
+      key: "drop-filters",
+      label: "Drop Filters",
+      icon: IconProp.Filter,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_DOCUMENTATION] as Route,
+        RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route,
       ),
     },
     {
-      key: "settings",
-      label: "Settings",
-      icon: IconProp.Settings,
+      key: "scrub-rules",
+      label: "Scrub Rules",
+      icon: IconProp.ShieldCheck,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_SETTINGS_PIPELINE_RULES] as Route,
+        RouteMap[PageMap.LOGS_SETTINGS_SCRUB_RULES] as Route,
       ),
     },
   ];
@@ -57,4 +51,4 @@ const MetricsNavTabs: FunctionComponent<Props> = (
   );
 };
 
-export default MetricsNavTabs;
+export default LogsSettingsNavTabs;

@@ -11,6 +11,8 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import MetricsPage from "../Pages/Metrics/Index";
 import MetricsListPage from "../Pages/Metrics/List";
 import MetricsDocumentationPage from "../Pages/Metrics/Documentation";
+import MetricsSettingsPipelineRules from "../Pages/Metrics/Settings/PipelineRules";
+import MetricsSettingsRecordingRules from "../Pages/Metrics/Settings/RecordingRules";
 
 import MetricViewPage from "../Pages/Metrics/View/Index";
 
@@ -39,6 +41,32 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
             <MetricsDocumentationPage
               {...props}
               pageRoute={RouteMap[PageMap.METRICS_DOCUMENTATION] as Route}
+            />
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={MetricsRoutePath[PageMap.METRICS_SETTINGS_PIPELINE_RULES] || ""}
+          element={
+            <MetricsSettingsPipelineRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.METRICS_SETTINGS_PIPELINE_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES] || ""
+          }
+          element={
+            <MetricsSettingsRecordingRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.METRICS_SETTINGS_RECORDING_RULES] as Route
+              }
             />
           }
         />

@@ -1,4 +1,6 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
+import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
+import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -85,13 +87,15 @@ const LogDropFilters: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
+      <LogsNavTabs active="settings" />
+      <LogsSettingsNavTabs active="drop-filters" />
       <ModelTable<LogDropFilter>
         modelType={LogDropFilter}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="log-drop-filters-table"
-        name="Settings > Log Drop Filters"
+        name="Logs > Settings > Drop Filters"
         userPreferencesKey="log-drop-filters-table"
         isDeleteable={false}
         isEditable={false}

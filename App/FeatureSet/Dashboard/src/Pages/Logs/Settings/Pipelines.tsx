@@ -1,4 +1,6 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
+import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
+import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -101,13 +103,15 @@ const LogPipelines: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
+      <LogsNavTabs active="settings" />
+      <LogsSettingsNavTabs active="pipelines" />
       <ModelTable<LogPipeline>
         modelType={LogPipeline}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="log-pipelines-table"
-        name="Settings > Log Pipelines"
+        name="Logs > Settings > Pipelines"
         userPreferencesKey="log-pipelines-table"
         isDeleteable={false}
         isEditable={false}

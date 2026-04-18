@@ -5,7 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type LogsTabKey = "viewer" | "insights" | "setup";
+export type LogsTabKey = "viewer" | "insights" | "setup" | "settings";
 
 interface Props {
   active: LogsTabKey;
@@ -34,6 +34,14 @@ const LogsNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
       icon: IconProp.Book,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.LOGS_DOCUMENTATION] as Route,
+      ),
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      icon: IconProp.Settings,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.LOGS_SETTINGS_PIPELINES] as Route,
       ),
     },
   ];

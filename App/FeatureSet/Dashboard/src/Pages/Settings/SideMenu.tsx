@@ -68,56 +68,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Terminal,
         },
-        {
-          link: {
-            title: "Log Pipelines",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route,
-            ),
-          },
-          icon: IconProp.Logs,
-        },
-        {
-          link: {
-            title: "Log Drop Filters",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route,
-            ),
-          },
-          icon: IconProp.Filter,
-        },
-        {
-          link: {
-            title: "Metric Pipeline",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_METRIC_PIPELINE_RULES] as Route,
-            ),
-          },
-          icon: IconProp.ChartBar,
-        },
-        {
-          link: {
-            title: "Recording Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_METRIC_RECORDING_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Calculator,
-        },
-      ],
-    },
-    {
-      title: "Data Privacy",
-      items: [
-        {
-          link: {
-            title: "Log Scrub Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route,
-            ),
-          },
-          icon: IconProp.ShieldCheck,
-        },
       ],
     },
     {

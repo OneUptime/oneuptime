@@ -21,6 +21,18 @@ export function getMetricsBreadcrumbs(path: string): Array<Link> | undefined {
       "Metrics",
       "Setup Guide",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_SETTINGS_PIPELINE_RULES, [
+      "Project",
+      "Metrics",
+      "Settings",
+      "Pipeline Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_SETTINGS_RECORDING_RULES, [
+      "Project",
+      "Metrics",
+      "Settings",
+      "Recording Rules",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

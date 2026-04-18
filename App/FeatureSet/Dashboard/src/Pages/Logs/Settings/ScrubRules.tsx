@@ -1,4 +1,6 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
+import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
+import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -175,13 +177,15 @@ const LogScrubRules: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
+      <LogsNavTabs active="settings" />
+      <LogsSettingsNavTabs active="scrub-rules" />
       <ModelTable<LogScrubRule>
         modelType={LogScrubRule}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="log-scrub-rules-table"
-        name="Settings > Data Privacy > Log Scrub Rules"
+        name="Logs > Settings > Scrub Rules"
         userPreferencesKey="log-scrub-rules-table"
         isDeleteable={true}
         isEditable={true}

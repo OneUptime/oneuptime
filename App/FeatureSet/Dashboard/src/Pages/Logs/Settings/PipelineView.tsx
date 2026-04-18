@@ -1,6 +1,8 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
+import LogsNavTabs from "../../../Components/Logs/LogsNavTabs";
+import LogsSettingsNavTabs from "../../../Components/Logs/LogsSettingsNavTabs";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -16,8 +18,8 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
-import FilterQueryBuilder from "../../Components/LogPipeline/FilterQueryBuilder";
-import ProcessorForm from "../../Components/LogPipeline/ProcessorForm";
+import FilterQueryBuilder from "../../../Components/LogPipeline/FilterQueryBuilder";
+import ProcessorForm from "../../../Components/LogPipeline/ProcessorForm";
 import React, {
   Fragment,
   FunctionComponent,
@@ -104,6 +106,9 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <LogsNavTabs active="settings" />
+      <LogsSettingsNavTabs active="pipelines" />
+
       {/* Section 1: Pipeline Details */}
       <CardModelDetail<LogPipeline>
         name="Log Pipeline Details"
@@ -292,7 +297,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route,
+              RouteMap[PageMap.LOGS_SETTINGS_PIPELINES] as Route,
               { modelId },
             ),
           );
