@@ -249,7 +249,10 @@ export class TraceScrubRuleService {
         (scrubAll || fieldsToScrub === TraceScrubField.Name) &&
         typeof spanRow["name"] === "string"
       ) {
-        spanRow["name"] = this.scrubString(spanRow["name"] as string, singleRule);
+        spanRow["name"] = this.scrubString(
+          spanRow["name"] as string,
+          singleRule,
+        );
       }
 
       // Span attributes.
@@ -269,7 +272,9 @@ export class TraceScrubRuleService {
         (scrubAll || fieldsToScrub === TraceScrubField.Events) &&
         Array.isArray(spanRow["events"])
       ) {
-        const events: Array<JSONObject> = spanRow["events"] as Array<JSONObject>;
+        const events: Array<JSONObject> = spanRow[
+          "events"
+        ] as Array<JSONObject>;
         for (const event of events) {
           if (event && typeof event === "object" && event["attributes"]) {
             this.scrubAttributesInPlace(

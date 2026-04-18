@@ -68,7 +68,9 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                     <Pill color={Green} text="Enabled" icon={IconProp.Check} />
                   );
                 }
-                return <Pill color={Red} text="Disabled" icon={IconProp.Close} />;
+                return (
+                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
+                );
               },
             },
           ],

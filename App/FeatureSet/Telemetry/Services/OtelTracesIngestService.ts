@@ -415,8 +415,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       serviceDictionary[serviceName]!.dataRententionInDays,
                   });
 
-                  // Apply trace pipeline: drop filter -> scrub -> pipeline.
-                  // Order matches logs: a dropped span never reaches scrub/pipeline.
+                  /*
+                   * Apply trace pipeline: drop filter -> scrub -> pipeline.
+                   * Order matches logs: a dropped span never reaches scrub/pipeline.
+                   */
                   if (
                     dropFilters.length > 0 &&
                     TraceDropFilterService.shouldDropSpan(spanRow, dropFilters)

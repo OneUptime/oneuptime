@@ -75,7 +75,9 @@ const LogsRoutes: FunctionComponent<ComponentProps> = (
             element={
               <LogsSettingsDropFilters
                 {...props}
-                pageRoute={RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.LOGS_SETTINGS_DROP_FILTERS] as Route
+                }
               />
             }
           />

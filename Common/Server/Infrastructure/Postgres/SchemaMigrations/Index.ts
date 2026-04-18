@@ -568,5 +568,5 @@ export default [
   AddGlobalSmtpOAuth1775900000000,
   MigrationName1776504277320,
   AddTracePipelineTables1776505976155,
-  MigrationName1776509413763
+  MigrationName1776509413763,
 ];

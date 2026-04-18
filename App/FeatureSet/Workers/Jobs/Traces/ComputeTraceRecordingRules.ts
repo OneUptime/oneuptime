@@ -208,8 +208,10 @@ async function runSourceQuery(args: {
   const filters: Array<string> = [];
 
   if (source.spanNameRegex) {
-    // Basic regex guard — ClickHouse match() with user input. Input is
-    // rule-author controlled, not end-user.
+    /*
+     * Basic regex guard — ClickHouse match() with user input. Input is
+     * rule-author controlled, not end-user.
+     */
     filters.push(`match(name, '${esc(source.spanNameRegex)}')`);
   }
 
@@ -227,7 +229,8 @@ async function runSourceQuery(args: {
     );
   }
 
-  const filterSql: string = filters.length > 0 ? `AND ${filters.join(" AND ")}` : "";
+  const filterSql: string =
+    filters.length > 0 ? `AND ${filters.join(" AND ")}` : "";
 
   let groupSqlSelect: string = "'' AS groupKey";
   let groupSqlGroupBy: string = "";

@@ -1,120 +1,335 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class MigrationName1776509413763 implements MigrationInterface {
-    public name = 'MigrationName1776509413763'
+  public name = "MigrationName1776509413763";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_tp_projectId_04c35e8eccd7f8b3"`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_tp_createdBy_05d46f9fdde809c4"`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_tp_deletedBy_06e5700feef90ad5"`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_tpp_projectId_0b3a8755333e5f5a"`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_tpp_pipelineId_0c4b9866444f606b"`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_tpp_createdBy_0d5ca9775550717c"`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_tdf_projectId_1190edbb9994b5cf"`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_tdf_createdBy_12a1fecca0a5c6e0"`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_tdf_deletedBy_13b30ffddbb6d7f1"`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_tsr_projectId_17f75442200a1b35"`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_tsr_createdBy_1808655333112c46"`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_tsr_deletedBy_1919766444223d57"`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_trr_projectId_1d5dbaa888667191"`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_trr_createdBy_1e6ecbb9997782a2"`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_trr_deletedBy_1f7fdccaaa8893b3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tp_projectId_02a13c6caab5d6f1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tp_isEnabled_03b24d7dbbc6e7a2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tpp_projectId_08075422000b2c27"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tpp_pipelineId_09186533111c3d38"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tpp_isEnabled_0a297644222d4e49"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tdf_projectId_0f7ecb99777293"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tdf_isEnabled_108fdcaa8883a4be"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tsr_projectId_15d532200dd8f913"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_tsr_isEnabled_16e643311ee90a24"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_trr_projectId_1b3b988666445f79"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_trr_isEnabled_1c4ca99777556080"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`);
-        await queryRunner.query(`CREATE INDEX "IDX_88562e56e13b7aa6ac509fe110" ON "TracePipeline" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_05ff7cd32e76d444088bcf058d" ON "TracePipeline" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_336dea80c2b6051752d2f104bb" ON "TracePipelineProcessor" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_87c5369e6279b1b31cbc50e329" ON "TracePipelineProcessor" ("tracePipelineId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_98e87600828f15caca4513dc6a" ON "TracePipelineProcessor" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_76accb9603a984a96e07c3bec4" ON "TraceDropFilter" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a5af30fcc5d69841b971a9e642" ON "TraceDropFilter" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_ef853117650a7717cd7013784d" ON "TraceScrubRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_db227fde73123cfb670e998a3e" ON "TraceScrubRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_0149f566c7fe1835509af84bed" ON "TraceRecordingRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_30191116378c7d5cbb12d12800" ON "TraceRecordingRule" ("isEnabled") `);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_88562e56e13b7aa6ac509fe1106" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_f9c844df496031308a2d8412ee8" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_086f4177abd8340b2af53e000bb" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_336dea80c2b6051752d2f104bb9" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_87c5369e6279b1b31cbc50e3293" FOREIGN KEY ("tracePipelineId") REFERENCES "TracePipeline"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_b6f5e902012ef7c26c084c99a24" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_76accb9603a984a96e07c3bec44" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_37764830aa40cbac94b67833686" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_fe8fa6a2f0a6e4eb288711a91ce" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_ef853117650a7717cd7013784d7" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_c653a1b9319756fa34749f01c47" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_b52baa856c6d83f640d5739d26b" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_0149f566c7fe1835509af84bed3" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_ac30917bbb32f86d3469bc2c918" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_022d2a4bd300c1052cdf6323eb1" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_tp_projectId_04c35e8eccd7f8b3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_tp_createdBy_05d46f9fdde809c4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_tp_deletedBy_06e5700feef90ad5"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_tpp_projectId_0b3a8755333e5f5a"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_tpp_pipelineId_0c4b9866444f606b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_tpp_createdBy_0d5ca9775550717c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_tdf_projectId_1190edbb9994b5cf"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_tdf_createdBy_12a1fecca0a5c6e0"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_tdf_deletedBy_13b30ffddbb6d7f1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_tsr_projectId_17f75442200a1b35"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_tsr_createdBy_1808655333112c46"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_tsr_deletedBy_1919766444223d57"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_trr_projectId_1d5dbaa888667191"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_trr_createdBy_1e6ecbb9997782a2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_trr_deletedBy_1f7fdccaaa8893b3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tp_projectId_02a13c6caab5d6f1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tp_isEnabled_03b24d7dbbc6e7a2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tpp_projectId_08075422000b2c27"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tpp_pipelineId_09186533111c3d38"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tpp_isEnabled_0a297644222d4e49"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tdf_projectId_0f7ecb99777293"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tdf_isEnabled_108fdcaa8883a4be"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tsr_projectId_15d532200dd8f913"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_tsr_isEnabled_16e643311ee90a24"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_trr_projectId_1b3b988666445f79"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_trr_isEnabled_1c4ca99777556080"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_88562e56e13b7aa6ac509fe110" ON "TracePipeline" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_05ff7cd32e76d444088bcf058d" ON "TracePipeline" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_336dea80c2b6051752d2f104bb" ON "TracePipelineProcessor" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_87c5369e6279b1b31cbc50e329" ON "TracePipelineProcessor" ("tracePipelineId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_98e87600828f15caca4513dc6a" ON "TracePipelineProcessor" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_76accb9603a984a96e07c3bec4" ON "TraceDropFilter" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a5af30fcc5d69841b971a9e642" ON "TraceDropFilter" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ef853117650a7717cd7013784d" ON "TraceScrubRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_db227fde73123cfb670e998a3e" ON "TraceScrubRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_0149f566c7fe1835509af84bed" ON "TraceRecordingRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_30191116378c7d5cbb12d12800" ON "TraceRecordingRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_88562e56e13b7aa6ac509fe1106" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_f9c844df496031308a2d8412ee8" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_086f4177abd8340b2af53e000bb" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_336dea80c2b6051752d2f104bb9" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_87c5369e6279b1b31cbc50e3293" FOREIGN KEY ("tracePipelineId") REFERENCES "TracePipeline"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_b6f5e902012ef7c26c084c99a24" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_76accb9603a984a96e07c3bec44" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_37764830aa40cbac94b67833686" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_fe8fa6a2f0a6e4eb288711a91ce" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_ef853117650a7717cd7013784d7" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_c653a1b9319756fa34749f01c47" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_b52baa856c6d83f640d5739d26b" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_0149f566c7fe1835509af84bed3" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_ac30917bbb32f86d3469bc2c918" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_022d2a4bd300c1052cdf6323eb1" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_022d2a4bd300c1052cdf6323eb1"`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_ac30917bbb32f86d3469bc2c918"`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_0149f566c7fe1835509af84bed3"`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_b52baa856c6d83f640d5739d26b"`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_c653a1b9319756fa34749f01c47"`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_ef853117650a7717cd7013784d7"`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_fe8fa6a2f0a6e4eb288711a91ce"`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_37764830aa40cbac94b67833686"`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_76accb9603a984a96e07c3bec44"`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_b6f5e902012ef7c26c084c99a24"`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_87c5369e6279b1b31cbc50e3293"`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_336dea80c2b6051752d2f104bb9"`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_086f4177abd8340b2af53e000bb"`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_f9c844df496031308a2d8412ee8"`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_88562e56e13b7aa6ac509fe1106"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_30191116378c7d5cbb12d12800"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0149f566c7fe1835509af84bed"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_db227fde73123cfb670e998a3e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ef853117650a7717cd7013784d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a5af30fcc5d69841b971a9e642"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_76accb9603a984a96e07c3bec4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_98e87600828f15caca4513dc6a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_87c5369e6279b1b31cbc50e329"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_336dea80c2b6051752d2f104bb"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_05ff7cd32e76d444088bcf058d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_88562e56e13b7aa6ac509fe110"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`);
-        await queryRunner.query(`CREATE INDEX "IDX_trr_isEnabled_1c4ca99777556080" ON "TraceRecordingRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_trr_projectId_1b3b988666445f79" ON "TraceRecordingRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tsr_isEnabled_16e643311ee90a24" ON "TraceScrubRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tsr_projectId_15d532200dd8f913" ON "TraceScrubRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tdf_isEnabled_108fdcaa8883a4be" ON "TraceDropFilter" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tdf_projectId_0f7ecb99777293" ON "TraceDropFilter" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tpp_isEnabled_0a297644222d4e49" ON "TracePipelineProcessor" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tpp_pipelineId_09186533111c3d38" ON "TracePipelineProcessor" ("tracePipelineId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tpp_projectId_08075422000b2c27" ON "TracePipelineProcessor" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tp_isEnabled_03b24d7dbbc6e7a2" ON "TracePipeline" ("isEnabled") `);
-        await queryRunner.query(`CREATE INDEX "IDX_tp_projectId_02a13c6caab5d6f1" ON "TracePipeline" ("projectId") `);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_trr_deletedBy_1f7fdccaaa8893b3" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_trr_createdBy_1e6ecbb9997782a2" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_trr_projectId_1d5dbaa888667191" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_tsr_deletedBy_1919766444223d57" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_tsr_createdBy_1808655333112c46" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_tsr_projectId_17f75442200a1b35" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_tdf_deletedBy_13b30ffddbb6d7f1" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_tdf_createdBy_12a1fecca0a5c6e0" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_tdf_projectId_1190edbb9994b5cf" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_tpp_createdBy_0d5ca9775550717c" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_tpp_pipelineId_0c4b9866444f606b" FOREIGN KEY ("tracePipelineId") REFERENCES "TracePipeline"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_tpp_projectId_0b3a8755333e5f5a" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_tp_deletedBy_06e5700feef90ad5" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_tp_createdBy_05d46f9fdde809c4" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_tp_projectId_04c35e8eccd7f8b3" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_022d2a4bd300c1052cdf6323eb1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_ac30917bbb32f86d3469bc2c918"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" DROP CONSTRAINT "FK_0149f566c7fe1835509af84bed3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_b52baa856c6d83f640d5739d26b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_c653a1b9319756fa34749f01c47"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" DROP CONSTRAINT "FK_ef853117650a7717cd7013784d7"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_fe8fa6a2f0a6e4eb288711a91ce"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_37764830aa40cbac94b67833686"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" DROP CONSTRAINT "FK_76accb9603a984a96e07c3bec44"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_b6f5e902012ef7c26c084c99a24"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_87c5369e6279b1b31cbc50e3293"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" DROP CONSTRAINT "FK_336dea80c2b6051752d2f104bb9"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_086f4177abd8340b2af53e000bb"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_f9c844df496031308a2d8412ee8"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" DROP CONSTRAINT "FK_88562e56e13b7aa6ac509fe1106"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_30191116378c7d5cbb12d12800"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0149f566c7fe1835509af84bed"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_db227fde73123cfb670e998a3e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ef853117650a7717cd7013784d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a5af30fcc5d69841b971a9e642"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_76accb9603a984a96e07c3bec4"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_98e87600828f15caca4513dc6a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_87c5369e6279b1b31cbc50e329"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_336dea80c2b6051752d2f104bb"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_05ff7cd32e76d444088bcf058d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_88562e56e13b7aa6ac509fe110"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trr_isEnabled_1c4ca99777556080" ON "TraceRecordingRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trr_projectId_1b3b988666445f79" ON "TraceRecordingRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tsr_isEnabled_16e643311ee90a24" ON "TraceScrubRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tsr_projectId_15d532200dd8f913" ON "TraceScrubRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tdf_isEnabled_108fdcaa8883a4be" ON "TraceDropFilter" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tdf_projectId_0f7ecb99777293" ON "TraceDropFilter" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tpp_isEnabled_0a297644222d4e49" ON "TracePipelineProcessor" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tpp_pipelineId_09186533111c3d38" ON "TracePipelineProcessor" ("tracePipelineId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tpp_projectId_08075422000b2c27" ON "TracePipelineProcessor" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tp_isEnabled_03b24d7dbbc6e7a2" ON "TracePipeline" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tp_projectId_02a13c6caab5d6f1" ON "TracePipeline" ("projectId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_trr_deletedBy_1f7fdccaaa8893b3" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_trr_createdBy_1e6ecbb9997782a2" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceRecordingRule" ADD CONSTRAINT "FK_trr_projectId_1d5dbaa888667191" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_tsr_deletedBy_1919766444223d57" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_tsr_createdBy_1808655333112c46" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceScrubRule" ADD CONSTRAINT "FK_tsr_projectId_17f75442200a1b35" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_tdf_deletedBy_13b30ffddbb6d7f1" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_tdf_createdBy_12a1fecca0a5c6e0" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TraceDropFilter" ADD CONSTRAINT "FK_tdf_projectId_1190edbb9994b5cf" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_tpp_createdBy_0d5ca9775550717c" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_tpp_pipelineId_0c4b9866444f606b" FOREIGN KEY ("tracePipelineId") REFERENCES "TracePipeline"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipelineProcessor" ADD CONSTRAINT "FK_tpp_projectId_0b3a8755333e5f5a" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_tp_deletedBy_06e5700feef90ad5" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_tp_createdBy_05d46f9fdde809c4" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "TracePipeline" ADD CONSTRAINT "FK_tp_projectId_04c35e8eccd7f8b3" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+  }
 }
