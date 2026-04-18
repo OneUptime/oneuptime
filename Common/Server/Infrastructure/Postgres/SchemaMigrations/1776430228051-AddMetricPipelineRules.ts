@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddMetricPipelineRules1776430228051 implements MigrationInterface {
-  name = "AddMetricPipelineRules1776430228051";
+  public name = "AddMetricPipelineRules1776430228051";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

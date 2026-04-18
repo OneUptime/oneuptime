@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddKubernetesDockerOwners1776500000000
   implements MigrationInterface
 {
-  name = "AddKubernetesDockerOwners1776500000000";
+  public name = "AddKubernetesDockerOwners1776500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // KubernetesClusterOwnerTeam

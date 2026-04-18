@@ -262,7 +262,7 @@ export default class MetricMonitorCriteria {
       {};
 
     const groupBy: Array<string> = q?.metricQueryData?.groupBy
-      ? Object.keys(q.metricQueryData.groupBy as object)
+      ? Object.keys(q.metricQueryData.groupBy as Record<string, unknown>)
       : [];
 
     return {

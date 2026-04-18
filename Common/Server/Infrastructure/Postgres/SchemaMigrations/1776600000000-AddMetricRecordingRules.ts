@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddMetricRecordingRules1776600000000
   implements MigrationInterface
 {
-  name = "AddMetricRecordingRules1776600000000";
+  public name = "AddMetricRecordingRules1776600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
