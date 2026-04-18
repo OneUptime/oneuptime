@@ -4,6 +4,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
 import RecordingRuleDefinition, {
@@ -54,6 +55,7 @@ const MetricRecordingRules: FunctionComponent<
       isCreateable={true}
       sortBy="sortOrder"
       sortOrder={SortOrder.Ascending}
+      createEditModalWidth={ModalWidth.Large}
       createInitialValues={{
         isEnabled: true,
         definition: RecordingRuleDefinitionUtil.getEmptyDefinition(),

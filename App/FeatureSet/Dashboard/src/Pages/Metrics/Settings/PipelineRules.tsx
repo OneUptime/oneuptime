@@ -5,6 +5,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
 import MetricPipelineRuleFilterCondition, {
@@ -203,6 +204,7 @@ const MetricPipelineRules: FunctionComponent<
       sortOrder={SortOrder.Ascending}
       enableDragAndDrop={true}
       dragDropIndexField="sortOrder"
+      createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Metric Pipeline Rules",
         description:
@@ -261,6 +263,7 @@ const MetricPipelineRules: FunctionComponent<
           fieldType: FormFieldSchemaType.CardSelect,
           required: true,
           cardSelectOptions: ruleTypeCardOptions,
+          cardSelectSingleColumn: true,
         },
         {
           field: { filterCondition: true },
@@ -386,9 +389,11 @@ const MetricPipelineRules: FunctionComponent<
         {
           field: { isEnabled: true },
           title: "Enabled",
-          stepId: "action",
+          description: "Whether this rule is active.",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
+          defaultValue: true,
         },
       ]}
       showRefreshButton={true}

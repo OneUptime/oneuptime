@@ -30,6 +30,8 @@ export interface ComponentProps {
   error?: string | undefined;
   tabIndex?: number | undefined;
   dataTestId?: string | undefined;
+  // Force single-column (1 item per row). Default: responsive 1/2/3 grid.
+  singleColumn?: boolean | undefined;
 }
 
 interface RenderGroup {
@@ -84,7 +86,13 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className={
+                  props.singleColumn
+                    ? "grid grid-cols-1 gap-4"
+                    : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                }
+              >
                 {group.options.map((option: CardSelectOption) => {
                   const isSelected: boolean = props.value === option.value;
                   const currentIndex: number = cardIndex++;

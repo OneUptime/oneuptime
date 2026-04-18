@@ -4,6 +4,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
 import TraceRecordingRuleDefinition, {
@@ -58,6 +59,7 @@ const TraceRecordingRules: FunctionComponent<
       isCreateable={true}
       sortBy="sortOrder"
       sortOrder={SortOrder.Ascending}
+      createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Recording Rules",
         description:
