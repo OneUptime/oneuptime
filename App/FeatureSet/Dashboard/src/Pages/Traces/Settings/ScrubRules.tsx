@@ -169,6 +169,26 @@ const TraceScrubRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No scrub rules found."}
+      createInitialValues={{
+        isEnabled: true,
+        scrubAction: "redact",
+        fieldsToScrub: "all",
+      }}
+      onBeforeCreate={async (item: TraceScrubRule) => {
+        if (!item.sortOrder) {
+          item.sortOrder = 1;
+        }
+        if (!item.scrubAction) {
+          item.scrubAction = "redact";
+        }
+        if (!item.fieldsToScrub) {
+          item.fieldsToScrub = "all";
+        }
+        if (item.isEnabled === undefined || item.isEnabled === null) {
+          item.isEnabled = true;
+        }
+        return item;
+      }}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Pattern Configuration", id: "pattern-config" },

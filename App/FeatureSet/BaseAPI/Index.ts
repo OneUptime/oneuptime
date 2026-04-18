@@ -210,6 +210,21 @@ import MetricPipelineRuleService, {
 import MetricRecordingRuleService, {
   Service as MetricRecordingRuleServiceType,
 } from "Common/Server/Services/MetricRecordingRuleService";
+import TracePipelineService, {
+  Service as TracePipelineServiceType,
+} from "Common/Server/Services/TracePipelineService";
+import TracePipelineProcessorService, {
+  Service as TracePipelineProcessorServiceType,
+} from "Common/Server/Services/TracePipelineProcessorService";
+import TraceDropFilterService, {
+  Service as TraceDropFilterServiceType,
+} from "Common/Server/Services/TraceDropFilterService";
+import TraceScrubRuleService, {
+  Service as TraceScrubRuleServiceType,
+} from "Common/Server/Services/TraceScrubRuleService";
+import TraceRecordingRuleService, {
+  Service as TraceRecordingRuleServiceType,
+} from "Common/Server/Services/TraceRecordingRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -694,6 +709,11 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
+import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
+import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
+import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -1632,6 +1652,46 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MetricRecordingRule, MetricRecordingRuleServiceType>(
         MetricRecordingRule,
         MetricRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TracePipeline, TracePipelineServiceType>(
+        TracePipeline,
+        TracePipelineService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TracePipelineProcessor, TracePipelineProcessorServiceType>(
+        TracePipelineProcessor,
+        TracePipelineProcessorService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceDropFilter, TraceDropFilterServiceType>(
+        TraceDropFilter,
+        TraceDropFilterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceScrubRule, TraceScrubRuleServiceType>(
+        TraceScrubRule,
+        TraceScrubRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceRecordingRule, TraceRecordingRuleServiceType>(
+        TraceRecordingRule,
+        TraceRecordingRuleService,
       ).getRouter(),
     );
 

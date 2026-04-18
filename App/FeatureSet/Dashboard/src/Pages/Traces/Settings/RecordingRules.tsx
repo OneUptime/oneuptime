@@ -83,6 +83,18 @@ const TraceRecordingRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No recording rules found."}
+      createInitialValues={{
+        isEnabled: true,
+      }}
+      onBeforeCreate={async (item: TraceRecordingRule) => {
+        if (!item.sortOrder) {
+          item.sortOrder = 1;
+        }
+        if (item.isEnabled === undefined || item.isEnabled === null) {
+          item.isEnabled = true;
+        }
+        return item;
+      }}
       formFields={[
         {
           field: { name: true },

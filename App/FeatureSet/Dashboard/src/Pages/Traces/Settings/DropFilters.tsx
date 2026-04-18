@@ -7,6 +7,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -68,6 +69,22 @@ const TraceDropFilters: FunctionComponent<
         samplePercentage: true,
       }}
       viewPageRoute={Navigation.getCurrentRoute()}
+      createInitialValues={{
+        isEnabled: true,
+        action: TraceDropFilterAction.Drop,
+      }}
+      onBeforeCreate={async (item: TraceDropFilter) => {
+        if (!item.sortOrder) {
+          item.sortOrder = 1;
+        }
+        if (!item.action) {
+          item.action = TraceDropFilterAction.Drop;
+        }
+        if (item.isEnabled === undefined || item.isEnabled === null) {
+          item.isEnabled = true;
+        }
+        return item;
+      }}
       formFields={[
         {
           field: {
@@ -89,6 +106,49 @@ const TraceDropFilters: FunctionComponent<
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this filter does.",
+        },
+        {
+          field: {
+            filterQuery: true,
+          },
+          title: "Filter Query",
+          description:
+            "Which spans this filter applies to. Available fields: name, kind, statusCode, serviceId, attributes.<key>. Operators: =, !=, LIKE, IN, AND, OR.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: true,
+          placeholder:
+            "e.g. name LIKE '%healthcheck%' AND kind = 'SPAN_KIND_SERVER'",
+        },
+        {
+          field: {
+            action: true,
+          },
+          title: "Action",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: true,
+          dropdownOptions: [
+            { label: "Drop", value: "drop" },
+            { label: "Sample", value: "sample" },
+          ],
+        },
+        {
+          field: {
+            samplePercentage: true,
+          },
+          title: "Sample Percentage",
+          description:
+            "Only applies when Action is Sample. Percentage of matching spans to keep (e.g. 10 = keep 10%, discard 90%).",
+          fieldType: FormFieldSchemaType.Number,
+          required: false,
+          placeholder: "e.g. 10",
+        },
+        {
+          field: {
+            isEnabled: true,
+          },
+          title: "Enabled",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
         },
       ]}
       showRefreshButton={true}

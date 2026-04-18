@@ -50,6 +50,11 @@ import LogDropFilter from "./LogDropFilter";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import MetricRecordingRule from "./MetricRecordingRule";
+import TracePipeline from "./TracePipeline";
+import TracePipelineProcessor from "./TracePipelineProcessor";
+import TraceDropFilter from "./TraceDropFilter";
+import TraceScrubRule from "./TraceScrubRule";
+import TraceRecordingRule from "./TraceRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -273,6 +278,11 @@ const AllModelTypes: Array<{
   LogScrubRule,
   MetricPipelineRule,
   MetricRecordingRule,
+  TracePipeline,
+  TracePipelineProcessor,
+  TraceDropFilter,
+  TraceScrubRule,
+  TraceRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
