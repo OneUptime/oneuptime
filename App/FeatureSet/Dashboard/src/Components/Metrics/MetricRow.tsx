@@ -49,26 +49,26 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
           )}
           {/* Services */}
           {services.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-1">
               {services.slice(0, 4).map((service: Service): ReactElement => {
-                const color: string | undefined =
-                  service.serviceColor?.toString();
+                const color: string = service.serviceColor?.toString() || "#9ca3af";
                 return (
                   <span
                     key={service._id?.toString() || service.name}
-                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm"
-                    style={color ? { borderColor: color, color } : undefined}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-700"
                   >
                     <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: color || "#9ca3af" }}
+                      className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: color }}
                     />
-                    {service.name || "unknown"}
+                    <span className="truncate">
+                      {service.name || "unknown"}
+                    </span>
                   </span>
                 );
               })}
               {services.length > 4 && (
-                <span className="text-[10px] text-gray-400">
+                <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
                   +{services.length - 4} more
                 </span>
               )}
