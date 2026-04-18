@@ -564,5 +564,5 @@ export default [
   MigrationName1775735059360,
   MigrationName1775766676723,
   AddGlobalSmtpOAuth1775900000000,
-  MigrationName1776504277320
+  MigrationName1776504277320,
 ];
