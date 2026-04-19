@@ -6,23 +6,21 @@ import React, {
   useCallback,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import FilterConditionElement from "./FilterCondition";
+import FilterQueryBuilderField from "./FilterQueryBuilderField";
 import {
   FilterBuilderConfig,
   FilterConditionData,
   FilterFieldDefinition,
   LogicalConnector,
 } from "./Types";
+import { buildFilterQuery, parseFilterQuery } from "./FilterQueryParser";
 
 export interface ComponentProps {
   modelType: { new (): BaseModel };
@@ -82,128 +80,6 @@ function getOperatorLabel(operator: string): string {
   return operatorLabels[operator] || operator;
 }
 
-function parseFilterQuery(
-  query: string,
-  config: FilterBuilderConfig,
-): {
-  conditions: Array<FilterConditionData>;
-  connector: LogicalConnector;
-} {
-  const defaultResult: {
-    conditions: Array<FilterConditionData>;
-    connector: LogicalConnector;
-  } = {
-    conditions: [{ ...config.defaultCondition }],
-    connector: "AND",
-  };
-
-  if (!query || !query.trim()) {
-    return defaultResult;
-  }
-
-  const connector: LogicalConnector = query.includes(" OR ") ? "OR" : "AND";
-  const connectorRegex: RegExp = connector === "AND" ? / AND /i : / OR /i;
-  const parts: Array<string> = query.split(connectorRegex);
-
-  const conditions: Array<FilterConditionData> = [];
-
-  for (const part of parts) {
-    const trimmed: string = part.trim().replace(/^\(|\)$/g, "");
-
-    const likeMatch: RegExpMatchArray | null = trimmed.match(
-      /^(\S+)\s+(LIKE)\s+'([^']*)'$/i,
-    );
-    const inMatch: RegExpMatchArray | null = trimmed.match(
-      /^(\S+)\s+(IN)\s+\(([^)]*)\)$/i,
-    );
-    const eqQuotedMatch: RegExpMatchArray | null = trimmed.match(
-      /^(\S+)\s*(=|!=)\s*'([^']*)'$/,
-    );
-    const eqUnquotedMatch: RegExpMatchArray | null = trimmed.match(
-      /^(\S+)\s*(=|!=)\s*([^\s'"]+)$/,
-    );
-
-    if (likeMatch) {
-      conditions.push({
-        field: likeMatch[1]!,
-        operator: "LIKE",
-        value: likeMatch[3]!,
-      });
-    } else if (inMatch) {
-      conditions.push({
-        field: inMatch[1]!,
-        operator: "IN",
-        value: inMatch[3]!.replace(/'/g, "").trim(),
-      });
-    } else if (eqQuotedMatch) {
-      conditions.push({
-        field: eqQuotedMatch[1]!,
-        operator: eqQuotedMatch[2]!,
-        value: eqQuotedMatch[3]!,
-      });
-    } else if (eqUnquotedMatch) {
-      conditions.push({
-        field: eqUnquotedMatch[1]!,
-        operator: eqUnquotedMatch[2]!,
-        value: eqUnquotedMatch[3]!,
-      });
-    }
-  }
-
-  if (conditions.length === 0) {
-    return defaultResult;
-  }
-
-  return { conditions, connector };
-}
-
-function formatValue(
-  fieldKey: string,
-  value: string,
-  config: FilterBuilderConfig,
-): string {
-  if (fieldKey.startsWith("attributes.")) {
-    return `'${value}'`;
-  }
-  const field: FilterFieldDefinition | undefined = config.fields.find(
-    (f: FilterFieldDefinition) => {
-      return f.key === fieldKey;
-    },
-  );
-  if (field?.valueType === "number" || field?.valueType === "boolean") {
-    return value;
-  }
-  return `'${value}'`;
-}
-
-function buildFilterQuery(
-  conditions: Array<FilterConditionData>,
-  connector: LogicalConnector,
-  config: FilterBuilderConfig,
-): string {
-  const parts: Array<string> = conditions
-    .filter((c: FilterConditionData) => {
-      return c.field && c.operator && c.value;
-    })
-    .map((c: FilterConditionData) => {
-      if (c.operator === "LIKE") {
-        return `${c.field} LIKE '${c.value}'`;
-      }
-      if (c.operator === "IN") {
-        const values: string = c.value
-          .split(",")
-          .map((v: string) => {
-            return `'${v.trim()}'`;
-          })
-          .join(", ");
-        return `${c.field} IN (${values})`;
-      }
-      return `${c.field} ${c.operator} ${formatValue(c.field, c.value, config)}`;
-    });
-
-  return parts.join(` ${connector} `);
-}
-
 const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -218,11 +94,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
 
   const [showModal, setShowModal] = useState<boolean>(false);
-
-  const [modalConditions, setModalConditions] = useState<
-    Array<FilterConditionData>
-  >([]);
-  const [modalConnector, setModalConnector] = useState<LogicalConnector>("AND");
+  const [modalQuery, setModalQuery] = useState<string>("");
 
   const loadModel: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -259,20 +131,18 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     setIsSaving(true);
     setError("");
 
-    const query: string = buildFilterQuery(
-      modalConditions,
-      modalConnector,
-      config,
-    );
-
     try {
       await ModelAPI.updateById({
         modelType: props.modelType,
         id: props.modelId,
-        data: { filterQuery: query || "" },
+        data: { filterQuery: modalQuery || "" },
       });
-      setConditions(modalConditions);
-      setConnector(modalConnector);
+      const parsed: {
+        conditions: Array<FilterConditionData>;
+        connector: LogicalConnector;
+      } = parseFilterQuery(modalQuery, config);
+      setConditions(parsed.conditions);
+      setConnector(parsed.connector);
       setShowModal(false);
     } catch {
       setError("Failed to save filter conditions.");
@@ -282,12 +152,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   };
 
   const openModal: () => void = (): void => {
-    setModalConditions(
-      conditions.map((c: FilterConditionData) => {
-        return { ...c };
-      }),
-    );
-    setModalConnector(connector);
+    setModalQuery(buildFilterQuery(conditions, connector, config));
     setError("");
     setShowModal(true);
   };
@@ -536,144 +401,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
               </div>
             )}
 
-            {/* Connector toggle */}
-            {modalConditions.length > 1 && (
-              <div className="mb-5 flex items-center gap-3">
-                <span className="text-sm text-gray-500">
-                  {config.entityNameSingular.charAt(0).toUpperCase() +
-                    config.entityNameSingular.slice(1)}{" "}
-                  must match
-                </span>
-                <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50">
-                  <button
-                    type="button"
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 ${
-                      modalConnector === "AND"
-                        ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5"
-                        : "text-gray-400 hover:text-gray-600"
-                    }`}
-                    onClick={() => {
-                      setModalConnector("AND");
-                    }}
-                  >
-                    All conditions
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 ${
-                      modalConnector === "OR"
-                        ? "bg-white text-amber-700 shadow-sm ring-1 ring-black/5"
-                        : "text-gray-400 hover:text-gray-600"
-                    }`}
-                    onClick={() => {
-                      setModalConnector("OR");
-                    }}
-                  >
-                    Any condition
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Condition builder with timeline */}
-            <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-              <div className="px-4 pt-2">
-                {modalConditions.map(
-                  (condition: FilterConditionData, index: number) => {
-                    return (
-                      <FilterConditionElement
-                        key={index}
-                        condition={condition}
-                        canDelete={modalConditions.length > 1}
-                        index={index}
-                        connector={modalConnector}
-                        isLast={index === modalConditions.length - 1}
-                        config={config}
-                        onChange={(updated: FilterConditionData) => {
-                          const newConditions: Array<FilterConditionData> = [
-                            ...modalConditions,
-                          ];
-                          newConditions[index] = updated;
-                          setModalConditions(newConditions);
-                        }}
-                        onDelete={() => {
-                          const newConditions: Array<FilterConditionData> =
-                            modalConditions.filter(
-                              (_: FilterConditionData, i: number) => {
-                                return i !== index;
-                              },
-                            );
-                          setModalConditions(newConditions);
-                        }}
-                      />
-                    );
-                  },
-                )}
-              </div>
-
-              {/* Add condition footer */}
-              <div className="px-4 py-3 bg-gray-50/50 border-t border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Button
-                    title="Add condition"
-                    icon={IconProp.Add}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    onClick={() => {
-                      setModalConditions([
-                        ...modalConditions,
-                        { ...config.defaultCondition },
-                      ]);
-                    }}
-                  />
-                  {modalConditions.length > 1 && (
-                    <Button
-                      title="Clear all"
-                      icon={IconProp.Close}
-                      buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      onClick={() => {
-                        setModalConditions([{ ...config.defaultCondition }]);
-                        setModalConnector("AND");
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Query preview */}
-            {buildFilterQuery(modalConditions, modalConnector, config) && (
-              <div className="mt-4">
-                <details className="group">
-                  <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 hover:text-gray-500 transition-colors select-none list-none">
-                    <svg
-                      className="w-3 h-3 transition-transform duration-150 group-open:rotate-90"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                    <span className="font-medium">Preview query</span>
-                  </summary>
-                  <div className="mt-2 rounded-lg bg-gray-900 p-3.5 overflow-x-auto">
-                    <code className="text-[13px] text-emerald-400 font-mono break-all leading-relaxed whitespace-pre-wrap">
-                      {buildFilterQuery(
-                        modalConditions,
-                        modalConnector,
-                        config,
-                      )}
-                    </code>
-                  </div>
-                </details>
-              </div>
-            )}
+            <FilterQueryBuilderField
+              value={modalQuery}
+              onChange={setModalQuery}
+              config={config}
+            />
           </div>
         </Modal>
       )}

@@ -6,6 +6,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -13,117 +14,60 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
 import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
-import TracePipelineProcessorType from "Common/Types/Trace/TracePipelineProcessorType";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
 import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TraceProcessorForm from "../../../Components/TracePipeline/TraceProcessorForm";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
-const attributeRemapperExample: string = JSON.stringify(
-  {
-    sourceKey: "http.user_agent",
-    targetKey: "user_agent",
-    preserveSource: false,
-    overrideOnConflict: true,
-  },
-  null,
-  2,
-);
+const processorsDocMarkdown: string = `
+### How Processors Work
 
-const spanNameRemapperExample: string = JSON.stringify(
-  {
-    sourceKey: "http.route",
-    mappings: [
-      { matchValue: "/api/v1/users", newName: "ListUsers" },
-      { matchValue: "/api/v1/users/:id", newName: "GetUser" },
-    ],
-  },
-  null,
-  2,
-);
+Processors are transformation steps that modify spans matched by this pipeline. They run **in order** — drag rows to reorder them.
 
-const statusRemapperExample: string = JSON.stringify(
-  {
-    sourceKey: "http.status_code",
-    mappings: [
-      { matchValue: "500", statusCode: 2, statusMessage: "Internal Error" },
-      { matchValue: "200", statusCode: 1 },
-    ],
-  },
-  null,
-  2,
-);
+---
 
-const spanKindRemapperExample: string = JSON.stringify(
-  {
-    sourceKey: "messaging.operation",
-    mappings: [
-      { matchValue: "publish", kind: "SPAN_KIND_PRODUCER" },
-      { matchValue: "process", kind: "SPAN_KIND_CONSUMER" },
-    ],
-  },
-  null,
-  2,
-);
-
-const categoryProcessorExample: string = JSON.stringify(
-  {
-    targetKey: "span_category",
-    categories: [
-      { name: "Slow Request", filterQuery: "durationUnixNano > 1000000000" },
-      { name: "Error", filterQuery: "statusCode = '2'" },
-    ],
-  },
-  null,
-  2,
-);
-
-const processorDocMarkdown: string = `
 ### Processor Types
 
-Pick a processor type, then set the \`configuration\` JSON to match the shape below.
+#### Attribute Remapper
+Copy or rename a span attribute (e.g. rename \`http.user_agent\` to \`user_agent\`).
 
-#### AttributeRemapper
-Copy or rename a span attribute.
+#### Span Name Remapper
+Override the span name when a source field matches a value. Use \`name\` as the Source Key to match the current span name, or any attribute key to match on an attribute value.
 
-\`\`\`json
-${attributeRemapperExample}
-\`\`\`
+#### Status Remapper
+Override span status (Unset=0, Ok=1, Error=2) based on an attribute value.
 
-#### SpanNameRemapper
-Override the span name when a source field matches a value. \`sourceKey\` can be \`"name"\` or any attribute key.
+#### Span Kind Remapper
+Override span kind (Server / Client / Producer / Consumer / Internal) based on an attribute value.
 
-\`\`\`json
-${spanNameRemapperExample}
-\`\`\`
+#### Category Processor
+Tag spans with a category attribute based on filter rules — first match wins.
 
-#### StatusRemapper
-Override span status (0=Unset, 1=Ok, 2=Error) based on an attribute value.
+---
 
-\`\`\`json
-${statusRemapperExample}
-\`\`\`
-
-#### SpanKindRemapper
-Override span kind (SPAN_KIND_SERVER / CLIENT / PRODUCER / CONSUMER / INTERNAL).
-
-\`\`\`json
-${spanKindRemapperExample}
-\`\`\`
-
-#### CategoryProcessor
-Tag spans with a category attribute based on filter rules (first match wins).
-
-\`\`\`json
-${categoryProcessorExample}
-\`\`\`
+### Tips
+- **Order matters** — processors run sequentially.
+- **Disable without deleting** — toggle a processor off to temporarily skip it.
 `;
 
 const TracePipelineView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const [showProcessorForm, setShowProcessorForm] = useState<boolean>(false);
+  const [editingProcessor, setEditingProcessor] = useState<
+    TracePipelineProcessor | undefined
+  >(undefined);
+  const [refreshProcessorToggle, setRefreshProcessorToggle] =
+    useState<string>("initial");
 
   return (
     <Fragment>
@@ -203,8 +147,8 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
         name="Trace Pipeline > Processors"
         userPreferencesKey="trace-pipeline-processors-table"
         isDeleteable={true}
-        isEditable={true}
-        isCreateable={true}
+        isEditable={false}
+        isCreateable={false}
         sortBy="sortOrder"
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}
@@ -213,79 +157,42 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
           title: "Processors",
           description:
             "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.",
+          buttons: [
+            {
+              title: "Add Processor",
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setEditingProcessor(undefined);
+                setShowProcessorForm(true);
+              },
+              icon: IconProp.Add,
+            },
+          ],
         }}
         helpContent={{
           title: "How Trace Processors Work",
           description:
             "Understanding AttributeRemapper, SpanNameRemapper, StatusRemapper, SpanKindRemapper, and CategoryProcessor",
-          markdown: processorDocMarkdown,
+          markdown: processorsDocMarkdown,
         }}
         noItemsMessage={
-          "No processors configured. Click 'Create' above to add your first processor."
+          "No processors configured. Click 'Add Processor' above to add your first processor."
         }
         showRefreshButton={true}
-        createInitialValues={{
-          tracePipelineId: modelId,
-          isEnabled: true,
-        }}
-        onBeforeCreate={async (item: TracePipelineProcessor) => {
-          item.tracePipelineId = modelId;
-          if (!item.sortOrder) {
-            item.sortOrder = 1;
-          }
-          return item;
-        }}
-        formFields={[
+        refreshToggle={refreshProcessorToggle}
+        actionButtons={[
           {
-            field: { name: true },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Normalize HTTP route names",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { processorType: true },
-            title: "Processor Type",
-            description: "The kind of transformation this processor applies.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Attribute Remapper",
-                value: TracePipelineProcessorType.AttributeRemapper,
-              },
-              {
-                label: "Span Name Remapper",
-                value: TracePipelineProcessorType.SpanNameRemapper,
-              },
-              {
-                label: "Status Remapper",
-                value: TracePipelineProcessorType.StatusRemapper,
-              },
-              {
-                label: "Span Kind Remapper",
-                value: TracePipelineProcessorType.SpanKindRemapper,
-              },
-              {
-                label: "Category Processor",
-                value: TracePipelineProcessorType.CategoryProcessor,
-              },
-            ],
-          },
-          {
-            field: { configuration: true },
-            title: "Configuration (JSON)",
-            description:
-              "Processor-specific config. See the Help panel for the shape of each type.",
-            fieldType: FormFieldSchemaType.JSON,
-            required: true,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+            title: "Edit",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Edit,
+            onClick: async (
+              item: TracePipelineProcessor,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setEditingProcessor(item);
+              setShowProcessorForm(true);
+              onCompleteAction();
+            },
           },
         ]}
         filters={[
@@ -323,6 +230,22 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      {showProcessorForm && (
+        <TraceProcessorForm
+          pipelineId={modelId}
+          existingProcessor={editingProcessor}
+          onProcessorSaved={() => {
+            setShowProcessorForm(false);
+            setEditingProcessor(undefined);
+            setRefreshProcessorToggle(Date.now().toString());
+          }}
+          onCancel={() => {
+            setShowProcessorForm(false);
+            setEditingProcessor(undefined);
+          }}
+        />
+      )}
 
       {/* Section 4: Delete Pipeline */}
       <ModelDelete

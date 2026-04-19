@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -9,6 +11,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
 import ProjectUtil from "Common/UI/Utils/Project";
+import FilterQueryBuilderField from "../../../Components/FilterQueryBuilder/FilterQueryBuilderField";
+import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
@@ -113,11 +117,26 @@ const TraceDropFilters: FunctionComponent<
           },
           title: "Filter Query",
           description:
-            "Which spans this filter applies to. Available fields: name, kind, statusCode, serviceId, attributes.<key>. Operators: =, !=, LIKE, IN, AND, OR.",
-          fieldType: FormFieldSchemaType.LongText,
+            "Which spans this filter applies to. Build rules with fields like span name, kind, status, service, or custom attributes.",
+          fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
-          placeholder:
-            "e.g. name LIKE '%healthcheck%' AND kind = 'SPAN_KIND_SERVER'",
+          getCustomElement: (
+            values: FormValues<TraceDropFilter>,
+            fieldProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <FilterQueryBuilderField
+                initialValue={(values.filterQuery as string) || ""}
+                onChange={(value: string) => {
+                  if (fieldProps.onChange) {
+                    fieldProps.onChange(value);
+                  }
+                }}
+                error={fieldProps.error}
+                config={TraceFilterConfig}
+              />
+            );
+          },
         },
         {
           field: {
