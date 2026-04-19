@@ -23,7 +23,6 @@ import React, {
 
 export interface ComponentProps {
   source: RecordingRuleSource;
-  index: number;
   canDelete: boolean;
   onChange: (next: RecordingRuleSource) => void;
   onDelete: () => void;

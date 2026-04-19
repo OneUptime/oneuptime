@@ -10,7 +10,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveExceptionsTab = (path: string): ExceptionsTabKey => {
+const getActiveExceptionsTab: (path: string) => ExceptionsTabKey = (
+  path: string,
+): ExceptionsTabKey => {
   if (path.includes("/exceptions/unresolved")) {
     return "unresolved";
   }

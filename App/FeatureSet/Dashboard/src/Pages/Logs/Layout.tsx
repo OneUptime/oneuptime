@@ -7,7 +7,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveLogsTab = (path: string): LogsTabKey => {
+const getActiveLogsTab: (path: string) => LogsTabKey = (
+  path: string,
+): LogsTabKey => {
   if (path.includes("/logs/settings")) {
     return "settings";
   }

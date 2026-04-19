@@ -43,7 +43,6 @@ const TraceRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     props.onChange(definition);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [definition]);
 
   const updateSource: (
@@ -119,7 +118,6 @@ const TraceRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
                 <TraceRecordingRuleSourceEditor
                   key={`${src.alias}-${idx}`}
                   source={src}
-                  index={idx}
                   canDelete={definition.sources.length > 1}
                   onChange={(next: TraceRecordingRuleSource) => {
                     updateSource(idx, next);

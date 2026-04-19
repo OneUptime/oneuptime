@@ -9,7 +9,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveTracesTab = (path: string): TracesTabKey => {
+const getActiveTracesTab: (path: string) => TracesTabKey = (
+  path: string,
+): TracesTabKey => {
   if (path.includes("/traces/settings")) {
     return "settings";
   }

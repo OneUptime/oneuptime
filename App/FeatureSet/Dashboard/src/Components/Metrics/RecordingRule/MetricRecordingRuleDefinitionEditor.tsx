@@ -48,7 +48,6 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
      * We intentionally do NOT depend on props.onChange to avoid infinite loops —
      * the parent form re-renders on each change and passes a fresh handler.
      */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [definition]);
 
   const updateSource: (index: number, next: RecordingRuleSource) => void = (
@@ -120,7 +119,6 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
               <MetricRecordingRuleSourceEditor
                 key={`${src.alias}-${idx}`}
                 source={src}
-                index={idx}
                 canDelete={definition.sources.length > 1}
                 onChange={(next: RecordingRuleSource) => {
                   updateSource(idx, next);

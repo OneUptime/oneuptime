@@ -47,6 +47,10 @@ export const TRACE_RECORDING_RULE_MAX_EXPRESSION_LENGTH: number = 500;
  */
 const ALIAS_ALPHABET: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+const ALIAS_REGEX: RegExp = /^[A-Z]$/;
+
+const EXPRESSION_REGEX: RegExp = /^[A-Z0-9+\-*/().\s]+$/;
+
 export class TraceRecordingRuleDefinitionUtil {
   public static getAggregationOptions(): Array<{
     value: TraceAggregationType;
@@ -159,7 +163,7 @@ export class TraceRecordingRuleDefinitionUtil {
       const source: TraceRecordingRuleSource = sources[i]!;
       const prefix: string = `Source ${source.alias || `#${i + 1}`}: `;
 
-      if (!source.alias || !(/^[A-Z]$/).test(source.alias)) {
+      if (!source.alias || !ALIAS_REGEX.test(source.alias)) {
         return `${prefix}Alias must be a single uppercase letter A-Z.`;
       }
 
@@ -205,7 +209,7 @@ export class TraceRecordingRuleDefinitionUtil {
       return "Expression must reference at least one source alias (e.g. A, B).";
     }
 
-    if (!(/^[A-Z0-9+\-*/().\s]+$/).test(expression)) {
+    if (!EXPRESSION_REGEX.test(expression)) {
       return "Expression may only contain aliases (A-Z), numbers, operators (+ - * /), parentheses, and spaces.";
     }
 

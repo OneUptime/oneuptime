@@ -24,7 +24,6 @@ import React, {
 
 export interface ComponentProps {
   source: TraceRecordingRuleSource;
-  index: number;
   canDelete: boolean;
   onChange: (next: TraceRecordingRuleSource) => void;
   onDelete: () => void;

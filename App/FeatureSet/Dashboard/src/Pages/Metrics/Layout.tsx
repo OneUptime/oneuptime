@@ -9,7 +9,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveMetricsTab = (path: string): MetricsTabKey => {
+const getActiveMetricsTab: (path: string) => MetricsTabKey = (
+  path: string,
+): MetricsTabKey => {
   if (path.includes("/metrics/settings")) {
     return "settings";
   }

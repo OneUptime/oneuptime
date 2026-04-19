@@ -100,7 +100,7 @@ export class MetricPipelineRuleFilterConditionUtil {
       return null;
     }
 
-    for (let i = 0; i < filters.length; i++) {
+    for (let i: number = 0; i < filters.length; i++) {
       const filter: MetricPipelineRuleFilterCondition = filters[i]!;
       const prefix: string = `Filter #${i + 1}: `;
 
