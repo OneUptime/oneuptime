@@ -382,9 +382,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
 
                   const spanName: string = (span["name"] as string) || "";
-                  const spanKind: SpanKind = OtelTracesIngestService.mapSpanKind(
-                    span["kind"],
-                  );
+                  const spanKind: SpanKind =
+                    OtelTracesIngestService.mapSpanKind(span["kind"]);
                   const traceState: string =
                     (span["traceState"] as string) || "";
 

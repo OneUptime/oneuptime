@@ -131,9 +131,7 @@ export class TracePipelineService {
    * form field persists it as a JSON string literal, so TypeORM hands us
    * back a string that still needs parsing. Accept either shape.
    */
-  private static normalizeProcessorConfig(
-    raw: unknown,
-  ): JSONObject {
+  private static normalizeProcessorConfig(raw: unknown): JSONObject {
     if (raw && typeof raw === "object") {
       return raw as JSONObject;
     }

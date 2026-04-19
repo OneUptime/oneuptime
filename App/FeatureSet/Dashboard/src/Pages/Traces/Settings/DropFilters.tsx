@@ -3,6 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -53,6 +54,7 @@ const TraceDropFilters: FunctionComponent<
       isEditable={false}
       isCreateable={true}
       isViewable={true}
+      createEditModalWidth={ModalWidth.Large}
       sortBy="sortOrder"
       sortOrder={SortOrder.Ascending}
       enableDragAndDrop={true}
@@ -89,12 +91,18 @@ const TraceDropFilters: FunctionComponent<
         }
         return item;
       }}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Filter Conditions", id: "filter-conditions" },
+        { title: "Action", id: "action" },
+      ]}
       formFields={[
         {
           field: {
             name: true,
           },
           title: "Name",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. Drop Healthcheck Spans",
@@ -107,15 +115,26 @@ const TraceDropFilters: FunctionComponent<
             description: true,
           },
           title: "Description",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this filter does.",
         },
         {
           field: {
+            isEnabled: true,
+          },
+          title: "Enabled",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+        {
+          field: {
             filterQuery: true,
           },
           title: "Filter Query",
+          stepId: "filter-conditions",
           description:
             "Which spans this filter applies to. Build rules with fields like span name, kind, status, service, or custom attributes.",
           fieldType: FormFieldSchemaType.CustomComponent,
@@ -143,6 +162,9 @@ const TraceDropFilters: FunctionComponent<
             action: true,
           },
           title: "Action",
+          stepId: "action",
+          description:
+            "Drop permanently discards matching spans. Sample keeps a percentage of them.",
           fieldType: FormFieldSchemaType.Dropdown,
           required: true,
           dropdownOptions: [
@@ -155,19 +177,15 @@ const TraceDropFilters: FunctionComponent<
             samplePercentage: true,
           },
           title: "Sample Percentage",
+          stepId: "action",
           description:
             "Only applies when Action is Sample. Percentage of matching spans to keep (e.g. 10 = keep 10%, discard 90%).",
           fieldType: FormFieldSchemaType.Number,
           required: false,
           placeholder: "e.g. 10",
-        },
-        {
-          field: {
-            isEnabled: true,
+          showIf: (values: FormValues<TraceDropFilter>): boolean => {
+            return values.action === "sample";
           },
-          title: "Enabled",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
         },
       ]}
       showRefreshButton={true}

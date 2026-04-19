@@ -135,9 +135,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
   const existingType: string = props.existingProcessor?.processorType || "";
 
   // Common fields
-  const [name, setName] = useState<string>(
-    props.existingProcessor?.name || "",
-  );
+  const [name, setName] = useState<string>(props.existingProcessor?.name || "");
   const [processorType, setProcessorType] = useState<string>(existingType);
   const [isEnabled, setIsEnabled] = useState<boolean>(
     props.existingProcessor?.isEnabled ?? true,
@@ -414,7 +412,11 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      if (isEditMode && props.existingProcessor && props.existingProcessor._id) {
+      if (
+        isEditMode &&
+        props.existingProcessor &&
+        props.existingProcessor._id
+      ) {
         const processor: TracePipelineProcessor = new TracePipelineProcessor();
         processor._id = props.existingProcessor._id;
         processor.name = name.trim();
@@ -464,9 +466,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
       title={isEditMode ? "Edit Processor" : "Add Processor"}
       description="Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored."
       modalWidth={ModalWidth.Large}
-      submitButtonText={
-        isEditMode ? "Save Processor" : "Create Processor"
-      }
+      submitButtonText={isEditMode ? "Save Processor" : "Create Processor"}
       onSubmit={handleSave}
       isLoading={isSaving}
       onClose={props.onCancel}
@@ -500,7 +500,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Processor Type"
             description="Choose what this processor does"
-
           />
           <div className="mt-1">
             <Dropdown
@@ -561,7 +560,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                 <FieldLabelElement
                   title="Source Key"
                   description="The attribute key to read the value from"
-
                 />
                 <div className="mt-1">
                   <Input
@@ -576,7 +574,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                 <FieldLabelElement
                   title="Target Key"
                   description="The new attribute key to write the value to"
-
                 />
                 <div className="mt-1">
                   <Input
@@ -651,7 +648,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                 description={
                   'The field to match on. Use "name" for the span name itself, or any attribute key like "http.route".'
                 }
-
               />
               <div className="mt-1 w-64">
                 <Input
@@ -667,7 +663,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Mappings"
                 description="Define how source values map to new span names."
-
               />
               <div className="mt-2 space-y-2">
                 {spanNameMappings.map(
@@ -792,7 +787,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Source Key"
                 description="The attribute key to read the value from."
-
               />
               <div className="mt-1 w-64">
                 <Input
@@ -808,100 +802,94 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Mappings"
                 description="Match an attribute value and set the span status."
-
               />
               <div className="mt-2 space-y-2">
-                {statusMappings.map(
-                  (mapping: StatusMapping, index: number) => {
-                    const selectedStatus: DropdownOption | undefined =
-                      statusCodeOptions.find((opt: DropdownOption) => {
-                        return opt.value === mapping.statusCode;
-                      });
-                    return (
-                      <div
-                        key={index}
-                        className="grid grid-cols-12 gap-3 items-center p-3 bg-gray-50 rounded-md border border-gray-200"
-                      >
-                        <div className="col-span-3">
-                          <Input
-                            type={InputType.TEXT}
-                            placeholder="Match value (e.g. 500)"
-                            value={mapping.matchValue}
-                            onChange={(value: string) => {
-                              const next: Array<StatusMapping> = [
-                                ...statusMappings,
-                              ];
-                              next[index] = { ...mapping, matchValue: value };
-                              setStatusMappings(next);
-                            }}
-                          />
-                        </div>
-                        <div className="col-span-1 flex justify-center">
-                          <span className="text-gray-400 text-sm font-medium">
-                            →
-                          </span>
-                        </div>
-                        <div className="col-span-3">
-                          <Dropdown
-                            options={statusCodeOptions}
-                            value={selectedStatus}
-                            placeholder="Status"
-                            onChange={(
-                              value:
-                                | DropdownValue
-                                | Array<DropdownValue>
-                                | null,
-                            ) => {
-                              const code: number =
-                                typeof value === "number"
-                                  ? value
-                                  : Number(value?.toString() || "0");
-                              const next: Array<StatusMapping> = [
-                                ...statusMappings,
-                              ];
-                              next[index] = { ...mapping, statusCode: code };
-                              setStatusMappings(next);
-                            }}
-                          />
-                        </div>
-                        <div className="col-span-4">
-                          <Input
-                            type={InputType.TEXT}
-                            placeholder="Optional status message"
-                            value={mapping.statusMessage}
-                            onChange={(value: string) => {
-                              const next: Array<StatusMapping> = [
-                                ...statusMappings,
-                              ];
-                              next[index] = {
-                                ...mapping,
-                                statusMessage: value,
-                              };
-                              setStatusMappings(next);
-                            }}
-                          />
-                        </div>
-                        <div className="col-span-1 flex justify-end">
-                          <Button
-                            icon={IconProp.Trash}
-                            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                            buttonSize={ButtonSize.Small}
-                            onClick={() => {
-                              setStatusMappings(
-                                statusMappings.filter(
-                                  (_: StatusMapping, i: number) => {
-                                    return i !== index;
-                                  },
-                                ),
-                              );
-                            }}
-                            disabled={statusMappings.length <= 1}
-                          />
-                        </div>
+                {statusMappings.map((mapping: StatusMapping, index: number) => {
+                  const selectedStatus: DropdownOption | undefined =
+                    statusCodeOptions.find((opt: DropdownOption) => {
+                      return opt.value === mapping.statusCode;
+                    });
+                  return (
+                    <div
+                      key={index}
+                      className="grid grid-cols-12 gap-3 items-center p-3 bg-gray-50 rounded-md border border-gray-200"
+                    >
+                      <div className="col-span-3">
+                        <Input
+                          type={InputType.TEXT}
+                          placeholder="Match value (e.g. 500)"
+                          value={mapping.matchValue}
+                          onChange={(value: string) => {
+                            const next: Array<StatusMapping> = [
+                              ...statusMappings,
+                            ];
+                            next[index] = { ...mapping, matchValue: value };
+                            setStatusMappings(next);
+                          }}
+                        />
                       </div>
-                    );
-                  },
-                )}
+                      <div className="col-span-1 flex justify-center">
+                        <span className="text-gray-400 text-sm font-medium">
+                          →
+                        </span>
+                      </div>
+                      <div className="col-span-3">
+                        <Dropdown
+                          options={statusCodeOptions}
+                          value={selectedStatus}
+                          placeholder="Status"
+                          onChange={(
+                            value: DropdownValue | Array<DropdownValue> | null,
+                          ) => {
+                            const code: number =
+                              typeof value === "number"
+                                ? value
+                                : Number(value?.toString() || "0");
+                            const next: Array<StatusMapping> = [
+                              ...statusMappings,
+                            ];
+                            next[index] = { ...mapping, statusCode: code };
+                            setStatusMappings(next);
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <Input
+                          type={InputType.TEXT}
+                          placeholder="Optional status message"
+                          value={mapping.statusMessage}
+                          onChange={(value: string) => {
+                            const next: Array<StatusMapping> = [
+                              ...statusMappings,
+                            ];
+                            next[index] = {
+                              ...mapping,
+                              statusMessage: value,
+                            };
+                            setStatusMappings(next);
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button
+                          icon={IconProp.Trash}
+                          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                          buttonSize={ButtonSize.Small}
+                          onClick={() => {
+                            setStatusMappings(
+                              statusMappings.filter(
+                                (_: StatusMapping, i: number) => {
+                                  return i !== index;
+                                },
+                              ),
+                            );
+                          }}
+                          disabled={statusMappings.length <= 1}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-2">
                 <Button
@@ -959,7 +947,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Source Key"
                 description="The attribute key to read the value from."
-
               />
               <div className="mt-1 w-64">
                 <Input
@@ -975,7 +962,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Mappings"
                 description="Match an attribute value and set the span kind."
-
               />
               <div className="mt-2 space-y-2">
                 {spanKindMappings.map(
@@ -1116,7 +1102,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Target Key"
                 description="The attribute key where the matched category name will be stored."
-
               />
               <div className="mt-1 w-64">
                 <Input
@@ -1139,7 +1124,6 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Category Rules"
                 description="Define categories and the filter conditions that trigger them. Rules are evaluated top to bottom — first match wins."
-
               />
               <div className="mt-2 space-y-3">
                 {categories.map((cat: CategoryRule, index: number) => {

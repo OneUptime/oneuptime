@@ -16,10 +16,7 @@ import {
   FilterConditionData,
   LogicalConnector,
 } from "./Types";
-import {
-  buildFilterQuery,
-  parseFilterQuery,
-} from "./FilterQueryParser";
+import { buildFilterQuery, parseFilterQuery } from "./FilterQueryParser";
 
 export interface ComponentProps {
   value?: string | undefined;
@@ -83,9 +80,9 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleConditionsChange: (
+  const handleConditionsChange: (next: Array<FilterConditionData>) => void = (
     next: Array<FilterConditionData>,
-  ) => void = (next: Array<FilterConditionData>): void => {
+  ): void => {
     setConditions(next);
     emit(next, connector);
   };
