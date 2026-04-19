@@ -78,7 +78,10 @@ const KubernetesClusterPods: FunctionComponent<
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "Pod",
-          transform: (resource: KubernetesResource, row: KubernetesResourceModel) => {
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
             const spec: Record<string, unknown> =
               (row.spec as unknown as Record<string, unknown>) || {};
             const status: Record<string, unknown> =
@@ -89,9 +92,8 @@ const KubernetesClusterPods: FunctionComponent<
              * is more useful to surface than the pod's broad phase.
              */
             const containerStatuses: Array<Record<string, unknown>> =
-              (status["containerStatuses"] as Array<
-                Record<string, unknown>
-              >) || [];
+              (status["containerStatuses"] as Array<Record<string, unknown>>) ||
+              [];
             for (const cs of containerStatuses) {
               if (cs["state"] === "waiting" && cs["reason"]) {
                 resource.status = cs["reason"] as string;

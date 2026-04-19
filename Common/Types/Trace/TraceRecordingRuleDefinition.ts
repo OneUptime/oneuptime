@@ -41,8 +41,10 @@ export const TRACE_RECORDING_RULE_MAX_SOURCES: number = 4;
 // Maximum expression length — prevents pathological parser input.
 export const TRACE_RECORDING_RULE_MAX_EXPRESSION_LENGTH: number = 500;
 
-// Alphabet used to generate source aliases. v1 caps at TRACE_RECORDING_RULE_MAX_SOURCES
-// so we never exceed the first few letters in practice.
+/*
+ * Alphabet used to generate source aliases. v1 caps at TRACE_RECORDING_RULE_MAX_SOURCES
+ * so we never exceed the first few letters in practice.
+ */
 const ALIAS_ALPHABET: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export class TraceRecordingRuleDefinitionUtil {
@@ -157,7 +159,7 @@ export class TraceRecordingRuleDefinitionUtil {
       const source: TraceRecordingRuleSource = sources[i]!;
       const prefix: string = `Source ${source.alias || `#${i + 1}`}: `;
 
-      if (!source.alias || !/^[A-Z]$/.test(source.alias)) {
+      if (!source.alias || !(/^[A-Z]$/).test(source.alias)) {
         return `${prefix}Alias must be a single uppercase letter A-Z.`;
       }
 
@@ -203,7 +205,7 @@ export class TraceRecordingRuleDefinitionUtil {
       return "Expression must reference at least one source alias (e.g. A, B).";
     }
 
-    if (!/^[A-Z0-9+\-*/().\s]+$/.test(expression)) {
+    if (!(/^[A-Z0-9+\-*/().\s]+$/).test(expression)) {
       return "Expression may only contain aliases (A-Z), numbers, operators (+ - * /), parentheses, and spaces.";
     }
 

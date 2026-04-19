@@ -7,9 +7,7 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
-import ModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -368,10 +366,9 @@ export default class KubernetesResourceUtils {
           }
         }
 
-        const creationTsIso: string | undefined =
-          row.resourceCreationTimestamp
-            ? OneUptimeDate.toString(row.resourceCreationTimestamp)
-            : undefined;
+        const creationTsIso: string | undefined = row.resourceCreationTimestamp
+          ? OneUptimeDate.toString(row.resourceCreationTimestamp)
+          : undefined;
 
         const resource: KubernetesResource = {
           name: row.name || "",
@@ -491,10 +488,7 @@ export default class KubernetesResourceUtils {
     };
 
     const [cpuMap, memMap]: [Map<string, number>, Map<string, number>] =
-      await Promise.all([
-        fetchMap(cpuMetricName),
-        fetchMap(memoryMetricName),
-      ]);
+      await Promise.all([fetchMap(cpuMetricName), fetchMap(memoryMetricName)]);
 
     for (const resource of resources) {
       const key: string = makeKey(resource.namespace, resource.name);

@@ -89,8 +89,10 @@ const unitTableMap: Record<string, Array<UnitThreshold>> = {
   ns: nanosecondUnits,
 };
 
-// Maps UCUM / OpenTelemetry unit codes to human-readable unit names.
-// Used for labelling (e.g. badges) where the raw code "By" is hard to read.
+/*
+ * Maps UCUM / OpenTelemetry unit codes to human-readable unit names.
+ * Used for labelling (e.g. badges) where the raw code "By" is hard to read.
+ */
 const readableUnitMap: Record<string, string> = {
   // Dimensionless — OpenTelemetry uses "1" for unitless counts
   "1": "",

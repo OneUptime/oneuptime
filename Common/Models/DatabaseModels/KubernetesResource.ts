@@ -66,10 +66,9 @@ const READ_PERMISSIONS: Array<Permission> = [
   tableDescription:
     "Snapshot of a Kubernetes object (pod, node, deployment, etc.) as last reported by the kubernetes-agent. Populated by the telemetry ingest pipeline; not user-editable.",
 })
-@Index(
-  ["projectId", "kubernetesClusterId", "kind", "namespaceKey", "name"],
-  { unique: true },
-)
+@Index(["projectId", "kubernetesClusterId", "kind", "namespaceKey", "name"], {
+  unique: true,
+})
 @Entity({
   name: "KubernetesResource",
 })

@@ -304,11 +304,14 @@ export default class MetricPipelineRuleService {
         key,
       );
 
-      if (filter.conditionType === MetricPipelineRuleFilterConditionType.IsPresent) {
+      if (
+        filter.conditionType === MetricPipelineRuleFilterConditionType.IsPresent
+      ) {
         return keyExists;
       }
       if (
-        filter.conditionType === MetricPipelineRuleFilterConditionType.IsNotPresent
+        filter.conditionType ===
+        MetricPipelineRuleFilterConditionType.IsNotPresent
       ) {
         return !keyExists;
       }
@@ -323,11 +326,14 @@ export default class MetricPipelineRuleService {
             ? ""
             : String(rawValue);
 
-      if (filter.conditionType === MetricPipelineRuleFilterConditionType.IsEmpty) {
+      if (
+        filter.conditionType === MetricPipelineRuleFilterConditionType.IsEmpty
+      ) {
         return !keyExists || valueAsString === "";
       }
       if (
-        filter.conditionType === MetricPipelineRuleFilterConditionType.IsNotEmpty
+        filter.conditionType ===
+        MetricPipelineRuleFilterConditionType.IsNotEmpty
       ) {
         return keyExists && valueAsString !== "";
       }

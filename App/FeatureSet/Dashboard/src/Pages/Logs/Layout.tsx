@@ -1,9 +1,7 @@
 import { getLogsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import LogsNavTabs, {
-  LogsTabKey,
-} from "../../Components/Logs/LogsNavTabs";
+import LogsNavTabs, { LogsTabKey } from "../../Components/Logs/LogsNavTabs";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";

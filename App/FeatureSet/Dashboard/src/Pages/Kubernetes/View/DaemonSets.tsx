@@ -58,8 +58,7 @@ const KubernetesClusterDaemonSets: FunctionComponent<
           ) => {
             const status: Record<string, unknown> =
               (row.status as unknown as Record<string, unknown>) || {};
-            const numberReady: number =
-              (status["numberReady"] as number) || 0;
+            const numberReady: number = (status["numberReady"] as number) || 0;
             const desired: number =
               (status["desiredNumberScheduled"] as number) || 0;
 

@@ -63,9 +63,8 @@ const MetricPipelineRuleFilterFormElement: FunctionComponent<ComponentProps> = (
       ),
   );
 
-  const showValue: boolean = MetricPipelineRuleFilterConditionUtil.hasValueField(
-    filter?.conditionType,
-  );
+  const showValue: boolean =
+    MetricPipelineRuleFilterConditionUtil.hasValueField(filter?.conditionType);
 
   const attributeKeyPlaceholder: string = "http.method";
 

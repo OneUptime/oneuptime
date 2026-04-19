@@ -43,9 +43,7 @@ const ExceptionsLayout: FunctionComponent<
     <Page
       title="Exceptions"
       breadcrumbLinks={getExceptionsBreadcrumbs(path)}
-      headerRight={
-        <ExceptionsNavTabs active={getActiveExceptionsTab(path)} />
-      }
+      headerRight={<ExceptionsNavTabs active={getActiveExceptionsTab(path)} />}
     >
       <Outlet />
     </Page>

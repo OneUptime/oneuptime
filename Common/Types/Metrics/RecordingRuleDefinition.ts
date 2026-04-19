@@ -42,8 +42,10 @@ export const RECORDING_RULE_MAX_SOURCES: number = 4;
 // Maximum expression length for v1. Prevents pathological parser input.
 export const RECORDING_RULE_MAX_EXPRESSION_LENGTH: number = 500;
 
-// Alphabet used to generate source aliases. v1 caps at RECORDING_RULE_MAX_SOURCES
-// so we never exceed the first few letters in practice.
+/*
+ * Alphabet used to generate source aliases. v1 caps at RECORDING_RULE_MAX_SOURCES
+ * so we never exceed the first few letters in practice.
+ */
 const ALIAS_ALPHABET: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export class RecordingRuleDefinitionUtil {
@@ -112,7 +114,7 @@ export class RecordingRuleDefinitionUtil {
       const source: RecordingRuleSource = sources[i]!;
       const prefix: string = `Source ${source.alias || `#${i + 1}`}: `;
 
-      if (!source.alias || !/^[A-Z]$/.test(source.alias)) {
+      if (!source.alias || !(/^[A-Z]$/).test(source.alias)) {
         return `${prefix}Alias must be a single uppercase letter A-Z.`;
       }
 
@@ -165,7 +167,7 @@ export class RecordingRuleDefinitionUtil {
     }
 
     // Reject any character outside the allowed DSL grammar.
-    if (!/^[A-Z0-9+\-*/().\s]+$/.test(expression)) {
+    if (!(/^[A-Z0-9+\-*/().\s]+$/).test(expression)) {
       return "Expression may only contain aliases (A-Z), numbers, operators (+ - * /), parentheses, and spaces.";
     }
 

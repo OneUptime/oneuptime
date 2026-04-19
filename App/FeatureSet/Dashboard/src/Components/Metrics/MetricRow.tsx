@@ -51,7 +51,8 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
           {services.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1">
               {services.slice(0, 4).map((service: Service): ReactElement => {
-                const color: string = service.serviceColor?.toString() || "#9ca3af";
+                const color: string =
+                  service.serviceColor?.toString() || "#9ca3af";
                 return (
                   <span
                     key={service._id?.toString() || service.name}

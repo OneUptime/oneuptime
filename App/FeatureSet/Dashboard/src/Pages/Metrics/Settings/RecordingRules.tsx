@@ -133,9 +133,7 @@ const MetricRecordingRules: FunctionComponent<
           ): ReactElement => {
             return (
               <MetricRecordingRuleDefinitionEditor
-                value={
-                  values.definition as RecordingRuleDefinition | undefined
-                }
+                value={values.definition as RecordingRuleDefinition | undefined}
                 onChange={(next: RecordingRuleDefinition) => {
                   elementProps.onChange?.(next);
                 }}

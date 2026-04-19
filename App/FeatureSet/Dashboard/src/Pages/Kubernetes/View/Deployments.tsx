@@ -69,9 +69,7 @@ const KubernetesClusterDeployments: FunctionComponent<
               resource.status = "Ready";
             } else if (readyReplicas < replicas) {
               const conditions: Array<Record<string, unknown>> =
-                (status["conditions"] as Array<
-                  Record<string, unknown>
-                >) || [];
+                (status["conditions"] as Array<Record<string, unknown>>) || [];
               const failed: boolean = conditions.some(
                 (c: Record<string, unknown>) => {
                   return c["type"] === "Available" && c["status"] === "False";

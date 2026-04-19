@@ -60,7 +60,10 @@ const KubernetesClusterContainers: FunctionComponent<
       await KubernetesResourceUtils.fetchInventoryResources({
         kubernetesClusterId: modelId,
         kind: "Pod",
-        transform: (resource: KubernetesResource, row: KubernetesResourceModel) => {
+        transform: (
+          resource: KubernetesResource,
+          row: KubernetesResourceModel,
+        ) => {
           pods.push(resource);
           podRows.set(`${resource.namespace}/${resource.name}`, row);
         },
@@ -82,9 +85,7 @@ const KubernetesClusterContainers: FunctionComponent<
         const containers: Array<Record<string, unknown>> =
           (spec["containers"] as Array<Record<string, unknown>>) || [];
         const containerStatuses: Array<Record<string, unknown>> =
-          (status["containerStatuses"] as Array<
-            Record<string, unknown>
-          >) || [];
+          (status["containerStatuses"] as Array<Record<string, unknown>>) || [];
 
         for (const c of containers) {
           const name: string = (c["name"] as string) || "";

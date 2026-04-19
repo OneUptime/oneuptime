@@ -303,9 +303,7 @@ const MetricPipelineRules: FunctionComponent<
                     | Array<MetricPipelineRuleFilterCondition>
                     | undefined
                 }
-                onChange={(
-                  next: Array<MetricPipelineRuleFilterCondition>,
-                ) => {
+                onChange={(next: Array<MetricPipelineRuleFilterCondition>) => {
                   elementProps.onChange?.(next);
                 }}
               />

@@ -44,8 +44,10 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     props.onChange(definition);
-    // We intentionally do NOT depend on props.onChange to avoid infinite loops —
-    // the parent form re-renders on each change and passes a fresh handler.
+    /*
+     * We intentionally do NOT depend on props.onChange to avoid infinite loops —
+     * the parent form re-renders on each change and passes a fresh handler.
+     */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [definition]);
 
