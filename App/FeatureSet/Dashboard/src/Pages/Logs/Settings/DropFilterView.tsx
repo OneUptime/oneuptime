@@ -12,7 +12,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
-import FilterQueryBuilder from "../../../Components/LogPipeline/FilterQueryBuilder";
+import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const LogDropFilterView: FunctionComponent<PageComponentProps> = (
@@ -226,6 +227,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
       <FilterQueryBuilder
         modelType={LogDropFilter}
         modelId={modelId}
+        config={LogFilterConfig}
         title="Filter Conditions"
         description="Define which logs this drop filter applies to. Matching logs will be dropped or sampled based on the action above."
       />

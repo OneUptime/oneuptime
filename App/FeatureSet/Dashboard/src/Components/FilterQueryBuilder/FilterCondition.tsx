@@ -9,12 +9,15 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import {
+  FilterBuilderConfig,
+  FilterConditionData,
+  FilterFieldDefinition,
+  FilterFieldValueOption,
+} from "./Types";
 
-export interface FilterConditionData {
-  field: string;
-  operator: string;
-  value: string;
-}
+const CUSTOM_ATTRIBUTE_VALUE: string = "__custom_attribute__";
 
 export interface ComponentProps {
   condition: FilterConditionData;
@@ -24,25 +27,8 @@ export interface ComponentProps {
   index: number;
   connector: string;
   isLast: boolean;
+  config: FilterBuilderConfig;
 }
-
-const fieldOptions: Array<DropdownOption> = [
-  {
-    value: "severityText",
-    label: "Severity",
-    description: "Log severity level (e.g. ERROR, WARNING, INFO)",
-  },
-  {
-    value: "body",
-    label: "Log Body",
-    description: "The log message content",
-  },
-  {
-    value: "serviceId",
-    label: "Service ID",
-    description: "The service that produced the log",
-  },
-];
 
 const operatorOptions: Array<DropdownOption> = [
   { value: "=", label: "equals" },
@@ -51,26 +37,48 @@ const operatorOptions: Array<DropdownOption> = [
   { value: "IN", label: "is one of", description: "Comma-separated values" },
 ];
 
-const severityOptions: Array<DropdownOption> = [
-  { value: "TRACE", label: "TRACE" },
-  { value: "DEBUG", label: "DEBUG" },
-  { value: "INFO", label: "INFO" },
-  { value: "WARNING", label: "WARNING" },
-  { value: "ERROR", label: "ERROR" },
-  { value: "FATAL", label: "FATAL" },
-];
-
 const FilterConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { condition } = props;
+  const { condition, config } = props;
 
   const isAttributeField: boolean = condition.field.startsWith("attributes.");
+
+  const fieldDefinition: FilterFieldDefinition | undefined = config.fields.find(
+    (f: FilterFieldDefinition) => {
+      return f.key === condition.field;
+    },
+  );
+
+  const fieldDropdownOptions: Array<DropdownOption> = [
+    ...config.fields.map((f: FilterFieldDefinition): DropdownOption => {
+      const option: DropdownOption = {
+        value: f.key,
+        label: f.label,
+      };
+      if (f.description) {
+        option.description = f.description;
+      }
+      return option;
+    }),
+  ];
+
+  if (config.supportCustomAttributes) {
+    fieldDropdownOptions.push({
+      value: CUSTOM_ATTRIBUTE_VALUE,
+      label: config.customAttributeLabel || "Custom Attribute...",
+      description:
+        config.customAttributeDescription ||
+        `Filter on a custom ${config.entityNameSingular} attribute`,
+    });
+  }
+
   const selectedFieldOption: DropdownOption | undefined = isAttributeField
     ? undefined
-    : fieldOptions.find((opt: DropdownOption) => {
+    : fieldDropdownOptions.find((opt: DropdownOption) => {
         return opt.value === condition.field;
       });
+
   const selectedOperatorOption: DropdownOption | undefined =
     operatorOptions.find((opt: DropdownOption) => {
       return opt.value === condition.operator;
@@ -92,6 +100,128 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
       : "bg-amber-50 border-amber-200";
   const lineColor: string =
     props.connector === "AND" ? "bg-indigo-200" : "bg-amber-200";
+
+  const renderValueInput: () => ReactElement = (): ReactElement => {
+    if (isAttributeField || !fieldDefinition) {
+      return (
+        <div>
+          <Input
+            type={InputType.TEXT}
+            placeholder="Enter value..."
+            value={condition.value}
+            onChange={(value: string) => {
+              props.onChange({ ...condition, value });
+            }}
+          />
+          {operatorHint && (
+            <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+              {operatorHint}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (
+      fieldDefinition.valueType === "dropdown" &&
+      fieldDefinition.valueOptions &&
+      (condition.operator === "=" || condition.operator === "!=")
+    ) {
+      const valueDropdownOptions: Array<DropdownOption> =
+        fieldDefinition.valueOptions.map(
+          (o: FilterFieldValueOption): DropdownOption => {
+            const option: DropdownOption = {
+              value: o.value,
+              label: o.label,
+            };
+            if (o.description) {
+              option.description = o.description;
+            }
+            return option;
+          },
+        );
+      return (
+        <Dropdown
+          options={valueDropdownOptions}
+          value={
+            condition.value
+              ? valueDropdownOptions.find((o: DropdownOption) => {
+                  return o.value === condition.value;
+                })
+              : undefined
+          }
+          placeholder={
+            fieldDefinition.valuePlaceholder ||
+            `Select ${fieldDefinition.label.toLowerCase()}...`
+          }
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            props.onChange({
+              ...condition,
+              value: value?.toString() || "",
+            });
+          }}
+        />
+      );
+    }
+
+    if (fieldDefinition.valueType === "boolean") {
+      const boolChecked: boolean = condition.value === "true";
+      return (
+        <div className="flex items-center h-[38px]">
+          <Toggle
+            value={boolChecked}
+            onChange={(value: boolean) => {
+              props.onChange({
+                ...condition,
+                value: value ? "true" : "false",
+              });
+            }}
+          />
+          <span className="ml-2 text-xs text-gray-500">
+            {boolChecked ? "true" : "false"}
+          </span>
+        </div>
+      );
+    }
+
+    if (fieldDefinition.valueType === "number") {
+      return (
+        <div>
+          <Input
+            type={InputType.NUMBER}
+            placeholder={fieldDefinition.valuePlaceholder || "Enter number..."}
+            value={condition.value}
+            onChange={(value: string) => {
+              props.onChange({ ...condition, value });
+            }}
+          />
+          {operatorHint && (
+            <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+              {operatorHint}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <Input
+          type={InputType.TEXT}
+          placeholder={fieldDefinition.valuePlaceholder || "Enter value..."}
+          value={condition.value}
+          onChange={(value: string) => {
+            props.onChange({ ...condition, value });
+          }}
+        />
+        {operatorHint && (
+          <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+            {operatorHint}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="relative flex">
@@ -143,28 +273,23 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
               Field
             </label>
             <Dropdown
-              options={[
-                ...fieldOptions,
-                {
-                  value: "__custom_attribute__",
-                  label: "Custom Attribute...",
-                  description: "Filter on a custom log attribute",
-                },
-              ]}
+              options={fieldDropdownOptions}
               value={selectedFieldOption}
               placeholder="Select field..."
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
-                if (value === "__custom_attribute__") {
+                if (value === CUSTOM_ATTRIBUTE_VALUE) {
                   props.onChange({
                     ...condition,
                     field: "attributes.",
+                    value: "",
                   });
                 } else {
                   props.onChange({
                     ...condition,
                     field: value?.toString() || "",
+                    value: "",
                   });
                 }
               }}
@@ -173,7 +298,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
 
           {/* Custom attribute name */}
           {isAttributeField && (
-            <div className="w-28 flex-shrink-0">
+            <div className="w-32 flex-shrink-0">
               <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
                 Attribute
               </label>
@@ -216,41 +341,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
               Value
             </label>
-            {condition.field === "severityText" ? (
-              <Dropdown
-                options={severityOptions}
-                value={
-                  condition.value
-                    ? { value: condition.value, label: condition.value }
-                    : undefined
-                }
-                placeholder="Select severity..."
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  props.onChange({
-                    ...condition,
-                    value: value?.toString() || "",
-                  });
-                }}
-              />
-            ) : (
-              <div>
-                <Input
-                  type={InputType.TEXT}
-                  placeholder="Enter value..."
-                  value={condition.value}
-                  onChange={(value: string) => {
-                    props.onChange({ ...condition, value });
-                  }}
-                />
-                {operatorHint && (
-                  <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
-                    {operatorHint}
-                  </p>
-                )}
-              </div>
-            )}
+            {renderValueInput()}
           </div>
 
           {/* Delete - uses same label spacer as other columns to align */}

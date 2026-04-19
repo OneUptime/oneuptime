@@ -16,6 +16,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
 import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
 import TracePipelineProcessorType from "Common/Types/Trace/TracePipelineProcessorType";
+import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const attributeRemapperExample: string = JSON.stringify(
@@ -182,37 +184,13 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
-      {/* Section 2: Filter Query */}
-      <CardModelDetail<TracePipeline>
-        name="Trace Pipeline Filter"
-        cardProps={{
-          title: "Filter Query",
-          description:
-            "Filter expression that determines which spans this pipeline applies to. Available fields: name, kind, statusCode, serviceId, attributes.<key>. Operators: =, !=, LIKE, IN, AND, OR. Leave blank to match all spans.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: { filterQuery: true },
-            title: "Filter Query",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "e.g. kind = 'SPAN_KIND_SERVER' AND attributes.http.method = 'GET'",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: TracePipeline,
-          id: "model-detail-trace-pipeline-filter",
-          fields: [
-            {
-              field: { filterQuery: true },
-              title: "Filter Query",
-              placeholder: "(matches all spans)",
-            },
-          ],
-          modelId: modelId,
-        }}
+      {/* Section 2: Filter Conditions (Visual Builder) */}
+      <FilterQueryBuilder
+        modelType={TracePipeline}
+        modelId={modelId}
+        config={TraceFilterConfig}
+        title="Filter Conditions"
+        description="Define which spans this pipeline applies to. Only spans that match these conditions will be processed. Leave empty to match all spans."
       />
 
       {/* Section 3: Processors */}

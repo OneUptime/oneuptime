@@ -12,6 +12,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
@@ -163,36 +165,13 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
-      {/* Section 3: Filter Query */}
-      <CardModelDetail<TraceDropFilter>
-        name="Trace Drop Filter Query"
-        cardProps={{
-          title: "Filter Query",
-          description:
-            "Filter expression that identifies matching spans. Available fields: name, kind, statusCode, serviceId, attributes.<key>. Operators: =, !=, LIKE, IN, AND, OR.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: { filterQuery: true },
-            title: "Filter Query",
-            fieldType: FormFieldSchemaType.LongText,
-            required: true,
-            placeholder:
-              "e.g. name LIKE '%healthcheck%' AND kind = 'SPAN_KIND_SERVER'",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: TraceDropFilter,
-          id: "model-detail-trace-drop-filter-query",
-          fields: [
-            {
-              field: { filterQuery: true },
-              title: "Filter Query",
-            },
-          ],
-          modelId: modelId,
-        }}
+      {/* Section 3: Filter Conditions (Visual Builder) */}
+      <FilterQueryBuilder
+        modelType={TraceDropFilter}
+        modelId={modelId}
+        config={TraceFilterConfig}
+        title="Filter Conditions"
+        description="Define which spans this drop filter applies to. Matching spans will be dropped or sampled based on the action above."
       />
 
       {/* Section 4: Delete Filter */}

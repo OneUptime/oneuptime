@@ -16,22 +16,21 @@ import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import FilterConditionElement, { FilterConditionData } from "./FilterCondition";
+import FilterConditionElement from "./FilterCondition";
+import {
+  FilterBuilderConfig,
+  FilterConditionData,
+  FilterFieldDefinition,
+  LogicalConnector,
+} from "./Types";
 
 export interface ComponentProps {
   modelType: { new (): BaseModel };
   modelId: ObjectID;
+  config: FilterBuilderConfig;
   title?: string | undefined;
   description?: string | undefined;
 }
-
-type LogicalConnector = "AND" | "OR";
-
-const fieldLabels: Record<string, string> = {
-  severityText: "Severity",
-  body: "Log Body",
-  serviceId: "Service ID",
-};
 
 const operatorLabels: Record<string, string> = {
   "=": "equals",
@@ -40,18 +39,53 @@ const operatorLabels: Record<string, string> = {
   IN: "is one of",
 };
 
-function getFieldLabel(field: string): string {
-  if (field.startsWith("attributes.")) {
-    return field;
+function getFieldLabel(fieldKey: string, config: FilterBuilderConfig): string {
+  if (fieldKey.startsWith("attributes.")) {
+    return fieldKey;
   }
-  return fieldLabels[field] || field;
+  const field: FilterFieldDefinition | undefined = config.fields.find(
+    (f: FilterFieldDefinition) => {
+      return f.key === fieldKey;
+    },
+  );
+  return field?.label || fieldKey;
+}
+
+function getValueLabel(
+  fieldKey: string,
+  value: string,
+  config: FilterBuilderConfig,
+): string {
+  if (!value) {
+    return "(empty)";
+  }
+  const field: FilterFieldDefinition | undefined = config.fields.find(
+    (f: FilterFieldDefinition) => {
+      return f.key === fieldKey;
+    },
+  );
+  if (field?.valueOptions) {
+    const opt: { value: string; label: string } | undefined =
+      field.valueOptions.find(
+        (o: { value: string; label: string }): boolean => {
+          return o.value === value;
+        },
+      );
+    if (opt) {
+      return opt.label;
+    }
+  }
+  return value;
 }
 
 function getOperatorLabel(operator: string): string {
   return operatorLabels[operator] || operator;
 }
 
-function parseFilterQuery(query: string): {
+function parseFilterQuery(
+  query: string,
+  config: FilterBuilderConfig,
+): {
   conditions: Array<FilterConditionData>;
   connector: LogicalConnector;
 } {
@@ -59,7 +93,7 @@ function parseFilterQuery(query: string): {
     conditions: Array<FilterConditionData>;
     connector: LogicalConnector;
   } = {
-    conditions: [{ field: "severityText", operator: "=", value: "" }],
+    conditions: [{ ...config.defaultCondition }],
     connector: "AND",
   };
 
@@ -82,8 +116,11 @@ function parseFilterQuery(query: string): {
     const inMatch: RegExpMatchArray | null = trimmed.match(
       /^(\S+)\s+(IN)\s+\(([^)]*)\)$/i,
     );
-    const eqMatch: RegExpMatchArray | null = trimmed.match(
+    const eqQuotedMatch: RegExpMatchArray | null = trimmed.match(
       /^(\S+)\s*(=|!=)\s*'([^']*)'$/,
+    );
+    const eqUnquotedMatch: RegExpMatchArray | null = trimmed.match(
+      /^(\S+)\s*(=|!=)\s*([^\s'"]+)$/,
     );
 
     if (likeMatch) {
@@ -98,11 +135,17 @@ function parseFilterQuery(query: string): {
         operator: "IN",
         value: inMatch[3]!.replace(/'/g, "").trim(),
       });
-    } else if (eqMatch) {
+    } else if (eqQuotedMatch) {
       conditions.push({
-        field: eqMatch[1]!,
-        operator: eqMatch[2]!,
-        value: eqMatch[3]!,
+        field: eqQuotedMatch[1]!,
+        operator: eqQuotedMatch[2]!,
+        value: eqQuotedMatch[3]!,
+      });
+    } else if (eqUnquotedMatch) {
+      conditions.push({
+        field: eqUnquotedMatch[1]!,
+        operator: eqUnquotedMatch[2]!,
+        value: eqUnquotedMatch[3]!,
       });
     }
   }
@@ -114,9 +157,29 @@ function parseFilterQuery(query: string): {
   return { conditions, connector };
 }
 
+function formatValue(
+  fieldKey: string,
+  value: string,
+  config: FilterBuilderConfig,
+): string {
+  if (fieldKey.startsWith("attributes.")) {
+    return `'${value}'`;
+  }
+  const field: FilterFieldDefinition | undefined = config.fields.find(
+    (f: FilterFieldDefinition) => {
+      return f.key === fieldKey;
+    },
+  );
+  if (field?.valueType === "number" || field?.valueType === "boolean") {
+    return value;
+  }
+  return `'${value}'`;
+}
+
 function buildFilterQuery(
   conditions: Array<FilterConditionData>,
   connector: LogicalConnector,
+  config: FilterBuilderConfig,
 ): string {
   const parts: Array<string> = conditions
     .filter((c: FilterConditionData) => {
@@ -135,40 +198,19 @@ function buildFilterQuery(
           .join(", ");
         return `${c.field} IN (${values})`;
       }
-      return `${c.field} ${c.operator} '${c.value}'`;
+      return `${c.field} ${c.operator} ${formatValue(c.field, c.value, config)}`;
     });
 
   return parts.join(` ${connector} `);
 }
 
-function getSeverityColor(value: string): string {
-  const v: string = value.toUpperCase();
-  if (v === "FATAL") {
-    return "bg-red-100 text-red-800 ring-red-600/20";
-  }
-  if (v === "ERROR") {
-    return "bg-red-50 text-red-700 ring-red-600/10";
-  }
-  if (v === "WARNING") {
-    return "bg-amber-50 text-amber-700 ring-amber-600/10";
-  }
-  if (v === "INFO") {
-    return "bg-blue-50 text-blue-700 ring-blue-700/10";
-  }
-  if (v === "DEBUG") {
-    return "bg-gray-50 text-gray-600 ring-gray-500/10";
-  }
-  if (v === "TRACE") {
-    return "bg-gray-50 text-gray-500 ring-gray-500/10";
-  }
-  return "bg-gray-50 text-gray-600 ring-gray-500/10";
-}
-
 const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { config } = props;
+
   const [conditions, setConditions] = useState<Array<FilterConditionData>>([
-    { field: "severityText", operator: "=", value: "" },
+    { ...config.defaultCondition },
   ]);
   const [connector, setConnector] = useState<LogicalConnector>("AND");
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -196,7 +238,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
           const parsed: {
             conditions: Array<FilterConditionData>;
             connector: LogicalConnector;
-          } = parseFilterQuery((item as any).filterQuery as string);
+          } = parseFilterQuery((item as any).filterQuery as string, config);
           setConditions(parsed.conditions);
           setConnector(parsed.connector);
         }
@@ -205,7 +247,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       } finally {
         setIsLoading(false);
       }
-    }, [props.modelId, props.modelType]);
+    }, [props.modelId, props.modelType, config]);
 
   useEffect(() => {
     loadModel().catch(() => {
@@ -217,7 +259,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     setIsSaving(true);
     setError("");
 
-    const query: string = buildFilterQuery(modalConditions, modalConnector);
+    const query: string = buildFilterQuery(
+      modalConditions,
+      modalConnector,
+      config,
+    );
 
     try {
       await ModelAPI.updateById({
@@ -254,7 +300,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const cardTitle: string = props.title || "Filter Conditions";
   const cardDescription: string =
     props.description ||
-    "Define which logs this rule applies to. Only logs that match these conditions will be affected. Leave empty to match all logs.";
+    `Define which ${config.entityNamePlural} this rule applies to. Only ${config.entityNamePlural} that match these conditions will be affected. Leave empty to match all ${config.entityNamePlural}.`;
 
   const savedConditions: Array<FilterConditionData> = conditions.filter(
     (c: FilterConditionData) => {
@@ -269,6 +315,36 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     connector === "AND"
       ? "bg-indigo-50 text-indigo-600 ring-indigo-500/20"
       : "bg-amber-50 text-amber-600 ring-amber-500/20";
+
+  const renderValuePill: (condition: FilterConditionData) => ReactElement = (
+    condition: FilterConditionData,
+  ): ReactElement => {
+    const fieldDef: FilterFieldDefinition | undefined = config.fields.find(
+      (f: FilterFieldDefinition) => {
+        return f.key === condition.field;
+      },
+    );
+    const displayValue: string = getValueLabel(
+      condition.field,
+      condition.value,
+      config,
+    );
+    if (fieldDef?.getValuePillClass) {
+      const pillClass: string = fieldDef.getValuePillClass(condition.value);
+      return (
+        <span
+          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${pillClass}`}
+        >
+          {displayValue}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-xs font-mono font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+        {displayValue}
+      </span>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -323,8 +399,6 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
               <div className="relative">
                 {savedConditions.map(
                   (condition: FilterConditionData, index: number) => {
-                    const isSeverity: boolean =
-                      condition.field === "severityText";
                     const isFirst: boolean = index === 0;
                     const isLast: boolean =
                       index === savedConditions.length - 1;
@@ -366,22 +440,12 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                         <div className="flex-1 pb-2 pt-0">
                           <div className="flex items-center gap-2 py-1 pl-2 rounded-md hover:bg-gray-50 transition-colors duration-100 cursor-default">
                             <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-xs font-semibold text-gray-700 tracking-tight">
-                              {getFieldLabel(condition.field)}
+                              {getFieldLabel(condition.field, config)}
                             </span>
                             <span className="text-xs text-gray-400 italic">
                               {getOperatorLabel(condition.operator)}
                             </span>
-                            {isSeverity ? (
-                              <span
-                                className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${getSeverityColor(condition.value)}`}
-                              >
-                                {condition.value || "(empty)"}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-xs font-mono font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
-                                {condition.value || "(empty)"}
-                              </span>
-                            )}
+                            {renderValuePill(condition)}
                           </div>
                         </div>
                       </div>
@@ -402,8 +466,8 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                     </span>
                     {" \u2014 "}
                     {connector === "AND"
-                      ? "log must match all"
-                      : "log must match at least one"}
+                      ? `${config.entityNameSingular} must match all`
+                      : `${config.entityNameSingular} must match at least one`}
                   </span>
                 </div>
               )}
@@ -435,8 +499,8 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                 No filter conditions
               </p>
               <p className="text-xs text-gray-400 mt-1 max-w-xs">
-                This rule matches all incoming logs. Add conditions to target
-                specific logs.
+                This rule matches all incoming {config.entityNamePlural}. Add
+                conditions to target specific {config.entityNamePlural}.
               </p>
             </div>
           )}
@@ -447,7 +511,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       {showModal && (
         <Modal
           title="Edit Filter Conditions"
-          description="Build filter rules to target specific logs. Conditions are evaluated in order."
+          description={`Build filter rules to target specific ${config.entityNamePlural}. Conditions are evaluated in order.`}
           onClose={closeModal}
           modalWidth={ModalWidth.Large}
           submitButtonText="Save Changes"
@@ -475,7 +539,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
             {/* Connector toggle */}
             {modalConditions.length > 1 && (
               <div className="mb-5 flex items-center gap-3">
-                <span className="text-sm text-gray-500">Log must match</span>
+                <span className="text-sm text-gray-500">
+                  {config.entityNameSingular.charAt(0).toUpperCase() +
+                    config.entityNameSingular.slice(1)}{" "}
+                  must match
+                </span>
                 <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50">
                   <button
                     type="button"
@@ -520,6 +588,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                         index={index}
                         connector={modalConnector}
                         isLast={index === modalConditions.length - 1}
+                        config={config}
                         onChange={(updated: FilterConditionData) => {
                           const newConditions: Array<FilterConditionData> = [
                             ...modalConditions,
@@ -553,7 +622,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                       setModalConditions([
                         ...modalConditions,
-                        { field: "severityText", operator: "=", value: "" },
+                        { ...config.defaultCondition },
                       ]);
                     }}
                   />
@@ -564,9 +633,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                       buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                       buttonSize={ButtonSize.Small}
                       onClick={() => {
-                        setModalConditions([
-                          { field: "severityText", operator: "=", value: "" },
-                        ]);
+                        setModalConditions([{ ...config.defaultCondition }]);
                         setModalConnector("AND");
                       }}
                     />
@@ -576,7 +643,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
             </div>
 
             {/* Query preview */}
-            {buildFilterQuery(modalConditions, modalConnector) && (
+            {buildFilterQuery(modalConditions, modalConnector, config) && (
               <div className="mt-4">
                 <details className="group">
                   <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 hover:text-gray-500 transition-colors select-none list-none">
@@ -597,7 +664,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                   </summary>
                   <div className="mt-2 rounded-lg bg-gray-900 p-3.5 overflow-x-auto">
                     <code className="text-[13px] text-emerald-400 font-mono break-all leading-relaxed whitespace-pre-wrap">
-                      {buildFilterQuery(modalConditions, modalConnector)}
+                      {buildFilterQuery(
+                        modalConditions,
+                        modalConnector,
+                        config,
+                      )}
                     </code>
                   </div>
                 </details>

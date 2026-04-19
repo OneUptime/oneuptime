@@ -16,7 +16,8 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
-import FilterQueryBuilder from "../../../Components/LogPipeline/FilterQueryBuilder";
+import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
 import ProcessorForm from "../../../Components/LogPipeline/ProcessorForm";
 import React, {
   Fragment,
@@ -185,6 +186,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       <FilterQueryBuilder
         modelType={LogPipeline}
         modelId={modelId}
+        config={LogFilterConfig}
         title="Filter Conditions"
         description="Define which logs this pipeline applies to. Only logs that match these conditions will be processed. Leave empty to process all logs."
       />
