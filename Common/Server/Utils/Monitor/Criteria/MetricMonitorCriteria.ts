@@ -17,6 +17,7 @@ import {
   NoDataPolicy,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
 
 export default class MetricMonitorCriteria {
   @CaptureSpan()
@@ -39,7 +40,7 @@ export default class MetricMonitorCriteria {
       return null;
     }
 
-    const threshold: number | null = CompareCriteria.convertToNumber(
+    const rawThreshold: number | null = CompareCriteria.convertToNumber(
       input.criteriaFilter.value,
     );
 
@@ -118,9 +119,43 @@ export default class MetricMonitorCriteria {
 
     input.criteriaFilter.metricCriteriaContext = metricContext;
 
-    if (threshold === null) {
+    if (rawThreshold === null) {
       return null;
     }
+
+    /*
+     * Determine the unit the user entered the threshold in (falls back to
+     * the metric's native unit for backward-compatible rules). All sample
+     * values and the threshold itself are normalized into this display
+     * unit so both the comparison and every downstream message read in
+     * the unit the user actually chose.
+     */
+    const nativeUnit: string | undefined = metricContext.unit || undefined;
+    const thresholdUnit: string | undefined =
+      input.criteriaFilter.metricMonitorOptions?.thresholdUnit || nativeUnit;
+
+    const displayUnit: string | undefined = thresholdUnit;
+
+    /*
+     * Threshold is entered in thresholdUnit; keep the numeric value as-is
+     * for comparison in that same unit.
+     */
+    const threshold: number = rawThreshold;
+
+    const convertToDisplayUnit: (value: number) => number = (
+      value: number,
+    ): number => {
+      if (!nativeUnit || !displayUnit || nativeUnit === displayUnit) {
+        return value;
+      }
+      return MetricUnitUtil.convertToMetricUnit({
+        value,
+        fromUnit: nativeUnit,
+        metricUnit: displayUnit,
+      });
+    };
+
+    metricContext.unit = displayUnit || null;
 
     const samples: Array<AggregateModel> =
       (aggregatedResult && aggregatedResult.data) || [];
@@ -146,17 +181,19 @@ export default class MetricMonitorCriteria {
       // TreatAsZero: fall through to the comparator with value 0.
     }
 
-    const numbers: Array<number> = samples.map((d: AggregateModel) => {
-      return d.value;
-    });
+    const numbersInDisplayUnit: Array<number> = samples.map(
+      (d: AggregateModel) => {
+        return convertToDisplayUnit(d.value);
+      },
+    );
 
     const comparisonMessage: string | null =
       CompareCriteria.compareCriteriaNumbers({
-        value: numbers.length > 0 ? numbers : 0,
+        value: numbersInDisplayUnit.length > 0 ? numbersInDisplayUnit : 0,
         threshold: threshold,
         criteriaFilter: input.criteriaFilter,
         metricDisplayName: metricContext.metricName,
-        unit: metricContext.unit || undefined,
+        unit: displayUnit,
       });
 
     if (!comparisonMessage) {
@@ -165,12 +202,14 @@ export default class MetricMonitorCriteria {
 
     /*
      * Identify which specific sample breached so we can surface its
-     * attributes (pod/host/etc.) and timestamp in the root cause.
+     * attributes (pod/host/etc.) and timestamp in the root cause. Record
+     * the sample's value in the display unit so the root-cause text
+     * matches the comparison message.
      */
     const breaching: AggregateModel | undefined = samples.find(
       (s: AggregateModel) => {
         return MetricMonitorCriteria.sampleBreaches(
-          s.value,
+          convertToDisplayUnit(s.value),
           threshold,
           input.criteriaFilter.filterType,
         );
@@ -179,7 +218,7 @@ export default class MetricMonitorCriteria {
 
     if (breaching) {
       metricContext.breachingSample = {
-        value: breaching.value,
+        value: convertToDisplayUnit(breaching.value),
         timestamp: breaching.timestamp,
         attributes: MetricMonitorCriteria.extractLabelAttributes(breaching),
       };

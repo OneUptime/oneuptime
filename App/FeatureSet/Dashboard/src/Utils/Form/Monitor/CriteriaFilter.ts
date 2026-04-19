@@ -119,9 +119,15 @@ export default class CriteriaFilterUtil {
       /// FINALLY ADD THE VALUE
 
       if (criteriaFilter?.value !== undefined) {
+        const thresholdUnitSuffix: string =
+          criteriaFilter?.checkOn === CheckOn.MetricValue &&
+          criteriaFilter?.metricMonitorOptions?.thresholdUnit
+            ? ` ${criteriaFilter.metricMonitorOptions.thresholdUnit}`
+            : "";
+
         text += `${criteriaFilter?.value.toString()}${
           isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""} `;
+        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix} `;
       }
     }
 

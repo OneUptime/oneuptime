@@ -133,6 +133,13 @@ export interface MetricMonitorOptions {
    * when unset.
    */
   onNoDataPolicy?: NoDataPolicy | undefined;
+  /*
+   * Unit the user entered the threshold value in (e.g. "MB", "sec").
+   * The evaluator converts the threshold into the metric's native unit
+   * before comparison. When unset, the threshold is assumed to already
+   * be in the metric's native unit (backward compatible).
+   */
+  thresholdUnit?: string | undefined;
 }
 
 export enum EvaluateOverTimeMinutes {
@@ -309,6 +316,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     metricAlias: Zod.string().optional(),
     metricAggregationType: Zod.string().optional(),
     onNoDataPolicy: Zod.string().optional(),
+    thresholdUnit: Zod.string().optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),

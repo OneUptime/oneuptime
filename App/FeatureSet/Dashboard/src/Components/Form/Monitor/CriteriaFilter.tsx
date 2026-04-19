@@ -4,6 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
+import MetricUnitUtil, { UnitOption } from "Common/Utils/MetricUnitUtil";
 import {
   CheckOn,
   CriteriaFilter,
@@ -200,6 +201,51 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     selectedMetricVariableOption = metricVariableOptions[0];
   }
 
+  /*
+   * Resolve the native unit of the currently selected metric alias so the
+   * threshold input can offer a compatible unit dropdown (e.g. ms/sec/min
+   * when the metric is in ms). Checks queries first, then formulas.
+   */
+  const selectedMetricUnit: string | undefined = (() => {
+    const alias: string | undefined =
+      (selectedMetricVariableOption?.value as string | undefined) ||
+      criteriaFilter?.metricMonitorOptions?.metricAlias;
+    if (!alias) {
+      return undefined;
+    }
+
+    const matchedQuery: MetricQueryConfigData | undefined =
+      metricViewConfig?.queryConfigs?.find((q: MetricQueryConfigData) => {
+        return q.metricAliasData?.metricVariable === alias;
+      });
+    if (matchedQuery?.metricAliasData?.legendUnit) {
+      return matchedQuery.metricAliasData.legendUnit;
+    }
+
+    const matchedFormula: MetricFormulaConfigData | undefined =
+      metricViewConfig?.formulaConfigs?.find((f: MetricFormulaConfigData) => {
+        return f.metricAliasData?.metricVariable === alias;
+      });
+    return matchedFormula?.metricAliasData?.legendUnit || undefined;
+  })();
+
+  const thresholdUnitOptions: Array<UnitOption> =
+    MetricUnitUtil.getCompatibleUnits(selectedMetricUnit);
+
+  /*
+   * Default the dropdown to the metric's own unit when the user hasn't
+   * picked one yet, so the label next to the value always reads the way
+   * they configured the metric.
+   */
+  const currentThresholdUnitValue: string | undefined =
+    criteriaFilter?.metricMonitorOptions?.thresholdUnit ||
+    MetricUnitUtil.getCanonicalUnitValue(selectedMetricUnit);
+
+  const selectedThresholdUnitOption: DropdownOption | undefined =
+    thresholdUnitOptions.find((o: UnitOption) => {
+      return o.value === currentThresholdUnitValue;
+    });
+
   return (
     <div>
       <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
@@ -264,11 +310,17 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
+                  /*
+                   * Reset thresholdUnit when the metric changes — the new
+                   * metric may be in a different unit family, and keeping a
+                   * stale unit would silently mis-scale the threshold.
+                   */
                   props.onChange?.({
                     ...criteriaFilter,
                     metricMonitorOptions: {
                       ...criteriaFilter?.metricMonitorOptions,
                       metricAlias: value?.toString(),
+                      thresholdUnit: undefined,
                     },
                   });
                 }}
@@ -439,19 +491,64 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 <FieldLabelElement
                   title={isMetricOnly ? "Threshold" : "Value"}
                   description={
-                    isMetricOnly ? "The value to compare against." : undefined
+                    isMetricOnly
+                      ? thresholdUnitOptions.length > 0
+                        ? "The value and unit to compare against."
+                        : "The value to compare against."
+                      : undefined
                   }
                 />
-                <Input
-                  placeholder={valuePlaceholder}
-                  value={criteriaFilter?.value?.toString()}
-                  onChange={(value: string) => {
-                    props.onChange?.({
-                      ...criteriaFilter,
-                      value: value || "",
-                    });
-                  }}
-                />
+                {criteriaFilter?.checkOn === CheckOn.MetricValue &&
+                thresholdUnitOptions.length > 0 ? (
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Input
+                        placeholder={valuePlaceholder}
+                        value={criteriaFilter?.value?.toString()}
+                        onChange={(value: string) => {
+                          props.onChange?.({
+                            ...criteriaFilter,
+                            value: value || "",
+                            metricMonitorOptions: {
+                              ...criteriaFilter?.metricMonitorOptions,
+                              thresholdUnit: currentThresholdUnitValue,
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="w-56">
+                      <Dropdown
+                        value={selectedThresholdUnitOption}
+                        options={thresholdUnitOptions.map((o: UnitOption) => {
+                          return { value: o.value, label: o.label };
+                        })}
+                        onChange={(
+                          value: DropdownValue | Array<DropdownValue> | null,
+                        ) => {
+                          props.onChange?.({
+                            ...criteriaFilter,
+                            metricMonitorOptions: {
+                              ...criteriaFilter?.metricMonitorOptions,
+                              thresholdUnit: value?.toString(),
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Input
+                    placeholder={valuePlaceholder}
+                    value={criteriaFilter?.value?.toString()}
+                    onChange={(value: string) => {
+                      props.onChange?.({
+                        ...criteriaFilter,
+                        value: value || "",
+                      });
+                    }}
+                  />
+                )}
               </div>
             ))}
 
