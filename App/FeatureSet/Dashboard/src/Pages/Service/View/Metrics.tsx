@@ -1,4 +1,4 @@
-import MetricsTable from "../../../Components/Metrics/MetricsTable";
+import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -11,7 +11,7 @@ const ServiceMetrics: FunctionComponent<
 
   return (
     <Fragment>
-      <MetricsTable serviceIds={[modelId]} />
+      <MetricsViewer serviceIds={[modelId]} />
     </Fragment>
   );
 };

@@ -1,4 +1,4 @@
-import ExceptionsTable from "../../../Components/Exceptions/ExceptionsTable";
+import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -11,12 +11,7 @@ const ServiceExceptions: FunctionComponent<
 
   return (
     <Fragment>
-      <ExceptionsTable
-        serviceId={modelId}
-        query={{}}
-        title="Exceptions"
-        description="All the exceptions for this service."
-      />
+      <ExceptionsViewer serviceId={modelId} />
     </Fragment>
   );
 };

@@ -107,6 +107,7 @@ export type ExceptionStatus = "unresolved" | "resolved" | "archived" | "all";
 
 export interface ExceptionsViewerProps {
   defaultStatus?: ExceptionStatus;
+  serviceId?: ObjectID | undefined;
 }
 
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
@@ -204,6 +205,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.projectId = projectId;
     }
 
+    if (props.serviceId) {
+      q.serviceId = props.serviceId;
+    }
+
     if (status === "unresolved") {
       q.isResolved = false;
       q.isArchived = false;
@@ -257,7 +262,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     );
 
     return q;
-  }, [status, activeFilters, submittedSearch, parseSearch, timeRange]);
+  }, [
+    props.serviceId,
+    status,
+    activeFilters,
+    submittedSearch,
+    parseSearch,
+    timeRange,
+  ]);
 
   // Fetch exceptions
   const fetchExceptions: () => Promise<void> = useCallback(async () => {
@@ -330,6 +342,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       groups[key]!.push(...fieldFilters[key]!);
     }
 
+    // Scope histogram by the serviceId prop, if present
+    if (props.serviceId) {
+      if (!groups["serviceId"]) {
+        groups["serviceId"] = [];
+      }
+      groups["serviceId"]!.push(props.serviceId.toString());
+    }
+
     if (groups["serviceId"] && groups["serviceId"].length > 0) {
       payload["serviceIds"] = groups["serviceId"];
     }
@@ -357,7 +377,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     } finally {
       setHistogramLoading(false);
     }
-  }, [timeRange, activeFilters, submittedSearch, parseSearch]);
+  }, [timeRange, activeFilters, submittedSearch, parseSearch, props.serviceId]);
 
   useEffect(() => {
     void fetchHistogram();
@@ -498,6 +518,21 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     setActiveFilters([]);
     setPage(1);
   }, []);
+
+  // Read-only chips for prop-level scoping (e.g. service view page)
+  const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const base: Array<ActiveFilter> = [];
+    if (props.serviceId) {
+      base.push({
+        facetKey: "serviceId",
+        value: props.serviceId.toString(),
+        displayKey: "Service",
+        displayValue: props.serviceId.toString(),
+        readOnly: true,
+      });
+    }
+    return [...base, ...activeFilters];
+  }, [props.serviceId, activeFilters]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(
@@ -650,7 +685,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       facetConfigs={facetConfigs}
       facetLoading={false}
       onFacetInclude={handleFacetInclude}
-      activeFilters={activeFilters}
+      activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       // Histogram: handled / unhandled occurrences over time

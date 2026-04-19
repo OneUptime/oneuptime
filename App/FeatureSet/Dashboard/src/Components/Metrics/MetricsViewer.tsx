@@ -629,6 +629,23 @@ const MetricsViewer: FunctionComponent<Props> = (
     setPage(1);
   }, []);
 
+  // Read-only chips for prop-level scoping (e.g. service view page)
+  const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const base: Array<ActiveFilter> = [];
+    if (props.serviceIds && props.serviceIds.length > 0) {
+      for (const serviceId of props.serviceIds) {
+        base.push({
+          facetKey: "serviceId",
+          value: serviceId.toString(),
+          displayKey: "Service",
+          displayValue: serviceId.toString(),
+          readOnly: true,
+        });
+      }
+    }
+    return [...base, ...activeFilters];
+  }, [props.serviceIds, activeFilters]);
+
   // Row click → navigate to metric viewer
   const handleRowClick: (metric: MetricType) => void = useCallback(
     (metric: MetricType) => {
@@ -724,7 +741,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       facetLoading={false}
       onFacetInclude={handleFacetInclude}
       // Active filters
-      activeFilters={activeFilters}
+      activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       // No top histogram for metrics

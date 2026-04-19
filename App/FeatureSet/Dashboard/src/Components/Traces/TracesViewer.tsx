@@ -870,6 +870,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     setPage(1);
   }, []);
 
+  // Read-only chips for prop-level scoping (e.g. service view page)
+  const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const base: Array<ActiveFilter> = [];
+    if (props.serviceId) {
+      base.push({
+        facetKey: "serviceId",
+        value: props.serviceId.toString(),
+        displayKey: "Service",
+        displayValue: props.serviceId.toString(),
+        readOnly: true,
+      });
+    }
+    return [...base, ...activeFilters];
+  }, [props.serviceId, activeFilters]);
+
   // Histogram drag-to-zoom
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
     useCallback((start: Date, end: Date) => {
@@ -973,7 +988,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}
       // Active filters
-      activeFilters={activeFilters}
+      activeFilters={mergedActiveFilters}
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       // Histogram
