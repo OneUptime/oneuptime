@@ -77,7 +77,43 @@ type ExceptionEventPayload = {
   dataRententionInDays: number;
 };
 
+const SPAN_KIND_BY_OTEL_INT: Record<number, SpanKind> = {
+  1: SpanKind.Internal,
+  2: SpanKind.Server,
+  3: SpanKind.Client,
+  4: SpanKind.Producer,
+  5: SpanKind.Consumer,
+};
+
 export default class OtelTracesIngestService extends OtelIngestBaseService {
+  /**
+   * OTLP wire format encodes span kind as an integer (1=Internal, 2=Server,
+   * ...). Filter/drop/scrub expressions configured in the UI compare against
+   * the OpenTelemetry string form ('SPAN_KIND_SERVER'). Translate at ingest
+   * time so downstream evaluators see a stable string.
+   */
+  private static mapSpanKind(rawKind: unknown): SpanKind {
+    if (typeof rawKind === "number") {
+      return SPAN_KIND_BY_OTEL_INT[rawKind] || SpanKind.Internal;
+    }
+    if (typeof rawKind === "string") {
+      const asInt: number = parseInt(rawKind, 10);
+      if (!isNaN(asInt) && SPAN_KIND_BY_OTEL_INT[asInt]) {
+        return SPAN_KIND_BY_OTEL_INT[asInt]!;
+      }
+      if (
+        rawKind === SpanKind.Server ||
+        rawKind === SpanKind.Client ||
+        rawKind === SpanKind.Producer ||
+        rawKind === SpanKind.Consumer ||
+        rawKind === SpanKind.Internal
+      ) {
+        return rawKind as SpanKind;
+      }
+    }
+    return SpanKind.Internal;
+  }
+
   private static async flushSpansBuffer(
     spans: Array<JSONObject>,
     force: boolean = false,
@@ -346,8 +382,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
 
                   const spanName: string = (span["name"] as string) || "";
-                  const spanKind: SpanKind =
-                    (span["kind"] as SpanKind) || SpanKind.Internal;
+                  const spanKind: SpanKind = OtelTracesIngestService.mapSpanKind(
+                    span["kind"],
+                  );
                   const traceState: string =
                     (span["traceState"] as string) || "";
 

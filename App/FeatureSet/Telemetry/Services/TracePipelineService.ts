@@ -126,11 +126,37 @@ export class TracePipelineService {
     return result;
   }
 
+  /**
+   * Processor configuration is stored in a jsonb column but the UI's JSON
+   * form field persists it as a JSON string literal, so TypeORM hands us
+   * back a string that still needs parsing. Accept either shape.
+   */
+  private static normalizeProcessorConfig(
+    raw: unknown,
+  ): JSONObject {
+    if (raw && typeof raw === "object") {
+      return raw as JSONObject;
+    }
+    if (typeof raw === "string") {
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          return parsed as JSONObject;
+        }
+      } catch {
+        // fall through
+      }
+    }
+    return {};
+  }
+
   private static applyProcessor(
     spanRow: JSONObject,
     processor: TracePipelineProcessor,
   ): JSONObject {
-    const config: JSONObject = (processor.configuration as JSONObject) || {};
+    const config: JSONObject = TracePipelineService.normalizeProcessorConfig(
+      processor.configuration,
+    );
 
     switch (processor.processorType) {
       case TracePipelineProcessorType.AttributeRemapper:
