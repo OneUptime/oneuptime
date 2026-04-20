@@ -463,14 +463,14 @@ export class Service extends DatabaseService<Model> {
       logger.debug("Subscriber has an email.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
-      const isSubcriptionConfirmed: boolean = Boolean(
+      const isSubscriptionConfirmed: boolean = Boolean(
         createdItem.isSubscriptionConfirmed,
       );
-      logger.debug(`Is Subscription Confirmed: ${isSubcriptionConfirmed}`, {
+      logger.debug(`Is Subscription Confirmed: ${isSubscriptionConfirmed}`, {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
 
-      if (!isSubcriptionConfirmed) {
+      if (!isSubscriptionConfirmed) {
         logger.debug(
           "Subscription is not confirmed. Sending confirmation email.",
           { projectId: createdItem.projectId?.toString() } as LogAttributes,
@@ -480,7 +480,7 @@ export class Service extends DatabaseService<Model> {
         });
       }
 
-      if (isSubcriptionConfirmed && createdItem.sendYouHaveSubscribedMessage) {
+      if (isSubscriptionConfirmed && createdItem.sendYouHaveSubscribedMessage) {
         logger.debug(
           "Subscription is confirmed and sendYouHaveSubscribedMessage is true. Sending 'You have subscribed' email.",
           { projectId: createdItem.projectId?.toString() } as LogAttributes,

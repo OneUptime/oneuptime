@@ -35,7 +35,7 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<Array<Alert>> {
-    // check active alerts and if there are open alerts, do not cretae anothr alert.
+    // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         monitor: input.monitorId!,
@@ -113,7 +113,7 @@ export default class MonitorAlert {
       `${input.monitor.id?.toString()} - Check open alerts.`,
       alertLogAttributes,
     );
-    // check active alerts and if there are open alerts, do not cretae anothr alert.
+    // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> =
       await this.checkOpenAlertsAndCloseIfResolved({
         monitorId: input.monitor.id!,
