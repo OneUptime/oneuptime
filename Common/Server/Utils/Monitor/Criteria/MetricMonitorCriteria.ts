@@ -130,15 +130,18 @@ export default class MetricMonitorCriteria {
     }
 
     /*
-     * Determine the unit the user entered the threshold in (falls back to
-     * the metric's native unit for backward-compatible rules). All sample
-     * values and the threshold itself are normalized into this display
-     * unit so both the comparison and every downstream message read in
-     * the unit the user actually chose.
+     * Sample values arrive already converted into the query's configured
+     * display unit (legendUnit) — the upstream fetch step uses
+     * MetricResultUnitConverter to normalize OpenTelemetry's native unit
+     * into whatever the user picked. So `sampleUnit` here is that
+     * legendUnit, and `thresholdUnit` is what the user typed into the
+     * criteria threshold. When they differ we convert sample values from
+     * legendUnit → thresholdUnit before comparing, so the alert message
+     * reads in the unit the user actually chose for the threshold.
      */
-    const nativeUnit: string | undefined = metricContext.unit || undefined;
+    const sampleUnit: string | undefined = metricContext.unit || undefined;
     const thresholdUnit: string | undefined =
-      input.criteriaFilter.metricMonitorOptions?.thresholdUnit || nativeUnit;
+      input.criteriaFilter.metricMonitorOptions?.thresholdUnit || sampleUnit;
 
     const displayUnit: string | undefined = thresholdUnit;
 
@@ -151,12 +154,12 @@ export default class MetricMonitorCriteria {
     const convertToDisplayUnit: (value: number) => number = (
       value: number,
     ): number => {
-      if (!nativeUnit || !displayUnit || nativeUnit === displayUnit) {
+      if (!sampleUnit || !displayUnit || sampleUnit === displayUnit) {
         return value;
       }
       return MetricUnitUtil.convertToMetricUnit({
         value,
-        fromUnit: nativeUnit,
+        fromUnit: sampleUnit,
         metricUnit: displayUnit,
       });
     };

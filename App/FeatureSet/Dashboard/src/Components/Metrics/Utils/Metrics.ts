@@ -22,10 +22,12 @@ import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 
 export default class MetricUtil {
   public static async fetchResults(data: {
     metricViewData: MetricViewData;
+    metricTypes?: Array<MetricType> | undefined;
   }): Promise<Array<AggregatedResult>> {
     const metricViewData: MetricViewData = data.metricViewData;
 
@@ -35,7 +37,7 @@ export default class MetricUtil {
      * sequentially made page load O(N * perQueryLatency). With Promise.all
      * it becomes O(max(perQueryLatency)).
      */
-    const results: Array<AggregatedResult> = await Promise.all(
+    const rawResults: Array<AggregatedResult> = await Promise.all(
       metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
         return AnalyticsModelAPI.aggregate({
           modelType: Metric,
@@ -67,16 +69,57 @@ export default class MetricUtil {
       }),
     );
 
+    /*
+     * Convert each query's values from the metric's native unit
+     * (whatever OpenTelemetry reported in — e.g. bytes, seconds) into
+     * the unit the user configured on the query alias (e.g. GB, ms).
+     * This is what lets a formula like `mem_used + disk_free` — where
+     * both are configured as GB — operate on GB-scale numbers instead
+     * of raw bytes.
+     *
+     * Skipped silently when we don't know the native unit (MetricType
+     * missing) or when units are already the same / incompatible.
+     */
+    const metricTypes: Array<MetricType> =
+      data.metricTypes ??
+      (await MetricUtil.loadAllMetricsTypes({ includeAttributes: false }))
+        .metricTypes;
+
+    const nativeUnitsByMetricName: Map<string, string> = new Map<
+      string,
+      string
+    >();
+    for (const metricType of metricTypes) {
+      if (metricType.name && metricType.unit) {
+        nativeUnitsByMetricName.set(
+          metricType.name.toLowerCase(),
+          metricType.unit,
+        );
+      }
+    }
+
+    const results: Array<AggregatedResult> =
+      MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+        queryConfigs: metricViewData.queryConfigs,
+        results: rawResults,
+        nativeUnitByMetricName: nativeUnitsByMetricName,
+      });
+
+    /*
+     * Round to two decimal places for display. The old code used plain
+     * Math.round, but after unit conversion (bytes → GB) the interesting
+     * precision lives in the decimals — so keep two places.
+     */
     for (const result of results) {
       for (const row of result.data as Array<AggregatedModel>) {
-        if (row.value) {
-          row.value = Math.round(row.value);
+        if (typeof row.value === "number" && Number.isFinite(row.value)) {
+          row.value = Math.round(row.value * 100) / 100;
         }
       }
     }
 
     /*
-     * Evaluate formulas against the just-fetched query results. Each
+     * Evaluate formulas against the just-converted query results. Each
      * formula can reference prior formulas (e.g. formula B can use A),
      * so build up the result array incrementally and let downstream
      * formulas see earlier ones through MetricFormulaEvaluator.

@@ -36,10 +36,13 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricService from "Common/Server/Services/MetricService";
+import MetricTypeService from "Common/Server/Services/MetricTypeService";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -222,6 +225,56 @@ type MonitorTelemetryMonitorFunction = (data: {
   | ExceptionMonitorResponse
   | ProfileMonitorResponse
 >;
+
+/**
+ * Fetch the native unit (as reported by OpenTelemetry and stored in
+ * MetricType) for each metric name a query config references. Returned
+ * as a lowercase-keyed map so lookups are case-insensitive.
+ */
+const loadNativeUnitsByMetricName: (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  projectId: ObjectID;
+}) => Promise<Map<string, string>> = async (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  projectId: ObjectID;
+}): Promise<Map<string, string>> => {
+  const names: Set<string> = new Set<string>();
+  for (const queryConfig of input.queryConfigs) {
+    const name: string | undefined =
+      queryConfig.metricQueryData?.filterData?.metricName?.toString();
+    if (name) {
+      names.add(name);
+    }
+  }
+
+  if (names.size === 0) {
+    return new Map<string, string>();
+  }
+
+  const metricTypes: Array<MetricType> = await MetricTypeService.findBy({
+    query: {
+      projectId: input.projectId,
+      name: DatabaseQueryHelper.any(Array.from(names)),
+    },
+    select: {
+      name: true,
+      unit: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const unitsByName: Map<string, string> = new Map<string, string>();
+  for (const metricType of metricTypes) {
+    if (metricType.name && metricType.unit) {
+      unitsByName.set(metricType.name.toLowerCase(), metricType.unit);
+    }
+  }
+  return unitsByName;
+};
 
 /**
  * Evaluate all formulas and append their results to the aggregated
@@ -473,11 +526,31 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     finalResult.push(aggregatedResults);
   }
 
+  /*
+   * Convert each query's raw values from the metric's native unit
+   * (reported by OpenTelemetry) into the unit the user picked on the
+   * query's alias. This means formulas operate on values the user
+   * actually sees in the UI — e.g. "memory in GB + disk in GB" rather
+   * than silently summing bytes with kilobytes.
+   */
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
   const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
     queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
     formulaConfigs:
       metricMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: finalResult,
+    aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
   });
 
@@ -818,11 +891,24 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     }
   }
 
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
   const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
     queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
     formulaConfigs:
       kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: finalResult,
+    aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
   });
 
@@ -943,11 +1029,24 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     finalResult.push(aggregatedResults);
   }
 
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
   const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
     queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
     formulaConfigs:
       dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: finalResult,
+    aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
   });
 
