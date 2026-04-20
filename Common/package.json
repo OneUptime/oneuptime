@@ -94,7 +94,7 @@
     "cors": "^2.8.5",
     "cron-parser": "^4.8.1",
     "crypto-js": "^4.2.0",
-    "dompurify": "^3.3.2",
+    "dompurify": "^3.4.0",
     "dotenv": "^16.4.4",
     "ejs": "^3.1.10",
     "elkjs": "^0.10.0",
