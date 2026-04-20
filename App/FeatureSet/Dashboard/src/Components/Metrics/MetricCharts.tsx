@@ -22,6 +22,7 @@ import {
   ChartSeries,
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
@@ -367,6 +368,152 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       charts.push(chart);
 
       index++;
+    }
+
+    /*
+     * Render a chart for each formula, after the query charts. Results
+     * for formulas live at indices [queryConfigs.length, queryConfigs.length + formulaConfigs.length)
+     * in props.metricResults (Metrics.fetchResults appends them in order).
+     */
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      props.metricViewData.formulaConfigs || [];
+
+    for (
+      let formulaIndex: number = 0;
+      formulaIndex < formulaConfigs.length;
+      formulaIndex++
+    ) {
+      const formulaConfig: MetricFormulaConfigData =
+        formulaConfigs[formulaIndex]!;
+      const resultsIndex: number =
+        props.metricViewData.queryConfigs.length + formulaIndex;
+      const formulaResult: AggregatedResult | undefined =
+        props.metricResults[resultsIndex];
+
+      if (!formulaResult) {
+        continue;
+      }
+
+      const formulaExpression: string =
+        formulaConfig.metricFormulaData?.metricFormula || "";
+
+      const formulaChartSeries: Array<SeriesPoint> = [
+        {
+          seriesName:
+            formulaConfig.metricAliasData?.legend ||
+            formulaConfig.metricAliasData?.title ||
+            formulaExpression ||
+            "Formula",
+          data: formulaResult.data.map((point: AggregatedModel) => {
+            return {
+              x: OneUptimeDate.fromString(point.timestamp),
+              y: point.value,
+            };
+          }),
+        },
+      ];
+
+      let formulaChartType: ChartType;
+      if (formulaConfig.chartType === MetricChartType.BAR) {
+        formulaChartType = ChartType.BAR;
+      } else if (formulaConfig.chartType === MetricChartType.LINE) {
+        formulaChartType = ChartType.LINE;
+      } else {
+        formulaChartType = ChartType.AREA;
+      }
+
+      const formulaUnit: string =
+        formulaConfig.metricAliasData?.legendUnit || "";
+
+      const formulaReferenceLines: Array<ChartReferenceLineProps> = [];
+
+      if (
+        formulaConfig.warningThreshold !== undefined &&
+        formulaConfig.warningThreshold !== null
+      ) {
+        formulaReferenceLines.push({
+          value: formulaConfig.warningThreshold,
+          label: `Warning: ${ValueFormatter.formatValue(
+            formulaConfig.warningThreshold,
+            formulaUnit,
+          )}`,
+          color: "#f59e0b",
+        });
+      }
+
+      if (
+        formulaConfig.criticalThreshold !== undefined &&
+        formulaConfig.criticalThreshold !== null
+      ) {
+        formulaReferenceLines.push({
+          value: formulaConfig.criticalThreshold,
+          label: `Critical: ${ValueFormatter.formatValue(
+            formulaConfig.criticalThreshold,
+            formulaUnit,
+          )}`,
+          color: "#ef4444",
+        });
+      }
+
+      const formulaMetricInfo: ChartMetricInfo = {
+        metricName:
+          formulaConfig.metricAliasData?.title ||
+          formulaExpression ||
+          "Formula",
+        aggregationType: "Formula",
+        unit: formulaUnit,
+      };
+
+      const formulaChart: Chart = {
+        id: `formula-${formulaIndex}`,
+        type: formulaChartType,
+        title:
+          formulaConfig.metricAliasData?.title ||
+          `Formula: ${formulaExpression}`,
+        description:
+          formulaConfig.metricAliasData?.description ||
+          `Evaluates: ${formulaExpression}`,
+        metricInfo: formulaMetricInfo,
+        props: {
+          data: formulaChartSeries,
+          xAxis: {
+            legend: "Time",
+            options: {
+              type: getChartXAxisType(),
+              max:
+                props.metricViewData.startAndEndDate?.endValue ||
+                OneUptimeDate.getCurrentDate(),
+              min:
+                props.metricViewData.startAndEndDate?.startValue ||
+                OneUptimeDate.addRemoveHours(
+                  OneUptimeDate.getCurrentDate(),
+                  -1,
+                ),
+              aggregateType: XAxisAggregateType.Average,
+            },
+          },
+          yAxis: {
+            legend: formulaUnit,
+            options: {
+              type: YAxisType.Number,
+              formatter: (value: number) => {
+                return ValueFormatter.formatValue(value, formulaUnit);
+              },
+              precision: YAxisPrecision.NoDecimals,
+              max: "auto",
+              min: "auto",
+            },
+          },
+          curve: ChartCurve.MONOTONE,
+          sync: true,
+          referenceLines:
+            formulaReferenceLines.length > 0
+              ? formulaReferenceLines
+              : undefined,
+        },
+      };
+
+      charts.push(formulaChart);
     }
 
     return charts;

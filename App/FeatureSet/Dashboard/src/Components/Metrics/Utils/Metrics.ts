@@ -20,6 +20,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 
 export default class MetricUtil {
   public static async fetchResults(data: {
@@ -70,6 +72,41 @@ export default class MetricUtil {
         if (row.value) {
           row.value = Math.round(row.value);
         }
+      }
+    }
+
+    /*
+     * Evaluate formulas against the just-fetched query results. Each
+     * formula can reference prior formulas (e.g. formula B can use A),
+     * so build up the result array incrementally and let downstream
+     * formulas see earlier ones through MetricFormulaEvaluator.
+     */
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      metricViewData.formulaConfigs || [];
+
+    for (let index: number = 0; index < formulaConfigs.length; index++) {
+      const formulaConfig: MetricFormulaConfigData = formulaConfigs[index]!;
+      const formula: string =
+        formulaConfig.metricFormulaData?.metricFormula || "";
+
+      if (!formula.trim()) {
+        results.push({ data: [] });
+        continue;
+      }
+
+      try {
+        const formulaResult: AggregatedResult =
+          MetricFormulaEvaluator.evaluateFormula({
+            formula,
+            queryConfigs: metricViewData.queryConfigs,
+            formulaConfigs: formulaConfigs.slice(0, index),
+            results,
+          });
+        results.push(formulaResult);
+      } catch {
+        // Invalid formula — surface an empty series so the chart shows
+        // "No data" rather than breaking the whole fetch.
+        results.push({ data: [] });
       }
     }
 

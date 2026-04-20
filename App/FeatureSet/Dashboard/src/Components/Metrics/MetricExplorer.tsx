@@ -11,6 +11,7 @@ import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Dictionary from "Common/Types/Dictionary";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Text from "Common/Types/Text";
@@ -20,6 +21,9 @@ import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 const MetricExplorer: FunctionComponent = (): ReactElement => {
   const metricQueriesFromUrl: Array<MetricQueryFromUrl> =
     getMetricQueriesFromQuery();
+
+  const metricFormulasFromUrl: Array<MetricFormulaFromUrl> =
+    getMetricFormulasFromQuery();
 
   const defaultEndDate: Date = OneUptimeDate.getCurrentDate();
   const defaultStartDate: Date = OneUptimeDate.addRemoveHours(
@@ -60,6 +64,34 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
       },
     );
 
+  const initialFormulaConfigs: Array<MetricFormulaConfigData> =
+    metricFormulasFromUrl.map(
+      (
+        formula: MetricFormulaFromUrl,
+        index: number,
+      ): MetricFormulaConfigData => {
+        /*
+         * Default formula variable letters start after the queries so they
+         * don't collide with query aliases (a, b, ...).
+         */
+        const defaultVariable: string = Text.getLetterFromAByNumber(
+          initialQueryConfigs.length + index,
+        );
+        return {
+          metricAliasData: {
+            metricVariable: formula.variable || defaultVariable,
+            title: formula.alias?.title || "",
+            description: formula.alias?.description || "",
+            legend: formula.alias?.legend || "",
+            legendUnit: formula.alias?.legendUnit || "",
+          },
+          metricFormulaData: {
+            metricFormula: formula.formula,
+          },
+        };
+      },
+    );
+
   const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: initialTimeRange,
     queryConfigs:
@@ -83,7 +115,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               },
             },
           ],
-    formulaConfigs: [],
+    formulaConfigs: initialFormulaConfigs,
   });
 
   const lastSerializedStateRef: React.MutableRefObject<string> =
@@ -96,6 +128,11 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     const metricQueriesForUrl: Array<MetricQueryFromUrl> =
       metricQueriesFromState.filter(isMeaningfulMetricQuery);
 
+    const metricFormulasForUrl: Array<MetricFormulaFromUrl> =
+      buildMetricFormulasFromState(metricViewData).filter(
+        isMeaningfulMetricFormula,
+      );
+
     const startTimeValue: Date | undefined =
       metricViewData.startAndEndDate?.startValue;
     const endTimeValue: Date | undefined =
@@ -103,6 +140,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
     const serializedState: string = JSON.stringify({
       metricQueries: metricQueriesForUrl,
+      metricFormulas: metricFormulasForUrl,
       startTime: startTimeValue ? OneUptimeDate.toString(startTimeValue) : null,
       endTime: endTimeValue ? OneUptimeDate.toString(endTimeValue) : null,
     });
@@ -117,6 +155,12 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
       params.set("metricQueries", JSON.stringify(metricQueriesForUrl));
     } else {
       params.delete("metricQueries");
+    }
+
+    if (metricFormulasForUrl.length > 0) {
+      params.set("metricFormulas", JSON.stringify(metricFormulasForUrl));
+    } else {
+      params.delete("metricFormulas");
     }
 
     if (startTimeValue && endTimeValue) {
@@ -166,6 +210,12 @@ type MetricQueryAliasFromUrl = {
   description?: string;
   legend?: string;
   legendUnit?: string;
+};
+
+type MetricFormulaFromUrl = {
+  formula: string;
+  variable?: string;
+  alias?: MetricQueryAliasFromUrl;
 };
 
 function buildMetricQueriesFromState(
@@ -431,6 +481,87 @@ function getAggregationTypeFromValue(
   }
 
   return undefined;
+}
+
+function buildMetricFormulasFromState(
+  data: MetricViewData,
+): Array<MetricFormulaFromUrl> {
+  return data.formulaConfigs.map(
+    (config: MetricFormulaConfigData): MetricFormulaFromUrl => {
+      const alias: MetricQueryAliasFromUrl | undefined =
+        buildAliasFromMetricAliasData(config.metricAliasData);
+      return {
+        formula: config.metricFormulaData?.metricFormula || "",
+        ...(config.metricAliasData?.metricVariable
+          ? { variable: config.metricAliasData.metricVariable }
+          : {}),
+        ...(alias ? { alias } : {}),
+      };
+    },
+  );
+}
+
+function getMetricFormulasFromQuery(): Array<MetricFormulaFromUrl> {
+  const formulasParam: string | null =
+    Navigation.getQueryStringByName("metricFormulas");
+
+  if (!formulasParam) {
+    return [];
+  }
+
+  try {
+    const parsedValue: unknown = JSONFunctions.parse(formulasParam);
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    const formulas: Array<MetricFormulaFromUrl> = [];
+
+    for (const entry of parsedValue) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const entryRecord: Record<string, unknown> = entry as Record<
+        string,
+        unknown
+      >;
+
+      const formula: string =
+        typeof entryRecord["formula"] === "string"
+          ? (entryRecord["formula"] as string)
+          : "";
+
+      if (!formula) {
+        continue;
+      }
+
+      const variable: string | undefined =
+        typeof entryRecord["variable"] === "string"
+          ? (entryRecord["variable"] as string)
+          : undefined;
+
+      const alias: MetricQueryAliasFromUrl | undefined = sanitizeAlias(
+        entryRecord["alias"],
+        entryRecord,
+      );
+
+      formulas.push({
+        formula,
+        ...(variable ? { variable } : {}),
+        ...(alias ? { alias } : {}),
+      });
+    }
+
+    return formulas;
+  } catch {
+    return [];
+  }
+}
+
+function isMeaningfulMetricFormula(formula: MetricFormulaFromUrl): boolean {
+  return Boolean(formula.formula && formula.formula.trim());
 }
 
 function isMeaningfulMetricQuery(query: MetricQueryFromUrl): boolean {

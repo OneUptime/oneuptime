@@ -38,6 +38,9 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricService from "Common/Server/Services/MetricService";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Dictionary from "Common/Types/Dictionary";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorStepExceptionMonitor, {
@@ -219,6 +222,65 @@ type MonitorTelemetryMonitorFunction = (data: {
   | ExceptionMonitorResponse
   | ProfileMonitorResponse
 >;
+
+/**
+ * Evaluate all formulas and append their results to the aggregated
+ * results array, in the order they appear in formulaConfigs. Criteria
+ * evaluation (MetricMonitorCriteria) resolves formulas via
+ * `aliasIndex = queryConfigs.length + formulaIndex`, so preserving order
+ * is load-bearing.
+ */
+const appendFormulaResults: (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  aggregatedResults: Array<AggregatedResult>;
+  projectId: ObjectID;
+}) => Array<AggregatedResult> = (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  aggregatedResults: Array<AggregatedResult>;
+  projectId: ObjectID;
+}): Array<AggregatedResult> => {
+  const results: Array<AggregatedResult> = [...input.aggregatedResults];
+
+  for (
+    let index: number = 0;
+    index < (input.formulaConfigs || []).length;
+    index++
+  ) {
+    const formulaConfig: MetricFormulaConfigData = input.formulaConfigs[index]!;
+    const formula: string =
+      formulaConfig.metricFormulaData?.metricFormula || "";
+
+    if (!formula.trim()) {
+      results.push({ data: [] });
+      continue;
+    }
+
+    try {
+      const formulaResult: AggregatedResult =
+        MetricFormulaEvaluator.evaluateFormula({
+          formula,
+          queryConfigs: input.queryConfigs,
+          formulaConfigs: input.formulaConfigs.slice(0, index),
+          results,
+        });
+      results.push(formulaResult);
+    } catch (err) {
+      logger.error("Failed to evaluate metric formula", {
+        service: "workers",
+        projectId: input.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: input.projectId.toString(),
+      });
+      results.push({ data: [] });
+    }
+  }
+
+  return results;
+};
 
 const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorStep: MonitorStep;
@@ -411,11 +473,19 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     finalResult.push(aggregatedResults);
   }
 
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      metricMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: finalResult,
+    projectId: data.projectId,
+  });
+
   return {
     projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
-    metricResult: finalResult,
+    metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
   };
 };
@@ -748,11 +818,19 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     }
   }
 
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: finalResult,
+    projectId: data.projectId,
+  });
+
   return {
     projectId: data.projectId,
     metricViewConfig: kubernetesMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
-    metricResult: finalResult,
+    metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     kubernetesResourceBreakdown: kubernetesResourceBreakdown,
   };
@@ -865,11 +943,19 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     finalResult.push(aggregatedResults);
   }
 
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: finalResult,
+    projectId: data.projectId,
+  });
+
   return {
     projectId: data.projectId,
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
-    metricResult: finalResult,
+    metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
   };
 };
