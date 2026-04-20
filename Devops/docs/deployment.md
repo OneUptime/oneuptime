@@ -4,7 +4,7 @@
 
 -   Make sure test & pipeline passes
 -   Make sure all deployment jobs are deployed to staging and smoke test job passes.
--   Make sure all staging services are online. Check staging status page whcih will show you status of all the services.
+-   Make sure all staging services are online. Check staging status page which will show you status of all the services.
 -   Manually smoke test staging.
 -   Go to oneuptime.com/dashboard (production) and click About and copy the version number. You might need this incase of rollback.
 -   Montor status of all services by:

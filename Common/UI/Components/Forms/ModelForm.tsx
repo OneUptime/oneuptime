@@ -295,7 +295,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     fieldsToSet = await fetchDropdownOptions(fieldsToSet);
 
-    // if there are no fields to set, then show permission erorr. This is useful when there are no fields to show.
+    // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
       const field: ModelField<TBaseModel> | undefined = props.fields[0];
 
