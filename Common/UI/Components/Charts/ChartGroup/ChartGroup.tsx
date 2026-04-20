@@ -52,10 +52,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const [metricInfoModalChart, setMetricInfoModalChart] =
     useState<ChartMetricInfo | null>(null);
 
-  const isLastChart: (index: number) => boolean = (index: number): boolean => {
-    return index === props.charts.length - 1;
-  };
-
   type GetChartContentFunction = (chart: Chart, index: number) => ReactElement;
 
   const getChartContent: GetChartContentFunction = (
