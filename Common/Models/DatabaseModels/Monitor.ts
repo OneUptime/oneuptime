@@ -477,6 +477,7 @@ export default class Monitor extends BaseModel {
     title: "Monitor Type",
     description: "What is the type of this monitor? Website? API? etc.",
     example: "API",
+    canReadOnRelationQuery: true,
   })
   @Column({
     nullable: false,
@@ -602,6 +603,7 @@ export default class Monitor extends BaseModel {
     required: false,
     title: "Monitor Steps",
     description: "What would you like to monitor and what is the criteria?",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.JSON,
