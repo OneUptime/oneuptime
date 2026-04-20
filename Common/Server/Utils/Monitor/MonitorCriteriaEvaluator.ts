@@ -52,6 +52,8 @@ import MetricMonitorResponse, {
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricCriteriaContext, {
   MetricBreachingSample,
+  MetricComponent,
+  MetricComponentValue,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 
@@ -763,6 +765,24 @@ ${contextBlock}
       lines.push(`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
     }
 
+    /*
+     * For formulas, enumerate the underlying variables so the on-call
+     * engineer can trace `c = a + b` back to "a is container.cpu.time,
+     * b is container.memory.usage in bytes" without clicking away.
+     */
+    if (ctx.components && ctx.components.length > 0) {
+      const componentLines: Array<string> = ctx.components.map(
+        (component: MetricComponent) => {
+          const unitSuffix: string = component.unit
+            ? ` — unit: ${component.unit}`
+            : "";
+          const typeSuffix: string = component.isFormula ? " (formula)" : "";
+          return `  - \`${component.alias}\` = \`${component.name}\`${typeSuffix}${unitSuffix}`;
+        },
+      );
+      lines.push(`- Components:\n${componentLines.join("\n")}`);
+    }
+
     const filterKeys: Array<string> = Object.keys(ctx.filterAttributes || {});
     if (filterKeys.length > 0) {
       const filterLines: Array<string> = filterKeys.map((k: string) => {
@@ -799,6 +819,7 @@ ${contextBlock}
           unit: ctx.unit,
           metricName: ctx.metricName,
           alias: ctx.alias,
+          components: ctx.components || [],
         })}`,
       );
     }
@@ -833,6 +854,7 @@ ${contextBlock}
     unit: string | null;
     metricName: string;
     alias: string;
+    components: Array<MetricComponent>;
   }): string {
     const MAX_ROWS: number = 20;
 
@@ -860,11 +882,22 @@ ${contextBlock}
     const attrKeys: Array<string> = Array.from(attrKeySet);
 
     /*
-     * Columns are fixed up-front: Timestamp, Metric, Alias, Value, plus
-     * any per-sample group-by attributes. Metric and Alias are redundant
-     * for a single-criterion evaluation today, but they keep the table
-     * self-contained (useful when copy/pasting into Slack or tickets)
-     * and future-proof against multi-metric criteria.
+     * Escape pipe characters that could appear in the metric display
+     * name (formulas like "a | b" are unlikely but possible) so they
+     * don't break GitHub-flavored-markdown tables.
+     */
+    const escapeCell: (value: string) => string = (value: string): string => {
+      return value.replace(/\|/g, "\\|");
+    };
+
+    /*
+     * Column layout:
+     *   Timestamp | Metric | Alias | Value | <component_1> | ... | <attr_1> | ...
+     *
+     * The component columns let the reader see what each variable of a
+     * formula resolved to at the breach time — e.g. "when c = a + b
+     * breached 100, a was 55, b was 46". They are omitted for plain
+     * metric criteria.
      */
     const headerCells: Array<string> = [
       "Timestamp",
@@ -872,6 +905,14 @@ ${contextBlock}
       "Alias",
       "Value",
     ];
+
+    for (const component of input.components) {
+      const label: string = component.unit
+        ? `${component.alias} (${component.unit})`
+        : component.alias;
+      headerCells.push(label);
+    }
+
     headerCells.push(...attrKeys);
 
     const unitSuffix: string = input.unit ? ` ${input.unit}` : "";
@@ -882,15 +923,6 @@ ${contextBlock}
         return "---";
       })
       .join(" | ")} |`;
-
-    /*
-     * Escape pipe characters that could appear in the metric display
-     * name (formulas like "a | b" are unlikely but possible) so they
-     * don't break GitHub-flavored-markdown tables.
-     */
-    const escapeCell: (value: string) => string = (value: string): string => {
-      return value.replace(/\|/g, "\\|");
-    };
 
     const metricCell: string = `\`${escapeCell(input.metricName)}\``;
     const aliasCell: string = input.alias
@@ -906,6 +938,25 @@ ${contextBlock}
           aliasCell,
           `${MonitorCriteriaEvaluator.formatNumberForDisplay(s.value)}${unitSuffix}`,
         ];
+
+        for (const component of input.components) {
+          const match: MetricComponentValue | undefined = (
+            s.componentValues || []
+          ).find((cv: MetricComponentValue) => {
+            return cv.alias === component.alias;
+          });
+          if (match && typeof match.value === "number") {
+            const componentUnitSuffix: string = component.unit
+              ? ` ${component.unit}`
+              : "";
+            cells.push(
+              `${MonitorCriteriaEvaluator.formatNumberForDisplay(match.value)}${componentUnitSuffix}`,
+            );
+          } else {
+            cells.push("-");
+          }
+        }
+
         for (const k of attrKeys) {
           const v: unknown = (s.attributes as Record<string, unknown>)[k];
           cells.push(v === undefined || v === null ? "-" : String(v));

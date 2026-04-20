@@ -9,10 +9,12 @@ import {
   NoDataPolicy,
 } from "../../../../../Types/Monitor/CriteriaFilter";
 import MetricAliasData from "../../../../../Types/Metrics/MetricAliasData";
+import MetricFormulaConfigData from "../../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../../Types/Metrics/MetricQueryConfigData";
 import MetricQueryData from "../../../../../Types/Metrics/MetricQueryData";
 import MetricsViewConfig from "../../../../../Types/Metrics/MetricsViewConfig";
 import MetricMonitorResponse from "../../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricFormulaEvaluator from "../../../../../Utils/Metrics/MetricFormulaEvaluator";
 import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import RollingTime from "../../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -311,6 +313,158 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         return s.value;
       }),
     ).toEqual([120, 150, 200, 300]);
+  });
+
+  test("formula criteria populates components and per-sample component values", async () => {
+    // Build two query configs (a: ms, b: ms) and a formula c = a + b (ms).
+    const sharedTimestamps: Array<Date> = [
+      new Date("2026-04-20T11:00:00.000Z"),
+      new Date("2026-04-20T11:01:00.000Z"),
+    ];
+
+    const queryA: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "a",
+        title: "",
+        description: "",
+        legend: "",
+        legendUnit: "ms",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "request_latency",
+        },
+      } as unknown as MetricQueryData,
+    };
+
+    const queryB: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "b",
+        title: "",
+        description: "",
+        legend: "",
+        legendUnit: "ms",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "db_latency",
+        },
+      } as unknown as MetricQueryData,
+    };
+
+    const formulaC: MetricFormulaConfigData = {
+      metricAliasData: {
+        metricVariable: "c",
+        title: "",
+        description: "",
+        legend: "",
+        legendUnit: "ms",
+      },
+      metricFormulaData: {
+        metricFormula: "a + b",
+      },
+    };
+
+    const queryAResult: AggregatedResult = {
+      data: [
+        { timestamp: sharedTimestamps[0], value: 40 } as AggregateModel,
+        { timestamp: sharedTimestamps[1], value: 60 } as AggregateModel,
+      ],
+    };
+    const queryBResult: AggregatedResult = {
+      data: [
+        { timestamp: sharedTimestamps[0], value: 70 } as AggregateModel,
+        { timestamp: sharedTimestamps[1], value: 80 } as AggregateModel,
+      ],
+    };
+
+    // c = a + b, evaluated via the shared evaluator so the synthetic series
+    // matches the production code path exactly.
+    const formulaCResult: AggregatedResult =
+      MetricFormulaEvaluator.evaluateFormula({
+        formula: "a + b",
+        queryConfigs: [queryA, queryB],
+        formulaConfigs: [],
+        results: [queryAResult, queryBResult],
+      });
+
+    const metricViewConfig: MetricsViewConfig = {
+      queryConfigs: [queryA, queryB],
+      formulaConfigs: [formulaC],
+    };
+
+    const monitorStep: MonitorStep = new MonitorStep();
+    monitorStep.data = {
+      id: ObjectID.generate().toString(),
+      monitorCriteria: { data: undefined } as never,
+    } as unknown as MonitorStep["data"];
+    monitorStep.data!.metricMonitor = {
+      metricViewConfig,
+      rollingTime: RollingTime.Past1Minute,
+    };
+
+    const dataToProcess: MetricMonitorResponse = {
+      projectId: ObjectID.generate(),
+      metricResult: [queryAResult, queryBResult, formulaCResult],
+      metricViewConfig,
+      monitorId: ObjectID.generate(),
+    };
+
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "100",
+      metricMonitorOptions: {
+        metricAlias: "c",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+      criteriaFilter,
+      monitorStep,
+      dataToProcess,
+    });
+
+    const ctx: NonNullable<CriteriaFilter["metricCriteriaContext"]> =
+      criteriaFilter.metricCriteriaContext!;
+
+    expect(ctx.isFormula).toBe(true);
+    expect(ctx.formulaExpression).toBe("a + b");
+
+    // Components describe each formula variable with its source metric + unit.
+    expect(ctx.components).toBeDefined();
+    expect(ctx.components?.length).toBe(2);
+    expect(ctx.components?.[0]).toMatchObject({
+      alias: "a",
+      name: "request_latency",
+      unit: "ms",
+      isFormula: false,
+    });
+    expect(ctx.components?.[1]).toMatchObject({
+      alias: "b",
+      name: "db_latency",
+      unit: "ms",
+    });
+
+    // Both formula points breach > 100 (40+70=110, 60+80=140).
+    expect(ctx.breachingSamples?.length).toBe(2);
+    const first: NonNullable<typeof ctx.breachingSamples>[number] =
+      ctx.breachingSamples![0]!;
+    expect(first.value).toBe(110);
+    expect(first.componentValues).toBeDefined();
+    expect(first.componentValues).toEqual([
+      { alias: "a", value: 40 },
+      { alias: "b", value: 70 },
+    ]);
+
+    const second: NonNullable<typeof ctx.breachingSamples>[number] =
+      ctx.breachingSamples![1]!;
+    expect(second.value).toBe(140);
+    expect(second.componentValues).toEqual([
+      { alias: "a", value: 60 },
+      { alias: "b", value: 80 },
+    ]);
   });
 
   test("summarises Filter Conditions Met when more than 5 values breach", async () => {

@@ -141,6 +141,26 @@ export default class MetricFormulaEvaluator {
   }
 
   /**
+   * Return the set of variables referenced by a formula, preserving the
+   * order of first appearance. Variable names are lower-cased to match
+   * the evaluator's case-insensitive lookup. Invalid formulas return an
+   * empty list rather than throwing, so callers rendering UI don't have
+   * to add defensive try/catch.
+   */
+  public static getReferencedVariables(formula: string): Array<string> {
+    const trimmedFormula: string = (formula || "").trim();
+    if (!trimmedFormula) {
+      return [];
+    }
+    try {
+      const rpn: Array<Token> = MetricFormulaEvaluator.toRpn(trimmedFormula);
+      return MetricFormulaEvaluator.collectVariableNames(rpn);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Validate a formula's syntax without evaluating it. Returns `null`
    * when valid, otherwise a human-readable error message.
    */

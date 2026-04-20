@@ -4,7 +4,10 @@ import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConf
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
-import MetricCriteriaContext from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
+import MetricCriteriaContext, {
+  MetricComponent,
+  MetricComponentValue,
+} from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
@@ -18,6 +21,7 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
+import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvaluator";
 
 export default class MetricMonitorCriteria {
   @CaptureSpan()
@@ -115,6 +119,8 @@ export default class MetricMonitorCriteria {
         matchedFormula,
         metricAlias,
         criteriaFilter: input.criteriaFilter,
+        queryConfigs,
+        formulaConfigs,
       });
 
     input.criteriaFilter.metricCriteriaContext = metricContext;
@@ -210,7 +216,24 @@ export default class MetricMonitorCriteria {
       value: number;
       timestamp: Date;
       attributes: JSONObject;
+      componentValues?: Array<MetricComponentValue>;
     }> = [];
+
+    /*
+     * For formulas, precompute an index from ISO-timestamp → value for
+     * every component series so we can show what `a` and `b` were at
+     * the moment the formula breached, without re-walking the arrays
+     * inside the per-sample loop.
+     */
+    const componentValueLookup: Map<string, Map<string, number>> | null =
+      matchedFormula
+        ? MetricMonitorCriteria.buildComponentValueLookup({
+            components: metricContext.components || [],
+            queryConfigs,
+            formulaConfigs,
+            metricAggregatedResult,
+          })
+        : null;
 
     for (const sample of samples) {
       const convertedValue: number = convertToDisplayUnit(sample.value);
@@ -220,11 +243,26 @@ export default class MetricMonitorCriteria {
         input.criteriaFilter.filterType,
       );
       if (breaches) {
-        breachingSamples.push({
+        const entry: {
+          value: number;
+          timestamp: Date;
+          attributes: JSONObject;
+          componentValues?: Array<MetricComponentValue>;
+        } = {
           value: convertedValue,
           timestamp: sample.timestamp,
           attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
-        });
+        };
+
+        if (componentValueLookup && metricContext.components) {
+          entry.componentValues = MetricMonitorCriteria.resolveComponentValues({
+            timestamp: sample.timestamp,
+            components: metricContext.components,
+            lookup: componentValueLookup,
+          });
+        }
+
+        breachingSamples.push(entry);
       }
     }
 
@@ -236,6 +274,86 @@ export default class MetricMonitorCriteria {
     }
 
     return comparisonMessage;
+  }
+
+  private static buildComponentValueLookup(input: {
+    components: Array<MetricComponent>;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+    metricAggregatedResult: Array<AggregatedResult>;
+  }): Map<string, Map<string, number>> {
+    // Map of alias -> (isoTimestamp -> value)
+    const lookup: Map<string, Map<string, number>> = new Map();
+
+    for (const component of input.components) {
+      const queryIdx: number = input.queryConfigs.findIndex(
+        (q: MetricQueryConfigData) => {
+          return (
+            (q.metricAliasData?.metricVariable || "").toLowerCase() ===
+            component.alias
+          );
+        },
+      );
+
+      let resultIndex: number = -1;
+      if (queryIdx >= 0) {
+        resultIndex = queryIdx;
+      } else {
+        const formulaIdx: number = input.formulaConfigs.findIndex(
+          (fc: MetricFormulaConfigData) => {
+            return (
+              (fc.metricAliasData?.metricVariable || "").toLowerCase() ===
+              component.alias
+            );
+          },
+        );
+        if (formulaIdx >= 0) {
+          resultIndex = input.queryConfigs.length + formulaIdx;
+        }
+      }
+
+      if (resultIndex < 0) {
+        continue;
+      }
+
+      const series: AggregatedResult | undefined =
+        input.metricAggregatedResult[resultIndex];
+      if (!series) {
+        continue;
+      }
+
+      const timestampMap: Map<string, number> = new Map();
+      for (const row of series.data) {
+        const iso: string = MetricMonitorCriteria.toIsoTimestamp(row.timestamp);
+        timestampMap.set(iso, row.value);
+      }
+      lookup.set(component.alias, timestampMap);
+    }
+
+    return lookup;
+  }
+
+  private static resolveComponentValues(input: {
+    timestamp: Date | string;
+    components: Array<MetricComponent>;
+    lookup: Map<string, Map<string, number>>;
+  }): Array<MetricComponentValue> {
+    const iso: string = MetricMonitorCriteria.toIsoTimestamp(input.timestamp);
+    return input.components.map((component: MetricComponent) => {
+      const series: Map<string, number> | undefined = input.lookup.get(
+        component.alias,
+      );
+      const value: number | undefined = series ? series.get(iso) : undefined;
+      return {
+        alias: component.alias,
+        value: typeof value === "number" ? value : null,
+      };
+    });
+  }
+
+  private static toIsoTimestamp(value: Date | string): string {
+    const date: Date = value instanceof Date ? value : new Date(value);
+    return isNaN(date.getTime()) ? String(value) : date.toISOString();
   }
 
   private static sampleBreaches(
@@ -286,6 +404,8 @@ export default class MetricMonitorCriteria {
     matchedFormula: MetricFormulaConfigData | null;
     metricAlias: string;
     criteriaFilter: CriteriaFilter;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
   }): MetricCriteriaContext {
     const q: MetricQueryConfigData | null = input.matchedQuery;
     const f: MetricFormulaConfigData | null = input.matchedFormula;
@@ -315,6 +435,14 @@ export default class MetricMonitorCriteria {
       ? Object.keys(q.metricQueryData.groupBy as Record<string, unknown>)
       : [];
 
+    const components: Array<MetricComponent> | undefined = f
+      ? MetricMonitorCriteria.buildFormulaComponents({
+          formulaConfig: f,
+          queryConfigs: input.queryConfigs,
+          formulaConfigs: input.formulaConfigs,
+        })
+      : undefined;
+
     return {
       metricName,
       alias: input.metricAlias,
@@ -326,6 +454,81 @@ export default class MetricMonitorCriteria {
       groupBy,
       timeWindowMinutes:
         input.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes,
+      ...(components && components.length > 0 ? { components } : {}),
     };
+  }
+
+  /**
+   * Resolve the variables the formula references to their source
+   * query/formula definitions so the root cause can label each
+   * component column with its metric name and native unit.
+   */
+  private static buildFormulaComponents(input: {
+    formulaConfig: MetricFormulaConfigData;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+  }): Array<MetricComponent> {
+    const formula: string =
+      input.formulaConfig.metricFormulaData?.metricFormula || "";
+    const referenced: Array<string> =
+      MetricFormulaEvaluator.getReferencedVariables(formula);
+
+    const components: Array<MetricComponent> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const alias of referenced) {
+      const normalizedAlias: string = alias.toLowerCase();
+      if (seen.has(normalizedAlias)) {
+        continue;
+      }
+      seen.add(normalizedAlias);
+
+      const queryMatch: MetricQueryConfigData | undefined =
+        input.queryConfigs.find((q: MetricQueryConfigData) => {
+          return (
+            (q.metricAliasData?.metricVariable || "").toLowerCase() ===
+            normalizedAlias
+          );
+        });
+
+      if (queryMatch) {
+        const name: string =
+          (queryMatch.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined) ||
+          queryMatch.metricAliasData?.title ||
+          normalizedAlias;
+        components.push({
+          alias: normalizedAlias,
+          name,
+          unit: queryMatch.metricAliasData?.legendUnit || null,
+          isFormula: false,
+        });
+        continue;
+      }
+
+      const formulaMatch: MetricFormulaConfigData | undefined =
+        input.formulaConfigs.find((fc: MetricFormulaConfigData) => {
+          return (
+            (fc.metricAliasData?.metricVariable || "").toLowerCase() ===
+            normalizedAlias
+          );
+        });
+
+      if (formulaMatch) {
+        const name: string =
+          formulaMatch.metricAliasData?.title ||
+          formulaMatch.metricFormulaData?.metricFormula ||
+          normalizedAlias;
+        components.push({
+          alias: normalizedAlias,
+          name,
+          unit: formulaMatch.metricAliasData?.legendUnit || null,
+          isFormula: true,
+        });
+      }
+    }
+
+    return components;
   }
 }
