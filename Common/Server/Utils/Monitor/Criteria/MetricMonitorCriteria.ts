@@ -201,27 +201,38 @@ export default class MetricMonitorCriteria {
     }
 
     /*
-     * Identify which specific sample breached so we can surface its
-     * attributes (pod/host/etc.) and timestamp in the root cause. Record
-     * the sample's value in the display unit so the root-cause text
-     * matches the comparison message.
+     * Identify every sample that breached so the root cause can render a
+     * timestamp/value table instead of a giant one-line list, and keep a
+     * total count so we can say "N of M samples breached". Values are
+     * stored in the display unit so they match the comparison message.
      */
-    const breaching: AggregateModel | undefined = samples.find(
-      (s: AggregateModel) => {
-        return MetricMonitorCriteria.sampleBreaches(
-          convertToDisplayUnit(s.value),
-          threshold,
-          input.criteriaFilter.filterType,
-        );
-      },
-    );
+    const breachingSamples: Array<{
+      value: number;
+      timestamp: Date;
+      attributes: JSONObject;
+    }> = [];
 
-    if (breaching) {
-      metricContext.breachingSample = {
-        value: convertToDisplayUnit(breaching.value),
-        timestamp: breaching.timestamp,
-        attributes: MetricMonitorCriteria.extractLabelAttributes(breaching),
-      };
+    for (const sample of samples) {
+      const convertedValue: number = convertToDisplayUnit(sample.value);
+      const breaches: boolean = MetricMonitorCriteria.sampleBreaches(
+        convertedValue,
+        threshold,
+        input.criteriaFilter.filterType,
+      );
+      if (breaches) {
+        breachingSamples.push({
+          value: convertedValue,
+          timestamp: sample.timestamp,
+          attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
+        });
+      }
+    }
+
+    metricContext.totalSamplesInWindow = samples.length;
+
+    if (breachingSamples.length > 0) {
+      metricContext.breachingSample = breachingSamples[0];
+      metricContext.breachingSamples = breachingSamples;
     }
 
     return comparisonMessage;

@@ -18,4 +18,16 @@ export default interface MetricCriteriaContext {
   groupBy: Array<string>;
   timeWindowMinutes?: number | undefined;
   breachingSample?: MetricBreachingSample | undefined;
+  /**
+   * All samples in the evaluation window that breached the threshold,
+   * in chronological order. Used to render a table of timestamps and
+   * values on the incident root-cause page.
+   */
+  breachingSamples?: Array<MetricBreachingSample> | undefined;
+  /**
+   * Total number of samples considered during evaluation (including
+   * non-breaching ones), so the root cause can show "N of M samples
+   * breached" without re-querying.
+   */
+  totalSamplesInWindow?: number | undefined;
 }

@@ -649,11 +649,45 @@ export default class CompareCriteria {
     values: Array<number | boolean> | number | boolean | string,
   ): string {
     if (Array.isArray(values)) {
-      return values
+      /*
+       * For a small number of values, list them verbatim so the message
+       * reads naturally ("is 42, 55, 60"). For larger arrays, summarize
+       * — dumping 30+ numbers on one line makes the root cause unreadable
+       * and the detailed breakdown is shown in the Breaching Samples
+       * table below.
+       */
+      const MAX_INLINE: number = 5;
+
+      if (values.length <= MAX_INLINE) {
+        return values
+          .map((value: number | boolean) => {
+            return CompareCriteria.formatSingleValue(value);
+          })
+          .join(", ");
+      }
+
+      const numericValues: Array<number> = values.filter(
+        (value: number | boolean): value is number => {
+          return typeof value === "number" && Number.isFinite(value);
+        },
+      );
+
+      if (numericValues.length === values.length && numericValues.length > 0) {
+        const min: number = Math.min(...numericValues);
+        const max: number = Math.max(...numericValues);
+        return `${numericValues.length} samples between ${CompareCriteria.formatSingleValue(
+          min,
+        )} and ${CompareCriteria.formatSingleValue(max)}`;
+      }
+
+      // Fall back to a truncated list when not all values are numeric
+      const head: string = values
+        .slice(0, MAX_INLINE)
         .map((value: number | boolean) => {
           return CompareCriteria.formatSingleValue(value);
         })
         .join(", ");
+      return `${head}, … (${values.length} values total)`;
     }
 
     return CompareCriteria.formatSingleValue(values);

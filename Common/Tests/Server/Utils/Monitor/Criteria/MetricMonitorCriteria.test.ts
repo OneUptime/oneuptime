@@ -279,4 +279,64 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     );
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("sec");
   });
+
+  test("collects every breaching sample and totalSamplesInWindow", async () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "100",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputs> = buildInputs({
+      metricNativeUnit: "ms",
+      // 4 breach (>100), 1 does not
+      sampleValues: [120, 150, 80, 200, 300],
+      criteriaFilter,
+    });
+
+    await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
+
+    const ctx: NonNullable<CriteriaFilter["metricCriteriaContext"]> =
+      criteriaFilter.metricCriteriaContext!;
+
+    expect(ctx.totalSamplesInWindow).toBe(5);
+    expect(ctx.breachingSamples).toBeDefined();
+    expect(ctx.breachingSamples?.length).toBe(4);
+    expect(
+      ctx.breachingSamples?.map((s: { value: number }) => {
+        return s.value;
+      }),
+    ).toEqual([120, 150, 200, 300]);
+  });
+
+  test("summarises Filter Conditions Met when more than 5 values breach", async () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "100",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputs> = buildInputs({
+      metricNativeUnit: "ms",
+      sampleValues: [110, 120, 130, 140, 150, 160, 170, 180, 190, 200],
+      criteriaFilter,
+    });
+
+    const message: string | null =
+      await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
+
+    expect(message).toBeTruthy();
+    expect(message).toContain("10 samples between 110 and 200");
+    expect(message).toContain("greater than 100 ms");
+    // The raw comma-joined dump is no longer in the message
+    expect(message).not.toContain("110, 120, 130, 140, 150, 160");
+  });
 });

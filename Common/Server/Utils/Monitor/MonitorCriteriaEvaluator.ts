@@ -784,21 +784,21 @@ ${contextBlock}
 
     const sections: Array<string> = [`**Metric Details**\n${lines.join("\n")}`];
 
-    if (ctx.breachingSample) {
-      const s: MetricBreachingSample = ctx.breachingSample;
-      const sampleLines: Array<string> = [
-        `- Value: ${s.value}${ctx.unit ? ` ${ctx.unit}` : ""}`,
-        `- At: ${OneUptimeDate.toString(s.timestamp)}`,
-      ];
-      const attrKeys: Array<string> = Object.keys(s.attributes || {});
-      if (attrKeys.length > 0) {
-        const attrLines: Array<string> = attrKeys.map((k: string) => {
-          const v: unknown = (s.attributes as Record<string, unknown>)[k];
-          return `  - \`${k}\` = \`${String(v)}\``;
-        });
-        sampleLines.push(`- Series Attributes:\n${attrLines.join("\n")}`);
-      }
-      sections.push(`\n\n**Breaching Series**\n${sampleLines.join("\n")}`);
+    const breachingSamples: Array<MetricBreachingSample> =
+      ctx.breachingSamples && ctx.breachingSamples.length > 0
+        ? ctx.breachingSamples
+        : ctx.breachingSample
+          ? [ctx.breachingSample]
+          : [];
+
+    if (breachingSamples.length > 0) {
+      sections.push(
+        `\n\n${MonitorCriteriaEvaluator.formatBreachingSamplesSection({
+          samples: breachingSamples,
+          totalSamples: ctx.totalSamplesInWindow,
+          unit: ctx.unit,
+        })}`,
+      );
     }
 
     const deepLink: string | null =
@@ -812,6 +812,114 @@ ${contextBlock}
     }
 
     return sections.join("\n");
+  }
+
+  /**
+   * Build the **Breaching Samples** markdown section — a table of
+   * timestamps, values, and any group-by attributes. Caps the row count
+   * so a 30-minute window at 1-second granularity doesn't dump thousands
+   * of lines onto the root-cause page; the caller can always drill in
+   * via the metric explorer link.
+   */
+  private static formatBreachingSamplesSection(input: {
+    samples: Array<MetricBreachingSample>;
+    totalSamples?: number | undefined;
+    unit: string | null;
+  }): string {
+    const MAX_ROWS: number = 20;
+
+    // Sort chronologically and de-duplicate any accidental repeats
+    const sorted: Array<MetricBreachingSample> = [...input.samples].sort(
+      (a: MetricBreachingSample, b: MetricBreachingSample) => {
+        return (
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      },
+    );
+
+    const displayedSamples: Array<MetricBreachingSample> = sorted.slice(
+      0,
+      MAX_ROWS,
+    );
+
+    // Collect attribute keys that appear on any displayed sample
+    const attrKeySet: Set<string> = new Set<string>();
+    for (const s of displayedSamples) {
+      for (const k of Object.keys(s.attributes || {})) {
+        attrKeySet.add(k);
+      }
+    }
+    const attrKeys: Array<string> = Array.from(attrKeySet);
+
+    const headerCells: Array<string> = ["Timestamp", "Value"];
+    headerCells.push(...attrKeys);
+
+    const unitSuffix: string = input.unit ? ` ${input.unit}` : "";
+
+    const headerRow: string = `| ${headerCells.join(" | ")} |`;
+    const dividerRow: string = `| ${headerCells
+      .map(() => {
+        return "---";
+      })
+      .join(" | ")} |`;
+
+    const dataRows: Array<string> = displayedSamples.map(
+      (s: MetricBreachingSample) => {
+        const cells: Array<string> = [
+          OneUptimeDate.toString(new Date(s.timestamp)),
+          `${MonitorCriteriaEvaluator.formatNumberForDisplay(s.value)}${unitSuffix}`,
+        ];
+        for (const k of attrKeys) {
+          const v: unknown = (s.attributes as Record<string, unknown>)[k];
+          cells.push(v === undefined || v === null ? "-" : String(v));
+        }
+        return `| ${cells.join(" | ")} |`;
+      },
+    );
+
+    const lines: Array<string> = [
+      `**Breaching Samples**`,
+      MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
+        breachingCount: sorted.length,
+        totalSamples: input.totalSamples,
+      }),
+      "",
+      headerRow,
+      dividerRow,
+      ...dataRows,
+    ];
+
+    if (sorted.length > displayedSamples.length) {
+      lines.push(
+        `\n_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
+      );
+    }
+
+    return lines.join("\n");
+  }
+
+  private static formatBreachingSamplesSummary(input: {
+    breachingCount: number;
+    totalSamples?: number | undefined;
+  }): string {
+    if (
+      typeof input.totalSamples === "number" &&
+      input.totalSamples > 0 &&
+      input.totalSamples >= input.breachingCount
+    ) {
+      return `${input.breachingCount} of ${input.totalSamples} samples breached the threshold.`;
+    }
+    return `${input.breachingCount} sample${input.breachingCount === 1 ? "" : "s"} breached the threshold.`;
+  }
+
+  private static formatNumberForDisplay(value: number): string {
+    if (!Number.isFinite(value)) {
+      return String(value);
+    }
+    if (Number.isInteger(value)) {
+      return value.toString();
+    }
+    return Number(value.toFixed(2)).toString();
   }
 
   private static buildMetricExplorerDeepLink(input: {
