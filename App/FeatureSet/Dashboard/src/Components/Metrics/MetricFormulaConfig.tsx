@@ -123,7 +123,7 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div className="-ml-3 mt-5 -mb-2">
+      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
         <Button
           title={"Remove"}
           onClick={() => {

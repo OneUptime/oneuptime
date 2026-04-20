@@ -698,7 +698,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
             )}
 
             {/* Add metric / Add formula buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2">
               <Button
                 title="Add Metric"
                 buttonSize={ButtonSize.Small}
@@ -720,7 +720,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 title="Add Formula"
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
-                icon={IconProp.Code}
+                icon={IconProp.Calculator}
                 onClick={() => {
                   if (props.onChange) {
                     props.onChange({
@@ -744,7 +744,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         {!isMetricResultsLoading && !metricResultsError && (
           <div
-            className={props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4"}
+            className={
+              props.hideCardInCharts
+                ? "pt-4 mt-2 border-t border-gray-200"
+                : "grid grid-cols-1 gap-4"
+            }
           >
             <MetricCharts
               hideCard={props.hideCardInCharts}

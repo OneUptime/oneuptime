@@ -222,23 +222,23 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     return (
       <>
         {renderMetricInfoModal()}
-        <div className="space-y-0">
+        <div className="space-y-3">
           {props.charts.map((chart: Chart, index: number) => {
             return (
               <div
                 key={index}
-                className={`${!isLastChart(index) ? "border-b border-gray-100" : ""} ${props.chartCssClass || ""}`}
+                className={`bg-white ${props.chartCssClass || ""}`}
               >
-                <div className="px-1 pt-5 pb-4">
-                  <div className="mb-1">
+                <div className="px-5 pt-4 pb-4">
+                  <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-center">
-                      <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
+                      <h3 className="text-sm font-semibold text-gray-800 tracking-tight">
                         {chart.title}
                       </h3>
                       {getInfoIcon(chart)}
                     </div>
                     {chart.description && (
-                      <p className="mt-0.5 text-xs text-gray-400 hidden md:block">
+                      <p className="mt-1 text-xs text-gray-500 hidden md:block">
                         {chart.description}
                       </p>
                     )}

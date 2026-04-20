@@ -620,7 +620,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             <MetricView
               data={telemetryQuery.metricViewData}
               hideQueryElements={true}
-              chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
+              chartCssClass="rounded-lg border border-gray-200 shadow-sm"
               hideStartAndEndDate={true}
               onChange={(_data: MetricViewData) => {
                 // do nothing!
