@@ -152,7 +152,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
             let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
 
             /*
-             * if end date is mroe than the end date selected in the range, then
+             * if end date is more than the end date selected in the range, then
              * set the end date to the end date selected in the range
              */
             if (
