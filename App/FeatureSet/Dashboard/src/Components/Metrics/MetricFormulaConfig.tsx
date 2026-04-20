@@ -20,6 +20,14 @@ export interface ComponentProps {
   onRemove: () => void;
   availableVariables?: Array<string>;
   hideCard?: boolean | undefined;
+  /**
+   * Unit to seed the "Unit" dropdown with when this formula's inputs
+   * share a known unit family (e.g. time). Lets a formula like `$a + $b`
+   * — where both operands are in seconds — offer ms/sec/min/hours as
+   * display options. Falls back to a free-text input when the inputs
+   * don't share a recognized family.
+   */
+  unitFamilyBasedOn?: string | undefined;
 }
 
 const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
@@ -44,6 +52,7 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
           props.onDataChanged({ ...props.data, metricAliasData: data });
         }}
         isFormula={true}
+        unitFamilyBasedOn={props.unitFamilyBasedOn}
       />
       {props.data.metricFormulaData && (
         <MetricFormula

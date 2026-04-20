@@ -3,17 +3,51 @@ import Input from "Common/UI/Components/Input/Input";
 import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import MetricUnitUtil, { UnitOption } from "Common/Utils/MetricUnitUtil";
 
 export interface ComponentProps {
   data: MetricAliasData;
   isFormula: boolean;
   onDataChanged: (data: MetricAliasData) => void;
   hideVariableBadge?: boolean | undefined;
+  /**
+   * Native unit of the underlying metric (for queries) or the inferred
+   * unit family of the first referenced metric (for formulas). When this
+   * belongs to a known unit family (bytes/time/bits/%), the Unit field
+   * becomes a dropdown of compatible units; otherwise it falls back to a
+   * free-text input so uncommon units can still be labeled.
+   */
+  unitFamilyBasedOn?: string | undefined;
 }
 
 const MetricAlias: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const unitOptions: Array<UnitOption> = MetricUnitUtil.getCompatibleUnits(
+    props.unitFamilyBasedOn,
+  );
+
+  const hasUnitFamily: boolean = MetricUnitUtil.hasCompatibleUnitFamily(
+    props.unitFamilyBasedOn,
+  );
+
+  const canonicalCurrentUnit: string | undefined =
+    MetricUnitUtil.getCanonicalUnitValue(props.data.legendUnit) ||
+    props.data.legendUnit ||
+    undefined;
+
+  const selectedUnitOption: DropdownOption | undefined = unitOptions
+    .map((o: UnitOption): DropdownOption => {
+      return { value: o.value, label: o.label };
+    })
+    .find((o: DropdownOption) => {
+      return o.value === canonicalCurrentUnit;
+    });
+
   return (
     <Fragment>
       <div className="space-y-3">
@@ -100,17 +134,36 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Unit
             </label>
-            <Input
-              value={props.data.legendUnit}
-              onChange={(value: string) => {
-                return props.onDataChanged({
-                  ...props.data,
-                  metricVariable: props.data.metricVariable,
-                  legendUnit: value,
-                });
-              }}
-              placeholder="e.g. bytes, ms, %"
-            />
+            {hasUnitFamily && unitOptions.length > 0 ? (
+              <Dropdown
+                value={selectedUnitOption}
+                options={unitOptions.map((o: UnitOption): DropdownOption => {
+                  return { value: o.value, label: o.label };
+                })}
+                placeholder="Select unit"
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  return props.onDataChanged({
+                    ...props.data,
+                    metricVariable: props.data.metricVariable,
+                    legendUnit: value ? value.toString() : "",
+                  });
+                }}
+              />
+            ) : (
+              <Input
+                value={props.data.legendUnit}
+                onChange={(value: string) => {
+                  return props.onDataChanged({
+                    ...props.data,
+                    metricVariable: props.data.metricVariable,
+                    legendUnit: value,
+                  });
+                }}
+                placeholder="e.g. bytes, ms, %"
+              />
+            )}
           </div>
         </div>
       </div>

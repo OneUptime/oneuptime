@@ -1,4 +1,5 @@
 import MetricResultUnitConverter from "../../../Utils/Metrics/MetricResultUnitConverter";
+import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -163,6 +164,47 @@ describe("MetricResultUnitConverter", () => {
         return d.value;
       }),
     ).toEqual([1, 2.5, 10]);
+  });
+
+  test("formula respects the query's display unit (3600s metric → 1h → 2*a = 2)", () => {
+    /*
+     * Mirrors the scenario in the user-facing Metric Explorer: a metric
+     * stored in seconds, user picks "hours" from the unit dropdown, and
+     * writes a formula of `2 * $a`. Because MetricResultUnitConverter
+     * converts 3600s → 1h before the formula runs, `2 * $a` must
+     * evaluate to 2 (not 7200). This test protects that contract from
+     * future regressions across either layer.
+     */
+    const queryConfigs: Array<MetricQueryConfigData> = [
+      buildQueryConfig({
+        variable: "a",
+        metricName: "response.time",
+        legendUnit: "hours",
+      }),
+    ];
+    const rawResults: Array<AggregatedResult> = [buildResult([3600])];
+    const nativeUnits: Map<string, string> = new Map([
+      ["response.time", "seconds"],
+    ]);
+
+    const converted: Array<AggregatedResult> =
+      MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+        queryConfigs,
+        results: rawResults,
+        nativeUnitByMetricName: nativeUnits,
+      });
+
+    expect(converted[0]!.data[0]!.value).toBe(1);
+
+    const formulaResult: AggregatedResult =
+      MetricFormulaEvaluator.evaluateFormula({
+        formula: "2 * $a",
+        queryConfigs,
+        formulaConfigs: [],
+        results: converted,
+      });
+
+    expect(formulaResult.data[0]!.value).toBe(2);
   });
 
   test("passes values through across incompatible unit families", () => {

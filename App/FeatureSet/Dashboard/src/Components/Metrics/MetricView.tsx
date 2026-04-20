@@ -46,9 +46,17 @@ const getFetchRelevantState: (data: MetricViewData) => unknown = (
       : null,
     queryConfigs: data.queryConfigs.map(
       (queryConfig: MetricQueryConfigData) => {
+        /*
+         * legendUnit has to be in here: the raw values come back in the
+         * metric's native unit and only get rescaled to legendUnit inside
+         * the fetch. Without this, changing the Unit dropdown leaves the
+         * chart showing stale pre-conversion numbers until the user
+         * reloads.
+         */
         return {
           metricQueryData: queryConfig.metricQueryData,
           metricVariable: queryConfig.metricAliasData?.metricVariable,
+          legendUnit: queryConfig.metricAliasData?.legendUnit,
         };
       },
     ),
@@ -57,6 +65,7 @@ const getFetchRelevantState: (data: MetricViewData) => unknown = (
         return {
           formula: formulaConfig.metricFormulaData?.metricFormula,
           metricVariable: formulaConfig.metricAliasData?.metricVariable,
+          legendUnit: formulaConfig.metricAliasData?.legendUnit,
         };
       },
     ),
@@ -583,6 +592,75 @@ const MetricView: FunctionComponent<ComponentProps> = (
                       return v !== "";
                     });
 
+                    /*
+                     * Derive the formula's unit family from variables it
+                     * actually references in the formula string. Prefers a
+                     * referenced query's native unit (so the dropdown shows
+                     * the exact same family as its inputs); falls back to a
+                     * referenced formula's configured display unit. When
+                     * nothing shares a known family, MetricAlias falls back
+                     * to its free-text input.
+                     */
+                    const formulaString: string =
+                      formulaConfig.metricFormulaData?.metricFormula || "";
+                    const referencedVars: Array<string> = (
+                      formulaString.match(/\$?[A-Za-z_][A-Za-z0-9_]*/g) || []
+                    ).map((v: string) => {
+                      return v.replace(/^\$/, "").toLowerCase();
+                    });
+
+                    const formulaUnitFamilyBasedOn: string | undefined = (():
+                      | string
+                      | undefined => {
+                      for (const refVar of referencedVars) {
+                        const matchedQuery: MetricQueryConfigData | undefined =
+                          props.data.queryConfigs.find(
+                            (q: MetricQueryConfigData) => {
+                              return (
+                                (
+                                  q.metricAliasData?.metricVariable || ""
+                                ).toLowerCase() === refVar
+                              );
+                            },
+                          );
+                        if (matchedQuery) {
+                          const metricName: string | undefined =
+                            matchedQuery.metricQueryData?.filterData?.metricName?.toString();
+                          const matchedType: MetricType | undefined =
+                            metricTypes.find((m: MetricType) => {
+                              return m.name === metricName;
+                            });
+                          const candidate: string | undefined =
+                            matchedType?.unit ||
+                            matchedQuery.metricAliasData?.legendUnit ||
+                            undefined;
+                          if (candidate && candidate.trim()) {
+                            return candidate;
+                          }
+                        }
+                      }
+                      for (const refVar of referencedVars) {
+                        const matchedFormula:
+                          | MetricFormulaConfigData
+                          | undefined = props.data.formulaConfigs
+                          .slice(0, index)
+                          .find((f: MetricFormulaConfigData) => {
+                            return (
+                              (
+                                f.metricAliasData?.metricVariable || ""
+                              ).toLowerCase() === refVar
+                            );
+                          });
+                        const candidate: string | undefined =
+                          matchedFormula?.metricAliasData?.legendUnit ||
+                          undefined;
+                        if (candidate && candidate.trim()) {
+                          return candidate;
+                        }
+                      }
+                      return undefined;
+                    })();
+
                     return (
                       <MetricGraphConfig
                         key={index}
@@ -599,6 +677,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         }}
                         data={formulaConfig}
                         availableVariables={availableVariables}
+                        unitFamilyBasedOn={formulaUnitFamilyBasedOn}
                         hideCard={props.hideCardInQueryElements}
                         onRemove={() => {
                           const newGraphConfigs: Array<MetricFormulaConfigData> =
