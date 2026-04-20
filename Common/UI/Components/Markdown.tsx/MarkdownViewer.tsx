@@ -69,6 +69,16 @@ SyntaxHighlighter.registerLanguage("graphql", graphql);
 SyntaxHighlighter.registerLanguage("http", http);
 import mermaid from "mermaid";
 import DOMPurify from "dompurify";
+import OneUptimeDate from "../../../Types/Date";
+
+/*
+ * ISO 8601 timestamps produced by OneUptimeDate.toString() — the
+ * backend-generated root cause markdown inline-codes every timestamp so
+ * we can localize it here without needing a custom markdown plugin.
+ * Matches e.g. "2026-04-20T11:21:00.000Z" (Z-terminated, with ms).
+ */
+const ISO_8601_REGEX: RegExp =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
 
 // Initialize mermaid
 mermaid.initialize({
@@ -265,6 +275,44 @@ const CodeBlock: FunctionComponent<{
         codeTagProps={{ className: "font-mono" }}
       />
     </div>
+  );
+};
+
+/**
+ * Render an ISO 8601 timestamp in the viewer's local timezone, with the
+ * canonical UTC instant preserved in the `title` for hover/accessibility.
+ * Falls back to the raw string if the date fails to parse so we never
+ * render "Invalid Date" in a markdown cell.
+ */
+const LocalTime: FunctionComponent<{ isoValue: string }> = ({
+  isoValue,
+}: {
+  isoValue: string;
+}): ReactElement => {
+  const parsed: Date = new Date(isoValue);
+  if (isNaN(parsed.getTime())) {
+    return (
+      <code className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono">
+        {isoValue}
+      </code>
+    );
+  }
+
+  const localFormatted: string = OneUptimeDate.getDateAsLocalFormattedString(
+    parsed,
+    false,
+    true,
+    true,
+  );
+
+  return (
+    <time
+      dateTime={isoValue}
+      title={`${isoValue} (UTC)`}
+      className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono whitespace-nowrap"
+    >
+      {localFormatted}
+    </time>
   );
 };
 
@@ -494,6 +542,15 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                   rest={rest}
                 />
               );
+            }
+
+            /*
+             * Inline ISO 8601 timestamp → render in the viewer's local
+             * timezone. The backend emits every root-cause timestamp in
+             * this format precisely so it can be re-localized here.
+             */
+            if (ISO_8601_REGEX.test(content)) {
+              return <LocalTime isoValue={content} />;
             }
 
             // Inline code

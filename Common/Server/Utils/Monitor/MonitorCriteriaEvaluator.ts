@@ -797,6 +797,8 @@ ${contextBlock}
           samples: breachingSamples,
           totalSamples: ctx.totalSamplesInWindow,
           unit: ctx.unit,
+          metricName: ctx.metricName,
+          alias: ctx.alias,
         })}`,
       );
     }
@@ -820,11 +822,17 @@ ${contextBlock}
    * so a 30-minute window at 1-second granularity doesn't dump thousands
    * of lines onto the root-cause page; the caller can always drill in
    * via the metric explorer link.
+   *
+   * Timestamps are emitted as inline code wrapping ISO 8601 strings so
+   * the client-side markdown viewer can localize them to the viewer's
+   * timezone (without losing the canonical instant).
    */
   private static formatBreachingSamplesSection(input: {
     samples: Array<MetricBreachingSample>;
     totalSamples?: number | undefined;
     unit: string | null;
+    metricName: string;
+    alias: string;
   }): string {
     const MAX_ROWS: number = 20;
 
@@ -851,7 +859,19 @@ ${contextBlock}
     }
     const attrKeys: Array<string> = Array.from(attrKeySet);
 
-    const headerCells: Array<string> = ["Timestamp", "Value"];
+    /*
+     * Columns are fixed up-front: Timestamp, Metric, Alias, Value, plus
+     * any per-sample group-by attributes. Metric and Alias are redundant
+     * for a single-criterion evaluation today, but they keep the table
+     * self-contained (useful when copy/pasting into Slack or tickets)
+     * and future-proof against multi-metric criteria.
+     */
+    const headerCells: Array<string> = [
+      "Timestamp",
+      "Metric",
+      "Alias",
+      "Value",
+    ];
     headerCells.push(...attrKeys);
 
     const unitSuffix: string = input.unit ? ` ${input.unit}` : "";
@@ -863,10 +883,27 @@ ${contextBlock}
       })
       .join(" | ")} |`;
 
+    /*
+     * Escape pipe characters that could appear in the metric display
+     * name (formulas like "a | b" are unlikely but possible) so they
+     * don't break GitHub-flavored-markdown tables.
+     */
+    const escapeCell: (value: string) => string = (value: string): string => {
+      return value.replace(/\|/g, "\\|");
+    };
+
+    const metricCell: string = `\`${escapeCell(input.metricName)}\``;
+    const aliasCell: string = input.alias
+      ? `\`${escapeCell(input.alias)}\``
+      : "-";
+
     const dataRows: Array<string> = displayedSamples.map(
       (s: MetricBreachingSample) => {
+        const timestampIso: string = new Date(s.timestamp).toISOString();
         const cells: Array<string> = [
-          OneUptimeDate.toString(new Date(s.timestamp)),
+          `\`${timestampIso}\``,
+          metricCell,
+          aliasCell,
           `${MonitorCriteriaEvaluator.formatNumberForDisplay(s.value)}${unitSuffix}`,
         ];
         for (const k of attrKeys) {
