@@ -3,7 +3,13 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 
-const buildQueryConfig = (input: {
+type BuildQueryConfigFunction = (input: {
+  variable: string;
+  metricName: string;
+  legendUnit?: string;
+}) => MetricQueryConfigData;
+
+const buildQueryConfig: BuildQueryConfigFunction = (input: {
   variable: string;
   metricName: string;
   legendUnit?: string;
@@ -25,7 +31,11 @@ const buildQueryConfig = (input: {
   };
 };
 
-const buildResult = (values: Array<number>): AggregatedResult => {
+type BuildResultFunction = (values: Array<number>) => AggregatedResult;
+
+const buildResult: BuildResultFunction = (
+  values: Array<number>,
+): AggregatedResult => {
   return {
     data: values.map((v: number, index: number) => {
       return {
@@ -49,7 +59,9 @@ describe("MetricResultUnitConverter", () => {
       // 1 GB, 2 GB, 0.5 GB (expressed in bytes — OpenTelemetry's native)
       buildResult([1_000_000_000, 2_000_000_000, 500_000_000]),
     ];
-    const nativeUnits: Map<string, string> = new Map([["memory.usage", "bytes"]]);
+    const nativeUnits: Map<string, string> = new Map([
+      ["memory.usage", "bytes"],
+    ]);
 
     const out: Array<AggregatedResult> =
       MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -58,9 +70,11 @@ describe("MetricResultUnitConverter", () => {
         nativeUnitByMetricName: nativeUnits,
       });
 
-    expect(out[0]!.data.map((d: { value: number }) => d.value)).toEqual([
-      1, 2, 0.5,
-    ]);
+    expect(
+      out[0]!.data.map((d: { value: number }) => {
+        return d.value;
+      }),
+    ).toEqual([1, 2, 0.5]);
   });
 
   test("passes values through when legendUnit is empty", () => {
@@ -134,9 +148,7 @@ describe("MetricResultUnitConverter", () => {
         legendUnit: "sec",
       }),
     ];
-    const results: Array<AggregatedResult> = [
-      buildResult([1000, 2500, 10000]),
-    ];
+    const results: Array<AggregatedResult> = [buildResult([1000, 2500, 10000])];
     const nativeUnits: Map<string, string> = new Map([["request.time", "ms"]]);
 
     const out: Array<AggregatedResult> =
@@ -146,9 +158,11 @@ describe("MetricResultUnitConverter", () => {
         nativeUnitByMetricName: nativeUnits,
       });
 
-    expect(out[0]!.data.map((d: { value: number }) => d.value)).toEqual([
-      1, 2.5, 10,
-    ]);
+    expect(
+      out[0]!.data.map((d: { value: number }) => {
+        return d.value;
+      }),
+    ).toEqual([1, 2.5, 10]);
   });
 
   test("passes values through across incompatible unit families", () => {

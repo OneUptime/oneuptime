@@ -4,7 +4,11 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 
-const buildQueryConfig = (variable: string): MetricQueryConfigData => {
+type BuildQueryConfigFunction = (variable: string) => MetricQueryConfigData;
+
+const buildQueryConfig: BuildQueryConfigFunction = (
+  variable: string,
+): MetricQueryConfigData => {
   return {
     metricAliasData: {
       metricVariable: variable,
@@ -22,18 +26,20 @@ const buildQueryConfig = (variable: string): MetricQueryConfigData => {
   };
 };
 
-const buildResult = (
+type BuildResultFunction = (
+  points: Array<{ timestamp: string; value: number }>,
+) => AggregatedResult;
+
+const buildResult: BuildResultFunction = (
   points: Array<{ timestamp: string; value: number }>,
 ): AggregatedResult => {
   return {
-    data: points.map(
-      (point: { timestamp: string; value: number }) => {
-        return {
-          timestamp: new Date(point.timestamp),
-          value: point.value,
-        };
-      },
-    ),
+    data: points.map((point: { timestamp: string; value: number }) => {
+      return {
+        timestamp: new Date(point.timestamp),
+        value: point.value,
+      };
+    }),
   };
 };
 
@@ -62,9 +68,11 @@ describe("MetricFormulaEvaluator", () => {
         results,
       });
 
-      expect(output.data.map((p: { value: number }) => p.value)).toEqual([
-        11, 22,
-      ]);
+      expect(
+        output.data.map((p: { value: number }) => {
+          return p.value;
+        }),
+      ).toEqual([11, 22]);
     });
 
     test("supports $ prefix, numeric literals and precedence", () => {
@@ -73,12 +81,8 @@ describe("MetricFormulaEvaluator", () => {
         buildQueryConfig("b"),
       ];
       const results: Array<AggregatedResult> = [
-        buildResult([
-          { timestamp: "2024-01-01T00:00:00.000Z", value: 3 },
-        ]),
-        buildResult([
-          { timestamp: "2024-01-01T00:00:00.000Z", value: 4 },
-        ]),
+        buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 3 }]),
+        buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 4 }]),
       ];
 
       const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
@@ -96,9 +100,7 @@ describe("MetricFormulaEvaluator", () => {
         buildQueryConfig("a"),
       ];
       const results: Array<AggregatedResult> = [
-        buildResult([
-          { timestamp: "2024-01-01T00:00:00.000Z", value: 100 },
-        ]),
+        buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 100 }]),
       ];
 
       const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
@@ -185,22 +187,16 @@ describe("MetricFormulaEvaluator", () => {
       };
 
       const rawResults: Array<AggregatedResult> = [
-        buildResult([
-          { timestamp: "2024-01-01T00:00:00.000Z", value: 4 },
-        ]),
-        buildResult([
-          { timestamp: "2024-01-01T00:00:00.000Z", value: 6 },
-        ]),
+        buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 4 }]),
+        buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 6 }]),
       ];
 
-      const resultC: AggregatedResult = MetricFormulaEvaluator.evaluateFormula(
-        {
-          formula: formulaC.metricFormulaData.metricFormula,
-          queryConfigs,
-          formulaConfigs: [],
-          results: rawResults,
-        },
-      );
+      const resultC: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: formulaC.metricFormulaData.metricFormula,
+        queryConfigs,
+        formulaConfigs: [],
+        results: rawResults,
+      });
 
       const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
         formula: "c * 10",
@@ -229,9 +225,7 @@ describe("MetricFormulaEvaluator", () => {
           queryConfigs: [buildQueryConfig("a")],
           formulaConfigs: [],
           results: [
-            buildResult([
-              { timestamp: "2024-01-01T00:00:00.000Z", value: 1 },
-            ]),
+            buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 1 }]),
           ],
         });
       }).toThrow(/unknown variable/i);

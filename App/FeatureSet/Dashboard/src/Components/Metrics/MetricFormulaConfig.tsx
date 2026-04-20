@@ -65,9 +65,7 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
         >
           <Icon
             icon={
-              showDisplaySettings
-                ? IconProp.ChevronDown
-                : IconProp.ChevronRight
+              showDisplaySettings ? IconProp.ChevronDown : IconProp.ChevronRight
             }
             className="h-3 w-3"
           />

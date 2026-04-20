@@ -147,8 +147,10 @@ export default class MetricUtil {
           });
         results.push(formulaResult);
       } catch {
-        // Invalid formula — surface an empty series so the chart shows
-        // "No data" rather than breaking the whole fetch.
+        /*
+         * Invalid formula — surface an empty series so the chart shows
+         * "No data" rather than breaking the whole fetch.
+         */
         results.push({ data: [] });
       }
     }

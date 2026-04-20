@@ -89,11 +89,13 @@ export default class MetricFormulaEvaluator {
       }
     }
 
-    const timestampIndex: Map<string, Record<string, number>> =
-      MetricFormulaEvaluator.buildTimestampIndex(
-        referencedVariables,
-        variableResults,
-      );
+    const timestampIndex: Map<
+      string,
+      Record<string, number>
+    > = MetricFormulaEvaluator.buildTimestampIndex(
+      referencedVariables,
+      variableResults,
+    );
 
     const sortedTimestamps: Array<string> = Array.from(
       timestampIndex.keys(),
@@ -248,15 +250,15 @@ export default class MetricFormulaEvaluator {
       }
 
       for (const sample of series.data) {
-        const timestampKey: string =
-          MetricFormulaEvaluator.normalizeTimestamp(sample.timestamp);
+        const timestampKey: string = MetricFormulaEvaluator.normalizeTimestamp(
+          sample.timestamp,
+        );
 
         if (!index.has(timestampKey)) {
           index.set(timestampKey, {});
         }
 
-        const bucket: Record<string, number> =
-          index.get(timestampKey) || {};
+        const bucket: Record<string, number> = index.get(timestampKey) || {};
         bucket[variable] = sample.value;
       }
     }
@@ -314,7 +316,10 @@ export default class MetricFormulaEvaluator {
         let numberBuffer: string = "";
         while (
           position < expression.length &&
-          MetricFormulaEvaluator.isNumberChar(expression[position]!, numberBuffer)
+          MetricFormulaEvaluator.isNumberChar(
+            expression[position]!,
+            numberBuffer,
+          )
         ) {
           numberBuffer += expression[position];
           position++;
@@ -333,7 +338,10 @@ export default class MetricFormulaEvaluator {
         let numberBuffer: string = "";
         while (
           position < expression.length &&
-          MetricFormulaEvaluator.isNumberChar(expression[position]!, numberBuffer)
+          MetricFormulaEvaluator.isNumberChar(
+            expression[position]!,
+            numberBuffer,
+          )
         ) {
           numberBuffer += expression[position];
           position++;
@@ -507,7 +515,10 @@ export default class MetricFormulaEvaluator {
 
     while (operatorStack.length > 0) {
       const top: Token = operatorStack.pop()!;
-      if (top.type === TokenType.LeftParen || top.type === TokenType.RightParen) {
+      if (
+        top.type === TokenType.LeftParen ||
+        top.type === TokenType.RightParen
+      ) {
         throw new BadDataException("Mismatched parentheses in formula.");
       }
       output.push(top);

@@ -548,8 +548,7 @@ const monitorMetric: MonitorMetricFunction = async (data: {
 
   const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
     queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs:
-      metricMonitorConfig.metricViewConfig.formulaConfigs || [],
+    formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
   });
@@ -1044,8 +1043,7 @@ const monitorDocker: MonitorDockerFunction = async (data: {
 
   const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
     queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs:
-      dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
+    formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
   });

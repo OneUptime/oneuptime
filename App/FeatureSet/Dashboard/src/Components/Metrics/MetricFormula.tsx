@@ -79,8 +79,8 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
             <p className="mt-1 text-xs text-red-500">{validationError}</p>
           ) : (
             <p className="mt-1 text-xs text-gray-400">
-              Tip: reference variables with or without a leading "$" (e.g. "a +
-              b" or "$A + $B").
+              Tip: reference variables with or without a leading &quot;$&quot;
+              (e.g. &quot;a + b&quot; or &quot;$A + $B&quot;).
             </p>
           )}
         </div>

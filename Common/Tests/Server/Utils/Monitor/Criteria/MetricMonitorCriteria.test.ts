@@ -202,8 +202,10 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
   });
 
   test("thresholdUnit in an incompatible family falls back gracefully (no conversion)", async () => {
-    // User incorrectly picked 'MB' but metric is in ms. Conversion should
-    // no-op and comparison proceeds in the user's raw unit.
+    /*
+     * User incorrectly picked 'MB' but metric is in ms. Conversion should
+     * no-op and comparison proceeds in the user's raw unit.
+     */
     const criteriaFilter: CriteriaFilter = {
       checkOn: CheckOn.MetricValue,
       filterType: FilterType.GreaterThan,
@@ -224,8 +226,10 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     const message: string | null =
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
-    // No conversion possible, so the displayed unit/values use user's MB
-    // label but values are passed through.
+    /*
+     * No conversion possible, so the displayed unit/values use user's MB
+     * label but values are passed through.
+     */
     expect(message).toBeTruthy();
     expect(message).toContain("MB");
   });
@@ -378,8 +382,10 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       ],
     };
 
-    // c = a + b, evaluated via the shared evaluator so the synthetic series
-    // matches the production code path exactly.
+    /*
+     * c = a + b, evaluated via the shared evaluator so the synthetic series
+     * matches the production code path exactly.
+     */
     const formulaCResult: AggregatedResult =
       MetricFormulaEvaluator.evaluateFormula({
         formula: "a + b",

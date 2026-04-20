@@ -32,15 +32,7 @@ describe("MetricUnitUtil", () => {
           return o.value;
         },
       );
-      expect(values).toEqual([
-        "ns",
-        "µs",
-        "ms",
-        "sec",
-        "min",
-        "hours",
-        "days",
-      ]);
+      expect(values).toEqual(["ns", "µs", "ms", "sec", "min", "hours", "days"]);
     });
 
     test("returns time family for 's'", () => {
