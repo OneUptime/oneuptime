@@ -26,9 +26,9 @@ const TELEGRAM_BOT_TOKEN_PATTERN: RegExp = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
 // Telegram usernames are 5-32 chars, letters/digits/underscores, no leading digit.
 const TELEGRAM_BOT_USERNAME_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
 
-const validateBotToken: (
+const validateBotToken: (values: FormValues<GlobalConfig>) => string | null = (
   values: FormValues<GlobalConfig>,
-) => string | null = (values: FormValues<GlobalConfig>): string | null => {
+): string | null => {
   const value: string = String(values.telegramBotToken || "").trim();
   if (!value) {
     return "Bot token is required.";

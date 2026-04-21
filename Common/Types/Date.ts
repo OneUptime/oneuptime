@@ -1501,8 +1501,10 @@ export default class OneUptimeDate {
     timezone: Timezone,
     date?: string | Date | undefined,
   ): string {
-    // Pass the reference date into moment so the abbreviation reflects DST
-    // at that date (e.g. EST in winter, EDT in summer) rather than "now".
+    /*
+     * Pass the reference date into moment so the abbreviation reflects DST
+     * at that date (e.g. EST in winter, EDT in summer) rather than "now".
+     */
     let zoneAbbr: string = date
       ? moment(this.fromString(date)).tz(timezone).zoneAbbr()
       : moment.tz(timezone).zoneAbbr();

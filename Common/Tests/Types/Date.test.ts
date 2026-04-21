@@ -168,10 +168,7 @@ describe("class OneUptimeDate", () => {
         ),
       ).toBe("EST");
       expect(
-        OneUptimeDate.getZoneAbbrByTimezone(
-          Timezone.AmericaNew_York,
-          afterDst,
-        ),
+        OneUptimeDate.getZoneAbbrByTimezone(Timezone.AmericaNew_York, afterDst),
       ).toBe("EDT");
     });
 
