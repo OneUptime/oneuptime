@@ -4,6 +4,7 @@ import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormValues } from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -20,24 +21,57 @@ import URL from "Common/Types/API/URL";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 
+// Telegram bot tokens look like "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321".
+const TELEGRAM_BOT_TOKEN_PATTERN: RegExp = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
+// Telegram usernames are 5-32 chars, letters/digits/underscores, no leading digit.
+const TELEGRAM_BOT_USERNAME_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
+
+const validateBotToken: (
+  values: FormValues<GlobalConfig>,
+) => string | null = (values: FormValues<GlobalConfig>): string | null => {
+  const value: string = String(values.telegramBotToken || "").trim();
+  if (!value) {
+    return "Bot token is required.";
+  }
+  if (!TELEGRAM_BOT_TOKEN_PATTERN.test(value)) {
+    return "That doesn't look like a Telegram bot token. It should be the value @BotFather gave you — digits, a colon, then ~35 letters/digits (e.g. 123456789:ABCdef...). Don't paste the curl command here.";
+  }
+  return null;
+};
+
+const validateBotUsername: (
+  values: FormValues<GlobalConfig>,
+) => string | null = (values: FormValues<GlobalConfig>): string | null => {
+  const raw: string = String(values.telegramBotUsername || "").trim();
+  if (!raw) {
+    return "Bot username is required.";
+  }
+  const value: string = raw.replace(/^@/, "");
+  if (!TELEGRAM_BOT_USERNAME_PATTERN.test(value)) {
+    return "Enter the bot's Telegram username without the leading @. It must be 5-32 characters, start with a letter, and contain only letters, digits, and underscores.";
+  }
+  return null;
+};
+
 const buildTelegramSetupMarkdown: () => string = (): string => {
   const appApiBaseUrl: string = APP_API_URL.toString().replace(/\/$/, "");
   const webhookUrl: string = `${appApiBaseUrl}/notification/telegram/webhook`;
 
   return [
-    "Follow these steps to connect a Telegram bot with OneUptime so notifications can be delivered via Telegram.",
-    "",
-    "### Prerequisites",
-    "- A Telegram account.",
-    "- Ability to chat with [@BotFather](https://t.me/BotFather) on Telegram.",
+    "### What you'll need",
+    "- A Telegram account and access to [@BotFather](https://t.me/BotFather).",
     "- Admin access to OneUptime with permission to edit global notification settings.",
     "",
-    "### Setup Steps",
-    "1. Open Telegram and start a chat with [@BotFather](https://t.me/BotFather).",
-    "2. Send `/newbot` and follow the prompts to create a new bot. BotFather will return a **bot token** (something like `123456:ABC-DEF...`) and the bot's **username**.",
-    "3. Paste the **bot token** and **bot username** (without the leading `@`) into the **Telegram Bot Settings** card above. Save the form.",
-    "4. Pick a strong random string to use as a **Webhook Secret Token** and enter it in the form as well. This value will be sent back to OneUptime in the `X-Telegram-Bot-Api-Secret-Token` header so we can reject spoofed webhook calls.",
-    "5. Register the webhook with Telegram. Run the following (replace `<BOT_TOKEN>` and `<SECRET>` with the values you just saved):",
+    "### 1. Create a bot and grab its token",
+    "1. Open Telegram and chat with [@BotFather](https://t.me/BotFather).",
+    "2. Send `/newbot` and follow the prompts. BotFather will return two things:",
+    "   - A **bot token** that looks like `8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321` — this goes into the **Bot Token** field above.",
+    "   - A **bot username** ending in `bot` (for example, `OneUptimeAlertsBot`) — this goes into the **Bot Username** field above (without the leading `@`).",
+    "3. Pick a strong random string to use as your **Webhook Secret Token** and paste it into the third field. OneUptime sends this back to itself via `X-Telegram-Bot-Api-Secret-Token` so spoofed webhook calls get rejected.",
+    "4. Save the form.",
+    "",
+    "### 2. Register the webhook with Telegram",
+    "Run this command in a terminal (replace `<BOT_TOKEN>` and `<SECRET>` with the values you just saved). **Do not paste this command back into the form above — it belongs in your shell.**",
     "",
     "```bash",
     `curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \\`,
@@ -49,9 +83,12 @@ const buildTelegramSetupMarkdown: () => string = (): string => {
     "  }'",
     "```",
     "",
-    "6. Confirm the webhook is live with `curl https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo`. The `url` field should match the value above.",
-    "7. Ask users to open **User Settings → Notification Methods → Telegram** in the OneUptime dashboard. They'll scan a QR (or tap a deep link) to send `/start <code>` to your bot — that's how we capture their chat ID and mark the account verified.",
-    "8. Once verified, users can toggle Telegram in **Notification Settings** and include Telegram in any on-call notification rule.",
+    "Confirm the webhook is live with `curl https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo` — the `url` field should match the value above.",
+    "",
+    "### 3. Test end-to-end",
+    "1. Use the **Send Test Telegram Message** card below to confirm your bot can reach a chat. You can get your own chat ID by sending any message to [@userinfobot](https://t.me/userinfobot).",
+    "2. Ask users to open **User Settings → Notification Methods → Telegram** in the OneUptime dashboard. They'll scan a QR (or tap a deep link) to send `/start <code>` to your bot — that's how we capture their chat ID and mark the account verified.",
+    "3. Once verified, users can toggle Telegram in **Notification Settings** and include Telegram in any on-call notification rule.",
     "",
     "### Webhook endpoint",
     `- \`${webhookUrl}\``,
@@ -90,12 +127,19 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      <Card
+        title="Telegram Setup Guide"
+        description="Read this first — it's the quickest path from zero to a working Telegram bot hooked up to OneUptime."
+      >
+        <MarkdownViewer text={telegramSetupMarkdown} />
+      </Card>
+
       <CardModelDetail
         name="Telegram Bot Settings"
         cardProps={{
           title: "Telegram Bot Settings",
           description:
-            "Configure the Telegram bot credentials. These values are used to send Telegram notifications and to verify incoming webhook calls.",
+            "Paste the bot token and username @BotFather gave you. These power outbound notifications; the secret token guards the incoming webhook.",
         }}
         isEditable={true}
         editButtonText="Edit Telegram Config"
@@ -108,8 +152,14 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.EncryptedText,
             required: true,
             description:
-              "Bot token issued by @BotFather when you created the bot.",
-            placeholder: "123456:ABC-DEF...",
+              "The bot token @BotFather sent you — starts with digits, then a colon, then ~35 letters/digits. Not a URL, not a curl command.",
+            placeholder: "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321",
+            validation: {
+              minLength: 20,
+              maxLength: 200,
+              noSpaces: true,
+            },
+            customValidation: validateBotToken,
           },
           {
             field: {
@@ -119,8 +169,14 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Text,
             required: true,
             description:
-              "Your bot's Telegram username (without the leading @). Used to build verification deep links users click from the dashboard.",
+              "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.",
             placeholder: "OneUptimeAlertsBot",
+            validation: {
+              minLength: 5,
+              maxLength: 32,
+              noSpaces: true,
+            },
+            customValidation: validateBotUsername,
           },
           {
             field: {
@@ -130,8 +186,12 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
             description:
-              "Secret string passed to Telegram `setWebhook`. Telegram echoes it back on each call via the X-Telegram-Bot-Api-Secret-Token header.",
-            placeholder: "A strong random string",
+              "Any strong random string. OneUptime rejects webhook calls whose X-Telegram-Bot-Api-Secret-Token header does not match this value.",
+            placeholder: "e.g. a 32+ char random string",
+            validation: {
+              maxLength: 100,
+              noSpaces: true,
+            },
           },
         ]}
         modelDetailProps={{
@@ -256,13 +316,6 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
             }
           }}
         />
-      </Card>
-
-      <Card
-        title="Telegram Setup Guide"
-        description="Steps to connect a Telegram bot and register the webhook."
-      >
-        <MarkdownViewer text={telegramSetupMarkdown} />
       </Card>
     </Page>
   );
