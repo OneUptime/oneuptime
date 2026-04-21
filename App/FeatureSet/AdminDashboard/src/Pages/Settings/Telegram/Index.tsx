@@ -4,7 +4,7 @@ import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormValues } from "Common/UI/Components/Forms/Types/FormValues";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
