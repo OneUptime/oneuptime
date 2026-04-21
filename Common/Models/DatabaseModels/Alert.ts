@@ -18,6 +18,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableMCP from "../../Types/Database/EnableMCP";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -87,6 +88,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   update: true,
   read: true,
 })
+@EnableAuditLog()
 @TableMetadata({
   tableName: "Alert",
   singularName: "Alert",

@@ -30,6 +30,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
@@ -42,6 +43,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   update: true,
   read: true,
 })
+@EnableAuditLog()
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,

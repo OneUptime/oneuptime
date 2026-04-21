@@ -11,6 +11,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import ColorField from "../../Types/Database/ColorField";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
@@ -64,6 +65,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: true,
 })
+@EnableAuditLog()
 @CrudApiEndpoint(new Route("/label"))
 @SlugifyColumn("name", "slug")
 @TableMetadata({

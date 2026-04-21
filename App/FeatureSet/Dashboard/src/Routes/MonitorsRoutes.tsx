@@ -43,6 +43,7 @@ import MonitorViewOwner from "../Pages/Monitor/View/Owners";
 import MonitorViewSettings from "../Pages/Monitor/View/Settings";
 
 import MonitorViewNotificationLogs from "../Pages/Monitor/View/NotificationLogs";
+import MonitorViewAuditLogs from "../Pages/Monitor/View/AuditLogs";
 
 import MonitorCreate from "../Pages/Monitor/Create";
 
@@ -350,6 +351,16 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_AUDIT_LOGS)}
+          element={
+            <MonitorViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

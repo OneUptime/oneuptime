@@ -18,6 +18,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableMCP from "../../Types/Database/EnableMCP";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -85,6 +86,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
   update: true,
   read: true,
 })
+@EnableAuditLog()
 @CrudApiEndpoint(new Route("/status-page"))
 @SlugifyColumn("name", "slug")
 @Entity({

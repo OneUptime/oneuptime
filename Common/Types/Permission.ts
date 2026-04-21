@@ -21,6 +21,7 @@ export enum PermissionGroup {
   AIAgent = "AI Agent",
   Probe = "Probe",
   NotificationLog = "Notification Log",
+  AuditLog = "Audit Log",
 }
 
 export interface PermissionProps {
@@ -498,6 +499,8 @@ enum Permission {
   DeleteWorkflowLog = "DeleteWorkflowLog",
   EditWorkflowLog = "EditWorkflowLog",
   ReadWorkflowLog = "ReadWorkflowLog",
+
+  ReadAuditLog = "ReadAuditLog",
 
   CreateWorkflowVariable = "CreateWorkflowVariable",
   DeleteWorkflowVariable = "DeleteWorkflowVariable",
@@ -2664,6 +2667,16 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.ReadAuditLog,
+        title: "Read Audit Log",
+        description:
+          "This permission can read audit log records of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AuditLog,
       },
 
       {

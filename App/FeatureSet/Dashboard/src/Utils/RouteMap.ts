@@ -35,6 +35,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.MONITOR_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
+  [PageMap.MONITOR_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
 };
 
 export const ServiceRoutePath: Dictionary<string> = {
@@ -215,6 +216,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.STATUS_PAGE_VIEW_GROUPS]: `${RouteParams.ModelID}/groups`,
   [PageMap.STATUS_PAGE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.STATUS_PAGE_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
   [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: `${RouteParams.ModelID}/email-subscribers`,
@@ -300,6 +302,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
   [PageMap.INCIDENT_VIEW_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
   [PageMap.INCIDENT_VIEW_SLA]: `${RouteParams.ModelID}/sla`,
+  [PageMap.INCIDENT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
 };
 
 export const AlertsRoutePath: Dictionary<string> = {
@@ -382,6 +385,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
 
 export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DANGERZONE]: "danger-zone",
+  [PageMap.SETTINGS_AUDIT_LOGS]: "audit-logs",
+  [PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]: "audit-logs/settings",
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
@@ -651,6 +656,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_VIEW_NOTIFICATION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS]
+    }`,
+  ),
+
+  [PageMap.MONITOR_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -1161,6 +1172,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_SLA]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_SLA]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -1976,6 +1993,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]
@@ -2630,6 +2653,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_DANGERZONE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_DANGERZONE]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]
     }`,
   ),
 

@@ -772,6 +772,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         );
       }
 
+      if (
+        !createBy.props.ignoreHooks &&
+        this.getModel().enableAuditLogOn?.create
+      ) {
+        // Lazy require to avoid circular dependency between DatabaseService and
+        // AuditLogService (which depends on ProjectService/UserService).
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const auditLogService: {
+          recordCreate: (data: {
+            model: TBaseModel;
+            createdItem: TBaseModel;
+            props: DatabaseCommonInteractionProps;
+          }) => Promise<void>;
+        } = require("./AuditLogService").default;
+        await auditLogService.recordCreate({
+          model: this.getModel(),
+          createdItem: createBy.data,
+          props: createBy.props,
+        });
+      }
+
       return createBy.data;
     } catch (error) {
       await this.onCreateError(error as Exception);
@@ -1117,6 +1138,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as any)[this.getModel().getTenantColumn() as string] = true;
       }
 
+      // If audit logging on delete is enabled, fetch all scalar columns so we
+      // can record a full snapshot of the record before it is deleted.
+      if (this.getModel().enableAuditLogOn?.delete) {
+        const allColumns: Array<string> = this.getModel()
+          .getTableColumns()
+          .columns;
+        for (const columnName of allColumns) {
+          (select as any)[columnName] = true;
+        }
+      }
+
       const items: Array<TBaseModel> = await this._findBy({
         query: beforeDeleteBy.query,
         skip: beforeDeleteBy.skip.toNumber(),
@@ -1197,6 +1229,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return new ObjectID(i._id!);
           }),
         );
+      }
+
+      if (this.getModel().enableAuditLogOn?.delete && items.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const auditLogService: {
+          recordDelete: (args: {
+            model: TBaseModel;
+            deletedItem: TBaseModel;
+            itemId: ObjectID;
+            props: DatabaseCommonInteractionProps;
+          }) => Promise<void>;
+        } = require("./AuditLogService").default;
+        for (const item of items) {
+          if (item.id) {
+            await auditLogService.recordDelete({
+              model: this.getModel(),
+              deletedItem: item,
+              itemId: item.id,
+              props: deleteBy.props,
+            });
+          }
+        }
       }
 
       return numberOfDocsAffected;
@@ -1581,6 +1635,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               ModelEventType.Update,
             );
           }
+        }
+
+        if (
+          this.getModel().enableAuditLogOn?.update &&
+          !this.hasSameValues({ item, updatedItem }) &&
+          item.id
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const auditLogService: {
+            recordUpdate: (args: {
+              model: TBaseModel;
+              before: TBaseModel;
+              updatedFields: JSONObject;
+              itemId: ObjectID;
+              props: DatabaseCommonInteractionProps;
+            }) => Promise<void>;
+          } = require("./AuditLogService").default;
+          await auditLogService.recordUpdate({
+            model: this.getModel(),
+            before: item,
+            updatedFields: data as JSONObject,
+            itemId: item.id,
+            props: updateBy.props,
+          });
         }
       }
 

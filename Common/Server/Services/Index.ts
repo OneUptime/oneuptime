@@ -36,6 +36,7 @@ import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
 import LlmProviderService from "./LlmProviderService";
+import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
@@ -447,6 +448,7 @@ export const AnalyticsServices: Array<
   MonitorLogService,
   ProfileService,
   ProfileSampleService,
+  AuditLogService,
 ];
 
 export default services;

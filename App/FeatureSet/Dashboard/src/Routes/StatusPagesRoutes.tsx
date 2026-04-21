@@ -54,6 +54,7 @@ import AnnouncementViewNotificationLogs from "../Pages/StatusPages/Announcements
 import AnnouncementViewDelete from "../Pages/StatusPages/Announcements/View/Delete";
 
 import StatusPageViewNotificationLogs from "../Pages/StatusPages/View/NotificationLogs";
+import StatusPageViewAuditLogs from "../Pages/StatusPages/View/AuditLogs";
 
 // Settings Pages
 import StatusPagesSettingsAnnouncementTemplates from "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates";
@@ -284,6 +285,19 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPagesViewDelete
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <StatusPageViewAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

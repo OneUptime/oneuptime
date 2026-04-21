@@ -100,6 +100,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       },
       icon: IconProp.Bell,
     },
+    {
+      link: {
+        title: "Audit Logs",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_AUDIT_LOGS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.List,
+    },
   ];
 
   if (!isManualMonitor && !isTelemetryMonitor) {

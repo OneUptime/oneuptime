@@ -236,6 +236,29 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
+      title: "Audit Logs",
+      items: [
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
+        {
+          link: {
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
+      ],
+    },
+    {
       title: "Danger Zone",
       items: [
         {
