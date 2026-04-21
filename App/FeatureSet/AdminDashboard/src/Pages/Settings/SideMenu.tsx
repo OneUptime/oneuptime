@@ -59,6 +59,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.WhatsApp}
         />
+        <SideMenuItem
+          link={{
+            title: "Telegram",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEGRAM] as Route,
+            ),
+          }}
+          icon={IconProp.Telegram}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Monitoring">

@@ -270,6 +270,7 @@ enum Permission {
 
   ReadSmsLog = "ReadSmsLog",
   ReadWhatsAppLog = "ReadWhatsAppLog",
+  ReadTelegramLog = "ReadTelegramLog",
   ReadEmailLog = "ReadEmailLog",
   ReadCallLog = "ReadCallLog",
   ReadPushLog = "ReadPushLog",
@@ -4514,6 +4515,16 @@ export class PermissionHelper {
         permission: Permission.ReadWhatsAppLog,
         title: "Read WhatsApp Log",
         description: "This permission can read WhatsApp Log of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.NotificationLog,
+      },
+
+      {
+        permission: Permission.ReadTelegramLog,
+        title: "Read Telegram Log",
+        description: "This permission can read Telegram Log of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

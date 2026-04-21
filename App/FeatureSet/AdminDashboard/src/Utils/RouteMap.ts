@@ -29,6 +29,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_SMTP]: new Route(`/admin/settings/smtp`),
   [PageMap.SETTINGS_CALL_AND_SMS]: new Route(`/admin/settings/call-and-sms`),
   [PageMap.SETTINGS_WHATSAPP]: new Route(`/admin/settings/whatsapp`),
+  [PageMap.SETTINGS_TELEGRAM]: new Route(`/admin/settings/telegram`),
   [PageMap.SETTINGS_PROBES]: new Route(`/admin/settings/probes`),
   [PageMap.SETTINGS_AI_AGENTS]: new Route(`/admin/settings/ai-agents`),
   [PageMap.SETTINGS_LLM_PROVIDERS]: new Route(`/admin/settings/llm-providers`),

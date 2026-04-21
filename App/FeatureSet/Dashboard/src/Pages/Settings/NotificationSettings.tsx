@@ -40,7 +40,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Current Balance",
             description:
-              "Here is your current SMS, Call, and WhatsApp balance for this project.",
+              "Here is your current SMS, Call, WhatsApp, and Telegram balance for this project.",
             buttons: [
               {
                 title: "Recharge Balance",
@@ -63,9 +63,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   smsOrCallCurrentBalanceInUSDCents: true,
                 },
                 fieldType: FieldType.USDCents,
-                title: "SMS, Call, and WhatsApp Current Balance",
+                title: "SMS, Call, WhatsApp, and Telegram Current Balance",
                 description:
-                  "This is your current balance for SMS, Call, and WhatsApp. It is in USD. ",
+                  "This is your current balance for SMS, Call, WhatsApp, and Telegram. It is in USD. ",
                 placeholder: "0 USD",
               },
             ],
@@ -81,7 +81,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Enable Notifications",
           description:
-            "Enable Call, SMS, and WhatsApp notifications for this project.",
+            "Enable Call, SMS, WhatsApp, and Telegram notifications for this project.",
         }}
         isEditable={true}
         editButtonText="Edit Notification Settings"
@@ -103,6 +103,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Enable WhatsApp Notifications",
             description:
               "Enable WhatsApp notifications for this project. This will be used for alerting users via WhatsApp.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              enableTelegramNotifications: true,
+            },
+            title: "Enable Telegram Notifications",
+            description:
+              "Enable Telegram notifications for this project. Users link their Telegram account via our bot to receive alerts.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -140,6 +150,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               placeholder: "Not Enabled",
               description:
                 "Enable WhatsApp notifications for this project. This will be used for alerting users via WhatsApp.",
+            },
+            {
+              field: {
+                enableTelegramNotifications: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Telegram Notifications",
+              placeholder: "Not Enabled",
+              description:
+                "Enable Telegram notifications for this project. Users link their Telegram account via our bot to receive alerts.",
             },
             {
               field: {

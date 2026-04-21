@@ -14,9 +14,9 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Text from "../../Types/Text";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TenantColumn("projectId")
@@ -27,19 +27,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/user-notification-setting"))
+@CrudApiEndpoint(new Route("/user-telegram"))
 @Entity({
-  name: "UserNotificationSetting",
+  name: "UserTelegram",
 })
 @TableMetadata({
-  tableName: "UserNotificationSetting",
-  singularName: "Notification Setting",
-  pluralName: "Notification Settings",
-  icon: IconProp.Bell,
-  tableDescription: "Settings which will be used to send notifications.",
+  tableName: "UserTelegram",
+  singularName: "Telegram Account",
+  pluralName: "Telegram Accounts",
+  icon: IconProp.Telegram,
+  tableDescription: "Telegram accounts used for Telegram notifications.",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class UserNotificationSetting extends BaseModel {
+class UserTelegram extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -78,7 +78,6 @@ class UserNotificationSetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
-    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -93,20 +92,44 @@ class UserNotificationSetting extends BaseModel {
     update: [Permission.CurrentUser],
   })
   @TableColumn({
-    title: "Rule Type",
-    required: true,
+    title: "Telegram Handle",
+    required: false,
     unique: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    example: "Incident Created",
+    description:
+      "Optional Telegram username / handle (e.g. @alice) for your own reference.",
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     unique: false,
-    nullable: false,
+    nullable: true,
   })
-  public eventType?: NotificationSettingEventType = undefined;
+  public telegramUserHandle?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    title: "Telegram Chat ID",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: false,
+    description:
+      "Telegram chat ID captured from the OneUptime bot after verification. Populated automatically.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public telegramChatId?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -118,7 +141,7 @@ class UserNotificationSetting extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "User",
-    description: "Relation to User who this email belongs to",
+    description: "Relation to User who this Telegram account belongs to",
   })
   @ManyToOne(
     () => {
@@ -142,8 +165,7 @@ class UserNotificationSetting extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "User ID",
-    description: "User ID who this email belongs to",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
+    description: "User ID who this Telegram account belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -190,7 +212,6 @@ class UserNotificationSetting extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -237,7 +258,6 @@ class UserNotificationSetting extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -247,106 +267,46 @@ class UserNotificationSetting extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
+    title: "Is Verified",
+    description: "Is this Telegram account verified?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
-    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
     default: false,
   })
-  public alertByEmail?: boolean = undefined;
+  public isVerified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
+    title: "Verification Code",
+    description:
+      "Temporary Verification Code. The user sends /start <code> to the OneUptime bot to verify.",
     isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
+    computed: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    forceGetDefaultValueOnCreate: () => {
+      return Text.generateRandomNumber(6);
+    },
   })
   @Column({
-    type: ColumnType.Boolean,
-    default: false,
+    type: ColumnType.ShortText,
+    nullable: false,
+    length: ColumnLength.ShortText,
   })
-  public alertBySMS?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByWhatsApp?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByTelegram?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByCall?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByPush?: boolean = undefined;
+  public verificationCode?: string = undefined;
 }
 
-export default UserNotificationSetting;
+export default UserTelegram;

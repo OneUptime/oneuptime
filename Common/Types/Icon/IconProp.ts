@@ -141,6 +141,7 @@ enum IconProp {
   SquareStack3D = "SquareStack3D",
   ExclaimationCircle = "ExclaimationCircle",
   WhatsApp = "WhatsApp",
+  Telegram = "Telegram",
   Brain = "Brain",
   FlowDiagram = "FlowDiagram",
   GitHub = "GitHub",

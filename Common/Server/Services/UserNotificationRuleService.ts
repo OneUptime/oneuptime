@@ -9,6 +9,7 @@ import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
 import ShortLinkService from "./ShortLinkService";
 import SmsService from "./SmsService";
+import TelegramService from "./TelegramService";
 import WhatsAppService from "./WhatsAppService";
 import UserEmailService from "./UserEmailService";
 import UserOnCallLogService from "./UserOnCallLogService";
@@ -32,6 +33,7 @@ import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
+import TelegramMessage from "../../Types/Telegram/TelegramMessage";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
   renderWhatsAppTemplate,
@@ -74,6 +76,7 @@ export interface NotificationMethodDescriptor {
   userSmsId?: ObjectID;
   userCallId?: ObjectID;
   userWhatsAppId?: ObjectID;
+  userTelegramId?: ObjectID;
   userPushId?: ObjectID;
 }
 
@@ -163,6 +166,11 @@ export class Service extends DatabaseService<Model> {
         },
         userWhatsApp: {
           phone: true,
+          isVerified: true,
+        },
+        userTelegram: {
+          telegramChatId: true,
+          telegramUserHandle: true,
           isVerified: true,
         },
         userEmail: {
@@ -887,6 +895,181 @@ export class Service extends DatabaseService<Model> {
       logTimelineItem.status = UserNotificationStatus.Error;
       logTimelineItem.statusMessage = `WhatsApp message not sent because phone ${notificationRuleItem.userWhatsApp?.phone.toString()} is not verified.`;
       logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // send Telegram.
+    if (
+      notificationRuleItem.userTelegram?.telegramChatId &&
+      notificationRuleItem.userTelegram?.isVerified
+    ) {
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertCreated &&
+        alert
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending Telegram message.`;
+        logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const telegramMessage: TelegramMessage = {
+          to: notificationRuleItem.userTelegram.telegramChatId,
+          body: await this.generateTelegramBodyForAlertCreated(
+            alert,
+            updatedLog.id!,
+          ),
+          disableWebPagePreview: true,
+        };
+
+        TelegramService.sendTelegramMessage(telegramMessage, {
+          projectId: alert.projectId,
+          alertId: alert.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending Telegram message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
+        incident
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending Telegram message.`;
+        logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const telegramMessage: TelegramMessage = {
+          to: notificationRuleItem.userTelegram.telegramChatId,
+          body: await this.generateTelegramBodyForIncidentCreated(
+            incident,
+            updatedLog.id!,
+          ),
+          disableWebPagePreview: true,
+        };
+
+        TelegramService.sendTelegramMessage(telegramMessage, {
+          projectId: incident.projectId,
+          incidentId: incident.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending Telegram message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending Telegram message.`;
+        logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const telegramMessage: TelegramMessage = {
+          to: notificationRuleItem.userTelegram.telegramChatId,
+          body: await this.generateTelegramBodyForAlertEpisodeCreated(
+            alertEpisode,
+            updatedLog.id!,
+          ),
+          disableWebPagePreview: true,
+        };
+
+        TelegramService.sendTelegramMessage(telegramMessage, {
+          projectId: alertEpisode.projectId,
+          alertEpisodeId: alertEpisode.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending Telegram message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+    }
+
+    if (
+      notificationRuleItem.userTelegram &&
+      !notificationRuleItem.userTelegram?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `Telegram message not sent because the Telegram account is not verified.`;
+      logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -1680,6 +1863,76 @@ export class Service extends DatabaseService<Model> {
     return sms;
   }
 
+  private async buildOnCallAcknowledgeShortUrl(
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<URL> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+      new URL(
+        httpProtocol,
+        host,
+        new Route(AppApiRoute.toString())
+          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      ),
+    );
+    return await ShortLinkService.getShortenedUrl(shortUrl);
+  }
+
+  @CaptureSpan()
+  public async generateTelegramBodyForAlertCreated(
+    alert: Alert,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<string> {
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const alertIdentifier: string =
+      alert.alertNumber !== undefined
+        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title || "Alert"})`
+        : alert.title || "Alert";
+
+    return `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`;
+  }
+
+  @CaptureSpan()
+  public async generateTelegramBodyForIncidentCreated(
+    incident: Incident,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<string> {
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const incidentIdentifier: string =
+      incident.incidentNumber !== undefined
+        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title || "Incident"})`
+        : incident.title || "Incident";
+
+    return `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`;
+  }
+
+  @CaptureSpan()
+  public async generateTelegramBodyForAlertEpisodeCreated(
+    alertEpisode: AlertEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<string> {
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
+      ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
+      : alertEpisode.episodeNumber !== undefined
+        ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
+        : alertEpisode.title || "Alert Episode";
+
+    return `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, please click on the following link ${url.toString()}`;
+  }
+
   @CaptureSpan()
   public async generateWhatsAppTemplateForAlertCreated(
     to: Phone,
@@ -2288,12 +2541,14 @@ export class Service extends DatabaseService<Model> {
       !createBy.data.userSmsId &&
       !createBy.data.userWhatsApp &&
       !createBy.data.userWhatsAppId &&
+      !createBy.data.userTelegram &&
+      !createBy.data.userTelegramId &&
       !createBy.data.userEmailId &&
       !createBy.data.userPushId &&
       !createBy.data.userPush
     ) {
       throw new BadDataException(
-        "Call, SMS, WhatsApp, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Email, or Push notification is required",
       );
     }
 
@@ -2355,6 +2610,9 @@ export class Service extends DatabaseService<Model> {
     if (descriptor.userWhatsAppId) {
       rule.userWhatsAppId = descriptor.userWhatsAppId;
     }
+    if (descriptor.userTelegramId) {
+      rule.userTelegramId = descriptor.userTelegramId;
+    }
     if (descriptor.userPushId) {
       rule.userPushId = descriptor.userPushId;
     }
@@ -2375,6 +2633,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (descriptor.userWhatsAppId) {
       query["userWhatsAppId"] = descriptor.userWhatsAppId;
+    }
+    if (descriptor.userTelegramId) {
+      query["userTelegramId"] = descriptor.userTelegramId;
     }
     if (descriptor.userPushId) {
       query["userPushId"] = descriptor.userPushId;

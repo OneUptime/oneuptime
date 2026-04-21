@@ -6,10 +6,12 @@ import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import SmsService from "./SmsService";
 import TeamMemberService from "./TeamMemberService";
+import TelegramService from "./TelegramService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
 import PushNotificationService from "./PushNotificationService";
+import UserTelegramService from "./UserTelegramService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WhatsAppService from "./WhatsAppService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
@@ -21,6 +23,9 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { SMSMessage } from "../../Types/SMS/SMS";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import TelegramMessage, {
+  TelegramMessagePayload,
+} from "../../Types/Telegram/TelegramMessage";
 import WhatsAppMessage, {
   WhatsAppMessagePayload,
 } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -28,6 +33,7 @@ import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
+import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
@@ -47,6 +53,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
     whatsAppMessage: WhatsAppMessagePayload;
+    telegramMessage?: TelegramMessagePayload | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     alertEpisodeId?: ObjectID | undefined;
@@ -79,6 +86,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByEmail: true,
           alertBySMS: true,
           alertByWhatsApp: true,
+          alertByTelegram: true,
           alertByCall: true,
           alertByPush: true,
         },
@@ -216,6 +224,69 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               );
 
             WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+              projectId: data.projectId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              alertEpisodeId: data.alertEpisodeId,
+              incidentEpisodeId: data.incidentEpisodeId,
+              monitorId: data.monitorId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
+            }).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+        }
+      }
+
+      if (notificationSettings.alertByTelegram) {
+        const userTelegrams: Array<UserTelegram> =
+          await UserTelegramService.findBy({
+            query: {
+              userId: data.userId,
+              projectId: data.projectId,
+              isVerified: true,
+            },
+            select: {
+              telegramChatId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const telegramBody: string =
+          data.telegramMessage?.body || data.smsMessage.message || "";
+
+        if (!telegramBody) {
+          logger.warn(
+            "Skipping Telegram notification because message body is empty.",
+          );
+        } else {
+          for (const userTelegram of userTelegrams) {
+            if (!userTelegram.telegramChatId) {
+              continue;
+            }
+
+            const telegramMessage: TelegramMessage = {
+              to: userTelegram.telegramChatId,
+              body: telegramBody,
+              parseMode: data.telegramMessage?.parseMode,
+              disableWebPagePreview:
+                data.telegramMessage?.disableWebPagePreview ?? true,
+            };
+
+            TelegramService.sendTelegramMessage(telegramMessage, {
               projectId: data.projectId,
               incidentId: data.incidentId,
               alertId: data.alertId,

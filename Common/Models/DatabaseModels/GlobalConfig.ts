@@ -508,6 +508,62 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Telegram Bot Token",
+    description:
+      "Bot token issued by @BotFather for sending Telegram messages.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: true,
+  })
+  public telegramBotToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Telegram Bot Username",
+    description:
+      "Username of your OneUptime Telegram bot (without the leading @). Used to build verification deep links.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public telegramBotUsername?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Telegram Webhook Secret Token",
+    description:
+      "Secret token passed to Telegram setWebhook. Telegram sends it back in the X-Telegram-Bot-Api-Secret-Token header.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public telegramWebhookSecretToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.ShortText,
     title: "Email Server Type",
     description: "Email Server Type",

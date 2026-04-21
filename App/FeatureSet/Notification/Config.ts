@@ -324,6 +324,58 @@ export const WhatsAppTextDefaultCostInCents: number = process.env[
   ? parseInt(process.env["WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS"])
   : 0;
 
+export interface TelegramConfig {
+  botToken: string;
+  botUsername?: string | undefined;
+  webhookSecretToken?: string | undefined;
+}
+
+type GetTelegramConfigFunction = () => Promise<TelegramConfig>;
+
+export const getTelegramConfig: GetTelegramConfigFunction =
+  async (): Promise<TelegramConfig> => {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          telegramBotToken: true,
+          telegramBotUsername: true,
+          telegramWebhookSecretToken: true,
+        },
+      });
+
+    if (!globalConfig) {
+      throw new BadDataException("Global Config not found");
+    }
+
+    const botToken: string | undefined = globalConfig.telegramBotToken?.trim();
+
+    if (!botToken) {
+      throw new BadDataException(
+        "Telegram bot token not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    return {
+      botToken,
+      botUsername: globalConfig.telegramBotUsername?.trim() || undefined,
+      webhookSecretToken:
+        globalConfig.telegramWebhookSecretToken?.trim() || undefined,
+    };
+  };
+
+export const TelegramTextDefaultCostInCents: number = process.env[
+  "TELEGRAM_TEXT_DEFAULT_COST_IN_CENTS"
+]
+  ? parseInt(process.env["TELEGRAM_TEXT_DEFAULT_COST_IN_CENTS"])
+  : 0;
+
 export const CallHighRiskCostInCentsPerMinute: number = process.env[
   "CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE"
 ]
