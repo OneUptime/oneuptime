@@ -19,6 +19,7 @@ import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
+import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
@@ -2106,6 +2107,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WhatsAppLogAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new TelegramLogAPI().getRouter(),
     );
 
     app.use(
