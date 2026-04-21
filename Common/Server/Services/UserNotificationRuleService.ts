@@ -932,6 +932,7 @@ export class Service extends DatabaseService<Model> {
             alert,
             updatedLog.id!,
           ),
+          parseMode: "HTML",
           disableWebPagePreview: true,
         };
 
@@ -983,6 +984,7 @@ export class Service extends DatabaseService<Model> {
             incident,
             updatedLog.id!,
           ),
+          parseMode: "HTML",
           disableWebPagePreview: true,
         };
 
@@ -1034,6 +1036,7 @@ export class Service extends DatabaseService<Model> {
             alertEpisode,
             updatedLog.id!,
           ),
+          parseMode: "HTML",
           disableWebPagePreview: true,
         };
 
@@ -1881,21 +1884,56 @@ export class Service extends DatabaseService<Model> {
     return await ShortLinkService.getShortenedUrl(shortUrl);
   }
 
+  /*
+   * Telegram's HTML parse_mode supports <b>, <i>, <a>, <code>. Only <, >, and &
+   * need escaping inside those tags' text content.
+   */
+  private escapeTelegramHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   @CaptureSpan()
   public async generateTelegramBodyForAlertCreated(
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
 
     const alertIdentifier: string =
       alert.alertNumber !== undefined
-        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title || "Alert"})`
+        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} — ${alert.title || "Alert"}`
         : alert.title || "Alert";
 
-    return `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`;
+    const lines: Array<string> = [
+      "🚨 <b>New alert assigned to you</b>",
+      "",
+      `📋 <b>${this.escapeTelegramHtml(alertIdentifier)}</b>`,
+      "",
+      "👤 You're getting this because you're on call.",
+    ];
+
+    if (alert.projectId && alert.id) {
+      const dashboardUrl: URL = await AlertService.getAlertLinkInDashboard(
+        alert.projectId,
+        alert.id,
+      );
+      lines.push(
+        "",
+        `🔎 <a href="${this.escapeTelegramHtml(dashboardUrl.toString())}">View alert in OneUptime</a>`,
+      );
+    }
+
+    lines.push(
+      "",
+      `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+    );
+
+    return lines.join("\n");
   }
 
   @CaptureSpan()
@@ -1903,16 +1941,41 @@ export class Service extends DatabaseService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
 
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
-        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title || "Incident"})`
+        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} — ${incident.title || "Incident"}`
         : incident.title || "Incident";
 
-    return `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`;
+    const lines: Array<string> = [
+      "🔥 <b>New incident assigned to you</b>",
+      "",
+      `📋 <b>${this.escapeTelegramHtml(incidentIdentifier)}</b>`,
+      "",
+      "👤 You're getting this because you're on call.",
+    ];
+
+    if (incident.projectId && incident.id) {
+      const dashboardUrl: URL =
+        await IncidentService.getIncidentLinkInDashboard(
+          incident.projectId,
+          incident.id,
+        );
+      lines.push(
+        "",
+        `🔎 <a href="${this.escapeTelegramHtml(dashboardUrl.toString())}">View incident in OneUptime</a>`,
+      );
+    }
+
+    lines.push(
+      "",
+      `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+    );
+
+    return lines.join("\n");
   }
 
   @CaptureSpan()
@@ -1920,17 +1983,42 @@ export class Service extends DatabaseService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
     );
 
     const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
-      ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
+      ? `${alertEpisode.episodeNumberWithPrefix} — ${alertEpisode.title || "Alert Episode"}`
       : alertEpisode.episodeNumber !== undefined
-        ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
+        ? `#${alertEpisode.episodeNumber} — ${alertEpisode.title || "Alert Episode"}`
         : alertEpisode.title || "Alert Episode";
 
-    return `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, please click on the following link ${url.toString()}`;
+    const lines: Array<string> = [
+      "🔔 <b>New alert episode assigned to you</b>",
+      "",
+      `📋 <b>${this.escapeTelegramHtml(episodeIdentifier)}</b>`,
+      "",
+      "👤 You're getting this because you're on call.",
+    ];
+
+    if (alertEpisode.projectId && alertEpisode.id) {
+      const dashboardUrl: URL =
+        await AlertEpisodeService.getEpisodeLinkInDashboard(
+          alertEpisode.projectId,
+          alertEpisode.id,
+        );
+      lines.push(
+        "",
+        `🔎 <a href="${this.escapeTelegramHtml(dashboardUrl.toString())}">View alert episode in OneUptime</a>`,
+      );
+    }
+
+    lines.push(
+      "",
+      `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+    );
+
+    return lines.join("\n");
   }
 
   @CaptureSpan()

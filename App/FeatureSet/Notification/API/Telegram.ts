@@ -125,7 +125,14 @@ router.post(
 
       const message: TelegramMessage = {
         to: String(body["toChatId"]),
-        body: "This is a test Telegram notification from OneUptime.",
+        body: [
+          "🧪 <b>Test notification from OneUptime</b>",
+          "",
+          "✅ Your Telegram bot is wired up and can reach this chat.",
+          "",
+          "You'll receive alerts and on-call pages here once a OneUptime user has Telegram enabled in their notification rules.",
+        ].join("\n"),
+        parseMode: "HTML",
         disableWebPagePreview: true,
       };
 
@@ -208,7 +215,7 @@ router.post(
       if (!code) {
         await sendBotReply(
           chatId,
-          "Please provide a verification code: /start <code>. Open OneUptime → User Settings → Notification Methods → Telegram to grab your link.",
+          "ℹ️ Please include your verification code like this:\n\n/start <code>\n\nOpen OneUptime → User Settings → Notification Methods → Telegram to grab your link.",
         );
         return Response.sendEmptySuccessResponse(req, res);
       }
@@ -231,7 +238,7 @@ router.post(
       if (!match) {
         await sendBotReply(
           chatId,
-          "That verification code is invalid or expired. Please open OneUptime and request a new one.",
+          "❌ That verification code is invalid or expired. Please open OneUptime and request a new one.",
         );
         return Response.sendEmptySuccessResponse(req, res);
       }
@@ -239,7 +246,7 @@ router.post(
       if (match.isVerified) {
         await sendBotReply(
           chatId,
-          "This Telegram account is already linked to OneUptime.",
+          "✅ This Telegram account is already linked to OneUptime. You're all set.",
         );
         return Response.sendEmptySuccessResponse(req, res);
       }
@@ -271,7 +278,7 @@ router.post(
 
       await sendBotReply(
         chatId,
-        "Verified — you'll now receive OneUptime alerts here.",
+        "🎉 Verified! You'll now receive OneUptime alerts here.\n\n🔔 Head back to OneUptime to pick which events you want delivered.",
       );
 
       return Response.sendEmptySuccessResponse(req, res);

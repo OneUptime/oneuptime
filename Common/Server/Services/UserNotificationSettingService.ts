@@ -265,8 +265,51 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
           });
 
-        const telegramBody: string =
-          data.telegramMessage?.body || data.smsMessage.message || "";
+        /*
+         * When the caller did not provide a Telegram-specific message we build a
+         * nicely-formatted HTML body from the email subject + SMS body + optional
+         * URL from the email envelope, with a 🔔 prefix. If they did provide one,
+         * we respect their body/parseMode verbatim.
+         */
+        const callerProvidedTelegramBody: boolean = Boolean(
+          data.telegramMessage?.body,
+        );
+
+        const escapeHtml: (value: string) => string = (
+          value: string,
+        ): string => {
+          return value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        };
+
+        let telegramBody: string = "";
+        let telegramParseMode: TelegramMessage["parseMode"] | undefined =
+          undefined;
+
+        if (callerProvidedTelegramBody) {
+          telegramBody = data.telegramMessage!.body;
+          telegramParseMode = data.telegramMessage!.parseMode;
+        } else {
+          const subject: string = data.emailEnvelope.subject || "";
+          const smsBody: string = data.smsMessage.message || "";
+
+          if (subject || smsBody) {
+            const lines: Array<string> = [];
+            if (subject) {
+              lines.push(`🔔 <b>${escapeHtml(subject)}</b>`);
+            } else {
+              lines.push("🔔 <b>OneUptime notification</b>");
+            }
+            if (smsBody) {
+              lines.push("");
+              lines.push(escapeHtml(smsBody));
+            }
+            telegramBody = lines.join("\n");
+            telegramParseMode = "HTML";
+          }
+        }
 
         if (!telegramBody) {
           logger.warn(
@@ -281,7 +324,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             const telegramMessage: TelegramMessage = {
               to: userTelegram.telegramChatId,
               body: telegramBody,
-              parseMode: data.telegramMessage?.parseMode,
+              parseMode: telegramParseMode,
               disableWebPagePreview:
                 data.telegramMessage?.disableWebPagePreview ?? true,
             };
