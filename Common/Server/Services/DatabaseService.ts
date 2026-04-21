@@ -1587,6 +1587,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           true;
       }
 
+      // When audit logging on update is enabled, ensure the resource's display
+      // name is loaded on the `before` snapshot so the audit entry records the
+      // human-readable resource name even when the update doesn't touch it.
+      if (this.getModel().enableAuditLogOn?.update) {
+        const nameCandidates: ReadonlyArray<string> = [
+          "name",
+          "title",
+          "displayName",
+        ];
+        const modelColumns: Array<string> = this.getModel()
+          .getTableColumns()
+          .columns;
+        for (const candidate of nameCandidates) {
+          if (modelColumns.includes(candidate)) {
+            (selectColumns as any)[candidate] = true;
+          }
+        }
+      }
+
       const items: Array<TBaseModel> = await this._findBy({
         query: beforeUpdateBy.query,
         skip: updateBy.skip.toNumber(),

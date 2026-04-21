@@ -63,59 +63,6 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
   },
 };
 
-interface ActorBadge {
-  label: string;
-  icon: IconProp;
-  className: string;
-  iconColor: string;
-}
-
-const ACTOR_STYLES: { [key: string]: ActorBadge } = {
-  User: {
-    label: "User",
-    icon: IconProp.User,
-    className: "border-indigo-200 bg-indigo-50 text-indigo-700",
-    iconColor: "text-indigo-600",
-  },
-  API: {
-    label: "API Key",
-    icon: IconProp.Key,
-    className: "border-violet-200 bg-violet-50 text-violet-700",
-    iconColor: "text-violet-600",
-  },
-  MasterAdmin: {
-    label: "Master Admin",
-    icon: IconProp.ShieldCheck,
-    className: "border-amber-200 bg-amber-50 text-amber-700",
-    iconColor: "text-amber-600",
-  },
-  System: {
-    label: "System",
-    icon: IconProp.Cog6Tooth,
-    className: "border-gray-200 bg-gray-50 text-gray-700",
-    iconColor: "text-gray-600",
-  },
-  Automation: {
-    label: "Automation",
-    icon: IconProp.Workflow,
-    className: "border-teal-200 bg-teal-50 text-teal-700",
-    iconColor: "text-teal-600",
-  },
-  Public: {
-    label: "Public",
-    icon: IconProp.Globe,
-    className: "border-gray-200 bg-gray-50 text-gray-700",
-    iconColor: "text-gray-600",
-  },
-};
-
-const DEFAULT_ACTOR_STYLE: ActorBadge = {
-  label: "Unknown",
-  icon: IconProp.Help,
-  className: "border-gray-200 bg-gray-50 text-gray-600",
-  iconColor: "text-gray-500",
-};
-
 interface ResourceMeta {
   icon: IconProp;
   color: string;
@@ -363,11 +310,6 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             title: "User Email",
           },
           {
-            field: { userType: true },
-            type: FieldType.Text,
-            title: "Via (User / API / System)",
-          },
-          {
             field: { createdAt: true },
             type: FieldType.DateTime,
             title: "Time",
@@ -575,30 +517,6 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
                 </div>
-              );
-            },
-          },
-          {
-            field: { userType: true },
-            title: "Via",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: AuditLog): ReactElement => {
-              const style: ActorBadge =
-                ACTOR_STYLES[item.userType || ""] ||
-                DEFAULT_ACTOR_STYLE;
-              return (
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${style.className}`}
-                >
-                  <Icon
-                    icon={style.icon}
-                    size={SizeProp.Small}
-                    thick={ThickProp.Thick}
-                    className={`h-3 w-3 ${style.iconColor}`}
-                  />
-                  {style.label}
-                </span>
               );
             },
           },
