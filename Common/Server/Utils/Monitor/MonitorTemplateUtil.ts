@@ -183,16 +183,10 @@ export default class MonitorTemplateUtil {
         }
       }
 
-      if (
-        data.monitorType === MonitorType.SyntheticMonitor ||
-        data.monitorType === MonitorType.CustomJavaScriptCode
-      ) {
+      if (data.monitorType === MonitorType.CustomJavaScriptCode) {
         const customCodeResponse: CustomCodeMonitorResponse | undefined = (
           data.dataToProcess as ProbeMonitorResponse
         ).customCodeMonitorResponse;
-        const syntheticResponse: SyntheticMonitorResponse[] | undefined = (
-          data.dataToProcess as ProbeMonitorResponse
-        ).syntheticMonitorResponse;
 
         storageMap = {
           executionTimeInMs: customCodeResponse?.executionTimeInMS,
@@ -202,16 +196,33 @@ export default class MonitorTemplateUtil {
           failureCause: (data.dataToProcess as ProbeMonitorResponse)
             .failureCause,
         } as JSONObject;
+      }
 
-        // Add synthetic monitor specific fields if available
-        if (syntheticResponse && syntheticResponse.length > 0) {
-          const firstResponse: SyntheticMonitorResponse = syntheticResponse[0]!;
-          if (firstResponse) {
-            storageMap["screenshots"] = firstResponse.screenshots;
-            storageMap["browserType"] = firstResponse.browserType;
-            storageMap["screenSizeType"] = firstResponse.screenSizeType;
-          }
-        }
+      if (data.monitorType === MonitorType.SyntheticMonitor) {
+        const syntheticResponse: SyntheticMonitorResponse[] | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).syntheticMonitorResponse;
+
+        // Synthetic monitors run across multiple browser / screen-size combinations.
+        // Each run is exposed through the syntheticResponses array — use
+        // {{syntheticResponses[i].*}} or {{#each syntheticResponses}} in templates.
+        storageMap = {
+          syntheticResponses: (syntheticResponse || []).map(
+            (response: SyntheticMonitorResponse) => {
+              return {
+                executionTimeInMs: response.executionTimeInMS,
+                result: response.result,
+                scriptError: response.scriptError,
+                logMessages: response.logMessages || [],
+                screenshots: response.screenshots,
+                browserType: response.browserType,
+                screenSizeType: response.screenSizeType,
+              };
+            },
+          ),
+          failureCause: (data.dataToProcess as ProbeMonitorResponse)
+            .failureCause,
+        } as JSONObject;
       }
 
       if (data.monitorType === MonitorType.SNMP) {

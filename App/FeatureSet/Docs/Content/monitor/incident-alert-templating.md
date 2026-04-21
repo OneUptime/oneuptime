@@ -110,15 +110,19 @@ The following monitor types support dynamic templating with their respective var
 
 ### Synthetic Monitors
 
+Synthetic monitors run the same script across multiple browsers (Chromium, Firefox, Webkit) and screen sizes (mobile, tablet, desktop), producing one response per configuration. Each run is exposed through the `syntheticResponses` array — access a specific run by index (`{{syntheticResponses[0].browserType}}`) or iterate with `{{#each syntheticResponses}}`.
+
 | Variable | Description | Type |
 | --- | --- | --- |
-| `executionTimeInMs` | The time taken to execute the synthetic monitor script in milliseconds. | `number` |
-| `result` | The result returned by the synthetic monitor script. | `string`, `number`, `boolean`, or `JSON` |
-| `scriptError` | Any error that occurred during script execution. | `string` |
-| `logMessages` | Array of log messages generated during execution. | `Array<string>` |
-| `screenshots` | Base64 encoded screenshots taken during execution. | `Object` |
-| `browserType` | The browser type used for the synthetic monitor. | `string` |
-| `screenSizeType` | The screen size type used for the synthetic monitor. | `string` |
+| `failureCause` | The reason for failure if the synthetic check failed. | `string` |
+| `syntheticResponses` | Array containing one entry per browser / screen-size combination the script ran against. | `Array<Object>` |
+| `syntheticResponses[].executionTimeInMs` | Execution time in milliseconds for this run. | `number` |
+| `syntheticResponses[].result` | The result returned by this run. | `string`, `number`, `boolean`, or `JSON` |
+| `syntheticResponses[].scriptError` | Any error that occurred during this run. | `string` |
+| `syntheticResponses[].logMessages` | Log messages generated during this run. | `Array<string>` |
+| `syntheticResponses[].screenshots` | Screenshots captured during this run. | `Object` |
+| `syntheticResponses[].browserType` | Browser used for this run. | `string` |
+| `syntheticResponses[].screenSizeType` | Screen size used for this run. | `string` |
 
 ### Custom JavaScript Code Monitors
 
@@ -323,10 +327,21 @@ Failure cause: {{failureCause}}
 ```
 
 ### Synthetic Monitor Alert
+
+Access a specific browser / screen-size run by index:
 ```
-Script execution completed in {{executionTimeInMs}}ms
-Result: {{result}}
-Browser: {{browserType}} ({{screenSizeType}})
+First run: {{syntheticResponses[0].browserType}} / {{syntheticResponses[0].screenSizeType}}
+Result: {{syntheticResponses[0].result}} in {{syntheticResponses[0].executionTimeInMs}}ms
+```
+
+Iterate over every browser / screen-size combination with `{{#each}}`:
+```
+### Synthetic Monitor Results
+{{#each syntheticResponses}}
+- **{{browserType}} / {{screenSizeType}}**: {{result}} in {{executionTimeInMs}}ms
+  - Script error: {{scriptError}}
+  - First log: {{logMessages[0]}}
+{{/each}}
 ```
 
 ### Custom Code Monitor Alert
