@@ -203,9 +203,11 @@ export default class MonitorTemplateUtil {
           data.dataToProcess as ProbeMonitorResponse
         ).syntheticMonitorResponse;
 
-        // Synthetic monitors run across multiple browser / screen-size combinations.
-        // Each run is exposed through the syntheticResponses array — use
-        // {{syntheticResponses[i].*}} or {{#each syntheticResponses}} in templates.
+        /*
+         * Synthetic monitors run across multiple browser / screen-size combinations.
+         * Each run is exposed through the syntheticResponses array — use
+         * {{syntheticResponses[i].*}} or {{#each syntheticResponses}} in templates.
+         */
         storageMap = {
           syntheticResponses: (syntheticResponse || []).map(
             (response: SyntheticMonitorResponse) => {
