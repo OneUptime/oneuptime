@@ -1,4 +1,3 @@
-import Input, { InputType } from "../Input/Input";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -195,25 +194,26 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
       {!valuelessOperator && (
         <div className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}>
           <div className="flex-1 min-w-0">
-            <Input
-              onChange={(changed: string | Date) => {
-                apply({ ...state, value: (changed || "").toString() });
+            <input
+              type="number"
+              value={state.value}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                apply({ ...state, value: e.target.value });
               }}
-              initialValue={state.value}
               placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
-              type={InputType.NUMBER}
-              outerDivClassName="relative rounded-md w-full"
+              className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </div>
           {isBetween && (
             <div className="flex-1 min-w-0">
-              <Input
-                onChange={(changed: string | Date) => {
-                  apply({ ...state, endValue: (changed || "").toString() });
+              <input
+                type="number"
+                value={state.endValue}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  apply({ ...state, endValue: e.target.value });
                 }}
-                initialValue={state.endValue}
                 placeholder="To"
-                type={InputType.NUMBER}
+                className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
             </div>
           )}

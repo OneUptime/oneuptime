@@ -165,13 +165,12 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
     if (data.filter.type === FieldType.Boolean) {
       filterText = (
-        <div>
-          {" "}
+        <span>
           <span className="font-medium">{data.filter.title}</span> is{" "}
           <span className="font-medium">
             {data.filterData[data.filter.key] ? "Yes" : "No"}
-          </span>{" "}
-        </div>
+          </span>
+        </span>
       );
       return filterText;
     }
@@ -197,25 +196,25 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         display: string,
       ): ReactElement => {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> {verb}{" "}
             <span className="font-medium">{display}</span>
-          </div>
+          </span>
         );
       };
 
       if (value instanceof IsNull) {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> is empty
-          </div>
+          </span>
         );
       }
       if (value instanceof NotNull) {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> is not empty
-          </div>
+          </span>
         );
       }
       if (value instanceof Search) {
@@ -286,25 +285,25 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         display: string,
       ): ReactElement => {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> {verb}{" "}
             <span className="font-medium">{display}</span>
-          </div>
+          </span>
         );
       };
 
       if (value instanceof IsNull) {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> is empty
-          </div>
+          </span>
         );
       }
       if (value instanceof NotNull) {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> is not empty
-          </div>
+          </span>
         );
       }
       if (value instanceof InBetween) {
@@ -343,14 +342,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const isPlural: boolean = Object.keys(json).length > 1;
 
       return (
-        <div className="flex space-x-1">
-          {" "}
-          <div className="font-medium">{data.filter.title}</div>{" "}
-          <div>
-            {isPlural ? "are" : "is"} {""}
-          </div>
-          <div className="font-medium">{formatJson(json)}</div>{" "}
-        </div>
+        <span className="inline-flex items-center space-x-1">
+          <span className="font-medium">{data.filter.title}</span>
+          <span>{isPlural ? "are" : "is"}</span>
+          <span className="font-medium">{formatJson(json)}</span>
+        </span>
       );
     }
 
@@ -365,21 +361,21 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
       if (rawValue instanceof IsNull) {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> is empty
-          </div>
+          </span>
         );
       }
       if (rawValue instanceof NotNull) {
         return (
-          <div>
+          <span>
             <span className="font-medium">{data.filter.title}</span> is not empty
-          </div>
+          </span>
         );
       }
 
       let items: Array<string> = [];
-      type MatchMode = "any" | "all" | "none" | "single_not";
+      type MatchMode = "any" | "all" | "none";
       let matchMode: MatchMode = "any";
 
       if (rawValue instanceof IncludesAll) {
@@ -387,7 +383,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         matchMode = "all";
       } else if (rawValue instanceof IncludesNone) {
         items = rawValue.values as Array<string>;
-        matchMode = rawValue.values.length === 1 ? "single_not" : "none";
+        matchMode = "none";
       } else if (rawValue instanceof Includes) {
         items = rawValue.values as Array<string>;
       } else if (Array.isArray(rawValue)) {
@@ -424,8 +420,6 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         joiner = " has all of: ";
       } else if (matchMode === "none") {
         joiner = " has none of: ";
-      } else if (matchMode === "single_not") {
-        joiner = " is not ";
       } else if (isMoreItems) {
         joiner = " is any of: ";
       } else {
@@ -433,11 +427,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       }
 
       return (
-        <div>
+        <span>
           <span className="font-medium">{data.filter.title}</span>
           {joiner}
           <span className="font-medium">{entityNames}</span>
-        </div>
+        </span>
       );
     }
 
@@ -474,7 +468,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 return (
                   <div
                     key={index}
-                    className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm"
+                    className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm whitespace-nowrap"
                   >
                     <FilterViewerItem key={index} text={filterText} />
                   </div>

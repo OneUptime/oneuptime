@@ -1,4 +1,3 @@
-import Input, { InputType } from "../Input/Input";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -172,14 +171,14 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
       />
       {!valuelessOperator && (
         <div className="flex-1 min-w-0">
-          <Input
-            onChange={(changed: string | Date) => {
-              apply({ operator, value: (changed || "").toString() });
+          <input
+            type="text"
+            value={value}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              apply({ operator, value: e.target.value });
             }}
-            initialValue={value}
             placeholder={`Filter by ${filter.title}`}
-            type={InputType.TEXT}
-            outerDivClassName="relative rounded-md w-full"
+            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
       )}
