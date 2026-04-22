@@ -12,15 +12,19 @@ const levelRank: Record<Level, number> = {
 const configuredRank: number =
   levelRank[(LOG_LEVEL as Level) in levelRank ? (LOG_LEVEL as Level) : "info"];
 
-const emit: (level: Level, message: string, extra?: object) => void = (
+const emit: (
   level: Level,
   message: string,
-  extra?: object,
+  extra?: Record<string, unknown>,
+) => void = (
+  level: Level,
+  message: string,
+  extra?: Record<string, unknown>,
 ): void => {
   if (levelRank[level] < configuredRank) {
     return;
   }
-  const payload: object = {
+  const payload: Record<string, unknown> = {
     ts: new Date().toISOString(),
     level,
     message,
@@ -37,21 +41,21 @@ const emit: (level: Level, message: string, extra?: object) => void = (
 };
 
 const Logger: {
-  debug: (msg: string, extra?: object) => void;
-  info: (msg: string, extra?: object) => void;
-  warn: (msg: string, extra?: object) => void;
-  error: (msg: string, extra?: object) => void;
+  debug: (msg: string, extra?: Record<string, unknown>) => void;
+  info: (msg: string, extra?: Record<string, unknown>) => void;
+  warn: (msg: string, extra?: Record<string, unknown>) => void;
+  error: (msg: string, extra?: Record<string, unknown>) => void;
 } = {
-  debug: (msg: string, extra?: object): void => {
+  debug: (msg: string, extra?: Record<string, unknown>): void => {
     emit("debug", msg, extra);
   },
-  info: (msg: string, extra?: object): void => {
+  info: (msg: string, extra?: Record<string, unknown>): void => {
     emit("info", msg, extra);
   },
-  warn: (msg: string, extra?: object): void => {
+  warn: (msg: string, extra?: Record<string, unknown>): void => {
     emit("warn", msg, extra);
   },
-  error: (msg: string, extra?: object): void => {
+  error: (msg: string, extra?: Record<string, unknown>): void => {
     emit("error", msg, extra);
   },
 };

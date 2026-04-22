@@ -598,12 +598,28 @@ export class Service extends DatabaseService<Model> {
     const containerCount: number =
       parseInt(containerRows[0]?.total || "0", 10) || 0;
 
-    const degradedPods: Array<DegradedPod> = degradedPodRows.map((row) => {
-      return buildDegradedPod(row);
-    });
-    const degradedNodes: Array<DegradedNode> = degradedNodeRows.map((row) => {
-      return buildDegradedNode(row);
-    });
+    const degradedPods: Array<DegradedPod> = degradedPodRows.map(
+      (row: {
+        name: string;
+        namespaceKey: string;
+        phase: string | null;
+        status: unknown;
+      }) => {
+        return buildDegradedPod(row);
+      },
+    );
+    const degradedNodes: Array<DegradedNode> = degradedNodeRows.map(
+      (row: {
+        name: string;
+        isReady: boolean | null;
+        hasMemoryPressure: boolean | null;
+        hasDiskPressure: boolean | null;
+        hasPidPressure: boolean | null;
+        status: unknown;
+      }) => {
+        return buildDegradedNode(row);
+      },
+    );
 
     return {
       countsByKind,

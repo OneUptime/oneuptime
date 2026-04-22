@@ -31,7 +31,7 @@ const severityTextToNumber: Record<string, number> = {
 };
 
 const SEVERITY_REGEX: RegExp =
-  /(?:^|[\s\[(])(TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERR(?:OR)?|CRIT(?:ICAL)?|FATAL|PANIC)(?:[\s\]:=,)])/i;
+  /(?:^|[\s[(])(TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERR(?:OR)?|CRIT(?:ICAL)?|FATAL|PANIC)(?:[\s\]:=,)])/i;
 
 type Stream = "stdout" | "stderr";
 

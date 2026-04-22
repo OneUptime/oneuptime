@@ -14,7 +14,7 @@ export const startHealthServer: (args: {
   const server: http.Server = http.createServer(
     (req: http.IncomingMessage, res: http.ServerResponse): void => {
       if (req.url === "/" || req.url === "/healthz") {
-        const body: object = {
+        const body: Record<string, unknown> = {
           status: args.batcher.healthy() ? "ok" : "degraded",
           activeStreams: args.watcher.activeStreamCount(),
           lastExportError: args.batcher.lastError(),
