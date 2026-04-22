@@ -12,7 +12,7 @@ import NotContains from "../../../Types/BaseDatabase/NotContains";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
@@ -130,7 +130,27 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
     return <></>;
   }
 
-  const { operator, value } = detectCurrentState(props.filterData[filter.key]);
+  const detected: { operator: FilterOperator; value: string } =
+    detectCurrentState(props.filterData[filter.key]);
+
+  // Keep the operator locally so the user's choice persists even when no
+  // value has been typed yet (otherwise buildQueryValue returns undefined,
+  // the filter is deleted, and the operator resets on re-render).
+  const [localOperator, setLocalOperator] = useState<FilterOperator>(
+    detected.operator,
+  );
+
+  useEffect(() => {
+    const raw: unknown = props.filterData[filter.key];
+    if (raw !== undefined && raw !== null) {
+      setLocalOperator(detected.operator);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.filterData[filter.key]]);
+
+  const operator: FilterOperator = localOperator;
+  const value: string = detected.value;
+
   const valuelessOperator: boolean =
     operator === FilterOperator.IsEmpty ||
     operator === FilterOperator.IsNotEmpty;
@@ -147,6 +167,8 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
     if (!filter.key) {
       return;
     }
+
+    setLocalOperator(data.operator);
 
     const next: FilterData<T> = { ...props.filterData };
     const built: unknown = buildQueryValue(data.operator, data.value);

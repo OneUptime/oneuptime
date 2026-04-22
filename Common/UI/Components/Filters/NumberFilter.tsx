@@ -13,7 +13,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
@@ -157,7 +157,22 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
     return <></>;
   }
 
-  const state: NumberState = detectState(props.filterData[filter.key]);
+  const detected: NumberState = detectState(props.filterData[filter.key]);
+
+  const [localOperator, setLocalOperator] = useState<FilterOperator>(
+    detected.operator,
+  );
+
+  useEffect(() => {
+    const raw: unknown = props.filterData[filter.key];
+    if (raw !== undefined && raw !== null) {
+      setLocalOperator(detected.operator);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.filterData[filter.key]]);
+
+  const state: NumberState = { ...detected, operator: localOperator };
+
   const valuelessOperator: boolean =
     state.operator === FilterOperator.IsEmpty ||
     state.operator === FilterOperator.IsNotEmpty;
@@ -169,6 +184,8 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
     if (!filter.key) {
       return;
     }
+
+    setLocalOperator(nextState.operator);
 
     const next: FilterData<T> = { ...props.filterData };
     const built: unknown = buildValue(nextState);

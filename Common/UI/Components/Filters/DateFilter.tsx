@@ -12,7 +12,7 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
@@ -152,7 +152,22 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
   }
 
   const isDateTime: boolean = filter.type === FieldType.DateTime;
-  const state: DateState = detectState(props.filterData[filter.key]);
+  const detected: DateState = detectState(props.filterData[filter.key]);
+
+  const [localOperator, setLocalOperator] = useState<FilterOperator>(
+    detected.operator,
+  );
+
+  useEffect(() => {
+    const raw: unknown = props.filterData[filter.key];
+    if (raw !== undefined && raw !== null) {
+      setLocalOperator(detected.operator);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.filterData[filter.key]]);
+
+  const state: DateState = { ...detected, operator: localOperator };
+
   const valuelessOperator: boolean =
     state.operator === FilterOperator.IsEmpty ||
     state.operator === FilterOperator.IsNotEmpty;
@@ -164,6 +179,7 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
     if (!filter.key) {
       return;
     }
+    setLocalOperator(nextState.operator);
     const next: FilterData<T> = { ...props.filterData };
     const built: unknown = buildValue(nextState, isDateTime);
     if (built === undefined) {

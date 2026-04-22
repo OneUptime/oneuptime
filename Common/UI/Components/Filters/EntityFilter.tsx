@@ -10,7 +10,7 @@ import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
@@ -149,13 +149,36 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   }
 
   const isArray: boolean = filter.type === FieldType.EntityArray;
-  const state: EntityState = isArray
+  const detectedState: EntityState = isArray
     ? detectArrayState(props.filterData[filter.key])
     : detectSingleState(props.filterData[filter.key]);
 
+  // Hold the operator locally so the user's choice persists even when no
+  // values are selected yet (otherwise `buildArrayValue` would return
+  // undefined, filterData wouldn't carry the operator, and the next render
+  // would reset back to the default).
+  const [localOperator, setLocalOperator] = useState<FilterOperator>(
+    detectedState.operator,
+  );
+
+  // When the external filter data changes and can unambiguously tell us
+  // which operator it represents, sync local state.
+  useEffect(() => {
+    const raw: unknown = props.filterData[filter.key];
+    if (raw !== undefined && raw !== null) {
+      setLocalOperator(detectedState.operator);
+    }
+    // Intentionally only re-run when the underlying filter data reference
+    // changes — not on every detectedState re-computation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.filterData[filter.key]]);
+
+  const operator: FilterOperator = localOperator;
+  const state: EntityState = { ...detectedState, operator };
+
   const valuelessOperator: boolean =
-    state.operator === FilterOperator.IsEmpty ||
-    state.operator === FilterOperator.IsNotEmpty;
+    operator === FilterOperator.IsEmpty ||
+    operator === FilterOperator.IsNotEmpty;
 
   const dropdownValues: Array<DropdownOption> =
     filter.filterDropdownOptions?.filter((option: DropdownOption) => {
@@ -168,6 +191,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
     if (!filter.key) {
       return;
     }
+    setLocalOperator(nextState.operator);
     const next: FilterData<T> = { ...props.filterData };
     const built: unknown = isArray
       ? buildArrayValue(nextState)
@@ -183,7 +207,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   return (
     <div className="flex gap-2 items-start">
       <OperatorSelector
-        value={state.operator}
+        value={operator}
         options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
         onChange={(nextOperator: FilterOperator) => {
           apply({ ...state, operator: nextOperator });
