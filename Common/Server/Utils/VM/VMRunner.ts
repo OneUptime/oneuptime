@@ -224,7 +224,7 @@ function createSandboxProxy(
  * Recursively unwraps sandbox proxies in a return value so the host code
  * receives original objects (e.g. Buffers that pass `instanceof` checks).
  */
-function deepUnwrapProxies(
+export function deepUnwrapProxies(
   value: unknown,
   visited?: WeakSet<GenericObject>,
 ): unknown {
@@ -469,33 +469,50 @@ export default class VMRunner {
       })()`;
 
     try {
-      /*
-       * vm timeout only covers synchronous CPU time, so wrap with
-       * Promise.race to also cover async operations (network, timers, etc.)
-       */
-      const vmPromise: Promise<unknown> = vm.runInContext(script, sandbox, {
-        timeout: timeout,
-      });
+      let returnVal: unknown;
+      let scriptError: Error | undefined;
 
-      const overallTimeout: Promise<never> = new Promise(
-        (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
-          const handle: NodeJS.Timeout = global.setTimeout(() => {
-            reject(new Error("Script execution timed out"));
-          }, timeout + 5000);
-          // Don't let this timer keep the process alive
-          handle.unref();
-        },
-      );
+      try {
+        /*
+         * vm timeout only covers synchronous CPU time, so wrap with
+         * Promise.race to also cover async operations (network, timers, etc.)
+         */
+        const vmPromise: Promise<unknown> = vm.runInContext(script, sandbox, {
+          timeout: timeout,
+        });
 
-      const returnVal: unknown = await Promise.race([
-        vmPromise,
-        overallTimeout,
-      ]);
+        const overallTimeout: Promise<never> = new Promise(
+          (
+            _resolve: (value: never) => void,
+            reject: (reason: Error) => void,
+          ) => {
+            const handle: NodeJS.Timeout = global.setTimeout(() => {
+              reject(new Error("Script execution timed out"));
+            }, timeout + 5000);
+            // Don't let this timer keep the process alive
+            handle.unref();
+          },
+        );
+
+        returnVal = await Promise.race([vmPromise, overallTimeout]);
+      } catch (err: unknown) {
+        /*
+         * Capture user-thrown errors (including timeouts) so the caller can
+         * still access side-channel data collected before the throw — e.g.
+         * screenshots assigned to a host-realm object passed via `context`.
+         * Rethrowing here would discard those partial results.
+         */
+        scriptError =
+          err instanceof Error
+            ? err
+            : new Error(typeof err === "string" ? err : String(err));
+      }
 
       return {
         returnValue: deepUnwrapProxies(returnVal),
         logMessages,
         capturedMetrics,
+        scriptError,
       };
     } finally {
       // Clean up any lingering timers to prevent resource leaks
