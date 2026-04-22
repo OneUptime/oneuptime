@@ -184,7 +184,7 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
   };
 
   return (
-    <div className="space-y-2">
+    <div className="flex gap-2 items-start">
       <OperatorSelector
         value={state.operator}
         options={NUMBER_OPERATORS}
@@ -193,24 +193,28 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
         }}
       />
       {!valuelessOperator && (
-        <div className={isBetween ? "flex gap-2" : ""}>
-          <Input
-            onChange={(changed: string | Date) => {
-              apply({ ...state, value: (changed || "").toString() });
-            }}
-            initialValue={state.value}
-            placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
-            type={InputType.NUMBER}
-          />
-          {isBetween && (
+        <div className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}>
+          <div className="flex-1 min-w-0">
             <Input
               onChange={(changed: string | Date) => {
-                apply({ ...state, endValue: (changed || "").toString() });
+                apply({ ...state, value: (changed || "").toString() });
               }}
-              initialValue={state.endValue}
-              placeholder="To"
+              initialValue={state.value}
+              placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
               type={InputType.NUMBER}
             />
+          </div>
+          {isBetween && (
+            <div className="flex-1 min-w-0">
+              <Input
+                onChange={(changed: string | Date) => {
+                  apply({ ...state, endValue: (changed || "").toString() });
+                }}
+                initialValue={state.endValue}
+                placeholder="To"
+                type={InputType.NUMBER}
+              />
+            </div>
           )}
         </div>
       )}

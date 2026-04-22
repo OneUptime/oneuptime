@@ -162,7 +162,7 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
   };
 
   return (
-    <div className="space-y-2">
+    <div className="flex gap-2 items-start">
       <OperatorSelector
         value={operator}
         options={TEXT_OPERATORS}
@@ -171,14 +171,16 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
         }}
       />
       {!valuelessOperator && (
-        <Input
-          onChange={(changed: string | Date) => {
-            apply({ operator, value: (changed || "").toString() });
-          }}
-          initialValue={value}
-          placeholder={`Filter by ${filter.title}`}
-          type={InputType.TEXT}
-        />
+        <div className="flex-1 min-w-0">
+          <Input
+            onChange={(changed: string | Date) => {
+              apply({ operator, value: (changed || "").toString() });
+            }}
+            initialValue={value}
+            placeholder={`Filter by ${filter.title}`}
+            type={InputType.TEXT}
+          />
+        </div>
       )}
     </div>
   );

@@ -73,6 +73,11 @@ import {
 })
 @CrudApiEndpoint(new Route("/kubernetes-cluster"))
 @SlugifyColumn("name", "slug")
+// Enforce one cluster row per (projectId, clusterIdentifier) at the DB level.
+// Without this, two pods emitting OTel telemetry for a new cluster at the
+// same time (e.g. when the agent is first installed or during a rolling
+// update) race in findOrCreateByClusterIdentifier and create duplicate rows.
+@Index(["projectId", "clusterIdentifier"], { unique: true })
 @TableMetadata({
   tableName: "KubernetesCluster",
   singularName: "Kubernetes Cluster",

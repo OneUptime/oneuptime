@@ -179,7 +179,7 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
     : InputType.DATE;
 
   return (
-    <div className="space-y-2">
+    <div className="flex gap-2 items-start">
       <OperatorSelector
         value={state.operator}
         options={DATE_OPERATORS}
@@ -188,26 +188,30 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
         }}
       />
       {!valuelessOperator && (
-        <div className={isBetween ? "flex gap-2" : ""}>
-          <Input
-            onChange={(changed: string | Date) => {
-              const parsed: Date | null = toDate(changed);
-              apply({ ...state, start: parsed });
-            }}
-            value={state.start || ""}
-            placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
-            type={inputType}
-          />
-          {isBetween && (
+        <div className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}>
+          <div className="flex-1 min-w-0">
             <Input
               onChange={(changed: string | Date) => {
                 const parsed: Date | null = toDate(changed);
-                apply({ ...state, end: parsed });
+                apply({ ...state, start: parsed });
               }}
-              value={state.end || ""}
-              placeholder="To"
+              value={state.start || ""}
+              placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
               type={inputType}
             />
+          </div>
+          {isBetween && (
+            <div className="flex-1 min-w-0">
+              <Input
+                onChange={(changed: string | Date) => {
+                  const parsed: Date | null = toDate(changed);
+                  apply({ ...state, end: parsed });
+                }}
+                value={state.end || ""}
+                placeholder="To"
+                type={inputType}
+              />
+            </div>
           )}
         </div>
       )}

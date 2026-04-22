@@ -1,7 +1,6 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import FieldLabelElement from "../Forms/Fields/FieldLabel";
 import FieldType from "../Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
 import BooleanFilter from "./BooleanFilter";
@@ -70,136 +69,139 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     changeFilterData(next);
   };
 
+  const visibleFilters: Array<Filter<T>> = props.filters.filter(
+    (filter: Filter<T>) => {
+      if (filter.isAdvancedFilter) {
+        return (
+          showMoreFilters && !props.isFilterLoading && !props.filterError
+        );
+      }
+      return true;
+    },
+  );
+
   return (
     <div id={props.id}>
-      <div className="pt-2 pb-4">
-        <div className="space-y-4">
-          {props.showFilter &&
-            props.filters &&
-            props.filters
-              .filter((filter: Filter<T>) => {
-                if (filter.isAdvancedFilter) {
-                  return (
-                    showMoreFilters &&
-                    !props.isFilterLoading &&
-                    !props.filterError
-                  );
-                }
-                return true;
-              })
-              .map((filter: Filter<T>, i: number) => {
-                const hasValue: boolean =
-                  filter.key !== undefined &&
-                  props.filterData[filter.key] !== undefined &&
-                  props.filterData[filter.key] !== null;
+      <div className="divide-y divide-gray-100">
+        {visibleFilters.map((filter: Filter<T>, i: number) => {
+          const hasValue: boolean =
+            filter.key !== undefined &&
+            props.filterData[filter.key] !== undefined &&
+            props.filterData[filter.key] !== null;
 
-                return (
-                  <div
-                    key={i}
-                    className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300 transition-colors"
+          return (
+            <div key={i} className="py-3 first:pt-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-gray-700">
+                  {filter.title}
+                </label>
+                {hasValue && filter.key && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      return clearFilter(filter.key as keyof T);
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                    aria-label={`Clear ${filter.title} filter`}
                   >
-                    <div className="flex items-start justify-between mb-1.5">
-                      <FieldLabelElement
-                        title={filter.title}
-                        hideOptionalLabel={true}
-                        className="block text-sm font-semibold text-gray-800"
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-3.5 h-3.5"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
                       />
-                      {hasValue && filter.key && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            return clearFilter(filter.key as keyof T);
-                          }}
-                          className="text-xs text-gray-400 hover:text-gray-600 ml-2"
-                          aria-label={`Clear ${filter.title} filter`}
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
+                    </svg>
+                    Clear
+                  </button>
+                )}
+              </div>
 
-                    <DropdownFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                      isMultiSelect={
-                        filter.type === FieldType.MultiSelectDropdown
-                      }
-                    />
+              <DropdownFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+                isMultiSelect={filter.type === FieldType.MultiSelectDropdown}
+              />
 
-                    <EntityFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                    />
+              <EntityFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+              />
 
-                    <BooleanFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                    />
+              <BooleanFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+              />
 
-                    <DateFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                    />
+              <DateFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+              />
 
-                    <TextFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                    />
+              <TextFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+              />
 
-                    <NumberFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                    />
+              <NumberFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+              />
 
-                    <JSONFilter
-                      filter={filter}
-                      filterData={props.filterData}
-                      onFilterChanged={changeFilterData}
-                      jsonKeys={filter.jsonKeys}
-                      jsonValueSuggestions={filter.jsonValueSuggestions}
-                      onJsonKeySelected={filter.onJsonKeySelected}
-                    />
-                  </div>
-                );
-              })}
-        </div>
-        {props.showFilter && props.isFilterLoading && !props.filterError && (
+              <JSONFilter
+                filter={filter}
+                filterData={props.filterData}
+                onFilterChanged={changeFilterData}
+                jsonKeys={filter.jsonKeys}
+                jsonValueSuggestions={filter.jsonValueSuggestions}
+                onJsonKeySelected={filter.onJsonKeySelected}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {props.showFilter && props.isFilterLoading && !props.filterError && (
+        <div className="py-4">
           <ComponentLoader />
-        )}
+        </div>
+      )}
 
-        {props.showFilter && props.filterError && (
+      {props.showFilter && props.filterError && (
+        <div className="py-4">
           <ErrorMessage
             message={props.filterError}
             onRefreshClick={props.onFilterRefreshClick}
           />
-        )}
-        {showAdvancedFilterButton && (
-          <Button
-            className="-ml-3 mt-2"
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            icon={showMoreFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
-            title={
-              showMoreFilters
-                ? "Hide Advanced Filters"
-                : "Show Advanced Filters"
-            }
-            onClick={() => {
-              setShowMoreFilters((currentValue: boolean) => {
-                const newValue: boolean = !currentValue;
-                props.onAdvancedFiltersToggle?.(newValue);
-                return newValue;
-              });
-            }}
-          />
-        )}
-      </div>
+        </div>
+      )}
+      {showAdvancedFilterButton && (
+        <Button
+          className="-ml-3 mt-2"
+          buttonSize={ButtonSize.Small}
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          icon={showMoreFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
+          title={
+            showMoreFilters ? "Hide Advanced Filters" : "Show Advanced Filters"
+          }
+          onClick={() => {
+            setShowMoreFilters((currentValue: boolean) => {
+              const newValue: boolean = !currentValue;
+              props.onAdvancedFiltersToggle?.(newValue);
+              return newValue;
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

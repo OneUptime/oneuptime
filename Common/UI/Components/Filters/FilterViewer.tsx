@@ -513,10 +513,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         <Modal
           modalWidth={ModalWidth.Large}
           isLoading={props.isModalLoading}
-          title={`${props.singularLabel + " " || ""}Filters`}
-          description={`Filter ${
-            props.pluralLabel || ""
-          } by the following criteria:`}
+          title={`Filter ${props.pluralLabel || props.singularLabel || "results"}`}
+          description={`Narrow down ${
+            props.pluralLabel || "results"
+          } by one or more criteria below.`}
           submitButtonText={`Apply Filters`}
           onClose={() => {
             props.onFilterModalClose?.();

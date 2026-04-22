@@ -181,7 +181,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   };
 
   return (
-    <div className="space-y-2">
+    <div className="flex gap-2 items-start">
       <OperatorSelector
         value={state.operator}
         options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
@@ -190,24 +190,26 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
         }}
       />
       {!valuelessOperator && (
-        <Dropdown
-          options={filter.filterDropdownOptions}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            if (!value || (Array.isArray(value) && value.length === 0)) {
-              apply({ ...state, values: [] });
-              return;
-            }
-            const nextValues: Array<string> = Array.isArray(value)
-              ? (value as Array<DropdownValue>).map((v: DropdownValue) => {
-                  return v.toString();
-                })
-              : [value.toString()];
-            apply({ ...state, values: nextValues });
-          }}
-          value={dropdownValues}
-          isMultiSelect={isArray}
-          placeholder={`Filter by ${filter.title}`}
-        />
+        <div className="flex-1 min-w-0">
+          <Dropdown
+            options={filter.filterDropdownOptions}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              if (!value || (Array.isArray(value) && value.length === 0)) {
+                apply({ ...state, values: [] });
+                return;
+              }
+              const nextValues: Array<string> = Array.isArray(value)
+                ? (value as Array<DropdownValue>).map((v: DropdownValue) => {
+                    return v.toString();
+                  })
+                : [value.toString()];
+              apply({ ...state, values: nextValues });
+            }}
+            value={dropdownValues}
+            isMultiSelect={isArray}
+            placeholder={`Filter by ${filter.title}`}
+          />
+        </div>
       )}
     </div>
   );
