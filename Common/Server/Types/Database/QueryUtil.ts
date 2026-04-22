@@ -6,6 +6,7 @@ import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -17,12 +18,16 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Typeof from "../../../Types/Typeof";
+import { And, DataSource } from "typeorm";
 import { FindOperator } from "typeorm/find-options/FindOperator";
 import { CompareType } from "../../../Types/Database/CompareBase";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
+import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
+import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
+import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
 export default class QueryUtil {
   @CaptureSpan()
@@ -144,6 +149,73 @@ export default class QueryUtil {
         ) as any;
       } else if (
         query[key] &&
+        query[key] instanceof IncludesAll &&
+        tableColumnMetadata
+      ) {
+        if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+          const includesAll: IncludesAll = query[key] as IncludesAll;
+          const values: Array<string | ObjectID> = (
+            includesAll.values as Array<string | ObjectID | number>
+          ).map((item: string | ObjectID | number) => {
+            if (
+              item !== null &&
+              typeof item === Typeof.Object &&
+              !(item instanceof ObjectID)
+            ) {
+              const itemRecord: JSONObject = item as unknown as JSONObject;
+              if (itemRecord["_id"]) {
+                return itemRecord["_id"] as string;
+              }
+            }
+            return item.toString();
+          });
+
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+          if (manyToManyMeta && values.length > 0) {
+            const subqueryFilter: any = QueryHelper.allEntitiesInManyToMany({
+              values,
+              joinTableName: manyToManyMeta.joinTableName,
+              ownerColumnName: manyToManyMeta.ownerColumnName,
+              relationColumnName: manyToManyMeta.relationColumnName,
+            });
+
+            // Remove the relation-based filter so TypeORM does not create a
+            // JOIN that would yield OR semantics.
+            delete query[key];
+
+            const existingIdFilter: any = (query as any)._id;
+            if (existingIdFilter instanceof FindOperator) {
+              (query as any)._id = And(existingIdFilter, subqueryFilter);
+            } else if (
+              existingIdFilter &&
+              typeof existingIdFilter === Typeof.String
+            ) {
+              (query as any)._id = And(
+                QueryHelper.equalTo(existingIdFilter as string),
+                subqueryFilter,
+              );
+            } else {
+              (query as any)._id = subqueryFilter;
+            }
+          } else {
+            // Fall back to OR behavior when metadata cannot be resolved.
+            query[key] = values as any;
+          }
+        } else if (tableColumnMetadata.type === TableColumnType.Entity) {
+          // Entity (single) columns treat AND as a single match — same as OR.
+          query[key] = (query[key] as IncludesAll).values as any;
+        } else {
+          query[key] = QueryHelper.any(
+            (query[key] as IncludesAll).values,
+          ) as any;
+        }
+      } else if (
+        query[key] &&
         query[key] instanceof Includes &&
         tableColumnMetadata
       ) {
@@ -236,5 +308,84 @@ export default class QueryUtil {
     }
 
     return query;
+  }
+
+  /**
+   * Resolves the join-table metadata for a many-to-many relation declared on
+   * the provided model. Returns null when the column is not a many-to-many
+   * relation, the database connection is not yet ready, or required metadata
+   * is missing.
+   */
+  public static getManyToManyRelationMetadata<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    propertyPath: string,
+  ): {
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  } | null {
+    if (!PostgresAppInstance.isConnected()) {
+      return null;
+    }
+
+    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return null;
+    }
+
+    let entityMetadata: EntityMetadata | undefined;
+    try {
+      entityMetadata = dataSource.getMetadata(modelType);
+    } catch {
+      return null;
+    }
+
+    if (!entityMetadata) {
+      return null;
+    }
+
+    const relation: RelationMetadata | undefined =
+      entityMetadata.findRelationWithPropertyPath(propertyPath);
+
+    if (!relation || !relation.isManyToMany) {
+      return null;
+    }
+
+    // Only the owning side of a many-to-many has join/inverse columns. Follow
+    // the inverse relation when needed.
+    const owningRelation: RelationMetadata = relation.isOwning
+      ? relation
+      : (relation.inverseRelation ?? relation);
+
+    const joinTableName: string | undefined =
+      owningRelation.junctionEntityMetadata?.tableName;
+
+    if (!joinTableName) {
+      return null;
+    }
+
+    // When `modelType` is the owning side, its id lives on joinColumns. When
+    // it is the inverse side, its id lives on inverseJoinColumns.
+    const ownerColumns: Array<any> = relation.isOwning
+      ? owningRelation.joinColumns
+      : owningRelation.inverseJoinColumns;
+    const relationColumns: Array<any> = relation.isOwning
+      ? owningRelation.inverseJoinColumns
+      : owningRelation.joinColumns;
+
+    const ownerColumnName: string | undefined = ownerColumns[0]?.databaseName;
+    const relationColumnName: string | undefined =
+      relationColumns[0]?.databaseName;
+
+    if (!ownerColumnName || !relationColumnName) {
+      return null;
+    }
+
+    return {
+      joinTableName,
+      ownerColumnName,
+      relationColumnName,
+    };
   }
 }

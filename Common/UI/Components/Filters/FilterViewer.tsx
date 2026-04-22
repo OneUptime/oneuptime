@@ -1,4 +1,5 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import Button, { ButtonStyleType } from "../Button/Button";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -297,6 +298,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const key: keyof T = data.filter.key;
 
       let items: Array<string> = data.filterData[key] as Array<string>;
+      let matchMode: "any" | "all" = "any";
 
       if (typeof items === "string") {
         items = [items];
@@ -304,6 +306,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
       if (items instanceof Includes) {
         items = items.values as Array<string>;
+      }
+
+      if (items instanceof IncludesAll) {
+        items = items.values as Array<string>;
+        matchMode = "all";
       }
 
       const isMoreItems: boolean = items.length > 1;
@@ -335,10 +342,18 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
           return null;
         }
 
+        let joiner: string = " is ";
+        if (isMoreItems) {
+          joiner =
+            matchMode === "all"
+              ? " has all of these values: "
+              : " is any of these values: ";
+        }
+
         return (
           <div>
             <span className="font-medium">{data.filter.title}</span>
-            {isMoreItems ? " is any of these values: " : " is "}
+            {joiner}
             <span className="font-medium">{entityNames}</span>
           </div>
         );

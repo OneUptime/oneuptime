@@ -1,4 +1,5 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
@@ -1522,6 +1523,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         newQuery[key as keyof TBaseModel] = new Includes(
           filterData[key] as Array<string>,
         );
+      }
+
+      if (filterData[key] instanceof IncludesAll) {
+        newQuery[key as keyof TBaseModel] = filterData[key];
       }
     }
 

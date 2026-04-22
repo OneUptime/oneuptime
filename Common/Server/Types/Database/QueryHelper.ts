@@ -168,6 +168,50 @@ export default class QueryHelper {
     return this.in(values); // any and in are the same
   }
 
+  /**
+   * Returns a filter that matches owner rows that are linked to *all* of the
+   * provided related entity ids through a many-to-many join table. The
+   * returned FindOperator is intended to be applied to the primary id column
+   * of the owner entity.
+   */
+  @CaptureSpan()
+  public static allEntitiesInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (!values || values.length === 0) {
+      return Raw(() => {
+        return `TRUE = FALSE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+    const countRid: string = Text.generateRandomText(10);
+
+    // Escape identifiers so they can safely be embedded in the SQL string.
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+    const relationCol: string = data.relationColumnName.replace(/"/g, '""');
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid}) GROUP BY "${joinTable}"."${ownerCol}" HAVING COUNT(DISTINCT "${joinTable}"."${relationCol}") >= :${countRid}))`;
+      },
+      {
+        [valuesRid]: values,
+        [countRid]: values.length,
+      },
+    );
+  }
+
   private static in(
     values: Array<string | ObjectID | number>,
   ): FindWhereProperty<any> {
