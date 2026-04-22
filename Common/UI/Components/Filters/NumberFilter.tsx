@@ -168,7 +168,6 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
     if (raw !== undefined && raw !== null) {
       setLocalOperator(detected.operator);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.filterData[filter.key]]);
 
   const state: NumberState = { ...detected, operator: localOperator };

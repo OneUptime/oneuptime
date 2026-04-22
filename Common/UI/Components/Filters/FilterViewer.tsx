@@ -1,4 +1,4 @@
-import Icon from "../Icon/Icon";
+import Icon, { SizeProp } from "../Icon/Icon";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
@@ -16,7 +16,6 @@ import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Button, { ButtonStyleType } from "../Button/Button";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import { SizeProp } from "../Icon/Icon";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import FieldType from "../Types/FieldType";
 import FilterViewerItem from "./FilterViewerItem";

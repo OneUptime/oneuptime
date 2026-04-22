@@ -42,7 +42,11 @@ type EntityState = {
   values: Array<string>;
 };
 
-const detectArrayState = (rawValue: unknown): EntityState => {
+type DetectStateFunction = (rawValue: unknown) => EntityState;
+
+const detectArrayState: DetectStateFunction = (
+  rawValue: unknown,
+): EntityState => {
   if (rawValue instanceof IncludesAll) {
     return {
       operator: FilterOperator.HasAllOf,
@@ -84,7 +88,9 @@ const detectArrayState = (rawValue: unknown): EntityState => {
   return { operator: FilterOperator.HasAnyOf, values: [] };
 };
 
-const detectSingleState = (rawValue: unknown): EntityState => {
+const detectSingleState: DetectStateFunction = (
+  rawValue: unknown,
+): EntityState => {
   if (rawValue instanceof IsNull) {
     return { operator: FilterOperator.IsEmpty, values: [] };
   }
@@ -97,7 +103,9 @@ const detectSingleState = (rawValue: unknown): EntityState => {
   return { operator: FilterOperator.Is, values: [] };
 };
 
-const buildArrayValue = (state: EntityState): unknown => {
+type BuildValueFunction = (state: EntityState) => unknown;
+
+const buildArrayValue: BuildValueFunction = (state: EntityState): unknown => {
   switch (state.operator) {
     case FilterOperator.HasAllOf:
       return state.values.length > 0
@@ -118,7 +126,7 @@ const buildArrayValue = (state: EntityState): unknown => {
   }
 };
 
-const buildSingleValue = (state: EntityState): unknown => {
+const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
   switch (state.operator) {
     case FilterOperator.Is:
       return state.values[0] || undefined;
@@ -178,7 +186,6 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
      * Intentionally only re-run when the underlying filter data reference
      * changes — not on every detectedState re-computation.
      */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.filterData[filter.key]]);
 
   const operator: FilterOperator = localOperator;

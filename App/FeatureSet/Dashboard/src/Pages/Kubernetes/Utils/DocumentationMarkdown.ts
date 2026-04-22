@@ -188,7 +188,7 @@ The OneUptime Kubernetes Agent collects:
 
 ## Troubleshooting
 
-### Install fails with \"hostPath volumes are not allowed\" or a Pod Security admission error
+### Install fails with "hostPath volumes are not allowed" or a Pod Security admission error
 
 Your cluster blocks \`hostPath\` — common on **GKE Autopilot** and **EKS Fargate**. Switch to the API-mode preset:
 
@@ -199,7 +199,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
   --set preset=gke-autopilot   # or eks-fargate
 \`\`\`
 
-### Agent shows \"Disconnected\"
+### Agent shows "Disconnected"
 
 1. Check that the agent pods are running: \`kubectl get pods -n oneuptime-agent\`
 2. Check the agent logs: \`kubectl logs -n oneuptime-agent deployment/kubernetes-agent\`

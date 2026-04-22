@@ -39,7 +39,9 @@ type DateState = {
   end: Date | null;
 };
 
-const toDate = (value: unknown): Date | null => {
+type ToDateFunction = (value: unknown) => Date | null;
+
+const toDate: ToDateFunction = (value: unknown): Date | null => {
   if (!value) {
     return null;
   }
@@ -53,7 +55,9 @@ const toDate = (value: unknown): Date | null => {
   }
 };
 
-const detectState = (rawValue: unknown): DateState => {
+type DetectStateFunction = (rawValue: unknown) => DateState;
+
+const detectState: DetectStateFunction = (rawValue: unknown): DateState => {
   if (rawValue instanceof InBetween) {
     const start: Date | null = toDate(rawValue.startValue as unknown);
     const end: Date | null = toDate(rawValue.endValue as unknown);
@@ -102,7 +106,12 @@ const detectState = (rawValue: unknown): DateState => {
   return { operator: FilterOperator.Is, start: null, end: null };
 };
 
-const buildValue = (state: DateState, isDateTime: boolean): unknown => {
+type BuildValueFunction = (state: DateState, isDateTime: boolean) => unknown;
+
+const buildValue: BuildValueFunction = (
+  state: DateState,
+  isDateTime: boolean,
+): unknown => {
   switch (state.operator) {
     case FilterOperator.Is: {
       if (!state.start) {
@@ -161,7 +170,6 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
     if (raw !== undefined && raw !== null) {
       setLocalOperator(detected.operator);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.filterData[filter.key]]);
 
   const state: DateState = { ...detected, operator: localOperator };
