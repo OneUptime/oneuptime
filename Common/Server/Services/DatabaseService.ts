@@ -69,7 +69,7 @@ import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import AuditLogService from "./AuditLogService";
+import type AuditLogServiceType from "./AuditLogService";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -777,7 +777,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         !createBy.props.ignoreHooks &&
         this.getModel().enableAuditLogOn?.create
       ) {
-        await AuditLogService.recordCreate({
+        /*
+         * Lazy require to avoid circular dependency between DatabaseService and
+         * AuditLogService (which depends on ProjectService/UserService, both of
+         * which extend DatabaseService). A top-level import leaves
+         * DatabaseService undefined at class-extension time for subclasses.
+         */
+        const auditLogService: typeof AuditLogServiceType =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+          require("./AuditLogService").default;
+        await auditLogService.recordCreate({
           model: this.getModel(),
           createdItem: createBy.data,
           props: createBy.props,
@@ -1224,9 +1233,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       if (this.getModel().enableAuditLogOn?.delete && items.length > 0) {
+        const auditLogService: typeof AuditLogServiceType =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+          require("./AuditLogService").default;
         for (const item of items) {
           if (item.id) {
-            await AuditLogService.recordDelete({
+            await auditLogService.recordDelete({
               model: this.getModel(),
               deletedItem: item,
               itemId: item.id,
@@ -1645,7 +1657,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           !this.hasSameValues({ item, updatedItem }) &&
           item.id
         ) {
-          await AuditLogService.recordUpdate({
+          const auditLogService: typeof AuditLogServiceType =
+            // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+            require("./AuditLogService").default;
+          await auditLogService.recordUpdate({
             model: this.getModel(),
             before: item,
             updatedFields: data as JSONObject,
