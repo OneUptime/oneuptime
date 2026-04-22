@@ -1,3 +1,4 @@
+import Input, { InputType } from "../Input/Input";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -173,38 +174,9 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
     props.onFilterChanged?.(next);
   };
 
-  const nativeInputType: string = isDateTime ? "datetime-local" : "date";
-
-  type DateToInputString = (d: Date | null) => string;
-  const toInputString: DateToInputString = (d: Date | null): string => {
-    if (!d) {
-      return "";
-    }
-    const pad = (n: number): string => {
-      return n.toString().padStart(2, "0");
-    };
-    const year: number = d.getFullYear();
-    const month: string = pad(d.getMonth() + 1);
-    const day: string = pad(d.getDate());
-    if (!isDateTime) {
-      return `${year}-${month}-${day}`;
-    }
-    const hours: string = pad(d.getHours());
-    const minutes: string = pad(d.getMinutes());
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  type InputStringToDate = (s: string) => Date | null;
-  const fromInputString: InputStringToDate = (s: string): Date | null => {
-    if (!s) {
-      return null;
-    }
-    const d: Date = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  };
-
-  const inputClass: string =
-    "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
+  const inputType: InputType = isDateTime
+    ? InputType.DATETIME_LOCAL
+    : InputType.DATE;
 
   return (
     <div className="flex gap-2 items-start">
@@ -218,26 +190,30 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
       {!valuelessOperator && (
         <div className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}>
           <div className="flex-1 min-w-0">
-            <input
-              type={nativeInputType}
-              value={toInputString(state.start)}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                apply({ ...state, start: fromInputString(e.target.value) });
+            <Input
+              key={`${filter.key as string}-start-${state.operator}`}
+              onChange={(changed: string | Date) => {
+                const parsed: Date | null = toDate(changed);
+                apply({ ...state, start: parsed });
               }}
+              value={state.start || ""}
               placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
-              className={inputClass}
+              type={inputType}
+              outerDivClassName="relative rounded-md w-full"
             />
           </div>
           {isBetween && (
             <div className="flex-1 min-w-0">
-              <input
-                type={nativeInputType}
-                value={toInputString(state.end)}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  apply({ ...state, end: fromInputString(e.target.value) });
+              <Input
+                key={`${filter.key as string}-end-${state.operator}`}
+                onChange={(changed: string | Date) => {
+                  const parsed: Date | null = toDate(changed);
+                  apply({ ...state, end: parsed });
                 }}
+                value={state.end || ""}
                 placeholder="To"
-                className={inputClass}
+                type={inputType}
+                outerDivClassName="relative rounded-md w-full"
               />
             </div>
           )}
