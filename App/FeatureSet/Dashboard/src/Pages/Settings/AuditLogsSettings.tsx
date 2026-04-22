@@ -5,16 +5,9 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
-import Card from "Common/UI/Components/Card/Card";
-import Button, {
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
-import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import {
-  BILLING_ENABLED,
-  IS_ENTERPRISE_EDITION,
-} from "Common/UI/Config";
+import AuditLogsEnterpriseUpgrade, {
+  isAuditLogsEnterpriseEligible,
+} from "../../Components/AuditLogs/AuditLogsEnterpriseUpgrade";
 import React, {
   Fragment,
   FunctionComponent,
@@ -26,51 +19,16 @@ const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const isEnterpriseEligible: boolean = useMemo(() => {
-    if (IS_ENTERPRISE_EDITION) {
-      return true;
-    }
-    if (BILLING_ENABLED) {
-      return ProjectUtil.getCurrentPlan() === PlanType.Enterprise;
-    }
-    return false;
+    return isAuditLogsEnterpriseEligible();
   }, []);
 
   if (!isEnterpriseEligible) {
     return (
-      <Card
+      <AuditLogsEnterpriseUpgrade
         title="Audit Logs Settings"
         description="Configure how long audit logs are retained for this project."
-        rightElement={
-          BILLING_ENABLED ? (
-            <Button
-              title="Upgrade to Enterprise"
-              buttonStyle={ButtonStyleType.PRIMARY}
-              icon={IconProp.Billing}
-              onClick={() => {
-                window.open("https://oneuptime.com/pricing", "_blank");
-              }}
-            />
-          ) : (
-            <Button
-              title="Learn about Enterprise Edition"
-              buttonStyle={ButtonStyleType.PRIMARY}
-              icon={IconProp.Info}
-              onClick={() => {
-                window.open(
-                  "https://oneuptime.com/enterprise",
-                  "_blank",
-                );
-              }}
-            />
-          )
-        }
-      >
-        <div className="p-4 text-sm text-gray-600">
-          {BILLING_ENABLED
-            ? "Audit Logs are available on the Enterprise plan. Upgrade to configure audit logging for your project."
-            : "Audit Logs are a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable audit logging for your project."}
-        </div>
-      </Card>
+        featureDescription="Toggle audit logging for this project and choose how long we keep the history."
+      />
     );
   }
 
