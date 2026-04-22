@@ -119,7 +119,7 @@ class UserTelegram extends BaseModel {
     required: false,
     unique: false,
     type: TableColumnType.ShortText,
-    canReadOnRelationQuery: false,
+    canReadOnRelationQuery: true,
     description:
       "Telegram chat ID captured from the OneUptime bot after verification. Populated automatically.",
   })
