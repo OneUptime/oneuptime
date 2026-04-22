@@ -3,6 +3,11 @@
   "type": "object",
   "required": ["oneuptime", "clusterName"],
   "properties": {
+    "preset": {
+      "type": "string",
+      "enum": ["", "standard", "gke-autopilot", "eks-fargate"],
+      "description": "Preset for the cluster type. 'standard' (default) uses a hostPath DaemonSet for logs. 'gke-autopilot' and 'eks-fargate' switch to API-mode log collection with a hardened security context."
+    },
     "oneuptime": {
       "type": "object",
       "description": "OneUptime instance connection details",
@@ -154,10 +159,15 @@
     },
     "logs": {
       "type": "object",
-      "description": "Pod log collection via DaemonSet with filelog receiver",
+      "description": "Pod log collection configuration",
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["", "daemonset", "api", "disabled"],
+          "description": "Advanced override. Leave empty to let 'preset' decide. daemonset: hostPath filelog DaemonSet. api: Kubernetes API log tailer Deployment (GKE Autopilot compatible). disabled: no log collection."
         },
         "resources": {
           "type": "object",
@@ -177,6 +187,59 @@
                 "memory": { "type": "string" }
               },
               "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "api": {
+          "type": "object",
+          "description": "Configuration for api-mode log tailer (Kubernetes API-based, GKE Autopilot compatible)",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "tag": { "type": "string" },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "replicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": { "type": "string" },
+                    "memory": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": { "type": "string" },
+                    "memory": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "batchMaxRecords": { "type": "integer", "minimum": 1 },
+            "batchMaxMs": { "type": "integer", "minimum": 100 },
+            "exportMaxRetries": { "type": "integer", "minimum": 0 },
+            "sinceSecondsOnStart": { "type": "integer", "minimum": 0 },
+            "logLevel": {
+              "type": "string",
+              "enum": ["debug", "info", "warn", "error"]
             }
           },
           "additionalProperties": false

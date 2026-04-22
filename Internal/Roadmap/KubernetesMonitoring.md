@@ -301,11 +301,11 @@ All Phase 1 (P0), Phase 2 (P1), and Phase 3 (P2) items have been implemented. Se
 
 ### 4.12 Managed Kubernetes Provider Integrations
 
-**Current**: Generic K8s monitoring only. No provider-specific integrations.
+**Current**: Generic K8s monitoring, plus GKE Autopilot-compatible log collection via the Kubernetes API (`logs.mode: api` in the agent Helm chart, shipped in chart 0.2.0 via the `oneuptime/kubernetes-log-tailer` image).
 **Target**: Dedicated integrations for EKS, GKE, and AKS with provider-specific metrics and features.
 
 - **EKS**: CloudWatch integration for control plane logs, EKS-specific IAM/IRSA setup guidance, Fargate pod monitoring
-- **GKE**: GKE Autopilot support, Workload Identity configuration, GKE-specific system metrics
+- **GKE**: ~~GKE Autopilot support~~ (shipped — `logs.mode: api` avoids hostPath), Workload Identity configuration, GKE-specific system metrics
 - **AKS**: Azure Monitor integration, AKS-specific diagnostics, Azure AD pod identity support
 - Per-provider documentation for control plane metric access (which varies significantly)
 - Auto-detect provider and suggest appropriate configuration

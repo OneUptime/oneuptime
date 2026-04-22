@@ -22,6 +22,7 @@ import React, {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils, {
@@ -88,7 +89,17 @@ const KubernetesClusterOverview: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
+  /*
+   * Per-section loaders so the page paints as soon as cluster metadata
+   * arrives, then each section swaps its spinner for real data as its
+   * request resolves. `isLoading` only gates the page shell (the
+   * cluster metadata request); the three section loaders gate their
+   * respective independent fetches.
+   */
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(true);
+  const [isTopPodsLoading, setIsTopPodsLoading] = useState<boolean>(true);
+  const [isWarningsLoading, setIsWarningsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [nodeCount, setNodeCount] = useState<number>(0);
   const [podCount, setPodCount] = useState<number>(0);
@@ -147,6 +158,204 @@ const KubernetesClusterOverview: FunctionComponent<
     }>
   >([]);
 
+  const loadSummary: (clusterId: ObjectID) => Promise<void> = async (
+    clusterId: ObjectID,
+  ): Promise<void> => {
+    try {
+      const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
+        .addRoute("/kubernetes-resource/inventory-summary/")
+        .addRoute(clusterId.toString());
+
+      const summaryResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: summaryUrl,
+          data: {},
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        });
+      if (summaryResponse instanceof HTTPErrorResponse) {
+        throw summaryResponse;
+      }
+      const summary: JSONObject = summaryResponse.data;
+
+      const readNum: (k: string) => number = (k: string): number => {
+        const v: unknown = summary[k];
+        return typeof v === "number" ? v : 0;
+      };
+
+      setNodeCount(readNum("nodeCount"));
+      setPodCount(readNum("podCount"));
+      setNamespaceCount(readNum("namespaceCount"));
+      setDeploymentCount(readNum("deploymentCount"));
+      setStatefulSetCount(readNum("statefulSetCount"));
+      setDaemonSetCount(readNum("daemonSetCount"));
+      setJobCount(readNum("jobCount"));
+      setCronJobCount(readNum("cronJobCount"));
+      setPvcCount(readNum("pvcCount"));
+      setPvCount(readNum("pvCount"));
+      setContainerCount(readNum("containerCount"));
+
+      const podPhase: JSONObject =
+        (summary["podPhaseCounts"] as JSONObject) || {};
+      const running: number =
+        typeof podPhase["running"] === "number" ? podPhase["running"] : 0;
+      const pending: number =
+        typeof podPhase["pending"] === "number" ? podPhase["pending"] : 0;
+      const failed: number =
+        typeof podPhase["failed"] === "number" ? podPhase["failed"] : 0;
+      const succeeded: number =
+        typeof podPhase["succeeded"] === "number" ? podPhase["succeeded"] : 0;
+      setPodHealthSummary({ running, pending, failed, succeeded });
+
+      const nodeReady: JSONObject =
+        (summary["nodeReadyCounts"] as JSONObject) || {};
+      const ready: number =
+        typeof nodeReady["ready"] === "number" ? nodeReady["ready"] : 0;
+      const notReady: number =
+        typeof nodeReady["notReady"] === "number" ? nodeReady["notReady"] : 0;
+      setNodeHealthSummary({ ready, notReady });
+
+      const pressure: JSONObject =
+        (summary["nodePressureCounts"] as JSONObject) || {};
+      const memoryPressure: number =
+        typeof pressure["memoryPressure"] === "number"
+          ? pressure["memoryPressure"]
+          : 0;
+      const diskPressure: number =
+        typeof pressure["diskPressure"] === "number"
+          ? pressure["diskPressure"]
+          : 0;
+      const pidPressure: number =
+        typeof pressure["pidPressure"] === "number"
+          ? pressure["pidPressure"]
+          : 0;
+      setNodePressure({ memoryPressure, diskPressure, pidPressure });
+
+      const degradedPodsRaw: unknown = summary["degradedPods"];
+      if (Array.isArray(degradedPodsRaw)) {
+        setDegradedPods(
+          degradedPodsRaw.map((p: unknown) => {
+            const item: Record<string, unknown> = (p as Record<
+              string,
+              unknown
+            >) || {};
+            return {
+              name: typeof item["name"] === "string" ? item["name"] : "",
+              namespace:
+                typeof item["namespace"] === "string" ? item["namespace"] : "",
+              phase: typeof item["phase"] === "string" ? item["phase"] : "",
+              reason:
+                typeof item["reason"] === "string" ? item["reason"] : "",
+              message:
+                typeof item["message"] === "string" ? item["message"] : "",
+            };
+          }),
+        );
+      } else {
+        setDegradedPods([]);
+      }
+
+      const degradedNodesRaw: unknown = summary["degradedNodes"];
+      if (Array.isArray(degradedNodesRaw)) {
+        setDegradedNodes(
+          degradedNodesRaw.map((n: unknown) => {
+            const item: Record<string, unknown> = (n as Record<
+              string,
+              unknown
+            >) || {};
+            return {
+              name: typeof item["name"] === "string" ? item["name"] : "",
+              isReady: item["isReady"] === true,
+              hasMemoryPressure: item["hasMemoryPressure"] === true,
+              hasDiskPressure: item["hasDiskPressure"] === true,
+              hasPidPressure: item["hasPidPressure"] === true,
+              reason:
+                typeof item["reason"] === "string" ? item["reason"] : "",
+              message:
+                typeof item["message"] === "string" ? item["message"] : "",
+            };
+          }),
+        );
+      } else {
+        setDegradedNodes([]);
+      }
+
+      if (failed > 0 || notReady > 0) {
+        setClusterHealth("Unhealthy");
+      } else if (
+        pending > 0 ||
+        memoryPressure > 0 ||
+        diskPressure > 0 ||
+        pidPressure > 0
+      ) {
+        setClusterHealth("Degraded");
+      } else {
+        setClusterHealth("Healthy");
+      }
+    } catch {
+      // Inventory summary is best-effort; leave counts at 0.
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
+  const loadTopPods: (clusterIdentifier: string) => Promise<void> = async (
+    clusterIdentifier: string,
+  ): Promise<void> => {
+    try {
+      const pods: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchResourceListWithMemory({
+          clusterIdentifier: clusterIdentifier,
+          metricName: "k8s.pod.cpu.utilization",
+          resourceNameAttribute: "resource.k8s.pod.name",
+          memoryMetricName: "k8s.pod.memory.usage",
+        });
+
+      const sortedByCpu: Array<KubernetesResource> = [...pods]
+        .filter((p: KubernetesResource) => {
+          return p.cpuUtilization !== null && p.cpuUtilization !== undefined;
+        })
+        .sort((a: KubernetesResource, b: KubernetesResource) => {
+          return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
+        })
+        .slice(0, 5);
+      setTopCpuPods(sortedByCpu);
+
+      const sortedByMemory: Array<KubernetesResource> = [...pods]
+        .filter((p: KubernetesResource) => {
+          return (
+            p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
+          );
+        })
+        .sort((a: KubernetesResource, b: KubernetesResource) => {
+          return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
+        })
+        .slice(0, 5);
+      setTopMemoryPods(sortedByMemory);
+    } catch {
+      // Top-N is supplementary; leave lists empty on failure.
+    } finally {
+      setIsTopPodsLoading(false);
+    }
+  };
+
+  const loadWarnings: (clusterIdentifier: string) => Promise<void> = async (
+    clusterIdentifier: string,
+  ): Promise<void> => {
+    try {
+      const warnings: Array<KubernetesEvent> = await fetchClusterWarningEvents({
+        clusterIdentifier: clusterIdentifier,
+        limit: 5,
+      });
+      setRecentWarnings(warnings);
+    } catch {
+      // Warnings are supplementary.
+    } finally {
+      setIsWarningsLoading(false);
+    }
+  };
+
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -161,232 +370,31 @@ const KubernetesClusterOverview: FunctionComponent<
         },
       });
       setCluster(item);
+      setIsLoading(false);
 
       if (item?.clusterIdentifier) {
-        const clusterIdentifier: string = item.clusterIdentifier;
-
         /*
-         * Fire all three data fetches in parallel. They hit different
-         * stores (Postgres inventory, ClickHouse metrics, ClickHouse
-         * logs) and have no data dependency on each other, so there's
-         * no reason to wait serially. Each wraps errors locally — one
-         * failure doesn't blank out the rest of the page.
+         * Fire all three section fetches independently so each section
+         * paints its data as soon as its own request resolves. No
+         * Promise.all — we don't want the slowest request to hold back
+         * the other two sections.
          */
-        const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
-          .addRoute("/kubernetes-resource/inventory-summary/")
-          .addRoute(modelId.toString());
-
-        const summaryPromise: Promise<JSONObject | null> =
-          (async (): Promise<JSONObject | null> => {
-            try {
-              const summaryResponse:
-                | HTTPResponse<JSONObject>
-                | HTTPErrorResponse = await API.post({
-                url: summaryUrl,
-                data: {},
-                headers: {
-                  ...ModelAPI.getCommonHeaders(),
-                },
-              });
-              if (summaryResponse instanceof HTTPErrorResponse) {
-                throw summaryResponse;
-              }
-              return summaryResponse.data;
-            } catch {
-              /*
-               * Inventory summary is best-effort; leave counts at 0
-               * rather than fail the page.
-               */
-              return null;
-            }
-          })();
-
-        const podsPromise: Promise<Array<KubernetesResource>> =
-          (async (): Promise<Array<KubernetesResource>> => {
-            try {
-              return await KubernetesResourceUtils.fetchResourceListWithMemory(
-                {
-                  clusterIdentifier: clusterIdentifier,
-                  metricName: "k8s.pod.cpu.utilization",
-                  resourceNameAttribute: "resource.k8s.pod.name",
-                  memoryMetricName: "k8s.pod.memory.usage",
-                },
-              );
-            } catch {
-              return [];
-            }
-          })();
-
-        const warningsPromise: Promise<Array<KubernetesEvent>> =
-          (async (): Promise<Array<KubernetesEvent>> => {
-            try {
-              return await fetchClusterWarningEvents({
-                clusterIdentifier: clusterIdentifier,
-                limit: 5,
-              });
-            } catch {
-              return [];
-            }
-          })();
-
-        const [summary, pods, warnings]: [
-          JSONObject | null,
-          Array<KubernetesResource>,
-          Array<KubernetesEvent>,
-        ] = await Promise.all([summaryPromise, podsPromise, warningsPromise]);
-
-        if (summary) {
-          const readNum: (k: string) => number = (k: string): number => {
-            const v: unknown = summary?.[k];
-            return typeof v === "number" ? v : 0;
-          };
-
-          setNodeCount(readNum("nodeCount"));
-          setPodCount(readNum("podCount"));
-          setNamespaceCount(readNum("namespaceCount"));
-          setDeploymentCount(readNum("deploymentCount"));
-          setStatefulSetCount(readNum("statefulSetCount"));
-          setDaemonSetCount(readNum("daemonSetCount"));
-          setJobCount(readNum("jobCount"));
-          setCronJobCount(readNum("cronJobCount"));
-          setPvcCount(readNum("pvcCount"));
-          setPvCount(readNum("pvCount"));
-          setContainerCount(readNum("containerCount"));
-
-          const podPhase: JSONObject =
-            (summary["podPhaseCounts"] as JSONObject) || {};
-          const running: number =
-            typeof podPhase["running"] === "number" ? podPhase["running"] : 0;
-          const pending: number =
-            typeof podPhase["pending"] === "number" ? podPhase["pending"] : 0;
-          const failed: number =
-            typeof podPhase["failed"] === "number" ? podPhase["failed"] : 0;
-          const succeeded: number =
-            typeof podPhase["succeeded"] === "number"
-              ? podPhase["succeeded"]
-              : 0;
-          setPodHealthSummary({ running, pending, failed, succeeded });
-
-          const nodeReady: JSONObject =
-            (summary["nodeReadyCounts"] as JSONObject) || {};
-          const ready: number =
-            typeof nodeReady["ready"] === "number" ? nodeReady["ready"] : 0;
-          const notReady: number =
-            typeof nodeReady["notReady"] === "number"
-              ? nodeReady["notReady"]
-              : 0;
-          setNodeHealthSummary({ ready, notReady });
-
-          const pressure: JSONObject =
-            (summary["nodePressureCounts"] as JSONObject) || {};
-          const memoryPressure: number =
-            typeof pressure["memoryPressure"] === "number"
-              ? pressure["memoryPressure"]
-              : 0;
-          const diskPressure: number =
-            typeof pressure["diskPressure"] === "number"
-              ? pressure["diskPressure"]
-              : 0;
-          const pidPressure: number =
-            typeof pressure["pidPressure"] === "number"
-              ? pressure["pidPressure"]
-              : 0;
-          setNodePressure({ memoryPressure, diskPressure, pidPressure });
-
-          const degradedPodsRaw: unknown = summary["degradedPods"];
-          if (Array.isArray(degradedPodsRaw)) {
-            setDegradedPods(
-              degradedPodsRaw.map((p: unknown) => {
-                const item: Record<string, unknown> = (p as Record<
-                  string,
-                  unknown
-                >) || {};
-                return {
-                  name: typeof item["name"] === "string" ? item["name"] : "",
-                  namespace:
-                    typeof item["namespace"] === "string"
-                      ? item["namespace"]
-                      : "",
-                  phase:
-                    typeof item["phase"] === "string" ? item["phase"] : "",
-                  reason:
-                    typeof item["reason"] === "string" ? item["reason"] : "",
-                  message:
-                    typeof item["message"] === "string" ? item["message"] : "",
-                };
-              }),
-            );
-          } else {
-            setDegradedPods([]);
-          }
-
-          const degradedNodesRaw: unknown = summary["degradedNodes"];
-          if (Array.isArray(degradedNodesRaw)) {
-            setDegradedNodes(
-              degradedNodesRaw.map((n: unknown) => {
-                const item: Record<string, unknown> = (n as Record<
-                  string,
-                  unknown
-                >) || {};
-                return {
-                  name: typeof item["name"] === "string" ? item["name"] : "",
-                  isReady: item["isReady"] === true,
-                  hasMemoryPressure: item["hasMemoryPressure"] === true,
-                  hasDiskPressure: item["hasDiskPressure"] === true,
-                  hasPidPressure: item["hasPidPressure"] === true,
-                  reason:
-                    typeof item["reason"] === "string" ? item["reason"] : "",
-                  message:
-                    typeof item["message"] === "string" ? item["message"] : "",
-                };
-              }),
-            );
-          } else {
-            setDegradedNodes([]);
-          }
-
-          if (failed > 0 || notReady > 0) {
-            setClusterHealth("Unhealthy");
-          } else if (
-            pending > 0 ||
-            memoryPressure > 0 ||
-            diskPressure > 0 ||
-            pidPressure > 0
-          ) {
-            setClusterHealth("Degraded");
-          } else {
-            setClusterHealth("Healthy");
-          }
-        }
-
-        const sortedByCpu: Array<KubernetesResource> = [...pods]
-          .filter((p: KubernetesResource) => {
-            return p.cpuUtilization !== null && p.cpuUtilization !== undefined;
-          })
-          .sort((a: KubernetesResource, b: KubernetesResource) => {
-            return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
-          })
-          .slice(0, 5);
-        setTopCpuPods(sortedByCpu);
-
-        const sortedByMemory: Array<KubernetesResource> = [...pods]
-          .filter((p: KubernetesResource) => {
-            return (
-              p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
-            );
-          })
-          .sort((a: KubernetesResource, b: KubernetesResource) => {
-            return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
-          })
-          .slice(0, 5);
-        setTopMemoryPods(sortedByMemory);
-
-        setRecentWarnings(warnings);
+        void loadSummary(modelId);
+        void loadTopPods(item.clusterIdentifier);
+        void loadWarnings(item.clusterIdentifier);
+      } else {
+        // No cluster identifier means nothing to load from downstream stores.
+        setIsSummaryLoading(false);
+        setIsTopPodsLoading(false);
+        setIsWarningsLoading(false);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
+      setIsSummaryLoading(false);
+      setIsTopPodsLoading(false);
+      setIsWarningsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -613,46 +621,50 @@ const KubernetesClusterOverview: FunctionComponent<
 
   return (
     <Fragment>
-      {/* Cluster Health Banner */}
-      <AlertBanner
-        title={`Cluster ${clusterHealth}`}
-        type={healthBannerType}
-        className="mb-5"
-        rightElement={
-          <div className="flex gap-4 text-sm">
-            <span className="text-gray-600">
-              <span className="font-medium text-emerald-700">
-                {podHealthSummary.running}
-              </span>{" "}
-              Running
-            </span>
-            {podHealthSummary.pending > 0 && (
+      {/* Cluster Health Banner — only render once summary data has loaded,
+          otherwise the banner flashes "Healthy" with zero counts before
+          the real data arrives. */}
+      {!isSummaryLoading && (
+        <AlertBanner
+          title={`Cluster ${clusterHealth}`}
+          type={healthBannerType}
+          className="mb-5"
+          rightElement={
+            <div className="flex gap-4 text-sm">
               <span className="text-gray-600">
-                <span className="font-medium text-amber-700">
-                  {podHealthSummary.pending}
+                <span className="font-medium text-emerald-700">
+                  {podHealthSummary.running}
                 </span>{" "}
-                Pending
+                Running
               </span>
-            )}
-            {podHealthSummary.failed > 0 && (
-              <span className="text-gray-600">
-                <span className="font-medium text-red-700">
-                  {podHealthSummary.failed}
-                </span>{" "}
-                Failed
-              </span>
-            )}
-            {nodeHealthSummary.notReady > 0 && (
-              <span className="text-gray-600">
-                <span className="font-medium text-red-700">
-                  {nodeHealthSummary.notReady}
-                </span>{" "}
-                Nodes Not Ready
-              </span>
-            )}
-          </div>
-        }
-      />
+              {podHealthSummary.pending > 0 && (
+                <span className="text-gray-600">
+                  <span className="font-medium text-amber-700">
+                    {podHealthSummary.pending}
+                  </span>{" "}
+                  Pending
+                </span>
+              )}
+              {podHealthSummary.failed > 0 && (
+                <span className="text-gray-600">
+                  <span className="font-medium text-red-700">
+                    {podHealthSummary.failed}
+                  </span>{" "}
+                  Failed
+                </span>
+              )}
+              {nodeHealthSummary.notReady > 0 && (
+                <span className="text-gray-600">
+                  <span className="font-medium text-red-700">
+                    {nodeHealthSummary.notReady}
+                  </span>{" "}
+                  Nodes Not Ready
+                </span>
+              )}
+            </div>
+          }
+        />
+      )}
 
       {/* Why is this cluster degraded? */}
       {clusterHealth !== "Healthy" &&
@@ -846,22 +858,28 @@ const KubernetesClusterOverview: FunctionComponent<
           </Card>
         )}
 
-      {/* Summary Cards */}
+      {/* Summary Cards — show a subtle placeholder for each value while
+          the inventory summary is loading. Agent Status comes from
+          cluster metadata and is always available at this point. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
           value={
-            <span
-              className={`text-2xl font-semibold ${
-                clusterHealth === "Healthy"
-                  ? "text-emerald-600"
-                  : clusterHealth === "Degraded"
-                    ? "text-amber-600"
-                    : "text-red-600"
-              }`}
-            >
-              {clusterHealth}
-            </span>
+            isSummaryLoading ? (
+              <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : (
+              <span
+                className={`text-2xl font-semibold ${
+                  clusterHealth === "Healthy"
+                    ? "text-emerald-600"
+                    : clusterHealth === "Degraded"
+                      ? "text-amber-600"
+                      : "text-red-600"
+                }`}
+              >
+                {clusterHealth}
+              </span>
+            )
           }
         />
         <InfoCard
@@ -875,14 +893,18 @@ const KubernetesClusterOverview: FunctionComponent<
             );
           }}
           value={
-            <span className="text-2xl font-semibold">
-              {nodeCount.toString()}
-              {nodeHealthSummary.notReady > 0 && (
-                <span className="text-sm text-red-500 ml-1">
-                  ({nodeHealthSummary.notReady} not ready)
-                </span>
-              )}
-            </span>
+            isSummaryLoading ? (
+              <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : (
+              <span className="text-2xl font-semibold">
+                {nodeCount.toString()}
+                {nodeHealthSummary.notReady > 0 && (
+                  <span className="text-sm text-red-500 ml-1">
+                    ({nodeHealthSummary.notReady} not ready)
+                  </span>
+                )}
+              </span>
+            )
           }
         />
         <InfoCard
@@ -896,9 +918,13 @@ const KubernetesClusterOverview: FunctionComponent<
             );
           }}
           value={
-            <span className="text-2xl font-semibold">
-              {podCount.toString()}
-            </span>
+            isSummaryLoading ? (
+              <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : (
+              <span className="text-2xl font-semibold">
+                {podCount.toString()}
+              </span>
+            )
           }
         />
         <InfoCard
@@ -912,9 +938,13 @@ const KubernetesClusterOverview: FunctionComponent<
             );
           }}
           value={
-            <span className="text-2xl font-semibold">
-              {namespaceCount.toString()}
-            </span>
+            isSummaryLoading ? (
+              <span className="text-2xl font-semibold text-gray-300">…</span>
+            ) : (
+              <span className="text-2xl font-semibold">
+                {namespaceCount.toString()}
+              </span>
+            )
           }
         />
         <InfoCard
@@ -941,7 +971,11 @@ const KubernetesClusterOverview: FunctionComponent<
         title="Workloads"
         description="Explore workload resources in this cluster."
       >
-        {renderResourceLinks(workloadLinks)}
+        {isSummaryLoading ? (
+          <ComponentLoader />
+        ) : (
+          renderResourceLinks(workloadLinks)
+        )}
       </Card>
 
       {/* Quick Navigation - Infrastructure */}
@@ -949,7 +983,11 @@ const KubernetesClusterOverview: FunctionComponent<
         title="Infrastructure"
         description="Explore infrastructure resources in this cluster."
       >
-        {renderResourceLinks(infraLinks)}
+        {isSummaryLoading ? (
+          <ComponentLoader />
+        ) : (
+          renderResourceLinks(infraLinks)
+        )}
       </Card>
 
       {/* Node Pressure Indicators */}
@@ -993,7 +1031,10 @@ const KubernetesClusterOverview: FunctionComponent<
         title="Top Resource Consumers"
         description="Pods with the highest resource utilization in this cluster."
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
+        {isTopPodsLoading ? (
+          <ComponentLoader />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
           {/* CPU Usage */}
           <div className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -1169,10 +1210,19 @@ const KubernetesClusterOverview: FunctionComponent<
             )}
           </div>
         </div>
+        )}
       </Card>
 
       {/* Recent Warning Events */}
-      {recentWarnings.length > 0 &&
+      {isWarningsLoading ? (
+        <Card
+          title="Recent Warnings"
+          description="Latest warning events from the cluster."
+        >
+          <ComponentLoader />
+        </Card>
+      ) : (
+        recentWarnings.length > 0 &&
         (() => {
           // Deduplicate warnings by reason+object, keep latest timestamp and count
           const deduped: Array<
@@ -1279,7 +1329,8 @@ const KubernetesClusterOverview: FunctionComponent<
               </div>
             </Card>
           );
-        })()}
+        })()
+      )}
 
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>

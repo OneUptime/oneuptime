@@ -11,7 +11,16 @@ The agent is now collecting:
   - Control plane metrics: etcd, API server, scheduler, controller manager (prometheus)
 {{- end }}
 {{- if .Values.logs.enabled }}
+{{- $logMode := include "kubernetes-agent.logMode" . }}
+{{- if eq $logMode "api" }}
+  - Pod logs via the Kubernetes API (log-tailer Deployment — works on GKE Autopilot, EKS Fargate, and any cluster that blocks hostPath)
+{{- else if eq $logMode "daemonset" }}
   - Pod logs from /var/log/pods (filelog DaemonSet)
+{{- end }}
+{{- end }}
+{{- if .Values.preset }}
+
+Preset: {{ .Values.preset }}
 {{- end }}
 
 To verify the agent is running:
