@@ -204,9 +204,11 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
   }
 
   const extraSelect: Select<AuditLog> = {
+    resourceName: true,
     resourceId: true,
     userId: true,
     userName: true,
+    userType: true,
     apiKeyName: true,
     apiKeyId: true,
     changes: true,
