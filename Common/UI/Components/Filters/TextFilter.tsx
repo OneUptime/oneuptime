@@ -179,6 +179,7 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
             initialValue={value}
             placeholder={`Filter by ${filter.title}`}
             type={InputType.TEXT}
+            outerDivClassName="relative rounded-md w-full"
           />
         </div>
       )}

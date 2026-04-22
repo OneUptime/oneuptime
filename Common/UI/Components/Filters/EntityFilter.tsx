@@ -208,6 +208,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
             value={dropdownValues}
             isMultiSelect={isArray}
             placeholder={`Filter by ${filter.title}`}
+            className="relative rounded-md w-full overflow-visible"
           />
         </div>
       )}

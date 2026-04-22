@@ -202,6 +202,7 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
               initialValue={state.value}
               placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
               type={InputType.NUMBER}
+              outerDivClassName="relative rounded-md w-full"
             />
           </div>
           {isBetween && (

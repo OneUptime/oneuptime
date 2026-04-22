@@ -82,7 +82,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
 
   return (
     <div id={props.id}>
-      <div className="divide-y divide-gray-100">
+      <div className="space-y-3">
         {visibleFilters.map((filter: Filter<T>, i: number) => {
           const hasValue: boolean =
             filter.key !== undefined &&
@@ -90,25 +90,83 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
             props.filterData[filter.key] !== null;
 
           return (
-            <div key={i} className="py-3 first:pt-0">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-gray-700">
+            <div
+              key={i}
+              className="grid grid-cols-[140px_1fr_auto] items-center gap-3"
+            >
+              {/* Label column */}
+              <div className="flex items-center min-w-0">
+                <label className="text-sm font-medium text-gray-700 truncate">
                   {filter.title}
                 </label>
-                {hasValue && filter.key && (
+              </div>
+
+              {/* Controls column */}
+              <div className="min-w-0">
+                <DropdownFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                  isMultiSelect={filter.type === FieldType.MultiSelectDropdown}
+                />
+
+                <EntityFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                />
+
+                <BooleanFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                />
+
+                <DateFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                />
+
+                <TextFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                />
+
+                <NumberFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                />
+
+                <JSONFilter
+                  filter={filter}
+                  filterData={props.filterData}
+                  onFilterChanged={changeFilterData}
+                  jsonKeys={filter.jsonKeys}
+                  jsonValueSuggestions={filter.jsonValueSuggestions}
+                  onJsonKeySelected={filter.onJsonKeySelected}
+                />
+              </div>
+
+              {/* Clear column */}
+              <div className="flex items-center">
+                {hasValue && filter.key ? (
                   <button
                     type="button"
                     onClick={() => {
                       return clearFilter(filter.key as keyof T);
                     }}
-                    className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                     aria-label={`Clear ${filter.title} filter`}
+                    title={`Clear ${filter.title}`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
-                      className="w-3.5 h-3.5"
+                      className="w-4 h-4"
                     >
                       <path
                         fillRule="evenodd"
@@ -116,56 +174,11 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                         clipRule="evenodd"
                       />
                     </svg>
-                    Clear
                   </button>
+                ) : (
+                  <div className="w-7" aria-hidden="true" />
                 )}
               </div>
-
-              <DropdownFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-                isMultiSelect={filter.type === FieldType.MultiSelectDropdown}
-              />
-
-              <EntityFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-              />
-
-              <BooleanFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-              />
-
-              <DateFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-              />
-
-              <TextFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-              />
-
-              <NumberFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-              />
-
-              <JSONFilter
-                filter={filter}
-                filterData={props.filterData}
-                onFilterChanged={changeFilterData}
-                jsonKeys={filter.jsonKeys}
-                jsonValueSuggestions={filter.jsonValueSuggestions}
-                onJsonKeySelected={filter.onJsonKeySelected}
-              />
             </div>
           );
         })}
@@ -186,7 +199,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
       )}
       {showAdvancedFilterButton && (
         <Button
-          className="-ml-3 mt-2"
+          className="-ml-3 mt-3"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
           icon={showMoreFilters ? IconProp.ChevronUp : IconProp.ChevronDown}

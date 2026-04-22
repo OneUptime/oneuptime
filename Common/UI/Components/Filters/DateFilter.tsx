@@ -198,6 +198,7 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
               value={state.start || ""}
               placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
               type={inputType}
+              outerDivClassName="relative rounded-md w-full"
             />
           </div>
           {isBetween && (
