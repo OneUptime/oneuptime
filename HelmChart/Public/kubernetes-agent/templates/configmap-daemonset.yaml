@@ -98,20 +98,28 @@ data:
           # Container runtimes (Docker, containerd, CRI-O) do not record a
           # severity on the log line, so OTel LogRecords arrive at OneUptime
           # with severity_number=0 and render as "Unspecified" on the Logs
-          # page. Derive a best-effort severity: first try to pull a level
-          # keyword out of the body (covers "[ERROR]", "WARN:", "level=info",
-          # etc. used by most loggers including CoreDNS, kube-apiserver, and
-          # typical app frameworks), then fall back to stdout/stderr mapping.
+          # page. Derive a best-effort severity: route to body-based extraction
+          # when the body carries a recognizable severity keyword (covers
+          # "[ERROR]", "WARN:", " INFO ", etc. used by CoreDNS, most app
+          # frameworks, klog-style Kubernetes components), else fall back to
+          # stdout/stderr mapping. Using a router rather than regex_parser's
+          # on_error keeps this compatible with OTel Collector v0.96.0.
+          - type: router
+            id: severity-router
+            routes:
+              - output: parse-severity-from-body
+                expr: 'body matches "(?i)(?:^|[\\s\\[(])(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\\s\\]:=,)])"'
+            default: add-fallback-severity
           - type: regex_parser
             id: parse-severity-from-body
-            regex: '(?i)(?:^|[\s\[(])(?P<severity_text>TRACE|DEBUG|INFO|INFORMATION|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)])'
+            regex: '(?i)(?:^|[\s\[(])(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)])'
             parse_from: body
-            on_error: send_quiet
+            output: severity-parser
           - type: add
             id: add-fallback-severity
             field: attributes.severity_text
             value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
-            if: 'attributes["severity_text"] == nil'
+            output: severity-parser
           - type: severity_parser
             id: severity-parser
             parse_from: attributes.severity_text
@@ -126,7 +134,6 @@ data:
               fatal:
                 - panic
               info:
-                - information
                 - notice
           - type: remove
             id: remove-severity-attr

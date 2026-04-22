@@ -126,6 +126,26 @@ const KubernetesClusterOverview: FunctionComponent<
     diskPressure: number;
     pidPressure: number;
   }>({ memoryPressure: 0, diskPressure: 0, pidPressure: 0 });
+  const [degradedPods, setDegradedPods] = useState<
+    Array<{
+      name: string;
+      namespace: string;
+      phase: string;
+      reason: string;
+      message: string;
+    }>
+  >([]);
+  const [degradedNodes, setDegradedNodes] = useState<
+    Array<{
+      name: string;
+      isReady: boolean;
+      hasMemoryPressure: boolean;
+      hasDiskPressure: boolean;
+      hasPidPressure: boolean;
+      reason: string;
+      message: string;
+    }>
+  >([]);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -220,24 +240,80 @@ const KubernetesClusterOverview: FunctionComponent<
 
           const pressure: JSONObject =
             (summary["nodePressureCounts"] as JSONObject) || {};
-          setNodePressure({
-            memoryPressure:
-              typeof pressure["memoryPressure"] === "number"
-                ? pressure["memoryPressure"]
-                : 0,
-            diskPressure:
-              typeof pressure["diskPressure"] === "number"
-                ? pressure["diskPressure"]
-                : 0,
-            pidPressure:
-              typeof pressure["pidPressure"] === "number"
-                ? pressure["pidPressure"]
-                : 0,
-          });
+          const memoryPressure: number =
+            typeof pressure["memoryPressure"] === "number"
+              ? pressure["memoryPressure"]
+              : 0;
+          const diskPressure: number =
+            typeof pressure["diskPressure"] === "number"
+              ? pressure["diskPressure"]
+              : 0;
+          const pidPressure: number =
+            typeof pressure["pidPressure"] === "number"
+              ? pressure["pidPressure"]
+              : 0;
+          setNodePressure({ memoryPressure, diskPressure, pidPressure });
+
+          const degradedPodsRaw: unknown = summary["degradedPods"];
+          if (Array.isArray(degradedPodsRaw)) {
+            setDegradedPods(
+              degradedPodsRaw.map((p: unknown) => {
+                const item: Record<string, unknown> = (p as Record<
+                  string,
+                  unknown
+                >) || {};
+                return {
+                  name: typeof item["name"] === "string" ? item["name"] : "",
+                  namespace:
+                    typeof item["namespace"] === "string"
+                      ? item["namespace"]
+                      : "",
+                  phase:
+                    typeof item["phase"] === "string" ? item["phase"] : "",
+                  reason:
+                    typeof item["reason"] === "string" ? item["reason"] : "",
+                  message:
+                    typeof item["message"] === "string" ? item["message"] : "",
+                };
+              }),
+            );
+          } else {
+            setDegradedPods([]);
+          }
+
+          const degradedNodesRaw: unknown = summary["degradedNodes"];
+          if (Array.isArray(degradedNodesRaw)) {
+            setDegradedNodes(
+              degradedNodesRaw.map((n: unknown) => {
+                const item: Record<string, unknown> = (n as Record<
+                  string,
+                  unknown
+                >) || {};
+                return {
+                  name: typeof item["name"] === "string" ? item["name"] : "",
+                  isReady: item["isReady"] === true,
+                  hasMemoryPressure: item["hasMemoryPressure"] === true,
+                  hasDiskPressure: item["hasDiskPressure"] === true,
+                  hasPidPressure: item["hasPidPressure"] === true,
+                  reason:
+                    typeof item["reason"] === "string" ? item["reason"] : "",
+                  message:
+                    typeof item["message"] === "string" ? item["message"] : "",
+                };
+              }),
+            );
+          } else {
+            setDegradedNodes([]);
+          }
 
           if (failed > 0 || notReady > 0) {
             setClusterHealth("Unhealthy");
-          } else if (pending > 0) {
+          } else if (
+            pending > 0 ||
+            memoryPressure > 0 ||
+            diskPressure > 0 ||
+            pidPressure > 0
+          ) {
             setClusterHealth("Degraded");
           } else {
             setClusterHealth("Healthy");
@@ -570,6 +646,198 @@ const KubernetesClusterOverview: FunctionComponent<
           </div>
         }
       />
+
+      {/* Why is this cluster degraded? */}
+      {clusterHealth !== "Healthy" &&
+        (degradedPods.length > 0 || degradedNodes.length > 0) && (
+          <Card
+            title="Why is this cluster degraded?"
+            description="Specific pods and nodes that are driving the current health status. Click through to investigate."
+          >
+            <div className="divide-y divide-gray-100">
+              {degradedNodes.map(
+                (
+                  node: {
+                    name: string;
+                    isReady: boolean;
+                    hasMemoryPressure: boolean;
+                    hasDiskPressure: boolean;
+                    hasPidPressure: boolean;
+                    reason: string;
+                    message: string;
+                  },
+                  index: number,
+                ) => {
+                  const pressureLabels: Array<string> = [];
+                  if (!node.isReady) {
+                    pressureLabels.push("Not Ready");
+                  }
+                  if (node.hasMemoryPressure) {
+                    pressureLabels.push("Memory Pressure");
+                  }
+                  if (node.hasDiskPressure) {
+                    pressureLabels.push("Disk Pressure");
+                  }
+                  if (node.hasPidPressure) {
+                    pressureLabels.push("PID Pressure");
+                  }
+                  const chipClass: string = !node.isReady
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200";
+                  return (
+                    <div
+                      key={`node-${index}`}
+                      onClick={() => {
+                        Navigation.navigate(
+                          RouteUtil.populateRouteParams(
+                            RouteMap[
+                              PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL
+                            ] as Route,
+                            {
+                              modelId: modelId,
+                              subModelId: new ObjectID(node.name),
+                            },
+                          ),
+                        );
+                      }}
+                      className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                        <Icon
+                          icon={IconProp.Server}
+                          className="h-3.5 w-3.5 text-red-600"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {node.name}
+                          </span>
+                          <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">
+                            Node
+                          </span>
+                          {pressureLabels.map((label: string) => {
+                            return (
+                              <span
+                                key={label}
+                                className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded border ${chipClass}`}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                          {node.reason && (
+                            <span className="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded bg-red-100 text-red-700">
+                              {node.reason}
+                            </span>
+                          )}
+                        </div>
+                        {node.message && (
+                          <p className="text-sm text-gray-600 line-clamp-2">
+                            {node.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                },
+              )}
+
+              {degradedPods.map(
+                (
+                  pod: {
+                    name: string;
+                    namespace: string;
+                    phase: string;
+                    reason: string;
+                    message: string;
+                  },
+                  index: number,
+                ) => {
+                  const isFailed: boolean = pod.phase === "Failed";
+                  const phaseChipClass: string = isFailed
+                    ? "bg-red-100 text-red-700"
+                    : pod.phase === "Pending"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-gray-100 text-gray-700";
+                  const iconBgClass: string = isFailed
+                    ? "bg-red-100"
+                    : "bg-amber-100";
+                  const iconColorClass: string = isFailed
+                    ? "text-red-600"
+                    : "text-amber-600";
+                  return (
+                    <div
+                      key={`pod-${index}`}
+                      onClick={() => {
+                        Navigation.navigate(
+                          RouteUtil.populateRouteParams(
+                            RouteMap[
+                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                            ] as Route,
+                            {
+                              modelId: modelId,
+                              subModelId: new ObjectID(pod.name),
+                            },
+                          ),
+                        );
+                      }}
+                      className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <div
+                        className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full ${iconBgClass} flex items-center justify-center`}
+                      >
+                        <Icon
+                          icon={IconProp.Circle}
+                          className={`h-3.5 w-3.5 ${iconColorClass}`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {pod.name}
+                          </span>
+                          {pod.namespace && (
+                            <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                              {pod.namespace}
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded ${phaseChipClass}`}
+                          >
+                            {pod.phase}
+                          </span>
+                          {pod.reason && (
+                            <span
+                              className={`inline-flex px-1.5 py-0.5 text-xs font-semibold rounded ${
+                                isFailed
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {pod.reason}
+                            </span>
+                          )}
+                        </div>
+                        {pod.message ? (
+                          <p className="text-sm text-gray-600 line-clamp-2">
+                            {pod.message}
+                          </p>
+                        ) : (
+                          !pod.reason && (
+                            <p className="text-sm text-gray-400 italic">
+                              No reason reported yet — click to inspect the pod.
+                            </p>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          </Card>
+        )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">

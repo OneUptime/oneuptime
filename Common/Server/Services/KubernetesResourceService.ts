@@ -22,6 +22,24 @@ import logger from "../Utils/Logger";
 
 export type { ParsedKubernetesResource };
 
+export interface DegradedPod {
+  name: string;
+  namespace: string;
+  phase: string;
+  reason: string;
+  message: string;
+}
+
+export interface DegradedNode {
+  name: string;
+  isReady: boolean;
+  hasMemoryPressure: boolean;
+  hasDiskPressure: boolean;
+  hasPidPressure: boolean;
+  reason: string;
+  message: string;
+}
+
 export interface InventorySummary {
   countsByKind: Record<string, number>;
   /*
@@ -46,6 +64,201 @@ export interface InventorySummary {
     memoryPressure: number;
     diskPressure: number;
     pidPressure: number;
+  };
+  /*
+   * Top offenders that explain a Degraded/Unhealthy cluster state. Capped
+   * so a pathological cluster can't blow up the overview payload; the
+   * dedicated Pods/Nodes pages are the source of truth for the full list.
+   */
+  degradedPods: Array<DegradedPod>;
+  degradedNodes: Array<DegradedNode>;
+}
+
+const DEGRADED_SAMPLE_LIMIT: number = 20;
+
+/*
+ * Pull the first meaningful reason/message off a pod's status block.
+ * KubernetesInventoryExtractor stores containerStatuses as an array of
+ * { name, ready, state: "running"|"waiting"|"terminated", reason, message, ... }.
+ * A waiting container with a reason (ImagePullBackOff, CrashLoopBackOff,
+ * CreateContainerConfigError, ...) is exactly what the user needs to see,
+ * so we surface that first. We fall back to terminated reasons (OOMKilled,
+ * Error, ContainerCannotRun) and then to status-level conditions.
+ */
+function buildDegradedPod(row: {
+  name: string;
+  namespaceKey: string;
+  phase: string | null;
+  status: unknown;
+}): DegradedPod {
+  const status: Record<string, unknown> =
+    row.status && typeof row.status === "object"
+      ? (row.status as Record<string, unknown>)
+      : {};
+
+  let reason: string = "";
+  let message: string = "";
+
+  const containerStatuses: Array<Record<string, unknown>> = Array.isArray(
+    status["containerStatuses"],
+  )
+    ? (status["containerStatuses"] as Array<Record<string, unknown>>)
+    : [];
+  const initContainerStatuses: Array<Record<string, unknown>> = Array.isArray(
+    status["initContainerStatuses"],
+  )
+    ? (status["initContainerStatuses"] as Array<Record<string, unknown>>)
+    : [];
+
+  const scanForReason: (
+    list: Array<Record<string, unknown>>,
+    targetState: string,
+  ) => { reason: string; message: string } | null = (list, targetState) => {
+    for (const cs of list) {
+      if (cs["state"] !== targetState) {
+        continue;
+      }
+      const r: unknown = cs["reason"];
+      if (typeof r === "string" && r) {
+        const m: unknown = cs["message"];
+        return {
+          reason: r,
+          message: typeof m === "string" ? m : "",
+        };
+      }
+    }
+    return null;
+  };
+
+  const waitingHit: { reason: string; message: string } | null =
+    scanForReason(containerStatuses, "waiting") ||
+    scanForReason(initContainerStatuses, "waiting");
+  const terminatedHit: { reason: string; message: string } | null = waitingHit
+    ? null
+    : scanForReason(containerStatuses, "terminated") ||
+      scanForReason(initContainerStatuses, "terminated");
+  const hit: { reason: string; message: string } | null =
+    waitingHit || terminatedHit;
+
+  if (hit) {
+    reason = hit.reason;
+    message = hit.message;
+  } else {
+    // Fall back to the pod-level reason/message fields set by the scheduler
+    // (e.g. "Unschedulable" with "0/3 nodes are available: ...").
+    const topReason: unknown = status["reason"];
+    const topMessage: unknown = status["message"];
+    if (typeof topReason === "string") {
+      reason = topReason;
+    }
+    if (typeof topMessage === "string") {
+      message = topMessage;
+    }
+
+    // If still nothing, pull from the first non-True condition.
+    if (!reason) {
+      const conditions: Array<Record<string, unknown>> = Array.isArray(
+        status["conditions"],
+      )
+        ? (status["conditions"] as Array<Record<string, unknown>>)
+        : [];
+      for (const cond of conditions) {
+        if (cond["status"] !== "True") {
+          const r: unknown = cond["reason"];
+          const m: unknown = cond["message"];
+          if (typeof r === "string" && r) {
+            reason = r;
+            message = typeof m === "string" ? m : "";
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    name: row.name,
+    namespace: row.namespaceKey || "",
+    phase: row.phase || "Unknown",
+    reason,
+    message,
+  };
+}
+
+/*
+ * For a Node: if isReady is false, the "Ready" condition carries the real
+ * story (e.g. "KubeletNotReady: PLEG is not healthy"). If only pressure
+ * flags are tripped, pick the tripped condition's reason/message.
+ */
+function buildDegradedNode(row: {
+  name: string;
+  isReady: boolean | null;
+  hasMemoryPressure: boolean | null;
+  hasDiskPressure: boolean | null;
+  hasPidPressure: boolean | null;
+  status: unknown;
+}): DegradedNode {
+  const status: Record<string, unknown> =
+    row.status && typeof row.status === "object"
+      ? (row.status as Record<string, unknown>)
+      : {};
+
+  const conditions: Array<Record<string, unknown>> = Array.isArray(
+    status["conditions"],
+  )
+    ? (status["conditions"] as Array<Record<string, unknown>>)
+    : [];
+
+  const findCondition: (
+    predicate: (c: Record<string, unknown>) => boolean,
+  ) => Record<string, unknown> | null = (predicate) => {
+    for (const c of conditions) {
+      if (predicate(c)) {
+        return c;
+      }
+    }
+    return null;
+  };
+
+  let picked: Record<string, unknown> | null = null;
+  if (row.isReady === false) {
+    picked = findCondition((c: Record<string, unknown>) => {
+      return c["type"] === "Ready" && c["status"] !== "True";
+    });
+  }
+  if (!picked && row.hasMemoryPressure === true) {
+    picked = findCondition((c: Record<string, unknown>) => {
+      return c["type"] === "MemoryPressure" && c["status"] === "True";
+    });
+  }
+  if (!picked && row.hasDiskPressure === true) {
+    picked = findCondition((c: Record<string, unknown>) => {
+      return c["type"] === "DiskPressure" && c["status"] === "True";
+    });
+  }
+  if (!picked && row.hasPidPressure === true) {
+    picked = findCondition((c: Record<string, unknown>) => {
+      return c["type"] === "PIDPressure" && c["status"] === "True";
+    });
+  }
+
+  const reason: string =
+    picked && typeof picked["reason"] === "string"
+      ? (picked["reason"] as string)
+      : "";
+  const message: string =
+    picked && typeof picked["message"] === "string"
+      ? (picked["message"] as string)
+      : "";
+
+  return {
+    name: row.name,
+    isReady: row.isReady === true,
+    hasMemoryPressure: row.hasMemoryPressure === true,
+    hasDiskPressure: row.hasDiskPressure === true,
+    hasPidPressure: row.hasPidPressure === true,
+    reason,
+    message,
   };
 }
 
@@ -218,7 +431,14 @@ export class Service extends DatabaseService<Model> {
     const manager: ReturnType<Service["getRepository"]>["manager"] =
       this.getRepository().manager;
 
-    const [kindRows, podRows, nodeRows, containerRows]: [
+    const [
+      kindRows,
+      podRows,
+      nodeRows,
+      containerRows,
+      degradedPodRows,
+      degradedNodeRows,
+    ]: [
       Array<{ kind: string; count: string }>,
       Array<{ phase: string | null; count: string }>,
       Array<{
@@ -229,6 +449,20 @@ export class Service extends DatabaseService<Model> {
         pidPressure: string;
       }>,
       Array<{ total: string }>,
+      Array<{
+        name: string;
+        namespaceKey: string;
+        phase: string | null;
+        status: unknown;
+      }>,
+      Array<{
+        name: string;
+        isReady: boolean | null;
+        hasMemoryPressure: boolean | null;
+        hasDiskPressure: boolean | null;
+        hasPidPressure: boolean | null;
+        status: unknown;
+      }>,
     ] = await Promise.all([
       manager.query(
         `SELECT "kind", COUNT(*)::text AS count
@@ -263,6 +497,48 @@ export class Service extends DatabaseService<Model> {
          ), 0)::text AS total
          FROM "KubernetesResource"
          WHERE "projectId" = $1 AND "kubernetesClusterId" = $2 AND "kind" = 'Pod' AND "deletedAt" IS NULL`,
+        [data.projectId.toString(), data.kubernetesClusterId.toString()],
+      ),
+      /*
+       * Top-N offenders powering the "Why is this cluster degraded?" card.
+       * Failed first (hardest outage), then Pending, then Unknown, so the
+       * user sees the worst stuff first without having to sort client-side.
+       */
+      manager.query(
+        `SELECT "name", "namespaceKey", "phase", "status"
+         FROM "KubernetesResource"
+         WHERE "projectId" = $1
+           AND "kubernetesClusterId" = $2
+           AND "kind" = 'Pod'
+           AND "deletedAt" IS NULL
+           AND ("phase" IS NULL OR "phase" NOT IN ('Running', 'Succeeded'))
+         ORDER BY
+           CASE "phase"
+             WHEN 'Failed' THEN 0
+             WHEN 'Pending' THEN 1
+             ELSE 2
+           END,
+           "lastSeenAt" DESC
+         LIMIT ${DEGRADED_SAMPLE_LIMIT}`,
+        [data.projectId.toString(), data.kubernetesClusterId.toString()],
+      ),
+      manager.query(
+        `SELECT "name", "isReady", "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "status"
+         FROM "KubernetesResource"
+         WHERE "projectId" = $1
+           AND "kubernetesClusterId" = $2
+           AND "kind" = 'Node'
+           AND "deletedAt" IS NULL
+           AND (
+             "isReady" IS FALSE
+             OR "hasMemoryPressure" IS TRUE
+             OR "hasDiskPressure" IS TRUE
+             OR "hasPidPressure" IS TRUE
+           )
+         ORDER BY
+           CASE WHEN "isReady" IS FALSE THEN 0 ELSE 1 END,
+           "lastSeenAt" DESC
+         LIMIT ${DEGRADED_SAMPLE_LIMIT}`,
         [data.projectId.toString(), data.kubernetesClusterId.toString()],
       ),
     ]);
@@ -308,6 +584,13 @@ export class Service extends DatabaseService<Model> {
     const containerCount: number =
       parseInt(containerRows[0]?.total || "0", 10) || 0;
 
+    const degradedPods: Array<DegradedPod> = degradedPodRows.map((row) => {
+      return buildDegradedPod(row);
+    });
+    const degradedNodes: Array<DegradedNode> = degradedNodeRows.map((row) => {
+      return buildDegradedNode(row);
+    });
+
     return {
       countsByKind,
       containerCount,
@@ -321,6 +604,8 @@ export class Service extends DatabaseService<Model> {
         diskPressure: parseInt(nodeRow?.diskPressure || "0", 10) || 0,
         pidPressure: parseInt(nodeRow?.pidPressure || "0", 10) || 0,
       },
+      degradedPods,
+      degradedNodes,
     };
   }
 
