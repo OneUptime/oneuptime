@@ -14,3 +14,7 @@ If you are doing any postgres migration. Please do not write migraton code manua
 #### Clickhouse
 
 Clickhouse migrations are written manually. Please write the migration code in DataMigrations and follow the same pattern as other migrations. 
+
+### After you make a change. 
+
+Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works. 
