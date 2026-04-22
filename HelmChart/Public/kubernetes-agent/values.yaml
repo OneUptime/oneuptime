@@ -112,7 +112,10 @@ logs:
   api:
     image:
       repository: oneuptime/kubernetes-log-tailer
-      tag: "1.0.0"
+      # Leave empty to track the chart's appVersion — set at release time to
+      # the OneUptime product version (the release pipeline publishes
+      # oneuptime/kubernetes-log-tailer with the same tag). Override to pin.
+      tag: ""
       pullPolicy: IfNotPresent
     replicas: 1
     resources:

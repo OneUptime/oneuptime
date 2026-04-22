@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: log-tailer
-          image: "{{ .Values.logs.api.image.repository }}:{{ .Values.logs.api.image.tag }}"
+          image: "{{ .Values.logs.api.image.repository }}:{{ .Values.logs.api.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.logs.api.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false

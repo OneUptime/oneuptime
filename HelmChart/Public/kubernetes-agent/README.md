@@ -84,7 +84,7 @@ If you try the default `standard` preset on a cluster that blocks hostPath, the 
 | Key | Default | Description |
 | --- | --- | --- |
 | `logs.api.image.repository` | `oneuptime/kubernetes-log-tailer` | Image for the log tailer Deployment. |
-| `logs.api.image.tag` | `1.0.0` | Image tag. |
+| `logs.api.image.tag` | `""` (tracks chart `appVersion` — the OneUptime product version at release time) | Override to pin to a specific tag. |
 | `logs.api.replicas` | `1` | Number of log-tailer replicas. One replica handles a few thousand containers; shard by namespace for larger clusters. |
 | `logs.api.batchMaxRecords` | `500` | Flush after this many log records. |
 | `logs.api.batchMaxMs` | `5000` | Flush after this many milliseconds. |
