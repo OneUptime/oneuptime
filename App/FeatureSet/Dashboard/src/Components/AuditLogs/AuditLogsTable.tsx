@@ -44,8 +44,7 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
   Create: {
     label: "Create",
     icon: IconProp.PlusCircle,
-    className:
-      "border-emerald-200 bg-emerald-50 text-emerald-700",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     iconColor: "text-emerald-600",
   },
   Update: {
@@ -317,13 +316,12 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             getElement: (item: AuditLog): ReactElement => {
               const action: string = item.action || "Unknown";
-              const style: ActionStyle =
-                ACTION_STYLES[action] || {
-                  label: action,
-                  icon: IconProp.Info,
-                  className: "border-gray-200 bg-gray-50 text-gray-700",
-                  iconColor: "text-gray-500",
-                };
+              const style: ActionStyle = ACTION_STYLES[action] || {
+                label: action,
+                icon: IconProp.Info,
+                className: "border-gray-200 bg-gray-50 text-gray-700",
+                iconColor: "text-gray-500",
+              };
               return (
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${style.className}`}

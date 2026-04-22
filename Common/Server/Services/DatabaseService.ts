@@ -776,8 +776,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         !createBy.props.ignoreHooks &&
         this.getModel().enableAuditLogOn?.create
       ) {
-        // Lazy require to avoid circular dependency between DatabaseService and
-        // AuditLogService (which depends on ProjectService/UserService).
+        /*
+         * Lazy require to avoid circular dependency between DatabaseService and
+         * AuditLogService (which depends on ProjectService/UserService).
+         */
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const auditLogService: {
           recordCreate: (data: {
@@ -1138,12 +1140,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as any)[this.getModel().getTenantColumn() as string] = true;
       }
 
-      // If audit logging on delete is enabled, fetch all scalar columns so we
-      // can record a full snapshot of the record before it is deleted.
+      /*
+       * If audit logging on delete is enabled, fetch all scalar columns so we
+       * can record a full snapshot of the record before it is deleted.
+       */
       if (this.getModel().enableAuditLogOn?.delete) {
-        const allColumns: Array<string> = this.getModel()
-          .getTableColumns()
-          .columns;
+        const allColumns: Array<string> =
+          this.getModel().getTableColumns().columns;
         for (const columnName of allColumns) {
           (select as any)[columnName] = true;
         }
@@ -1587,18 +1590,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           true;
       }
 
-      // When audit logging on update is enabled, ensure the resource's display
-      // name is loaded on the `before` snapshot so the audit entry records the
-      // human-readable resource name even when the update doesn't touch it.
+      /*
+       * When audit logging on update is enabled, ensure the resource's display
+       * name is loaded on the `before` snapshot so the audit entry records the
+       * human-readable resource name even when the update doesn't touch it.
+       */
       if (this.getModel().enableAuditLogOn?.update) {
         const nameCandidates: ReadonlyArray<string> = [
           "name",
           "title",
           "displayName",
         ];
-        const modelColumns: Array<string> = this.getModel()
-          .getTableColumns()
-          .columns;
+        const modelColumns: Array<string> =
+          this.getModel().getTableColumns().columns;
         for (const candidate of nameCandidates) {
           if (modelColumns.includes(candidate)) {
             (selectColumns as any)[candidate] = true;

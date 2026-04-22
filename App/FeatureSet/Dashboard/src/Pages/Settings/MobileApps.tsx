@@ -184,9 +184,9 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               Your on-call toolkit, in your pocket.
             </h1>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-gray-500">
-              Get paged on critical incidents, manage your rotation, and
-              respond — all from your phone. Install the OneUptime On-Call app
-              on your device.
+              Get paged on critical incidents, manage your rotation, and respond
+              — all from your phone. Install the OneUptime On-Call app on your
+              device.
             </p>
           </div>
           <div className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600 md:self-end">

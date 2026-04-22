@@ -4,11 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type AuditLogModalAction = "Create" | "Update" | "Delete" | string;
 
@@ -42,7 +38,7 @@ const humanizeFieldName: (field: string) => string = (
 };
 
 const isISODate: (value: string) => boolean = (value: string): boolean => {
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/.test(
+  return (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/).test(
     value,
   );
 };
@@ -224,9 +220,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                             : "border-emerald-100 bg-emerald-50/60"
                         }`}
                       >
-                        {renderValue(
-                          isDelete ? row.oldValue : row.newValue,
-                        )}
+                        {renderValue(isDelete ? row.oldValue : row.newValue)}
                       </div>
                     </div>
                   )}

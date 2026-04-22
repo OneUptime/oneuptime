@@ -295,9 +295,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           element={
             <StatusPageViewAuditLogs
               {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS] as Route
-              }
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

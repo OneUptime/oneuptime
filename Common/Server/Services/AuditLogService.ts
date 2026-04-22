@@ -281,8 +281,10 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
       return settings.planName === PlanType.Enterprise;
     }
 
-    // Neither enterprise edition nor billing is enabled — audit logs are not
-    // available on the free self-hosted build.
+    /*
+     * Neither enterprise edition nor billing is enabled — audit logs are not
+     * available on the free self-hosted build.
+     */
     return false;
   }
 
@@ -324,9 +326,7 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     return settings;
   }
 
-  private async resolveActor(
-    props: DatabaseCommonInteractionProps,
-  ): Promise<{
+  private async resolveActor(props: DatabaseCommonInteractionProps): Promise<{
     userId: ObjectID | null;
     userName: string | null;
     userEmail: string | null;

@@ -5,11 +5,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export const isAuditLogsEnterpriseEligible: () => boolean = (): boolean => {
   if (IS_ENTERPRISE_EDITION) {

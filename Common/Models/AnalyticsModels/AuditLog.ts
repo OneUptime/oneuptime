@@ -24,10 +24,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.ProjectAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-        ],
+        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
       },
     });
