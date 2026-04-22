@@ -342,15 +342,15 @@ export default class Project extends TenantModel {
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
   @TableColumn({
-    type: TableColumnType.Email,
+    type: TableColumnType.LongText,
     title: "Finance / Accounting Email",
     description:
-      "Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.",
-    example: "accounting@example.com",
+      "Invoices, receipts and billing related notifications will be sent to these emails in addition to project owner. Separate multiple emails with a comma.",
+    example: "accounting@example.com, finance@example.com",
   })
   @Column({
-    type: ColumnType.Email,
-    length: ColumnLength.Email,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: true,
     unique: false,
   })

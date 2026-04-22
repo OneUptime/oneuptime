@@ -75,6 +75,56 @@ export default class Email extends DatabaseProperty {
     return new Email(value);
   }
 
+  public static parseList(value: string | null | undefined): Array<Email> {
+    if (!value) {
+      return [];
+    }
+
+    const seen: Set<string> = new Set<string>();
+    const emails: Array<Email> = [];
+
+    for (const part of value.split(/[,;\s]+/)) {
+      const trimmed: string = part.trim();
+      if (!trimmed) {
+        continue;
+      }
+      const email: Email = new Email(trimmed);
+      const key: string = email.toString();
+      if (!seen.has(key)) {
+        seen.add(key);
+        emails.push(email);
+      }
+    }
+
+    return emails;
+  }
+
+  public static isValidList(value: string | null | undefined): boolean {
+    if (!value) {
+      return true;
+    }
+
+    const parts: Array<string> = value
+      .split(/[,;\s]+/)
+      .map((p: string): string => {
+        return p.trim();
+      })
+      .filter((p: string): boolean => {
+        return p.length > 0;
+      });
+
+    if (parts.length === 0) {
+      return false;
+    }
+
+    for (const part of parts) {
+      if (!Email.isValid(part)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static override fromJSON(json: JSONObject): Email {
     if (json["_type"] === ObjectType.Email) {
       return new Email((json["value"] as string) || "");
