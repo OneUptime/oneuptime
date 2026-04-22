@@ -17,8 +17,10 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
+import IncidentStateService from "../../Services/IncidentStateService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
+import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -57,6 +59,7 @@ export default class MonitorIncident {
         projectId: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -392,6 +395,82 @@ export default class MonitorIncident {
       await IncidentStateTimelineService.getResolvedStateIdForProject(
         input.openIncident.projectId!,
       );
+
+    /*
+     * Skip the Resolved insert if the incident's timeline is already at or
+     * past the Resolved state in the project's workflow order. Two cases:
+     *  1. Latest timeline state is Resolved but Incident.currentIncidentStateId
+     *     is stuck on an earlier state (partial-failure from a prior resolve).
+     *     Re-inserting Resolved would throw "state cannot be same as previous"
+     *     from IncidentStateTimelineService.onBeforeCreate.
+     *  2. The project defines a custom state after Resolved (e.g. Closed) and
+     *     the incident has moved into it. Inserting Resolved would throw
+     *     "cannot transition to Resolved from Closed because Resolved is
+     *     before Closed in the order of incident states."
+     * Either failure bubbles up through ingest workers and causes monitors to
+     * flap. Reconcile Incident.currentIncidentStateId if out of sync with the
+     * timeline, then return.
+     */
+    const [resolvedState, latestTimeline]: [
+      IncidentState | null,
+      IncidentStateTimeline | null,
+    ] = await Promise.all([
+      IncidentStateService.findOneBy({
+        query: {
+          _id: resolvedStateId.toString(),
+        },
+        select: {
+          order: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      }),
+      IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: input.openIncident.id!,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        select: {
+          incidentStateId: true,
+          incidentState: {
+            order: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    const latestOrder: number | undefined | null =
+      latestTimeline?.incidentState?.order;
+    const resolvedOrder: number | undefined | null = resolvedState?.order;
+
+    if (
+      latestTimeline?.incidentStateId &&
+      typeof latestOrder === "number" &&
+      typeof resolvedOrder === "number" &&
+      latestOrder >= resolvedOrder
+    ) {
+      if (
+        input.openIncident.currentIncidentStateId?.toString() !==
+        latestTimeline.incidentStateId.toString()
+      ) {
+        await IncidentService.updateOneById({
+          id: input.openIncident.id!,
+          data: {
+            currentIncidentStateId: latestTimeline.incidentStateId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+      return;
+    }
 
     const incidentStateTimeline: IncidentStateTimeline =
       new IncidentStateTimeline();
