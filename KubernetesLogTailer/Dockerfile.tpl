@@ -39,19 +39,20 @@ WORKDIR /usr/src/app
 COPY ./KubernetesLogTailer/package*.json /usr/src/app/
 RUN npm install --omit=dev
 
-# Run as non-root for GKE Autopilot / baseline Pod Security Standard compliance.
-RUN groupadd -r oneuptime --gid=1000 \
-    && useradd -r -g oneuptime --uid=1000 --home-dir=/usr/src/app --shell=/bin/bash oneuptime \
-    && chown -R oneuptime:oneuptime /usr/src/app
+# The node:*-slim base image already ships a non-root `node` user at UID/GID
+# 1000. Reuse it rather than creating our own (creating a second user with
+# GID 1000 fails with `groupadd: GID '1000' already exists`). UID 1000 is
+# what the Helm chart's securityContext.runAsUser requests.
+RUN chown -R node:node /usr/src/app
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 {{ if eq .Env.ENVIRONMENT "development" }}
-USER oneuptime
+USER node
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-COPY --chown=oneuptime:oneuptime ./KubernetesLogTailer /usr/src/app
+COPY --chown=node:node ./KubernetesLogTailer /usr/src/app
 RUN npm run compile
-USER oneuptime
+USER node
 CMD [ "node", "build/dist/Index.js" ]
 {{ end }}
