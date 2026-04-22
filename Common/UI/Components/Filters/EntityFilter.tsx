@@ -100,9 +100,13 @@ const detectSingleState = (rawValue: unknown): EntityState => {
 const buildArrayValue = (state: EntityState): unknown => {
   switch (state.operator) {
     case FilterOperator.HasAllOf:
-      return state.values.length > 0 ? new IncludesAll(state.values) : undefined;
+      return state.values.length > 0
+        ? new IncludesAll(state.values)
+        : undefined;
     case FilterOperator.HasNoneOf:
-      return state.values.length > 0 ? new IncludesNone(state.values) : undefined;
+      return state.values.length > 0
+        ? new IncludesNone(state.values)
+        : undefined;
     case FilterOperator.HasAnyOf:
       return state.values.length > 0 ? state.values : undefined;
     case FilterOperator.IsEmpty:
@@ -120,9 +124,7 @@ const buildSingleValue = (state: EntityState): unknown => {
       return state.values[0] || undefined;
     case FilterOperator.IsNot:
       // Use IncludesNone with single-item array to represent "is not".
-      return state.values[0]
-        ? new IncludesNone([state.values[0]])
-        : undefined;
+      return state.values[0] ? new IncludesNone([state.values[0]]) : undefined;
     case FilterOperator.IsEmpty:
       return new IsNull();
     case FilterOperator.IsNotEmpty:
@@ -153,23 +155,29 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
     ? detectArrayState(props.filterData[filter.key])
     : detectSingleState(props.filterData[filter.key]);
 
-  // Hold the operator locally so the user's choice persists even when no
-  // values are selected yet (otherwise `buildArrayValue` would return
-  // undefined, filterData wouldn't carry the operator, and the next render
-  // would reset back to the default).
+  /*
+   * Hold the operator locally so the user's choice persists even when no
+   * values are selected yet (otherwise `buildArrayValue` would return
+   * undefined, filterData wouldn't carry the operator, and the next render
+   * would reset back to the default).
+   */
   const [localOperator, setLocalOperator] = useState<FilterOperator>(
     detectedState.operator,
   );
 
-  // When the external filter data changes and can unambiguously tell us
-  // which operator it represents, sync local state.
+  /*
+   * When the external filter data changes and can unambiguously tell us
+   * which operator it represents, sync local state.
+   */
   useEffect(() => {
     const raw: unknown = props.filterData[filter.key];
     if (raw !== undefined && raw !== null) {
       setLocalOperator(detectedState.operator);
     }
-    // Intentionally only re-run when the underlying filter data reference
-    // changes — not on every detectedState re-computation.
+    /*
+     * Intentionally only re-run when the underlying filter data reference
+     * changes — not on every detectedState re-computation.
+     */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.filterData[filter.key]]);
 

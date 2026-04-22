@@ -212,8 +212,10 @@ export default class QueryUtil {
               relationColumnName: manyToManyMeta.relationColumnName,
             });
 
-            // Remove the relation-based filter so TypeORM does not create a
-            // JOIN that would yield OR semantics.
+            /*
+             * Remove the relation-based filter so TypeORM does not create a
+             * JOIN that would yield OR semantics.
+             */
             delete query[key];
 
             const existingIdFilter: any = (query as any)._id;
@@ -445,11 +447,13 @@ export default class QueryUtil {
       return null;
     }
 
-    // Only the owning side of a many-to-many has join/inverse columns. Follow
-    // the inverse relation when needed.
+    /*
+     * Only the owning side of a many-to-many has join/inverse columns. Follow
+     * the inverse relation when needed.
+     */
     const owningRelation: RelationMetadata = relation.isOwning
       ? relation
-      : (relation.inverseRelation ?? relation);
+      : relation.inverseRelation ?? relation;
 
     const joinTableName: string | undefined =
       owningRelation.junctionEntityMetadata?.tableName;
@@ -458,8 +462,10 @@ export default class QueryUtil {
       return null;
     }
 
-    // When `modelType` is the owning side, its id lives on joinColumns. When
-    // it is the inverse side, its id lives on inverseJoinColumns.
+    /*
+     * When `modelType` is the owning side, its id lives on joinColumns. When
+     * it is the inverse side, its id lives on inverseJoinColumns.
+     */
     const ownerColumns: Array<any> = relation.isOwning
       ? owningRelation.joinColumns
       : owningRelation.inverseJoinColumns;

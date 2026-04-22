@@ -213,7 +213,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (value instanceof NotNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is not empty
+            <span className="font-medium">{data.filter.title}</span> is not
+            empty
           </span>
         );
       }
@@ -302,7 +303,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (value instanceof NotNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is not empty
+            <span className="font-medium">{data.filter.title}</span> is not
+            empty
           </span>
         );
       }
@@ -369,7 +371,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (rawValue instanceof NotNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is not empty
+            <span className="font-medium">{data.filter.title}</span> is not
+            empty
           </span>
         );
       }

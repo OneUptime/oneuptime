@@ -72,9 +72,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
   const visibleFilters: Array<Filter<T>> = props.filters.filter(
     (filter: Filter<T>) => {
       if (filter.isAdvancedFilter) {
-        return (
-          showMoreFilters && !props.isFilterLoading && !props.filterError
-        );
+        return showMoreFilters && !props.isFilterLoading && !props.filterError;
       }
       return true;
     },

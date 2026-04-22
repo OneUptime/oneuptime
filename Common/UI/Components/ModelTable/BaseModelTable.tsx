@@ -1525,9 +1525,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
       }
 
-      // Pass any QueryOperator instance (IncludesAll, IncludesNone, StartsWith,
-      // EndsWith, NotContains, EqualTo, NotEqual, GreaterThan, LessThan,
-      // InBetween, IsNull, NotNull, ...) through to the query as-is.
+      /*
+       * Pass any QueryOperator instance (IncludesAll, IncludesNone, StartsWith,
+       * EndsWith, NotContains, EqualTo, NotEqual, GreaterThan, LessThan,
+       * InBetween, IsNull, NotNull, ...) through to the query as-is.
+       */
       if (filterData[key] instanceof QueryOperator) {
         newQuery[key as keyof TBaseModel] = filterData[key];
       }

@@ -209,7 +209,9 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
         }}
       />
       {!valuelessOperator && (
-        <div className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}>
+        <div
+          className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}
+        >
           <div className="flex-1 min-w-0">
             <input
               type="number"

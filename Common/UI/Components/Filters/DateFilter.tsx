@@ -128,9 +128,7 @@ const buildValue = (state: DateState, isDateTime: boolean): unknown => {
         (isDateTime
           ? state.start
           : OneUptimeDate.getStartOfDay(state.start)) as any,
-        (isDateTime
-          ? state.end
-          : OneUptimeDate.getEndOfDay(state.end)) as any,
+        (isDateTime ? state.end : OneUptimeDate.getEndOfDay(state.end)) as any,
       );
     }
     case FilterOperator.IsEmpty:
@@ -204,7 +202,9 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
         }}
       />
       {!valuelessOperator && (
-        <div className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}>
+        <div
+          className={isBetween ? "flex-1 flex gap-2 min-w-0" : "flex-1 min-w-0"}
+        >
           <div className="flex-1 min-w-0">
             <Input
               key={`${filter.key as string}-start-${state.operator}`}

@@ -26,7 +26,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class DedupeKubernetesClustersAndAddUniqueIndex1776881254913
   implements MigrationInterface
 {
-  public name: string = "DedupeKubernetesClustersAndAddUniqueIndex1776881254913";
+  public name: string =
+    "DedupeKubernetesClustersAndAddUniqueIndex1776881254913";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1: reparent KubernetesResource FKs from duplicates -> survivor.
@@ -128,7 +129,9 @@ export class DedupeKubernetesClustersAndAddUniqueIndex1776881254913
     await queryRunner.query(
       `DROP INDEX "public"."IDX_9756988b48848f4f7532a2af0d"`,
     );
-    // Duplicate rows dropped in up() are lost — a down-migration cannot
-    // resurrect them (and reinstating duplicates is not desirable anyway).
+    /*
+     * Duplicate rows dropped in up() are lost — a down-migration cannot
+     * resurrect them (and reinstating duplicates is not desirable anyway).
+     */
   }
 }

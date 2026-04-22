@@ -4,10 +4,7 @@ import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import QueryOperator from "./QueryOperator";
 
-export type IncludesNoneType =
-  | Array<string>
-  | Array<ObjectID>
-  | Array<number>;
+export type IncludesNoneType = Array<string> | Array<ObjectID> | Array<number>;
 
 export default class IncludesNone extends QueryOperator<IncludesNoneType> {
   private _values: IncludesNoneType = [];

@@ -133,9 +133,11 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
   const detected: { operator: FilterOperator; value: string } =
     detectCurrentState(props.filterData[filter.key]);
 
-  // Keep the operator locally so the user's choice persists even when no
-  // value has been typed yet (otherwise buildQueryValue returns undefined,
-  // the filter is deleted, and the operator resets on re-render).
+  /*
+   * Keep the operator locally so the user's choice persists even when no
+   * value has been typed yet (otherwise buildQueryValue returns undefined,
+   * the filter is deleted, and the operator resets on re-render).
+   */
   const [localOperator, setLocalOperator] = useState<FilterOperator>(
     detected.operator,
   );
