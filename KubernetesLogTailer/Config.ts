@@ -64,6 +64,9 @@ export const SINCE_SECONDS_ON_START: number = parseInt(
   10,
 );
 
-export const HEALTH_PORT: number = parseInt(optional("HEALTH_PORT", "13133"), 10);
+export const HEALTH_PORT: number = parseInt(
+  optional("HEALTH_PORT", "13133"),
+  10,
+);
 
 export const LOG_LEVEL: string = optional("LOG_LEVEL", "info");

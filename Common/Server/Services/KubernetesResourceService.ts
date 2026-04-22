@@ -113,7 +113,10 @@ function buildDegradedPod(row: {
   const scanForReason: (
     list: Array<Record<string, unknown>>,
     targetState: string,
-  ) => { reason: string; message: string } | null = (list, targetState) => {
+  ) => { reason: string; message: string } | null = (
+    list: Array<Record<string, unknown>>,
+    targetState: string,
+  ) => {
     for (const cs of list) {
       if (cs["state"] !== targetState) {
         continue;
@@ -144,8 +147,10 @@ function buildDegradedPod(row: {
     reason = hit.reason;
     message = hit.message;
   } else {
-    // Fall back to the pod-level reason/message fields set by the scheduler
-    // (e.g. "Unschedulable" with "0/3 nodes are available: ...").
+    /*
+     * Fall back to the pod-level reason/message fields set by the scheduler
+     * (e.g. "Unschedulable" with "0/3 nodes are available: ...").
+     */
     const topReason: unknown = status["reason"];
     const topMessage: unknown = status["message"];
     if (typeof topReason === "string") {
@@ -211,7 +216,9 @@ function buildDegradedNode(row: {
 
   const findCondition: (
     predicate: (c: Record<string, unknown>) => boolean,
-  ) => Record<string, unknown> | null = (predicate) => {
+  ) => Record<string, unknown> | null = (
+    predicate: (c: Record<string, unknown>) => boolean,
+  ) => {
     for (const c of conditions) {
       if (predicate(c)) {
         return c;

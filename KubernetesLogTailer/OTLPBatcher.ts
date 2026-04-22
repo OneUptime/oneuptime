@@ -11,8 +11,10 @@ import {
 } from "./Config";
 import Logger from "./Logger";
 
-// OTLP-HTTP JSON severity numbers follow the OpenTelemetry spec:
-// https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
+/*
+ * OTLP-HTTP JSON severity numbers follow the OpenTelemetry spec:
+ * https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
+ */
 const severityTextToNumber: Record<string, number> = {
   TRACE: 1,
   DEBUG: 5,
@@ -196,8 +198,10 @@ class OTLPBatcher {
   }
 
   public healthy(): boolean {
-    // Consider healthy if we haven't tried to export yet, or last successful
-    // export was within 5 minutes.
+    /*
+     * Consider healthy if we haven't tried to export yet, or last successful
+     * export was within 5 minutes.
+     */
     if (this.lastExportOk === 0 && this.lastExportErr === null) {
       return true;
     }
@@ -241,7 +245,8 @@ class OTLPBatcher {
         Logger.debug("exported log batch", { records: recordCount, attempt });
         return;
       } catch (err: unknown) {
-        const message: string = err instanceof Error ? err.message : String(err);
+        const message: string =
+          err instanceof Error ? err.message : String(err);
         this.lastExportErr = message;
         if (attempt >= EXPORT_MAX_RETRIES) {
           Logger.error("dropping log batch after retries exhausted", {
@@ -264,10 +269,7 @@ class OTLPBatcher {
 
   private post(body: Buffer): Promise<void> {
     return new Promise(
-      (
-        resolve: () => void,
-        reject: (err: Error) => void,
-      ): void => {
+      (resolve: () => void, reject: (err: Error) => void): void => {
         const req: http.ClientRequest = this.transport.request(
           {
             method: "POST",
@@ -294,9 +296,8 @@ class OTLPBatcher {
                 resolve();
                 return;
               }
-              const responseBody: string = Buffer.concat(chunks).toString(
-                "utf8",
-              );
+              const responseBody: string =
+                Buffer.concat(chunks).toString("utf8");
               if (status >= 400 && status < 500 && status !== 429) {
                 // 4xx (except 429) usually means bad request — don't retry.
                 Logger.error("log export rejected with 4xx; dropping batch", {
@@ -307,7 +308,9 @@ class OTLPBatcher {
                 return;
               }
               reject(
-                new Error(`OTLP export failed with status ${status}: ${responseBody.slice(0, 200)}`),
+                new Error(
+                  `OTLP export failed with status ${status}: ${responseBody.slice(0, 200)}`,
+                ),
               );
             });
           },

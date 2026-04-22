@@ -3,9 +3,11 @@ import Logger from "./Logger";
 import OTLPBatcher, { LogEntry } from "./OTLPBatcher";
 import { SINCE_SECONDS_ON_START } from "./Config";
 
-// Kubernetes pod log lines, when requested with timestamps=true, look like:
-//   2026-04-22T10:12:33.123456789Z Hello world
-// We split off the leading RFC3339Nano timestamp and the rest becomes the body.
+/*
+ * Kubernetes pod log lines, when requested with timestamps=true, look like:
+ *   2026-04-22T10:12:33.123456789Z Hello world
+ * We split off the leading RFC3339Nano timestamp and the rest becomes the body.
+ */
 const TS_SPLIT_REGEX: RegExp = /^(\S+)\s(.*)$/s;
 
 export type StreamKey = string;
@@ -37,9 +39,11 @@ export class LogStream {
   private readonly context: PodContext;
   private readonly log: k8s.Log;
   private readonly batcher: OTLPBatcher;
-  // @kubernetes/client-node's Log.log() returns a `request.Request` (from the
-  // legacy `request` library) with an `.abort()` method. We only need that,
-  // so we store it with a minimal structural type.
+  /*
+   * @kubernetes/client-node's Log.log() returns a `request.Request` (from the
+   * legacy `request` library) with an `.abort()` method. We only need that,
+   * so we store it with a minimal structural type.
+   */
   private activeRequest: { abort: () => void } | null = null;
   private stopped: boolean = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
@@ -121,15 +125,15 @@ export class LogStream {
     });
 
     try {
-      const sinceSeconds: number = this.firstStart
-        ? SINCE_SECONDS_ON_START
-        : 1;
+      const sinceSeconds: number = this.firstStart ? SINCE_SECONDS_ON_START : 1;
       this.firstStart = false;
-      // @kubernetes/client-node's Log.log() streams the response body into
-      // the given writable and returns a Request handle whose `.abort()` we
-      // use to cancel. When the underlying HTTP connection ends (container
-      // exits, network blip), the writable gets its "end" event — which we
-      // then handle by reconnecting with backoff.
+      /*
+       * @kubernetes/client-node's Log.log() streams the response body into
+       * the given writable and returns a Request handle whose `.abort()` we
+       * use to cancel. When the underlying HTTP connection ends (container
+       * exits, network blip), the writable gets its "end" event — which we
+       * then handle by reconnecting with backoff.
+       */
       const req: { abort: () => void } = (await this.log.log(
         this.context.namespace,
         this.context.podName,
@@ -192,9 +196,11 @@ export class LogStream {
       body = line;
     }
 
-    // Kubernetes embeds the stream marker (stdout/stderr) in CRI logs on disk
-    // but not in the API response. Fall back to stdout; severity derivation
-    // will still detect ERROR/WARN keywords in the body.
+    /*
+     * Kubernetes embeds the stream marker (stdout/stderr) in CRI logs on disk
+     * but not in the API response. Fall back to stdout; severity derivation
+     * will still detect ERROR/WARN keywords in the body.
+     */
     const entry: LogEntry = {
       timestampNanos,
       body,
@@ -227,8 +233,10 @@ export class LogStream {
         backoffMs: backoff,
       });
     } else {
-      // Normal end — container may have exited or rotated. Reconnect shortly;
-      // if the container is gone, PodWatcher will stop() us.
+      /*
+       * Normal end — container may have exited or rotated. Reconnect shortly;
+       * if the container is gone, PodWatcher will stop() us.
+       */
       Logger.debug("log stream ended; reconnecting", {
         key: this.key,
         backoffMs: backoff,

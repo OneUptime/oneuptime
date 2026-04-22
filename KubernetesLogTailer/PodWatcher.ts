@@ -83,11 +83,7 @@ const deriveServiceName: (pod: k8s.V1Pod, fallback: string) => string = (
     }
   }
   const labels: Record<string, string> = pod.metadata?.labels || {};
-  return (
-    labels["app.kubernetes.io/name"] ||
-    labels["app"] ||
-    fallback
-  );
+  return labels["app.kubernetes.io/name"] || labels["app"] || fallback;
 };
 
 const collectContainers: (pod: k8s.V1Pod) => Array<string> = (
@@ -125,12 +121,14 @@ const isContainerStartedOrRunning: (
     if (status.name !== containerName) {
       continue;
     }
-    // Stream logs once the container has at least started, even if it has
-    // since terminated — the logs are still available until the pod is gone.
+    /*
+     * Stream logs once the container has at least started, even if it has
+     * since terminated — the logs are still available until the pod is gone.
+     */
     return (
       status.started === true ||
-      !!status.state?.running ||
-      !!status.state?.terminated
+      Boolean(status.state?.running) ||
+      Boolean(status.state?.terminated)
     );
   }
   return false;

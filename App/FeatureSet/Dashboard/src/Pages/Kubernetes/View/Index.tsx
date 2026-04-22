@@ -236,17 +236,14 @@ const KubernetesClusterOverview: FunctionComponent<
       if (Array.isArray(degradedPodsRaw)) {
         setDegradedPods(
           degradedPodsRaw.map((p: unknown) => {
-            const item: Record<string, unknown> = (p as Record<
-              string,
-              unknown
-            >) || {};
+            const item: Record<string, unknown> =
+              (p as Record<string, unknown>) || {};
             return {
               name: typeof item["name"] === "string" ? item["name"] : "",
               namespace:
                 typeof item["namespace"] === "string" ? item["namespace"] : "",
               phase: typeof item["phase"] === "string" ? item["phase"] : "",
-              reason:
-                typeof item["reason"] === "string" ? item["reason"] : "",
+              reason: typeof item["reason"] === "string" ? item["reason"] : "",
               message:
                 typeof item["message"] === "string" ? item["message"] : "",
             };
@@ -260,18 +257,15 @@ const KubernetesClusterOverview: FunctionComponent<
       if (Array.isArray(degradedNodesRaw)) {
         setDegradedNodes(
           degradedNodesRaw.map((n: unknown) => {
-            const item: Record<string, unknown> = (n as Record<
-              string,
-              unknown
-            >) || {};
+            const item: Record<string, unknown> =
+              (n as Record<string, unknown>) || {};
             return {
               name: typeof item["name"] === "string" ? item["name"] : "",
               isReady: item["isReady"] === true,
               hasMemoryPressure: item["hasMemoryPressure"] === true,
               hasDiskPressure: item["hasDiskPressure"] === true,
               hasPidPressure: item["hasPidPressure"] === true,
-              reason:
-                typeof item["reason"] === "string" ? item["reason"] : "",
+              reason: typeof item["reason"] === "string" ? item["reason"] : "",
               message:
                 typeof item["message"] === "string" ? item["message"] : "",
             };
@@ -1035,181 +1029,183 @@ const KubernetesClusterOverview: FunctionComponent<
           <ComponentLoader />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
-          {/* CPU Usage */}
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Icon
-                  icon={IconProp.CPUChip}
-                  className="h-4 w-4 text-blue-600"
-                />
+            {/* CPU Usage */}
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <Icon
+                    icon={IconProp.CPUChip}
+                    className="h-4 w-4 text-blue-600"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    CPU Usage
+                  </h4>
+                  <p className="text-xs text-gray-500">Top 5 pods by CPU</p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900">
-                  CPU Usage
-                </h4>
-                <p className="text-xs text-gray-500">Top 5 pods by CPU</p>
-              </div>
-            </div>
-            {topCpuPods.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">
-                No CPU usage data available.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {topCpuPods.map((pod: KubernetesResource, index: number) => {
-                  const pct: number = Math.min(pod.cpuUtilization ?? 0, 100);
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => {
-                        Navigation.navigate(
-                          RouteUtil.populateRouteParams(
-                            RouteMap[
-                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                            ] as Route,
-                            {
-                              modelId: modelId,
-                              subModelId: new ObjectID(pod.name),
-                            },
-                          ),
-                        );
-                      }}
-                      className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                            {index + 1}.
-                          </span>
-                          <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
-                            {pod.name}
-                          </span>
-                          {pod.namespace && (
-                            <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                              {pod.namespace}
+              {topCpuPods.length === 0 ? (
+                <p className="text-gray-400 text-sm py-8 text-center">
+                  No CPU usage data available.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {topCpuPods.map((pod: KubernetesResource, index: number) => {
+                    const pct: number = Math.min(pod.cpuUtilization ?? 0, 100);
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => {
+                          Navigation.navigate(
+                            RouteUtil.populateRouteParams(
+                              RouteMap[
+                                PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                              ] as Route,
+                              {
+                                modelId: modelId,
+                                subModelId: new ObjectID(pod.name),
+                              },
+                            ),
+                          );
+                        }}
+                        className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                              {index + 1}.
                             </span>
-                          )}
+                            <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
+                              {pod.name}
+                            </span>
+                            {pod.namespace && (
+                              <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                                {pod.namespace}
+                              </span>
+                            )}
+                          </div>
+                          <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
+                            {KubernetesResourceUtils.formatCpuValue(
+                              pod.cpuUtilization,
+                            )}
+                          </span>
                         </div>
-                        <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                          {KubernetesResourceUtils.formatCpuValue(
-                            pod.cpuUtilization,
-                          )}
-                        </span>
-                      </div>
-                      <div className="pl-6">
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              pct > 80
-                                ? "bg-red-500"
-                                : pct > 60
-                                  ? "bg-amber-500"
-                                  : "bg-blue-500"
-                            }`}
-                            style={{
-                              width: `${Math.max(pct, 2)}%`,
-                            }}
-                          />
+                        <div className="pl-6">
+                          <div className="w-full bg-gray-100 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                pct > 80
+                                  ? "bg-red-500"
+                                  : pct > 60
+                                    ? "bg-amber-500"
+                                    : "bg-blue-500"
+                              }`}
+                              style={{
+                                width: `${Math.max(pct, 2)}%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-          {/* Memory Usage */}
-          <div className="p-5 border-t lg:border-t-0 border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                <Icon
-                  icon={IconProp.Database}
-                  className="h-4 w-4 text-purple-600"
-                />
+            {/* Memory Usage */}
+            <div className="p-5 border-t lg:border-t-0 border-gray-100">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <Icon
+                    icon={IconProp.Database}
+                    className="h-4 w-4 text-purple-600"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Memory Usage
+                  </h4>
+                  <p className="text-xs text-gray-500">Top 5 pods by memory</p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900">
-                  Memory Usage
-                </h4>
-                <p className="text-xs text-gray-500">Top 5 pods by memory</p>
-              </div>
-            </div>
-            {topMemoryPods.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">
-                No memory usage data available.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {topMemoryPods.map((pod: KubernetesResource, index: number) => {
-                  const maxMemory: number =
-                    topMemoryPods[0]?.memoryUsageBytes ?? 1;
-                  const memPercent: number =
-                    maxMemory > 0
-                      ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
-                      : 0;
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => {
-                        Navigation.navigate(
-                          RouteUtil.populateRouteParams(
-                            RouteMap[
-                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                            ] as Route,
-                            {
-                              modelId: modelId,
-                              subModelId: new ObjectID(pod.name),
-                            },
-                          ),
-                        );
-                      }}
-                      className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                            {index + 1}.
-                          </span>
-                          <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
-                            {pod.name}
-                          </span>
-                          {pod.namespace && (
-                            <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                              {pod.namespace}
+              {topMemoryPods.length === 0 ? (
+                <p className="text-gray-400 text-sm py-8 text-center">
+                  No memory usage data available.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {topMemoryPods.map(
+                    (pod: KubernetesResource, index: number) => {
+                      const maxMemory: number =
+                        topMemoryPods[0]?.memoryUsageBytes ?? 1;
+                      const memPercent: number =
+                        maxMemory > 0
+                          ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
+                          : 0;
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => {
+                            Navigation.navigate(
+                              RouteUtil.populateRouteParams(
+                                RouteMap[
+                                  PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                                ] as Route,
+                                {
+                                  modelId: modelId,
+                                  subModelId: new ObjectID(pod.name),
+                                },
+                              ),
+                            );
+                          }}
+                          className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                                {index + 1}.
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
+                                {pod.name}
+                              </span>
+                              {pod.namespace && (
+                                <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                                  {pod.namespace}
+                                </span>
+                              )}
+                            </div>
+                            <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
+                              {KubernetesResourceUtils.formatMemoryValue(
+                                pod.memoryUsageBytes,
+                              )}
                             </span>
-                          )}
+                          </div>
+                          <div className="pl-6">
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                  memPercent > 85
+                                    ? "bg-red-500"
+                                    : memPercent > 70
+                                      ? "bg-amber-500"
+                                      : "bg-purple-500"
+                                }`}
+                                style={{
+                                  width: `${Math.max(memPercent, 2)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                          {KubernetesResourceUtils.formatMemoryValue(
-                            pod.memoryUsageBytes,
-                          )}
-                        </span>
-                      </div>
-                      <div className="pl-6">
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              memPercent > 85
-                                ? "bg-red-500"
-                                : memPercent > 70
-                                  ? "bg-amber-500"
-                                  : "bg-purple-500"
-                            }`}
-                            style={{
-                              width: `${Math.max(memPercent, 2)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                      );
+                    },
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         )}
       </Card>
 
