@@ -548,7 +548,8 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     if (model.singularName) {
       return model.singularName;
     }
-    return (model as unknown as object).constructor.name;
+    return (model as unknown as { constructor: { name: string } }).constructor
+      .name;
   }
 
   private getResourceName<TModel extends BaseModel>(

@@ -37,10 +37,11 @@ const humanizeFieldName: (field: string) => string = (
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
+const ISO_DATE_REGEX: RegExp =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/;
+
 const isISODate: (value: string) => boolean = (value: string): boolean => {
-  return (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/).test(
-    value,
-  );
+  return ISO_DATE_REGEX.test(value);
 };
 
 const formatScalar: (value: JSONValue | undefined) => string = (

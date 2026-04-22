@@ -14,6 +14,8 @@ interface Feature {
 
 const AppleLogo: FunctionComponent<{ className?: string }> = ({
   className,
+}: {
+  className?: string;
 }): ReactElement => {
   return (
     <svg
@@ -29,6 +31,8 @@ const AppleLogo: FunctionComponent<{ className?: string }> = ({
 
 const GooglePlayLogo: FunctionComponent<{ className?: string }> = ({
   className,
+}: {
+  className?: string;
 }): ReactElement => {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -54,6 +58,8 @@ const GooglePlayLogo: FunctionComponent<{ className?: string }> = ({
 
 const FeatureIcon: FunctionComponent<{ icon: IconProp }> = ({
   icon,
+}: {
+  icon: IconProp;
 }): ReactElement => {
   return (
     <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-gray-800 to-gray-950 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(15,17,38,0.12)] ring-1 ring-black/5">
@@ -92,7 +98,7 @@ const ANDROID_URL: string =
 const APK_URL: string =
   "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk";
 
-const openLink = (url: string): void => {
+const openLink: (url: string) => void = (url: string): void => {
   window.open(url, "_blank", "noopener,noreferrer");
 };
 
