@@ -1,5 +1,18 @@
+import Icon from "../Icon/Icon";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import StartsWith from "../../../Types/BaseDatabase/StartsWith";
+import EndsWith from "../../../Types/BaseDatabase/EndsWith";
+import NotContains from "../../../Types/BaseDatabase/NotContains";
+import EqualTo from "../../../Types/BaseDatabase/EqualTo";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+import LessThan from "../../../Types/BaseDatabase/LessThan";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Button, { ButtonStyleType } from "../Button/Button";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -169,34 +182,82 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       data.filter.type === FieldType.Email ||
       data.filter.type === FieldType.Phone ||
       data.filter.type === FieldType.URL ||
-      data.filter.type === FieldType.Hostname
+      data.filter.type === FieldType.Hostname ||
+      data.filter.type === FieldType.LongText ||
+      data.filter.type === FieldType.Name ||
+      data.filter.type === FieldType.Port ||
+      data.filter.type === FieldType.ObjectID
     ) {
       const key: keyof T = data.filter.key;
+      const value: unknown = data.filterData[key];
 
-      if (data.filterData[key] && data.filterData[key] instanceof Search) {
-        filterText = (
+      type RenderFunction = (verb: string, display: string) => ReactElement;
+      const render: RenderFunction = (
+        verb: string,
+        display: string,
+      ): ReactElement => {
+        return (
           <div>
-            {" "}
-            <span className="font-medium">
-              {data.filter.title}
-            </span> contains{" "}
-            <span className="font-medium">
-              {data.filterData[data.filter.key]?.toString()}
-            </span>{" "}
+            <span className="font-medium">{data.filter.title}</span> {verb}{" "}
+            <span className="font-medium">{display}</span>
           </div>
         );
-      } else if (data.filterData[key]) {
-        filterText = (
+      };
+
+      if (value instanceof IsNull) {
+        return (
           <div>
-            {" "}
-            <span className="font-medium">{data.filter.title}</span> is{" "}
-            <span className="font-medium">
-              {data.filterData[data.filter.key]?.toString()}
-            </span>{" "}
+            <span className="font-medium">{data.filter.title}</span> is empty
           </div>
         );
       }
-      return filterText;
+      if (value instanceof NotNull) {
+        return (
+          <div>
+            <span className="font-medium">{data.filter.title}</span> is not empty
+          </div>
+        );
+      }
+      if (value instanceof Search) {
+        return render("contains", value.toString());
+      }
+      if (value instanceof NotContains) {
+        return render("does not contain", value.toString());
+      }
+      if (value instanceof StartsWith) {
+        return render("starts with", value.toString());
+      }
+      if (value instanceof EndsWith) {
+        return render("ends with", value.toString());
+      }
+      if (value instanceof InBetween) {
+        return render(
+          "is between",
+          `${value.startValue} and ${value.endValue}`,
+        );
+      }
+      if (value instanceof GreaterThanOrEqual) {
+        return render("is ≥", value.toString());
+      }
+      if (value instanceof LessThanOrEqual) {
+        return render("is ≤", value.toString());
+      }
+      if (value instanceof GreaterThan) {
+        return render("is greater than", value.toString());
+      }
+      if (value instanceof LessThan) {
+        return render("is less than", value.toString());
+      }
+      if (value instanceof NotEqual) {
+        return render("does not equal", value.toString());
+      }
+      if (value instanceof EqualTo) {
+        return render("equals", value.toString());
+      }
+      if (value !== undefined && value !== null && value !== "") {
+        return render("is", (value as any).toString());
+      }
+      return null;
     }
 
     if (
@@ -204,62 +265,66 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       data.filter.type === FieldType.DateTime
     ) {
       const key: keyof T = data.filter.key;
-
-      const startAndEndDates: InBetween<Date> = data.filterData[
-        key
-      ] as InBetween<Date>;
+      const value: unknown = data.filterData[key];
 
       const shouldOnlyShowDate: boolean = data.filter.type === FieldType.Date;
       const shouldShowSeconds: boolean =
         data.filter.type === FieldType.DateTime;
 
-      if (
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          startAndEndDates.startValue as Date,
+      type FormatFunction = (d: Date) => string;
+      const format: FormatFunction = (d: Date): string => {
+        return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          d,
           shouldOnlyShowDate,
           shouldShowSeconds,
-        ) ===
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          startAndEndDates.endValue as Date,
-          shouldOnlyShowDate,
-          shouldShowSeconds,
-        )
-      ) {
+        );
+      };
+
+      type RenderFunction = (verb: string, display: string) => ReactElement;
+      const render: RenderFunction = (
+        verb: string,
+        display: string,
+      ): ReactElement => {
         return (
           <div>
-            {" "}
-            <span className="font-medium">{data.filter.title}</span> at{" "}
-            <span className="font-medium">
-              {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                startAndEndDates.startValue as Date,
-                data.filter.type === FieldType.Date,
-                shouldShowSeconds,
-              )}
-            </span>{" "}
+            <span className="font-medium">{data.filter.title}</span> {verb}{" "}
+            <span className="font-medium">{display}</span>
+          </div>
+        );
+      };
+
+      if (value instanceof IsNull) {
+        return (
+          <div>
+            <span className="font-medium">{data.filter.title}</span> is empty
           </div>
         );
       }
-      return (
-        <div>
-          {" "}
-          <span className="font-medium">{data.filter.title}</span> is in between{" "}
-          <span className="font-medium">
-            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              startAndEndDates.startValue as Date,
-              shouldOnlyShowDate,
-              shouldShowSeconds,
-            )}
-          </span>{" "}
-          and{" "}
-          <span className="font-medium">
-            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              startAndEndDates.endValue as Date,
-              shouldOnlyShowDate,
-              shouldShowSeconds,
-            )}
-          </span>{" "}
-        </div>
-      );
+      if (value instanceof NotNull) {
+        return (
+          <div>
+            <span className="font-medium">{data.filter.title}</span> is not empty
+          </div>
+        );
+      }
+      if (value instanceof InBetween) {
+        const start: Date = value.startValue as unknown as Date;
+        const end: Date = value.endValue as unknown as Date;
+        if (format(start) === format(end)) {
+          return render("is", format(start));
+        }
+        return render("is between", `${format(start)} and ${format(end)}`);
+      }
+      if (value instanceof GreaterThan) {
+        return render("is after", format(value.value as unknown as Date));
+      }
+      if (value instanceof LessThan) {
+        return render("is before", format(value.value as unknown as Date));
+      }
+      if (value instanceof EqualTo) {
+        return render("is", format(value.value as unknown as Date));
+      }
+      return null;
     }
 
     if (data.filter.type === FieldType.JSON) {
@@ -296,70 +361,84 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       data.filter.type === FieldType.EntityArray
     ) {
       const key: keyof T = data.filter.key;
+      const rawValue: unknown = data.filterData[key];
 
-      let items: Array<string> = data.filterData[key] as Array<string>;
-      let matchMode: "any" | "all" = "any";
-
-      if (typeof items === "string") {
-        items = [items];
-      }
-
-      if (items instanceof Includes) {
-        items = items.values as Array<string>;
-      }
-
-      if (items instanceof IncludesAll) {
-        items = items.values as Array<string>;
-        matchMode = "all";
-      }
-
-      const isMoreItems: boolean = items.length > 1;
-
-      if (items && items instanceof Array) {
-        const entityNames: string = (items as Array<string>)
-          .map((item: string) => {
-            // item is the id of the entity. We need to find the name of the entity from the list of entities.
-
-            const entity: DropdownOption | undefined =
-              data.filter.filterDropdownOptions?.find(
-                (entity: DropdownOption | undefined) => {
-                  return entity?.value.toString() === item.toString();
-                },
-              );
-
-            if (entity) {
-              return entity.label.toString();
-            }
-
-            return null;
-          })
-          .filter((item: string | null) => {
-            return item !== null;
-          })
-          .join(", ");
-
-        if (!entityNames) {
-          return null;
-        }
-
-        let joiner: string = " is ";
-        if (isMoreItems) {
-          joiner =
-            matchMode === "all"
-              ? " has all of these values: "
-              : " is any of these values: ";
-        }
-
+      if (rawValue instanceof IsNull) {
         return (
           <div>
-            <span className="font-medium">{data.filter.title}</span>
-            {joiner}
-            <span className="font-medium">{entityNames}</span>
+            <span className="font-medium">{data.filter.title}</span> is empty
+          </div>
+        );
+      }
+      if (rawValue instanceof NotNull) {
+        return (
+          <div>
+            <span className="font-medium">{data.filter.title}</span> is not empty
           </div>
         );
       }
 
-      return filterText;
+      let items: Array<string> = [];
+      type MatchMode = "any" | "all" | "none" | "single_not";
+      let matchMode: MatchMode = "any";
+
+      if (rawValue instanceof IncludesAll) {
+        items = rawValue.values as Array<string>;
+        matchMode = "all";
+      } else if (rawValue instanceof IncludesNone) {
+        items = rawValue.values as Array<string>;
+        matchMode = rawValue.values.length === 1 ? "single_not" : "none";
+      } else if (rawValue instanceof Includes) {
+        items = rawValue.values as Array<string>;
+      } else if (Array.isArray(rawValue)) {
+        items = rawValue as Array<string>;
+      } else if (typeof rawValue === "string") {
+        items = [rawValue];
+      }
+
+      const entityNames: string = items
+        .map((item: string) => {
+          const entity: DropdownOption | undefined =
+            data.filter.filterDropdownOptions?.find(
+              (e: DropdownOption | undefined) => {
+                return e?.value.toString() === item.toString();
+              },
+            );
+          if (entity) {
+            return entity.label.toString();
+          }
+          return null;
+        })
+        .filter((name: string | null) => {
+          return name !== null;
+        })
+        .join(", ");
+
+      if (!entityNames) {
+        return null;
+      }
+
+      const isMoreItems: boolean = items.length > 1;
+      let joiner: string;
+      if (matchMode === "all") {
+        joiner = " has all of: ";
+      } else if (matchMode === "none") {
+        joiner = " has none of: ";
+      } else if (matchMode === "single_not") {
+        joiner = " is not ";
+      } else if (isMoreItems) {
+        joiner = " is any of: ";
+      } else {
+        joiner = " is ";
+      }
+
+      return (
+        <div>
+          <span className="font-medium">{data.filter.title}</span>
+          {joiner}
+          <span className="font-medium">{entityNames}</span>
+        </div>
+      );
     }
 
     return filterText;
@@ -380,36 +459,30 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     <div>
       {showViewer && (
         <div>
-          <div className="mt-5 mb-5 bg-gray-50 rounded-xl p-5 border-2 border-gray-100">
-            <div className="flex mt-1 mb-2">
-              <div className="flex-auto py-0.5 text-sm leading-5">
+          <div className="mt-4 mb-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Icon icon={IconProp.Filter} size={SizeProp.Smaller} />
                 <span className="font-semibold">
-                  Filter {props.pluralLabel + " " || ""}
-                  by the following criteria:
-                </span>{" "}
+                  Showing {props.pluralLabel || "results"} that match
+                </span>
               </div>
             </div>
 
-            <ul role="list" className="space-y-3">
+            <div className="flex flex-wrap gap-2">
               {filterTexts.map((filterText: ReactElement, index: number) => {
-                const isLastItem: boolean = index === filterTexts.length - 1;
                 return (
-                  <li className="relative flex gap-x-2" key={index}>
-                    {!isLastItem && (
-                      <div className="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
-                        <div className="w-px bg-gray-200"></div>
-                      </div>
-                    )}
-                    <div className="relative flex h-6 w-6  flex-none items-center justify-center bg-gray-50">
-                      <div className="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"></div>
-                    </div>
-                    <FilterViewerItem key={index} text={filterText} />{" "}
-                  </li>
+                  <div
+                    key={index}
+                    className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm"
+                  >
+                    <FilterViewerItem key={index} text={filterText} />
+                  </div>
                 );
               })}
-            </ul>
+            </div>
 
-            <div className="flex -ml-3 mt-3 -mb-2">
+            <div className="flex -ml-3 mt-3 -mb-1">
               {/** Edit Filter Button */}
               <Button
                 className="font-medium text-gray-900"

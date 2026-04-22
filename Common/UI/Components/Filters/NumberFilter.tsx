@@ -2,6 +2,17 @@ import Input, { InputType } from "../Input/Input";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
+import FilterOperator from "./Types/FilterOperator";
+import OperatorSelector from "./OperatorSelector";
+import EqualTo from "../../../Types/BaseDatabase/EqualTo";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+import LessThan from "../../../Types/BaseDatabase/LessThan";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
@@ -15,44 +26,196 @@ type NumberFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement;
 
+const NUMBER_OPERATORS: Array<FilterOperator> = [
+  FilterOperator.EqualTo,
+  FilterOperator.NotEqualTo,
+  FilterOperator.GreaterThan,
+  FilterOperator.LessThan,
+  FilterOperator.GreaterThanOrEqualTo,
+  FilterOperator.LessThanOrEqualTo,
+  FilterOperator.Between,
+  FilterOperator.IsEmpty,
+  FilterOperator.IsNotEmpty,
+];
+
+type NumberState = {
+  operator: FilterOperator;
+  value: string;
+  endValue: string;
+};
+
+type DetectStateFunction = (rawValue: unknown) => NumberState;
+
+const detectState: DetectStateFunction = (rawValue: unknown): NumberState => {
+  if (rawValue instanceof InBetween) {
+    return {
+      operator: FilterOperator.Between,
+      value: (rawValue.startValue ?? "").toString(),
+      endValue: (rawValue.endValue ?? "").toString(),
+    };
+  }
+  if (rawValue instanceof EqualTo) {
+    return {
+      operator: FilterOperator.EqualTo,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  if (rawValue instanceof NotEqual) {
+    return {
+      operator: FilterOperator.NotEqualTo,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  if (rawValue instanceof GreaterThan) {
+    return {
+      operator: FilterOperator.GreaterThan,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  if (rawValue instanceof LessThan) {
+    return {
+      operator: FilterOperator.LessThan,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  if (rawValue instanceof GreaterThanOrEqual) {
+    return {
+      operator: FilterOperator.GreaterThanOrEqualTo,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  if (rawValue instanceof LessThanOrEqual) {
+    return {
+      operator: FilterOperator.LessThanOrEqualTo,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  if (rawValue instanceof IsNull) {
+    return { operator: FilterOperator.IsEmpty, value: "", endValue: "" };
+  }
+  if (rawValue instanceof NotNull) {
+    return { operator: FilterOperator.IsNotEmpty, value: "", endValue: "" };
+  }
+  if (typeof rawValue === "number") {
+    return {
+      operator: FilterOperator.EqualTo,
+      value: rawValue.toString(),
+      endValue: "",
+    };
+  }
+  return { operator: FilterOperator.EqualTo, value: "", endValue: "" };
+};
+
+type BuildValueFunction = (state: NumberState) => unknown;
+
+const buildValue: BuildValueFunction = (state: NumberState): unknown => {
+  const startNum: number = parseFloat(state.value);
+  const endNum: number = parseFloat(state.endValue);
+
+  const hasStart: boolean = !Number.isNaN(startNum) && state.value !== "";
+  const hasEnd: boolean = !Number.isNaN(endNum) && state.endValue !== "";
+
+  switch (state.operator) {
+    case FilterOperator.EqualTo:
+      return hasStart ? new EqualTo(startNum as any) : undefined;
+    case FilterOperator.NotEqualTo:
+      return hasStart ? new NotEqual(startNum as any) : undefined;
+    case FilterOperator.GreaterThan:
+      return hasStart ? new GreaterThan(startNum) : undefined;
+    case FilterOperator.LessThan:
+      return hasStart ? new LessThan(startNum) : undefined;
+    case FilterOperator.GreaterThanOrEqualTo:
+      return hasStart ? new GreaterThanOrEqual(startNum) : undefined;
+    case FilterOperator.LessThanOrEqualTo:
+      return hasStart ? new LessThanOrEqual(startNum) : undefined;
+    case FilterOperator.Between:
+      return hasStart && hasEnd ? new InBetween(startNum, endNum) : undefined;
+    case FilterOperator.IsEmpty:
+      return new IsNull();
+    case FilterOperator.IsNotEmpty:
+      return new NotNull();
+    default:
+      return undefined;
+  }
+};
+
 const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const filter: Filter<T> = props.filter;
-  const filterData: FilterData<T> = { ...props.filterData };
 
-  const inputType: InputType = InputType.NUMBER;
-
-  if (!filter.filterDropdownOptions && filter.type === FieldType.Number) {
-    return (
-      <Input
-        onChange={(changedValue: string | number) => {
-          if (filter.key) {
-            if (!changedValue) {
-              delete filterData[filter.key];
-            }
-
-            if (changedValue && filter.type === FieldType.Number) {
-              if (typeof changedValue === "string") {
-                changedValue = parseInt(changedValue);
-              }
-
-              filterData[filter.key] = changedValue;
-            }
-
-            if (props.onFilterChanged) {
-              props.onFilterChanged(filterData);
-            }
-          }
-        }}
-        initialValue={filterData[filter.key]! as string}
-        placeholder={`Filter by ${filter.title}`}
-        type={inputType}
-      />
-    );
+  if (filter.filterDropdownOptions) {
+    return <></>;
   }
 
-  return <></>;
+  if (filter.type !== FieldType.Number) {
+    return <></>;
+  }
+
+  const state: NumberState = detectState(props.filterData[filter.key]);
+  const valuelessOperator: boolean =
+    state.operator === FilterOperator.IsEmpty ||
+    state.operator === FilterOperator.IsNotEmpty;
+  const isBetween: boolean = state.operator === FilterOperator.Between;
+
+  type ApplyFunction = (nextState: NumberState) => void;
+
+  const apply: ApplyFunction = (nextState: NumberState): void => {
+    if (!filter.key) {
+      return;
+    }
+
+    const next: FilterData<T> = { ...props.filterData };
+    const built: unknown = buildValue(nextState);
+
+    if (built === undefined) {
+      delete next[filter.key];
+    } else {
+      next[filter.key] = built as any;
+    }
+
+    props.onFilterChanged?.(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      <OperatorSelector
+        value={state.operator}
+        options={NUMBER_OPERATORS}
+        onChange={(nextOperator: FilterOperator) => {
+          apply({ ...state, operator: nextOperator });
+        }}
+      />
+      {!valuelessOperator && (
+        <div className={isBetween ? "flex gap-2" : ""}>
+          <Input
+            onChange={(changed: string | Date) => {
+              apply({ ...state, value: (changed || "").toString() });
+            }}
+            initialValue={state.value}
+            placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
+            type={InputType.NUMBER}
+          />
+          {isBetween && (
+            <Input
+              onChange={(changed: string | Date) => {
+                apply({ ...state, endValue: (changed || "").toString() });
+              }}
+              initialValue={state.endValue}
+              placeholder="To"
+              type={InputType.NUMBER}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default NumberFilter;

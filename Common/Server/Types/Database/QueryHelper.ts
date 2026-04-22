@@ -139,6 +139,48 @@ export default class QueryHelper {
   }
 
   @CaptureSpan()
+  public static notContains(name: string): FindWhereProperty<any> {
+    name = name.toLowerCase().trim();
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(CAST(${alias} AS TEXT) NOT ILIKE :${rid} OR ${alias} IS NULL)`;
+      },
+      {
+        [rid]: `%${name}%`,
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public static startsWith(name: string): FindWhereProperty<any> {
+    name = name.toLowerCase().trim();
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(CAST(${alias} AS TEXT) ILIKE :${rid})`;
+      },
+      {
+        [rid]: `${name}%`,
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public static endsWith(name: string): FindWhereProperty<any> {
+    name = name.toLowerCase().trim();
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(CAST(${alias} AS TEXT) ILIKE :${rid})`;
+      },
+      {
+        [rid]: `%${name}`,
+      },
+    );
+  }
+
+  @CaptureSpan()
   public static all(values: Array<string | ObjectID>): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
@@ -166,6 +208,47 @@ export default class QueryHelper {
     values: Array<string | ObjectID | number>,
   ): FindWhereProperty<any> {
     return this.in(values); // any and in are the same
+  }
+
+  /**
+   * Returns a filter that matches owner rows that are linked to *none* of the
+   * provided related entity ids through a many-to-many join table. The
+   * returned FindOperator is intended to be applied to the primary id column
+   * of the owner entity.
+   */
+  @CaptureSpan()
+  public static noneEntitiesInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (!values || values.length === 0) {
+      return Raw(() => {
+        return `TRUE = TRUE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+    const relationCol: string = data.relationColumnName.replace(/"/g, '""');
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
   }
 
   /**

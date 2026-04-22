@@ -1,8 +1,9 @@
-import Button, { ButtonStyleType } from "../Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FieldLabelElement from "../Forms/Fields/FieldLabel";
 import FieldType from "../Types/FieldType";
+import IconProp from "../../../Types/Icon/IconProp";
 import BooleanFilter from "./BooleanFilter";
 import DateFilter from "./DateFilter";
 import DropdownFilter from "./DropdownFilter";
@@ -61,16 +62,23 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     props.showAdvancedFiltersByDefault ?? false,
   );
 
+  type ClearFilterFunction = (key: keyof T) => void;
+
+  const clearFilter: ClearFilterFunction = (key: keyof T): void => {
+    const next: FilterData<T> = { ...props.filterData };
+    delete next[key];
+    changeFilterData(next);
+  };
+
   return (
     <div id={props.id}>
-      <div className="pt-3 pb-5">
-        <div className="space-y-5">
+      <div className="pt-2 pb-4">
+        <div className="space-y-4">
           {props.showFilter &&
             props.filters &&
             props.filters
               .filter((filter: Filter<T>) => {
                 if (filter.isAdvancedFilter) {
-                  // Hide advanced filters if not toggled on, or if they are still loading/errored
                   return (
                     showMoreFilters &&
                     !props.isFilterLoading &&
@@ -80,9 +88,35 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                 return true;
               })
               .map((filter: Filter<T>, i: number) => {
+                const hasValue: boolean =
+                  filter.key !== undefined &&
+                  props.filterData[filter.key] !== undefined &&
+                  props.filterData[filter.key] !== null;
+
                 return (
-                  <div key={i} className="col-span-3 sm:col-span-3 ">
-                    <FieldLabelElement required={true} title={filter.title} />
+                  <div
+                    key={i}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-1.5">
+                      <FieldLabelElement
+                        title={filter.title}
+                        hideOptionalLabel={true}
+                        className="block text-sm font-semibold text-gray-800"
+                      />
+                      {hasValue && filter.key && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            return clearFilter(filter.key as keyof T);
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600 ml-2"
+                          aria-label={`Clear ${filter.title} filter`}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
 
                     <DropdownFilter
                       filter={filter}
@@ -147,8 +181,10 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
         )}
         {showAdvancedFilterButton && (
           <Button
-            className="-ml-3 mt-1"
+            className="-ml-3 mt-2"
+            buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            icon={showMoreFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
             title={
               showMoreFilters
                 ? "Hide Advanced Filters"

@@ -7,6 +7,10 @@ import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import StartsWith from "../../../Types/BaseDatabase/StartsWith";
+import EndsWith from "../../../Types/BaseDatabase/EndsWith";
+import NotContains from "../../../Types/BaseDatabase/NotContains";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -118,6 +122,30 @@ export default class QueryUtil {
         ) as any;
       } else if (
         query[key] &&
+        query[key] instanceof NotContains &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.notContains(
+          (query[key] as NotContains<string>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof StartsWith &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.startsWith(
+          (query[key] as StartsWith<string>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof EndsWith &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.endsWith(
+          (query[key] as EndsWith<string>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
         query[key] instanceof LessThan &&
         tableColumnMetadata
       ) {
@@ -212,6 +240,71 @@ export default class QueryUtil {
         } else {
           query[key] = QueryHelper.any(
             (query[key] as IncludesAll).values,
+          ) as any;
+        }
+      } else if (
+        query[key] &&
+        query[key] instanceof IncludesNone &&
+        tableColumnMetadata
+      ) {
+        if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+          const includesNone: IncludesNone = query[key] as IncludesNone;
+          const values: Array<string | ObjectID> = (
+            includesNone.values as Array<string | ObjectID | number>
+          ).map((item: string | ObjectID | number) => {
+            if (
+              item !== null &&
+              typeof item === Typeof.Object &&
+              !(item instanceof ObjectID)
+            ) {
+              const itemRecord: JSONObject = item as unknown as JSONObject;
+              if (itemRecord["_id"]) {
+                return itemRecord["_id"] as string;
+              }
+            }
+            return item.toString();
+          });
+
+          const manyToManyMeta: {
+            joinTableName: string;
+            ownerColumnName: string;
+            relationColumnName: string;
+          } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+          if (manyToManyMeta && values.length > 0) {
+            const subqueryFilter: any = QueryHelper.noneEntitiesInManyToMany({
+              values,
+              joinTableName: manyToManyMeta.joinTableName,
+              ownerColumnName: manyToManyMeta.ownerColumnName,
+              relationColumnName: manyToManyMeta.relationColumnName,
+            });
+
+            delete query[key];
+
+            const existingIdFilter: any = (query as any)._id;
+            if (existingIdFilter instanceof FindOperator) {
+              (query as any)._id = And(existingIdFilter, subqueryFilter);
+            } else if (
+              existingIdFilter &&
+              typeof existingIdFilter === Typeof.String
+            ) {
+              (query as any)._id = And(
+                QueryHelper.equalTo(existingIdFilter as string),
+                subqueryFilter,
+              );
+            } else {
+              (query as any)._id = subqueryFilter;
+            }
+          } else {
+            delete query[key];
+          }
+        } else if (tableColumnMetadata.type === TableColumnType.Entity) {
+          query[key] = QueryHelper.notIn(
+            (query[key] as IncludesNone).values as Array<string | ObjectID>,
+          ) as any;
+        } else {
+          query[key] = QueryHelper.notIn(
+            (query[key] as IncludesNone).values as Array<string | ObjectID>,
           ) as any;
         }
       } else if (

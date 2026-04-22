@@ -8,6 +8,10 @@ import GreaterThanOrEqual from "./BaseDatabase/GreaterThanOrEqual";
 import InBetween from "./BaseDatabase/InBetween";
 import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
+import IncludesNone from "./BaseDatabase/IncludesNone";
+import StartsWith from "./BaseDatabase/StartsWith";
+import EndsWith from "./BaseDatabase/EndsWith";
+import NotContains from "./BaseDatabase/NotContains";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
 import NotEqual from "./BaseDatabase/NotEqual";
@@ -73,6 +77,10 @@ export enum ObjectType {
   IsNull = "IsNull",
   Includes = "Includes",
   IncludesAll = "IncludesAll",
+  IncludesNone = "IncludesNone",
+  StartsWith = "StartsWith",
+  EndsWith = "EndsWith",
+  NotContains = "NotContains",
   DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
 }
@@ -161,6 +169,14 @@ export type JSONValue =
   | Array<Includes>
   | IncludesAll
   | Array<IncludesAll>
+  | IncludesNone
+  | Array<IncludesNone>
+  | StartsWith<string>
+  | Array<StartsWith<string>>
+  | EndsWith<string>
+  | Array<EndsWith<string>>
+  | NotContains<string>
+  | Array<NotContains<string>>
   | DashboardViewConfig;
 
 export interface JSONObject {

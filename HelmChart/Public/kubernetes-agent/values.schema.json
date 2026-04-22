@@ -8,6 +8,14 @@
       "enum": ["", "standard", "gke-autopilot", "eks-fargate"],
       "description": "Preset for the cluster type. 'standard' (default) uses a hostPath DaemonSet for logs. 'gke-autopilot' and 'eks-fargate' switch to API-mode log collection with a hardened security context."
     },
+    "nameOverride": {
+      "type": "string",
+      "description": "Override the chart name used in generated resource names."
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "description": "Override the fully qualified resource name. Useful for installing side-by-side with an existing release that shares the default cluster-scoped resource names."
+    },
     "oneuptime": {
       "type": "object",
       "description": "OneUptime instance connection details",

@@ -2,8 +2,14 @@ import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
+import FilterOperator from "./Types/FilterOperator";
+import OperatorSelector from "./OperatorSelector";
 import GenericObject from "../../../Types/GenericObject";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -16,163 +22,195 @@ type EntityFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement;
 
-type EntityArrayMatchMode = "any" | "all";
+const ENTITY_ARRAY_OPERATORS: Array<FilterOperator> = [
+  FilterOperator.HasAnyOf,
+  FilterOperator.HasAllOf,
+  FilterOperator.HasNoneOf,
+  FilterOperator.IsEmpty,
+  FilterOperator.IsNotEmpty,
+];
 
-type ExtractEntityArrayValuesFunction = (
-  rawValue: unknown,
-) => { values: Array<string>; mode: EntityArrayMatchMode };
+const ENTITY_OPERATORS: Array<FilterOperator> = [
+  FilterOperator.Is,
+  FilterOperator.IsNot,
+  FilterOperator.IsEmpty,
+  FilterOperator.IsNotEmpty,
+];
 
-const extractEntityArrayValues: ExtractEntityArrayValuesFunction = (
-  rawValue: unknown,
-): { values: Array<string>; mode: EntityArrayMatchMode } => {
+type EntityState = {
+  operator: FilterOperator;
+  values: Array<string>;
+};
+
+const detectArrayState = (rawValue: unknown): EntityState => {
   if (rawValue instanceof IncludesAll) {
     return {
+      operator: FilterOperator.HasAllOf,
       values: (rawValue.values as Array<string>).map((v: string) => {
         return v.toString();
       }),
-      mode: "all",
     };
   }
-
+  if (rawValue instanceof IncludesNone) {
+    return {
+      operator: FilterOperator.HasNoneOf,
+      values: (rawValue.values as Array<string>).map((v: string) => {
+        return v.toString();
+      }),
+    };
+  }
+  if (rawValue instanceof Includes) {
+    return {
+      operator: FilterOperator.HasAnyOf,
+      values: (rawValue.values as Array<string>).map((v: string) => {
+        return v.toString();
+      }),
+    };
+  }
   if (Array.isArray(rawValue)) {
     return {
+      operator: FilterOperator.HasAnyOf,
       values: (rawValue as Array<string>).map((v: string) => {
         return v.toString();
       }),
-      mode: "any",
     };
   }
+  if (rawValue instanceof IsNull) {
+    return { operator: FilterOperator.IsEmpty, values: [] };
+  }
+  if (rawValue instanceof NotNull) {
+    return { operator: FilterOperator.IsNotEmpty, values: [] };
+  }
+  return { operator: FilterOperator.HasAnyOf, values: [] };
+};
 
-  return { values: [], mode: "any" };
+const detectSingleState = (rawValue: unknown): EntityState => {
+  if (rawValue instanceof IsNull) {
+    return { operator: FilterOperator.IsEmpty, values: [] };
+  }
+  if (rawValue instanceof NotNull) {
+    return { operator: FilterOperator.IsNotEmpty, values: [] };
+  }
+  if (typeof rawValue === "string" && rawValue) {
+    return { operator: FilterOperator.Is, values: [rawValue] };
+  }
+  return { operator: FilterOperator.Is, values: [] };
+};
+
+const buildArrayValue = (state: EntityState): unknown => {
+  switch (state.operator) {
+    case FilterOperator.HasAllOf:
+      return state.values.length > 0 ? new IncludesAll(state.values) : undefined;
+    case FilterOperator.HasNoneOf:
+      return state.values.length > 0 ? new IncludesNone(state.values) : undefined;
+    case FilterOperator.HasAnyOf:
+      return state.values.length > 0 ? state.values : undefined;
+    case FilterOperator.IsEmpty:
+      return new IsNull();
+    case FilterOperator.IsNotEmpty:
+      return new NotNull();
+    default:
+      return undefined;
+  }
+};
+
+const buildSingleValue = (state: EntityState): unknown => {
+  switch (state.operator) {
+    case FilterOperator.Is:
+      return state.values[0] || undefined;
+    case FilterOperator.IsNot:
+      // Use IncludesNone with single-item array to represent "is not".
+      return state.values[0]
+        ? new IncludesNone([state.values[0]])
+        : undefined;
+    case FilterOperator.IsEmpty:
+      return new IsNull();
+    case FilterOperator.IsNotEmpty:
+      return new NotNull();
+    default:
+      return undefined;
+  }
 };
 
 const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const filter: Filter<T> = props.filter;
-  const filterData: FilterData<T> = { ...props.filterData };
 
-  const { values: selectedValues, mode: currentMode } = extractEntityArrayValues(
-    filterData[filter.key],
-  );
+  if (
+    filter.type !== FieldType.Entity &&
+    filter.type !== FieldType.EntityArray
+  ) {
+    return <></>;
+  }
+
+  if (!filter.filterDropdownOptions) {
+    return <></>;
+  }
+
+  const isArray: boolean = filter.type === FieldType.EntityArray;
+  const state: EntityState = isArray
+    ? detectArrayState(props.filterData[filter.key])
+    : detectSingleState(props.filterData[filter.key]);
+
+  const valuelessOperator: boolean =
+    state.operator === FilterOperator.IsEmpty ||
+    state.operator === FilterOperator.IsNotEmpty;
 
   const dropdownValues: Array<DropdownOption> =
-    props.filter.filterDropdownOptions?.filter((option: DropdownOption) => {
-      if (selectedValues.length > 0) {
-        return selectedValues.includes(option.value.toString());
-      }
-
-      return option.value.toString() === filterData[filter.key]?.toString();
+    filter.filterDropdownOptions?.filter((option: DropdownOption) => {
+      return state.values.includes(option.value.toString());
     }) || [];
 
-  type ApplyValuesFunction = (data: {
-    values: Array<string>;
-    mode: EntityArrayMatchMode;
-  }) => void;
+  type ApplyFunction = (nextState: EntityState) => void;
 
-  const applyValues: ApplyValuesFunction = (data: {
-    values: Array<string>;
-    mode: EntityArrayMatchMode;
-  }): void => {
+  const apply: ApplyFunction = (nextState: EntityState): void => {
     if (!filter.key) {
       return;
     }
-
-    if (data.values.length === 0) {
-      delete filterData[filter.key];
-    } else if (data.mode === "all") {
-      filterData[filter.key] = new IncludesAll(data.values) as any;
+    const next: FilterData<T> = { ...props.filterData };
+    const built: unknown = isArray
+      ? buildArrayValue(nextState)
+      : buildSingleValue(nextState);
+    if (built === undefined) {
+      delete next[filter.key];
     } else {
-      filterData[filter.key] = data.values as any;
+      next[filter.key] = built as any;
     }
-
-    if (props.onFilterChanged) {
-      props.onFilterChanged(filterData);
-    }
+    props.onFilterChanged?.(next);
   };
 
-  if (
-    (filter.type === FieldType.Entity ||
-      filter.type === FieldType.EntityArray) &&
-    filter.filterDropdownOptions
-  ) {
-    const showMatchToggle: boolean =
-      filter.type === FieldType.EntityArray && selectedValues.length >= 2;
-
-    return (
-      <div>
+  return (
+    <div className="space-y-2">
+      <OperatorSelector
+        value={state.operator}
+        options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
+        onChange={(nextOperator: FilterOperator) => {
+          apply({ ...state, operator: nextOperator });
+        }}
+      />
+      {!valuelessOperator && (
         <Dropdown
           options={filter.filterDropdownOptions}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            if (!filter.key) {
-              return;
-            }
-
             if (!value || (Array.isArray(value) && value.length === 0)) {
-              applyValues({ values: [], mode: currentMode });
+              apply({ ...state, values: [] });
               return;
             }
-
-            if (filter.type === FieldType.EntityArray) {
-              const nextValues: Array<string> = Array.isArray(value)
-                ? (value as Array<DropdownValue>).map((v: DropdownValue) => {
-                    return v.toString();
-                  })
-                : [value.toString()];
-
-              applyValues({ values: nextValues, mode: currentMode });
-              return;
-            }
-
-            // FieldType.Entity: single value, mirror legacy behavior.
-            filterData[filter.key] = value as any;
-
-            if (props.onFilterChanged) {
-              props.onFilterChanged(filterData);
-            }
+            const nextValues: Array<string> = Array.isArray(value)
+              ? (value as Array<DropdownValue>).map((v: DropdownValue) => {
+                  return v.toString();
+                })
+              : [value.toString()];
+            apply({ ...state, values: nextValues });
           }}
           value={dropdownValues}
-          isMultiSelect={filter.type === FieldType.EntityArray}
+          isMultiSelect={isArray}
           placeholder={`Filter by ${filter.title}`}
         />
-        {showMatchToggle && (
-          <div className="mt-2 flex items-center text-xs text-gray-500">
-            <span className="mr-2">Match</span>
-            <div className="inline-flex rounded-md border border-gray-200 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => {
-                  applyValues({ values: selectedValues, mode: "any" });
-                }}
-                className={
-                  currentMode === "any"
-                    ? "px-2.5 py-1 text-xs font-medium bg-indigo-600 text-white"
-                    : "px-2.5 py-1 text-xs font-medium bg-white text-gray-600 hover:bg-gray-50"
-                }
-              >
-                Any (OR)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  applyValues({ values: selectedValues, mode: "all" });
-                }}
-                className={
-                  currentMode === "all"
-                    ? "px-2.5 py-1 text-xs font-medium bg-indigo-600 text-white border-l border-indigo-600"
-                    : "px-2.5 py-1 text-xs font-medium bg-white text-gray-600 hover:bg-gray-50 border-l border-gray-200"
-                }
-              >
-                All (AND)
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return <></>;
+      )}
+    </div>
+  );
 };
 
 export default EntityFilter;

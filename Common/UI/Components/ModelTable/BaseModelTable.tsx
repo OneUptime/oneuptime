@@ -1,5 +1,5 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
-import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
+import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
@@ -1525,7 +1525,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
       }
 
-      if (filterData[key] instanceof IncludesAll) {
+      // Pass any QueryOperator instance (IncludesAll, IncludesNone, StartsWith,
+      // EndsWith, NotContains, EqualTo, NotEqual, GreaterThan, LessThan,
+      // InBetween, IsNull, NotNull, ...) through to the query as-is.
+      if (filterData[key] instanceof QueryOperator) {
         newQuery[key as keyof TBaseModel] = filterData[key];
       }
     }

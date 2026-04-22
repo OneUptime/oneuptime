@@ -8,6 +8,10 @@ import GreaterThanOrEqual from "./BaseDatabase/GreaterThanOrEqual";
 import InBetween from "./BaseDatabase/InBetween";
 import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
+import IncludesNone from "./BaseDatabase/IncludesNone";
+import StartsWith from "./BaseDatabase/StartsWith";
+import EndsWith from "./BaseDatabase/EndsWith";
+import NotContains from "./BaseDatabase/NotContains";
 import IsNull from "./BaseDatabase/IsNull";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
@@ -67,6 +71,10 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.InBetween]: InBetween,
   [ObjectType.Includes]: Includes,
   [ObjectType.IncludesAll]: IncludesAll,
+  [ObjectType.IncludesNone]: IncludesNone,
+  [ObjectType.StartsWith]: StartsWith,
+  [ObjectType.EndsWith]: EndsWith,
+  [ObjectType.NotContains]: NotContains,
   [ObjectType.NotNull]: NotNull,
   [ObjectType.IsNull]: IsNull,
   [ObjectType.Recurring]: Recurring,
