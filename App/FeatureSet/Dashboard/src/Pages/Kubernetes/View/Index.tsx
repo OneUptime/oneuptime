@@ -163,38 +163,77 @@ const KubernetesClusterOverview: FunctionComponent<
       setCluster(item);
 
       if (item?.clusterIdentifier) {
+        const clusterIdentifier: string = item.clusterIdentifier;
+
         /*
-         * Fetch counts + phase/ready/pressure summaries from the
-         * KubernetesResource inventory table in a single round-trip.
-         * Replaces the 18 ClickHouse groupBy + batch-log queries the
-         * overview used to issue on every load.
+         * Fire all three data fetches in parallel. They hit different
+         * stores (Postgres inventory, ClickHouse metrics, ClickHouse
+         * logs) and have no data dependency on each other, so there's
+         * no reason to wait serially. Each wraps errors locally — one
+         * failure doesn't blank out the rest of the page.
          */
         const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
           .addRoute("/kubernetes-resource/inventory-summary/")
           .addRoute(modelId.toString());
 
-        let summary: JSONObject | null = null;
-        try {
-          const summaryResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.post({
-              url: summaryUrl,
-              data: {},
-              headers: {
-                ...ModelAPI.getCommonHeaders(),
-              },
-            });
-          if (summaryResponse instanceof HTTPErrorResponse) {
-            throw summaryResponse;
-          }
-          summary = summaryResponse.data;
-        } catch {
-          /*
-           * Inventory summary is best-effort; leave counts at 0 rather
-           * than fail the page. Top-N pods + cluster metadata still
-           * render so the user isn't staring at an error.
-           */
-          summary = null;
-        }
+        const summaryPromise: Promise<JSONObject | null> =
+          (async (): Promise<JSONObject | null> => {
+            try {
+              const summaryResponse:
+                | HTTPResponse<JSONObject>
+                | HTTPErrorResponse = await API.post({
+                url: summaryUrl,
+                data: {},
+                headers: {
+                  ...ModelAPI.getCommonHeaders(),
+                },
+              });
+              if (summaryResponse instanceof HTTPErrorResponse) {
+                throw summaryResponse;
+              }
+              return summaryResponse.data;
+            } catch {
+              /*
+               * Inventory summary is best-effort; leave counts at 0
+               * rather than fail the page.
+               */
+              return null;
+            }
+          })();
+
+        const podsPromise: Promise<Array<KubernetesResource>> =
+          (async (): Promise<Array<KubernetesResource>> => {
+            try {
+              return await KubernetesResourceUtils.fetchResourceListWithMemory(
+                {
+                  clusterIdentifier: clusterIdentifier,
+                  metricName: "k8s.pod.cpu.utilization",
+                  resourceNameAttribute: "resource.k8s.pod.name",
+                  memoryMetricName: "k8s.pod.memory.usage",
+                },
+              );
+            } catch {
+              return [];
+            }
+          })();
+
+        const warningsPromise: Promise<Array<KubernetesEvent>> =
+          (async (): Promise<Array<KubernetesEvent>> => {
+            try {
+              return await fetchClusterWarningEvents({
+                clusterIdentifier: clusterIdentifier,
+                limit: 5,
+              });
+            } catch {
+              return [];
+            }
+          })();
+
+        const [summary, pods, warnings]: [
+          JSONObject | null,
+          Array<KubernetesResource>,
+          Array<KubernetesEvent>,
+        ] = await Promise.all([summaryPromise, podsPromise, warningsPromise]);
 
         if (summary) {
           const readNum: (k: string) => number = (k: string): number => {
@@ -320,61 +359,29 @@ const KubernetesClusterOverview: FunctionComponent<
           }
         }
 
-        /*
-         * Top-N CPU/memory pods — still comes from ClickHouse metrics
-         * because it carries utilization values that aren't in the
-         * inventory table. Cheap and unchanged.
-         */
-        try {
-          const pods: Array<KubernetesResource> =
-            await KubernetesResourceUtils.fetchResourceListWithMemory({
-              clusterIdentifier: item.clusterIdentifier,
-              metricName: "k8s.pod.cpu.utilization",
-              resourceNameAttribute: "resource.k8s.pod.name",
-              memoryMetricName: "k8s.pod.memory.usage",
-            });
+        const sortedByCpu: Array<KubernetesResource> = [...pods]
+          .filter((p: KubernetesResource) => {
+            return p.cpuUtilization !== null && p.cpuUtilization !== undefined;
+          })
+          .sort((a: KubernetesResource, b: KubernetesResource) => {
+            return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
+          })
+          .slice(0, 5);
+        setTopCpuPods(sortedByCpu);
 
-          const sortedByCpu: Array<KubernetesResource> = [...pods]
-            .filter((p: KubernetesResource) => {
-              return (
-                p.cpuUtilization !== null && p.cpuUtilization !== undefined
-              );
-            })
-            .sort((a: KubernetesResource, b: KubernetesResource) => {
-              return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
-            })
-            .slice(0, 5);
-          setTopCpuPods(sortedByCpu);
+        const sortedByMemory: Array<KubernetesResource> = [...pods]
+          .filter((p: KubernetesResource) => {
+            return (
+              p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
+            );
+          })
+          .sort((a: KubernetesResource, b: KubernetesResource) => {
+            return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
+          })
+          .slice(0, 5);
+        setTopMemoryPods(sortedByMemory);
 
-          const sortedByMemory: Array<KubernetesResource> = [...pods]
-            .filter((p: KubernetesResource) => {
-              return (
-                p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
-              );
-            })
-            .sort((a: KubernetesResource, b: KubernetesResource) => {
-              return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
-            })
-            .slice(0, 5);
-          setTopMemoryPods(sortedByMemory);
-        } catch {
-          // Top-N is supplementary; leave lists empty on failure.
-        }
-
-        /*
-         * Fetch recent warning events (still on ClickHouse — genuinely
-         * log-shaped).
-         */
-        try {
-          const warnings: Array<KubernetesEvent> =
-            await fetchClusterWarningEvents({
-              clusterIdentifier: item.clusterIdentifier,
-              limit: 5,
-            });
-          setRecentWarnings(warnings);
-        } catch {
-          // Warnings are supplementary
-        }
+        setRecentWarnings(warnings);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));

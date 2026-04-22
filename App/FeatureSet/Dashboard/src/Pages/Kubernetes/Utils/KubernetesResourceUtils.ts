@@ -127,41 +127,64 @@ export default class KubernetesResourceUtils {
   public static async fetchResourceListWithMemory(
     options: FetchResourceListOptions & { memoryMetricName: string },
   ): Promise<Array<KubernetesResource>> {
-    const resources: Array<KubernetesResource> =
-      await KubernetesResourceUtils.fetchResourceList(options);
-
+    /*
+     * Normalize hoursBack here so both the CPU query (inside
+     * fetchResourceList) and the memory query below scan the same
+     * window. The previous default mismatch (24h for CPU, 1h for
+     * memory) meant the two queries joined on fundamentally different
+     * time ranges.
+     */
+    const hoursBack: number = options.hoursBack || 1;
     const endDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.addRemoveHours(
-      endDate,
-      -(options.hoursBack || 1),
-    );
+    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -hoursBack);
 
-    try {
-      const memoryResult: AggregatedResult = await AnalyticsModelAPI.aggregate({
-        modelType: Metric,
-        aggregateBy: {
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            time: new InBetween(startDate, endDate),
-            name: options.memoryMetricName,
-            attributes: {
-              "resource.k8s.cluster.name": options.clusterIdentifier,
-              ...(options.filterAttributes || {}),
-            } as Dictionary<string | number | boolean>,
-          },
-          aggregationType: MetricsAggregationType.Avg,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          startTimestamp: startDate,
-          endTimestamp: endDate,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          groupBy: {
-            attributes: true,
-          },
-        },
-      });
+    /*
+     * Fire CPU and memory aggregations in parallel. They're
+     * independent ClickHouse queries; the old code awaited CPU before
+     * starting memory, which doubled the round-trip cost.
+     */
+    const resourcesPromise: Promise<Array<KubernetesResource>> =
+      KubernetesResourceUtils.fetchResourceList({ ...options, hoursBack });
 
+    const memoryPromise: Promise<AggregatedResult | null> =
+      (async (): Promise<AggregatedResult | null> => {
+        try {
+          return await AnalyticsModelAPI.aggregate({
+            modelType: Metric,
+            aggregateBy: {
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+                time: new InBetween(startDate, endDate),
+                name: options.memoryMetricName,
+                attributes: {
+                  "resource.k8s.cluster.name": options.clusterIdentifier,
+                  ...(options.filterAttributes || {}),
+                } as Dictionary<string | number | boolean>,
+              },
+              aggregationType: MetricsAggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              startTimestamp: startDate,
+              endTimestamp: endDate,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              groupBy: {
+                attributes: true,
+              },
+            },
+          });
+        } catch {
+          // Memory data is optional, don't fail if not available
+          return null;
+        }
+      })();
+
+    const [resources, memoryResult]: [
+      Array<KubernetesResource>,
+      AggregatedResult | null,
+    ] = await Promise.all([resourcesPromise, memoryPromise]);
+
+    if (memoryResult) {
       const memoryMap: Map<string, number> = new Map();
 
       for (const dataPoint of memoryResult.data) {
@@ -187,8 +210,6 @@ export default class KubernetesResourceUtils {
           resource.memoryUsageBytes = memValue;
         }
       }
-    } catch {
-      // Memory data is optional, don't fail if not available
     }
 
     return resources;

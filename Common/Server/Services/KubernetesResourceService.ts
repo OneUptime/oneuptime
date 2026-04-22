@@ -43,7 +43,7 @@ export interface DegradedNode {
 export interface InventorySummary {
   countsByKind: Record<string, number>;
   /*
-   * Sum of `jsonb_array_length(spec->'containers')` across all pods in
+   * Sum of the denormalized containerCount column across all pods in
    * the cluster. Containers aren't a top-level kind in the inventory,
    * so we derive the total server-side so the sidebar badge and the
    * Containers page agree.
@@ -285,6 +285,7 @@ const UPSERT_COLUMNS: Array<keyof ParsedKubernetesResource | string> = [
   "annotations",
   "ownerReferences",
   "spec",
+  "containerCount",
   "status",
   "lastSeenAt",
   "resourceCreationTimestamp",
@@ -346,6 +347,7 @@ export class Service extends DatabaseService<Model> {
           r.annotations ? JSON.stringify(r.annotations) : null,
           r.ownerReferences ? JSON.stringify(r.ownerReferences) : null,
           r.spec ? JSON.stringify(r.spec) : null,
+          r.containerCount,
           r.status ? JSON.stringify(r.status) : null,
           r.lastSeenAt,
           r.resourceCreationTimestamp,
@@ -358,7 +360,7 @@ export class Service extends DatabaseService<Model> {
           "projectId", "kubernetesClusterId", "kind", "namespaceKey", "name",
           "uid", "phase", "isReady",
           "hasMemoryPressure", "hasDiskPressure", "hasPidPressure",
-          "labels", "annotations", "ownerReferences", "spec", "status",
+          "labels", "annotations", "ownerReferences", "spec", "containerCount", "status",
           "lastSeenAt", "resourceCreationTimestamp", "version"
         )
         VALUES ${valueFragments.join(", ")}
@@ -374,6 +376,7 @@ export class Service extends DatabaseService<Model> {
           "annotations" = EXCLUDED."annotations",
           "ownerReferences" = EXCLUDED."ownerReferences",
           "spec" = EXCLUDED."spec",
+          "containerCount" = EXCLUDED."containerCount",
           "status" = EXCLUDED."status",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "resourceCreationTimestamp" = EXCLUDED."resourceCreationTimestamp",
@@ -490,11 +493,15 @@ export class Service extends DatabaseService<Model> {
         [data.projectId.toString(), data.kubernetesClusterId.toString()],
       ),
       manager.query(
-        `SELECT COALESCE(SUM(
-           CASE WHEN jsonb_typeof("spec"->'containers') = 'array'
-                THEN jsonb_array_length("spec"->'containers')
-                ELSE 0 END
-         ), 0)::text AS total
+        /*
+         * containerCount is cached on the row during ingest
+         * (KubernetesInventoryExtractor sets it from
+         * spec.containers.length), so this is a plain int sum instead
+         * of a JSONB scan. Rows written before that ingest change may
+         * have NULL; SUM treats those as 0, which matches the old
+         * behavior.
+         */
+        `SELECT COALESCE(SUM("containerCount"), 0)::text AS total
          FROM "KubernetesResource"
          WHERE "projectId" = $1 AND "kubernetesClusterId" = $2 AND "kind" = 'Pod' AND "deletedAt" IS NULL`,
         [data.projectId.toString(), data.kubernetesClusterId.toString()],

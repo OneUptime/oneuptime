@@ -412,6 +412,25 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Container Count",
+    description:
+      "For Pods: count of entries in spec.containers, cached so the overview page can SUM it without scanning JSONB. Null for non-Pod kinds.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public containerCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.JSON,
     title: "Status",
     description: "Kubernetes status block, verbatim from the last snapshot.",
