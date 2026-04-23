@@ -211,6 +211,7 @@ export default class MonitorAlert {
           MonitorTemplateUtil.buildTemplateStorageMap({
             monitorType: input.monitor.monitorType!,
             dataToProcess: input.dataToProcess,
+            monitor: input.monitor,
             seriesLabels,
           });
 
