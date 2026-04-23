@@ -9,7 +9,11 @@ import es from "../Locales/es.json";
 import it from "../Locales/it.json";
 import pt from "../Locales/pt.json";
 import nl from "../Locales/nl.json";
+import da from "../Locales/da.json";
+import no from "../Locales/no.json";
+import sv from "../Locales/sv.json";
 import ja from "../Locales/ja.json";
+import ko from "../Locales/ko.json";
 import zh from "../Locales/zh.json";
 
 export interface SupportedLanguage {
@@ -26,7 +30,11 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> = [
   { code: "it", nativeName: "Italiano", englishName: "Italian" },
   { code: "pt", nativeName: "Português", englishName: "Portuguese" },
   { code: "nl", nativeName: "Nederlands", englishName: "Dutch" },
+  { code: "da", nativeName: "Dansk", englishName: "Danish" },
+  { code: "no", nativeName: "Norsk", englishName: "Norwegian" },
+  { code: "sv", nativeName: "Svenska", englishName: "Swedish" },
   { code: "ja", nativeName: "日本語", englishName: "Japanese" },
+  { code: "ko", nativeName: "한국어", englishName: "Korean" },
   { code: "zh", nativeName: "中文", englishName: "Chinese" },
 ];
 
@@ -45,7 +53,11 @@ i18n
       it: { translation: it },
       pt: { translation: pt },
       nl: { translation: nl },
+      da: { translation: da },
+      no: { translation: no },
+      sv: { translation: sv },
       ja: { translation: ja },
+      ko: { translation: ko },
       zh: { translation: zh },
     },
     fallbackLng: DEFAULT_LANGUAGE,

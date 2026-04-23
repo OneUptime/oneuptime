@@ -24,8 +24,16 @@ func SetDefaultLogger() {
 	slog.SetDefault(logger)
 }
 
-// GetLogPath returns the full path to the log file
+// GetLogPath returns the full path to the log file.
+//
+// Supports an override via ONEUPTIME_AGENT_LOG_PATH. When unset, uses the
+// system log dir and falls back to $HOME/.oneuptime-infrastructure-agent
+// when that dir is not writable (unprivileged local testing).
 func GetLogPath() string {
+	if override := os.Getenv("ONEUPTIME_AGENT_LOG_PATH"); override != "" {
+		return override
+	}
+
 	var basePath string
 	if runtime.GOOS == "windows" {
 		basePath = os.Getenv("PROGRAMDATA")
@@ -36,18 +44,36 @@ func GetLogPath() string {
 		basePath = "/var/log"
 	}
 
-	// Define the directory path where the log file will be stored
 	logDirectory := filepath.Join(basePath, "oneuptime-infrastructure-agent")
 
-	// Ensure the directory exists
-	err := ensureDir(logDirectory)
-	if err != nil {
-		slog.Default().Error("Failed to create log directory, falling back to current directory", "error", err)
-		return "oneuptime-infrastructure-agent.log"
+	// If the system dir isn't writable by us (missing or root-owned), fall
+	// back to $HOME so the agent can log while running unprivileged.
+	if err := ensureDir(logDirectory); err != nil || !isDirWritable(logDirectory) {
+		if home, herr := os.UserHomeDir(); herr == nil {
+			logDirectory = filepath.Join(home, ".oneuptime-infrastructure-agent")
+			if ferr := ensureDir(logDirectory); ferr != nil {
+				slog.Default().Error("Failed to create log directory, falling back to current directory", "error", ferr)
+				return "oneuptime-infrastructure-agent.log"
+			}
+		} else {
+			slog.Default().Error("Failed to create log directory, falling back to current directory", "error", err)
+			return "oneuptime-infrastructure-agent.log"
+		}
 	}
 
-	// Return the full path to the log file
 	return filepath.Join(logDirectory, "oneuptime-infrastructure-agent.log")
+}
+
+// isDirWritable probes whether the current process can create files in dir.
+func isDirWritable(dir string) bool {
+	probe, err := os.CreateTemp(dir, ".oneuptime-agent-write-check-")
+	if err != nil {
+		return false
+	}
+	probePath := probe.Name()
+	_ = probe.Close()
+	_ = os.Remove(probePath)
+	return true
 }
 
 // ensureDir checks if a directory exists and makes it if it does not
