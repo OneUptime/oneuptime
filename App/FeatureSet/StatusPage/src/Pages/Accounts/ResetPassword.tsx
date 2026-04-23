@@ -13,6 +13,7 @@ import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   statusPageName: string;
@@ -23,6 +24,7 @@ export interface ComponentProps {
 const ResetPassword: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const { t } = useTranslation();
   const apiUrl: URL = RESET_PASSWORD_API_URL;
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const statusPageId: string | undefined =
@@ -80,18 +82,20 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          Create a new password for your {props.statusPageName} account.
+          {t("accounts.resetPassword.description", {
+            statusPageName: props.statusPageName,
+          })}
         </h2>
 
         {!isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600">
-            Please enter your new password and we will have it updated.{" "}
+            {t("accounts.resetPassword.instructions")}{" "}
           </p>
         )}
 
         {isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600">
-            Your password has been updated. Please log in.
+            {t("accounts.resetPassword.success")}
           </p>
         )}
       </div>
@@ -127,8 +131,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   validation: {
                     minLength: 6,
                   },
-                  placeholder: "New Password",
-                  title: "New Password",
+                  placeholder: t("accounts.shared.newPassword"),
+                  title: t("accounts.shared.newPassword"),
                   required: true,
                   disableSpellCheck: true,
                 },
@@ -142,8 +146,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   },
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Password,
-                  placeholder: "Confirm Password",
-                  title: "Confirm Password",
+                  placeholder: t("accounts.shared.confirmPassword"),
+                  title: t("accounts.shared.confirmPassword"),
                   overrideFieldKey: "confirmPassword",
                   required: true,
                   disableSpellCheck: true,
@@ -151,7 +155,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
               ]}
               createOrUpdateApiUrl={apiUrl}
               formType={FormType.Create}
-              submitButtonText={"Reset Password"}
+              submitButtonText={t("accounts.resetPassword.submit")}
               onSuccess={() => {
                 setIsSuccess(true);
               }}
@@ -160,7 +164,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
         )}
         <div className="mt-10 text-center">
           <p className="text-muted mb-0 text-gray-500">
-            Know your password?{" "}
+            {t("accounts.resetPassword.knowPassword")}{" "}
             <Link
               to={
                 new Route(
@@ -171,7 +175,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
               }
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Log in.
+              {t("accounts.shared.login")}.
             </Link>
           </p>
         </div>

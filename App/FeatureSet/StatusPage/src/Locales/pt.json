@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "E-mail",
+      "password": "Senha",
+      "newPassword": "Nova senha",
+      "confirmPassword": "Confirmar senha",
+      "login": "Entrar"
+    },
+    "login": {
+      "welcomeBack": "Bem-vindo de volta!",
+      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "forgotPassword": "Esqueceu a senha?",
+      "submit": "Entrar",
+      "useSSO": "Usar login único (SSO) em vez disso"
+    },
+    "sso": {
+      "title": "Entrar com SSO",
+      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "noProviders": "Nenhum provedor SSO configurado ou habilitado"
+    },
     "forgotPassword": {
       "title": "Esqueceu a senha",
       "description": "Se você esqueceu sua senha para {{statusPageName}}, digite seu e-mail e o link de redefinição de senha será enviado a você.",
-      "success": "Enviamos o link de redefinição de senha para seu e-mail. Não se esqueça de verificar a pasta de spam."
+      "success": "Enviamos o link de redefinição de senha para seu e-mail. Não se esqueça de verificar a pasta de spam.",
+      "sendLink": "Enviar link de redefinição de senha",
+      "rememberPassword": "Lembrou da sua senha?"
     },
     "resetPassword": {
       "description": "Crie uma nova senha para sua conta {{statusPageName}}.",
       "instructions": "Digite sua nova senha e nós a atualizaremos.",
-      "success": "Sua senha foi atualizada. Por favor, faça login."
+      "success": "Sua senha foi atualizada. Por favor, faça login.",
+      "submit": "Redefinir senha",
+      "knowPassword": "Sabe sua senha?"
     },
     "masterPassword": {
+      "enterWithName": "Digitar senha de {{statusPageName}}",
+      "enterGeneric": "Digitar senha",
       "prompt": "Digite a senha para continuar.",
-      "passwordRequired": "a senha é obrigatória."
+      "passwordRequired": "a senha é obrigatória.",
+      "passwordLabel": "Senha",
+      "passwordDescription": "Digite a senha para desbloquear esta página.",
+      "passwordPlaceholder": "Digitar senha",
+      "submit": "Desbloquear página de status"
     }
   },
   "errors": {

@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "login": "Log in"
+    },
+    "login": {
+      "welcomeBack": "Welcome back!",
+      "loginPrompt": "Please login to view {{statusPageName}}",
+      "forgotPassword": "Forgot password?",
+      "submit": "Login",
+      "useSSO": "Use single sign-on (SSO) instead"
+    },
+    "sso": {
+      "title": "Log in with SSO",
+      "loginPrompt": "Please login to view {{statusPageName}}",
+      "noProviders": "No SSO Providers Configured or Enabled"
+    },
     "forgotPassword": {
       "title": "Forgot Password",
       "description": "If you have forgotten your password for {{statusPageName}}, please enter your email and the password reset link will be sent to you.",
-      "success": "We have emailed you the password reset link. Please do not forget to check spam."
+      "success": "We have emailed you the password reset link. Please do not forget to check spam.",
+      "sendLink": "Send Password Reset Link",
+      "rememberPassword": "Remember your password?"
     },
     "resetPassword": {
       "description": "Create a new password for your {{statusPageName}} account.",
       "instructions": "Please enter your new password and we will have it updated.",
-      "success": "Your password has been updated. Please log in."
+      "success": "Your password has been updated. Please log in.",
+      "submit": "Reset Password",
+      "knowPassword": "Know your password?"
     },
     "masterPassword": {
+      "enterWithName": "Enter {{statusPageName}} Password",
+      "enterGeneric": "Enter Password",
       "prompt": "Please enter the password to continue.",
-      "passwordRequired": "password is required."
+      "passwordRequired": "password is required.",
+      "passwordLabel": "Password",
+      "passwordDescription": "Enter the password to unlock this page.",
+      "passwordPlaceholder": "Enter password",
+      "submit": "Unlock Status Page"
     }
   },
   "errors": {

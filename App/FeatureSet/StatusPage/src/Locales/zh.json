@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "电子邮件",
+      "password": "密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认密码",
+      "login": "登录"
+    },
+    "login": {
+      "welcomeBack": "欢迎回来！",
+      "loginPrompt": "请登录以查看 {{statusPageName}}",
+      "forgotPassword": "忘记密码？",
+      "submit": "登录",
+      "useSSO": "改用单点登录（SSO）"
+    },
+    "sso": {
+      "title": "通过 SSO 登录",
+      "loginPrompt": "请登录以查看 {{statusPageName}}",
+      "noProviders": "未配置或启用 SSO 提供商"
+    },
     "forgotPassword": {
       "title": "忘记密码",
       "description": "如果您忘记了 {{statusPageName}} 的密码，请输入您的电子邮件，我们将向您发送密码重置链接。",
-      "success": "我们已通过电子邮件向您发送密码重置链接。请不要忘记检查垃圾邮件文件夹。"
+      "success": "我们已通过电子邮件向您发送密码重置链接。请不要忘记检查垃圾邮件文件夹。",
+      "sendLink": "发送密码重置链接",
+      "rememberPassword": "记得您的密码吗？"
     },
     "resetPassword": {
       "description": "为您的 {{statusPageName}} 账户创建新密码。",
       "instructions": "请输入您的新密码，我们将进行更新。",
-      "success": "您的密码已更新。请登录。"
+      "success": "您的密码已更新。请登录。",
+      "submit": "重置密码",
+      "knowPassword": "知道您的密码？"
     },
     "masterPassword": {
+      "enterWithName": "输入 {{statusPageName}} 密码",
+      "enterGeneric": "输入密码",
       "prompt": "请输入密码以继续。",
-      "passwordRequired": "密码是必需的。"
+      "passwordRequired": "密码是必需的。",
+      "passwordLabel": "密码",
+      "passwordDescription": "输入密码以解锁此页面。",
+      "passwordPlaceholder": "输入密码",
+      "submit": "解锁状态页"
     }
   },
   "errors": {

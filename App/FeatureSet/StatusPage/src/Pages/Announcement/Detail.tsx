@@ -37,6 +37,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../Utils/i18n";
 import useAsyncEffect from "use-async-effect";
 
 type GetAnnouncementEventItemFunctionProps = {
@@ -154,7 +156,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
       return groupName ? `${groupName}: ${displayName}` : displayName;
     }),
     eventTimeline: [],
-    eventType: "Announcement",
+    eventType: i18n.t("announcements.singular"),
     eventViewRoute: !isSummary
       ? undefined
       : RouteUtil.populateRouteParams(
@@ -166,7 +168,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
     isDetailItem: !isSummary,
     eventTypeColor: Blue500,
     eventSecondDescription: announcement.showAnnouncementAt!
-      ? "Announced at " +
+      ? i18n.t("announcements.announcedAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           announcement.showAnnouncementAt!,
         )
@@ -182,6 +184,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] =
@@ -302,10 +305,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title="Announcement"
+      title={t("announcements.singular")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -313,7 +316,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Announcements",
+          title: t("announcements.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
@@ -321,7 +324,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Announcement",
+          title: t("announcements.singular"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
@@ -335,8 +338,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {!announcement ? (
         <EmptyState
           id="announcement-empty-state"
-          title={"No Announcement"}
-          description={"Announcement not found on this status page."}
+          title={t("announcements.none")}
+          description={t("announcements.notFound")}
           icon={IconProp.Announcement}
         />
       ) : (

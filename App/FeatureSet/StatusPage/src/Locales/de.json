@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "login": "Anmelden"
+    },
+    "login": {
+      "welcomeBack": "Willkommen zurück!",
+      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "useSSO": "Stattdessen Single Sign-On (SSO) verwenden"
+    },
+    "sso": {
+      "title": "Mit SSO anmelden",
+      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert"
+    },
     "forgotPassword": {
       "title": "Passwort vergessen",
       "description": "Wenn Sie Ihr Passwort für {{statusPageName}} vergessen haben, geben Sie bitte Ihre E-Mail-Adresse ein und der Link zum Zurücksetzen des Passworts wird Ihnen zugesandt.",
-      "success": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail geschickt. Bitte vergessen Sie nicht, den Spam-Ordner zu überprüfen."
+      "success": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail geschickt. Bitte vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
+      "sendLink": "Link zum Zurücksetzen des Passworts senden",
+      "rememberPassword": "Erinnern Sie sich an Ihr Passwort?"
     },
     "resetPassword": {
       "description": "Erstellen Sie ein neues Passwort für Ihr {{statusPageName}}-Konto.",
       "instructions": "Bitte geben Sie Ihr neues Passwort ein und wir werden es aktualisieren.",
-      "success": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an."
+      "success": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
+      "submit": "Passwort zurücksetzen",
+      "knowPassword": "Kennen Sie Ihr Passwort?"
     },
     "masterPassword": {
+      "enterWithName": "{{statusPageName}}-Passwort eingeben",
+      "enterGeneric": "Passwort eingeben",
       "prompt": "Bitte geben Sie das Passwort ein, um fortzufahren.",
-      "passwordRequired": "Passwort ist erforderlich."
+      "passwordRequired": "Passwort ist erforderlich.",
+      "passwordLabel": "Passwort",
+      "passwordDescription": "Geben Sie das Passwort ein, um diese Seite zu entsperren.",
+      "passwordPlaceholder": "Passwort eingeben",
+      "submit": "Statusseite entsperren"
     }
   },
   "errors": {

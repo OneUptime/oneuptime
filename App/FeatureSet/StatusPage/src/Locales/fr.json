@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "login": "Se connecter"
+    },
+    "login": {
+      "welcomeBack": "Bon retour !",
+      "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
+      "forgotPassword": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "useSSO": "Utiliser l'authentification unique (SSO) à la place"
+    },
+    "sso": {
+      "title": "Se connecter avec SSO",
+      "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
+      "noProviders": "Aucun fournisseur SSO configuré ou activé"
+    },
     "forgotPassword": {
       "title": "Mot de passe oublié",
       "description": "Si vous avez oublié votre mot de passe pour {{statusPageName}}, veuillez saisir votre e-mail et le lien de réinitialisation du mot de passe vous sera envoyé.",
-      "success": "Nous vous avons envoyé par e-mail le lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam."
+      "success": "Nous vous avons envoyé par e-mail le lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam.",
+      "sendLink": "Envoyer le lien de réinitialisation du mot de passe",
+      "rememberPassword": "Vous vous souvenez de votre mot de passe ?"
     },
     "resetPassword": {
       "description": "Créez un nouveau mot de passe pour votre compte {{statusPageName}}.",
       "instructions": "Veuillez saisir votre nouveau mot de passe et nous le mettrons à jour.",
-      "success": "Votre mot de passe a été mis à jour. Veuillez vous connecter."
+      "success": "Votre mot de passe a été mis à jour. Veuillez vous connecter.",
+      "submit": "Réinitialiser le mot de passe",
+      "knowPassword": "Vous connaissez votre mot de passe ?"
     },
     "masterPassword": {
+      "enterWithName": "Saisir le mot de passe {{statusPageName}}",
+      "enterGeneric": "Saisir le mot de passe",
       "prompt": "Veuillez saisir le mot de passe pour continuer.",
-      "passwordRequired": "Le mot de passe est requis."
+      "passwordRequired": "Le mot de passe est requis.",
+      "passwordLabel": "Mot de passe",
+      "passwordDescription": "Saisissez le mot de passe pour déverrouiller cette page.",
+      "passwordPlaceholder": "Saisir le mot de passe",
+      "submit": "Déverrouiller la page de statut"
     }
   },
   "errors": {

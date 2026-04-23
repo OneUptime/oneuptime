@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "メール",
+      "password": "パスワード",
+      "newPassword": "新しいパスワード",
+      "confirmPassword": "パスワードの確認",
+      "login": "ログイン"
+    },
+    "login": {
+      "welcomeBack": "おかえりなさい！",
+      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "forgotPassword": "パスワードをお忘れですか？",
+      "submit": "ログイン",
+      "useSSO": "代わりにシングルサインオン（SSO）を使用する"
+    },
+    "sso": {
+      "title": "SSOでログイン",
+      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "noProviders": "SSOプロバイダーが構成または有効化されていません"
+    },
     "forgotPassword": {
       "title": "パスワードをお忘れですか",
       "description": "{{statusPageName}}のパスワードをお忘れの場合は、メールアドレスを入力してください。パスワードリセットリンクをお送りします。",
-      "success": "パスワードリセットリンクをメールでお送りしました。スパムフォルダもご確認ください。"
+      "success": "パスワードリセットリンクをメールでお送りしました。スパムフォルダもご確認ください。",
+      "sendLink": "パスワードリセットリンクを送信",
+      "rememberPassword": "パスワードを思い出しましたか？"
     },
     "resetPassword": {
       "description": "{{statusPageName}}アカウントの新しいパスワードを作成してください。",
       "instructions": "新しいパスワードを入力すると、更新されます。",
-      "success": "パスワードが更新されました。ログインしてください。"
+      "success": "パスワードが更新されました。ログインしてください。",
+      "submit": "パスワードをリセット",
+      "knowPassword": "パスワードをご存じですか？"
     },
     "masterPassword": {
+      "enterWithName": "{{statusPageName}}のパスワードを入力",
+      "enterGeneric": "パスワードを入力",
       "prompt": "続行するにはパスワードを入力してください。",
-      "passwordRequired": "パスワードは必須です。"
+      "passwordRequired": "パスワードは必須です。",
+      "passwordLabel": "パスワード",
+      "passwordDescription": "このページをロック解除するためのパスワードを入力してください。",
+      "passwordPlaceholder": "パスワードを入力",
+      "submit": "ステータスページをロック解除"
     }
   },
   "errors": {

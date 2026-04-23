@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "E-mail",
+      "password": "Password",
+      "newPassword": "Nuova password",
+      "confirmPassword": "Conferma password",
+      "login": "Accedi"
+    },
+    "login": {
+      "welcomeBack": "Bentornato!",
+      "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
+      "forgotPassword": "Password dimenticata?",
+      "submit": "Accedi",
+      "useSSO": "Usa il Single Sign-On (SSO) invece"
+    },
+    "sso": {
+      "title": "Accedi con SSO",
+      "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
+      "noProviders": "Nessun provider SSO configurato o abilitato"
+    },
     "forgotPassword": {
       "title": "Password dimenticata",
       "description": "Se hai dimenticato la password per {{statusPageName}}, inserisci la tua e-mail e ti invieremo il link per reimpostare la password.",
-      "success": "Ti abbiamo inviato per e-mail il link per reimpostare la password. Non dimenticare di controllare la cartella spam."
+      "success": "Ti abbiamo inviato per e-mail il link per reimpostare la password. Non dimenticare di controllare la cartella spam.",
+      "sendLink": "Invia link di reimpostazione password",
+      "rememberPassword": "Ricordi la password?"
     },
     "resetPassword": {
       "description": "Crea una nuova password per il tuo account {{statusPageName}}.",
       "instructions": "Inserisci la tua nuova password e la aggiorneremo.",
-      "success": "La tua password è stata aggiornata. Effettua l'accesso."
+      "success": "La tua password è stata aggiornata. Effettua l'accesso.",
+      "submit": "Reimposta password",
+      "knowPassword": "Conosci la tua password?"
     },
     "masterPassword": {
+      "enterWithName": "Inserisci password di {{statusPageName}}",
+      "enterGeneric": "Inserisci password",
       "prompt": "Inserisci la password per continuare.",
-      "passwordRequired": "la password è obbligatoria."
+      "passwordRequired": "la password è obbligatoria.",
+      "passwordLabel": "Password",
+      "passwordDescription": "Inserisci la password per sbloccare questa pagina.",
+      "passwordPlaceholder": "Inserisci password",
+      "submit": "Sblocca pagina di stato"
     }
   },
   "errors": {

@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "E-mail",
+      "password": "Wachtwoord",
+      "newPassword": "Nieuw wachtwoord",
+      "confirmPassword": "Wachtwoord bevestigen",
+      "login": "Inloggen"
+    },
+    "login": {
+      "welcomeBack": "Welkom terug!",
+      "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
+      "forgotPassword": "Wachtwoord vergeten?",
+      "submit": "Inloggen",
+      "useSSO": "Gebruik in plaats daarvan eenmalige aanmelding (SSO)"
+    },
+    "sso": {
+      "title": "Inloggen met SSO",
+      "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
+      "noProviders": "Geen SSO-providers geconfigureerd of ingeschakeld"
+    },
     "forgotPassword": {
       "title": "Wachtwoord vergeten",
       "description": "Als u uw wachtwoord voor {{statusPageName}} bent vergeten, voer dan uw e-mailadres in en de link om uw wachtwoord opnieuw in te stellen wordt naar u verzonden.",
-      "success": "We hebben u per e-mail de link voor het opnieuw instellen van het wachtwoord toegezonden. Vergeet niet uw spammap te controleren."
+      "success": "We hebben u per e-mail de link voor het opnieuw instellen van het wachtwoord toegezonden. Vergeet niet uw spammap te controleren.",
+      "sendLink": "Link voor wachtwoordherstel verzenden",
+      "rememberPassword": "Herinnert u zich uw wachtwoord?"
     },
     "resetPassword": {
       "description": "Maak een nieuw wachtwoord aan voor uw {{statusPageName}}-account.",
       "instructions": "Voer uw nieuwe wachtwoord in en we zullen het bijwerken.",
-      "success": "Uw wachtwoord is bijgewerkt. Log in alstublieft."
+      "success": "Uw wachtwoord is bijgewerkt. Log in alstublieft.",
+      "submit": "Wachtwoord opnieuw instellen",
+      "knowPassword": "Kent u uw wachtwoord?"
     },
     "masterPassword": {
+      "enterWithName": "Voer wachtwoord van {{statusPageName}} in",
+      "enterGeneric": "Voer wachtwoord in",
       "prompt": "Voer het wachtwoord in om door te gaan.",
-      "passwordRequired": "wachtwoord is vereist."
+      "passwordRequired": "wachtwoord is vereist.",
+      "passwordLabel": "Wachtwoord",
+      "passwordDescription": "Voer het wachtwoord in om deze pagina te ontgrendelen.",
+      "passwordPlaceholder": "Wachtwoord invoeren",
+      "submit": "Statuspagina ontgrendelen"
     }
   },
   "errors": {

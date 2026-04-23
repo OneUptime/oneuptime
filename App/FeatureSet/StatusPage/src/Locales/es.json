@@ -157,19 +157,48 @@
     }
   },
   "accounts": {
+    "shared": {
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "login": "Iniciar sesión"
+    },
+    "login": {
+      "welcomeBack": "¡Bienvenido de nuevo!",
+      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "forgotPassword": "¿Olvidó su contraseña?",
+      "submit": "Iniciar sesión",
+      "useSSO": "Usar inicio de sesión único (SSO) en su lugar"
+    },
+    "sso": {
+      "title": "Iniciar sesión con SSO",
+      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "noProviders": "No hay proveedores SSO configurados o habilitados"
+    },
     "forgotPassword": {
       "title": "Contraseña olvidada",
       "description": "Si ha olvidado su contraseña para {{statusPageName}}, introduzca su correo electrónico y le enviaremos el enlace para restablecer la contraseña.",
-      "success": "Le hemos enviado por correo electrónico el enlace para restablecer la contraseña. No olvide revisar su carpeta de spam."
+      "success": "Le hemos enviado por correo electrónico el enlace para restablecer la contraseña. No olvide revisar su carpeta de spam.",
+      "sendLink": "Enviar enlace de restablecimiento de contraseña",
+      "rememberPassword": "¿Recuerda su contraseña?"
     },
     "resetPassword": {
       "description": "Cree una nueva contraseña para su cuenta de {{statusPageName}}.",
       "instructions": "Introduzca su nueva contraseña y la actualizaremos.",
-      "success": "Su contraseña ha sido actualizada. Inicie sesión."
+      "success": "Su contraseña ha sido actualizada. Inicie sesión.",
+      "submit": "Restablecer contraseña",
+      "knowPassword": "¿Conoce su contraseña?"
     },
     "masterPassword": {
+      "enterWithName": "Introduzca la contraseña de {{statusPageName}}",
+      "enterGeneric": "Introduzca la contraseña",
       "prompt": "Introduzca la contraseña para continuar.",
-      "passwordRequired": "la contraseña es obligatoria."
+      "passwordRequired": "la contraseña es obligatoria.",
+      "passwordLabel": "Contraseña",
+      "passwordDescription": "Introduzca la contraseña para desbloquear esta página.",
+      "passwordPlaceholder": "Introducir contraseña",
+      "submit": "Desbloquear página de estado"
     }
   },
   "errors": {
