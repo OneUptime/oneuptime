@@ -28,6 +28,22 @@ export interface ComponentProps<T extends GenericObject> {
     | undefined
     | ((showAdvancedFilters: boolean) => void);
   showAdvancedFiltersByDefault?: boolean | undefined;
+  /**
+   * Suppress the built-in "Show/Hide Advanced Filters" toggle
+   * button. Useful when the parent renders its own toggle further
+   * down the page (e.g. below other non-filter controls) and needs
+   * full layout control. Parent must drive visibility through
+   * `showAdvancedFilters` instead.
+   */
+  hideAdvancedFilterToggle?: boolean | undefined;
+  /**
+   * Controlled replacement for the internal toggle state. When
+   * provided, the form renders advanced filters based on this flag
+   * and calls `onAdvancedFiltersToggle` for changes but does not
+   * manage its own state. Pair with `hideAdvancedFilterToggle` when
+   * the parent owns the UI toggle.
+   */
+  showAdvancedFilters?: boolean | undefined;
 }
 
 type FiltersFormFunction = <T extends GenericObject>(
@@ -51,15 +67,23 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     }
   };
 
-  const showAdvancedFilterButton: boolean = Boolean(
+  const hasAdvancedFilter: boolean = Boolean(
     props.filters.find((filter: Filter<T>) => {
       return filter.isAdvancedFilter;
     }),
   );
 
-  const [showMoreFilters, setShowMoreFilters] = React.useState<boolean>(
+  const showAdvancedFilterButton: boolean =
+    hasAdvancedFilter && !props.hideAdvancedFilterToggle;
+
+  const [internalShowMoreFilters, setShowMoreFilters] = React.useState<boolean>(
     props.showAdvancedFiltersByDefault ?? false,
   );
+
+  const showMoreFilters: boolean =
+    props.showAdvancedFilters !== undefined
+      ? props.showAdvancedFilters
+      : internalShowMoreFilters;
 
   type ClearFilterFunction = (key: keyof T) => void;
 

@@ -32,6 +32,7 @@ import React, {
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 
 export interface ComponentProps {
@@ -55,6 +56,25 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const monitorCriteriaInstance: MonitorCriteriaInstance =
     props.value || new MonitorCriteriaInstance();
+
+  /*
+   * Gather the per-series group-by attribute keys from every metric
+   * query on this monitor step so the template-variables modal can
+   * expose them as per-host / per-container variables
+   * (`{{host.name}}`, `{{resource.k8s.container.name}}`, …). When the
+   * monitor isn't metric-shaped, this is an empty array and the modal
+   * simply doesn't render the series-labels section.
+   */
+  const seriesAttributeKeys: Array<string> = Array.from(
+    new Set(
+      (
+        props.monitorStep?.data?.metricMonitor?.metricViewConfig
+          ?.queryConfigs || []
+      ).flatMap((q: MetricQueryConfigData): Array<string> => {
+        return q.metricQueryData?.groupByAttributeKeys || [];
+      }),
+    ),
+  );
 
   const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
     ObjectID | undefined
@@ -431,6 +451,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 labelDropdownOptions={props.labelDropdownOptions}
                 teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
+                monitorType={props.monitorType}
+                seriesAttributeKeys={seriesAttributeKeys}
                 onChange={(value: Array<CriteriaAlert>) => {
                   monitorCriteriaInstance.setAlerts(value);
                   if (props.onChange) {
@@ -489,6 +511,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
                 incidentRoleOptions={props.incidentRoleOptions}
+                monitorType={props.monitorType}
+                seriesAttributeKeys={seriesAttributeKeys}
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {

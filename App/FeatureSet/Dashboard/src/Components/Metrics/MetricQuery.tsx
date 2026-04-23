@@ -129,8 +129,8 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           </label>
           <p className="mt-1 text-xs text-gray-500">
             Select one or more attributes to group by (e.g. host.name). When
-            this metric is used in a monitor, the monitor fires one incident
-            per unique group (e.g. one incident per host). Leave empty for
+            this metric is used in a monitor, the monitor fires one incident per
+            unique group (e.g. one incident per host). Leave empty for
             whole-monitor evaluation.
           </p>
           <div className="mt-2">
@@ -165,9 +165,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           className="-ml-3"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          icon={
-            showAdvancedFilters ? IconProp.ChevronUp : IconProp.ChevronDown
-          }
+          icon={showAdvancedFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
           title={
             showAdvancedFilters
               ? "Hide Advanced Filters"

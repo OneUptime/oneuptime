@@ -2,6 +2,7 @@ import MonitorCriteriaAlertForm from "./MonitorCriteriaAlertForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -12,6 +13,8 @@ export interface ComponentProps {
   labelDropdownOptions: Array<DropdownOption>;
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
+  monitorType?: MonitorType | undefined;
+  seriesAttributeKeys?: Array<string> | undefined;
 }
 
 const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
@@ -47,6 +50,8 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
             labelDropdownOptions={props.labelDropdownOptions}
             teamDropdownOptions={props.teamDropdownOptions}
             userDropdownOptions={props.userDropdownOptions}
+            monitorType={props.monitorType}
+            seriesAttributeKeys={props.seriesAttributeKeys}
             initialValue={i}
             /*
              * onDelete={() => {
