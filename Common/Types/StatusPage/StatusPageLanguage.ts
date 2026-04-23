@@ -17,6 +17,7 @@ export const SUPPORTED_STATUS_PAGE_LANGUAGES: Array<StatusPageLanguage> = [
   { code: "da", nativeName: "Dansk", englishName: "Danish" },
   { code: "no", nativeName: "Norsk", englishName: "Norwegian" },
   { code: "sv", nativeName: "Svenska", englishName: "Swedish" },
+  { code: "ru", nativeName: "Русский", englishName: "Russian" },
   { code: "ja", nativeName: "日本語", englishName: "Japanese" },
   { code: "ko", nativeName: "한국어", englishName: "Korean" },
   { code: "zh", nativeName: "中文", englishName: "Chinese" },

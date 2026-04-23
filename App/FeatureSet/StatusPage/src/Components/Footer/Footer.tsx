@@ -2,6 +2,7 @@ import URL from "Common/Types/API/URL";
 import Link from "Common/Types/Link";
 import Footer, { FooterLink } from "Common/UI/Components/Footer/Footer";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 
 export interface ComponentProps {

@@ -19,6 +19,7 @@ import nl from "../Locales/nl.json";
 import da from "../Locales/da.json";
 import no from "../Locales/no.json";
 import sv from "../Locales/sv.json";
+import ru from "../Locales/ru.json";
 import ja from "../Locales/ja.json";
 import ko from "../Locales/ko.json";
 import zh from "../Locales/zh.json";
@@ -46,6 +47,7 @@ i18n
       da: { translation: da },
       no: { translation: no },
       sv: { translation: sv },
+      ru: { translation: ru },
       ja: { translation: ja },
       ko: { translation: ko },
       zh: { translation: zh },
