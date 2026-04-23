@@ -251,6 +251,12 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
                 };
               }
 
+              if (attributes["interfaceName"]) {
+                return {
+                  title: attributes["interfaceName"].toString(),
+                };
+              }
+
               return {
                 title:
                   MonitorMetricTypeUtil.getTitleByMonitorMetricType(

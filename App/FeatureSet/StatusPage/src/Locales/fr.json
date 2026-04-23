@@ -1,0 +1,189 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "submit": "Envoyer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "yes": "Oui",
+    "no": "Non",
+    "statusPage": "Page de statut"
+  },
+  "language": {
+    "label": "Langue",
+    "switchLanguage": "Changer de langue"
+  },
+  "nav": {
+    "overview": "Aperçu",
+    "incidents": "Incidents",
+    "announcements": "Annonces",
+    "scheduledEvents": "Événements planifiés",
+    "subscribe": "S'abonner",
+    "login": "Se connecter",
+    "logout": "Se déconnecter"
+  },
+  "overview": {
+    "uptimeSuffix": "% de disponibilité",
+    "operational": "Opérationnel",
+    "noResourcesInGroup": "Aucune ressource ajoutée à ce groupe.",
+    "activeIncidents": "Incidents actifs",
+    "scheduledMaintenanceEvents": "Événements de maintenance planifiée",
+    "allClearTitle": "Tout semble parfait",
+    "allClearDescription": "Aucune ressource n'a encore été ajoutée à cette page de statut. Veuillez ajouter des ressources depuis le tableau de bord."
+  },
+  "incidents": {
+    "title": "Incidents",
+    "singular": "Incident",
+    "active": "Incidents actifs",
+    "resolved": "Incidents résolus",
+    "none": "Aucun incident",
+    "noneDescription": "Aucun incident publié sur cette page de statut.",
+    "postmortem": "Post-mortem de l'incident",
+    "declaredAt": "Déclaré le ",
+    "report": "Rapport d'incident",
+    "notFound": "Incident introuvable sur cette page de statut."
+  },
+  "episodes": {
+    "report": "Rapport d'épisode",
+    "none": "Aucun épisode",
+    "notFound": "Épisode introuvable sur cette page de statut."
+  },
+  "announcements": {
+    "title": "Annonces",
+    "singular": "Annonce",
+    "active": "Annonces actives",
+    "past": "Annonces passées",
+    "none": "Aucune annonce",
+    "noneDescription": "Aucune annonce publiée pour l'instant sur cette page.",
+    "announcedAt": "Annoncé le ",
+    "notFound": "Annonce introuvable sur cette page de statut."
+  },
+  "scheduledEvents": {
+    "title": "Événements planifiés",
+    "singular": "Événement planifié",
+    "scheduledMaintenance": "Maintenance planifiée",
+    "ongoing": "Événements en cours",
+    "upcoming": "Événements planifiés",
+    "completed": "Événements terminés",
+    "none": "Aucun événement planifié",
+    "noneDescription": "Aucun événement planifié publié pour cette page de statut.",
+    "scheduledAt": "Planifié pour ",
+    "report": "Rapport d'événement planifié",
+    "notFound": "Aucun événement planifié trouvé pour cette page de statut."
+  },
+  "subscribe": {
+    "title": "S'abonner",
+    "submit": "S'abonner",
+    "newSubscription": "Nouvel abonnement",
+    "manageExisting": "Gérer l'abonnement existant",
+    "sendManagementLink": "Envoyer le lien de gestion",
+    "subscribedSuccessfully": "Vous avez été abonné avec succès.",
+    "emailSentCheckSpam": "Un e-mail contenant le lien a été envoyé à votre adresse. Si vous ne voyez pas l'e-mail, veuillez vérifier votre dossier spam.",
+    "menu": {
+      "email": "E-mail",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "S'abonner par e-mail",
+      "description": "Toutes nos mises à jour seront envoyées à cette adresse e-mail.",
+      "yourEmail": "Votre e-mail",
+      "placeholder": "abonne@entreprise.fr",
+      "managePrompt": "Veuillez saisir l'e-mail avec lequel vous vous êtes abonné",
+      "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à cette adresse e-mail.",
+      "managePlaceholder": "email@votreentreprise.fr"
+    },
+    "sms": {
+      "title": "S'abonner par SMS",
+      "description": "Toutes nos mises à jour seront envoyées à ce numéro de téléphone.",
+      "yourPhoneNumber": "Votre numéro de téléphone",
+      "placeholder": "+33612345678",
+      "managePrompt": "Veuillez saisir le numéro de téléphone avec lequel vous vous êtes abonné",
+      "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à ce numéro de téléphone."
+    },
+    "slack": {
+      "title": "S'abonner via Slack",
+      "description": "Toutes nos mises à jour seront envoyées à ce webhook Slack.",
+      "workspaceName": "Nom de l'espace de travail Slack",
+      "workspaceNameDescription": "Saisissez le nom de votre espace de travail Slack pour validation.",
+      "workspaceNamePlaceholder": "mon-espace-entreprise",
+      "webhookUrl": "URL du webhook entrant Slack",
+      "webhookUrlDescription": "Les mises à jour de la page de statut seront envoyées à ce webhook Slack.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Veuillez saisir le nom de l'espace de travail Slack avec lequel vous vous êtes abonné",
+      "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à cet espace de travail."
+    },
+    "microsoftTeams": {
+      "title": "S'abonner via Microsoft Teams",
+      "description": "Toutes nos mises à jour seront envoyées à ce webhook Teams.",
+      "workspaceName": "Nom de l'espace de travail Microsoft Teams",
+      "workspaceNameDescription": "Saisissez le nom de votre espace de travail Microsoft Teams pour validation.",
+      "workspaceNamePlaceholder": "mon-espace-entreprise",
+      "webhookUrl": "URL du webhook entrant Microsoft Teams",
+      "webhookUrlDescription": "Les mises à jour de la page de statut seront envoyées à ce webhook Teams.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Veuillez saisir le nom de l'espace de travail Microsoft Teams avec lequel vous vous êtes abonné",
+      "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à cet espace de travail."
+    },
+    "resources": {
+      "all": "S'abonner à toutes les ressources",
+      "allDescription": "Sélectionnez cette option si vous souhaitez vous abonner à toutes les ressources.",
+      "select": "Sélectionner les ressources à suivre",
+      "selectDescription": "Veuillez sélectionner les ressources que vous souhaitez suivre."
+    },
+    "eventTypes": {
+      "all": "S'abonner à tous les types d'événements",
+      "allDescription": "Sélectionnez cette option si vous souhaitez vous abonner à tous les types d'événements.",
+      "select": "Sélectionner les types d'événements à suivre",
+      "selectDescription": "Veuillez sélectionner les types d'événements que vous souhaitez suivre."
+    },
+    "update": {
+      "title": "Mettre à jour l'abonnement",
+      "description": "Vous pouvez mettre à jour vos préférences d'abonnement ou vous désabonner ici.",
+      "saved": "Vos modifications ont été enregistrées.",
+      "unsubscribe": "Se désabonner",
+      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources."
+    },
+    "confirm": {
+      "title": "Confirmer l'abonnement",
+      "success": "Abonnement confirmé avec succès"
+    }
+  },
+  "accounts": {
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "description": "Si vous avez oublié votre mot de passe pour {{statusPageName}}, veuillez saisir votre e-mail et le lien de réinitialisation du mot de passe vous sera envoyé.",
+      "success": "Nous vous avons envoyé par e-mail le lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam."
+    },
+    "resetPassword": {
+      "description": "Créez un nouveau mot de passe pour votre compte {{statusPageName}}.",
+      "instructions": "Veuillez saisir votre nouveau mot de passe et nous le mettrons à jour.",
+      "success": "Votre mot de passe a été mis à jour. Veuillez vous connecter."
+    },
+    "masterPassword": {
+      "prompt": "Veuillez saisir le mot de passe pour continuer.",
+      "passwordRequired": "Le mot de passe est requis."
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page introuvable.",
+      "description": "La page que vous recherchez n'existe pas."
+    },
+    "forbidden": {
+      "title": "Accès interdit",
+      "description": "Vous n'avez pas la permission d'accéder à cette page."
+    },
+    "generic": "Une erreur est survenue. Veuillez réessayer."
+  },
+  "footer": {
+    "poweredBy": "Propulsé par OneUptime"
+  }
+}

@@ -1,0 +1,189 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "submit": "提交",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "loading": "加载中...",
+    "search": "搜索",
+    "edit": "编辑",
+    "delete": "删除",
+    "yes": "是",
+    "no": "否",
+    "statusPage": "状态页"
+  },
+  "language": {
+    "label": "语言",
+    "switchLanguage": "切换语言"
+  },
+  "nav": {
+    "overview": "概览",
+    "incidents": "事件",
+    "announcements": "公告",
+    "scheduledEvents": "计划事件",
+    "subscribe": "订阅",
+    "login": "登录",
+    "logout": "退出"
+  },
+  "overview": {
+    "uptimeSuffix": "% 正常运行时间",
+    "operational": "运行正常",
+    "noResourcesInGroup": "此组中未添加任何资源。",
+    "activeIncidents": "活动事件",
+    "scheduledMaintenanceEvents": "计划维护事件",
+    "allClearTitle": "一切正常",
+    "allClearDescription": "此状态页尚未添加任何资源。请从控制面板添加一些资源。"
+  },
+  "incidents": {
+    "title": "事件",
+    "singular": "事件",
+    "active": "活动事件",
+    "resolved": "已解决事件",
+    "none": "无事件",
+    "noneDescription": "此状态页未发布任何事件。",
+    "postmortem": "事件事后分析",
+    "declaredAt": "声明于 ",
+    "report": "事件报告",
+    "notFound": "在此状态页上未找到此事件。"
+  },
+  "episodes": {
+    "report": "事件片段报告",
+    "none": "无事件片段",
+    "notFound": "在此状态页上未找到事件片段。"
+  },
+  "announcements": {
+    "title": "公告",
+    "singular": "公告",
+    "active": "活动公告",
+    "past": "过往公告",
+    "none": "无公告",
+    "noneDescription": "此页面尚未发布任何公告。",
+    "announcedAt": "公告于 ",
+    "notFound": "在此状态页上未找到此公告。"
+  },
+  "scheduledEvents": {
+    "title": "计划事件",
+    "singular": "计划事件",
+    "scheduledMaintenance": "计划维护",
+    "ongoing": "进行中的事件",
+    "upcoming": "计划事件",
+    "completed": "已完成的事件",
+    "none": "无计划事件",
+    "noneDescription": "此状态页未发布任何计划事件。",
+    "scheduledAt": "计划于 ",
+    "report": "计划事件报告",
+    "notFound": "在此状态页上未找到计划事件。"
+  },
+  "subscribe": {
+    "title": "订阅",
+    "submit": "订阅",
+    "newSubscription": "新订阅",
+    "manageExisting": "管理现有订阅",
+    "sendManagementLink": "发送管理链接",
+    "subscribedSuccessfully": "您已成功订阅。",
+    "emailSentCheckSpam": "一封包含链接的电子邮件已发送到您的邮箱。如果您看不到该邮件，请检查您的垃圾邮件文件夹。",
+    "menu": {
+      "email": "电子邮件",
+      "sms": "短信",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhook"
+    },
+    "email": {
+      "title": "通过电子邮件订阅",
+      "description": "我们的所有更新都将发送到此电子邮件地址。",
+      "yourEmail": "您的电子邮件",
+      "placeholder": "subscriber@company.cn",
+      "managePrompt": "请输入您订阅时使用的电子邮件",
+      "manageDescription": "我们将把订阅管理链接发送到此电子邮件。",
+      "managePlaceholder": "email@yourcompany.cn"
+    },
+    "sms": {
+      "title": "通过短信订阅",
+      "description": "我们的所有更新都将发送到此电话号码。",
+      "yourPhoneNumber": "您的电话号码",
+      "placeholder": "+8613800138000",
+      "managePrompt": "请输入您订阅时使用的电话号码",
+      "manageDescription": "我们将把订阅管理链接发送到此电话号码。"
+    },
+    "slack": {
+      "title": "通过 Slack 订阅",
+      "description": "我们的所有更新都将发送到此 Slack Webhook。",
+      "workspaceName": "Slack 工作区名称",
+      "workspaceNameDescription": "输入您的 Slack 工作区名称以进行验证。",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "状态页更新将发送到此 Slack Webhook。",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "请输入您订阅时使用的 Slack 工作区名称",
+      "manageDescription": "我们将把订阅管理链接发送到此工作区。"
+    },
+    "microsoftTeams": {
+      "title": "通过 Microsoft Teams 订阅",
+      "description": "我们的所有更新都将发送到此 Teams Webhook。",
+      "workspaceName": "Microsoft Teams 工作区名称",
+      "workspaceNameDescription": "输入您的 Microsoft Teams 工作区名称以进行验证。",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "状态页更新将发送到此 Teams Webhook。",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "请输入您订阅时使用的 Microsoft Teams 工作区名称",
+      "manageDescription": "我们将把订阅管理链接发送到此工作区。"
+    },
+    "resources": {
+      "all": "订阅所有资源",
+      "allDescription": "如果您希望订阅所有资源，请选择此选项。",
+      "select": "选择要订阅的资源",
+      "selectDescription": "请选择您想订阅的资源。"
+    },
+    "eventTypes": {
+      "all": "订阅所有事件类型",
+      "allDescription": "如果您希望订阅所有事件类型，请选择此选项。",
+      "select": "选择要订阅的事件类型",
+      "selectDescription": "请选择您想订阅的事件类型。"
+    },
+    "update": {
+      "title": "更新订阅",
+      "description": "您可以在此更新订阅偏好或取消订阅。",
+      "saved": "您的更改已保存。",
+      "unsubscribe": "取消订阅",
+      "unsubscribeDescription": "如果您想取消订阅所有资源，请选择此选项。"
+    },
+    "confirm": {
+      "title": "确认订阅",
+      "success": "订阅确认成功"
+    }
+  },
+  "accounts": {
+    "forgotPassword": {
+      "title": "忘记密码",
+      "description": "如果您忘记了 {{statusPageName}} 的密码，请输入您的电子邮件，我们将向您发送密码重置链接。",
+      "success": "我们已通过电子邮件向您发送密码重置链接。请不要忘记检查垃圾邮件文件夹。"
+    },
+    "resetPassword": {
+      "description": "为您的 {{statusPageName}} 账户创建新密码。",
+      "instructions": "请输入您的新密码，我们将进行更新。",
+      "success": "您的密码已更新。请登录。"
+    },
+    "masterPassword": {
+      "prompt": "请输入密码以继续。",
+      "passwordRequired": "密码是必需的。"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "页面未找到。",
+      "description": "您查找的页面不存在。"
+    },
+    "forbidden": {
+      "title": "禁止访问",
+      "description": "您没有权限访问此页面。"
+    },
+    "generic": "出现错误，请重试。"
+  },
+  "footer": {
+    "poweredBy": "由 OneUptime 提供"
+  }
+}

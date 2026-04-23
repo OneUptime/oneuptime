@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   isPreviewStatusPage: boolean;
@@ -17,12 +18,13 @@ export interface ComponentProps {
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   return (
     <SideMenu>
       {props.enableEmailSubscribers ? (
         <SideMenuItem
           link={{
-            title: "Email",
+            title: t("subscribe.menu.email"),
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
@@ -37,7 +39,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
       {props.enableSMSSubscribers ? (
         <SideMenuItem
           link={{
-            title: "SMS",
+            title: t("subscribe.menu.sms"),
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route)
@@ -52,7 +54,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
       {props.enableSlackSubscribers ? (
         <SideMenuItem
           link={{
-            title: "Slack",
+            title: t("subscribe.menu.slack"),
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK] as Route)
@@ -67,7 +69,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
       {props.enableMicrosoftTeamsSubscribers ? (
         <SideMenuItem
           link={{
-            title: "MS Teams",
+            title: t("subscribe.menu.microsoftTeams"),
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route)
@@ -87,7 +89,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                     ),
                 }}
                 icon={IconProp.Globe}
-                
+
             /> */}
     </SideMenu>
   );

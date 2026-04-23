@@ -1,0 +1,189 @@
+{
+  "common": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "submit": "Invia",
+    "close": "Chiudi",
+    "back": "Indietro",
+    "next": "Avanti",
+    "loading": "Caricamento...",
+    "search": "Cerca",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "yes": "Sì",
+    "no": "No",
+    "statusPage": "Pagina di stato"
+  },
+  "language": {
+    "label": "Lingua",
+    "switchLanguage": "Cambia lingua"
+  },
+  "nav": {
+    "overview": "Panoramica",
+    "incidents": "Incidenti",
+    "announcements": "Annunci",
+    "scheduledEvents": "Eventi pianificati",
+    "subscribe": "Iscriviti",
+    "login": "Accedi",
+    "logout": "Esci"
+  },
+  "overview": {
+    "uptimeSuffix": "% di disponibilità",
+    "operational": "Operativo",
+    "noResourcesInGroup": "Nessuna risorsa aggiunta a questo gruppo.",
+    "activeIncidents": "Incidenti attivi",
+    "scheduledMaintenanceEvents": "Eventi di manutenzione pianificata",
+    "allClearTitle": "Tutto è a posto",
+    "allClearDescription": "Non sono ancora state aggiunte risorse a questa pagina di stato. Si prega di aggiungere alcune risorse dalla dashboard."
+  },
+  "incidents": {
+    "title": "Incidenti",
+    "singular": "Incidente",
+    "active": "Incidenti attivi",
+    "resolved": "Incidenti risolti",
+    "none": "Nessun incidente",
+    "noneDescription": "Nessun incidente pubblicato su questa pagina di stato.",
+    "postmortem": "Post-mortem dell'incidente",
+    "declaredAt": "Dichiarato il ",
+    "report": "Rapporto sull'incidente",
+    "notFound": "Incidente non trovato su questa pagina di stato."
+  },
+  "episodes": {
+    "report": "Rapporto episodio",
+    "none": "Nessun episodio",
+    "notFound": "Episodio non trovato su questa pagina di stato."
+  },
+  "announcements": {
+    "title": "Annunci",
+    "singular": "Annuncio",
+    "active": "Annunci attivi",
+    "past": "Annunci passati",
+    "none": "Nessun annuncio",
+    "noneDescription": "Nessun annuncio pubblicato finora su questa pagina.",
+    "announcedAt": "Annunciato il ",
+    "notFound": "Annuncio non trovato su questa pagina di stato."
+  },
+  "scheduledEvents": {
+    "title": "Eventi pianificati",
+    "singular": "Evento pianificato",
+    "scheduledMaintenance": "Manutenzione pianificata",
+    "ongoing": "Eventi in corso",
+    "upcoming": "Eventi pianificati",
+    "completed": "Eventi completati",
+    "none": "Nessun evento pianificato",
+    "noneDescription": "Nessun evento pianificato pubblicato per questa pagina di stato.",
+    "scheduledAt": "Pianificato per ",
+    "report": "Rapporto evento pianificato",
+    "notFound": "Nessun evento pianificato trovato per questa pagina di stato."
+  },
+  "subscribe": {
+    "title": "Iscriviti",
+    "submit": "Iscriviti",
+    "newSubscription": "Nuova iscrizione",
+    "manageExisting": "Gestisci iscrizione esistente",
+    "sendManagementLink": "Invia link di gestione",
+    "subscribedSuccessfully": "Iscrizione effettuata con successo.",
+    "emailSentCheckSpam": "Un'e-mail con il link è stata inviata al tuo indirizzo e-mail. Se non vedi l'e-mail, controlla la cartella spam.",
+    "menu": {
+      "email": "E-mail",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Iscriviti via e-mail",
+      "description": "Tutti i nostri aggiornamenti saranno inviati a questo indirizzo e-mail.",
+      "yourEmail": "La tua e-mail",
+      "placeholder": "iscritto@azienda.it",
+      "managePrompt": "Inserisci l'e-mail con cui ti sei iscritto",
+      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo indirizzo e-mail.",
+      "managePlaceholder": "email@tuaazienda.it"
+    },
+    "sms": {
+      "title": "Iscriviti via SMS",
+      "description": "Tutti i nostri aggiornamenti saranno inviati a questo numero di telefono.",
+      "yourPhoneNumber": "Il tuo numero di telefono",
+      "placeholder": "+393123456789",
+      "managePrompt": "Inserisci il numero di telefono con cui ti sei iscritto",
+      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo numero di telefono."
+    },
+    "slack": {
+      "title": "Iscriviti via Slack",
+      "description": "Tutti i nostri aggiornamenti saranno inviati a questo webhook Slack.",
+      "workspaceName": "Nome dell'area di lavoro Slack",
+      "workspaceNameDescription": "Inserisci il nome della tua area di lavoro Slack per la convalida.",
+      "workspaceNamePlaceholder": "mia-area-azienda",
+      "webhookUrl": "URL del webhook in entrata Slack",
+      "webhookUrlDescription": "Gli aggiornamenti della pagina di stato saranno inviati a questo webhook Slack.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Inserisci il nome dell'area di lavoro Slack con cui ti sei iscritto",
+      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a quest'area di lavoro."
+    },
+    "microsoftTeams": {
+      "title": "Iscriviti via Microsoft Teams",
+      "description": "Tutti i nostri aggiornamenti saranno inviati a questo webhook Teams.",
+      "workspaceName": "Nome dell'area di lavoro Microsoft Teams",
+      "workspaceNameDescription": "Inserisci il nome della tua area di lavoro Microsoft Teams per la convalida.",
+      "workspaceNamePlaceholder": "mia-area-azienda",
+      "webhookUrl": "URL del webhook in entrata Microsoft Teams",
+      "webhookUrlDescription": "Gli aggiornamenti della pagina di stato saranno inviati a questo webhook Teams.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Inserisci il nome dell'area di lavoro Microsoft Teams con cui ti sei iscritto",
+      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a quest'area di lavoro."
+    },
+    "resources": {
+      "all": "Iscriviti a tutte le risorse",
+      "allDescription": "Seleziona questa opzione se desideri iscriverti a tutte le risorse.",
+      "select": "Seleziona le risorse a cui iscriverti",
+      "selectDescription": "Seleziona le risorse a cui desideri iscriverti."
+    },
+    "eventTypes": {
+      "all": "Iscriviti a tutti i tipi di eventi",
+      "allDescription": "Seleziona questa opzione se desideri iscriverti a tutti i tipi di eventi.",
+      "select": "Seleziona i tipi di eventi a cui iscriverti",
+      "selectDescription": "Seleziona i tipi di eventi a cui desideri iscriverti."
+    },
+    "update": {
+      "title": "Aggiorna iscrizione",
+      "description": "Puoi aggiornare le tue preferenze di iscrizione o annullarla qui.",
+      "saved": "Le tue modifiche sono state salvate.",
+      "unsubscribe": "Annulla iscrizione",
+      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
+    },
+    "confirm": {
+      "title": "Conferma iscrizione",
+      "success": "Iscrizione confermata con successo"
+    }
+  },
+  "accounts": {
+    "forgotPassword": {
+      "title": "Password dimenticata",
+      "description": "Se hai dimenticato la password per {{statusPageName}}, inserisci la tua e-mail e ti invieremo il link per reimpostare la password.",
+      "success": "Ti abbiamo inviato per e-mail il link per reimpostare la password. Non dimenticare di controllare la cartella spam."
+    },
+    "resetPassword": {
+      "description": "Crea una nuova password per il tuo account {{statusPageName}}.",
+      "instructions": "Inserisci la tua nuova password e la aggiorneremo.",
+      "success": "La tua password è stata aggiornata. Effettua l'accesso."
+    },
+    "masterPassword": {
+      "prompt": "Inserisci la password per continuare.",
+      "passwordRequired": "la password è obbligatoria."
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Pagina non trovata.",
+      "description": "La pagina che stai cercando non esiste."
+    },
+    "forbidden": {
+      "title": "Accesso negato",
+      "description": "Non hai il permesso di accedere a questa pagina."
+    },
+    "generic": "Qualcosa è andato storto. Per favore, riprova."
+  },
+  "footer": {
+    "poweredBy": "Offerto da OneUptime"
+  }
+}

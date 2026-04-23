@@ -1,0 +1,189 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Absenden",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "loading": "Wird geladen...",
+    "search": "Suchen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "yes": "Ja",
+    "no": "Nein",
+    "statusPage": "Statusseite"
+  },
+  "language": {
+    "label": "Sprache",
+    "switchLanguage": "Sprache wechseln"
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "incidents": "Vorfälle",
+    "announcements": "Ankündigungen",
+    "scheduledEvents": "Geplante Ereignisse",
+    "subscribe": "Abonnieren",
+    "login": "Anmelden",
+    "logout": "Abmelden"
+  },
+  "overview": {
+    "uptimeSuffix": "% Verfügbarkeit",
+    "operational": "Betriebsbereit",
+    "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
+    "activeIncidents": "Aktive Vorfälle",
+    "scheduledMaintenanceEvents": "Geplante Wartungsereignisse",
+    "allClearTitle": "Alles sieht gut aus",
+    "allClearDescription": "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt. Bitte fügen Sie einige Ressourcen über das Dashboard hinzu."
+  },
+  "incidents": {
+    "title": "Vorfälle",
+    "singular": "Vorfall",
+    "active": "Aktive Vorfälle",
+    "resolved": "Behobene Vorfälle",
+    "none": "Keine Vorfälle",
+    "noneDescription": "Auf dieser Statusseite wurden keine Vorfälle veröffentlicht.",
+    "postmortem": "Nachbearbeitung des Vorfalls",
+    "declaredAt": "Gemeldet am ",
+    "report": "Vorfallsbericht",
+    "notFound": "Vorfall auf dieser Statusseite nicht gefunden."
+  },
+  "episodes": {
+    "report": "Episodenbericht",
+    "none": "Keine Episode",
+    "notFound": "Episode auf dieser Statusseite nicht gefunden."
+  },
+  "announcements": {
+    "title": "Ankündigungen",
+    "singular": "Ankündigung",
+    "active": "Aktive Ankündigungen",
+    "past": "Vergangene Ankündigungen",
+    "none": "Keine Ankündigungen",
+    "noneDescription": "Auf dieser Seite wurden bisher keine Ankündigungen veröffentlicht.",
+    "announcedAt": "Angekündigt am ",
+    "notFound": "Ankündigung auf dieser Statusseite nicht gefunden."
+  },
+  "scheduledEvents": {
+    "title": "Geplante Ereignisse",
+    "singular": "Geplantes Ereignis",
+    "scheduledMaintenance": "Geplante Wartung",
+    "ongoing": "Laufende Ereignisse",
+    "upcoming": "Geplante Ereignisse",
+    "completed": "Abgeschlossene Ereignisse",
+    "none": "Keine geplanten Ereignisse",
+    "noneDescription": "Für diese Statusseite wurden keine geplanten Ereignisse veröffentlicht.",
+    "scheduledAt": "Geplant für ",
+    "report": "Bericht über geplantes Ereignis",
+    "notFound": "Kein geplantes Ereignis für diese Statusseite gefunden."
+  },
+  "subscribe": {
+    "title": "Abonnieren",
+    "submit": "Abonnieren",
+    "newSubscription": "Neues Abonnement",
+    "manageExisting": "Bestehendes Abonnement verwalten",
+    "sendManagementLink": "Verwaltungslink senden",
+    "subscribedSuccessfully": "Sie wurden erfolgreich abonniert.",
+    "emailSentCheckSpam": "Eine E-Mail mit dem Link wurde an Ihre E-Mail-Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
+    "menu": {
+      "email": "E-Mail",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Per E-Mail abonnieren",
+      "description": "Alle unsere Updates werden an diese E-Mail-Adresse gesendet.",
+      "yourEmail": "Ihre E-Mail",
+      "placeholder": "abonnent@firma.de",
+      "managePrompt": "Bitte geben Sie die E-Mail-Adresse ein, mit der Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese E-Mail-Adresse.",
+      "managePlaceholder": "email@ihrefirma.de"
+    },
+    "sms": {
+      "title": "Per SMS abonnieren",
+      "description": "Alle unsere Updates werden an diese Telefonnummer gesendet.",
+      "yourPhoneNumber": "Ihre Telefonnummer",
+      "placeholder": "+491234567890",
+      "managePrompt": "Bitte geben Sie die Telefonnummer ein, mit der Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese Telefonnummer."
+    },
+    "slack": {
+      "title": "Über Slack abonnieren",
+      "description": "Alle unsere Updates werden an diesen Slack-Webhook gesendet.",
+      "workspaceName": "Slack-Arbeitsbereichsname",
+      "workspaceNameDescription": "Geben Sie den Namen Ihres Slack-Arbeitsbereichs zur Validierung ein.",
+      "workspaceNamePlaceholder": "mein-firmen-arbeitsbereich",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "Statusseiten-Updates werden an diesen Slack-Webhook gesendet.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Bitte geben Sie den Namen des Slack-Arbeitsbereichs ein, mit dem Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diesen Arbeitsbereich."
+    },
+    "microsoftTeams": {
+      "title": "Über Microsoft Teams abonnieren",
+      "description": "Alle unsere Updates werden an diesen Teams-Webhook gesendet.",
+      "workspaceName": "Name des Microsoft Teams-Arbeitsbereichs",
+      "workspaceNameDescription": "Geben Sie den Namen Ihres Microsoft Teams-Arbeitsbereichs zur Validierung ein.",
+      "workspaceNamePlaceholder": "mein-firmen-arbeitsbereich",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "Statusseiten-Updates werden an diesen Teams-Webhook gesendet.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Bitte geben Sie den Namen des Microsoft Teams-Arbeitsbereichs ein, mit dem Sie abonniert haben",
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diesen Arbeitsbereich."
+    },
+    "resources": {
+      "all": "Alle Ressourcen abonnieren",
+      "allDescription": "Wählen Sie diese Option, wenn Sie alle Ressourcen abonnieren möchten.",
+      "select": "Ressourcen zum Abonnieren auswählen",
+      "selectDescription": "Bitte wählen Sie die Ressourcen aus, die Sie abonnieren möchten."
+    },
+    "eventTypes": {
+      "all": "Alle Ereignistypen abonnieren",
+      "allDescription": "Wählen Sie diese Option, wenn Sie alle Ereignistypen abonnieren möchten.",
+      "select": "Ereignistypen zum Abonnieren auswählen",
+      "selectDescription": "Bitte wählen Sie die Ereignistypen aus, die Sie abonnieren möchten."
+    },
+    "update": {
+      "title": "Abonnement aktualisieren",
+      "description": "Sie können Ihre Abonnementeinstellungen hier aktualisieren oder sich abmelden.",
+      "saved": "Ihre Änderungen wurden gespeichert.",
+      "unsubscribe": "Abbestellen",
+      "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten."
+    },
+    "confirm": {
+      "title": "Abonnement bestätigen",
+      "success": "Abonnement erfolgreich bestätigt"
+    }
+  },
+  "accounts": {
+    "forgotPassword": {
+      "title": "Passwort vergessen",
+      "description": "Wenn Sie Ihr Passwort für {{statusPageName}} vergessen haben, geben Sie bitte Ihre E-Mail-Adresse ein und der Link zum Zurücksetzen des Passworts wird Ihnen zugesandt.",
+      "success": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail geschickt. Bitte vergessen Sie nicht, den Spam-Ordner zu überprüfen."
+    },
+    "resetPassword": {
+      "description": "Erstellen Sie ein neues Passwort für Ihr {{statusPageName}}-Konto.",
+      "instructions": "Bitte geben Sie Ihr neues Passwort ein und wir werden es aktualisieren.",
+      "success": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an."
+    },
+    "masterPassword": {
+      "prompt": "Bitte geben Sie das Passwort ein, um fortzufahren.",
+      "passwordRequired": "Passwort ist erforderlich."
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Seite nicht gefunden.",
+      "description": "Die von Ihnen gesuchte Seite existiert nicht."
+    },
+    "forbidden": {
+      "title": "Zugriff verweigert",
+      "description": "Sie haben keine Berechtigung, auf diese Seite zuzugreifen."
+    },
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+  },
+  "footer": {
+    "poweredBy": "Bereitgestellt von OneUptime"
+  }
+}

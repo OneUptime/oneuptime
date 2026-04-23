@@ -33,10 +33,12 @@
   },
   "dependencies": {
     "Common": "file:../../../Common",
-    
     "ejs": "^3.1.10",
+    "i18next": "^23.16.8",
+    "i18next-browser-languagedetector": "^8.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^15.7.4",
     "react-router-dom": "^6.30.2",
     "use-async-effect": "^2.2.6"
   },
@@ -46,7 +48,6 @@
     "@types/react-dom": "^18.0.4",
     "@types/react-router-dom": "^5.3.3",
     "nodemon": "^2.0.20",
-   
     "ts-node": "^10.9.1"
   }
 }

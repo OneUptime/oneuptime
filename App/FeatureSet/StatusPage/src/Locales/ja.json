@@ -1,0 +1,189 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "submit": "送信",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "loading": "読み込み中...",
+    "search": "検索",
+    "edit": "編集",
+    "delete": "削除",
+    "yes": "はい",
+    "no": "いいえ",
+    "statusPage": "ステータスページ"
+  },
+  "language": {
+    "label": "言語",
+    "switchLanguage": "言語を切り替える"
+  },
+  "nav": {
+    "overview": "概要",
+    "incidents": "インシデント",
+    "announcements": "お知らせ",
+    "scheduledEvents": "予定されたイベント",
+    "subscribe": "購読する",
+    "login": "ログイン",
+    "logout": "ログアウト"
+  },
+  "overview": {
+    "uptimeSuffix": "% 稼働率",
+    "operational": "稼働中",
+    "noResourcesInGroup": "このグループにリソースが追加されていません。",
+    "activeIncidents": "進行中のインシデント",
+    "scheduledMaintenanceEvents": "予定されたメンテナンスイベント",
+    "allClearTitle": "すべて順調です",
+    "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。"
+  },
+  "incidents": {
+    "title": "インシデント",
+    "singular": "インシデント",
+    "active": "進行中のインシデント",
+    "resolved": "解決済みのインシデント",
+    "none": "インシデントなし",
+    "noneDescription": "このステータスページに投稿されたインシデントはありません。",
+    "postmortem": "インシデント事後分析",
+    "declaredAt": "発生日時: ",
+    "report": "インシデントレポート",
+    "notFound": "このステータスページでインシデントが見つかりません。"
+  },
+  "episodes": {
+    "report": "エピソードレポート",
+    "none": "エピソードなし",
+    "notFound": "このステータスページでエピソードが見つかりません。"
+  },
+  "announcements": {
+    "title": "お知らせ",
+    "singular": "お知らせ",
+    "active": "アクティブなお知らせ",
+    "past": "過去のお知らせ",
+    "none": "お知らせなし",
+    "noneDescription": "このページにはまだお知らせが投稿されていません。",
+    "announcedAt": "告知日時: ",
+    "notFound": "このステータスページでお知らせが見つかりません。"
+  },
+  "scheduledEvents": {
+    "title": "予定されたイベント",
+    "singular": "予定されたイベント",
+    "scheduledMaintenance": "予定されたメンテナンス",
+    "ongoing": "進行中のイベント",
+    "upcoming": "予定されたイベント",
+    "completed": "完了したイベント",
+    "none": "予定されたイベントなし",
+    "noneDescription": "このステータスページに予定されたイベントは投稿されていません。",
+    "scheduledAt": "予定日時: ",
+    "report": "予定イベントレポート",
+    "notFound": "このステータスページで予定されたイベントが見つかりません。"
+  },
+  "subscribe": {
+    "title": "購読する",
+    "submit": "購読する",
+    "newSubscription": "新規購読",
+    "manageExisting": "既存の購読を管理",
+    "sendManagementLink": "管理リンクを送信",
+    "subscribedSuccessfully": "購読が正常に完了しました。",
+    "emailSentCheckSpam": "リンクを含むメールをお送りしました。メールが見当たらない場合は、スパムフォルダをご確認ください。",
+    "menu": {
+      "email": "メール",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "メールで購読する",
+      "description": "すべてのアップデートはこのメールアドレスに送信されます。",
+      "yourEmail": "メールアドレス",
+      "placeholder": "subscriber@company.jp",
+      "managePrompt": "購読時に使用したメールアドレスを入力してください",
+      "manageDescription": "購読管理リンクをこのメールアドレスに送信します。",
+      "managePlaceholder": "email@yourcompany.jp"
+    },
+    "sms": {
+      "title": "SMSで購読する",
+      "description": "すべてのアップデートはこの電話番号に送信されます。",
+      "yourPhoneNumber": "電話番号",
+      "placeholder": "+81901234567",
+      "managePrompt": "購読時に使用した電話番号を入力してください",
+      "manageDescription": "購読管理リンクをこの電話番号に送信します。"
+    },
+    "slack": {
+      "title": "Slackで購読する",
+      "description": "すべてのアップデートはこのSlack Webhookに送信されます。",
+      "workspaceName": "Slackワークスペース名",
+      "workspaceNameDescription": "検証のためSlackワークスペース名を入力してください。",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "ステータスページの更新はこのSlack Webhookに送信されます。",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "購読時に使用したSlackワークスペース名を入力してください",
+      "manageDescription": "購読管理リンクをこのワークスペースに送信します。"
+    },
+    "microsoftTeams": {
+      "title": "Microsoft Teamsで購読する",
+      "description": "すべてのアップデートはこのTeams Webhookに送信されます。",
+      "workspaceName": "Microsoft Teamsワークスペース名",
+      "workspaceNameDescription": "検証のためMicrosoft Teamsワークスペース名を入力してください。",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "ステータスページの更新はこのTeams Webhookに送信されます。",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "購読時に使用したMicrosoft Teamsワークスペース名を入力してください",
+      "manageDescription": "購読管理リンクをこのワークスペースに送信します。"
+    },
+    "resources": {
+      "all": "すべてのリソースを購読する",
+      "allDescription": "すべてのリソースを購読する場合は、このオプションを選択してください。",
+      "select": "購読するリソースを選択",
+      "selectDescription": "購読したいリソースを選択してください。"
+    },
+    "eventTypes": {
+      "all": "すべてのイベントタイプを購読する",
+      "allDescription": "すべてのイベントタイプを購読する場合は、このオプションを選択してください。",
+      "select": "購読するイベントタイプを選択",
+      "selectDescription": "購読したいイベントタイプを選択してください。"
+    },
+    "update": {
+      "title": "購読を更新",
+      "description": "ここで購読設定を更新または解除できます。",
+      "saved": "変更が保存されました。",
+      "unsubscribe": "購読解除",
+      "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。"
+    },
+    "confirm": {
+      "title": "購読を確認",
+      "success": "購読が正常に確認されました"
+    }
+  },
+  "accounts": {
+    "forgotPassword": {
+      "title": "パスワードをお忘れですか",
+      "description": "{{statusPageName}}のパスワードをお忘れの場合は、メールアドレスを入力してください。パスワードリセットリンクをお送りします。",
+      "success": "パスワードリセットリンクをメールでお送りしました。スパムフォルダもご確認ください。"
+    },
+    "resetPassword": {
+      "description": "{{statusPageName}}アカウントの新しいパスワードを作成してください。",
+      "instructions": "新しいパスワードを入力すると、更新されます。",
+      "success": "パスワードが更新されました。ログインしてください。"
+    },
+    "masterPassword": {
+      "prompt": "続行するにはパスワードを入力してください。",
+      "passwordRequired": "パスワードは必須です。"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "ページが見つかりません。",
+      "description": "お探しのページは存在しません。"
+    },
+    "forbidden": {
+      "title": "アクセス禁止",
+      "description": "このページへのアクセス権限がありません。"
+    },
+    "generic": "問題が発生しました。もう一度お試しください。"
+  },
+  "footer": {
+    "poweredBy": "Powered by OneUptime"
+  }
+}

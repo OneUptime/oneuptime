@@ -1,7 +1,8 @@
 import URL from "Common/Types/API/URL";
 import Link from "Common/Types/Link";
-import Footer from "Common/UI/Components/Footer/Footer";
+import Footer, { FooterLink } from "Common/UI/Components/Footer/Footer";
 import React, { FunctionComponent, ReactElement } from "react";
+import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 
 export interface ComponentProps {
   copyright?: string | undefined;
@@ -13,7 +14,7 @@ export interface ComponentProps {
 const StatusPageFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const links: Array<Link> = [...props.links];
+  const links: Array<FooterLink> = [...props.links];
 
   if (!props.hidePoweredByOneUptimeBranding) {
     links.push({
@@ -22,6 +23,10 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
       openInNewTab: true,
     });
   }
+
+  links.push({
+    content: <LanguageSwitcher />,
+  });
 
   return (
     <Footer

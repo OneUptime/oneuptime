@@ -39,7 +39,9 @@ export default class CriteriaFilterUtil {
     const isPercentage: boolean =
       criteriaFilter?.checkOn === CheckOn.CPUUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.DiskUsagePercent ||
-      criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent;
+      criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent ||
+      criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
+      criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime;
@@ -169,6 +171,11 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.DiskUsagePercent ||
           i.value === CheckOn.CPUUsagePercent ||
           i.value === CheckOn.MemoryUsagePercent ||
+          i.value === CheckOn.LoadAverage1Min ||
+          i.value === CheckOn.LoadAverage5Min ||
+          i.value === CheckOn.LoadAverage15Min ||
+          i.value === CheckOn.SwapUsagePercent ||
+          i.value === CheckOn.CPUIoWaitPercent ||
           i.value === CheckOn.ServerProcessCommand ||
           i.value === CheckOn.ServerProcessName ||
           i.value === CheckOn.ServerProcessPID
@@ -371,7 +378,12 @@ export default class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.CPUUsagePercent ||
       checkOn === CheckOn.DiskUsagePercent ||
-      checkOn === CheckOn.MemoryUsagePercent
+      checkOn === CheckOn.MemoryUsagePercent ||
+      checkOn === CheckOn.SwapUsagePercent ||
+      checkOn === CheckOn.CPUIoWaitPercent ||
+      checkOn === CheckOn.LoadAverage1Min ||
+      checkOn === CheckOn.LoadAverage5Min ||
+      checkOn === CheckOn.LoadAverage15Min
     ) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -740,6 +752,22 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.MemoryUsagePercent
     ) {
       return "65";
+    }
+
+    if (checkOn === CheckOn.SwapUsagePercent) {
+      return "10";
+    }
+
+    if (checkOn === CheckOn.CPUIoWaitPercent) {
+      return "20";
+    }
+
+    if (
+      checkOn === CheckOn.LoadAverage1Min ||
+      checkOn === CheckOn.LoadAverage5Min ||
+      checkOn === CheckOn.LoadAverage15Min
+    ) {
+      return "2";
     }
 
     if (checkOn === CheckOn.IncomingRequest) {
