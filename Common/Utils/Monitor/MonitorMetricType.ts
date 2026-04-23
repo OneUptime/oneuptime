@@ -3,6 +3,17 @@ import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 
+/*
+ * Groups of metrics rendered as separate cards on the monitor metrics page.
+ * Keeps the Server/VM page navigable — CPU / Memory / Disk / Network each
+ * get their own card rather than one 28-chart scroll.
+ */
+export interface MonitorMetricCategory {
+  title: string;
+  description: string;
+  metrics: Array<MonitorMetricType>;
+}
+
 class MonitorMetricTypeUtil {
   public static getAggregationTypeByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
@@ -167,6 +178,95 @@ class MonitorMetricTypeUtil {
     }
 
     return [];
+  }
+
+  /*
+   * Returns the metrics grouped into display categories. Server monitors get
+   * a rich 5-card layout; every other monitor type falls through to a single
+   * "Monitor Metrics" category so existing pages look unchanged.
+   */
+  public static getMonitorMetricCategoriesByMonitorType(
+    monitorType: MonitorType,
+  ): Array<MonitorMetricCategory> {
+    if (monitorType === MonitorType.Server) {
+      return [
+        {
+          title: "Availability",
+          description:
+            "Heartbeat, uptime, and process count reported by the agent.",
+          metrics: [
+            MonitorMetricType.IsOnline,
+            MonitorMetricType.HostUptimeSeconds,
+            MonitorMetricType.ProcessCountTotal,
+          ],
+        },
+        {
+          title: "CPU",
+          description:
+            "CPU utilisation, load averages, and time-spent breakdown.",
+          metrics: [
+            MonitorMetricType.CPUUsagePercent,
+            MonitorMetricType.LoadAverage1Min,
+            MonitorMetricType.LoadAverage5Min,
+            MonitorMetricType.LoadAverage15Min,
+            MonitorMetricType.CPUTimeUserPercent,
+            MonitorMetricType.CPUTimeSystemPercent,
+            MonitorMetricType.CPUTimeIoWaitPercent,
+            MonitorMetricType.CPUTimeIdlePercent,
+            MonitorMetricType.CPUTimeStealPercent,
+          ],
+        },
+        {
+          title: "Memory",
+          description: "RAM usage, swap pressure, and bytes still available.",
+          metrics: [
+            MonitorMetricType.MemoryUsagePercent,
+            MonitorMetricType.SwapUsagePercent,
+            MonitorMetricType.MemoryAvailableBytes,
+          ],
+        },
+        {
+          title: "Disk",
+          description: "Space usage and I/O throughput per partition.",
+          metrics: [
+            MonitorMetricType.DiskUsagePercent,
+            MonitorMetricType.DiskReadBytesTotal,
+            MonitorMetricType.DiskWriteBytesTotal,
+            MonitorMetricType.DiskReadOpsTotal,
+            MonitorMetricType.DiskWriteOpsTotal,
+          ],
+        },
+        {
+          title: "Network",
+          description:
+            "Per-interface throughput, packet errors, and connection counts.",
+          metrics: [
+            MonitorMetricType.NetworkBytesReceivedTotal,
+            MonitorMetricType.NetworkBytesSentTotal,
+            MonitorMetricType.NetworkPacketsReceivedTotal,
+            MonitorMetricType.NetworkPacketsSentTotal,
+            MonitorMetricType.NetworkErrorsIn,
+            MonitorMetricType.NetworkErrorsOut,
+            MonitorMetricType.NetworkConnectionsEstablished,
+            MonitorMetricType.NetworkConnectionsListen,
+          ],
+        },
+      ];
+    }
+
+    // Other monitor types keep the single-card layout.
+    const metrics: Array<MonitorMetricType> =
+      this.getMonitorMetricTypesByMonitorType(monitorType);
+    if (metrics.length === 0) {
+      return [];
+    }
+    return [
+      {
+        title: "Monitor Metrics",
+        description: "Performance metrics collected from this monitor.",
+        metrics: metrics,
+      },
+    ];
   }
 
   public static getTitleByMonitorMetricType(

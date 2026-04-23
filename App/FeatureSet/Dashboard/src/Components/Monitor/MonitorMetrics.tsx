@@ -3,10 +3,13 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
+import MonitorMetricTypeUtil, {
+  MonitorMetricCategory,
+} from "Common/Utils/Monitor/MonitorMetricType";
 import MetricView from "../Metrics/MetricView";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
@@ -40,6 +43,132 @@ export interface ComponentProps {
   monitorId: ObjectID;
 }
 
+type GetSeriesResolverArgs = {
+  data: AggregateModel;
+  monitorType: MonitorType;
+  monitorMetricType: MonitorMetricType;
+  probes: Array<Probe>;
+};
+
+/*
+ * Shared title resolver for a chart series. Extracted so each category's
+ * MetricView can reuse the same logic for probe name / disk path / interface
+ * grouping without duplicating the closure.
+ */
+function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
+  const { data, monitorType, monitorMetricType, probes } = args;
+
+  const fallback: ChartSeries = {
+    title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(monitorMetricType),
+  };
+
+  if (!data) {
+    return fallback;
+  }
+
+  let attributes: JSONObject = data["attributes"] as JSONObject;
+  if (!attributes) {
+    return fallback;
+  }
+  if (typeof attributes === "string") {
+    try {
+      attributes = JSONFunctions.parseJSONObject(attributes);
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (MonitorTypeHelper.isProbableMonitor(monitorType)) {
+    const probeIdString: string | undefined = (attributes as JSONObject)[
+      "probeId"
+    ] as string | undefined;
+    if (!probeIdString) {
+      return fallback;
+    }
+    const probe: Probe | undefined = probes.find((p: Probe) => {
+      return p.id?.toString() === new ObjectID(probeIdString).toString();
+    });
+    return {
+      title: probe?.name?.toString() || fallback.title,
+    };
+  }
+
+  if (monitorType === MonitorType.Server) {
+    if (attributes["diskPath"]) {
+      return { title: attributes["diskPath"].toString() };
+    }
+    if (attributes["interfaceName"]) {
+      return { title: attributes["interfaceName"].toString() };
+    }
+  }
+
+  return fallback;
+}
+
+interface CategoryMetricsCardProps {
+  category: MonitorMetricCategory;
+  queryConfigs: Array<MetricQueryConfigData>;
+  timeRange: RangeStartAndEndDateTime;
+  onTimeRangeChange: (newRange: RangeStartAndEndDateTime) => void;
+}
+
+const CategoryMetricsCard: FunctionComponent<CategoryMetricsCardProps> = (
+  props: CategoryMetricsCardProps,
+): ReactElement => {
+  const [viewData, setViewData] = useState<MetricViewData>(() => {
+    return {
+      startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+        props.timeRange,
+      ),
+      queryConfigs: props.queryConfigs,
+      formulaConfigs: [],
+    };
+  });
+
+  /*
+   * Sync view data when the shared time range or regenerated query configs
+   * change (e.g. probes finish loading after the initial render).
+   */
+  useEffect(() => {
+    setViewData((prev: MetricViewData) => {
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
+      return {
+        ...prev,
+        startAndEndDate: dateRange,
+        queryConfigs: props.queryConfigs,
+      };
+    });
+  }, [props.timeRange, props.queryConfigs]);
+
+  return (
+    <Card
+      title={props.category.title}
+      description={props.category.description}
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={props.timeRange}
+          onChange={props.onTimeRangeChange}
+        />
+      }
+    >
+      <MetricView
+        data={viewData}
+        hideQueryElements={true}
+        hideStartAndEndDate={true}
+        hideCardInCharts={true}
+        onChange={(data: MetricViewData) => {
+          setViewData({
+            ...data,
+            queryConfigs: props.queryConfigs,
+            formulaConfigs: [],
+          });
+        }}
+      />
+    </Card>
+  );
+};
+
 const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -48,10 +177,11 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   );
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
   const [error, setError] = useState<string>("");
-
   const [probes, setProbes] = useState<Array<Probe>>([]);
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
 
   const fetchMonitor: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -88,217 +218,93 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  const monitorMetricTypesByMonitor: Array<MonitorMetricType> =
-    MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
-
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
-
-  type GetQueryConfigByMonitorMetricTypesFunction =
-    () => Array<MetricQueryConfigData>;
-
-  const getQueryConfigByMonitorMetricTypes: GetQueryConfigByMonitorMetricTypesFunction =
-    (): Array<MetricQueryConfigData> => {
-      const queries: Array<MetricQueryConfigData> = [];
-
-      if (!monitorType) {
-        return [];
-      }
-
-      for (const monitorMetricType of monitorMetricTypesByMonitor) {
-        queries.push({
-          metricAliasData: {
-            metricVariable: monitorMetricType,
-            title:
-              MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                monitorMetricType,
-              ),
-            description:
-              MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
-                monitorMetricType,
-              ),
-            legend:
-              MonitorMetricTypeUtil.getLegendByMonitorMetricType(
-                monitorMetricType,
-              ),
-            legendUnit:
-              MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
-                monitorMetricType,
-              ),
-          },
-          metricQueryData: {
-            filterData: {
-              metricName: monitorMetricType,
-              attributes: {
-                monitorId: props.monitorId.toString(),
-                projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
-              },
-              aggegationType:
-                MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
-                  monitorMetricType,
-                ),
-            },
-            groupBy: {
-              attributes: true,
-            },
-          },
-          getSeries: (data: AggregateModel): ChartSeries => {
-            const isProbeableMonitor: boolean =
-              MonitorTypeHelper.isProbableMonitor(monitorType);
-
-            if (!data) {
-              return {
-                title:
-                  MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                    monitorMetricType,
-                  ),
-              };
-            }
-
-            if (isProbeableMonitor) {
-              let attributes: JSONObject = data["attributes"] as JSONObject;
-
-              if (!attributes) {
-                return {
-                  title:
-                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                      monitorMetricType,
-                    ),
-                };
-              }
-
-              // if attributes is typeof string then parse it to JSON
-
-              if (typeof attributes === "string") {
-                try {
-                  attributes = JSONFunctions.parseJSONObject(attributes);
-                } catch {
-                  return {
-                    title:
-                      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                        monitorMetricType,
-                      ),
-                  };
-                }
-              }
-
-              const probeId: ObjectID = new ObjectID(
-                ((attributes as JSONObject)["probeId"] as string)?.toString(),
-              );
-
-              if (!probeId) {
-                return {
-                  title:
-                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                      monitorMetricType,
-                    ),
-                };
-              }
-
-              const probe: Probe | undefined = probes.find((probe: Probe) => {
-                return probe.id?.toString() === probeId.toString();
-              });
-
-              if (probe) {
-                return {
-                  title:
-                    probe.name?.toString() ||
-                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                      monitorMetricType,
-                    ),
-                };
-              }
-
-              return {
-                title:
-                  MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                    monitorMetricType,
-                  ),
-              };
-            }
-
-            if (monitorType === MonitorType.Server) {
-              let attributes: JSONObject = data["attributes"] as JSONObject;
-
-              if (!attributes) {
-                return {
-                  title:
-                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                      monitorMetricType,
-                    ),
-                };
-              }
-
-              // if attributes is typeof string then parse it to JSON
-
-              if (typeof attributes === "string") {
-                try {
-                  attributes = JSONFunctions.parseJSONObject(attributes);
-                } catch {
-                  return {
-                    title:
-                      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                        monitorMetricType,
-                      ),
-                  };
-                }
-              }
-
-              if (attributes["diskPath"]) {
-                return {
-                  title: attributes["diskPath"].toString(),
-                };
-              }
-
-              if (attributes["interfaceName"]) {
-                return {
-                  title: attributes["interfaceName"].toString(),
-                };
-              }
-
-              return {
-                title:
-                  MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                    monitorMetricType,
-                  ),
-              };
-            }
-
-            return {
-              title:
-                MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                  monitorMetricType,
-                ),
-            };
-          },
-        });
-      }
-
-      return queries;
-    };
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate({
-      range: TimeRange.PAST_ONE_HOUR,
-    }),
-    queryConfigs: getQueryConfigByMonitorMetricTypes(),
-    formulaConfigs: [],
-  });
-
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
   ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
     setTimeRange(newTimeRange);
-    const dateRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
-    setMetricViewData((prev: MetricViewData) => {
-      return {
-        ...prev,
-        startAndEndDate: dateRange,
-      };
-    });
   }, []);
+
+  /*
+   * Build query configs for a specific metric list. Re-computed when probes
+   * or monitor type change so chart series labels refresh correctly.
+   */
+  const buildQueryConfigs: (
+    metrics: Array<MonitorMetricType>,
+  ) => Array<MetricQueryConfigData> = useCallback(
+    (metrics: Array<MonitorMetricType>): Array<MetricQueryConfigData> => {
+      return metrics.map(
+        (monitorMetricType: MonitorMetricType): MetricQueryConfigData => {
+          return {
+            metricAliasData: {
+              metricVariable: monitorMetricType,
+              title:
+                MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                  monitorMetricType,
+                ),
+              description:
+                MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+                  monitorMetricType,
+                ),
+              legend:
+                MonitorMetricTypeUtil.getLegendByMonitorMetricType(
+                  monitorMetricType,
+                ),
+              legendUnit:
+                MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+                  monitorMetricType,
+                ),
+            },
+            metricQueryData: {
+              filterData: {
+                metricName: monitorMetricType,
+                attributes: {
+                  monitorId: props.monitorId.toString(),
+                  projectId:
+                    ProjectUtil.getCurrentProjectId()?.toString() || "",
+                },
+                aggegationType:
+                  MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+                    monitorMetricType,
+                  ),
+              },
+              groupBy: {
+                attributes: true,
+              },
+            },
+            getSeries: (data: AggregateModel): ChartSeries => {
+              return resolveSeriesTitle({
+                data,
+                monitorType,
+                monitorMetricType,
+                probes,
+              });
+            },
+          };
+        },
+      );
+    },
+    [props.monitorId, monitorType, probes],
+  );
+
+  const categories: Array<MonitorMetricCategory> = useMemo(() => {
+    if (!monitorType) {
+      return [];
+    }
+    return MonitorMetricTypeUtil.getMonitorMetricCategoriesByMonitorType(
+      monitorType,
+    );
+  }, [monitorType]);
+
+  /*
+   * Memoise the per-category query configs so each CategoryMetricsCard only
+   * re-renders when its own metrics actually change.
+   */
+  const categoryQueryConfigs: Array<Array<MetricQueryConfigData>> =
+    useMemo(() => {
+      return categories.map((category: MonitorMetricCategory) => {
+        return buildQueryConfigs(category.metrics);
+      });
+    }, [categories, buildQueryConfigs]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -308,35 +314,26 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (monitorMetricTypesByMonitor.length === 0) {
+  if (categories.length === 0) {
     return <></>;
   }
 
   return (
-    <Card
-      title="Monitor Metrics"
-      description="Performance metrics collected from this monitor."
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={timeRange}
-          onChange={handleTimeRangeChange}
-        />
-      }
-    >
-      <MetricView
-        data={metricViewData}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={(data: MetricViewData) => {
-          setMetricViewData({
-            ...data,
-            queryConfigs: getQueryConfigByMonitorMetricTypes(),
-            formulaConfigs: [],
-          });
-        }}
-      />
-    </Card>
+    <>
+      {categories.map(
+        (category: MonitorMetricCategory, index: number): ReactElement => {
+          return (
+            <CategoryMetricsCard
+              key={category.title}
+              category={category}
+              queryConfigs={categoryQueryConfigs[index] || []}
+              timeRange={timeRange}
+              onTimeRangeChange={handleTimeRangeChange}
+            />
+          );
+        },
+      )}
+    </>
   );
 };
 
