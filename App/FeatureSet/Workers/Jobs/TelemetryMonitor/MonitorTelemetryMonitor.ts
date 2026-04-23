@@ -45,9 +45,9 @@ import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator"
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricSeriesResult from "Common/Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
-import GroupBy from "Common/Types/BaseDatabase/GroupBy";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
@@ -355,6 +355,138 @@ const bucketAggregatedResultBySeries: (input: {
 };
 
 /**
+ * Per-series aggregation path: fetch raw metric rows and bucket them
+ * by (series fingerprint, minute bucket) in code. Returns an
+ * AggregatedResult shaped identically to what `MetricService.aggregateBy`
+ * would have produced with `GROUP BY time, attributes`.
+ *
+ * Why in-code instead of SQL GROUP BY: ClickHouse's parameterized
+ * query returns 0 rows when the GROUP BY clause includes the nested
+ * `attributes` Map column, even though running the exact same SQL
+ * directly returns rows. This is a quirk of the @clickhouse/client
+ * parameter binding for Map columns. Rather than work around the
+ * library bug we fetch raw rows (just like the Kubernetes monitor
+ * already does for its per-resource breakdown) and aggregate in JS.
+ * For the realistic monitor shape — hundreds of hosts × ~60 samples
+ * per minute — the extra work is negligible compared to a cron tick.
+ */
+const aggregatePerSeriesFromRawMetrics: (input: {
+  rawMetrics: Array<Metric>;
+  attributeKeys: Array<string>;
+  aggregationType: MetricsAggregationType;
+}) => AggregatedResult = (input: {
+  rawMetrics: Array<Metric>;
+  attributeKeys: Array<string>;
+  aggregationType: MetricsAggregationType;
+}): AggregatedResult => {
+  const buckets: Map<
+    string,
+    {
+      labels: JSONObject;
+      timestamp: Date;
+      values: Array<number>;
+      attributes: JSONObject;
+    }
+  > = new Map();
+
+  for (const metric of input.rawMetrics) {
+    const attrs: JSONObject = (metric.attributes as JSONObject) || {};
+    const labels: JSONObject = {};
+    for (const key of input.attributeKeys) {
+      const value: unknown = attrs[key];
+      labels[key] =
+        value === undefined || value === null ? "" : (value as string);
+    }
+    const fingerprint: string =
+      MetricSeriesFingerprint.computeFingerprint(labels);
+
+    const metricTime: Date = metric.time ? new Date(metric.time) : new Date();
+    const bucketDate: Date = new Date(
+      Date.UTC(
+        metricTime.getUTCFullYear(),
+        metricTime.getUTCMonth(),
+        metricTime.getUTCDate(),
+        metricTime.getUTCHours(),
+        metricTime.getUTCMinutes(),
+        0,
+        0,
+      ),
+    );
+
+    const bucketKey: string = `${fingerprint}|${bucketDate.toISOString()}`;
+
+    const value: number =
+      typeof metric.value === "number" ? metric.value : Number(metric.value);
+
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+
+    const existing:
+      | {
+          labels: JSONObject;
+          timestamp: Date;
+          values: Array<number>;
+          attributes: JSONObject;
+        }
+      | undefined = buckets.get(bucketKey);
+
+    if (existing) {
+      existing.values.push(value);
+    } else {
+      buckets.set(bucketKey, {
+        labels,
+        timestamp: bucketDate,
+        values: [value],
+        attributes: attrs,
+      });
+    }
+  }
+
+  const rows: Array<AggregatedModel> = [];
+
+  for (const bucket of buckets.values()) {
+    const vs: Array<number> = bucket.values;
+    if (vs.length === 0) {
+      continue;
+    }
+
+    let aggregated: number;
+    switch (input.aggregationType) {
+      case MetricsAggregationType.Sum:
+        aggregated = vs.reduce((a: number, b: number) => {
+          return a + b;
+        }, 0);
+        break;
+      case MetricsAggregationType.Count:
+        aggregated = vs.length;
+        break;
+      case MetricsAggregationType.Max:
+        aggregated = Math.max(...vs);
+        break;
+      case MetricsAggregationType.Min:
+        aggregated = Math.min(...vs);
+        break;
+      case MetricsAggregationType.Avg:
+      default:
+        aggregated =
+          vs.reduce((a: number, b: number) => {
+            return a + b;
+          }, 0) / vs.length;
+        break;
+    }
+
+    rows.push({
+      timestamp: bucket.timestamp,
+      value: aggregated,
+      attributes: bucket.attributes as AggregatedModel[string],
+    });
+  }
+
+  return { data: rows };
+};
+
+/**
  * Build the per-series breakdown for a monitor step. Each entry in the
  * returned array has `aggregatedResults` aligned with the provided
  * `queryConfigs.length + formulaConfigs.length` so formula evaluation
@@ -653,44 +785,68 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         .attributes as Dictionary<string>;
     }
 
-    /*
-     * Per-series alerting groups by attribute KEYS (host.name,
-     * service.name, …) which live in the nested `attributes` Map
-     * column. Force `attributes` into the aggregation's GROUP BY so
-     * Clickhouse emits one row per unique attribute map — the
-     * bucketing helper then fingerprints each row by the selected
-     * subset of keys.
-     */
-    const aggregationGroupBy: GroupBy<Metric> | undefined =
-      groupByAttributeKeys.length > 0
-        ? ({
-            ...(queryConfig.metricQueryData.groupBy || {}),
-            attributes: true,
-          } as GroupBy<Metric>)
-        : queryConfig.metricQueryData.groupBy;
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      /*
+       * Per-series path: fetch raw rows including the full
+       * attributes map, then bucket + aggregate in code. We can't
+       * push this through aggregateBy+SQL because the @clickhouse/client
+       * parameterized query returns 0 rows when GROUP BY includes the
+       * Map column. See aggregatePerSeriesFromRawMetrics for details.
+       */
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
         query: query,
-        aggregationType:
-          (queryConfig.metricQueryData.filterData
-            .aggegationType as MetricsAggregationType) ||
-          MetricsAggregationType.Avg,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+
+      logger.debug(
+        `[per-series] monitor ${data.monitorId.toString()} raw=${rawMetrics.length} bucketed=${aggregatedResults.data.length}`,
+        { service: "workers", projectId: data.projectId.toString() },
+      );
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp:
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        groupBy: aggregationGroupBy,
+        groupBy: queryConfig.metricQueryData.groupBy,
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    }
 
     logger.debug("Aggregated results", {
       service: "workers",
@@ -929,36 +1085,56 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       query.attributes = attributes;
     }
 
-    const aggregationGroupBy: GroupBy<Metric> | undefined =
-      groupByAttributeKeys.length > 0
-        ? ({
-            ...(queryConfig.metricQueryData.groupBy || {}),
-            attributes: true,
-          } as GroupBy<Metric>)
-        : queryConfig.metricQueryData.groupBy;
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
         query: query,
-        aggregationType:
-          (queryConfig.metricQueryData.filterData
-            .aggegationType as MetricsAggregationType) ||
-          MetricsAggregationType.Avg,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp:
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        groupBy: aggregationGroupBy,
+        groupBy: queryConfig.metricQueryData.groupBy,
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    }
 
     logger.debug("Kubernetes monitor aggregated results", {
       service: "workers",
@@ -1217,36 +1393,56 @@ const monitorDocker: MonitorDockerFunction = async (data: {
       query.attributes = attributes;
     }
 
-    const aggregationGroupBy: GroupBy<Metric> | undefined =
-      groupByAttributeKeys.length > 0
-        ? ({
-            ...(queryConfig.metricQueryData.groupBy || {}),
-            attributes: true,
-          } as GroupBy<Metric>)
-        : queryConfig.metricQueryData.groupBy;
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
         query: query,
-        aggregationType:
-          (queryConfig.metricQueryData.filterData
-            .aggegationType as MetricsAggregationType) ||
-          MetricsAggregationType.Avg,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp:
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        groupBy: aggregationGroupBy,
+        groupBy: queryConfig.metricQueryData.groupBy,
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    }
 
     logger.debug("Docker monitor aggregated results", {
       service: "workers",

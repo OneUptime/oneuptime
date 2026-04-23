@@ -47,6 +47,157 @@ export interface ComponentProps {
   chartCssClass?: string | undefined;
 }
 
+/*
+ * Default cap on visible series per chart. Above this, we keep the
+ * top-K by peak value and surface a "Show all N" toggle so the chart
+ * (and its legend) stays readable at high cardinality.
+ */
+const DEFAULT_TOP_N_SERIES: number = 10;
+
+// Per-chart user controls for high-cardinality series charts.
+interface SeriesControlsState {
+  searchQuery: string;
+  // Series the user has explicitly hidden via legend click.
+  hiddenSeries: Set<string>;
+  // When true, lift the Top-N cap and render every series.
+  showAllSeries: boolean;
+}
+
+const defaultSeriesControlsState: SeriesControlsState = {
+  searchQuery: "",
+  hiddenSeries: new Set<string>(),
+  showAllSeries: false,
+};
+
+/**
+ * Render the per-chart control panel for a high-cardinality metric
+ * chart. Includes a search box (filter series by name), a hidden-
+ * series counter with reset, and a "Show all N series" toggle for
+ * the Top-N cap. Legend chips below let the user hide/show individual
+ * series with a click — useful for isolating a single host out of
+ * hundreds.
+ */
+function renderSeriesControls(input: {
+  chartId: string;
+  controls: SeriesControlsState;
+  updateControls: (
+    chartId: string,
+    updates: Partial<SeriesControlsState>,
+  ) => void;
+  fullSeries: Array<SeriesPoint>;
+  totalSeries: number;
+  hiddenFromTopN: number;
+  needsTopN: boolean;
+}): ReactElement {
+  const {
+    chartId,
+    controls,
+    updateControls,
+    fullSeries,
+    totalSeries,
+    hiddenFromTopN,
+    needsTopN,
+  } = input;
+
+  const visibleForChips: Array<SeriesPoint> = controls.showAllSeries
+    ? fullSeries
+    : fullSeries.slice(0, DEFAULT_TOP_N_SERIES);
+
+  const toggleSeries: (seriesName: string) => void = (
+    seriesName: string,
+  ): void => {
+    const next: Set<string> = new Set<string>(controls.hiddenSeries);
+    if (next.has(seriesName)) {
+      next.delete(seriesName);
+    } else {
+      next.add(seriesName);
+    }
+    updateControls(chartId, { hiddenSeries: next });
+  };
+
+  return (
+    <div className="space-y-2 rounded-md border border-gray-100 bg-gray-50 p-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          value={controls.searchQuery}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+            updateControls(chartId, { searchQuery: e.target.value });
+          }}
+          placeholder={`Filter ${totalSeries} series…`}
+          className="flex-1 min-w-[200px] rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
+        {needsTopN ? (
+          <button
+            type="button"
+            className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+            onClick={(): void => {
+              updateControls(chartId, {
+                showAllSeries: !controls.showAllSeries,
+              });
+            }}
+          >
+            {controls.showAllSeries
+              ? `Show top ${DEFAULT_TOP_N_SERIES}`
+              : `Show all ${totalSeries}`}
+          </button>
+        ) : null}
+        {controls.hiddenSeries.size > 0 ? (
+          <button
+            type="button"
+            className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+            onClick={(): void => {
+              updateControls(chartId, { hiddenSeries: new Set<string>() });
+            }}
+          >
+            Reset {controls.hiddenSeries.size} hidden
+          </button>
+        ) : null}
+      </div>
+
+      {hiddenFromTopN > 0 ? (
+        <div className="text-xs text-gray-500">
+          Showing top {DEFAULT_TOP_N_SERIES} by peak value.{" "}
+          <span className="font-medium text-gray-700">
+            {hiddenFromTopN} more series hidden.
+          </span>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+        {visibleForChips.map((series: SeriesPoint) => {
+          const isHidden: boolean = controls.hiddenSeries.has(
+            series.seriesName,
+          );
+          return (
+            <button
+              key={series.seriesName}
+              type="button"
+              onClick={(): void => {
+                toggleSeries(series.seriesName);
+              }}
+              className={`inline-flex items-center rounded border px-2 py-0.5 text-xs transition-opacity ${
+                isHidden
+                  ? "border-gray-200 bg-white text-gray-400 opacity-60"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+              title={
+                isHidden
+                  ? "Click to show this series"
+                  : "Click to hide this series"
+              }
+            >
+              <span className="max-w-[260px] truncate">
+                {series.seriesName}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const MetricCharts: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -54,6 +205,34 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   const [exemplarsByMetric, setExemplarsByMetric] = useState<
     Record<string, Array<ExemplarPoint>>
   >({});
+
+  // Per-chart controls (search, hidden set, show-all) keyed by chart id.
+  const [seriesControlsByChart, setSeriesControlsByChart] = useState<
+    Record<string, SeriesControlsState>
+  >({});
+
+  const getControls: (chartId: string) => SeriesControlsState = (
+    chartId: string,
+  ): SeriesControlsState => {
+    return seriesControlsByChart[chartId] || defaultSeriesControlsState;
+  };
+
+  const updateControls: (
+    chartId: string,
+    updates: Partial<SeriesControlsState>,
+  ) => void = (
+    chartId: string,
+    updates: Partial<SeriesControlsState>,
+  ): void => {
+    setSeriesControlsByChart((prev: Record<string, SeriesControlsState>) => {
+      const current: SeriesControlsState =
+        prev[chartId] || defaultSeriesControlsState;
+      return {
+        ...prev,
+        [chartId]: { ...current, ...updates },
+      };
+    });
+  };
 
   // Fetch exemplars for all queried metrics
   useEffect(() => {
@@ -354,16 +533,86 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const chartExemplars: Array<ExemplarPoint> =
         exemplarsByMetric[metricNameStr] || [];
 
+      const chartId: string = index.toString();
+
+      /*
+       * High-cardinality handling: rank series by peak absolute value
+       * so the breaching series surface first, then apply the user's
+       * search filter, hidden set, and Top-N cap. The original
+       * chartSeries length is preserved for the controls panel so
+       * the "Show all N" button can show the true count.
+       */
+      const controls: SeriesControlsState = getControls(chartId);
+      const sortedByPeak: Array<SeriesPoint> = [...chartSeries].sort(
+        (a: SeriesPoint, b: SeriesPoint) => {
+          const peakA: number = Math.max(
+            0,
+            ...a.data.map((p: { y: number | null }) => {
+              return typeof p.y === "number" ? Math.abs(p.y) : 0;
+            }),
+          );
+          const peakB: number = Math.max(
+            0,
+            ...b.data.map((p: { y: number | null }) => {
+              return typeof p.y === "number" ? Math.abs(p.y) : 0;
+            }),
+          );
+          return peakB - peakA;
+        },
+      );
+
+      const totalSeries: number = sortedByPeak.length;
+      const needsTopN: boolean = totalSeries > DEFAULT_TOP_N_SERIES;
+
+      let displayableSeries: Array<SeriesPoint> = sortedByPeak;
+
+      if (controls.searchQuery.trim() !== "") {
+        const q: string = controls.searchQuery.toLowerCase();
+        displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
+          return s.seriesName.toLowerCase().includes(q);
+        });
+      }
+
+      if (controls.hiddenSeries.size > 0) {
+        displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
+          return !controls.hiddenSeries.has(s.seriesName);
+        });
+      }
+
+      if (needsTopN && !controls.showAllSeries) {
+        displayableSeries = displayableSeries.slice(0, DEFAULT_TOP_N_SERIES);
+      }
+
+      const hiddenFromTopN: number =
+        needsTopN && !controls.showAllSeries
+          ? Math.max(0, totalSeries - DEFAULT_TOP_N_SERIES)
+          : 0;
+
+      // Build the controls panel — only when series cardinality warrants it.
+      const seriesControls: ReactElement | undefined =
+        totalSeries > 1
+          ? renderSeriesControls({
+              chartId,
+              controls,
+              updateControls,
+              fullSeries: sortedByPeak,
+              totalSeries,
+              hiddenFromTopN,
+              needsTopN,
+            })
+          : undefined;
+
       const chart: Chart = {
-        id: index.toString(),
+        id: chartId,
         type: chartType,
         title: queryConfig.metricAliasData?.title || metricNameStr || "",
         description: queryConfig.metricAliasData?.description || "",
         metricInfo,
         exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
         onExemplarClick: handleExemplarClick,
+        seriesControls: seriesControls,
         props: {
-          data: chartSeries,
+          data: displayableSeries,
           xAxis: {
             legend: "Time",
             options: {

@@ -382,17 +382,35 @@ export default class MonitorTemplateUtil {
     }
 
     /*
-     * Fold series labels on top of whatever the monitor-type branch
-     * produced so templates like `{{host.name}}` resolve directly.
-     * Also expose the full map under `seriesLabels` for {{#each}}
-     * iteration.
+     * Fold series labels onto the storage map so templates like
+     * `{{host.name}}` or `{{resource.k8s.container.name}}` resolve at
+     * render time. The template engine walks dotted paths as nested
+     * property access (`host` → `.name`), so for each dotted label
+     * key we build up a nested object rather than storing the flat
+     * key. Also expose the full label map under `seriesLabels` for
+     * iteration-style templates.
      */
     if (data.seriesLabels && Object.keys(data.seriesLabels).length > 0) {
       for (const key of Object.keys(data.seriesLabels)) {
         const value: unknown = data.seriesLabels[key];
-        if (value !== undefined && value !== null) {
-          storageMap[key] = value as JSONObject[string];
+        if (value === undefined || value === null) {
+          continue;
         }
+        const parts: Array<string> = key.split(".");
+        let cursor: JSONObject = storageMap;
+        for (let i: number = 0; i < parts.length - 1; i++) {
+          const part: string = parts[i]!;
+          const existing: unknown = cursor[part];
+          if (
+            !existing ||
+            typeof existing !== "object" ||
+            Array.isArray(existing)
+          ) {
+            cursor[part] = {};
+          }
+          cursor = cursor[part] as JSONObject;
+        }
+        cursor[parts[parts.length - 1]!] = value as JSONObject[string];
       }
       storageMap["seriesLabels"] = data.seriesLabels;
     }

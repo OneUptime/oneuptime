@@ -36,6 +36,13 @@ export interface Chart {
   metricInfo?: ChartMetricInfo | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  /**
+   * Optional control panel rendered between the chart title and the
+   * chart body. Used by per-series-grouped metric charts to surface a
+   * search box, per-series toggles, and a "show all" escape hatch so
+   * the chart stays usable at thousands of unique label combinations.
+   */
+  seriesControls?: ReactElement | undefined;
 }
 
 export interface ComponentProps {
@@ -239,6 +246,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       </p>
                     )}
                   </div>
+                  {chart.seriesControls ? (
+                    <div className="mb-3">{chart.seriesControls}</div>
+                  ) : null}
                   {getChartContent(chart, index)}
                 </div>
               </div>
@@ -283,6 +293,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.description}
                 </p>
               )}
+              {chart.seriesControls ? (
+                <div className="mt-3">{chart.seriesControls}</div>
+              ) : null}
               {getChartContent(chart, index)}
             </div>
           );
