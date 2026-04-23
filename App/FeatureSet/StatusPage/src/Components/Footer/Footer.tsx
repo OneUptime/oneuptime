@@ -16,11 +16,12 @@ export interface ComponentProps {
 const StatusPageFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const links: Array<FooterLink> = [...props.links];
 
   if (!props.hidePoweredByOneUptimeBranding) {
     links.push({
-      title: "Powered by OneUptime",
+      title: t("footer.poweredBy"),
       to: URL.fromString("https://oneuptime.com"),
       openInNewTab: true,
     });
