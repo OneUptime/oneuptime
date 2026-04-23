@@ -3,11 +3,13 @@ package utils
 import (
 	"log/slog"
 	"oneuptime-infrastructure-agent/model"
+	"path/filepath"
+	"strings"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
-// getDiskMetrics retrieves disk metrics for a given path
+// GetDiskMetrics retrieves disk metrics for a given path
 func GetDiskMetrics(path string) *model.BasicDiskMetrics {
 	usageStat, err := disk.Usage(path)
 	if err != nil {
@@ -32,12 +34,18 @@ func GetDiskMetrics(path string) *model.BasicDiskMetrics {
 	return metrics
 }
 
-// listDiskMetrics lists disk metrics for all partitions
+// ListDiskMetrics lists disk metrics for all partitions, enriched with I/O counters.
 func ListDiskMetrics() []*model.BasicDiskMetrics {
 	partitions, err := disk.Partitions(false) // set to true if you want all filesystems
 	if err != nil {
 		slog.Error(err.Error())
 		return nil
+	}
+
+	// Gather I/O counters once, keyed by device name (e.g. "sda", "nvme0n1").
+	ioCounters, ioErr := disk.IOCounters()
+	if ioErr != nil {
+		slog.Warn("Failed to fetch disk I/O counters", "error", ioErr)
 	}
 
 	var metricsList []*model.BasicDiskMetrics
@@ -46,8 +54,31 @@ func ListDiskMetrics() []*model.BasicDiskMetrics {
 		if metrics == nil {
 			continue // Skip this partition on error
 		}
+		metrics.Device = partition.Device
+		metrics.Fstype = partition.Fstype
+
+		if ioErr == nil {
+			deviceKey := deriveIODeviceKey(partition.Device)
+			if io, ok := ioCounters[deviceKey]; ok {
+				metrics.ReadBytes = io.ReadBytes
+				metrics.WriteBytes = io.WriteBytes
+				metrics.ReadCount = io.ReadCount
+				metrics.WriteCount = io.WriteCount
+				metrics.IoTimeMs = io.IoTime
+			}
+		}
+
 		metricsList = append(metricsList, metrics)
 	}
 
 	return metricsList
+}
+
+// deriveIODeviceKey trims /dev/ prefix so it matches gopsutil's IOCounters map keys.
+func deriveIODeviceKey(device string) string {
+	if device == "" {
+		return device
+	}
+	base := filepath.Base(device)
+	return strings.TrimSpace(base)
 }

@@ -9,7 +9,9 @@ import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
-import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
+import MetricMonitorCriteria, {
+  MetricSeriesEvaluationResult,
+} from "./Criteria/MetricMonitorCriteria";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
@@ -31,7 +33,9 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
-import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeApiIngestResponse, {
+  PerSeriesCriteriaMatch,
+} from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -50,6 +54,7 @@ import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricCriteriaContext, {
   MetricBreachingSample,
   MetricComponent,
@@ -156,11 +161,175 @@ ${contextBlock}
 **Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
 `;
         }
+
+        /*
+         * When this is a metric-style monitor with per-series results,
+         * compute the per-series match list so MonitorResource can fan
+         * out one incident per affected series. We do this *after* the
+         * scalar criteriaMetId/rootCause is populated so legacy readers
+         * still see a usable response if perSeriesMatches is ignored.
+         */
+        const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
+          MonitorCriteriaEvaluator.collectPerSeriesMatches({
+            dataToProcess: input.dataToProcess,
+            monitor: input.monitor,
+            monitorStep: input.monitorStep,
+            criteriaInstance,
+          });
+
+        if (perSeriesMatches.length > 0) {
+          input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
+        }
+
         break;
       }
     }
 
     return input.probeApiIngestResponse;
+  }
+
+  /**
+   * For metric-backed monitors (Metrics/Kubernetes/Docker) with
+   * per-series aggregated results, re-evaluate the matched criteria
+   * once per series and return one entry per series that breached.
+   * Returns an empty array when the monitor is not series-aware or
+   * no series matched — the caller falls back to the single-incident
+   * path in that case.
+   */
+  private static collectPerSeriesMatches(input: {
+    dataToProcess: DataToProcess;
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Array<PerSeriesCriteriaMatch> {
+    if (
+      input.monitor.monitorType !== MonitorType.Metrics &&
+      input.monitor.monitorType !== MonitorType.Kubernetes &&
+      input.monitor.monitorType !== MonitorType.Docker
+    ) {
+      return [];
+    }
+
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+      metricResponse.seriesBreakdown;
+
+    if (!seriesBreakdown || seriesBreakdown.length === 0) {
+      return [];
+    }
+
+    const criteriaId: string | undefined = input.criteriaInstance.data?.id;
+    if (!criteriaId) {
+      return [];
+    }
+
+    const filterCondition: FilterCondition =
+      input.criteriaInstance.data?.filterCondition || FilterCondition.All;
+
+    const filters: Array<CriteriaFilter> =
+      input.criteriaInstance.data?.filters || [];
+
+    /*
+     * Evaluate every metric-value filter against every series. We only
+     * handle CheckOn.MetricValue for now — the criteria evaluator's
+     * other filter types don't carry series information.
+     */
+    const metricFilters: Array<CriteriaFilter> = filters.filter(
+      (f: CriteriaFilter) => {
+        return f.checkOn === CheckOn.MetricValue;
+      },
+    );
+
+    if (metricFilters.length === 0) {
+      return [];
+    }
+
+    /*
+     * Key: fingerprint. Value: results of each metric filter for that
+     * series, tracked so we can apply FilterCondition.All/Any per series.
+     */
+    const resultsByFingerprint: Map<
+      string,
+      {
+        labels: JSONObject;
+        filterResults: Array<MetricSeriesEvaluationResult>;
+      }
+    > = new Map();
+
+    for (const criteriaFilter of metricFilters) {
+      const evaluations: Array<MetricSeriesEvaluationResult> =
+        MetricMonitorCriteria.evaluateAllSeries({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter,
+          monitorStep: input.monitorStep,
+        });
+
+      for (const evaluation of evaluations) {
+        const fingerprint: string | undefined = evaluation.fingerprint;
+        if (!fingerprint) {
+          continue;
+        }
+
+        const existing:
+          | {
+              labels: JSONObject;
+              filterResults: Array<MetricSeriesEvaluationResult>;
+            }
+          | undefined = resultsByFingerprint.get(fingerprint);
+
+        if (existing) {
+          existing.filterResults.push(evaluation);
+        } else {
+          resultsByFingerprint.set(fingerprint, {
+            labels: evaluation.labels,
+            filterResults: [evaluation],
+          });
+        }
+      }
+    }
+
+    const matches: Array<PerSeriesCriteriaMatch> = [];
+
+    for (const [fingerprint, entry] of resultsByFingerprint) {
+      // Were all/any of the metric filters met for this series?
+      const matched: Array<MetricSeriesEvaluationResult> =
+        entry.filterResults.filter((r: MetricSeriesEvaluationResult) => {
+          return r.rootCause !== null;
+        });
+
+      const seriesMatched: boolean =
+        filterCondition === FilterCondition.All
+          ? matched.length === entry.filterResults.length &&
+            entry.filterResults.length > 0
+          : matched.length > 0;
+
+      if (!seriesMatched) {
+        continue;
+      }
+
+      /*
+       * For the per-series rootCause, concatenate the matched filter
+       * messages so the incident message reflects exactly what
+       * breached on this specific series.
+       */
+      const rootCauseLines: Array<string> = matched.map(
+        (r: MetricSeriesEvaluationResult) => {
+          return `- ${r.rootCause}`;
+        },
+      );
+
+      matches.push({
+        criteriaMetId: criteriaId,
+        fingerprint,
+        labels: entry.labels,
+        rootCause: rootCauseLines.join("\n"),
+        metricContext: matched[0]?.context,
+      });
+    }
+
+    return matches;
   }
 
   private static async processMonitorCriteriaInstance(input: {

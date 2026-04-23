@@ -29,6 +29,7 @@ import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
+import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -41,6 +42,15 @@ export default class MonitorIncident {
     criteriaInstance: MonitorCriteriaInstance | null;
     dataToProcess: DataToProcess;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /**
+     * When set, the fingerprint set of series still breaching on this
+     * tick. Any open per-series incident whose fingerprint is NOT in
+     * this set is auto-resolved — that's how a series returning to
+     * normal closes its incident independently of other series on the
+     * same monitor. Undefined means "legacy mode" and per-series
+     * incidents are treated like any other for dedupe/resolve.
+     */
+    breachingSeriesFingerprints?: Set<string> | undefined;
   }): Promise<Array<Incident>> {
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
@@ -60,6 +70,8 @@ export default class MonitorIncident {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         currentIncidentStateId: true,
+        seriesFingerprint: true,
+        seriesLabels: true,
       },
       props: {
         isRoot: true,
@@ -74,6 +86,7 @@ export default class MonitorIncident {
         autoResolveCriteriaInstanceIdIncidentIdsDictionary:
           input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         criteriaInstance: input.criteriaInstance,
+        breachingSeriesFingerprints: input.breachingSeriesFingerprints,
       });
 
       if (shouldClose) {
@@ -115,6 +128,13 @@ export default class MonitorIncident {
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
+    /**
+     * When set, create one incident per series instead of one per
+     * monitor. Each entry gets its own rootCause, seriesFingerprint,
+     * and seriesLabels so the incident title + description can
+     * reference `{{host.name}}` etc. via the template engine.
+     */
+    matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
   }): Promise<void> {
     const incidentLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -125,6 +145,21 @@ export default class MonitorIncident {
       `${input.monitor.id?.toString()} - Check open incidents.`,
       incidentLogAttributes,
     );
+
+    /*
+     * Per-series mode: close any open incident for a series that's no
+     * longer breaching *before* we look at the remaining open set, so
+     * dedupe decisions below match the post-resolve state.
+     */
+    const breachingSeriesFingerprints: Set<string> | undefined =
+      input.matchesPerSeries
+        ? new Set<string>(
+            input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
+              return m.fingerprint;
+            }),
+          )
+        : undefined;
+
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> =
       await this.checkOpenIncidentsAndCloseIfResolved({
@@ -135,14 +170,29 @@ export default class MonitorIncident {
         criteriaInstance: input.criteriaInstance,
         dataToProcess: input.dataToProcess,
         evaluationSummary: input.evaluationSummary,
+        breachingSeriesFingerprints,
       });
 
-    if (input.criteriaInstance.data?.createIncidents) {
-      // create incidents
+    if (!input.criteriaInstance.data?.createIncidents) {
+      return;
+    }
 
-      for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
-        []) {
-        // should create incident.
+    /*
+     * Series-less path: one incident per criteriaIncident template as
+     * before. Series-aware path: one incident per (series × template).
+     */
+    const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
+      input.matchesPerSeries && input.matchesPerSeries.length > 0
+        ? input.matchesPerSeries
+        : [undefined];
+
+    for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
+      []) {
+      for (const seriesMatch of seriesToProcess) {
+        const seriesFingerprint: string | undefined = seriesMatch?.fingerprint;
+        const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+        const seriesRootCause: string =
+          seriesMatch?.rootCause || input.rootCause;
 
         const alreadyOpenIncident: Incident | undefined = openIncidents.find(
           (incident: Incident) => {
@@ -150,7 +200,8 @@ export default class MonitorIncident {
               incident.createdCriteriaId ===
                 input.criteriaInstance.data?.id.toString() &&
               incident.createdIncidentTemplateId ===
-                criteriaIncident.id.toString()
+                criteriaIncident.id.toString() &&
+              (incident.seriesFingerprint || undefined) === seriesFingerprint
             );
           },
         );
@@ -193,6 +244,7 @@ export default class MonitorIncident {
           MonitorTemplateUtil.buildTemplateStorageMap({
             monitorType: input.monitor.monitorType!,
             dataToProcess: input.dataToProcess,
+            seriesLabels,
           });
 
         incident.title = MonitorTemplateUtil.processTemplateString({
@@ -236,7 +288,7 @@ export default class MonitorIncident {
 
         incident.monitors = [input.monitor];
         incident.projectId = input.monitor.projectId!;
-        incident.rootCause = input.rootCause;
+        incident.rootCause = seriesRootCause;
         incident.createdStateLog = JSON.parse(
           JSON.stringify(input.dataToProcess, null, 2),
         );
@@ -244,6 +296,13 @@ export default class MonitorIncident {
         incident.createdCriteriaId = input.criteriaInstance.data.id.toString();
 
         incident.createdIncidentTemplateId = criteriaIncident.id.toString();
+
+        if (seriesFingerprint) {
+          incident.seriesFingerprint = seriesFingerprint;
+        }
+        if (seriesLabels && Object.keys(seriesLabels).length > 0) {
+          incident.seriesLabels = seriesLabels;
+        }
 
         incident.onCallDutyPolicies =
           criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
@@ -504,7 +563,60 @@ export default class MonitorIncident {
       Array<string>
     >;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
+    breachingSeriesFingerprints?: Set<string> | undefined;
   }): boolean {
+    const openSeriesFingerprint: string | undefined =
+      input.openIncident.seriesFingerprint || undefined;
+
+    /*
+     * Per-series auto-resolve: when the monitor emits a breaching-
+     * series set and this open incident has a fingerprint, resolve
+     * whenever the fingerprint is no longer in the set — regardless
+     * of whether some *other* series is still breaching the same
+     * criteria. This is the whole point of per-host incidents.
+     */
+    if (
+      input.breachingSeriesFingerprints !== undefined &&
+      openSeriesFingerprint
+    ) {
+      const stillBreaching: boolean = input.breachingSeriesFingerprints.has(
+        openSeriesFingerprint,
+      );
+
+      if (stillBreaching) {
+        return false;
+      }
+
+      /*
+       * Series no longer breaching. Only auto-close if the criteria
+       * was configured to auto-resolve in the first place; otherwise
+       * stay open so a human can acknowledge.
+       */
+      if (!input.openIncident.createdCriteriaId?.toString()) {
+        return false;
+      }
+
+      if (!input.openIncident.createdIncidentTemplateId?.toString()) {
+        return false;
+      }
+
+      const autoResolveTemplates: Array<string> | undefined =
+        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+          input.openIncident.createdCriteriaId.toString()
+        ];
+
+      if (
+        autoResolveTemplates &&
+        autoResolveTemplates.includes(
+          input.openIncident.createdIncidentTemplateId.toString(),
+        )
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
     if (
       input.openIncident.createdCriteriaId?.toString() ===
       input.criteriaInstance?.data?.id.toString()

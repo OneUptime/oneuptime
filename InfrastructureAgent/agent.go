@@ -104,6 +104,21 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 		slog.Warn("Failed to get disk metrics")
 	}
 
+	networkMetrics := utils.GetNetworkMetrics()
+	if networkMetrics == nil {
+		slog.Warn("Failed to get network metrics")
+	}
+
+	loadMetrics := utils.GetLoadMetrics()
+	if loadMetrics == nil {
+		slog.Warn("Failed to get load average metrics")
+	}
+
+	hostMetrics := utils.GetHostMetrics()
+	if hostMetrics == nil {
+		slog.Warn("Failed to get host metrics")
+	}
+
 	servProcesses := utils.GetServerProcesses()
 	if servProcesses == nil {
 		slog.Warn("Failed to get server processes")
@@ -112,9 +127,12 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 	metricsReport := &model.ServerMonitorReport{
 		SecretKey: secretKey,
 		BasicInfrastructureMetrics: &model.BasicInfrastructureMetrics{
-			MemoryMetrics: memMetrics,
-			CpuMetrics:    cpuMetrics,
-			DiskMetrics:   diskMetrics,
+			MemoryMetrics:  memMetrics,
+			CpuMetrics:     cpuMetrics,
+			DiskMetrics:    diskMetrics,
+			NetworkMetrics: networkMetrics,
+			LoadMetrics:    loadMetrics,
+			HostMetrics:    hostMetrics,
 		},
 		RequestReceivedAt:          time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
 		OnlyCheckRequestReceivedAt: false,

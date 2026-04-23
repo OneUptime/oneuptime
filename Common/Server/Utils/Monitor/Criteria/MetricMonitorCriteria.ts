@@ -8,6 +8,7 @@ import MetricCriteriaContext, {
   MetricComponent,
   MetricComponentValue,
 } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
+import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
@@ -23,6 +24,20 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
 import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvaluator";
 
+/**
+ * Result of evaluating a single criteria filter against a single metric
+ * series. `rootCause` is null when the filter did not match; otherwise
+ * it's the human-readable comparison message. `context` always reflects
+ * the metric identity for this series (used to render the metric
+ * details + breaching samples section of the incident root cause).
+ */
+export interface MetricSeriesEvaluationResult {
+  fingerprint: string | undefined;
+  labels: JSONObject;
+  rootCause: string | null;
+  context: MetricCriteriaContext;
+}
+
 export default class MetricMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -30,8 +45,50 @@ export default class MetricMonitorCriteria {
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
   }): Promise<string | null> {
-    // Metric Monitoring Check
+    const evaluations: Array<MetricSeriesEvaluationResult> =
+      MetricMonitorCriteria.evaluateAllSeries(input);
 
+    /*
+     * Backwards-compat: the scalar entrypoint collapses per-series
+     * evaluation down to the first matching series so existing callers
+     * (single-incident path) keep working. The per-series code path uses
+     * `evaluateAllSeries` directly.
+     */
+    const match: MetricSeriesEvaluationResult | undefined = evaluations.find(
+      (e: MetricSeriesEvaluationResult) => {
+        return e.rootCause !== null;
+      },
+    );
+
+    /*
+     * Always populate the legacy single-context field so the root-cause
+     * renderer can still read metric identity from the criteria filter
+     * even when nothing matched. Pick the first evaluation's context.
+     */
+    if (evaluations.length > 0) {
+      input.criteriaFilter.metricCriteriaContext = (
+        match || evaluations[0]!
+      ).context;
+    }
+
+    return match ? match.rootCause : null;
+  }
+
+  /**
+   * Evaluate a single criteria filter against every series produced by
+   * the monitor. For monitors without group-by, this returns a single
+   * evaluation covering all aggregated results (legacy behavior). For
+   * monitors with group-by attributes set, it returns one evaluation
+   * per unique series fingerprint — each with its own
+   * `MetricCriteriaContext` carrying that series' breaching samples
+   * and labels. The caller fans this out into one incident per
+   * breaching series.
+   */
+  public static evaluateAllSeries(input: {
+    dataToProcess: DataToProcess;
+    criteriaFilter: CriteriaFilter;
+    monitorStep: MonitorStep;
+  }): Array<MetricSeriesEvaluationResult> {
     if (
       input.criteriaFilter.metricMonitorOptions &&
       !input.criteriaFilter.metricMonitorOptions.metricAggregationType
@@ -41,20 +98,14 @@ export default class MetricMonitorCriteria {
     }
 
     if (input.criteriaFilter.checkOn !== CheckOn.MetricValue) {
-      return null;
+      return [];
     }
-
-    const rawThreshold: number | null = CompareCriteria.convertToNumber(
-      input.criteriaFilter.value,
-    );
-
-    const metricAlias: string =
-      input.criteriaFilter.metricMonitorOptions?.metricAlias || "";
 
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
-    const metricAggregatedResult: Array<AggregatedResult> =
-      metricResponse.metricResult || [];
+
+    const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+      metricResponse.seriesBreakdown;
 
     const queryConfigs: Array<MetricQueryConfigData> =
       input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs ||
@@ -62,6 +113,60 @@ export default class MetricMonitorCriteria {
     const formulaConfigs: Array<MetricFormulaConfigData> =
       input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
       [];
+
+    /*
+     * Series-less path: one synthetic "all-series" evaluation over the
+     * flat metricResult. Preserves the pre-group-by behavior exactly.
+     */
+    if (!seriesBreakdown || seriesBreakdown.length === 0) {
+      const result: MetricSeriesEvaluationResult =
+        MetricMonitorCriteria.evaluateOneSeries({
+          criteriaFilter: input.criteriaFilter,
+          aggregatedResults: metricResponse.metricResult || [],
+          queryConfigs,
+          formulaConfigs,
+          seriesFingerprint: undefined,
+          seriesLabels: {},
+        });
+      return [result];
+    }
+
+    return seriesBreakdown.map((series: MetricSeriesResult) => {
+      return MetricMonitorCriteria.evaluateOneSeries({
+        criteriaFilter: input.criteriaFilter,
+        aggregatedResults: series.aggregatedResults,
+        queryConfigs,
+        formulaConfigs,
+        seriesFingerprint: series.fingerprint,
+        seriesLabels: series.labels,
+      });
+    });
+  }
+
+  /**
+   * Core evaluation loop: compare the samples for one metric series
+   * against the criteria threshold. Builds the metric identity context,
+   * identifies breaching samples, and assembles the human-readable
+   * root-cause message. Factored out so `evaluateAllSeries` can invoke
+   * it once per series without duplicating logic.
+   */
+  private static evaluateOneSeries(input: {
+    criteriaFilter: CriteriaFilter;
+    aggregatedResults: Array<AggregatedResult>;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+    seriesFingerprint: string | undefined;
+    seriesLabels: JSONObject;
+  }): MetricSeriesEvaluationResult {
+    const rawThreshold: number | null = CompareCriteria.convertToNumber(
+      input.criteriaFilter.value,
+    );
+
+    const metricAlias: string =
+      input.criteriaFilter.metricMonitorOptions?.metricAlias || "";
+
+    const metricAggregatedResult: Array<AggregatedResult> =
+      input.aggregatedResults;
 
     /*
      * Resolve which query/formula the alias refers to. Use explicit index
@@ -73,25 +178,25 @@ export default class MetricMonitorCriteria {
     let aliasIndex: number = -1;
 
     if (metricAlias) {
-      const qIdx: number = queryConfigs.findIndex(
+      const qIdx: number = input.queryConfigs.findIndex(
         (q: MetricQueryConfigData) => {
           return q.metricAliasData?.metricVariable === metricAlias;
         },
       );
 
       if (qIdx >= 0) {
-        matchedQuery = queryConfigs[qIdx] || null;
+        matchedQuery = input.queryConfigs[qIdx] || null;
         aliasIndex = qIdx;
       } else {
-        const fIdx: number = formulaConfigs.findIndex(
+        const fIdx: number = input.formulaConfigs.findIndex(
           (f: MetricFormulaConfigData) => {
             return f.metricAliasData?.metricVariable === metricAlias;
           },
         );
 
         if (fIdx >= 0) {
-          matchedFormula = formulaConfigs[fIdx] || null;
-          aliasIndex = queryConfigs.length + fIdx;
+          matchedFormula = input.formulaConfigs[fIdx] || null;
+          aliasIndex = input.queryConfigs.length + fIdx;
         }
       }
     }
@@ -105,8 +210,8 @@ export default class MetricMonitorCriteria {
         ? metricAggregatedResult[aliasIndex]
         : metricAggregatedResult[0];
 
-    if (!matchedQuery && !matchedFormula && queryConfigs[0]) {
-      matchedQuery = queryConfigs[0];
+    if (!matchedQuery && !matchedFormula && input.queryConfigs[0]) {
+      matchedQuery = input.queryConfigs[0];
     }
 
     /*
@@ -119,14 +224,24 @@ export default class MetricMonitorCriteria {
         matchedFormula,
         metricAlias,
         criteriaFilter: input.criteriaFilter,
-        queryConfigs,
-        formulaConfigs,
+        queryConfigs: input.queryConfigs,
+        formulaConfigs: input.formulaConfigs,
       });
 
-    input.criteriaFilter.metricCriteriaContext = metricContext;
+    if (input.seriesFingerprint) {
+      metricContext.seriesFingerprint = input.seriesFingerprint;
+    }
+    if (input.seriesLabels && Object.keys(input.seriesLabels).length > 0) {
+      metricContext.seriesLabels = input.seriesLabels;
+    }
 
     if (rawThreshold === null) {
-      return null;
+      return {
+        fingerprint: input.seriesFingerprint,
+        labels: input.seriesLabels,
+        rootCause: null,
+        context: metricContext,
+      };
     }
 
     /*
@@ -180,11 +295,21 @@ export default class MetricMonitorCriteria {
         NoDataPolicy.Ignore;
 
       if (policy === NoDataPolicy.Ignore) {
-        return null;
+        return {
+          fingerprint: input.seriesFingerprint,
+          labels: input.seriesLabels,
+          rootCause: null,
+          context: metricContext,
+        };
       }
 
       if (policy === NoDataPolicy.Trigger) {
-        return `No data received for ${metricContext.metricName} in the evaluation window — triggering per no-data policy.`;
+        return {
+          fingerprint: input.seriesFingerprint,
+          labels: input.seriesLabels,
+          rootCause: `No data received for ${metricContext.metricName} in the evaluation window — triggering per no-data policy.`,
+          context: metricContext,
+        };
       }
 
       // TreatAsZero: fall through to the comparator with value 0.
@@ -206,7 +331,12 @@ export default class MetricMonitorCriteria {
       });
 
     if (!comparisonMessage) {
-      return null;
+      return {
+        fingerprint: input.seriesFingerprint,
+        labels: input.seriesLabels,
+        rootCause: null,
+        context: metricContext,
+      };
     }
 
     /*
@@ -232,8 +362,8 @@ export default class MetricMonitorCriteria {
       matchedFormula
         ? MetricMonitorCriteria.buildComponentValueLookup({
             components: metricContext.components || [],
-            queryConfigs,
-            formulaConfigs,
+            queryConfigs: input.queryConfigs,
+            formulaConfigs: input.formulaConfigs,
             metricAggregatedResult,
           })
         : null;
@@ -276,7 +406,12 @@ export default class MetricMonitorCriteria {
       metricContext.breachingSamples = breachingSamples;
     }
 
-    return comparisonMessage;
+    return {
+      fingerprint: input.seriesFingerprint,
+      labels: input.seriesLabels,
+      rootCause: comparisonMessage,
+      context: metricContext,
+    };
   }
 
   private static buildComponentValueLookup(input: {
@@ -438,6 +573,17 @@ export default class MetricMonitorCriteria {
       ? Object.keys(q.metricQueryData.groupBy as Record<string, unknown>)
       : [];
 
+    /*
+     * Include user-selected attribute keys as part of the groupBy view
+     * so the root-cause block shows "Grouped By: host.name" not just the
+     * raw columns ClickHouse was asked to partition on.
+     */
+    const groupByAttributeKeys: Array<string> =
+      q?.metricQueryData?.groupByAttributeKeys || [];
+    const allGroupBy: Array<string> = Array.from(
+      new Set([...groupBy, ...groupByAttributeKeys]),
+    );
+
     const components: Array<MetricComponent> | undefined = f
       ? MetricMonitorCriteria.buildFormulaComponents({
           formulaConfig: f,
@@ -454,7 +600,7 @@ export default class MetricMonitorCriteria {
       isFormula: Boolean(f),
       formulaExpression: f?.metricFormulaData?.metricFormula,
       filterAttributes,
-      groupBy,
+      groupBy: allGroupBy,
       timeWindowMinutes:
         input.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes,
       ...(components && components.length > 0 ? { components } : {}),

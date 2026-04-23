@@ -709,6 +709,7 @@ export default class MonitorResourceUtil {
         props: {
           telemetryQuery: telemetryQuery,
         },
+        matchesPerSeries: response.perSeriesMatches,
       });
 
       await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
@@ -721,6 +722,7 @@ export default class MonitorResourceUtil {
         props: {
           telemetryQuery: telemetryQuery,
         },
+        matchesPerSeries: response.perSeriesMatches,
       });
     } else if (
       !response.criteriaMetId &&

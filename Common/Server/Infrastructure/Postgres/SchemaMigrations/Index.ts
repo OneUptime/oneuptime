@@ -289,6 +289,7 @@ import { MigrationName1776761171349 } from "./1776761171349-MigrationName";
 import { MigrationName1776801030808 } from "./1776801030808-MigrationName";
 import { MigrationName1776865086264 } from "./1776865086264-MigrationName";
 import { DedupeKubernetesClustersAndAddUniqueIndex1776881254913 } from "./1776881254913-DedupeKubernetesClustersAndAddUniqueIndex";
+import { MigrationName1776940714709 } from "./1776940714709-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -581,4 +582,5 @@ export default [
   MigrationName1776801030808,
   MigrationName1776865086264,
   DedupeKubernetesClustersAndAddUniqueIndex1776881254913,
+  MigrationName1776940714709,
 ];

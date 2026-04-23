@@ -1469,6 +1469,61 @@ export default class Incident extends BaseModel {
     ],
     update: [],
   })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Series Fingerprint",
+    description:
+      "For metric monitors with per-series alerting (e.g. grouped by host.name), this is a stable hash of the series label values so one incident is created per affected series.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public seriesFingerprint?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadProjectIncident,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Series Labels",
+    description:
+      "Attribute key/value pairs that identify the affected series (e.g. {host.name: prod-db-01}) when this incident was created from a per-series metric breach.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public seriesLabels?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadProjectIncident,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
   @TableColumn({
     manyToOneRelationColumn: "createdByProbeId",
     type: TableColumnType.Entity,

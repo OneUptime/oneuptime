@@ -26,6 +26,7 @@ import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 
 export default class MonitorAlert {
   @CaptureSpan()
@@ -36,6 +37,7 @@ export default class MonitorAlert {
     criteriaInstance: MonitorCriteriaInstance | null;
     dataToProcess: DataToProcess;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    breachingSeriesFingerprints?: Set<string> | undefined;
   }): Promise<Array<Alert>> {
     // check active alerts and if there are open alerts, do not cretae anothr alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -54,6 +56,8 @@ export default class MonitorAlert {
         alertNumber: true,
         alertNumberWithPrefix: true,
         currentAlertStateId: true,
+        seriesFingerprint: true,
+        seriesLabels: true,
       },
       props: {
         isRoot: true,
@@ -68,6 +72,7 @@ export default class MonitorAlert {
         autoResolveCriteriaInstanceIdAlertIdsDictionary:
           input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
         criteriaInstance: input.criteriaInstance,
+        breachingSeriesFingerprints: input.breachingSeriesFingerprints,
       });
 
       if (shouldClose) {
@@ -106,6 +111,7 @@ export default class MonitorAlert {
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
+    matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -116,6 +122,16 @@ export default class MonitorAlert {
       `${input.monitor.id?.toString()} - Check open alerts.`,
       alertLogAttributes,
     );
+
+    const breachingSeriesFingerprints: Set<string> | undefined =
+      input.matchesPerSeries
+        ? new Set<string>(
+            input.matchesPerSeries.map((m: PerSeriesCriteriaMatch) => {
+              return m.fingerprint;
+            }),
+          )
+        : undefined;
+
     // check active alerts and if there are open alerts, do not cretae anothr alert.
     const openAlerts: Array<Alert> =
       await this.checkOpenAlertsAndCloseIfResolved({
@@ -126,19 +142,31 @@ export default class MonitorAlert {
         criteriaInstance: input.criteriaInstance,
         dataToProcess: input.dataToProcess,
         evaluationSummary: input.evaluationSummary,
+        breachingSeriesFingerprints,
       });
 
-    if (input.criteriaInstance.data?.createAlerts) {
-      // create alerts
+    if (!input.criteriaInstance.data?.createAlerts) {
+      return;
+    }
 
-      for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
-        // should create alert.
+    const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
+      input.matchesPerSeries && input.matchesPerSeries.length > 0
+        ? input.matchesPerSeries
+        : [undefined];
+
+    for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
+      for (const seriesMatch of seriesToProcess) {
+        const seriesFingerprint: string | undefined = seriesMatch?.fingerprint;
+        const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+        const seriesRootCause: string =
+          seriesMatch?.rootCause || input.rootCause;
 
         const alreadyOpenAlert: Alert | undefined = openAlerts.find(
           (alert: Alert) => {
             return (
               alert.createdCriteriaId ===
-              input.criteriaInstance.data?.id.toString()
+                input.criteriaInstance.data?.id.toString() &&
+              (alert.seriesFingerprint || undefined) === seriesFingerprint
             );
           },
         );
@@ -183,6 +211,7 @@ export default class MonitorAlert {
           MonitorTemplateUtil.buildTemplateStorageMap({
             monitorType: input.monitor.monitorType!,
             dataToProcess: input.dataToProcess,
+            seriesLabels,
           });
 
         alert.title = MonitorTemplateUtil.processTemplateString({
@@ -224,12 +253,19 @@ export default class MonitorAlert {
 
         alert.monitor = input.monitor;
         alert.projectId = input.monitor.projectId!;
-        alert.rootCause = input.rootCause;
+        alert.rootCause = seriesRootCause;
         alert.createdStateLog = JSON.parse(
           JSON.stringify(input.dataToProcess, null, 2),
         );
 
         alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
+
+        if (seriesFingerprint) {
+          alert.seriesFingerprint = seriesFingerprint;
+        }
+        if (seriesLabels && Object.keys(seriesLabels).length > 0) {
+          alert.seriesLabels = seriesLabels;
+        }
 
         alert.onCallDutyPolicies =
           criteriaAlert.onCallPolicyIds?.map((id: ObjectID) => {
@@ -436,7 +472,50 @@ export default class MonitorAlert {
     openAlert: Alert;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
+    breachingSeriesFingerprints?: Set<string> | undefined;
   }): boolean {
+    const openSeriesFingerprint: string | undefined =
+      input.openAlert.seriesFingerprint || undefined;
+
+    /*
+     * Per-series auto-resolve: when a breaching-series set is given and
+     * this alert has a fingerprint, resolve whenever the fingerprint is
+     * no longer in the set, independent of whether other series on the
+     * same monitor are still breaching.
+     */
+    if (
+      input.breachingSeriesFingerprints !== undefined &&
+      openSeriesFingerprint
+    ) {
+      const stillBreaching: boolean = input.breachingSeriesFingerprints.has(
+        openSeriesFingerprint,
+      );
+
+      if (stillBreaching) {
+        return false;
+      }
+
+      if (!input.openAlert.createdCriteriaId?.toString()) {
+        return false;
+      }
+
+      const autoResolveTemplates: Array<string> | undefined =
+        input.autoResolveCriteriaInstanceIdAlertIdsDictionary[
+          input.openAlert.createdCriteriaId.toString()
+        ];
+
+      /*
+       * Alert auto-resolve lists templates by criteria; presence of any
+       * template for this criteria means "this criteria's alerts are
+       * configured to auto-resolve", so resolve this series.
+       */
+      if (autoResolveTemplates && autoResolveTemplates.length > 0) {
+        return true;
+      }
+
+      return false;
+    }
+
     if (
       input.openAlert.createdCriteriaId?.toString() ===
       input.criteriaInstance?.data?.id.toString()

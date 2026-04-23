@@ -21,6 +21,7 @@ import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMo
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -37,6 +38,14 @@ export default class MonitorTemplateUtil {
   public static buildTemplateStorageMap(data: {
     monitorType: MonitorType;
     dataToProcess: DataToProcess;
+    /**
+     * When set, the attribute values identifying the specific series
+     * this template is being rendered for. Each label is exposed to
+     * the template under its own key (so `{{host.name}}` works) and
+     * also collected under a `seriesLabels` object for iteration.
+     * Only populated when a metric monitor fires per-series.
+     */
+    seriesLabels?: JSONObject | undefined;
   }): JSONObject {
     let storageMap: JSONObject = {};
 
@@ -315,6 +324,31 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
+      if (
+        data.monitorType === MonitorType.Metrics ||
+        data.monitorType === MonitorType.Kubernetes ||
+        data.monitorType === MonitorType.Docker
+      ) {
+        const metricResponse: MetricMonitorResponse =
+          data.dataToProcess as MetricMonitorResponse;
+
+        const queryConfigs: Array<unknown> =
+          metricResponse.metricViewConfig?.queryConfigs || [];
+
+        const firstQuery: unknown = queryConfigs[0];
+        const metricName: string | undefined = (
+          firstQuery as
+            | {
+                metricQueryData?: { filterData?: { metricName?: string } };
+              }
+            | undefined
+        )?.metricQueryData?.filterData?.metricName;
+
+        storageMap = {
+          metricName: metricName || "",
+        } as JSONObject;
+      }
+
       if (data.monitorType === MonitorType.ExternalStatusPage) {
         const externalStatusPageResponse:
           | ExternalStatusPageMonitorResponse
@@ -345,6 +379,22 @@ export default class MonitorTemplateUtil {
       }
     } catch (err) {
       logger.error(err);
+    }
+
+    /*
+     * Fold series labels on top of whatever the monitor-type branch
+     * produced so templates like `{{host.name}}` resolve directly.
+     * Also expose the full map under `seriesLabels` for {{#each}}
+     * iteration.
+     */
+    if (data.seriesLabels && Object.keys(data.seriesLabels).length > 0) {
+      for (const key of Object.keys(data.seriesLabels)) {
+        const value: unknown = data.seriesLabels[key];
+        if (value !== undefined && value !== null) {
+          storageMap[key] = value as JSONObject[string];
+        }
+      }
+      storageMap["seriesLabels"] = data.seriesLabels;
     }
 
     logger.debug(`Storage Map: ${JSON.stringify(storageMap, null, 2)}`);

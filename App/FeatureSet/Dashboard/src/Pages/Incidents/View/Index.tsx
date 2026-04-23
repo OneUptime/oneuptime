@@ -50,6 +50,7 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
+import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -720,6 +721,8 @@ const IncidentView: FunctionComponent<
             query={telemetryQuery.telemetryQuery as Query<ExceptionInstance>}
           />
         )}
+
+      <IncidentAffectedResources incidentId={modelId} />
 
       <IncidentFeedElement incidentId={modelId} />
     </Fragment>
