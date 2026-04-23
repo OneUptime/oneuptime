@@ -1,4 +1,5 @@
 import MetricMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
+import MetricSeriesFingerprint from "../../../../../Utils/Metrics/MetricSeriesFingerprint";
 import AggregateModel from "../../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../../Types/BaseDatabase/AggregatedResult";
 import {
@@ -510,7 +511,10 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
    */
   function buildInputsWithSeriesBreakdown(input: {
     criteriaFilter: CriteriaFilter;
-    seriesSamples: Array<{ labels: Record<string, string>; values: Array<number> }>;
+    seriesSamples: Array<{
+      labels: Record<string, string>;
+      values: Array<number>;
+    }>;
   }): {
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
@@ -549,11 +553,15 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       rollingTime: RollingTime.Past1Minute,
     };
 
-    const seriesBreakdown = input.seriesSamples.map(
+    const seriesBreakdown: Array<{
+      fingerprint: string;
+      labels: Record<string, string>;
+      aggregatedResults: Array<AggregatedResult>;
+    }> = input.seriesSamples.map(
       (s: { labels: Record<string, string>; values: Array<number> }) => {
         return {
           fingerprint: Object.values(s.labels).join("|"),
-          labels: s.labels as any,
+          labels: s.labels,
           aggregatedResults: [
             {
               data: s.values.map((v: number) => {
@@ -587,7 +595,8 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       metricResult: [{ data: flatData } as AggregatedResult],
       metricViewConfig,
       monitorId: ObjectID.generate(),
-      seriesBreakdown: seriesBreakdown,
+      seriesBreakdown:
+        seriesBreakdown as unknown as MetricMonitorResponse["seriesBreakdown"],
     };
 
     return {
@@ -614,7 +623,8 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       criteriaFilter,
     });
 
-    const results = MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
+      MetricMonitorCriteria.evaluateAllSeries(inputs);
     expect(results).toHaveLength(1);
     expect(results[0]!.fingerprint).toBeUndefined();
     expect(results[0]!.rootCause).toBeTruthy();
@@ -631,23 +641,31 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       },
     };
 
-    const inputs = buildInputsWithSeriesBreakdown({
-      criteriaFilter,
-      seriesSamples: [
-        { labels: { "host.name": "prod-01" }, values: [95] },
-        { labels: { "host.name": "prod-02" }, values: [92] },
-        { labels: { "host.name": "prod-03" }, values: [50] },
-      ],
-    });
+    const inputs: ReturnType<typeof buildInputsWithSeriesBreakdown> =
+      buildInputsWithSeriesBreakdown({
+        criteriaFilter,
+        seriesSamples: [
+          { labels: { "host.name": "prod-01" }, values: [95] },
+          { labels: { "host.name": "prod-02" }, values: [92] },
+          { labels: { "host.name": "prod-03" }, values: [50] },
+        ],
+      });
 
-    const results = MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
+      MetricMonitorCriteria.evaluateAllSeries(inputs);
     expect(results).toHaveLength(3);
 
-    const breaching = results.filter((r) => r.rootCause !== null);
+    const breaching: typeof results = results.filter(
+      (r: (typeof results)[number]) => {
+        return r.rootCause !== null;
+      },
+    );
     expect(breaching).toHaveLength(2);
 
     const breachingHosts: Array<string> = breaching
-      .map((r) => r.labels["host.name"] as string)
+      .map((r: (typeof results)[number]) => {
+        return r.labels["host.name"] as string;
+      })
       .sort();
     expect(breachingHosts).toEqual(["prod-01", "prod-02"]);
   });
@@ -663,17 +681,27 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       },
     };
 
-    const inputs = buildInputsWithSeriesBreakdown({
-      criteriaFilter,
-      seriesSamples: [
-        { labels: { "host.name": "prod-01" }, values: [95, 97] },
-        { labels: { "host.name": "prod-02" }, values: [92] },
-      ],
-    });
+    const inputs: ReturnType<typeof buildInputsWithSeriesBreakdown> =
+      buildInputsWithSeriesBreakdown({
+        criteriaFilter,
+        seriesSamples: [
+          { labels: { "host.name": "prod-01" }, values: [95, 97] },
+          { labels: { "host.name": "prod-02" }, values: [92] },
+        ],
+      });
 
-    const results = MetricMonitorCriteria.evaluateAllSeries(inputs);
-    const prod01 = results.find((r) => r.labels["host.name"] === "prod-01")!;
-    const prod02 = results.find((r) => r.labels["host.name"] === "prod-02")!;
+    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
+      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const prod01: (typeof results)[number] = results.find(
+      (r: (typeof results)[number]) => {
+        return r.labels["host.name"] === "prod-01";
+      },
+    )!;
+    const prod02: (typeof results)[number] = results.find(
+      (r: (typeof results)[number]) => {
+        return r.labels["host.name"] === "prod-02";
+      },
+    )!;
 
     expect(prod01.context.breachingSamples).toHaveLength(2);
     expect(prod02.context.breachingSamples).toHaveLength(1);
@@ -692,18 +720,12 @@ describe("MetricSeriesFingerprint", () => {
       "host.name": "prod-01",
     };
 
-    const MetricSeriesFingerprint =
-      require("../../../../../Utils/Metrics/MetricSeriesFingerprint").default;
-
     expect(MetricSeriesFingerprint.computeFingerprint(a)).toBe(
       MetricSeriesFingerprint.computeFingerprint(b),
     );
   });
 
   test("different label values → different fingerprints", () => {
-    const MetricSeriesFingerprint =
-      require("../../../../../Utils/Metrics/MetricSeriesFingerprint").default;
-
     expect(
       MetricSeriesFingerprint.computeFingerprint({ "host.name": "prod-01" }),
     ).not.toBe(
@@ -712,37 +734,33 @@ describe("MetricSeriesFingerprint", () => {
   });
 
   test("empty labels → sentinel WholeMonitorFingerprint", () => {
-    const MetricSeriesFingerprint =
-      require("../../../../../Utils/Metrics/MetricSeriesFingerprint").default;
-
     expect(MetricSeriesFingerprint.computeFingerprint({})).toBe(
       MetricSeriesFingerprint.WholeMonitorFingerprint,
     );
   });
 
   test("missing attribute keys canonicalize to empty string (stable fingerprint)", () => {
-    const MetricSeriesFingerprint =
-      require("../../../../../Utils/Metrics/MetricSeriesFingerprint").default;
-
-    const sample1 = {
+    const sample1: AggregateModel = {
       timestamp: new Date(),
       value: 42,
       attributes: { "host.name": "prod-01" },
-    };
-    const sample2 = {
+    } as unknown as AggregateModel;
+    const sample2: AggregateModel = {
       timestamp: new Date(),
       value: 42,
       attributes: { "host.name": "prod-01", region: "us-east" },
-    };
+    } as unknown as AggregateModel;
 
-    const labels1 = MetricSeriesFingerprint.extractSeriesLabels({
-      sample: sample1,
-      attributeKeys: ["host.name"],
-    });
-    const labels2 = MetricSeriesFingerprint.extractSeriesLabels({
-      sample: sample2,
-      attributeKeys: ["host.name"],
-    });
+    const labels1: import("../../../../../Types/JSON").JSONObject =
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample1,
+        attributeKeys: ["host.name"],
+      });
+    const labels2: import("../../../../../Types/JSON").JSONObject =
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample2,
+        attributeKeys: ["host.name"],
+      });
 
     // When only host.name is selected, region doesn't affect the fingerprint
     expect(MetricSeriesFingerprint.computeFingerprint(labels1)).toBe(

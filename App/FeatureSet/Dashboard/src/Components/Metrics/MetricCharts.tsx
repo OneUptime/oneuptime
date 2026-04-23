@@ -189,9 +189,47 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
 
       const chartSeries: Array<SeriesPoint> = [];
 
-      if (queryConfig.getSeries) {
+      /*
+       * If the user picked attribute keys to group by (e.g. host.name)
+       * and no explicit getSeries was provided, synthesize one so the
+       * chart splits rows into one line per unique label combination.
+       * Without this, all groupByAttributeKeys series would collapse
+       * onto a single line indistinguishable from whole-monitor mode.
+       */
+      const groupByAttributeKeys: Array<string> =
+        queryConfig.metricQueryData.groupByAttributeKeys || [];
+
+      const effectiveGetSeries:
+        | ((data: AggregatedModel) => ChartSeries)
+        | undefined = queryConfig.getSeries
+        ? queryConfig.getSeries
+        : groupByAttributeKeys.length > 0
+          ? (item: AggregatedModel): ChartSeries => {
+              const attributes: Record<string, unknown> =
+                ((item as unknown as Dictionary<unknown>)["attributes"] as
+                  | Record<string, unknown>
+                  | undefined) || {};
+
+              const parts: Array<string> = groupByAttributeKeys.map(
+                (key: string) => {
+                  const value: unknown = attributes[key];
+                  const displayValue: string =
+                    value === undefined || value === null || value === ""
+                      ? "(unset)"
+                      : String(value);
+                  return `${key}=${displayValue}`;
+                },
+              );
+
+              return {
+                title: parts.join(", "),
+              };
+            }
+          : undefined;
+
+      if (effectiveGetSeries) {
         for (const item of props.metricResults[index]!.data) {
-          const series: ChartSeries = queryConfig.getSeries(item);
+          const series: ChartSeries = effectiveGetSeries(item);
           const seriesName: string = series.title;
 
           const existingSeries: SeriesPoint | undefined = chartSeries.find(

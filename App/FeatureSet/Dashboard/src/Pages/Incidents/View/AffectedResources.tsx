@@ -54,8 +54,10 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
 
       setSeriesLabels(stringLabels);
     } catch (err) {
-      // Fetch failure is not worth surfacing — the section simply doesn't
-      // render. The main incident detail shows the error state.
+      /*
+       * Fetch failure is not worth surfacing — the section simply doesn't
+       * render. The main incident detail shows the error state.
+       */
       API.getFriendlyMessage(err);
       setSeriesLabels(undefined);
     }
