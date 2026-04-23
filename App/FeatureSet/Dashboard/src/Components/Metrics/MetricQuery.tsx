@@ -1,5 +1,10 @@
 import FiltersForm from "Common/UI/Components/Filters/FiltersForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -37,19 +42,16 @@ export interface ComponentProps {
 const MetricFilter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(true);
+  const [showAdvancedFilters, setShowAdvancedFilters] =
+    useState<boolean>(false);
 
-  const initializedAdvancedFilters: React.MutableRefObject<boolean> =
-    React.useRef<boolean>(false);
-
-  React.useEffect(() => {
-    if (initializedAdvancedFilters.current) {
-      return;
-    }
-
-    initializedAdvancedFilters.current = true;
-    props.onAdvancedFiltersToggle?.(true);
-  }, [props.onAdvancedFiltersToggle]);
+  const toggleAdvancedFilters: () => void = (): void => {
+    setShowAdvancedFilters((prev: boolean): boolean => {
+      const next: boolean = !prev;
+      props.onAdvancedFiltersToggle?.(next);
+      return next;
+    });
+  };
 
   const groupByOptions: Array<DropdownOption> = (
     props.telemetryAttributes || []
@@ -79,11 +81,8 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               filterData,
             });
           }}
-          onAdvancedFiltersToggle={(show: boolean) => {
-            setShowAdvancedFilters(show);
-            props.onAdvancedFiltersToggle?.(show);
-          }}
-          showAdvancedFiltersByDefault={true}
+          showAdvancedFilters={showAdvancedFilters}
+          hideAdvancedFilterToggle={true}
           isFilterLoading={
             showAdvancedFilters ? props.isAttributesLoading : false
           }
@@ -99,7 +98,15 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
                 props.metricTypes.map((metricType: MetricType) => {
                   return metricType.name || "";
-                }), // metricType is an array of MetricType
+                }),
+              ),
+            },
+            {
+              key: "aggegationType",
+              type: FieldType.Dropdown,
+              title: "Aggregation Type",
+              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+                MetricsAggregationType,
               ),
             },
             {
@@ -111,17 +118,10 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               onJsonKeySelected: props.onAttributeKeySelected,
               isAdvancedFilter: true,
             },
-            {
-              key: "aggegationType",
-              type: FieldType.Dropdown,
-              title: "Aggregation Type",
-              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                MetricsAggregationType,
-              ),
-            },
           ]}
         />
       </div>
+
       {showAdvancedFilters ? (
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">
@@ -159,6 +159,23 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           </div>
         </div>
       ) : null}
+
+      <div className="mt-3">
+        <Button
+          className="-ml-3"
+          buttonSize={ButtonSize.Small}
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          icon={
+            showAdvancedFilters ? IconProp.ChevronUp : IconProp.ChevronDown
+          }
+          title={
+            showAdvancedFilters
+              ? "Hide Advanced Filters"
+              : "Show Advanced Filters"
+          }
+          onClick={toggleAdvancedFilters}
+        />
+      </div>
     </Fragment>
   );
 };
