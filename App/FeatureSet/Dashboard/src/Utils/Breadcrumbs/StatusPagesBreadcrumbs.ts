@@ -159,6 +159,12 @@ export function getStatusPagesBreadcrumbs(
       "View Status Page",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_LANGUAGES, [
+      "Project",
+      "Status Pages",
+      "View Status Page",
+      "Languages",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS,
       ["Project", "Status Pages", "View Status Page", "Notification Logs"],

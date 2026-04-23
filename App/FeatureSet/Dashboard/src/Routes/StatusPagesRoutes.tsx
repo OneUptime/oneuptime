@@ -40,6 +40,8 @@ import StatusPageViewReports from "../Pages/StatusPages/View/Reports";
 
 import StatusPageViewSettings from "../Pages/StatusPages/View/StatusPageSettings";
 
+import StatusPageViewLanguages from "../Pages/StatusPages/View/Languages";
+
 import StatusPagesViewOverviewPageBranding from "../Pages/StatusPages/View/OverviewPageBranding";
 
 import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
@@ -427,6 +429,16 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_LANGUAGES)}
+          element={
+            <StatusPageViewLanguages
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route}
             />
           }
         />

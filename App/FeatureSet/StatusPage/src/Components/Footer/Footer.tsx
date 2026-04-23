@@ -9,6 +9,7 @@ export interface ComponentProps {
   links: Array<Link>;
   className?: string | undefined;
   hidePoweredByOneUptimeBranding?: boolean | undefined;
+  enabledLanguages?: Array<string> | null | undefined;
 }
 
 const StatusPageFooter: FunctionComponent<ComponentProps> = (
@@ -25,7 +26,9 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
   }
 
   links.push({
-    content: <LanguageSwitcher />,
+    content: (
+      <LanguageSwitcher enabledLanguages={props.enabledLanguages || null} />
+    ),
   });
 
   return (

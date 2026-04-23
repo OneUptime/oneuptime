@@ -243,6 +243,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.CheckCircle}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Languages",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Language}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Authentication Security">

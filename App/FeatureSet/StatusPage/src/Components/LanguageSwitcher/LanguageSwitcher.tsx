@@ -5,6 +5,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,6 +13,7 @@ import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
 
 export interface ComponentProps {
   className?: string | undefined;
+  enabledLanguages?: Array<string> | null | undefined;
 }
 
 const LanguageSwitcher: FunctionComponent<ComponentProps> = (
@@ -33,6 +35,24 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
       i18n.off("languageChanged", handleLanguageChanged);
     };
   }, [i18n]);
+
+  const availableLanguages: Array<SupportedLanguage> = useMemo(() => {
+    if (!props.enabledLanguages || props.enabledLanguages.length === 0) {
+      return SUPPORTED_LANGUAGES;
+    }
+    const allowed: Set<string> = new Set(props.enabledLanguages);
+    const filtered: Array<SupportedLanguage> = SUPPORTED_LANGUAGES.filter(
+      (language: SupportedLanguage) => {
+        return allowed.has(language.code);
+      },
+    );
+    return filtered.length > 0 ? filtered : SUPPORTED_LANGUAGES;
+  }, [props.enabledLanguages]);
+
+  // Hide the switcher entirely if the owner configured only one language.
+  if (availableLanguages.length <= 1) {
+    return <></>;
+  }
 
   const onChange: (event: ChangeEvent<HTMLSelectElement>) => void = (
     event: ChangeEvent<HTMLSelectElement>,
@@ -63,7 +83,7 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
         onChange={onChange}
         className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-700 focus:outline-none focus:ring-0"
       >
-        {SUPPORTED_LANGUAGES.map((language: SupportedLanguage) => {
+        {availableLanguages.map((language: SupportedLanguage) => {
           return (
             <option key={language.code} value={language.code}>
               {language.nativeName}

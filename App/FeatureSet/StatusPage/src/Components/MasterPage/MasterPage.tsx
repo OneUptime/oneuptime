@@ -32,6 +32,7 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -182,6 +183,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       setStatusPage(statusPage);
 
+      // Apply language settings (default language + enabled languages).
+      applyStatusPageLanguageSettings({
+        defaultLanguage: statusPage.defaultLanguage || null,
+        enabledLanguages: statusPage.enabledLanguages || null,
+      });
+
       // setcss.
       const css: string | null = statusPage.customCSS || null;
       if (css) {
@@ -321,6 +328,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           {!footerHtml ? (
             <Footer
               hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
+              enabledLanguages={statusPage?.enabledLanguages || null}
               className="mx-auto w-full py-3 px-0 sm:py-5 md:flex md:items-center md:justify-between lg:px-0"
               copyright={
                 (JSONFunctions.getJSONValueInPath(

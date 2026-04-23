@@ -225,6 +225,7 @@ export default class StatusPageAPI extends BaseAPI<
               pageTitle: true,
               pageDescription: true,
               name: true,
+              defaultLanguage: true,
             },
             props: {
               isRoot: true,
@@ -244,6 +245,7 @@ export default class StatusPageAPI extends BaseAPI<
           title: statusPage.pageTitle || statusPage.name,
           description: statusPage.pageDescription,
           _id: statusPage._id?.toString(),
+          defaultLanguage: statusPage.defaultLanguage || null,
         });
       },
     );
@@ -883,6 +885,8 @@ export default class StatusPageAPI extends BaseAPI<
             showAnnouncementsOnStatusPage: true,
             showScheduledMaintenanceEventsOnStatusPage: true,
             showSubscriberPageOnStatusPage: true,
+            defaultLanguage: true,
+            enabledLanguages: true,
           };
 
           const hasEnabledSSO: PositiveNumber =
