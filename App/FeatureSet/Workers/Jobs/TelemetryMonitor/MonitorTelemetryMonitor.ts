@@ -822,11 +822,6 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         attributeKeys: groupByAttributeKeys,
         aggregationType,
       });
-
-      logger.debug(
-        `[per-series] monitor ${data.monitorId.toString()} raw=${rawMetrics.length} bucketed=${aggregatedResults.data.length}`,
-        { service: "workers", projectId: data.projectId.toString() },
-      );
     } else {
       aggregatedResults = await MetricService.aggregateBy({
         query: query,
@@ -837,8 +832,7 @@ const monitorMetric: MonitorMetricFunction = async (data: {
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
@@ -1125,8 +1119,7 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
@@ -1433,8 +1426,7 @@ const monitorDocker: MonitorDockerFunction = async (data: {
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
