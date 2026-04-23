@@ -122,41 +122,43 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           ]}
         />
       </div>
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700">
-          Group By
-        </label>
-        <p className="mt-1 text-xs text-gray-500">
-          Select one or more attributes to group by (e.g. host.name). When this
-          metric is used in a monitor, the monitor fires one incident per unique
-          group (e.g. one incident per host). Leave empty for whole-monitor
-          evaluation.
-        </p>
-        <div className="mt-2">
-          <Dropdown
-            options={groupByOptions}
-            isMultiSelect={true}
-            value={selectedGroupByOptions}
-            placeholder="Select attributes to group by"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              const keys: Array<string> = Array.isArray(value)
-                ? value.map((v: DropdownValue) => {
-                    return String(v);
-                  })
-                : value
-                  ? [String(value)]
-                  : [];
+      {showAdvancedFilters ? (
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Group By
+          </label>
+          <p className="mt-1 text-xs text-gray-500">
+            Select one or more attributes to group by (e.g. host.name). When
+            this metric is used in a monitor, the monitor fires one incident
+            per unique group (e.g. one incident per host). Leave empty for
+            whole-monitor evaluation.
+          </p>
+          <div className="mt-2">
+            <Dropdown
+              options={groupByOptions}
+              isMultiSelect={true}
+              value={selectedGroupByOptions}
+              placeholder="Select attributes to group by"
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const keys: Array<string> = Array.isArray(value)
+                  ? value.map((v: DropdownValue) => {
+                      return String(v);
+                    })
+                  : value
+                    ? [String(value)]
+                    : [];
 
-              props.onDataChanged({
-                ...props.data,
-                groupByAttributeKeys: keys.length > 0 ? keys : undefined,
-              });
-            }}
-          />
+                props.onDataChanged({
+                  ...props.data,
+                  groupByAttributeKeys: keys.length > 0 ? keys : undefined,
+                });
+              }}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
     </Fragment>
   );
 };
