@@ -51,6 +51,7 @@ export default class MonitorAlert {
       limit: LIMIT_PER_PROJECT,
       select: {
         _id: true,
+        title: true,
         createdCriteriaId: true,
         projectId: true,
         alertNumber: true,
@@ -184,9 +185,12 @@ export default class MonitorAlert {
         );
 
         if (hasAlreadyOpenAlert) {
+          const renderedAlertTitle: string =
+            alreadyOpenAlert?.title || criteriaAlert.title;
+
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
-            title: `Alert already active: ${criteriaAlert.title}`,
+            title: `Alert already active: ${renderedAlertTitle}`,
             message:
               "Skipped creating a new alert because an active alert exists for this criteria.",
             relatedCriteriaId: input.criteriaInstance.data?.id,

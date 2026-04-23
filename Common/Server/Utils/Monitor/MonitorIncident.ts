@@ -64,6 +64,7 @@ export default class MonitorIncident {
       limit: LIMIT_PER_PROJECT,
       select: {
         _id: true,
+        title: true,
         createdCriteriaId: true,
         createdIncidentTemplateId: true,
         projectId: true,
@@ -219,9 +220,20 @@ export default class MonitorIncident {
         );
 
         if (hasAlreadyOpenIncident) {
+          /*
+           * Use the open incident's already-rendered title when
+           * available — the template (`criteriaIncident.title`) still
+           * contains unresolved `{{…}}` placeholders because it's the
+           * criterion's template string, not the instance's rendered
+           * output. Falling back to the template only when the open
+           * incident somehow has no title.
+           */
+          const renderedTitle: string =
+            alreadyOpenIncident?.title || criteriaIncident.title;
+
           input.evaluationSummary?.events.push({
             type: "incident-skipped",
-            title: `Incident already active: ${criteriaIncident.title}`,
+            title: `Incident already active: ${renderedTitle}`,
             message:
               "Skipped creating a new incident because an active incident exists for this criteria.",
             relatedCriteriaId: input.criteriaInstance.data?.id,
