@@ -65,6 +65,13 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     chart: Chart,
     index: number,
   ): ReactElement => {
+    /*
+     * When the chart has its own seriesControls panel, that panel doubles
+     * as a colored, interactive legend — so we suppress the built-in
+     * Recharts legend to avoid showing two legends for the same series.
+     */
+    const showLegend: boolean = !chart.seriesControls;
+
     switch (chart.type) {
       case ChartType.LINE:
         return (
@@ -75,6 +82,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
+            showLegend={showLegend}
           />
         );
       case ChartType.BAR:
@@ -84,6 +92,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             {...(chart.props as BarChartProps)}
             syncid={syncId}
             heightInPx={props.heightInPx}
+            showLegend={showLegend}
           />
         );
       case ChartType.AREA:
@@ -95,6 +104,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
+            showLegend={showLegend}
           />
         );
       default:

@@ -31,6 +31,13 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  AvailableChartColorsKeys,
+  getColorClassName,
+} from "Common/UI/Components/Charts/ChartLibrary/Utils/ChartColors";
+import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
+import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
+import { BarChartPalette } from "Common/UI/Components/Charts/Bar/BarChart";
 import MetricUtil from "./Utils/Metrics";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -69,13 +76,33 @@ const defaultSeriesControlsState: SeriesControlsState = {
   showAllSeries: false,
 };
 
+/*
+ * Returns the color palette used by the chart wrapper for the given
+ * chart type. Keeping this mapping local-but-derived ensures the
+ * legend chips always show the same color the chart actually renders,
+ * even if a chart type is added without wiring colors here (falls
+ * back to the Line palette).
+ */
+function getChartPalette(
+  chartType: ChartType,
+): Array<AvailableChartColorsKeys> {
+  if (chartType === ChartType.AREA) {
+    return AreaChartPalette;
+  }
+  if (chartType === ChartType.BAR) {
+    return BarChartPalette;
+  }
+  return LineChartPalette;
+}
+
 /**
  * Render the per-chart control panel for a high-cardinality metric
- * chart. Includes a search box (filter series by name), a hidden-
- * series counter with reset, and a "Show all N series" toggle for
- * the Top-N cap. Legend chips below let the user hide/show individual
- * series with a click — useful for isolating a single host out of
- * hundreds.
+ * chart. Combines a compact toolbar (search, Top-N toggle, reset
+ * hidden) with an interactive colored legend that doubles as the
+ * chart's legend — the Recharts built-in legend is suppressed when
+ * this panel is present (see ChartGroup). Each chip shows the same
+ * color as its line on the chart, and clicking a chip toggles
+ * visibility so users can isolate one series out of hundreds.
  */
 function renderSeriesControls(input: {
   chartId: string;
@@ -85,23 +112,54 @@ function renderSeriesControls(input: {
     updates: Partial<SeriesControlsState>,
   ) => void;
   fullSeries: Array<SeriesPoint>;
+  displayableSeries: Array<SeriesPoint>;
   totalSeries: number;
   hiddenFromTopN: number;
   needsTopN: boolean;
+  chartType: ChartType;
 }): ReactElement {
   const {
     chartId,
     controls,
     updateControls,
     fullSeries,
+    displayableSeries,
     totalSeries,
     hiddenFromTopN,
     needsTopN,
+    chartType,
   } = input;
 
+  /*
+   * Map each currently-rendered series to the same palette color the
+   * chart library assigned it (position-based: colors[index % len]).
+   * Series that aren't on the chart right now (hidden by user or
+   * filtered out) get no color and render as a muted dot below.
+   */
+  const palette: Array<AvailableChartColorsKeys> = getChartPalette(chartType);
+  const colorByName: Map<string, AvailableChartColorsKeys> = new Map<
+    string,
+    AvailableChartColorsKeys
+  >();
+  displayableSeries.forEach((series: SeriesPoint, i: number) => {
+    colorByName.set(series.seriesName, palette[i % palette.length]!);
+  });
+
+  /*
+   * Chips mirror the search filter too — otherwise typing "foo" would
+   * narrow the chart but leave a noisy, unrelated chip row above.
+   */
+  const searchQuery: string = controls.searchQuery.trim().toLowerCase();
+  const seriesForChips: Array<SeriesPoint> =
+    searchQuery === ""
+      ? fullSeries
+      : fullSeries.filter((s: SeriesPoint) => {
+          return s.seriesName.toLowerCase().includes(searchQuery);
+        });
+
   const visibleForChips: Array<SeriesPoint> = controls.showAllSeries
-    ? fullSeries
-    : fullSeries.slice(0, DEFAULT_TOP_N_SERIES);
+    ? seriesForChips
+    : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES);
 
   const toggleSeries: (seriesName: string) => void = (
     seriesName: string,
@@ -115,84 +173,137 @@ function renderSeriesControls(input: {
     updateControls(chartId, { hiddenSeries: next });
   };
 
+  const hasStatus: boolean =
+    hiddenFromTopN > 0 || controls.hiddenSeries.size > 0;
+
+  const visibleCount: number = displayableSeries.length;
+
   return (
-    <div className="space-y-2 rounded-md border border-gray-100 bg-gray-50 p-2">
+    <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={controls.searchQuery}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-            updateControls(chartId, { searchQuery: e.target.value });
-          }}
-          placeholder={`Filter ${totalSeries} series…`}
-          className="flex-1 min-w-[200px] rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
-        {needsTopN ? (
-          <button
-            type="button"
-            className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
-            onClick={(): void => {
-              updateControls(chartId, {
-                showAllSeries: !controls.showAllSeries,
-              });
-            }}
+        <div className="relative flex-1 min-w-[220px]">
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
           >
-            {controls.showAllSeries
-              ? `Show top ${DEFAULT_TOP_N_SERIES}`
-              : `Show all ${totalSeries}`}
-          </button>
-        ) : null}
-        {controls.hiddenSeries.size > 0 ? (
-          <button
-            type="button"
-            className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
-            onClick={(): void => {
-              updateControls(chartId, { hiddenSeries: new Set<string>() });
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M9 3.5a5.5 5.5 0 1 0 3.352 9.858l3.645 3.645a.75.75 0 1 0 1.06-1.06l-3.644-3.645A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={controls.searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+              updateControls(chartId, { searchQuery: e.target.value });
             }}
-          >
-            Reset {controls.hiddenSeries.size} hidden
-          </button>
-        ) : null}
+            placeholder={`Filter ${totalSeries} series`}
+            className="w-full rounded-md border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {needsTopN ? (
+            <button
+              type="button"
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+              onClick={(): void => {
+                updateControls(chartId, {
+                  showAllSeries: !controls.showAllSeries,
+                });
+              }}
+            >
+              {controls.showAllSeries
+                ? `Top ${DEFAULT_TOP_N_SERIES}`
+                : `Show all ${totalSeries}`}
+            </button>
+          ) : null}
+          {controls.hiddenSeries.size > 0 ? (
+            <button
+              type="button"
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+              onClick={(): void => {
+                updateControls(chartId, {
+                  hiddenSeries: new Set<string>(),
+                });
+              }}
+            >
+              Show {controls.hiddenSeries.size} hidden
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {hiddenFromTopN > 0 ? (
+      {hasStatus ? (
         <div className="text-xs text-gray-500">
-          Showing top {DEFAULT_TOP_N_SERIES} by peak value.{" "}
-          <span className="font-medium text-gray-700">
-            {hiddenFromTopN} more series hidden.
-          </span>
+          <span className="font-medium text-gray-700">{visibleCount}</span>
+          <span> of </span>
+          <span className="font-medium text-gray-700">{totalSeries}</span>
+          <span> series shown</span>
+          {hiddenFromTopN > 0 ? (
+            <span className="text-gray-400"> · ranked by peak value</span>
+          ) : null}
+          {controls.hiddenSeries.size > 0 ? (
+            <span className="text-gray-400">
+              {" "}
+              · {controls.hiddenSeries.size} hidden
+            </span>
+          ) : null}
         </div>
       ) : null}
 
       <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-        {visibleForChips.map((series: SeriesPoint) => {
-          const isHidden: boolean = controls.hiddenSeries.has(
-            series.seriesName,
-          );
-          return (
-            <button
-              key={series.seriesName}
-              type="button"
-              onClick={(): void => {
-                toggleSeries(series.seriesName);
-              }}
-              className={`inline-flex items-center rounded border px-2 py-0.5 text-xs transition-opacity ${
-                isHidden
-                  ? "border-gray-200 bg-white text-gray-400 opacity-60"
-                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-              title={
-                isHidden
-                  ? "Click to show this series"
-                  : "Click to hide this series"
-              }
-            >
-              <span className="max-w-[260px] truncate">
-                {series.seriesName}
-              </span>
-            </button>
-          );
-        })}
+        {visibleForChips.length === 0 ? (
+          <div className="py-1 text-xs italic text-gray-400">
+            No series match &ldquo;{controls.searchQuery}&rdquo;
+          </div>
+        ) : (
+          visibleForChips.map((series: SeriesPoint) => {
+            const isHidden: boolean = controls.hiddenSeries.has(
+              series.seriesName,
+            );
+            const color: AvailableChartColorsKeys | undefined = colorByName.get(
+              series.seriesName,
+            );
+            const showColor: boolean = Boolean(color) && !isHidden;
+            return (
+              <button
+                key={series.seriesName}
+                type="button"
+                aria-pressed={!isHidden}
+                onClick={(): void => {
+                  toggleSeries(series.seriesName);
+                }}
+                className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition ${
+                  isHidden
+                    ? "border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:text-gray-500"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+                title={
+                  isHidden
+                    ? `${series.seriesName} — click to show`
+                    : `${series.seriesName} — click to hide`
+                }
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    showColor ? getColorClassName(color!, "bg") : "bg-gray-300"
+                  }`}
+                />
+                <span
+                  className={`max-w-[240px] truncate ${
+                    isHidden ? "line-through" : ""
+                  }`}
+                >
+                  {series.seriesName}
+                </span>
+              </button>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -596,9 +707,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               controls,
               updateControls,
               fullSeries: sortedByPeak,
+              displayableSeries,
               totalSeries,
               hiddenFromTopN,
               needsTopN,
+              chartType,
             })
           : undefined;
 
