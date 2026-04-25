@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Absenden",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "yes": "Ja",
+    "no": "Nein",
+    "none": "Keine",
+    "notEnabled": "Nicht aktiviert",
+    "notConfigured": "Nicht konfiguriert",
+    "loading": "Wird geladen...",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "connected": "Verbunden",
+    "disconnected": "Getrennt"
+  },
+  "language": {
+    "label": "Sprache",
+    "switchLanguage": "Sprache wechseln"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Hilfe und Support",
+    "legal": "Rechtliches",
+    "version": "Version",
+    "versionModalTitle": "OneUptime-Version",
+    "versionLabel": "Version",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versionsdaten sind nicht verfügbar"
+  }
+}

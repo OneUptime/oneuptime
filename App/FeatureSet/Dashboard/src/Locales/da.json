@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Gem",
+    "cancel": "Annuller",
+    "submit": "Indsend",
+    "close": "Luk",
+    "edit": "Rediger",
+    "delete": "Slet",
+    "yes": "Ja",
+    "no": "Nej",
+    "none": "Ingen",
+    "notEnabled": "Ikke aktiveret",
+    "notConfigured": "Ikke konfigureret",
+    "loading": "Indlæser...",
+    "enabled": "Aktiveret",
+    "disabled": "Deaktiveret",
+    "connected": "Tilsluttet",
+    "disconnected": "Afbrudt"
+  },
+  "language": {
+    "label": "Sprog",
+    "switchLanguage": "Skift sprog"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Hjælp og support",
+    "legal": "Juridisk",
+    "version": "Version",
+    "versionModalTitle": "OneUptime-version",
+    "versionLabel": "Version",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versionsdata er ikke tilgængelige"
+  }
+}

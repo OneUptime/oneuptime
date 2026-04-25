@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "close": "Закрыть",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "yes": "Да",
+    "no": "Нет",
+    "none": "Нет",
+    "notEnabled": "Не включено",
+    "notConfigured": "Не настроено",
+    "loading": "Загрузка...",
+    "enabled": "Включено",
+    "disabled": "Отключено",
+    "connected": "Подключено",
+    "disconnected": "Отключено"
+  },
+  "language": {
+    "label": "Язык",
+    "switchLanguage": "Сменить язык"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Помощь и поддержка",
+    "legal": "Юридическая информация",
+    "version": "Версия",
+    "versionModalTitle": "Версия OneUptime",
+    "versionLabel": "Версия",
+    "commitLabel": "Коммит",
+    "versionUnavailable": "Данные о версии недоступны"
+  }
+}

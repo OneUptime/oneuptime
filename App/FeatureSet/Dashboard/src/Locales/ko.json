@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "submit": "제출",
+    "close": "닫기",
+    "edit": "편집",
+    "delete": "삭제",
+    "yes": "예",
+    "no": "아니요",
+    "none": "없음",
+    "notEnabled": "활성화되지 않음",
+    "notConfigured": "구성되지 않음",
+    "loading": "로딩 중...",
+    "enabled": "활성화됨",
+    "disabled": "비활성화됨",
+    "connected": "연결됨",
+    "disconnected": "연결 끊김"
+  },
+  "language": {
+    "label": "언어",
+    "switchLanguage": "언어 전환"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "도움말 및 지원",
+    "legal": "법적 정보",
+    "version": "버전",
+    "versionModalTitle": "OneUptime 버전",
+    "versionLabel": "버전",
+    "commitLabel": "커밋",
+    "versionUnavailable": "버전 정보를 사용할 수 없습니다"
+  }
+}

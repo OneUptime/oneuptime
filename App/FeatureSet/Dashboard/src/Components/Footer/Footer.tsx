@@ -11,6 +11,8 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React from "react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 
 interface VersionInfo {
   version?: string;
@@ -19,6 +21,7 @@ interface VersionInfo {
 }
 
 const DashboardFooter: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const [showAboutModal, setShowAboutModal] = React.useState<boolean>(false);
   const [isAboutModalLoading, setIsAboutModalLoading] =
     React.useState<boolean>(false);
@@ -35,7 +38,7 @@ const DashboardFooter: () => JSX.Element = () => {
       });
     } catch (err) {
       setVersionInfo({
-        error: "Version data is not available: " + (err as Error).message,
+        error: `${t("footer.versionUnavailable")}: ${(err as Error).message}`,
       });
     }
 
@@ -52,14 +55,14 @@ const DashboardFooter: () => JSX.Element = () => {
     if (response.data) {
       return response.data as JSONObject;
     }
-    throw new BadDataException("Version data is not available");
+    throw new BadDataException(t("footer.versionUnavailable"));
   };
 
   return (
     <>
       <Footer
         className="bg-gray-50/50 border-t border-gray-100 px-8"
-        copyright="HackerBay, Inc."
+        copyright={t("footer.copyright")}
         links={[
           {
             content: <EditionLabel />,
@@ -68,7 +71,7 @@ const DashboardFooter: () => JSX.Element = () => {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
                 <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
-                Help and Support
+                {t("footer.helpSupport")}
               </span>
             ),
             to: URL.fromString("https://oneuptime.com/support"),
@@ -78,7 +81,7 @@ const DashboardFooter: () => JSX.Element = () => {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
                 <Icon icon={IconProp.ShieldCheck} className="h-3.5 w-3.5" />
-                Legal
+                {t("footer.legal")}
               </span>
             ),
             to: URL.fromString("https://oneuptime.com/legal"),
@@ -88,7 +91,7 @@ const DashboardFooter: () => JSX.Element = () => {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
                 <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
-                Version
+                {t("footer.version")}
               </span>
             ),
             onClick: async () => {
@@ -96,12 +99,15 @@ const DashboardFooter: () => JSX.Element = () => {
               await fetchVersions();
             },
           },
+          {
+            content: <LanguageSwitcher />,
+          },
         ]}
       />
 
       {showAboutModal ? (
         <ConfirmModal
-          title={`OneUptime Version`}
+          title={t("footer.versionModalTitle")}
           description={
             versionInfo.error ? (
               <div className="text-sm text-red-600">{versionInfo.error}</div>
@@ -109,7 +115,7 @@ const DashboardFooter: () => JSX.Element = () => {
               <div className="rounded-lg border border-gray-100 bg-gray-50/50 divide-y divide-gray-100">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Version
+                    {t("footer.versionLabel")}
                   </span>
                   <span className="font-mono text-sm text-gray-900">
                     {versionInfo.version || "—"}
@@ -117,7 +123,7 @@ const DashboardFooter: () => JSX.Element = () => {
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Commit
+                    {t("footer.commitLabel")}
                   </span>
                   <span className="font-mono text-sm text-gray-900">
                     {versionInfo.commit || "—"}
@@ -127,7 +133,7 @@ const DashboardFooter: () => JSX.Element = () => {
             )
           }
           isLoading={isAboutModalLoading}
-          submitButtonText={"Close"}
+          submitButtonText={t("common.close")}
           onSubmit={() => {
             return setShowAboutModal(false);
           }}

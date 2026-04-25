@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "submit": "Verzenden",
+    "close": "Sluiten",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "yes": "Ja",
+    "no": "Nee",
+    "none": "Geen",
+    "notEnabled": "Niet ingeschakeld",
+    "notConfigured": "Niet geconfigureerd",
+    "loading": "Laden...",
+    "enabled": "Ingeschakeld",
+    "disabled": "Uitgeschakeld",
+    "connected": "Verbonden",
+    "disconnected": "Niet verbonden"
+  },
+  "language": {
+    "label": "Taal",
+    "switchLanguage": "Taal wijzigen"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Hulp en ondersteuning",
+    "legal": "Juridisch",
+    "version": "Versie",
+    "versionModalTitle": "OneUptime-versie",
+    "versionLabel": "Versie",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versiegegevens zijn niet beschikbaar"
+  }
+}

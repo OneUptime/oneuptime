@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "submit": "सबमिट करें",
+    "close": "बंद करें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "none": "कोई नहीं",
+    "notEnabled": "सक्षम नहीं है",
+    "notConfigured": "कॉन्फ़िगर नहीं किया गया",
+    "loading": "लोड हो रहा है...",
+    "enabled": "सक्षम",
+    "disabled": "अक्षम",
+    "connected": "कनेक्ट किया गया",
+    "disconnected": "डिस्कनेक्ट किया गया"
+  },
+  "language": {
+    "label": "भाषा",
+    "switchLanguage": "भाषा बदलें"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "सहायता और समर्थन",
+    "legal": "कानूनी",
+    "version": "संस्करण",
+    "versionModalTitle": "OneUptime संस्करण",
+    "versionLabel": "संस्करण",
+    "commitLabel": "कमिट",
+    "versionUnavailable": "संस्करण डेटा उपलब्ध नहीं है"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "submit": "提交",
+    "close": "关闭",
+    "edit": "编辑",
+    "delete": "删除",
+    "yes": "是",
+    "no": "否",
+    "none": "无",
+    "notEnabled": "未启用",
+    "notConfigured": "未配置",
+    "loading": "加载中...",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "connected": "已连接",
+    "disconnected": "已断开"
+  },
+  "language": {
+    "label": "语言",
+    "switchLanguage": "切换语言"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "帮助和支持",
+    "legal": "法律",
+    "version": "版本",
+    "versionModalTitle": "OneUptime 版本",
+    "versionLabel": "版本",
+    "commitLabel": "提交",
+    "versionUnavailable": "版本数据不可用"
+  }
+}

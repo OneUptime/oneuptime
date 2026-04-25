@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "submit": "Skicka",
+    "close": "Stäng",
+    "edit": "Redigera",
+    "delete": "Radera",
+    "yes": "Ja",
+    "no": "Nej",
+    "none": "Ingen",
+    "notEnabled": "Inte aktiverad",
+    "notConfigured": "Inte konfigurerad",
+    "loading": "Laddar...",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad",
+    "connected": "Ansluten",
+    "disconnected": "Frånkopplad"
+  },
+  "language": {
+    "label": "Språk",
+    "switchLanguage": "Byt språk"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Hjälp och support",
+    "legal": "Juridiskt",
+    "version": "Version",
+    "versionModalTitle": "OneUptime-version",
+    "versionLabel": "Version",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versionsdata är inte tillgängliga"
+  }
+}
