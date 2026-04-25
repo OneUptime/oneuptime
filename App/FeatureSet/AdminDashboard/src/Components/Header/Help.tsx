@@ -5,14 +5,16 @@ import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropd
 import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
 import IconDropdownRow from "Common/UI/Components/Header/IconDropdown/IconDropdownRow";
 import React, { ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const Help: () => JSX.Element = (): ReactElement => {
+  const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
   return (
     <HeaderIconDropdownButton
       icon={IconProp.Help}
-      name="Help"
+      name={t("header.help")}
       showDropdown={isDropdownVisible}
       onClick={() => {
         setIsDropdownVisible(true);
@@ -21,7 +23,7 @@ const Help: () => JSX.Element = (): ReactElement => {
       <IconDropdownMenu>
         <IconDropdownRow>
           <IconDropdownItem
-            title="Support Email"
+            title={t("help.supportEmail")}
             icon={IconProp.Email}
             openInNewTab={true}
             url={URL.fromString("mailto:support@oneuptime.com")}
@@ -30,7 +32,7 @@ const Help: () => JSX.Element = (): ReactElement => {
             }}
           />
           <IconDropdownItem
-            title="Chat on Slack"
+            title={t("help.chatSlack")}
             icon={IconProp.Slack}
             openInNewTab={true}
             onClick={() => {
@@ -41,7 +43,7 @@ const Help: () => JSX.Element = (): ReactElement => {
             )}
           />
           <IconDropdownItem
-            title="Request Demo"
+            title={t("help.requestDemo")}
             icon={IconProp.Window}
             onClick={() => {
               setIsDropdownVisible(false);

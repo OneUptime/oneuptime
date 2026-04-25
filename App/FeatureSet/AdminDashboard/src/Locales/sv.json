@@ -1,0 +1,287 @@
+{
+  "common": {
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "submit": "Skicka",
+    "close": "Stäng",
+    "edit": "Redigera",
+    "delete": "Ta bort",
+    "yes": "Ja",
+    "no": "Nej",
+    "none": "Ingen",
+    "notEnabled": "Inte aktiverad",
+    "notConfigured": "Inte konfigurerad",
+    "loading": "Laddar...",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad",
+    "connected": "Ansluten",
+    "disconnected": "Frånkopplad",
+    "allSupportedLanguages": "Alla språk som stöds"
+  },
+  "language": {
+    "label": "Språk",
+    "switchLanguage": "Byt språk"
+  },
+  "breadcrumbs": {
+    "adminDashboard": "Administratörspanel",
+    "users": "Användare",
+    "user": "Användare",
+    "projects": "Projekt",
+    "project": "Projekt",
+    "settings": "Inställningar",
+    "authentication": "Autentisering",
+    "emailSettings": "E-postinställningar",
+    "callsAndSms": "Samtal och SMS",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "globalProbes": "Globala prober",
+    "dataRetention": "Databevarande",
+    "globalAiAgents": "Globala AI-agenter",
+    "globalLlmProviders": "Globala LLM-leverantörer",
+    "apiKey": "API-nyckel",
+    "more": "Mer",
+    "sendEmail": "Skicka e-post",
+    "logout": "Logga ut"
+  },
+  "topAlert": {
+    "title": "OneUptime administratörspanel",
+    "description": "Du kan utföra dina OneUptime-serverrelaterade uppgifter på denna panel."
+  },
+  "header": {
+    "exitAdmin": "Lämna admin",
+    "help": "Hjälp",
+    "userProfile": "Användarprofil"
+  },
+  "help": {
+    "supportEmail": "Support-e-post",
+    "chatSlack": "Chatta på Slack",
+    "requestDemo": "Begär demo"
+  },
+  "userProfile": {
+    "exitAdmin": "Lämna admin",
+    "logOut": "Logga ut"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Hjälp och support",
+    "legal": "Juridik",
+    "version": "Version",
+    "versionModalTitle": "OneUptime-version",
+    "versionLabel": "Version",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versionsdata är inte tillgängliga"
+  },
+  "navbar": {
+    "users": "Användare",
+    "projects": "Projekt",
+    "more": "Mer",
+    "settings": "Inställningar"
+  },
+  "sideMenu": {
+    "basic": "Grundläggande",
+    "advanced": "Avancerat",
+    "overview": "Översikt",
+    "settings": "Inställningar",
+    "delete": "Ta bort",
+    "settingsAuthentication": "Autentisering",
+    "settingsNotifications": "Notifieringar",
+    "settingsEmails": "E-post",
+    "settingsCallSms": "Samtal och SMS",
+    "settingsWhatsapp": "WhatsApp",
+    "settingsTelegram": "Telegram",
+    "settingsMonitoring": "Övervakning",
+    "settingsGlobalProbes": "Globala prober",
+    "settingsDataRetention": "Databevarande",
+    "settingsAi": "AI",
+    "settingsGlobalAiAgents": "Globala AI-agenter",
+    "settingsGlobalLlmProviders": "Globala LLM-leverantörer",
+    "settingsApiIntegrations": "API och integrationer",
+    "settingsApiKey": "API-nyckel",
+    "moreCommunication": "Kommunikation",
+    "moreSendEmail": "Skicka e-post"
+  },
+  "pages": {
+    "users": {
+      "title": "Användare",
+      "cardTitle": "Användare",
+      "cardDescription": "Här är en lista över användare i OneUptime.",
+      "noItems": "Inga användare hittades."
+    },
+    "userView": {
+      "title": "Användare",
+      "cardTitle": "Användare",
+      "cardDescription": "Användardetaljer",
+      "editButton": "Redigera användare",
+      "masterAdminCardTitle": "Master-admin-åtkomst",
+      "masterAdminCardDescription": "Bevilja eller återkalla master-admin-åtkomst för denna användare. Master-admins kan hantera alla projekt och arbetsytor.",
+      "masterAdminEditButton": "Uppdatera åtkomst"
+    },
+    "projects": {
+      "title": "Projekt",
+      "cardTitle": "Projekt",
+      "cardDescription": "Här är en lista över projekt i OneUptime.",
+      "noItems": "Inga projekt hittades.",
+      "stepBasic": "Grundläggande",
+      "stepSelectPlan": "Välj plan",
+      "yearlyPlanTitle": "Årsplan",
+      "yearlyPlanDescription": "(Spara 20%)",
+      "freeForeverDescription": "Denna plan är gratis, för alltid. "
+    },
+    "projectView": {
+      "title": "Projekt",
+      "cardTitle": "Projekt",
+      "cardDescription": "Projektdetaljer",
+      "editButton": "Redigera projekt"
+    },
+    "logout": {
+      "title": "Logga ut"
+    },
+    "sendEmail": {
+      "title": "Skicka kungörelse-e-post",
+      "testCardTitle": "Skicka test-e-post",
+      "testCardDescription": "Skicka en test-kungörelse-e-post till en enda e-postadress för att förhandsgranska innan du skickar till alla användare.",
+      "allCardTitle": "Skicka e-post till alla användare",
+      "allCardDescription": "Skicka en kungörelse-e-post till alla registrerade användare. Skicka en test-e-post först för att verifiera innehållet.",
+      "testSubmitButton": "Skicka test-e-post",
+      "allSubmitButton": "Skicka till alla användare",
+      "testSuccess": "Test-e-post skickad framgångsrikt. Kontrollera din inkorg.",
+      "allSuccess": "Broadcast-e-postjobb har startat. E-post kommer att skickas i bakgrunden.",
+      "testFailure": "Misslyckades att skicka test-e-post.",
+      "allFailure": "Misslyckades att skicka e-post.",
+      "fillAllFields": "Fyll i alla fält.",
+      "confirmTitle": "Bekräfta sändning till alla användare",
+      "confirmDescription": "Är du säker på att du vill skicka denna kungörelse-e-post till alla registrerade användare? Denna åtgärd kan inte ångras.",
+      "confirmButton": "Ja, skicka till alla användare"
+    },
+    "moreEmail": {
+      "title": "Skicka kungörelse-e-post",
+      "cardTitle": "Skicka kungörelse-e-post",
+      "cardDescription": "Skriv ett kungörelse-e-postmeddelande att skicka till alla registrerade användare. Du kan skicka en test-e-post först för att förhandsgranska.",
+      "sendTestButton": "Skicka test-e-post",
+      "sendAllButton": "Skicka till alla användare",
+      "fillSubjectMessage": "Fyll i ämne och meddelande innan du skickar ett test.",
+      "fillAllFields": "Fyll i alla fält.",
+      "testModalTitle": "Skicka test-e-post",
+      "testModalDescription": "Ange en e-postadress för att skicka ett test av denna kungörelse.",
+      "testModalSubmitButton": "Skicka test",
+      "testModalEmailLabel": "Test-e-postadress",
+      "testModalEmailPlaceholder": "test@example.com",
+      "testModalMissingEmail": "Ange en test-e-postadress.",
+      "testSuccess": "Test-e-post skickad framgångsrikt. Kontrollera din inkorg.",
+      "allSuccess": "Broadcast-e-postjobb har startat. E-post kommer att skickas i bakgrunden.",
+      "testFailure": "Misslyckades att skicka test-e-post.",
+      "allFailure": "Misslyckades att skicka e-post.",
+      "confirmTitle": "Bekräfta sändning till alla användare",
+      "confirmDescription": "Är du säker på att du vill skicka denna kungörelse-e-post till alla registrerade användare? Denna åtgärd kan inte ångras.",
+      "confirmButton": "Ja, skicka till alla användare"
+    },
+    "settings": {
+      "title": "Admin-inställningar",
+      "authentication": {
+        "authCardTitle": "Autentiseringsinställningar",
+        "authCardDescription": "Autentiseringsinställningar för denna OneUptime-serverinstans.",
+        "authEditButton": "Redigera inställningar",
+        "projectCreationCardTitle": "Projektskapande",
+        "projectCreationCardDescription": "Styr vem som kan skapa nya projekt på denna OneUptime-server.",
+        "projectCreationEditButton": "Redigera inställningar"
+      },
+      "email": {
+        "adminNotificationCardTitle": "Admin-notifierings-e-post",
+        "adminNotificationCardDescription": "Ange e-postadressen där du vill ta emot admin-nivå-notifieringar.",
+        "adminNotificationEditButton": "Redigera e-post",
+        "serverCardTitle": "E-post-serverinställningar",
+        "serverCardDescription": "Välj vilken e-post-server du vill använda för att skicka e-post.",
+        "serverEditButton": "Redigera server",
+        "smtpCardTitle": "Anpassade e-post- och SMTP-inställningar",
+        "smtpCardDescription": "Konfigurera din SMTP-server här för att skicka e-post.",
+        "smtpEditButton": "Redigera SMTP-konfig",
+        "sendgridCardTitle": "Sendgrid-inställningar",
+        "sendgridCardDescription": "Ange din Sendgrid API-nyckel för att skicka e-post via Sendgrid.",
+        "sendgridEditButton": "Redigera API-nyckel",
+        "pillEnabled": "Aktiverad",
+        "pillNoApiKey": "Inte aktiverad. Lägg till API-nyckeln.",
+        "pillNoFromEmail": "Inte aktiverad. Lägg till Från-e-posten.",
+        "pillNoFromName": "Inte aktiverad. Lägg till Från-namnet."
+      },
+      "callSms": {
+        "cardTitle": "Twilio-konfiguration",
+        "cardDescription": "Detta kommer att användas för att ringa och skicka SMS.",
+        "editButton": "Redigera Twilio-konfig"
+      },
+      "whatsapp": {
+        "metaCardTitle": "Meta WhatsApp-inställningar",
+        "metaCardDescription": "Konfigurera Meta WhatsApp-uppgifter. Dessa värden används för att skicka WhatsApp-notifieringar från OneUptime.",
+        "metaEditButton": "Redigera Meta WhatsApp-konfig",
+        "testCardTitle": "Skicka test-WhatsApp-meddelande",
+        "testCardDescription": "Skicka ett test-WhatsApp-mallmeddelande för att bekräfta din Meta-konfiguration.",
+        "testSubmitButton": "Skicka testmeddelande",
+        "testSuccess": "Test-WhatsApp-meddelande skickat framgångsrikt. Kontrollera mottagarens enhet för att bekräfta leverans.",
+        "testMissingNumber": "Ange ett WhatsApp-nummer innan du skickar ett testmeddelande.",
+        "testFailure": "Misslyckades att skicka test-WhatsApp-meddelande.",
+        "setupCardTitle": "Meta WhatsApp-installationsguide",
+        "setupCardDescription": "Steg för att ansluta Meta WhatsApp och mallarna du måste tillhandahålla."
+      },
+      "telegram": {
+        "setupCardTitle": "Telegram-installationsguide",
+        "setupCardDescription": "Läs detta först — det är den snabbaste vägen från noll till en fungerande Telegram-bot ansluten till OneUptime.",
+        "configCardTitle": "Telegram-bot-inställningar",
+        "configCardDescription": "Klistra in bot-token och användarnamn som @BotFather gav dig. Dessa driver utgående notifieringar; den hemliga token skyddar den inkommande webhooken.",
+        "configEditButton": "Redigera Telegram-konfig",
+        "testCardTitle": "Skicka test-Telegram-meddelande",
+        "testCardDescription": "Skicka ett test-Telegram-meddelande för att bekräfta din bot-konfiguration.",
+        "testSubmitButton": "Skicka testmeddelande",
+        "testSuccess": "Test-Telegram-meddelande skickat framgångsrikt. Kontrollera mottagarens enhet för att bekräfta leverans.",
+        "testMissingChatId": "Ange ett Telegram-chatt-ID innan du skickar ett testmeddelande.",
+        "testFailure": "Misslyckades att skicka test-Telegram-meddelande."
+      },
+      "probes": {
+        "bannerTitle": "Behöver du hjälp med att konfigurera globala prober?",
+        "bannerDescription": "Här är en guide som hjälper dig att komma igång",
+        "cardTitle": "Globala prober",
+        "cardDescription": "Globala prober hjälper dig att övervaka externa resurser från olika platser runt om i världen.",
+        "noItems": "Inga prober hittades.",
+        "showIdKey": "Visa ID och nyckel",
+        "keyModalTitle": "Probe-nyckel",
+        "keyModalDescription": "Här är din probe-nyckel. Håll den hemlig.",
+        "probeIdLabel": "Probe-ID:",
+        "probeKeyLabel": "Probe-nyckel:"
+      },
+      "aiAgents": {
+        "bannerTitle": "Behöver du hjälp med att konfigurera globala AI-agenter?",
+        "bannerDescription": "Här är en guide som hjälper dig att komma igång",
+        "cardTitle": "Globala AI-agenter",
+        "cardDescription": "Globala AI-agenter hjälper dig att automatisera incidenthantering med AI-drivna svar från olika platser runt om i världen.",
+        "noItems": "Inga AI-agenter hittades.",
+        "showIdKey": "Visa ID och nyckel",
+        "keyModalTitle": "AI-agent-nyckel",
+        "keyModalDescription": "Här är din AI-agent-nyckel. Håll den hemlig.",
+        "agentIdLabel": "AI-agent-ID:",
+        "agentKeyLabel": "AI-agent-nyckel:"
+      },
+      "dataRetention": {
+        "logCardTitle": "Monitor-logg-bevarande",
+        "logCardDescription": "Konfigurera hur länge monitor-loggar bevaras innan de automatiskt tas bort.",
+        "logEditButton": "Redigera inställningar",
+        "metricCardTitle": "Monitor-metrisk bevarande",
+        "metricCardDescription": "Konfigurera hur länge monitor-metriker bevaras innan de automatiskt tas bort.",
+        "metricEditButton": "Redigera inställningar"
+      },
+      "apiKey": {
+        "cardTitle": "Master-API-nyckel-inställningar",
+        "cardDescription": "Denna API-nyckel har root-åtkomst till alla resurser i alla projekt på OneUptime.",
+        "editButton": "Redigera API-nyckel-inställningar",
+        "apiKeyNotGenerated": "API-nyckel ännu inte genererad."
+      },
+      "llmProviders": {
+        "bannerTitle": "Behöver du hjälp med att konfigurera LLM-leverantörer?",
+        "bannerDescription": "LLM-leverantörer aktiverar AI-funktioner. Du kan konfigurera globala LLM-leverantörer som är tillgängliga för alla projekt.",
+        "cardTitle": "Globala LLM-leverantörer",
+        "cardDescription": "Globala LLM-leverantörer är tillgängliga för alla projekt för AI-funktioner. Konfigurera OpenAI, Anthropic, Ollama eller andra LLM-leverantörer.",
+        "noItems": "Inga LLM-leverantörer konfigurerade. Lägg till en LLM-leverantör för att aktivera AI-funktioner.",
+        "stepBasicInfo": "Grundläggande information",
+        "stepProviderSettings": "Leverantörsinställningar",
+        "stepCostSettings": "Kostnadsinställningar"
+      }
+    }
+  }
+}

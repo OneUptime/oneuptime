@@ -8,6 +8,8 @@ import Footer from "Common/UI/Components/Footer/Footer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React from "react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 
 interface VersionInfo {
   version?: string;
@@ -16,6 +18,7 @@ interface VersionInfo {
 }
 
 const DashboardFooter: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const [showAboutModal, setShowAboutModal] = React.useState<boolean>(false);
   const [isAboutModalLoading, setIsAboutModalLoading] =
     React.useState<boolean>(false);
@@ -32,7 +35,7 @@ const DashboardFooter: () => JSX.Element = () => {
       });
     } catch (err) {
       setVersionInfo({
-        error: "Version data is not available: " + (err as Error).message,
+        error: `${t("footer.versionUnavailable")}: ${(err as Error).message}`,
       });
     }
 
@@ -49,36 +52,39 @@ const DashboardFooter: () => JSX.Element = () => {
     if (response.data) {
       return response.data as JSONObject;
     }
-    throw new BadDataException("Version data is not available");
+    throw new BadDataException(t("footer.versionUnavailable"));
   };
 
   return (
     <>
       <Footer
         className="bg-white px-8"
-        copyright="HackerBay, Inc."
+        copyright={t("footer.copyright")}
         links={[
           {
-            title: "Help and Support",
+            title: t("footer.helpSupport"),
             to: URL.fromString("https://oneuptime.com/support"),
           },
           {
-            title: "Legal",
+            title: t("footer.legal"),
             to: URL.fromString("https://oneuptime.com/legal"),
           },
           {
-            title: "Version",
+            title: t("footer.version"),
             onClick: async () => {
               setShowAboutModal(true);
               await fetchVersions();
             },
+          },
+          {
+            content: <LanguageSwitcher />,
           },
         ]}
       />
 
       {showAboutModal ? (
         <ConfirmModal
-          title={`OneUptime Version`}
+          title={t("footer.versionModalTitle")}
           description={
             versionInfo.error ? (
               <div className="text-sm text-red-600">{versionInfo.error}</div>
@@ -86,7 +92,7 @@ const DashboardFooter: () => JSX.Element = () => {
               <div className="rounded-lg border border-gray-100 bg-gray-50/50 divide-y divide-gray-100">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Version
+                    {t("footer.versionLabel")}
                   </span>
                   <span className="font-mono text-sm text-gray-900">
                     {versionInfo.version || "—"}
@@ -94,7 +100,7 @@ const DashboardFooter: () => JSX.Element = () => {
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Commit
+                    {t("footer.commitLabel")}
                   </span>
                   <span className="font-mono text-sm text-gray-900">
                     {versionInfo.commit || "—"}
@@ -104,7 +110,7 @@ const DashboardFooter: () => JSX.Element = () => {
             )
           }
           isLoading={isAboutModalLoading}
-          submitButtonText={"Close"}
+          submitButtonText={t("common.close")}
           onSubmit={() => {
             return setShowAboutModal(false);
           }}

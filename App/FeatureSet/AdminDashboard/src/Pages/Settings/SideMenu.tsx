@@ -6,23 +6,16 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
-        {/* <SideMenuItem
-                    link={{
-                        title: 'Host',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_HOST] as Route
-                        ),
-                    }}
-                    icon={IconProp.Globe}
-                /> */}
+      <SideMenuSection title={t("sideMenu.basic")}>
         <SideMenuItem
           link={{
-            title: "Authentication",
+            title: t("sideMenu.settingsAuthentication"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route,
             ),
@@ -31,10 +24,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Notifications">
+      <SideMenuSection title={t("sideMenu.settingsNotifications")}>
         <SideMenuItem
           link={{
-            title: "Emails",
+            title: t("sideMenu.settingsEmails"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SMTP] as Route,
             ),
@@ -43,7 +36,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
-            title: "Call and SMS",
+            title: t("sideMenu.settingsCallSms"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route,
             ),
@@ -52,7 +45,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
-            title: "WhatsApp",
+            title: t("sideMenu.settingsWhatsapp"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_WHATSAPP] as Route,
             ),
@@ -61,7 +54,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
-            title: "Telegram",
+            title: t("sideMenu.settingsTelegram"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_TELEGRAM] as Route,
             ),
@@ -70,10 +63,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Monitoring">
+      <SideMenuSection title={t("sideMenu.settingsMonitoring")}>
         <SideMenuItem
           link={{
-            title: "Global Probes",
+            title: t("sideMenu.settingsGlobalProbes"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_PROBES] as Route,
             ),
@@ -81,10 +74,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Signal}
         />
       </SideMenuSection>
-      <SideMenuSection title="Data Retention">
+      <SideMenuSection title={t("sideMenu.settingsDataRetention")}>
         <SideMenuItem
           link={{
-            title: "Data Retention",
+            title: t("sideMenu.settingsDataRetention"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route,
             ),
@@ -92,10 +85,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Database}
         />
       </SideMenuSection>
-      <SideMenuSection title="AI">
+      <SideMenuSection title={t("sideMenu.settingsAi")}>
         <SideMenuItem
           link={{
-            title: "Global AI Agents",
+            title: t("sideMenu.settingsGlobalAiAgents"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
             ),
@@ -104,7 +97,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
-            title: "Global LLM Providers",
+            title: t("sideMenu.settingsGlobalLlmProviders"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
             ),
@@ -112,10 +105,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Brain}
         />
       </SideMenuSection>
-      <SideMenuSection title="API and Integrations">
+      <SideMenuSection title={t("sideMenu.settingsApiIntegrations")}>
         <SideMenuItem
           link={{
-            title: "API Key",
+            title: t("sideMenu.settingsApiKey"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_API_KEY] as Route,
             ),

@@ -68,6 +68,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Terminal,
         },
+        {
+          link: {
+            title: "Data Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
       ],
     },
     {

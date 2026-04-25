@@ -8,18 +8,20 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const Users: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <Page
-      title={"Users"}
+      title={t("pages.users.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Users",
+          title: t("breadcrumbs.users"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
       ]}
@@ -35,10 +37,10 @@ const Users: FunctionComponent = (): ReactElement => {
         name="Users"
         isViewable={true}
         cardProps={{
-          title: "Users",
-          description: "Here is a list of users in OneUptime.",
+          title: t("pages.users.cardTitle"),
+          description: t("pages.users.cardDescription"),
         }}
-        noItemsMessage={"No users found."}
+        noItemsMessage={t("pages.users.noItems")}
         formFields={[
           {
             field: {

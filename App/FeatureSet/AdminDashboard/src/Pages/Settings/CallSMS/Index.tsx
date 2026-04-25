@@ -9,24 +9,26 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Calls and SMS",
+          title: t("breadcrumbs.callsAndSms"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route,
           ),
@@ -34,15 +36,14 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
-      {/* Project Settings View  */}
       <CardModelDetail
         name="Call and SMS Settings"
         cardProps={{
-          title: "Twilio Config",
-          description: "This will be used to make Call and send SMS.",
+          title: t("pages.settings.callSms.cardTitle"),
+          description: t("pages.settings.callSms.cardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Twilio Config"
+        editButtonText={t("pages.settings.callSms.editButton")}
         formFields={[
           {
             field: {
@@ -107,7 +108,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioAccountSID: true,
               },
               title: "Twilio Account SID",
-              placeholder: "None",
+              placeholder: t("common.none"),
             },
             {
               field: {
@@ -115,7 +116,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Primary Twilio Phone Number",
               fieldType: FieldType.Phone,
-              placeholder: "None",
+              placeholder: t("common.none"),
             },
             {
               field: {
@@ -123,7 +124,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Secondary Twilio Phone Numbers",
               fieldType: FieldType.LongText,
-              placeholder: "None",
+              placeholder: t("common.none"),
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

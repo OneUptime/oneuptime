@@ -1,0 +1,218 @@
+{
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "submit": "जमा करें",
+    "close": "बंद करें",
+    "back": "वापस",
+    "next": "अगला",
+    "loading": "लोड हो रहा है...",
+    "search": "खोजें",
+    "edit": "संपादित करें",
+    "delete": "हटाएँ",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "statusPage": "स्थिति पृष्ठ"
+  },
+  "language": {
+    "label": "भाषा",
+    "switchLanguage": "भाषा बदलें"
+  },
+  "nav": {
+    "overview": "अवलोकन",
+    "incidents": "घटनाएँ",
+    "announcements": "घोषणाएँ",
+    "scheduledEvents": "निर्धारित कार्यक्रम",
+    "subscribe": "सदस्यता लें",
+    "login": "लॉग इन करें",
+    "logout": "लॉग आउट करें"
+  },
+  "overview": {
+    "uptimeSuffix": "% अपटाइम",
+    "operational": "कार्यरत",
+    "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",
+    "activeIncidents": "सक्रिय घटनाएँ",
+    "scheduledMaintenanceEvents": "निर्धारित रखरखाव कार्यक्रम",
+    "allClearTitle": "सब कुछ ठीक दिख रहा है",
+    "allClearDescription": "इस स्थिति पृष्ठ में अभी तक कोई संसाधन नहीं जोड़ा गया है। कृपया डैशबोर्ड से कुछ संसाधन जोड़ें।"
+  },
+  "incidents": {
+    "title": "घटनाएँ",
+    "singular": "घटना",
+    "active": "सक्रिय घटनाएँ",
+    "resolved": "हल की गई घटनाएँ",
+    "none": "कोई घटना नहीं",
+    "noneDescription": "इस स्थिति पृष्ठ पर कोई घटना पोस्ट नहीं की गई है।",
+    "postmortem": "घटना की समीक्षा",
+    "declaredAt": "घोषित किया गया: ",
+    "report": "घटना रिपोर्ट",
+    "notFound": "इस स्थिति पृष्ठ पर घटना नहीं मिली।"
+  },
+  "episodes": {
+    "report": "एपिसोड रिपोर्ट",
+    "none": "कोई एपिसोड नहीं",
+    "notFound": "इस स्थिति पृष्ठ पर एपिसोड नहीं मिला।"
+  },
+  "announcements": {
+    "title": "घोषणाएँ",
+    "singular": "घोषणा",
+    "active": "सक्रिय घोषणाएँ",
+    "past": "पिछली घोषणाएँ",
+    "none": "कोई घोषणा नहीं",
+    "noneDescription": "इस पृष्ठ पर अभी तक कोई घोषणा पोस्ट नहीं की गई है।",
+    "announcedAt": "घोषित किया गया: ",
+    "notFound": "इस स्थिति पृष्ठ पर घोषणा नहीं मिली।"
+  },
+  "scheduledEvents": {
+    "title": "निर्धारित कार्यक्रम",
+    "singular": "निर्धारित कार्यक्रम",
+    "scheduledMaintenance": "निर्धारित रखरखाव",
+    "ongoing": "चालू कार्यक्रम",
+    "upcoming": "निर्धारित कार्यक्रम",
+    "completed": "पूर्ण हो चुके कार्यक्रम",
+    "none": "कोई निर्धारित कार्यक्रम नहीं",
+    "noneDescription": "इस स्थिति पृष्ठ के लिए कोई निर्धारित कार्यक्रम पोस्ट नहीं किया गया है।",
+    "scheduledAt": "निर्धारित समय: ",
+    "report": "निर्धारित कार्यक्रम रिपोर्ट",
+    "notFound": "इस स्थिति पृष्ठ के लिए कोई निर्धारित कार्यक्रम नहीं मिला।"
+  },
+  "subscribe": {
+    "title": "सदस्यता लें",
+    "submit": "सदस्यता लें",
+    "newSubscription": "नई सदस्यता",
+    "manageExisting": "मौजूदा सदस्यता प्रबंधित करें",
+    "sendManagementLink": "प्रबंधन लिंक भेजें",
+    "subscribedSuccessfully": "आपने सफलतापूर्वक सदस्यता ले ली है।",
+    "emailSentCheckSpam": "लिंक के साथ एक ईमेल आपके ईमेल पर भेज दिया गया है। यदि आपको ईमेल नहीं मिला है, तो कृपया अपना स्पैम फ़ोल्डर देखें।",
+    "menu": {
+      "email": "ईमेल",
+      "sms": "एसएमएस",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "वेबहुक"
+    },
+    "email": {
+      "title": "ईमेल द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस ईमेल पते पर भेजे जाएँगे।",
+      "yourEmail": "आपका ईमेल",
+      "placeholder": "subscriber@company.com",
+      "managePrompt": "कृपया वह ईमेल दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम आपको इस ईमेल पर एक प्रबंधन लिंक भेजेंगे।",
+      "managePlaceholder": "email@yourcompany.com"
+    },
+    "sms": {
+      "title": "एसएमएस द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस फ़ोन नंबर पर भेजे जाएँगे।",
+      "yourPhoneNumber": "आपका फ़ोन नंबर",
+      "placeholder": "+919876543210",
+      "managePrompt": "कृपया वह फ़ोन नंबर दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम आपको इस फ़ोन नंबर पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "slack": {
+      "title": "Slack द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
+      "workspaceName": "Slack कार्यक्षेत्र का नाम",
+      "workspaceNameDescription": "सत्यापन के लिए अपने Slack कार्यक्षेत्र का नाम दर्ज करें।",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack इनकमिंग वेबहुक URL",
+      "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Slack वेबहुक पर भेजे जाएँगे।",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "कृपया वह Slack कार्यक्षेत्र का नाम दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम इस कार्यक्षेत्र पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "microsoftTeams": {
+      "title": "Microsoft Teams द्वारा सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
+      "workspaceName": "Microsoft Teams कार्यक्षेत्र का नाम",
+      "workspaceNameDescription": "सत्यापन के लिए अपने Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें।",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams इनकमिंग वेबहुक URL",
+      "webhookUrlDescription": "स्थिति पृष्ठ के अपडेट इस Teams वेबहुक पर भेजे जाएँगे।",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "कृपया वह Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें जिससे आपने सदस्यता ली है",
+      "manageDescription": "हम इस कार्यक्षेत्र पर एक प्रबंधन लिंक भेजेंगे।"
+    },
+    "resources": {
+      "all": "सभी संसाधनों की सदस्यता लें",
+      "allDescription": "यदि आप सभी संसाधनों की सदस्यता लेना चाहते हैं तो यह विकल्प चुनें।",
+      "select": "सदस्यता के लिए संसाधन चुनें",
+      "selectDescription": "कृपया वे संसाधन चुनें जिनकी आप सदस्यता लेना चाहते हैं।"
+    },
+    "eventTypes": {
+      "all": "सभी प्रकार के कार्यक्रमों की सदस्यता लें",
+      "allDescription": "यदि आप सभी प्रकार के कार्यक्रमों की सदस्यता लेना चाहते हैं तो यह विकल्प चुनें।",
+      "select": "सदस्यता के लिए कार्यक्रम प्रकार चुनें",
+      "selectDescription": "कृपया वे कार्यक्रम प्रकार चुनें जिनकी आप सदस्यता लेना चाहते हैं।"
+    },
+    "update": {
+      "title": "सदस्यता अपडेट करें",
+      "description": "आप यहाँ अपनी सदस्यता प्राथमिकताएँ अपडेट कर सकते हैं या सदस्यता समाप्त कर सकते हैं।",
+      "saved": "आपके परिवर्तन सहेजे गए हैं।",
+      "unsubscribe": "सदस्यता समाप्त करें",
+      "unsubscribeDescription": "यदि आप सभी संसाधनों से सदस्यता समाप्त करना चाहते हैं तो कृपया इसे चुनें।"
+    },
+    "confirm": {
+      "title": "सदस्यता की पुष्टि करें",
+      "success": "सदस्यता की पुष्टि सफलतापूर्वक हो गई"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "ईमेल",
+      "password": "पासवर्ड",
+      "newPassword": "नया पासवर्ड",
+      "confirmPassword": "पासवर्ड की पुष्टि करें",
+      "login": "लॉग इन करें"
+    },
+    "login": {
+      "welcomeBack": "वापस स्वागत है!",
+      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "forgotPassword": "पासवर्ड भूल गए?",
+      "submit": "लॉग इन करें",
+      "useSSO": "इसके बजाय सिंगल साइन-ऑन (SSO) का उपयोग करें"
+    },
+    "sso": {
+      "title": "SSO से लॉग इन करें",
+      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "noProviders": "कोई SSO प्रदाता कॉन्फ़िगर या सक्षम नहीं है"
+    },
+    "forgotPassword": {
+      "title": "पासवर्ड भूल गए",
+      "description": "यदि आप {{statusPageName}} के लिए अपना पासवर्ड भूल गए हैं, तो कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेज दिया जाएगा।",
+      "success": "हमने आपको पासवर्ड रीसेट लिंक ईमेल कर दिया है। कृपया स्पैम देखना न भूलें।",
+      "sendLink": "पासवर्ड रीसेट लिंक भेजें",
+      "rememberPassword": "अपना पासवर्ड याद है?"
+    },
+    "resetPassword": {
+      "description": "अपने {{statusPageName}} खाते के लिए एक नया पासवर्ड बनाएँ।",
+      "instructions": "कृपया अपना नया पासवर्ड दर्ज करें और हम इसे अपडेट कर देंगे।",
+      "success": "आपका पासवर्ड अपडेट हो गया है। कृपया लॉग इन करें।",
+      "submit": "पासवर्ड रीसेट करें",
+      "knowPassword": "अपना पासवर्ड जानते हैं?"
+    },
+    "masterPassword": {
+      "enterWithName": "{{statusPageName}} पासवर्ड दर्ज करें",
+      "enterGeneric": "पासवर्ड दर्ज करें",
+      "prompt": "जारी रखने के लिए कृपया पासवर्ड दर्ज करें।",
+      "passwordRequired": "पासवर्ड आवश्यक है।",
+      "passwordLabel": "पासवर्ड",
+      "passwordDescription": "इस पृष्ठ को अनलॉक करने के लिए पासवर्ड दर्ज करें।",
+      "passwordPlaceholder": "पासवर्ड दर्ज करें",
+      "submit": "स्थिति पृष्ठ अनलॉक करें"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "पृष्ठ नहीं मिला।",
+      "description": "आप जिस पृष्ठ की तलाश कर रहे हैं वह मौजूद नहीं है।"
+    },
+    "forbidden": {
+      "title": "निषिद्ध",
+      "description": "आपको इस पृष्ठ तक पहुँचने की अनुमति नहीं है।"
+    },
+    "generic": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।"
+  },
+  "footer": {
+    "poweredBy": "OneUptime द्वारा संचालित"
+  }
+}

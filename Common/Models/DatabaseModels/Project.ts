@@ -2062,6 +2062,32 @@ export default class Project extends TenantModel {
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
   @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Default Telemetry Data Retention (Days)",
+    description:
+      "Project-wide default number of days to retain telemetry data (logs, traces, metrics). Services without a per-service override use this value.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 15,
+  })
+  public defaultTelemetryRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     title: "Default Metric Downsampling Retention (days per tier)",

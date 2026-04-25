@@ -47,6 +47,20 @@ const ServiceSettings: FunctionComponent<
             placeholder: "Tech Stack",
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
           },
+          {
+            field: {
+              retainTelemetryDataForDays: true,
+            },
+            title: "Retain Telemetry Data For (Days)",
+            description:
+              "Number of days to retain telemetry data (logs, traces, metrics) for this service. Leave blank to use the project-wide default.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "Use project default",
+            validation: {
+              minValue: 1,
+            },
+          },
         ]}
         modelDetailProps={{
           modelType: Service,
@@ -68,6 +82,16 @@ const ServiceSettings: FunctionComponent<
               description:
                 "Tech stack used in the service. This will help other developers understand the service better.",
               fieldType: FieldType.ArrayOfText,
+            },
+            {
+              field: {
+                retainTelemetryDataForDays: true,
+              },
+              title: "Retain Telemetry Data For (Days)",
+              description:
+                "Number of days telemetry data (logs, traces, metrics) is retained for this service. Falls back to the project-wide default when not set.",
+              fieldType: FieldType.Number,
+              placeholder: "Using project default",
             },
           ],
           modelId: modelId,

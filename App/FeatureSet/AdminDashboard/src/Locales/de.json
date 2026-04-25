@@ -1,0 +1,287 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Absenden",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "yes": "Ja",
+    "no": "Nein",
+    "none": "Keine",
+    "notEnabled": "Nicht aktiviert",
+    "notConfigured": "Nicht konfiguriert",
+    "loading": "Wird geladen...",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "connected": "Verbunden",
+    "disconnected": "Getrennt",
+    "allSupportedLanguages": "Alle unterstützten Sprachen"
+  },
+  "language": {
+    "label": "Sprache",
+    "switchLanguage": "Sprache wechseln"
+  },
+  "breadcrumbs": {
+    "adminDashboard": "Admin-Dashboard",
+    "users": "Benutzer",
+    "user": "Benutzer",
+    "projects": "Projekte",
+    "project": "Projekt",
+    "settings": "Einstellungen",
+    "authentication": "Authentifizierung",
+    "emailSettings": "E-Mail-Einstellungen",
+    "callsAndSms": "Anrufe und SMS",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "globalProbes": "Globale Probes",
+    "dataRetention": "Datenaufbewahrung",
+    "globalAiAgents": "Globale KI-Agenten",
+    "globalLlmProviders": "Globale LLM-Anbieter",
+    "apiKey": "API-Schlüssel",
+    "more": "Mehr",
+    "sendEmail": "E-Mail senden",
+    "logout": "Abmelden"
+  },
+  "topAlert": {
+    "title": "OneUptime Admin-Dashboard",
+    "description": "Sie können Ihre OneUptime-serverbezogenen Aufgaben auf diesem Dashboard durchführen."
+  },
+  "header": {
+    "exitAdmin": "Admin verlassen",
+    "help": "Hilfe",
+    "userProfile": "Benutzerprofil"
+  },
+  "help": {
+    "supportEmail": "Support-E-Mail",
+    "chatSlack": "Chat auf Slack",
+    "requestDemo": "Demo anfordern"
+  },
+  "userProfile": {
+    "exitAdmin": "Admin verlassen",
+    "logOut": "Abmelden"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Hilfe und Support",
+    "legal": "Rechtliches",
+    "version": "Version",
+    "versionModalTitle": "OneUptime-Version",
+    "versionLabel": "Version",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versionsdaten sind nicht verfügbar"
+  },
+  "navbar": {
+    "users": "Benutzer",
+    "projects": "Projekte",
+    "more": "Mehr",
+    "settings": "Einstellungen"
+  },
+  "sideMenu": {
+    "basic": "Grundlagen",
+    "advanced": "Erweitert",
+    "overview": "Übersicht",
+    "settings": "Einstellungen",
+    "delete": "Löschen",
+    "settingsAuthentication": "Authentifizierung",
+    "settingsNotifications": "Benachrichtigungen",
+    "settingsEmails": "E-Mails",
+    "settingsCallSms": "Anrufe und SMS",
+    "settingsWhatsapp": "WhatsApp",
+    "settingsTelegram": "Telegram",
+    "settingsMonitoring": "Überwachung",
+    "settingsGlobalProbes": "Globale Probes",
+    "settingsDataRetention": "Datenaufbewahrung",
+    "settingsAi": "KI",
+    "settingsGlobalAiAgents": "Globale KI-Agenten",
+    "settingsGlobalLlmProviders": "Globale LLM-Anbieter",
+    "settingsApiIntegrations": "API und Integrationen",
+    "settingsApiKey": "API-Schlüssel",
+    "moreCommunication": "Kommunikation",
+    "moreSendEmail": "E-Mail senden"
+  },
+  "pages": {
+    "users": {
+      "title": "Benutzer",
+      "cardTitle": "Benutzer",
+      "cardDescription": "Hier ist eine Liste der Benutzer in OneUptime.",
+      "noItems": "Keine Benutzer gefunden."
+    },
+    "userView": {
+      "title": "Benutzer",
+      "cardTitle": "Benutzer",
+      "cardDescription": "Benutzerdetails",
+      "editButton": "Benutzer bearbeiten",
+      "masterAdminCardTitle": "Master-Admin-Zugriff",
+      "masterAdminCardDescription": "Master-Admin-Zugriff für diesen Benutzer gewähren oder widerrufen. Master-Admins können jedes Projekt und jeden Arbeitsbereich verwalten.",
+      "masterAdminEditButton": "Zugriff aktualisieren"
+    },
+    "projects": {
+      "title": "Projekte",
+      "cardTitle": "Projekte",
+      "cardDescription": "Hier ist eine Liste der Projekte in OneUptime.",
+      "noItems": "Keine Projekte gefunden.",
+      "stepBasic": "Grundlagen",
+      "stepSelectPlan": "Plan auswählen",
+      "yearlyPlanTitle": "Jahresplan",
+      "yearlyPlanDescription": "(20% sparen)",
+      "freeForeverDescription": "Dieser Plan ist für immer kostenlos. "
+    },
+    "projectView": {
+      "title": "Projekt",
+      "cardTitle": "Projekt",
+      "cardDescription": "Projektdetails",
+      "editButton": "Projekt bearbeiten"
+    },
+    "logout": {
+      "title": "Abmelden"
+    },
+    "sendEmail": {
+      "title": "Ankündigungs-E-Mail senden",
+      "testCardTitle": "Test-E-Mail senden",
+      "testCardDescription": "Senden Sie eine Test-Ankündigungs-E-Mail an eine einzelne E-Mail-Adresse, um die Vorschau anzuzeigen, bevor Sie sie an alle Benutzer senden.",
+      "allCardTitle": "E-Mail an alle Benutzer senden",
+      "allCardDescription": "Senden Sie eine Ankündigungs-E-Mail an alle registrierten Benutzer. Bitte senden Sie zuerst eine Test-E-Mail, um den Inhalt zu überprüfen.",
+      "testSubmitButton": "Test-E-Mail senden",
+      "allSubmitButton": "An alle Benutzer senden",
+      "testSuccess": "Test-E-Mail erfolgreich gesendet. Bitte überprüfen Sie Ihren Posteingang.",
+      "allSuccess": "Broadcast-E-Mail-Auftrag wurde gestartet. E-Mails werden im Hintergrund gesendet.",
+      "testFailure": "Fehler beim Senden der Test-E-Mail.",
+      "allFailure": "Fehler beim Senden der E-Mails.",
+      "fillAllFields": "Bitte füllen Sie alle Felder aus.",
+      "confirmTitle": "Senden an alle Benutzer bestätigen",
+      "confirmDescription": "Sind Sie sicher, dass Sie diese Ankündigungs-E-Mail an alle registrierten Benutzer senden möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirmButton": "Ja, an alle Benutzer senden"
+    },
+    "moreEmail": {
+      "title": "Ankündigungs-E-Mail senden",
+      "cardTitle": "Ankündigungs-E-Mail senden",
+      "cardDescription": "Verfassen Sie eine Ankündigungs-E-Mail, die an alle registrierten Benutzer gesendet wird. Sie können zuerst eine Test-E-Mail senden, um die Vorschau anzuzeigen.",
+      "sendTestButton": "Test-E-Mail senden",
+      "sendAllButton": "An alle Benutzer senden",
+      "fillSubjectMessage": "Bitte füllen Sie Betreff und Nachricht aus, bevor Sie einen Test senden.",
+      "fillAllFields": "Bitte füllen Sie alle Felder aus.",
+      "testModalTitle": "Test-E-Mail senden",
+      "testModalDescription": "Geben Sie eine E-Mail-Adresse ein, um einen Test dieser Ankündigung zu senden.",
+      "testModalSubmitButton": "Test senden",
+      "testModalEmailLabel": "Test-E-Mail-Adresse",
+      "testModalEmailPlaceholder": "test@example.com",
+      "testModalMissingEmail": "Bitte geben Sie eine Test-E-Mail-Adresse ein.",
+      "testSuccess": "Test-E-Mail erfolgreich gesendet. Bitte überprüfen Sie Ihren Posteingang.",
+      "allSuccess": "Broadcast-E-Mail-Auftrag wurde gestartet. E-Mails werden im Hintergrund gesendet.",
+      "testFailure": "Fehler beim Senden der Test-E-Mail.",
+      "allFailure": "Fehler beim Senden der E-Mails.",
+      "confirmTitle": "Senden an alle Benutzer bestätigen",
+      "confirmDescription": "Sind Sie sicher, dass Sie diese Ankündigungs-E-Mail an alle registrierten Benutzer senden möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirmButton": "Ja, an alle Benutzer senden"
+    },
+    "settings": {
+      "title": "Admin-Einstellungen",
+      "authentication": {
+        "authCardTitle": "Authentifizierungseinstellungen",
+        "authCardDescription": "Authentifizierungseinstellungen für diese OneUptime-Serverinstanz.",
+        "authEditButton": "Einstellungen bearbeiten",
+        "projectCreationCardTitle": "Projekterstellung",
+        "projectCreationCardDescription": "Steuern Sie, wer neue Projekte auf diesem OneUptime-Server erstellen kann.",
+        "projectCreationEditButton": "Einstellungen bearbeiten"
+      },
+      "email": {
+        "adminNotificationCardTitle": "Admin-Benachrichtigungs-E-Mail",
+        "adminNotificationCardDescription": "Geben Sie die E-Mail-Adresse ein, unter der Sie Admin-Benachrichtigungen erhalten möchten.",
+        "adminNotificationEditButton": "E-Mail bearbeiten",
+        "serverCardTitle": "E-Mail-Server-Einstellungen",
+        "serverCardDescription": "Wählen Sie den E-Mail-Server, den Sie zum Senden von E-Mails verwenden möchten.",
+        "serverEditButton": "Server bearbeiten",
+        "smtpCardTitle": "Benutzerdefinierte E-Mail- und SMTP-Einstellungen",
+        "smtpCardDescription": "Bitte konfigurieren Sie hier Ihren SMTP-Server, um E-Mails zu senden.",
+        "smtpEditButton": "SMTP-Konfiguration bearbeiten",
+        "sendgridCardTitle": "Sendgrid-Einstellungen",
+        "sendgridCardDescription": "Geben Sie Ihren Sendgrid-API-Schlüssel ein, um E-Mails über Sendgrid zu senden.",
+        "sendgridEditButton": "API-Schlüssel bearbeiten",
+        "pillEnabled": "Aktiviert",
+        "pillNoApiKey": "Nicht aktiviert. Bitte fügen Sie den API-Schlüssel hinzu.",
+        "pillNoFromEmail": "Nicht aktiviert. Bitte fügen Sie die Absender-E-Mail hinzu.",
+        "pillNoFromName": "Nicht aktiviert. Bitte fügen Sie den Absendernamen hinzu."
+      },
+      "callSms": {
+        "cardTitle": "Twilio-Konfiguration",
+        "cardDescription": "Dies wird zum Telefonieren und Senden von SMS verwendet.",
+        "editButton": "Twilio-Konfiguration bearbeiten"
+      },
+      "whatsapp": {
+        "metaCardTitle": "Meta WhatsApp-Einstellungen",
+        "metaCardDescription": "Konfigurieren Sie Meta WhatsApp-Anmeldeinformationen. Diese Werte werden zum Senden von WhatsApp-Benachrichtigungen von OneUptime verwendet.",
+        "metaEditButton": "Meta WhatsApp-Konfiguration bearbeiten",
+        "testCardTitle": "Test-WhatsApp-Nachricht senden",
+        "testCardDescription": "Senden Sie eine Test-WhatsApp-Vorlagennachricht, um Ihre Meta-Konfiguration zu bestätigen.",
+        "testSubmitButton": "Testnachricht senden",
+        "testSuccess": "Test-WhatsApp-Nachricht erfolgreich gesendet. Überprüfen Sie das Empfängergerät, um die Zustellung zu bestätigen.",
+        "testMissingNumber": "Bitte geben Sie eine WhatsApp-Nummer ein, bevor Sie eine Testnachricht senden.",
+        "testFailure": "Fehler beim Senden der Test-WhatsApp-Nachricht.",
+        "setupCardTitle": "Meta WhatsApp-Einrichtungsanleitung",
+        "setupCardDescription": "Schritte zum Verbinden von Meta WhatsApp und den Vorlagen, die Sie bereitstellen müssen."
+      },
+      "telegram": {
+        "setupCardTitle": "Telegram-Einrichtungsanleitung",
+        "setupCardDescription": "Lesen Sie dies zuerst — es ist der schnellste Weg von Null zu einem funktionierenden, mit OneUptime verbundenen Telegram-Bot.",
+        "configCardTitle": "Telegram-Bot-Einstellungen",
+        "configCardDescription": "Fügen Sie das Bot-Token und den Benutzernamen ein, den Ihnen @BotFather gegeben hat. Diese ermöglichen ausgehende Benachrichtigungen; das geheime Token schützt den eingehenden Webhook.",
+        "configEditButton": "Telegram-Konfiguration bearbeiten",
+        "testCardTitle": "Test-Telegram-Nachricht senden",
+        "testCardDescription": "Senden Sie eine Test-Telegram-Nachricht, um Ihre Bot-Konfiguration zu bestätigen.",
+        "testSubmitButton": "Testnachricht senden",
+        "testSuccess": "Test-Telegram-Nachricht erfolgreich gesendet. Überprüfen Sie das Empfängergerät, um die Zustellung zu bestätigen.",
+        "testMissingChatId": "Bitte geben Sie eine Telegram-Chat-ID ein, bevor Sie eine Testnachricht senden.",
+        "testFailure": "Fehler beim Senden der Test-Telegram-Nachricht."
+      },
+      "probes": {
+        "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von Globalen Probes?",
+        "bannerDescription": "Hier ist eine Anleitung, die Ihnen bei der Einrichtung helfen wird",
+        "cardTitle": "Globale Probes",
+        "cardDescription": "Globale Probes helfen Ihnen, externe Ressourcen von verschiedenen Standorten auf der ganzen Welt zu überwachen.",
+        "noItems": "Keine Probes gefunden.",
+        "showIdKey": "ID und Schlüssel anzeigen",
+        "keyModalTitle": "Probe-Schlüssel",
+        "keyModalDescription": "Hier ist Ihr Probe-Schlüssel. Bitte halten Sie ihn geheim.",
+        "probeIdLabel": "Probe-ID:",
+        "probeKeyLabel": "Probe-Schlüssel:"
+      },
+      "aiAgents": {
+        "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von Globalen KI-Agenten?",
+        "bannerDescription": "Hier ist eine Anleitung, die Ihnen bei der Einrichtung helfen wird",
+        "cardTitle": "Globale KI-Agenten",
+        "cardDescription": "Globale KI-Agenten helfen Ihnen, das Incident-Management mit KI-gestützten Antworten von verschiedenen Standorten auf der ganzen Welt zu automatisieren.",
+        "noItems": "Keine KI-Agenten gefunden.",
+        "showIdKey": "ID und Schlüssel anzeigen",
+        "keyModalTitle": "KI-Agenten-Schlüssel",
+        "keyModalDescription": "Hier ist Ihr KI-Agenten-Schlüssel. Bitte halten Sie ihn geheim.",
+        "agentIdLabel": "KI-Agenten-ID:",
+        "agentKeyLabel": "KI-Agenten-Schlüssel:"
+      },
+      "dataRetention": {
+        "logCardTitle": "Monitor-Log-Aufbewahrung",
+        "logCardDescription": "Konfigurieren Sie, wie lange Monitor-Logs aufbewahrt werden, bevor sie automatisch gelöscht werden.",
+        "logEditButton": "Einstellungen bearbeiten",
+        "metricCardTitle": "Monitor-Metrik-Aufbewahrung",
+        "metricCardDescription": "Konfigurieren Sie, wie lange Monitor-Metriken aufbewahrt werden, bevor sie automatisch gelöscht werden.",
+        "metricEditButton": "Einstellungen bearbeiten"
+      },
+      "apiKey": {
+        "cardTitle": "Master-API-Schlüssel-Einstellungen",
+        "cardDescription": "Dieser API-Schlüssel hat Root-Zugriff auf alle Ressourcen in allen Projekten auf OneUptime.",
+        "editButton": "API-Schlüssel-Einstellungen bearbeiten",
+        "apiKeyNotGenerated": "API-Schlüssel noch nicht generiert."
+      },
+      "llmProviders": {
+        "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von LLM-Anbietern?",
+        "bannerDescription": "LLM-Anbieter ermöglichen KI-Funktionen. Sie können globale LLM-Anbieter konfigurieren, die für alle Projekte verfügbar sind.",
+        "cardTitle": "Globale LLM-Anbieter",
+        "cardDescription": "Globale LLM-Anbieter sind für alle Projekte für KI-Funktionen verfügbar. Konfigurieren Sie OpenAI, Anthropic, Ollama oder andere LLM-Anbieter.",
+        "noItems": "Keine LLM-Anbieter konfiguriert. Fügen Sie einen LLM-Anbieter hinzu, um KI-Funktionen zu aktivieren.",
+        "stepBasicInfo": "Grundinformationen",
+        "stepProviderSettings": "Anbietereinstellungen",
+        "stepCostSettings": "Kosteneinstellungen"
+      }
+    }
+  }
+}

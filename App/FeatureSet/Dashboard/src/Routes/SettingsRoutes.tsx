@@ -21,6 +21,8 @@ import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
 
 import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyView";
 
+import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
+
 import SettingLabels from "../Pages/Settings/Labels";
 
 import SettingProbes from "../Pages/Settings/Probes";
@@ -266,6 +268,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_SETTINGS,
+          )}
+          element={
+            <SettingsTelemetrySettings
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route}
             />
           }
         />

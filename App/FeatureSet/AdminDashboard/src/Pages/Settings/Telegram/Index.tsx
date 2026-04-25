@@ -20,6 +20,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import { useTranslation } from "react-i18next";
 
 // Telegram bot tokens look like "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321".
 const TELEGRAM_BOT_TOKEN_PATTERN: RegExp = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
@@ -100,26 +101,27 @@ const buildTelegramSetupMarkdown: () => string = (): string => {
 const telegramSetupMarkdown: string = buildTelegramSetupMarkdown();
 
 const SettingsTelegram: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
   const [testSuccess, setTestSuccess] = useState<string>("");
 
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Telegram",
+          title: t("breadcrumbs.telegram"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_TELEGRAM] as Route,
           ),
@@ -128,8 +130,8 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
       sideMenu={<DashboardSideMenu />}
     >
       <Card
-        title="Telegram Setup Guide"
-        description="Read this first — it's the quickest path from zero to a working Telegram bot hooked up to OneUptime."
+        title={t("pages.settings.telegram.setupCardTitle")}
+        description={t("pages.settings.telegram.setupCardDescription")}
       >
         <MarkdownViewer text={telegramSetupMarkdown} />
       </Card>
@@ -137,12 +139,11 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Telegram Bot Settings"
         cardProps={{
-          title: "Telegram Bot Settings",
-          description:
-            "Paste the bot token and username @BotFather gave you. These power outbound notifications; the secret token guards the incoming webhook.",
+          title: t("pages.settings.telegram.configCardTitle"),
+          description: t("pages.settings.telegram.configCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Telegram Config"
+        editButtonText={t("pages.settings.telegram.configEditButton")}
         formFields={[
           {
             field: {
@@ -204,7 +205,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               },
               title: "Bot Token",
               fieldType: FieldType.HiddenText,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -212,7 +213,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               },
               title: "Bot Username",
               fieldType: FieldType.Text,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -220,7 +221,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               },
               title: "Webhook Secret Token",
               fieldType: FieldType.HiddenText,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
           ],
           modelId: ObjectID.getZeroObjectID(),
@@ -228,8 +229,8 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
       />
 
       <Card
-        title="Send Test Telegram Message"
-        description="Send a test Telegram message to confirm your bot configuration."
+        title={t("pages.settings.telegram.testCardTitle")}
+        description={t("pages.settings.telegram.testCardDescription")}
       >
         {testSuccess ? (
           <Alert
@@ -246,7 +247,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
           name="Send Test Telegram Message"
           isLoading={isSendingTest}
           error={testError || ""}
-          submitButtonText="Send Test Message"
+          submitButtonText={t("pages.settings.telegram.testSubmitButton")}
           maxPrimaryButtonWidth={true}
           initialValues={{
             toChatId: "",
@@ -273,9 +274,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
 
             if (!toChatId) {
               setTestSuccess("");
-              setTestError(
-                "Please enter a Telegram chat ID before sending a test message.",
-              );
+              setTestError(t("pages.settings.telegram.testMissingChatId"));
               return;
             }
 
@@ -299,12 +298,10 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               }
 
               if (response.isFailure()) {
-                throw new Error("Failed to send test Telegram message.");
+                throw new Error(t("pages.settings.telegram.testFailure"));
               }
 
-              setTestSuccess(
-                "Test Telegram message sent successfully. Check the recipient device to confirm delivery.",
-              );
+              setTestSuccess(t("pages.settings.telegram.testSuccess"));
 
               if (onSubmitSuccessful) {
                 onSubmitSuccessful();

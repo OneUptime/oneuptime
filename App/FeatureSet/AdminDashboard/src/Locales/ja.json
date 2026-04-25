@@ -1,0 +1,287 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "submit": "送信",
+    "close": "閉じる",
+    "edit": "編集",
+    "delete": "削除",
+    "yes": "はい",
+    "no": "いいえ",
+    "none": "なし",
+    "notEnabled": "有効化されていません",
+    "notConfigured": "設定されていません",
+    "loading": "読み込み中...",
+    "enabled": "有効",
+    "disabled": "無効",
+    "connected": "接続済み",
+    "disconnected": "切断済み",
+    "allSupportedLanguages": "サポートされているすべての言語"
+  },
+  "language": {
+    "label": "言語",
+    "switchLanguage": "言語を切り替える"
+  },
+  "breadcrumbs": {
+    "adminDashboard": "管理者ダッシュボード",
+    "users": "ユーザー",
+    "user": "ユーザー",
+    "projects": "プロジェクト",
+    "project": "プロジェクト",
+    "settings": "設定",
+    "authentication": "認証",
+    "emailSettings": "メール設定",
+    "callsAndSms": "通話とSMS",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "globalProbes": "グローバルプローブ",
+    "dataRetention": "データ保持",
+    "globalAiAgents": "グローバルAIエージェント",
+    "globalLlmProviders": "グローバルLLMプロバイダー",
+    "apiKey": "APIキー",
+    "more": "その他",
+    "sendEmail": "メール送信",
+    "logout": "ログアウト"
+  },
+  "topAlert": {
+    "title": "OneUptime管理者ダッシュボード",
+    "description": "このダッシュボードでOneUptimeサーバー関連のタスクを実行できます。"
+  },
+  "header": {
+    "exitAdmin": "管理者を終了",
+    "help": "ヘルプ",
+    "userProfile": "ユーザープロフィール"
+  },
+  "help": {
+    "supportEmail": "サポートメール",
+    "chatSlack": "Slackでチャット",
+    "requestDemo": "デモをリクエスト"
+  },
+  "userProfile": {
+    "exitAdmin": "管理者を終了",
+    "logOut": "ログアウト"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "ヘルプとサポート",
+    "legal": "法的情報",
+    "version": "バージョン",
+    "versionModalTitle": "OneUptimeバージョン",
+    "versionLabel": "バージョン",
+    "commitLabel": "コミット",
+    "versionUnavailable": "バージョンデータは利用できません"
+  },
+  "navbar": {
+    "users": "ユーザー",
+    "projects": "プロジェクト",
+    "more": "その他",
+    "settings": "設定"
+  },
+  "sideMenu": {
+    "basic": "基本",
+    "advanced": "詳細",
+    "overview": "概要",
+    "settings": "設定",
+    "delete": "削除",
+    "settingsAuthentication": "認証",
+    "settingsNotifications": "通知",
+    "settingsEmails": "メール",
+    "settingsCallSms": "通話とSMS",
+    "settingsWhatsapp": "WhatsApp",
+    "settingsTelegram": "Telegram",
+    "settingsMonitoring": "監視",
+    "settingsGlobalProbes": "グローバルプローブ",
+    "settingsDataRetention": "データ保持",
+    "settingsAi": "AI",
+    "settingsGlobalAiAgents": "グローバルAIエージェント",
+    "settingsGlobalLlmProviders": "グローバルLLMプロバイダー",
+    "settingsApiIntegrations": "APIと統合",
+    "settingsApiKey": "APIキー",
+    "moreCommunication": "コミュニケーション",
+    "moreSendEmail": "メール送信"
+  },
+  "pages": {
+    "users": {
+      "title": "ユーザー",
+      "cardTitle": "ユーザー",
+      "cardDescription": "OneUptime内のユーザー一覧です。",
+      "noItems": "ユーザーが見つかりません。"
+    },
+    "userView": {
+      "title": "ユーザー",
+      "cardTitle": "ユーザー",
+      "cardDescription": "ユーザー詳細",
+      "editButton": "ユーザーを編集",
+      "masterAdminCardTitle": "マスター管理者アクセス",
+      "masterAdminCardDescription": "このユーザーにマスター管理者アクセスを付与または取り消します。マスター管理者はすべてのプロジェクトとワークスペースを管理できます。",
+      "masterAdminEditButton": "アクセスを更新"
+    },
+    "projects": {
+      "title": "プロジェクト",
+      "cardTitle": "プロジェクト",
+      "cardDescription": "OneUptime内のプロジェクト一覧です。",
+      "noItems": "プロジェクトが見つかりません。",
+      "stepBasic": "基本",
+      "stepSelectPlan": "プランを選択",
+      "yearlyPlanTitle": "年間プラン",
+      "yearlyPlanDescription": "(20%節約)",
+      "freeForeverDescription": "このプランは永久に無料です。 "
+    },
+    "projectView": {
+      "title": "プロジェクト",
+      "cardTitle": "プロジェクト",
+      "cardDescription": "プロジェクト詳細",
+      "editButton": "プロジェクトを編集"
+    },
+    "logout": {
+      "title": "ログアウト"
+    },
+    "sendEmail": {
+      "title": "お知らせメールを送信",
+      "testCardTitle": "テストメールを送信",
+      "testCardDescription": "すべてのユーザーに送信する前に、どのように見えるかをプレビューするために、単一のメールアドレスにテストのお知らせメールを送信します。",
+      "allCardTitle": "すべてのユーザーにメール送信",
+      "allCardDescription": "すべての登録済みユーザーにお知らせメールを送信します。最初にテストメールを送信して内容を確認してください。",
+      "testSubmitButton": "テストメールを送信",
+      "allSubmitButton": "すべてのユーザーに送信",
+      "testSuccess": "テストメールが正常に送信されました。受信箱をご確認ください。",
+      "allSuccess": "ブロードキャストメールジョブが開始されました。メールはバックグラウンドで送信されます。",
+      "testFailure": "テストメールの送信に失敗しました。",
+      "allFailure": "メールの送信に失敗しました。",
+      "fillAllFields": "すべてのフィールドを入力してください。",
+      "confirmTitle": "すべてのユーザーへの送信を確認",
+      "confirmDescription": "このお知らせメールをすべての登録済みユーザーに送信してもよろしいですか？この操作は取り消せません。",
+      "confirmButton": "はい、すべてのユーザーに送信"
+    },
+    "moreEmail": {
+      "title": "お知らせメールを送信",
+      "cardTitle": "お知らせメールを送信",
+      "cardDescription": "すべての登録済みユーザーに送信するお知らせメールを作成します。最初にテストメールを送信して、どのように見えるかをプレビューできます。",
+      "sendTestButton": "テストメールを送信",
+      "sendAllButton": "すべてのユーザーに送信",
+      "fillSubjectMessage": "テストを送信する前に件名とメッセージを入力してください。",
+      "fillAllFields": "すべてのフィールドを入力してください。",
+      "testModalTitle": "テストメールを送信",
+      "testModalDescription": "このお知らせのテストを送信するためのメールアドレスを入力してください。",
+      "testModalSubmitButton": "テストを送信",
+      "testModalEmailLabel": "テストメールアドレス",
+      "testModalEmailPlaceholder": "test@example.com",
+      "testModalMissingEmail": "テストメールアドレスを入力してください。",
+      "testSuccess": "テストメールが正常に送信されました。受信箱をご確認ください。",
+      "allSuccess": "ブロードキャストメールジョブが開始されました。メールはバックグラウンドで送信されます。",
+      "testFailure": "テストメールの送信に失敗しました。",
+      "allFailure": "メールの送信に失敗しました。",
+      "confirmTitle": "すべてのユーザーへの送信を確認",
+      "confirmDescription": "このお知らせメールをすべての登録済みユーザーに送信してもよろしいですか？この操作は取り消せません。",
+      "confirmButton": "はい、すべてのユーザーに送信"
+    },
+    "settings": {
+      "title": "管理者設定",
+      "authentication": {
+        "authCardTitle": "認証設定",
+        "authCardDescription": "このOneUptimeサーバーインスタンスの認証設定。",
+        "authEditButton": "設定を編集",
+        "projectCreationCardTitle": "プロジェクト作成",
+        "projectCreationCardDescription": "このOneUptimeサーバーで新しいプロジェクトを作成できるユーザーを制御します。",
+        "projectCreationEditButton": "設定を編集"
+      },
+      "email": {
+        "adminNotificationCardTitle": "管理者通知メール",
+        "adminNotificationCardDescription": "管理者レベルの通知を受け取りたいメールアドレスを入力してください。",
+        "adminNotificationEditButton": "メールを編集",
+        "serverCardTitle": "メールサーバー設定",
+        "serverCardDescription": "メールを送信するために使用するメールサーバーを選択してください。",
+        "serverEditButton": "サーバーを編集",
+        "smtpCardTitle": "カスタムメールとSMTP設定",
+        "smtpCardDescription": "メールを送信するためにここでSMTPサーバーを設定してください。",
+        "smtpEditButton": "SMTP設定を編集",
+        "sendgridCardTitle": "Sendgrid設定",
+        "sendgridCardDescription": "Sendgrid経由でメールを送信するためにSendgrid APIキーを入力してください。",
+        "sendgridEditButton": "APIキーを編集",
+        "pillEnabled": "有効",
+        "pillNoApiKey": "有効化されていません。APIキーを追加してください。",
+        "pillNoFromEmail": "有効化されていません。送信元メールを追加してください。",
+        "pillNoFromName": "有効化されていません。送信元名を追加してください。"
+      },
+      "callSms": {
+        "cardTitle": "Twilio設定",
+        "cardDescription": "これは通話とSMS送信に使用されます。",
+        "editButton": "Twilio設定を編集"
+      },
+      "whatsapp": {
+        "metaCardTitle": "Meta WhatsApp設定",
+        "metaCardDescription": "Meta WhatsApp資格情報を設定します。これらの値はOneUptimeからWhatsApp通知を送信するために使用されます。",
+        "metaEditButton": "Meta WhatsApp設定を編集",
+        "testCardTitle": "テストWhatsAppメッセージを送信",
+        "testCardDescription": "Meta設定を確認するためにテストWhatsAppテンプレートメッセージを送信します。",
+        "testSubmitButton": "テストメッセージを送信",
+        "testSuccess": "テストWhatsAppメッセージが正常に送信されました。受信者のデバイスで配信を確認してください。",
+        "testMissingNumber": "テストメッセージを送信する前にWhatsApp番号を入力してください。",
+        "testFailure": "テストWhatsAppメッセージの送信に失敗しました。",
+        "setupCardTitle": "Meta WhatsAppセットアップガイド",
+        "setupCardDescription": "Meta WhatsAppを接続する手順とプロビジョニングする必要があるテンプレート。"
+      },
+      "telegram": {
+        "setupCardTitle": "Telegramセットアップガイド",
+        "setupCardDescription": "これを最初にお読みください — これはゼロからOneUptimeに接続されたTelegramボットを動作させる最も早い方法です。",
+        "configCardTitle": "Telegramボット設定",
+        "configCardDescription": "@BotFatherが提供したボットトークンとユーザー名を貼り付けてください。これらは送信通知を動作させます。シークレットトークンは受信Webhookを保護します。",
+        "configEditButton": "Telegram設定を編集",
+        "testCardTitle": "テストTelegramメッセージを送信",
+        "testCardDescription": "ボット設定を確認するためにテストTelegramメッセージを送信します。",
+        "testSubmitButton": "テストメッセージを送信",
+        "testSuccess": "テストTelegramメッセージが正常に送信されました。受信者のデバイスで配信を確認してください。",
+        "testMissingChatId": "テストメッセージを送信する前にTelegramチャットIDを入力してください。",
+        "testFailure": "テストTelegramメッセージの送信に失敗しました。"
+      },
+      "probes": {
+        "bannerTitle": "グローバルプローブの設定にサポートが必要ですか？",
+        "bannerDescription": "セットアップに役立つガイドがあります",
+        "cardTitle": "グローバルプローブ",
+        "cardDescription": "グローバルプローブは世界中のさまざまな場所から外部リソースを監視するのに役立ちます。",
+        "noItems": "プローブが見つかりません。",
+        "showIdKey": "IDとキーを表示",
+        "keyModalTitle": "プローブキー",
+        "keyModalDescription": "こちらがあなたのプローブキーです。秘密にしておいてください。",
+        "probeIdLabel": "プローブID：",
+        "probeKeyLabel": "プローブキー："
+      },
+      "aiAgents": {
+        "bannerTitle": "グローバルAIエージェントの設定にサポートが必要ですか？",
+        "bannerDescription": "セットアップに役立つガイドがあります",
+        "cardTitle": "グローバルAIエージェント",
+        "cardDescription": "グローバルAIエージェントは世界中のさまざまな場所からAI駆動の応答でインシデント管理を自動化するのに役立ちます。",
+        "noItems": "AIエージェントが見つかりません。",
+        "showIdKey": "IDとキーを表示",
+        "keyModalTitle": "AIエージェントキー",
+        "keyModalDescription": "こちらがあなたのAIエージェントキーです。秘密にしておいてください。",
+        "agentIdLabel": "AIエージェントID：",
+        "agentKeyLabel": "AIエージェントキー："
+      },
+      "dataRetention": {
+        "logCardTitle": "モニターログ保持",
+        "logCardDescription": "モニターログが自動的に削除される前に保持される期間を設定します。",
+        "logEditButton": "設定を編集",
+        "metricCardTitle": "モニターメトリック保持",
+        "metricCardDescription": "モニターメトリックが自動的に削除される前に保持される期間を設定します。",
+        "metricEditButton": "設定を編集"
+      },
+      "apiKey": {
+        "cardTitle": "マスターAPIキー設定",
+        "cardDescription": "このAPIキーはOneUptimeのすべてのプロジェクトのすべてのリソースへのrootアクセス権を持ちます。",
+        "editButton": "APIキー設定を編集",
+        "apiKeyNotGenerated": "APIキーはまだ生成されていません。"
+      },
+      "llmProviders": {
+        "bannerTitle": "LLMプロバイダーの設定にサポートが必要ですか？",
+        "bannerDescription": "LLMプロバイダーはAI機能を有効にします。すべてのプロジェクトで利用可能なグローバルLLMプロバイダーを設定できます。",
+        "cardTitle": "グローバルLLMプロバイダー",
+        "cardDescription": "グローバルLLMプロバイダーはすべてのプロジェクトでAI機能のために利用できます。OpenAI、Anthropic、Ollama、またはその他のLLMプロバイダーを設定します。",
+        "noItems": "LLMプロバイダーが設定されていません。AI機能を有効にするにはLLMプロバイダーを追加してください。",
+        "stepBasicInfo": "基本情報",
+        "stepProviderSettings": "プロバイダー設定",
+        "stepCostSettings": "コスト設定"
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface SideMenuProps {
   modelId: ObjectID;
@@ -15,12 +16,13 @@ export interface SideMenuProps {
 const SideMenuComponent: FunctionComponent<SideMenuProps> = (
   props: SideMenuProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      <SideMenuSection title={t("sideMenu.basic")}>
         <SideMenuItem
           link={{
-            title: "Overview",
+            title: t("sideMenu.overview"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_VIEW] as Route,
               {
@@ -32,10 +34,10 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Advanced">
+      <SideMenuSection title={t("sideMenu.advanced")}>
         <SideMenuItem
           link={{
-            title: "Delete",
+            title: t("sideMenu.delete"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_DELETE] as Route,
               {

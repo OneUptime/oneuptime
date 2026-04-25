@@ -21,6 +21,7 @@ export const SUPPORTED_STATUS_PAGE_LANGUAGES: Array<StatusPageLanguage> = [
   { code: "ja", nativeName: "日本語", englishName: "Japanese" },
   { code: "ko", nativeName: "한국어", englishName: "Korean" },
   { code: "zh", nativeName: "中文", englishName: "Chinese" },
+  { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
 ];
 
 export const SUPPORTED_STATUS_PAGE_LANGUAGE_CODES: Array<string> =

@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Page from "Common/UI/Components/Page/Page";
 import Card from "Common/UI/Components/Card/Card";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -16,6 +17,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 
 const SendEmail: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
   const [isSendingAll, setIsSendingAll] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
@@ -48,12 +50,10 @@ const SendEmail: FunctionComponent = (): ReactElement => {
       }
 
       if (response.isFailure()) {
-        throw new Error("Failed to send emails.");
+        throw new Error(t("pages.sendEmail.allFailure"));
       }
 
-      setSendAllSuccess(
-        "Broadcast email job has been started. Emails will be sent in the background.",
-      );
+      setSendAllSuccess(t("pages.sendEmail.allSuccess"));
     } catch (err) {
       setSendAllError(API.getFriendlyMessage(err));
     } finally {
@@ -63,14 +63,14 @@ const SendEmail: FunctionComponent = (): ReactElement => {
 
   return (
     <Page
-      title={"Send Announcement Email"}
+      title={t("pages.sendEmail.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Send Email",
+          title: t("breadcrumbs.sendEmail"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SEND_EMAIL] as Route,
           ),
@@ -78,8 +78,8 @@ const SendEmail: FunctionComponent = (): ReactElement => {
       ]}
     >
       <Card
-        title="Send Test Email"
-        description="Send a test announcement email to a single email address to preview how it looks before sending to all users."
+        title={t("pages.sendEmail.testCardTitle")}
+        description={t("pages.sendEmail.testCardDescription")}
       >
         {testSuccess ? (
           <Alert
@@ -96,7 +96,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
           name="Send Test Announcement Email"
           isLoading={isSendingTest}
           error={testError || ""}
-          submitButtonText="Send Test Email"
+          submitButtonText={t("pages.sendEmail.testSubmitButton")}
           maxPrimaryButtonWidth={true}
           initialValues={{
             subject: "",
@@ -148,7 +148,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
 
             if (!subject || !message || !testEmail) {
               setTestSuccess("");
-              setTestError("Please fill in all fields.");
+              setTestError(t("pages.sendEmail.fillAllFields"));
               return;
             }
 
@@ -174,12 +174,10 @@ const SendEmail: FunctionComponent = (): ReactElement => {
               }
 
               if (response.isFailure()) {
-                throw new Error("Failed to send test email.");
+                throw new Error(t("pages.sendEmail.testFailure"));
               }
 
-              setTestSuccess(
-                "Test email sent successfully. Please check your inbox.",
-              );
+              setTestSuccess(t("pages.sendEmail.testSuccess"));
 
               if (onSubmitSuccessful) {
                 onSubmitSuccessful();
@@ -194,8 +192,8 @@ const SendEmail: FunctionComponent = (): ReactElement => {
       </Card>
 
       <Card
-        title="Send Email to All Users"
-        description="Send an announcement email to all registered users. Please send a test email first to verify the content."
+        title={t("pages.sendEmail.allCardTitle")}
+        description={t("pages.sendEmail.allCardDescription")}
       >
         {sendAllSuccess ? (
           <Alert
@@ -212,7 +210,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
           name="Send Announcement to All Users"
           isLoading={isSendingAll}
           error={sendAllError || ""}
-          submitButtonText="Send to All Users"
+          submitButtonText={t("pages.sendEmail.allSubmitButton")}
           maxPrimaryButtonWidth={true}
           initialValues={{
             subject: "",
@@ -247,7 +245,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
 
             if (!subject || !message) {
               setSendAllSuccess("");
-              setSendAllError("Please fill in all fields.");
+              setSendAllError(t("pages.sendEmail.fillAllFields"));
               return;
             }
 
@@ -260,9 +258,9 @@ const SendEmail: FunctionComponent = (): ReactElement => {
 
       {showConfirmModal ? (
         <ConfirmModal
-          title="Confirm Send to All Users"
-          description="Are you sure you want to send this announcement email to all registered users? This action cannot be undone."
-          submitButtonText="Yes, Send to All Users"
+          title={t("pages.sendEmail.confirmTitle")}
+          description={t("pages.sendEmail.confirmDescription")}
+          submitButtonText={t("pages.sendEmail.confirmButton")}
           onSubmit={async () => {
             setShowConfirmModal(false);
             await sendToAllUsers();

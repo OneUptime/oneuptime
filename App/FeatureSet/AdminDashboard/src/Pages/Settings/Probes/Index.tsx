@@ -18,28 +18,30 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);
 
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Global Probes",
+          title: t("breadcrumbs.globalProbes"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_PROBES] as Route,
           ),
@@ -51,8 +53,8 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       <Banner
         openInNewTab={true}
-        title="Need help with setting up Global Probes?"
-        description="Here is a guide which will help you get set up"
+        title={t("pages.settings.probes.bannerTitle")}
+        description={t("pages.settings.probes.bannerDescription")}
         link={Route.fromString("/docs/probe/custom-probe")}
         hideOnMobile={true}
       />
@@ -66,16 +68,15 @@ const Settings: FunctionComponent = (): ReactElement => {
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: "Global Probes",
-          description:
-            "Global Probes help you monitor external resources from different locations around the world.",
+          title: t("pages.settings.probes.cardTitle"),
+          description: t("pages.settings.probes.cardDescription"),
         }}
         query={{
           projectId: new IsNull(),
           isGlobalProbe: true,
         }}
         modelAPI={AdminModelAPI}
-        noItemsMessage={"No probes found."}
+        noItemsMessage={t("pages.settings.probes.noItems")}
         showRefreshButton={true}
         onBeforeCreate={(item: Probe) => {
           item.isGlobalProbe = true;
@@ -121,7 +122,7 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         actionButtons={[
           {
-            title: "Show ID and Key",
+            title: t("pages.settings.probes.showIdKey"),
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: Probe,
@@ -195,7 +196,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               ) {
                 return (
                   <Statusbubble
-                    text={"Connected"}
+                    text={t("common.connected")}
                     color={Green}
                     shouldAnimate={true}
                   />
@@ -204,7 +205,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
               return (
                 <Statusbubble
-                  text={"Disconnected"}
+                  text={t("common.disconnected")}
                   color={Red}
                   shouldAnimate={false}
                 />
@@ -216,23 +217,25 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       {showKeyModal && currentProbe ? (
         <ConfirmModal
-          title={`Probe Key`}
+          title={t("pages.settings.probes.keyModalTitle")}
           description={
             <div>
-              <span>Here is your probe key. Please keep this a secret.</span>
+              <span>{t("pages.settings.probes.keyModalDescription")}</span>
               <br />
               <br />
               <span>
-                <b>Probe ID: </b> {currentProbe["_id"]?.toString()}
+                <b>{t("pages.settings.probes.probeIdLabel")} </b>{" "}
+                {currentProbe["_id"]?.toString()}
               </span>
               <br />
               <br />
               <span>
-                <b>Probe Key: </b> {currentProbe["key"]?.toString()}
+                <b>{t("pages.settings.probes.probeKeyLabel")} </b>{" "}
+                {currentProbe["key"]?.toString()}
               </span>
             </div>
           }
-          submitButtonText={"Close"}
+          submitButtonText={t("common.close")}
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={async () => {
             setShowKeyModal(false);

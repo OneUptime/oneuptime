@@ -627,13 +627,13 @@ export default class Service extends BaseModel {
   @TableColumn({
     type: TableColumnType.Number,
     title: "Retain Telemetry Data For Days",
-    description: "Number of days to retain telemetry data for this service.",
+    description:
+      "Number of days to retain telemetry data for this service. Leave blank to use the project-wide default.",
   })
   @Column({
     type: ColumnType.Number,
     nullable: true,
     unique: false,
-    default: 15,
   })
   public retainTelemetryDataForDays?: number = undefined;
 

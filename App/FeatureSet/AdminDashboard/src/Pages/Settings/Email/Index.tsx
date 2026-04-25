@@ -21,8 +21,10 @@ import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [emailServerType, setemailServerType] = React.useState<EmailServerType>(
     EmailServerType.CustomSMTP,
   );
@@ -69,20 +71,20 @@ const Settings: FunctionComponent = (): ReactElement => {
 
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Email Settings",
+          title: t("breadcrumbs.emailSettings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_SMTP] as Route,
           ),
@@ -95,12 +97,13 @@ const Settings: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Admin Notification Email"
         cardProps={{
-          title: "Admin Notification Email",
-          description:
-            "Enter the email address where you would like to receive admin-level notifications.",
+          title: t("pages.settings.email.adminNotificationCardTitle"),
+          description: t(
+            "pages.settings.email.adminNotificationCardDescription",
+          ),
         }}
         isEditable={true}
-        editButtonText="Edit Email"
+        editButtonText={t("pages.settings.email.adminNotificationEditButton")}
         formFields={[
           {
             field: {
@@ -132,12 +135,11 @@ const Settings: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Email Server Settings"
         cardProps={{
-          title: "Email Server Settings",
-          description:
-            "Pick which email server you would like to use to send emails.",
+          title: t("pages.settings.email.serverCardTitle"),
+          description: t("pages.settings.email.serverCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Server"
+        editButtonText={t("pages.settings.email.serverEditButton")}
         onSaveSuccess={() => {
           window.location.reload();
         }}
@@ -173,12 +175,11 @@ const Settings: FunctionComponent = (): ReactElement => {
         <CardModelDetail<GlobalConfig>
           name="Host Settings"
           cardProps={{
-            title: "Custom Email and SMTP Settings",
-            description:
-              "Please configure your SMTP server here to send emails.",
+            title: t("pages.settings.email.smtpCardTitle"),
+            description: t("pages.settings.email.smtpCardDescription"),
           }}
           isEditable={true}
-          editButtonText="Edit SMTP Config"
+          editButtonText={t("pages.settings.email.smtpEditButton")}
           formSteps={[
             {
               title: "SMTP Server",
@@ -488,12 +489,11 @@ const Settings: FunctionComponent = (): ReactElement => {
         <CardModelDetail<GlobalConfig>
           name="Sendgrid Settings"
           cardProps={{
-            title: "Sendgrid Settings",
-            description:
-              "Enter your Sendgrid API key to send emails through Sendgrid.",
+            title: t("pages.settings.email.sendgridCardTitle"),
+            description: t("pages.settings.email.sendgridCardDescription"),
           }}
           isEditable={true}
-          editButtonText="Edit API Key"
+          editButtonText={t("pages.settings.email.sendgridEditButton")}
           formFields={[
             {
               field: {
@@ -543,25 +543,30 @@ const Settings: FunctionComponent = (): ReactElement => {
                     item["sendgridFromEmail"] &&
                     item["sendgridFromName"]
                   ) {
-                    return <Pill text="Enabled" color={Green} />;
+                    return (
+                      <Pill
+                        text={t("pages.settings.email.pillEnabled")}
+                        color={Green}
+                      />
+                    );
                   } else if (!item["sendgridApiKey"]) {
                     return (
                       <Pill
-                        text="Not Enabled. Please add the API key."
+                        text={t("pages.settings.email.pillNoApiKey")}
                         color={Red}
                       />
                     );
                   } else if (!item["sendgridFromEmail"]) {
                     return (
                       <Pill
-                        text="Not Enabled. Please add the From Email."
+                        text={t("pages.settings.email.pillNoFromEmail")}
                         color={Red}
                       />
                     );
                   } else if (!item["sendgridFromName"]) {
                     return (
                       <Pill
-                        text="Not Enabled. Please add the From Name."
+                        text={t("pages.settings.email.pillNoFromName")}
                         color={Red}
                       />
                     );

@@ -4,7 +4,9 @@ import ObjectID from "../../Types/ObjectID";
 import Metric, {
   AggregationTemporality,
 } from "../../Models/AnalyticsModels/Metric";
+import Project from "../../Models/DatabaseModels/Project";
 import Service from "../../Models/DatabaseModels/Service";
+import ProjectService from "../../Server/Services/ProjectService";
 import ServiceService from "../../Server/Services/ServiceService";
 import { DEFAULT_RETENTION_IN_DAYS } from "../../Models/DatabaseModels/TelemetryUsageBilling";
 import TelemetryUtil from "../../Server/Utils/Telemetry/Telemetry";
@@ -22,6 +24,25 @@ export interface TelemetryServiceMetadata {
 }
 
 export default class OTelIngestService {
+  @CaptureSpan()
+  private static async getProjectDefaultRetentionInDays(
+    projectId: ObjectID,
+  ): Promise<number> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: {
+        defaultTelemetryRetentionInDays: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return (
+      project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS
+    );
+  }
+
   @CaptureSpan()
   public static async telemetryServiceFromName(data: {
     serviceName: string;
@@ -45,12 +66,14 @@ export default class OTelIngestService {
     });
 
     if (!service) {
+      const projectDefaultRetention: number =
+        await this.getProjectDefaultRetentionInDays(data.projectId);
+
       try {
         const newService: Service = new Service();
         newService.projectId = data.projectId;
         newService.name = data.serviceName;
         newService.description = data.serviceName;
-        newService.retainTelemetryDataForDays = DEFAULT_RETENTION_IN_DAYS;
 
         const createdService: Service = await ServiceService.create({
           data: newService,
@@ -61,7 +84,7 @@ export default class OTelIngestService {
 
         return {
           serviceId: createdService.id!,
-          dataRententionInDays: DEFAULT_RETENTION_IN_DAYS,
+          dataRententionInDays: projectDefaultRetention,
         };
       } catch {
         /*
@@ -87,7 +110,7 @@ export default class OTelIngestService {
             serviceId: existingService.id!,
             dataRententionInDays:
               existingService.retainTelemetryDataForDays ||
-              DEFAULT_RETENTION_IN_DAYS,
+              projectDefaultRetention,
           };
         }
 
@@ -97,10 +120,18 @@ export default class OTelIngestService {
       }
     }
 
+    if (service.retainTelemetryDataForDays) {
+      return {
+        serviceId: service.id!,
+        dataRententionInDays: service.retainTelemetryDataForDays,
+      };
+    }
+
     return {
       serviceId: service.id!,
-      dataRententionInDays:
-        service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS,
+      dataRententionInDays: await this.getProjectDefaultRetentionInDays(
+        data.projectId,
+      ),
     };
   }
   @CaptureSpan()

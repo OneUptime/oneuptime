@@ -10,15 +10,17 @@ import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const DashboardUserProfile: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
   return (
     <>
       <HeaderIconDropdownButton
         iconImageUrl={BlankProfilePic}
-        name="User Profile"
+        name={t("header.userProfile")}
         showDropdown={isDropdownVisible}
         onClick={() => {
           setIsDropdownVisible(true);
@@ -27,7 +29,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
         <IconDropdownMenu>
           {User.isMasterAdmin() ? (
             <IconDropdownItem
-              title="Exit Admin"
+              title={t("userProfile.exitAdmin")}
               onClick={() => {
                 setIsDropdownVisible(false);
                 Navigation.navigate(DASHBOARD_URL);
@@ -39,7 +41,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
           )}
 
           <IconDropdownItem
-            title="Log out"
+            title={t("userProfile.logOut")}
             onClick={() => {
               setIsDropdownVisible(false);
             }}

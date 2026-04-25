@@ -1,0 +1,287 @@
+{
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "submit": "Indienen",
+    "close": "Sluiten",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "yes": "Ja",
+    "no": "Nee",
+    "none": "Geen",
+    "notEnabled": "Niet ingeschakeld",
+    "notConfigured": "Niet geconfigureerd",
+    "loading": "Laden...",
+    "enabled": "Ingeschakeld",
+    "disabled": "Uitgeschakeld",
+    "connected": "Verbonden",
+    "disconnected": "Verbinding verbroken",
+    "allSupportedLanguages": "Alle ondersteunde talen"
+  },
+  "language": {
+    "label": "Taal",
+    "switchLanguage": "Taal wijzigen"
+  },
+  "breadcrumbs": {
+    "adminDashboard": "Admin-dashboard",
+    "users": "Gebruikers",
+    "user": "Gebruiker",
+    "projects": "Projecten",
+    "project": "Project",
+    "settings": "Instellingen",
+    "authentication": "Authenticatie",
+    "emailSettings": "E-mailinstellingen",
+    "callsAndSms": "Oproepen en sms",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "globalProbes": "Globale probes",
+    "dataRetention": "Gegevensbewaring",
+    "globalAiAgents": "Globale AI-agenten",
+    "globalLlmProviders": "Globale LLM-providers",
+    "apiKey": "API-sleutel",
+    "more": "Meer",
+    "sendEmail": "E-mail verzenden",
+    "logout": "Uitloggen"
+  },
+  "topAlert": {
+    "title": "OneUptime admin-dashboard",
+    "description": "U kunt uw OneUptime-servergerelateerde taken op dit dashboard uitvoeren."
+  },
+  "header": {
+    "exitAdmin": "Admin verlaten",
+    "help": "Help",
+    "userProfile": "Gebruikersprofiel"
+  },
+  "help": {
+    "supportEmail": "Support-e-mail",
+    "chatSlack": "Chatten op Slack",
+    "requestDemo": "Demo aanvragen"
+  },
+  "userProfile": {
+    "exitAdmin": "Admin verlaten",
+    "logOut": "Uitloggen"
+  },
+  "footer": {
+    "copyright": "HackerBay, Inc.",
+    "helpSupport": "Help en ondersteuning",
+    "legal": "Juridisch",
+    "version": "Versie",
+    "versionModalTitle": "OneUptime-versie",
+    "versionLabel": "Versie",
+    "commitLabel": "Commit",
+    "versionUnavailable": "Versiegegevens zijn niet beschikbaar"
+  },
+  "navbar": {
+    "users": "Gebruikers",
+    "projects": "Projecten",
+    "more": "Meer",
+    "settings": "Instellingen"
+  },
+  "sideMenu": {
+    "basic": "Basis",
+    "advanced": "Geavanceerd",
+    "overview": "Overzicht",
+    "settings": "Instellingen",
+    "delete": "Verwijderen",
+    "settingsAuthentication": "Authenticatie",
+    "settingsNotifications": "Meldingen",
+    "settingsEmails": "E-mails",
+    "settingsCallSms": "Oproep en sms",
+    "settingsWhatsapp": "WhatsApp",
+    "settingsTelegram": "Telegram",
+    "settingsMonitoring": "Monitoring",
+    "settingsGlobalProbes": "Globale probes",
+    "settingsDataRetention": "Gegevensbewaring",
+    "settingsAi": "AI",
+    "settingsGlobalAiAgents": "Globale AI-agenten",
+    "settingsGlobalLlmProviders": "Globale LLM-providers",
+    "settingsApiIntegrations": "API en integraties",
+    "settingsApiKey": "API-sleutel",
+    "moreCommunication": "Communicatie",
+    "moreSendEmail": "E-mail verzenden"
+  },
+  "pages": {
+    "users": {
+      "title": "Gebruikers",
+      "cardTitle": "Gebruikers",
+      "cardDescription": "Hier is een lijst met gebruikers in OneUptime.",
+      "noItems": "Geen gebruikers gevonden."
+    },
+    "userView": {
+      "title": "Gebruiker",
+      "cardTitle": "Gebruiker",
+      "cardDescription": "Gebruikersgegevens",
+      "editButton": "Gebruiker bewerken",
+      "masterAdminCardTitle": "Master-admin-toegang",
+      "masterAdminCardDescription": "Master-admin-toegang verlenen of intrekken voor deze gebruiker. Master-admins kunnen elk project en elke werkruimte beheren.",
+      "masterAdminEditButton": "Toegang bijwerken"
+    },
+    "projects": {
+      "title": "Projecten",
+      "cardTitle": "Projecten",
+      "cardDescription": "Hier is een lijst met projecten in OneUptime.",
+      "noItems": "Geen projecten gevonden.",
+      "stepBasic": "Basis",
+      "stepSelectPlan": "Abonnement selecteren",
+      "yearlyPlanTitle": "Jaarabonnement",
+      "yearlyPlanDescription": "(Bespaar 20%)",
+      "freeForeverDescription": "Dit abonnement is gratis, voor altijd. "
+    },
+    "projectView": {
+      "title": "Project",
+      "cardTitle": "Project",
+      "cardDescription": "Projectgegevens",
+      "editButton": "Project bewerken"
+    },
+    "logout": {
+      "title": "Uitloggen"
+    },
+    "sendEmail": {
+      "title": "Aankondigings-e-mail verzenden",
+      "testCardTitle": "Test-e-mail verzenden",
+      "testCardDescription": "Verzend een test-aankondigings-e-mail naar één e-mailadres om een voorbeeld te zien voordat u deze naar alle gebruikers verzendt.",
+      "allCardTitle": "E-mail naar alle gebruikers verzenden",
+      "allCardDescription": "Verzend een aankondigings-e-mail naar alle geregistreerde gebruikers. Verzend eerst een test-e-mail om de inhoud te verifiëren.",
+      "testSubmitButton": "Test-e-mail verzenden",
+      "allSubmitButton": "Naar alle gebruikers verzenden",
+      "testSuccess": "Test-e-mail succesvol verzonden. Controleer uw inbox.",
+      "allSuccess": "Broadcast-e-mailtaak is gestart. E-mails worden op de achtergrond verzonden.",
+      "testFailure": "Verzenden van test-e-mail mislukt.",
+      "allFailure": "Verzenden van e-mails mislukt.",
+      "fillAllFields": "Vul alle velden in.",
+      "confirmTitle": "Bevestig verzenden naar alle gebruikers",
+      "confirmDescription": "Weet u zeker dat u deze aankondigings-e-mail naar alle geregistreerde gebruikers wilt verzenden? Deze actie kan niet ongedaan worden gemaakt.",
+      "confirmButton": "Ja, verzenden naar alle gebruikers"
+    },
+    "moreEmail": {
+      "title": "Aankondigings-e-mail verzenden",
+      "cardTitle": "Aankondigings-e-mail verzenden",
+      "cardDescription": "Stel een aankondigings-e-mail op om naar alle geregistreerde gebruikers te verzenden. U kunt eerst een test-e-mail verzenden om een voorbeeld te zien.",
+      "sendTestButton": "Test-e-mail verzenden",
+      "sendAllButton": "Naar alle gebruikers verzenden",
+      "fillSubjectMessage": "Vul onderwerp en bericht in voordat u een test verzendt.",
+      "fillAllFields": "Vul alle velden in.",
+      "testModalTitle": "Test-e-mail verzenden",
+      "testModalDescription": "Voer een e-mailadres in om een test van deze aankondiging te verzenden.",
+      "testModalSubmitButton": "Test verzenden",
+      "testModalEmailLabel": "Test-e-mailadres",
+      "testModalEmailPlaceholder": "test@example.com",
+      "testModalMissingEmail": "Voer een test-e-mailadres in.",
+      "testSuccess": "Test-e-mail succesvol verzonden. Controleer uw inbox.",
+      "allSuccess": "Broadcast-e-mailtaak is gestart. E-mails worden op de achtergrond verzonden.",
+      "testFailure": "Verzenden van test-e-mail mislukt.",
+      "allFailure": "Verzenden van e-mails mislukt.",
+      "confirmTitle": "Bevestig verzenden naar alle gebruikers",
+      "confirmDescription": "Weet u zeker dat u deze aankondigings-e-mail naar alle geregistreerde gebruikers wilt verzenden? Deze actie kan niet ongedaan worden gemaakt.",
+      "confirmButton": "Ja, verzenden naar alle gebruikers"
+    },
+    "settings": {
+      "title": "Admin-instellingen",
+      "authentication": {
+        "authCardTitle": "Authenticatie-instellingen",
+        "authCardDescription": "Authenticatie-instellingen voor deze OneUptime-serverinstantie.",
+        "authEditButton": "Instellingen bewerken",
+        "projectCreationCardTitle": "Project aanmaken",
+        "projectCreationCardDescription": "Bepaal wie nieuwe projecten op deze OneUptime-server kan aanmaken.",
+        "projectCreationEditButton": "Instellingen bewerken"
+      },
+      "email": {
+        "adminNotificationCardTitle": "Admin-meldings-e-mail",
+        "adminNotificationCardDescription": "Voer het e-mailadres in waarop u admin-level meldingen wilt ontvangen.",
+        "adminNotificationEditButton": "E-mail bewerken",
+        "serverCardTitle": "E-mailserverinstellingen",
+        "serverCardDescription": "Kies welke e-mailserver u wilt gebruiken om e-mails te verzenden.",
+        "serverEditButton": "Server bewerken",
+        "smtpCardTitle": "Aangepaste e-mail- en SMTP-instellingen",
+        "smtpCardDescription": "Configureer hier uw SMTP-server om e-mails te verzenden.",
+        "smtpEditButton": "SMTP-config bewerken",
+        "sendgridCardTitle": "Sendgrid-instellingen",
+        "sendgridCardDescription": "Voer uw Sendgrid API-sleutel in om e-mails via Sendgrid te verzenden.",
+        "sendgridEditButton": "API-sleutel bewerken",
+        "pillEnabled": "Ingeschakeld",
+        "pillNoApiKey": "Niet ingeschakeld. Voeg de API-sleutel toe.",
+        "pillNoFromEmail": "Niet ingeschakeld. Voeg het afzender-e-mailadres toe.",
+        "pillNoFromName": "Niet ingeschakeld. Voeg de afzendernaam toe."
+      },
+      "callSms": {
+        "cardTitle": "Twilio-configuratie",
+        "cardDescription": "Dit wordt gebruikt voor het bellen en verzenden van sms.",
+        "editButton": "Twilio-config bewerken"
+      },
+      "whatsapp": {
+        "metaCardTitle": "Meta WhatsApp-instellingen",
+        "metaCardDescription": "Configureer Meta WhatsApp-referenties. Deze waarden worden gebruikt om WhatsApp-meldingen vanuit OneUptime te verzenden.",
+        "metaEditButton": "Meta WhatsApp-config bewerken",
+        "testCardTitle": "Test-WhatsApp-bericht verzenden",
+        "testCardDescription": "Verzend een test-WhatsApp-sjabloonbericht om uw Meta-configuratie te bevestigen.",
+        "testSubmitButton": "Testbericht verzenden",
+        "testSuccess": "Test-WhatsApp-bericht succesvol verzonden. Controleer het apparaat van de ontvanger om de bezorging te bevestigen.",
+        "testMissingNumber": "Voer een WhatsApp-nummer in voordat u een testbericht verzendt.",
+        "testFailure": "Verzenden van test-WhatsApp-bericht mislukt.",
+        "setupCardTitle": "Meta WhatsApp-installatiehandleiding",
+        "setupCardDescription": "Stappen om Meta WhatsApp te verbinden en de sjablonen die u moet inrichten."
+      },
+      "telegram": {
+        "setupCardTitle": "Telegram-installatiehandleiding",
+        "setupCardDescription": "Lees dit eerst — het is de snelste weg van nul naar een werkende Telegram-bot verbonden met OneUptime.",
+        "configCardTitle": "Telegram-botinstellingen",
+        "configCardDescription": "Plak het bot-token en de gebruikersnaam die @BotFather u heeft gegeven. Deze voeden uitgaande meldingen; het geheime token beschermt de inkomende webhook.",
+        "configEditButton": "Telegram-config bewerken",
+        "testCardTitle": "Test-Telegram-bericht verzenden",
+        "testCardDescription": "Verzend een test-Telegram-bericht om uw botconfiguratie te bevestigen.",
+        "testSubmitButton": "Testbericht verzenden",
+        "testSuccess": "Test-Telegram-bericht succesvol verzonden. Controleer het apparaat van de ontvanger om de bezorging te bevestigen.",
+        "testMissingChatId": "Voer een Telegram-chat-ID in voordat u een testbericht verzendt.",
+        "testFailure": "Verzenden van test-Telegram-bericht mislukt."
+      },
+      "probes": {
+        "bannerTitle": "Hulp nodig bij het instellen van globale probes?",
+        "bannerDescription": "Hier is een handleiding die u helpt bij het instellen",
+        "cardTitle": "Globale probes",
+        "cardDescription": "Globale probes helpen u externe bronnen te monitoren vanuit verschillende locaties over de hele wereld.",
+        "noItems": "Geen probes gevonden.",
+        "showIdKey": "ID en sleutel tonen",
+        "keyModalTitle": "Probe-sleutel",
+        "keyModalDescription": "Hier is uw probe-sleutel. Houd deze geheim.",
+        "probeIdLabel": "Probe-ID:",
+        "probeKeyLabel": "Probe-sleutel:"
+      },
+      "aiAgents": {
+        "bannerTitle": "Hulp nodig bij het instellen van globale AI-agenten?",
+        "bannerDescription": "Hier is een handleiding die u helpt bij het instellen",
+        "cardTitle": "Globale AI-agenten",
+        "cardDescription": "Globale AI-agenten helpen u incidentbeheer te automatiseren met AI-aangedreven reacties vanuit verschillende locaties over de hele wereld.",
+        "noItems": "Geen AI-agenten gevonden.",
+        "showIdKey": "ID en sleutel tonen",
+        "keyModalTitle": "AI-agent-sleutel",
+        "keyModalDescription": "Hier is uw AI-agent-sleutel. Houd deze geheim.",
+        "agentIdLabel": "AI-agent-ID:",
+        "agentKeyLabel": "AI-agent-sleutel:"
+      },
+      "dataRetention": {
+        "logCardTitle": "Monitor-log-bewaring",
+        "logCardDescription": "Configureer hoe lang monitor-logs worden bewaard voordat ze automatisch worden verwijderd.",
+        "logEditButton": "Instellingen bewerken",
+        "metricCardTitle": "Monitor-metrische bewaring",
+        "metricCardDescription": "Configureer hoe lang monitormetrieken worden bewaard voordat ze automatisch worden verwijderd.",
+        "metricEditButton": "Instellingen bewerken"
+      },
+      "apiKey": {
+        "cardTitle": "Master-API-sleutelinstellingen",
+        "cardDescription": "Deze API-sleutel heeft root-toegang tot alle bronnen in alle projecten op OneUptime.",
+        "editButton": "API-sleutelinstellingen bewerken",
+        "apiKeyNotGenerated": "API-sleutel nog niet gegenereerd."
+      },
+      "llmProviders": {
+        "bannerTitle": "Hulp nodig bij het instellen van LLM-providers?",
+        "bannerDescription": "LLM-providers schakelen AI-functies in. U kunt globale LLM-providers configureren die beschikbaar zijn voor alle projecten.",
+        "cardTitle": "Globale LLM-providers",
+        "cardDescription": "Globale LLM-providers zijn beschikbaar voor alle projecten voor AI-functies. Configureer OpenAI, Anthropic, Ollama of andere LLM-providers.",
+        "noItems": "Geen LLM-providers geconfigureerd. Voeg een LLM-provider toe om AI-functies in te schakelen.",
+        "stepBasicInfo": "Basisinformatie",
+        "stepProviderSettings": "Providerinstellingen",
+        "stepCostSettings": "Kosteninstellingen"
+      }
+    }
+  }
+}
