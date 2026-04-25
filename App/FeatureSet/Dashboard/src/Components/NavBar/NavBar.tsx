@@ -8,6 +8,7 @@ import NavBar, {
   MoreMenuItem,
 } from "Common/UI/Components/Navbar/NavBar";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   show: boolean;
@@ -16,15 +17,24 @@ export interface ComponentProps {
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
+
   if (!props.show) {
     return <></>;
   }
+
+  const essentialsCategory: string = t("navbar.categories.essentials");
+  const observabilityCategory: string = t("navbar.categories.observability");
+  const analyticsAutomationCategory: string = t(
+    "navbar.categories.analyticsAutomation",
+  );
+  const settingsCategory: string = t("navbar.categories.settings");
 
   // Build the main navigation items - only Home now
   const navItems: NavItem[] = [
     {
       id: "home-nav-bar-item",
-      title: "Home",
+      title: t("navbar.home"),
       icon: IconProp.Home,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
       activeRoute: RouteMap[PageMap.HOME],
@@ -35,207 +45,207 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   const moreMenuItems: MoreMenuItem[] = [
     // Essentials
     {
-      title: "Monitors",
-      description: "Monitor any resource.",
+      title: t("navbar.items.monitorsTitle"),
+      description: t("navbar.items.monitorsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
       activeRoute: RouteMap[PageMap.MONITORS],
       icon: IconProp.AltGlobe,
       iconColor: "blue",
-      category: "Essentials",
+      category: essentialsCategory,
     },
     {
-      title: "Status Pages",
-      description: "Real-time status updates.",
+      title: t("navbar.items.statusPagesTitle"),
+      description: t("navbar.items.statusPagesDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.STATUS_PAGES] as Route,
       ),
       activeRoute: RouteMap[PageMap.STATUS_PAGES],
       icon: IconProp.CheckCircle,
       iconColor: "emerald",
-      category: "Essentials",
+      category: essentialsCategory,
     },
     {
-      title: "Incidents",
-      description: "Detect and resolve fast.",
+      title: t("navbar.items.incidentsTitle"),
+      description: t("navbar.items.incidentsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.INCIDENTS] as Route,
       ),
       activeRoute: RouteMap[PageMap.INCIDENTS],
       icon: IconProp.Alert,
       iconColor: "rose",
-      category: "Essentials",
+      category: essentialsCategory,
     },
     {
-      title: "Alerts",
-      description: "Notification management.",
+      title: t("navbar.items.alertsTitle"),
+      description: t("navbar.items.alertsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route),
       activeRoute: RouteMap[PageMap.ALERTS],
       icon: IconProp.ExclaimationCircle,
       iconColor: "amber",
-      category: "Essentials",
+      category: essentialsCategory,
     },
     {
-      title: "On-Call Duty",
-      description: "Smart routing & escalations.",
+      title: t("navbar.items.onCallDutyTitle"),
+      description: t("navbar.items.onCallDutyDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
       ),
       activeRoute: RouteMap[PageMap.ON_CALL_DUTY],
       icon: IconProp.Call,
       iconColor: "stone",
-      category: "Essentials",
+      category: essentialsCategory,
     },
     {
-      title: "Scheduled Maintenance",
-      description: "Plan and manage maintenance.",
+      title: t("navbar.items.scheduledMaintenanceTitle"),
+      description: t("navbar.items.scheduledMaintenanceDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
       ),
       activeRoute: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS],
       icon: IconProp.Clock,
       iconColor: "cyan",
-      category: "Essentials",
+      category: essentialsCategory,
     },
     // Observability
     {
-      title: "Logs",
-      description: "Search and analyze logs.",
+      title: t("navbar.items.logsTitle"),
+      description: t("navbar.items.logsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
       activeRoute: RouteMap[PageMap.LOGS],
       icon: IconProp.Logs,
       iconColor: "amber",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Metrics",
-      description: "Monitor and visualize system metrics across your services.",
+      title: t("navbar.items.metricsTitle"),
+      description: t("navbar.items.metricsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       activeRoute: RouteMap[PageMap.METRICS],
       icon: IconProp.Heartbeat,
       iconColor: "purple",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Traces",
-      description: "Track requests across your services.",
+      title: t("navbar.items.tracesTitle"),
+      description: t("navbar.items.tracesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
       icon: IconProp.Waterfall,
       iconColor: "yellow",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Performance Profiles",
-      description: "Find slow functions and memory hotspots.",
+      title: t("navbar.items.performanceProfilesTitle"),
+      description: t("navbar.items.performanceProfilesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILES] as Route),
       activeRoute: RouteMap[PageMap.PROFILES],
       icon: IconProp.Fire,
       iconColor: "red",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Exceptions",
-      description: "Track and resolve bugs across your services.",
+      title: t("navbar.items.exceptionsTitle"),
+      description: t("navbar.items.exceptionsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),
       activeRoute: RouteMap[PageMap.EXCEPTIONS],
       icon: IconProp.Bug,
       iconColor: "orange",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Services",
-      description: "Manage service dependencies.",
+      title: t("navbar.items.servicesTitle"),
+      description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
       activeRoute: RouteMap[PageMap.SERVICES],
       icon: IconProp.SquareStack,
       iconColor: "indigo",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Kubernetes",
-      description: "Monitor Kubernetes clusters.",
+      title: t("navbar.items.kubernetesTitle"),
+      description: t("navbar.items.kubernetesDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.KUBERNETES_CLUSTERS] as Route,
       ),
       activeRoute: RouteMap[PageMap.KUBERNETES_CLUSTERS],
       icon: IconProp.Kubernetes,
       iconColor: "blue",
-      category: "Observability",
+      category: observabilityCategory,
     },
     {
-      title: "Docker",
-      description: "Monitor Docker hosts and containers.",
+      title: t("navbar.items.dockerTitle"),
+      description: t("navbar.items.dockerDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DOCKER_HOSTS] as Route,
       ),
       activeRoute: RouteMap[PageMap.DOCKER_HOSTS],
       icon: IconProp.Docker,
       iconColor: "blue",
-      category: "Observability",
+      category: observabilityCategory,
     },
     // Automation & Analytics
     {
-      title: "Dashboards",
-      description: "Visualize all your data.",
+      title: t("navbar.items.dashboardsTitle"),
+      description: t("navbar.items.dashboardsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DASHBOARDS] as Route,
       ),
       activeRoute: RouteMap[PageMap.DASHBOARDS],
       icon: IconProp.ChartPie,
       iconColor: "indigo",
-      category: "Analytics & Automation",
+      category: analyticsAutomationCategory,
     },
     {
-      title: "Workflows",
-      description: "No-code automation builder.",
+      title: t("navbar.items.workflowsTitle"),
+      description: t("navbar.items.workflowsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS] as Route,
       ),
       activeRoute: RouteMap[PageMap.WORKFLOWS],
       icon: IconProp.FlowDiagram,
       iconColor: "sky",
-      category: "Analytics & Automation",
+      category: analyticsAutomationCategory,
     },
     {
-      title: "AI Agent",
-      description: "AI-powered issue resolution.",
+      title: t("navbar.items.aiAgentTitle"),
+      description: t("navbar.items.aiAgentDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,
       ),
       activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
       icon: IconProp.Brain,
       iconColor: "violet",
-      category: "Analytics & Automation",
+      category: analyticsAutomationCategory,
     },
     {
-      title: "Code Repositories",
-      description: "GitHub and GitLab integrations.",
+      title: t("navbar.items.codeRepositoriesTitle"),
+      description: t("navbar.items.codeRepositoriesDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CODE_REPOSITORY] as Route,
       ),
       activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
       icon: IconProp.Code,
       iconColor: "gray",
-      category: "Analytics & Automation",
+      category: analyticsAutomationCategory,
     },
     // Settings
     {
-      title: "Project Settings",
-      description: "Configure your project.",
+      title: t("navbar.items.projectSettingsTitle"),
+      description: t("navbar.items.projectSettingsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
       activeRoute: RouteMap[PageMap.SETTINGS],
       icon: IconProp.Settings,
       iconColor: "slate",
-      category: "Settings",
+      category: settingsCategory,
     },
   ];
 
   // Define the right element (User Settings)
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
-    title: "User Settings",
+    title: t("navbar.userSettings"),
     icon: IconProp.User,
     route: RouteUtil.populateRouteParams(
       RouteMap[PageMap.USER_SETTINGS] as Route,
@@ -245,9 +255,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Define the more menu footer
   const moreMenuFooter: any = {
-    title: "Report a bug or request a feature.",
-    description:
-      "We embrace open-source! Please report any issue you find and make feature requests on GitHub.",
+    title: t("navbar.moreFooter.title"),
+    description: t("navbar.moreFooter.description"),
     link: URL.fromString(
       "https://github.com/OneUptime/oneuptime/issues/new/choose",
     ),

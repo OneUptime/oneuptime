@@ -17,10 +17,8 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
-import IncidentStateService from "../../Services/IncidentStateService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
-import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -467,7 +465,6 @@ export default class MonitorIncident {
       await IncidentStateTimelineService.getResolvedStateIdForProject(
         input.openIncident.projectId!,
       );
-
 
     const incidentStateTimeline: IncidentStateTimeline =
       new IncidentStateTimeline();
