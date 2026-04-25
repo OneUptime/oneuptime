@@ -78,8 +78,27 @@ export default class MonitorCriteriaEvaluator {
     }
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
-      // Skip criteria that have been explicitly disabled by the user.
+      /*
+       * Record disabled criteria in the summary (so the user can see why
+       * nothing happened) but skip evaluation, status changes, incidents,
+       * and alerts.
+       */
       if (criteriaInstance.data?.isEnabled === false) {
+        const skipReason: string =
+          "This criteria is disabled and was not evaluated.";
+        const skippedCriteriaResult: MonitorEvaluationCriteriaResult = {
+          criteriaId: criteriaInstance.data?.id,
+          criteriaName: criteriaInstance.data?.name,
+          filterCondition:
+            criteriaInstance.data?.filterCondition || FilterCondition.All,
+          met: false,
+          message: skipReason,
+          filters: [],
+          skipped: true,
+          skipReason: skipReason,
+        };
+
+        input.evaluationSummary.criteriaResults.push(skippedCriteriaResult);
         continue;
       }
 
