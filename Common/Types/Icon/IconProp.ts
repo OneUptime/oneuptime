@@ -75,6 +75,7 @@ enum IconProp {
   Time = "Time",
   Terminal = "Terminal",
   Drag = "Drag",
+  GripVertical = "GripVertical",
   Error = "Error",
   Code = "Code",
   Report = "Report",
