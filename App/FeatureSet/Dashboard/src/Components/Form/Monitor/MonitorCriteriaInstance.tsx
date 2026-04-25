@@ -150,6 +150,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   const hasActions: boolean =
     showMonitorStatusChangeControl || showAlertControl || showIncidentControl;
 
+  const isEnabled: boolean = monitorCriteriaInstance?.data?.isEnabled !== false;
+
   return (
     <div className="mt-4">
       {/* Criteria Name and Description */}
@@ -524,6 +526,32 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Settings Section - Collapsible */}
+      <CollapsibleSection
+        title="Settings"
+        description="Configure additional settings for this criteria."
+        badge={isEnabled ? "Enabled" : "Disabled"}
+        variant="bordered"
+        defaultCollapsed={true}
+        className="mb-4"
+      >
+        <div className="mt-2">
+          <Toggle
+            value={isEnabled}
+            title="Enable this criteria"
+            description="When disabled, this criteria will not be evaluated. It will not change the monitor status, create incidents, or trigger alerts."
+            onChange={(value: boolean) => {
+              monitorCriteriaInstance.setIsEnabled(value);
+              if (props.onChange) {
+                props.onChange(
+                  MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                );
+              }
+            }}
+          />
         </div>
       </CollapsibleSection>
 

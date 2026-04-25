@@ -78,6 +78,11 @@ export default class MonitorCriteriaEvaluator {
     }
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
+      // Skip criteria that have been explicitly disabled by the user.
+      if (criteriaInstance.data?.isEnabled === false) {
+        continue;
+      }
+
       const criteriaResult: MonitorEvaluationCriteriaResult = {
         criteriaId: criteriaInstance.data?.id,
         criteriaName: criteriaInstance.data?.name,

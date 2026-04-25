@@ -97,8 +97,11 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   };
 
   const getCriteriaHeaderColor: (
-    _instance: MonitorCriteriaInstance,
-  ) => string = (_instance: MonitorCriteriaInstance): string => {
+    instance: MonitorCriteriaInstance,
+  ) => string = (instance: MonitorCriteriaInstance): string => {
+    if (instance.data?.isEnabled === false) {
+      return "border-l-gray-300";
+    }
     return "border-l-blue-500";
   };
 
@@ -153,6 +156,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       collapsedState[criteriaId] || false;
                     const criteriaName: string =
                       i.data?.name || "Unnamed Criteria";
+                    const isCriteriaDisabled: boolean =
+                      i.data?.isEnabled === false;
 
                     return (
                       <Draggable
@@ -211,9 +216,20 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                   />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center flex-wrap gap-2">
-                                      <span className="text-sm font-semibold text-gray-900">
+                                      <span
+                                        className={`text-sm font-semibold ${
+                                          isCriteriaDisabled
+                                            ? "text-gray-500"
+                                            : "text-gray-900"
+                                        }`}
+                                      >
                                         {criteriaName}
                                       </span>
+                                      {isCriteriaDisabled && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
+                                          Disabled
+                                        </span>
+                                      )}
                                       {isCollapsed && (
                                         <span className="text-xs text-gray-500 truncate">
                                           {getCriteriaSummary(i)}
