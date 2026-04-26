@@ -260,6 +260,9 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
+import MonitorTemplateService, {
+  Service as MonitorTemplateServiceType,
+} from "Common/Server/Services/MonitorTemplateService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -608,6 +611,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
@@ -1900,6 +1904,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentTemplate, IncidentTemplateServiceType>(
         IncidentTemplate,
         IncidentTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorTemplate, MonitorTemplateServiceType>(
+        MonitorTemplate,
+        MonitorTemplateService,
       ).getRouter(),
     );
 

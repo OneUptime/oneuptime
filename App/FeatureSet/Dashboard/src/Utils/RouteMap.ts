@@ -19,6 +19,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS]: "settings/status",
   [PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.MONITORS_SETTINGS_SECRETS]: "settings/secrets",
+  [PageMap.MONITORS_SETTINGS_TEMPLATES]: "settings/templates",
+  [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
@@ -683,6 +685,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_SETTINGS_SECRETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_SETTINGS_SECRETS]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]
     }`,
   ),
 

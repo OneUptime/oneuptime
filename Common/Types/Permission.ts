@@ -679,6 +679,11 @@ enum Permission {
   DeleteProjectMonitor = "DeleteProjectMonitor",
   ReadProjectMonitor = "ReadProjectMonitor",
 
+  CreateMonitorTemplate = "CreateMonitorTemplate",
+  DeleteMonitorTemplate = "DeleteMonitorTemplate",
+  EditMonitorTemplate = "EditMonitorTemplate",
+  ReadMonitorTemplate = "ReadMonitorTemplate",
+
   // Resource Permissions (Team Permission)
   CreateProjectStatusPage = "CreateProjectStatusPage",
   EditProjectStatusPage = "EditProjectStatusPage",
@@ -3159,6 +3164,47 @@ export class PermissionHelper {
         permission: Permission.ReadProjectMonitor,
         title: "Read Monitor",
         description: "This permission can read monitor of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+
+      {
+        permission: Permission.CreateMonitorTemplate,
+        title: "Create Monitor Template",
+        description:
+          "This permission can create Monitor Template this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteMonitorTemplate,
+        title: "Delete Monitor Template",
+        description:
+          "This permission can delete Monitor Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditMonitorTemplate,
+        title: "Edit Monitor Template",
+        description:
+          "This permission can edit Monitor Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadMonitorTemplate,
+        title: "Read Monitor Template",
+        description:
+          "This permission can read Monitor Template of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

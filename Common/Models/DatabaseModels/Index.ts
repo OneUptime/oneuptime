@@ -58,6 +58,7 @@ import TraceRecordingRule from "./TraceRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
+import MonitorTemplate from "./MonitorTemplate";
 // Monitor Groups
 import MonitorGroup from "./MonitorGroup";
 import MonitorGroupOwnerTeam from "./MonitorGroupOwnerTeam";
@@ -308,6 +309,7 @@ const AllModelTypes: Array<{
   MonitorSecret,
   MonitorStatus,
   MonitorCustomField,
+  MonitorTemplate,
 
   IncidentState,
   Incident,
