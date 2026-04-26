@@ -1,9 +1,15 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTypeUtil from "../../../Utils/MonitorType";
@@ -19,6 +25,7 @@ import {
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorTemplates: FunctionComponent<PageComponentProps> = (
@@ -35,11 +42,33 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Monitor Templates",
           description:
             "Save reusable monitor configurations and create new monitors from them in one click.",
         }}
+        actionButtons={[
+          {
+            title: "Create Monitor",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Add,
+            onClick: async (
+              item: MonitorTemplate,
+              onCompleteAction: VoidFunction,
+            ) => {
+              const createRoute: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_CREATE] as Route,
+              );
+              Navigation.navigate(
+                createRoute.addQueryParams({
+                  monitorTemplateId: item._id?.toString() || "",
+                }),
+              );
+              onCompleteAction();
+            },
+          },
+        ]}
         noItemsMessage={"No monitor templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
