@@ -1,18 +1,33 @@
 import PageComponentProps from "../../PageComponentProps";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
+import URL from "Common/Types/API/URL";
 import { Green, Red } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import CSVFileUpload, {
+  CSVColumn,
+  CSVRow,
+} from "Common/UI/Components/CSVFileUpload/CSVFileUpload";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProgressBar, {
+  ProgressBarSize,
+} from "Common/UI/Components/ProgressBar/ProgressBar";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -116,6 +131,102 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
   const [formFields, setFormFields] = React.useState<
     Array<ModelField<StatusPageSubscriber>>
   >([]);
+
+  const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
+  const [showProgressModal, setShowProgressModal] = useState<boolean>(false);
+  const [bulkActionInProgress, setBulkActionInProgress] =
+    useState<boolean>(false);
+  const [bulkProgress, setBulkProgress] = useState<{
+    completed: number;
+    total: number;
+    succeeded: number;
+    failed: Array<{ webhookUrl: string; error: string }>;
+  }>({
+    completed: 0,
+    total: 0,
+    succeeded: 0,
+    failed: [],
+  });
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    Date.now().toString(),
+  );
+  const [csvRows, setCsvRows] = useState<Array<CSVRow>>([]);
+  const [sendNotification, setSendNotification] = useState<boolean>(false);
+
+  const teamsCsvColumns: Array<CSVColumn> = [
+    {
+      key: "workspaceName",
+      title: "Workspace Name",
+      required: true,
+      description: "Name of the Microsoft Teams workspace for identification",
+    },
+    {
+      key: "webhookUrl",
+      title: "Incoming Webhook URL",
+      required: true,
+      description: "Microsoft Teams incoming webhook URL",
+    },
+  ];
+
+  const handleBulkAddSubmit: () => Promise<void> = async (): Promise<void> => {
+    if (!props.currentProject || !props.currentProject._id) {
+      throw new BadDataException("Project ID cannot be null");
+    }
+
+    if (csvRows.length === 0) {
+      return;
+    }
+
+    setShowBulkAddModal(false);
+    setShowProgressModal(true);
+    setBulkActionInProgress(true);
+    setBulkProgress({
+      completed: 0,
+      total: csvRows.length,
+      succeeded: 0,
+      failed: [],
+    });
+
+    const projectId: ObjectID = new ObjectID(props.currentProject._id);
+    let succeeded: number = 0;
+    const failed: Array<{ webhookUrl: string; error: string }> = [];
+
+    for (let i: number = 0; i < csvRows.length; i++) {
+      const row: CSVRow = csvRows[i]!;
+      const urlStr: string = row["webhookUrl"] || "";
+      const workspaceName: string = row["workspaceName"] || "";
+
+      try {
+        const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+        subscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(urlStr);
+        subscriber.microsoftTeamsWorkspaceName = workspaceName;
+        subscriber.statusPageId = modelId;
+        subscriber.projectId = projectId;
+        subscriber.sendYouHaveSubscribedMessage = sendNotification;
+
+        await ModelAPI.create<StatusPageSubscriber>({
+          model: subscriber,
+          modelType: StatusPageSubscriber,
+        });
+        succeeded++;
+      } catch (err) {
+        failed.push({
+          webhookUrl: urlStr,
+          error: API.getFriendlyMessage(err),
+        });
+      }
+
+      setBulkProgress({
+        completed: i + 1,
+        total: csvRows.length,
+        succeeded,
+        failed: [...failed],
+      });
+    }
+
+    setBulkActionInProgress(false);
+    setRefreshToggle(Date.now().toString());
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -292,10 +403,20 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
               item.projectId = new ObjectID(props.currentProject._id);
               return Promise.resolve(item);
             }}
+            refreshToggle={refreshToggle}
             cardProps={{
               title: "Microsoft Teams Subscribers",
               description:
                 "Here are the list of Microsoft Teams channels that have subscribed to the status page.",
+              buttons: [
+                {
+                  title: "Add in Bulk",
+                  buttonStyle: ButtonStyleType.OUTLINE,
+                  onClick: () => {
+                    setShowBulkAddModal(true);
+                  },
+                } as CardButtonSchema,
+              ],
             }}
             noItemsMessage={"No Microsoft Teams subscribers found."}
             formSteps={[
@@ -383,6 +504,149 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
               },
             ]}
           />
+
+          {showBulkAddModal && (
+            <Modal
+              title="Add Microsoft Teams Subscribers in Bulk"
+              description="Upload a CSV file with Microsoft Teams workspace names and webhook URLs. Download the template to get started."
+              submitButtonText="Add Subscribers"
+              modalWidth={ModalWidth.Large}
+              onClose={() => {
+                setShowBulkAddModal(false);
+                setCsvRows([]);
+                setSendNotification(false);
+              }}
+              disableSubmitButton={csvRows.length === 0}
+              onSubmit={() => {
+                handleBulkAddSubmit();
+              }}
+            >
+              <div className="space-y-4">
+                <CSVFileUpload
+                  columns={teamsCsvColumns}
+                  onDataChanged={(data: Array<CSVRow>) => {
+                    setCsvRows(data);
+                  }}
+                  templateFileName="microsoft-teams-subscribers-template.csv"
+                />
+                <div className="flex items-center space-x-3 pt-2">
+                  <Toggle
+                    value={sendNotification}
+                    onChange={(value: boolean) => {
+                      setSendNotification(value);
+                    }}
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-gray-700">
+                      Send Subscription Notification
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Send a notification to the Teams channels confirming the
+                      subscription.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Modal>
+          )}
+
+          {showProgressModal && (
+            <ConfirmModal
+              title={
+                bulkActionInProgress
+                  ? "Adding Subscribers..."
+                  : "Bulk Add Complete"
+              }
+              description={
+                <div>
+                  {bulkActionInProgress ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-500">
+                        Please wait while subscribers are being added. This may
+                        take a moment.
+                      </p>
+                      <ProgressBar
+                        count={bulkProgress.completed}
+                        totalCount={bulkProgress.total}
+                        suffix="subscribers"
+                        size={ProgressBarSize.Small}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex flex-col space-y-3">
+                        {bulkProgress.succeeded > 0 && (
+                          <div className="flex items-center rounded-lg bg-green-50 p-3">
+                            <Icon
+                              className="h-5 w-5 flex-shrink-0"
+                              icon={IconProp.CheckCircle}
+                              color={Green}
+                            />
+                            <div className="ml-2 text-sm font-medium text-green-800">
+                              {bulkProgress.succeeded}{" "}
+                              {bulkProgress.succeeded === 1
+                                ? "subscriber"
+                                : "subscribers"}{" "}
+                              added successfully
+                            </div>
+                          </div>
+                        )}
+                        {bulkProgress.failed.length > 0 && (
+                          <div className="flex items-center rounded-lg bg-red-50 p-3">
+                            <Icon
+                              className="h-5 w-5 flex-shrink-0"
+                              icon={IconProp.Close}
+                              color={Red}
+                            />
+                            <div className="ml-2 text-sm font-medium text-red-800">
+                              {bulkProgress.failed.length}{" "}
+                              {bulkProgress.failed.length === 1
+                                ? "subscriber"
+                                : "subscribers"}{" "}
+                              failed
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {bulkProgress.failed.length > 0 && (
+                        <div className="rounded-lg border border-gray-200 overflow-hidden">
+                          <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+                            {bulkProgress.failed.map(
+                              (
+                                failedItem: {
+                                  webhookUrl: string;
+                                  error: string;
+                                },
+                                i: number,
+                              ) => {
+                                return (
+                                  <div className="px-4 py-3 text-sm" key={i}>
+                                    <div className="font-medium text-gray-900">
+                                      {failedItem.webhookUrl}
+                                    </div>
+                                    <div className="text-gray-500 mt-0.5">
+                                      {failedItem.error}
+                                    </div>
+                                  </div>
+                                );
+                              },
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              }
+              submitButtonType={ButtonStyleType.NORMAL}
+              disableSubmitButton={bulkActionInProgress}
+              submitButtonText="Close"
+              onSubmit={() => {
+                setShowProgressModal(false);
+              }}
+            />
+          )}
         </>
       ) : (
         <></>

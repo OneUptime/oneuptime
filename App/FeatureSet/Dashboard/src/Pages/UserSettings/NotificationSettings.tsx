@@ -109,6 +109,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
+              alertByTelegram: true,
+            },
+            title: "Alert By Telegram",
+            description: "Select if you want to be alerted by Telegram.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               alertByCall: true,
             },
             title: "Alert By Call",
@@ -132,6 +141,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         selectMoreFields={{
           alertBySMS: true,
           alertByWhatsApp: true,
+          alertByTelegram: true,
           alertByCall: true,
           alertByPush: true,
         }}
@@ -193,6 +203,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   enabled: Boolean(item.alertByWhatsApp),
                   icon: IconProp.WhatsApp,
                   color: Green500,
+                },
+                {
+                  key: "telegram",
+                  label: "Telegram",
+                  enabled: Boolean(item.alertByTelegram),
+                  icon: IconProp.Telegram,
+                  color: Blue500,
                 },
               ];
 

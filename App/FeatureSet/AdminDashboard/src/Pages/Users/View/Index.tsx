@@ -6,6 +6,7 @@ import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -13,6 +14,7 @@ import ModelPage from "Common/UI/Components/Page/ModelPage";
 import SideMenuComponent from "./SideMenu";
 
 const Users: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -21,18 +23,18 @@ const Users: FunctionComponent = (): ReactElement => {
       modelNameField="email"
       modelType={User}
       modelAPI={AdminModelAPI}
-      title={"User"}
+      title={t("pages.userView.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Users",
+          title: t("breadcrumbs.users"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
-          title: "User",
+          title: t("breadcrumbs.user"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
           ),
@@ -45,11 +47,11 @@ const Users: FunctionComponent = (): ReactElement => {
           name="User"
           modelAPI={AdminModelAPI}
           cardProps={{
-            title: "User",
-            description: "User details",
+            title: t("pages.userView.cardTitle"),
+            description: t("pages.userView.cardDescription"),
           }}
           isEditable={true}
-          editButtonText="Edit User"
+          editButtonText={t("pages.userView.editButton")}
           formFields={[
             {
               field: {
@@ -117,7 +119,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 },
                 title: "Email Verified",
                 fieldType: FieldType.Boolean,
-                placeholder: "No",
+                placeholder: t("common.no"),
               },
               {
                 field: {
@@ -125,7 +127,7 @@ const Users: FunctionComponent = (): ReactElement => {
                 },
                 title: "Two Factor Auth Enabled",
                 fieldType: FieldType.Boolean,
-                placeholder: "No",
+                placeholder: t("common.no"),
               },
             ],
             modelId: modelId,

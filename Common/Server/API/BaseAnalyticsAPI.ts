@@ -255,21 +255,22 @@ export default class BaseAnalyticsAPI<
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const list: Array<AnalyticsDataModel> = await this.service.findBy({
-      query,
-      select,
-      skip: skip,
-      limit: limit,
-      sort: sort,
-      groupBy: groupBy,
-      props: databaseProps,
-    });
-
-    const count: PositiveNumber = await this.service.countBy({
-      query,
-      groupBy: groupBy,
-      props: databaseProps,
-    });
+    const [list, count] = await Promise.all([
+      this.service.findBy({
+        query,
+        select,
+        skip: skip,
+        limit: limit,
+        sort: sort,
+        groupBy: groupBy,
+        props: databaseProps,
+      }),
+      this.service.countBy({
+        query,
+        groupBy: groupBy,
+        props: databaseProps,
+      }),
+    ]);
 
     return Response.sendEntityArrayResponse(
       req,

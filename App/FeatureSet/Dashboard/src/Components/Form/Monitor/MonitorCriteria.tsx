@@ -14,6 +14,14 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  DragDropContext,
+  Draggable,
+  DraggableProvided,
+  Droppable,
+  DroppableProvided,
+  DropResult,
+} from "react-beautiful-dnd";
 
 export interface ComponentProps {
   value: MonitorCriteria | undefined;
@@ -89,171 +97,290 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   };
 
   const getCriteriaHeaderColor: (
-    _instance: MonitorCriteriaInstance,
-  ) => string = (_instance: MonitorCriteriaInstance): string => {
+    instance: MonitorCriteriaInstance,
+  ) => string = (instance: MonitorCriteriaInstance): string => {
+    if (instance.data?.isEnabled === false) {
+      return "border-l-gray-300";
+    }
     return "border-l-blue-500";
+  };
+
+  const handleDragEnd: (result: DropResult) => void = (
+    result: DropResult,
+  ): void => {
+    if (!result.destination) {
+      return;
+    }
+
+    const sourceIndex: number = result.source.index;
+    const destinationIndex: number = result.destination.index;
+
+    if (sourceIndex === destinationIndex) {
+      return;
+    }
+
+    const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
+      ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
+    ];
+    const [movedItem] = newMonitorCriterias.splice(sourceIndex, 1);
+    if (!movedItem) {
+      return;
+    }
+    newMonitorCriterias.splice(destinationIndex, 0, movedItem);
+
+    props.onChange?.(
+      MonitorCriteria.fromJSON({
+        _type: "MonitorCriteria",
+        value: {
+          monitorCriteriaInstanceArray: newMonitorCriterias,
+        },
+      }),
+    );
   };
 
   return (
     <div className="mt-4">
-      {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
-        (i: MonitorCriteriaInstance, index: number) => {
-          const criteriaId: string = i.data?.id || `criteria-${index}`;
-          const isCollapsed: boolean = collapsedState[criteriaId] || false;
-          const criteriaName: string = i.data?.name || "Unnamed Criteria";
-
-          return (
-            <div
-              className={`mb-4 border rounded-lg overflow-hidden border-l-4 ${getCriteriaHeaderColor(i)}`}
-              key={criteriaId}
-            >
-              {/* Collapsible Header */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="monitor-criteria-list">
+          {(droppableProvided: DroppableProvided) => {
+            return (
               <div
-                className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={() => {
-                  toggleCriteriaCollapsed(criteriaId);
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggleCriteriaCollapsed(criteriaId);
-                  }
-                }}
-                aria-expanded={!isCollapsed}
+                ref={droppableProvided.innerRef}
+                {...droppableProvided.droppableProps}
               >
-                <div className="flex items-center flex-1 min-w-0">
-                  <Icon
-                    icon={
-                      isCollapsed ? IconProp.ChevronRight : IconProp.ChevronDown
-                    }
-                    className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center flex-wrap gap-2">
-                      <span className="text-sm font-semibold text-gray-900">
-                        {criteriaName}
-                      </span>
-                      {isCollapsed && (
-                        <span className="text-xs text-gray-500 truncate">
-                          {getCriteriaSummary(i)}
-                        </span>
-                      )}
-                    </div>
-                    {!isCollapsed && i.data?.description && (
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                        {i.data.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center ml-2">
-                  <span className="text-xs text-gray-400 mr-2">
-                    {index + 1} of{" "}
-                    {monitorCriteria.data?.monitorCriteriaInstanceArray.length}
-                  </span>
-                </div>
+                {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
+                  (i: MonitorCriteriaInstance, index: number) => {
+                    const criteriaId: string =
+                      i.data?.id || `criteria-${index}`;
+                    const isCollapsed: boolean =
+                      collapsedState[criteriaId] || false;
+                    const criteriaName: string =
+                      i.data?.name || "Unnamed Criteria";
+                    const isCriteriaDisabled: boolean =
+                      i.data?.isEnabled === false;
+
+                    return (
+                      <Draggable
+                        draggableId={criteriaId}
+                        index={index}
+                        key={criteriaId}
+                      >
+                        {(draggableProvided: DraggableProvided) => {
+                          return (
+                            <div
+                              ref={draggableProvided.innerRef}
+                              {...draggableProvided.draggableProps}
+                              className={`mb-4 border rounded-lg overflow-hidden border-l-4 bg-white ${getCriteriaHeaderColor(i)}`}
+                            >
+                              {/* Collapsible Header */}
+                              <div
+                                className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => {
+                                  toggleCriteriaCollapsed(criteriaId);
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e: React.KeyboardEvent) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    toggleCriteriaCollapsed(criteriaId);
+                                  }
+                                }}
+                                aria-expanded={!isCollapsed}
+                              >
+                                <div className="flex items-center flex-1 min-w-0">
+                                  <div
+                                    {...draggableProvided.dragHandleProps}
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation();
+                                    }}
+                                    onKeyDown={(e: React.KeyboardEvent) => {
+                                      e.stopPropagation();
+                                    }}
+                                    className="mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
+                                    aria-label="Drag to reorder criteria"
+                                    title="Drag to reorder"
+                                  >
+                                    <Icon
+                                      icon={IconProp.GripVertical}
+                                      className="w-4 h-4"
+                                    />
+                                  </div>
+                                  <Icon
+                                    icon={
+                                      isCollapsed
+                                        ? IconProp.ChevronRight
+                                        : IconProp.ChevronDown
+                                    }
+                                    className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center flex-wrap gap-2">
+                                      <span
+                                        className={`text-sm font-semibold ${
+                                          isCriteriaDisabled
+                                            ? "text-gray-500"
+                                            : "text-gray-900"
+                                        }`}
+                                      >
+                                        {criteriaName}
+                                      </span>
+                                      {isCriteriaDisabled && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
+                                          Disabled
+                                        </span>
+                                      )}
+                                      {isCollapsed && (
+                                        <span className="text-xs text-gray-500 truncate">
+                                          {getCriteriaSummary(i)}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {!isCollapsed && i.data?.description && (
+                                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                        {i.data.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center ml-2">
+                                  <span className="text-xs text-gray-400 mr-2">
+                                    {index + 1} of{" "}
+                                    {
+                                      monitorCriteria.data
+                                        ?.monitorCriteriaInstanceArray.length
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Collapsible Content */}
+                              <div
+                                className={`transition-all duration-200 ease-in-out overflow-hidden ${
+                                  isCollapsed ? "max-h-0" : "max-h-[5000px]"
+                                }`}
+                              >
+                                <div className="px-4 pb-4 bg-white">
+                                  <MonitorCriteriaInstanceElement
+                                    monitorType={props.monitorType}
+                                    monitorStep={props.monitorStep}
+                                    monitorStatusDropdownOptions={
+                                      props.monitorStatusDropdownOptions
+                                    }
+                                    incidentSeverityDropdownOptions={
+                                      props.incidentSeverityDropdownOptions
+                                    }
+                                    alertSeverityDropdownOptions={
+                                      props.alertSeverityDropdownOptions
+                                    }
+                                    onCallPolicyDropdownOptions={
+                                      props.onCallPolicyDropdownOptions
+                                    }
+                                    labelDropdownOptions={
+                                      props.labelDropdownOptions
+                                    }
+                                    teamDropdownOptions={
+                                      props.teamDropdownOptions
+                                    }
+                                    userDropdownOptions={
+                                      props.userDropdownOptions
+                                    }
+                                    incidentRoleOptions={
+                                      props.incidentRoleOptions
+                                    }
+                                    value={i}
+                                    onDelete={() => {
+                                      if (
+                                        monitorCriteria.data
+                                          ?.monitorCriteriaInstanceArray
+                                          .length === 1
+                                      ) {
+                                        setShowCantDeleteModal(true);
+                                        return;
+                                      }
+
+                                      // remove the criteria filter
+                                      const criteriaIndex: number | undefined =
+                                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex(
+                                          (item: MonitorCriteriaInstance) => {
+                                            return item.data?.id === i.data?.id;
+                                          },
+                                        );
+
+                                      if (criteriaIndex === undefined) {
+                                        return;
+                                      }
+
+                                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                                        [
+                                          ...(monitorCriteria.data
+                                            ?.monitorCriteriaInstanceArray ||
+                                            []),
+                                        ];
+                                      newMonitorCriterias.splice(
+                                        criteriaIndex,
+                                        1,
+                                      );
+                                      props.onChange?.(
+                                        MonitorCriteria.fromJSON({
+                                          _type: "MonitorCriteria",
+                                          value: {
+                                            monitorCriteriaInstanceArray: [
+                                              ...newMonitorCriterias,
+                                            ],
+                                          },
+                                        }),
+                                      );
+                                    }}
+                                    onChange={(
+                                      value: MonitorCriteriaInstance,
+                                    ) => {
+                                      const criteriaIndex: number | undefined =
+                                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex(
+                                          (item: MonitorCriteriaInstance) => {
+                                            return (
+                                              item.data?.id === value.data?.id
+                                            );
+                                          },
+                                        );
+
+                                      if (criteriaIndex === undefined) {
+                                        return;
+                                      }
+                                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                                        [
+                                          ...(monitorCriteria.data
+                                            ?.monitorCriteriaInstanceArray ||
+                                            []),
+                                        ];
+                                      newMonitorCriterias[criteriaIndex] =
+                                        value;
+                                      props.onChange?.(
+                                        MonitorCriteria.fromJSON({
+                                          _type: "MonitorCriteria",
+                                          value: {
+                                            monitorCriteriaInstanceArray:
+                                              newMonitorCriterias,
+                                          },
+                                        }),
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      </Draggable>
+                    );
+                  },
+                )}
+                {droppableProvided.placeholder}
               </div>
-
-              {/* Collapsible Content */}
-              <div
-                className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                  isCollapsed ? "max-h-0" : "max-h-[5000px]"
-                }`}
-              >
-                <div className="px-4 pb-4 bg-white">
-                  <MonitorCriteriaInstanceElement
-                    monitorType={props.monitorType}
-                    monitorStep={props.monitorStep}
-                    monitorStatusDropdownOptions={
-                      props.monitorStatusDropdownOptions
-                    }
-                    incidentSeverityDropdownOptions={
-                      props.incidentSeverityDropdownOptions
-                    }
-                    alertSeverityDropdownOptions={
-                      props.alertSeverityDropdownOptions
-                    }
-                    onCallPolicyDropdownOptions={
-                      props.onCallPolicyDropdownOptions
-                    }
-                    labelDropdownOptions={props.labelDropdownOptions}
-                    teamDropdownOptions={props.teamDropdownOptions}
-                    userDropdownOptions={props.userDropdownOptions}
-                    incidentRoleOptions={props.incidentRoleOptions}
-                    value={i}
-                    onDelete={() => {
-                      if (
-                        monitorCriteria.data?.monitorCriteriaInstanceArray
-                          .length === 1
-                      ) {
-                        setShowCantDeleteModal(true);
-                        return;
-                      }
-
-                      // remove the criteria filter
-                      const criteriaIndex: number | undefined =
-                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex(
-                          (item: MonitorCriteriaInstance) => {
-                            return item.data?.id === i.data?.id;
-                          },
-                        );
-
-                      if (criteriaIndex === undefined) {
-                        return;
-                      }
-
-                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                        [
-                          ...(monitorCriteria.data
-                            ?.monitorCriteriaInstanceArray || []),
-                        ];
-                      newMonitorCriterias.splice(criteriaIndex, 1);
-                      props.onChange?.(
-                        MonitorCriteria.fromJSON({
-                          _type: "MonitorCriteria",
-                          value: {
-                            monitorCriteriaInstanceArray: [
-                              ...newMonitorCriterias,
-                            ],
-                          },
-                        }),
-                      );
-                    }}
-                    onChange={(value: MonitorCriteriaInstance) => {
-                      const criteriaIndex: number | undefined =
-                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex(
-                          (item: MonitorCriteriaInstance) => {
-                            return item.data?.id === value.data?.id;
-                          },
-                        );
-
-                      if (criteriaIndex === undefined) {
-                        return;
-                      }
-                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                        [
-                          ...(monitorCriteria.data
-                            ?.monitorCriteriaInstanceArray || []),
-                        ];
-                      newMonitorCriterias[criteriaIndex] = value;
-                      props.onChange?.(
-                        MonitorCriteria.fromJSON({
-                          _type: "MonitorCriteria",
-                          value: {
-                            monitorCriteriaInstanceArray: newMonitorCriterias,
-                          },
-                        }),
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        },
-      )}
+            );
+          }}
+        </Droppable>
+      </DragDropContext>
       <div className="mt-4 -ml-3">
         <Button
           title="Add Criteria"

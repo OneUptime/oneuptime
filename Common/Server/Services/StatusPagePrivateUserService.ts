@@ -99,6 +99,12 @@ export class Service extends DatabaseService<Model> {
           fromEmail: true,
           fromName: true,
           secure: true,
+          authType: true,
+          clientId: true,
+          clientSecret: true,
+          tokenUrl: true,
+          scope: true,
+          oauthProviderType: true,
         },
       },
     });

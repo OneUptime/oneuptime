@@ -31,11 +31,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
   props: SubscribePageProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
   const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
@@ -88,10 +90,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         subscriberEmail: true,
       },
-      title: "Your Email",
+      title: t("subscribe.email.yourEmail"),
       fieldType: FormFieldSchemaType.Email,
       required: true,
-      placeholder: "subscriber@company.com",
+      placeholder: t("subscribe.email.placeholder"),
       disableSpellCheck: true,
     },
   ];
@@ -101,9 +103,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         isSubscribedToAllResources: true,
       },
-      title: "Subscribe to All Resources",
-      description:
-        "Select this option if you want to subscribe to all resources.",
+      title: t("subscribe.resources.all"),
+      description: t("subscribe.resources.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       defaultValue: true,
@@ -113,8 +114,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         statusPageResources: true,
       },
-      title: "Select Resources to Subscribe",
-      description: "Please select the resources you want to subscribe to.",
+      title: t("subscribe.resources.select"),
+      description: t("subscribe.resources.selectDescription"),
       fieldType: FormFieldSchemaType.CategoryCheckbox,
       required: false,
       categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -129,9 +130,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         isSubscribedToAllEventTypes: true,
       },
-      title: "Subscribe to All Event Types",
-      description:
-        "Select this option if you want to subscribe to all event types.",
+      title: t("subscribe.eventTypes.all"),
+      description: t("subscribe.eventTypes.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       defaultValue: true,
@@ -141,8 +141,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         statusPageEventTypes: true,
       },
-      title: "Select Event Types to Subscribe",
-      description: "Please select the event types you want to subscribe to.",
+      title: t("subscribe.eventTypes.select"),
+      description: t("subscribe.eventTypes.selectDescription"),
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       required: false,
       dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
@@ -165,7 +165,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           ).addRoute(`/subscribe/${id.toString()}`)}
           requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
-          submitButtonText={"Subscribe"}
+          submitButtonText={t("subscribe.submit")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
             const id: ObjectID = LocalStorage.getItem(
               "statusPageId",
@@ -197,12 +197,11 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               field: {
                 subscriberEmail: true,
               },
-              title: "Please enter your email you have subscribed with",
-              description:
-                "We will send you a manage subscription link to this email.",
+              title: t("subscribe.email.managePrompt"),
+              description: t("subscribe.email.manageDescription"),
               fieldType: FormFieldSchemaType.Email,
               required: true,
-              placeholder: "email@yourcompany.com",
+              placeholder: t("subscribe.email.managePlaceholder"),
               disableSpellCheck: true,
             },
           ]}
@@ -211,7 +210,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           ).addRoute(`/manage-subscription/${id.toString()}`)}
           requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
-          submitButtonText={"Send Management Link"}
+          submitButtonText={t("subscribe.sendManagementLink")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
             const id: ObjectID = LocalStorage.getItem(
               "statusPageId",
@@ -233,10 +232,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
   return (
     <Page
-      title={"Subscribe"}
+      title={t("subscribe.title")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -244,7 +243,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           ),
         },
         {
-          title: "Subscribe",
+          title: t("subscribe.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
@@ -274,27 +273,24 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
                 {" "}
-                An email with the link has been sent to your email. If you
-                don&apos;t see the email, please check your spam folder.{" "}
+                {t("subscribe.emailSentCheckSpam")}{" "}
               </p>
             )}
 
             {!isSuccess ? (
               <div className="">
                 <Card
-                  title="Subscribe by Email"
-                  description={
-                    "All of our updates will be sent to this email address."
-                  }
+                  title={t("subscribe.email.title")}
+                  description={t("subscribe.email.description")}
                 >
                   <Tabs
                     tabs={[
                       {
-                        name: "New Subscription",
+                        name: t("subscribe.newSubscription"),
                         children: getNewSubscriptionContentElement(),
                       },
                       {
-                        name: "Manage Existing Subscription",
+                        name: t("subscribe.manageExisting"),
                         children: getManageExistingSubscriptionContentElement(),
                       },
                     ]}

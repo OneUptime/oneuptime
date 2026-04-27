@@ -470,7 +470,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
             }}
             hideCardInQueryElements={true}
             hideCardInCharts={true}
-            chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
+            chartCssClass="rounded-lg border border-gray-200 shadow-sm"
             onChange={(data: MetricViewData) => {
               props.onChange({
                 ...monitorStepDockerMonitor,

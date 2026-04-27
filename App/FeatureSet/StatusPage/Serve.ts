@@ -13,6 +13,10 @@ import {
   getStatusPageData,
   StatusPageData,
 } from "./src/Server/Utils/StatusPage";
+import {
+  DEFAULT_STATUS_PAGE_LANGUAGE,
+  SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
+} from "Common/Types/StatusPage/StatusPageLanguage";
 
 export const APP_NAME: string = "status-page";
 
@@ -41,10 +45,19 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           await getStatusPageData(req);
 
         if (statusPageData) {
+          const resolvedLang: string =
+            statusPageData.defaultLanguage &&
+            SUPPORTED_STATUS_PAGE_LANGUAGE_CODES.includes(
+              statusPageData.defaultLanguage,
+            )
+              ? statusPageData.defaultLanguage
+              : DEFAULT_STATUS_PAGE_LANGUAGE;
+
           return {
             title: statusPageData.title,
             description: statusPageData.description,
             faviconUrl: statusPageData.faviconUrl,
+            lang: resolvedLang,
           };
         }
         return {
@@ -53,6 +66,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             "Status Page lets you see real-time information about the status of our services.",
           faviconUrl:
             "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
+          lang: DEFAULT_STATUS_PAGE_LANGUAGE,
         };
       },
     });

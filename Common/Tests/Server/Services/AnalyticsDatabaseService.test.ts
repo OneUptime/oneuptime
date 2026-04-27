@@ -106,7 +106,8 @@ describe("AnalyticsDatabaseService", () => {
         "SELECT\n" +
           "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
-          "WHERE TRUE <where-statement>",
+          "WHERE TRUE <where-statement>" +
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -126,7 +127,8 @@ describe("AnalyticsDatabaseService", () => {
           "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
-          "LIMIT {p2:Int32}",
+          "LIMIT {p2:Int32}\n" +
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -147,7 +149,8 @@ describe("AnalyticsDatabaseService", () => {
           "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
-          "OFFSET {p2:Int32}",
+          "OFFSET {p2:Int32}\n" +
+          " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -211,7 +214,8 @@ describe("AnalyticsDatabaseService", () => {
       });
 
       expect(statement.query).toBe(
-        "SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}",
+        "SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}\n" +
+          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",

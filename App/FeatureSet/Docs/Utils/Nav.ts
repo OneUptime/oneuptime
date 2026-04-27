@@ -231,6 +231,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/kubernetes-monitor",
       },
       {
+        title: "Kubernetes Agent (Helm install)",
+        url: "/docs/monitor/kubernetes-agent",
+      },
+      {
         title: "Docker Monitor",
         url: "/docs/monitor/docker-monitor",
       },
@@ -309,7 +313,13 @@ const DocsNav: NavGroup[] = [
   },
   {
     title: "Probe",
-    links: [{ title: "Custom Probes", url: "/docs/probe/custom-probe" }],
+    links: [
+      { title: "Custom Probes", url: "/docs/probe/custom-probe" },
+      {
+        title: "Incoming Request Ingress",
+        url: "/docs/probe/incoming-request-ingress",
+      },
+    ],
   },
   {
     title: "Telemetry",

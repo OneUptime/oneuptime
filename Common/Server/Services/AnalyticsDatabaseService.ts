@@ -211,18 +211,33 @@ export default class AnalyticsDatabaseService<
         tableName: this.model.tableName,
       } as LogAttributes);
 
-      const resultInJSON: ResponseJSON<JSONObject> =
-        await dbResult.json<JSONObject>();
-
       let countPositive: PositiveNumber = new PositiveNumber(0);
-      if (
-        resultInJSON.data &&
-        resultInJSON.data[0] &&
-        resultInJSON.data[0]["count"] &&
-        typeof resultInJSON.data[0]["count"] === "string"
-      ) {
-        countPositive = new PositiveNumber(
-          resultInJSON.data[0]["count"] as string,
+
+      try {
+        const resultInJSON: ResponseJSON<JSONObject> =
+          await dbResult.json<JSONObject>();
+
+        if (
+          resultInJSON.data &&
+          resultInJSON.data[0] &&
+          resultInJSON.data[0]["count"] &&
+          typeof resultInJSON.data[0]["count"] === "string"
+        ) {
+          countPositive = new PositiveNumber(
+            resultInJSON.data[0]["count"] as string,
+          );
+        }
+      } catch {
+        /*
+         * When max_execution_time fires with timeout_overflow_mode='break',
+         * ClickHouse may return a truncated response for count() queries
+         * (the aggregation has no partial row to emit). Treat this as
+         * "count unavailable" rather than a fatal error — the list query
+         * itself still succeeds.
+         */
+        logger.warn(
+          `${this.model.tableName} count query returned unparseable response, defaulting to 0`,
+          { tableName: this.model.tableName } as LogAttributes,
         );
       }
 
@@ -439,10 +454,9 @@ export default class AnalyticsDatabaseService<
 
       // convert date column from string to date.
 
-      const groupByColumnName: keyof TBaseModel | undefined =
-        aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0
-          ? (Object.keys(aggregateBy.groupBy)[0] as keyof TBaseModel)
-          : undefined;
+      const groupByColumnNames: Array<string> = aggregateBy.groupBy
+        ? Object.keys(aggregateBy.groupBy)
+        : [];
 
       for (const item of items) {
         if (
@@ -468,6 +482,14 @@ export default class AnalyticsDatabaseService<
             );
         }
 
+        /*
+         * Preserve every group-by column on the aggregated row. The
+         * previous implementation only copied the first column, which
+         * silently dropped the rest when callers grouped by more than
+         * one dimension (e.g. attributes + name). `AggregatedModel`'s
+         * index signature already accepts arbitrary keys, so existing
+         * single-column consumers still work.
+         */
         const aggregatedModel: AggregatedModel = {
           timestamp: OneUptimeDate.fromString(
             (item as JSONObject)[
@@ -477,10 +499,13 @@ export default class AnalyticsDatabaseService<
           value: (item as JSONObject)[
             aggregateBy.aggregateColumnName as string
           ] as number,
-          [groupByColumnName as string]: (item as JSONObject)[
-            groupByColumnName as string
-          ],
         };
+
+        for (const groupByColumnName of groupByColumnNames) {
+          aggregatedModel[groupByColumnName] = (item as JSONObject)[
+            groupByColumnName
+          ] as AggregatedModel[string];
+        }
 
         aggregatedItems.push(aggregatedModel);
       }
@@ -689,6 +714,19 @@ export default class AnalyticsDatabaseService<
             }}
             `);
     }
+
+    /*
+     * Cap count query runtime below the ClickHouse client's 58s
+     * request_timeout. Wide time-range queries on large tables (e.g. Span)
+     * can scan billions of rows; without a cap the query runs until the
+     * HTTP client disconnects, wasting ClickHouse resources. With 'break'
+     * mode ClickHouse returns a partial (lower-bound) count rather than
+     * throwing, which is acceptable for pagination display.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
+
     logger.debug(`${this.model.tableName} Count Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 
@@ -812,6 +850,17 @@ export default class AnalyticsDatabaseService<
       type: TableColumnType.Number,
     }}
         `);
+
+    /*
+     * Defense in depth: cap find-query runtime below the ClickHouse
+     * client's 58s request_timeout. The LIMIT clause keeps most queries
+     * fast, but complex WHERE filters (e.g. parentSpanId IS NULL) on
+     * wide time ranges can still cause long scans. 'break' mode returns
+     * partial results rather than throwing.
+     */
+    statement.append(
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+    );
 
     logger.debug(`${this.model.tableName} Find Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);

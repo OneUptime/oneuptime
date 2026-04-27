@@ -12,26 +12,28 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import { BILLING_ENABLED } from "Common/UI/Config";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Global LLM Providers",
+          title: t("breadcrumbs.globalLlmProviders"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
           ),
@@ -43,8 +45,8 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       <Banner
         openInNewTab={true}
-        title="Need help with setting up LLM Providers?"
-        description="LLM Providers enable AI features. You can configure global LLM Providers that are available to all projects."
+        title={t("pages.settings.llmProviders.bannerTitle")}
+        description={t("pages.settings.llmProviders.bannerDescription")}
         link={Route.fromString("/docs/ai/llm-provider")}
         hideOnMobile={true}
       />
@@ -58,18 +60,15 @@ const Settings: FunctionComponent = (): ReactElement => {
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: "Global LLM Providers",
-          description:
-            "Global LLM Providers are available to all projects for AI features. Configure OpenAI, Anthropic, Ollama, or other LLM providers.",
+          title: t("pages.settings.llmProviders.cardTitle"),
+          description: t("pages.settings.llmProviders.cardDescription"),
         }}
         query={{
           projectId: new IsNull(),
           isGlobalLlm: true,
         }}
         modelAPI={AdminModelAPI}
-        noItemsMessage={
-          "No LLM Providers configured. Add an LLM Provider to enable AI features."
-        }
+        noItemsMessage={t("pages.settings.llmProviders.noItems")}
         showRefreshButton={true}
         onBeforeCreate={(item: LlmProvider) => {
           item.isGlobalLlm = true;
@@ -77,17 +76,17 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         formSteps={[
           {
-            title: "Basic Info",
+            title: t("pages.settings.llmProviders.stepBasicInfo"),
             id: "basic-info",
           },
           {
-            title: "Provider Settings",
+            title: t("pages.settings.llmProviders.stepProviderSettings"),
             id: "provider-settings",
           },
           ...(BILLING_ENABLED
             ? [
                 {
-                  title: "Cost Settings",
+                  title: t("pages.settings.llmProviders.stepCostSettings"),
                   id: "cost-settings",
                 },
               ]

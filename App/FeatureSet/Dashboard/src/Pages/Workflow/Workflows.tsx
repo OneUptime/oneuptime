@@ -9,6 +9,7 @@ import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -23,6 +24,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const plan: PlanType | null = ProjectUtil.getCurrentPlan();
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Workflow>({ modelType: Workflow });
 
   return (
     <Fragment>
@@ -52,6 +56,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isDeleteable={false}
           isEditable={false}
           isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
           name="Workflows"
           isViewable={true}
           showViewIdButton={true}
@@ -215,6 +222,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+        {labelBulkActionModals}
       </>
     </Fragment>
   );

@@ -18,6 +18,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import Navigation from "Common/UI/Utils/Navigation";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -27,6 +28,7 @@ import PageComponentProps from "../PageComponentProps";
 const SubscribePage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
 
   const [isLaoding, setIsLoading] = useState<boolean>(false);
@@ -63,7 +65,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         throw response;
       }
 
-      setError("Subscription confirmed successfully");
+      setError(t("subscribe.confirm.success"));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -85,10 +87,10 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title={"Confirm Subscription"}
+      title={t("subscribe.confirm.title")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -96,7 +98,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Confirm Subscription",
+          title: t("subscribe.confirm.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route)

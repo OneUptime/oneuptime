@@ -20,11 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesPVCObject } from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterPVCs: FunctionComponent<
   PageComponentProps
@@ -52,33 +48,44 @@ const KubernetesClusterPVCs: FunctionComponent<
         return;
       }
 
-      const pvcObjects: Map<string, KubernetesObjectType> =
-        await fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "persistentvolumeclaims",
-        });
+      const pvcResources: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "PersistentVolumeClaim",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const status: Record<string, unknown> =
+              (row.status as unknown as Record<string, unknown>) || {};
 
-      const pvcResources: Array<KubernetesResource> = [];
+            if (!resource.namespace) {
+              resource.namespace = "default";
+            }
 
-      for (const pvcObj of pvcObjects.values()) {
-        const pvc: KubernetesPVCObject = pvcObj as KubernetesPVCObject;
-        pvcResources.push({
-          name: pvc.metadata.name,
-          namespace: pvc.metadata.namespace || "default",
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: pvc.status.phase || "Unknown",
-          age: KubernetesResourceUtils.formatAge(
-            pvc.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {
-            storageClass: pvc.spec.storageClassName || "N/A",
-            capacity: pvc.status.capacity.storage || "N/A",
-            volumeName: pvc.spec.volumeName || "N/A",
-            accessModes: pvc.spec.accessModes.join(", ") || "N/A",
+            const capacity: Record<string, unknown> =
+              (status["capacity"] as Record<string, unknown>) || {};
+            const accessModes: Array<string> =
+              (spec["accessModes"] as Array<string>) || [];
+
+            resource.additionalAttributes["storageClass"] =
+              (spec["storageClassName"] as string) || "N/A";
+            resource.additionalAttributes["capacity"] =
+              (capacity["storage"] as string) || "N/A";
+            resource.additionalAttributes["volumeName"] =
+              (spec["volumeName"] as string) || "N/A";
+            resource.additionalAttributes["accessModes"] =
+              accessModes.join(", ") || "N/A";
           },
         });
+
+      // Default to "Unknown" when status.phase is missing, matching prior behavior
+      for (const r of pvcResources) {
+        if (!r.status) {
+          r.status = "Unknown";
+        }
       }
 
       setResources(pvcResources);

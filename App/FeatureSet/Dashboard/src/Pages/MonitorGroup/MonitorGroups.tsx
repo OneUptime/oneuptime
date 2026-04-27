@@ -10,6 +10,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -20,6 +21,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<MonitorGroup>({ modelType: MonitorGroup });
+
   return (
     <Page
       title={"Monitors"}
@@ -55,6 +59,9 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         cardProps={{
           title: "Monitor Groups",
           description: "Here is a list of monitors groups for this project.",
@@ -158,6 +165,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+      {labelBulkActionModals}
     </Page>
   );
 };

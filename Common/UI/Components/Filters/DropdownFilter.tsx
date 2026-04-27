@@ -61,6 +61,7 @@ const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
         value={dropdownValues}
         isMultiSelect={props.isMultiSelect || false}
         placeholder={`Filter by ${filter.title}`}
+        className="relative rounded-md w-full overflow-visible"
       />
     );
   }

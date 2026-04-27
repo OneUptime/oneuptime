@@ -7,6 +7,7 @@ import {
 import SMTPOAuthService from "./SMTPOAuthService";
 import SendgridMail, { ClientResponse, MailDataRequired } from "@sendgrid/mail";
 import Hostname from "Common/Types/API/Hostname";
+import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
@@ -298,9 +299,35 @@ export default class MailService {
       return false;
     }
 
-    if (!obj["SMTP_PASSWORD"]) {
-      logger.error("SMTP_PASSWORD env var not found");
-      return false;
+    const authType: SMTPAuthenticationType =
+      (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
+      SMTPAuthenticationType.UsernamePassword;
+
+    if (authType === SMTPAuthenticationType.UsernamePassword) {
+      if (!obj["SMTP_PASSWORD"]) {
+        logger.error("SMTP_PASSWORD env var not found");
+        return false;
+      }
+    } else if (authType === SMTPAuthenticationType.OAuth) {
+      if (!obj["SMTP_CLIENT_ID"]) {
+        logger.error("SMTP_CLIENT_ID env var not found for OAuth");
+        return false;
+      }
+
+      if (!obj["SMTP_CLIENT_SECRET"]) {
+        logger.error("SMTP_CLIENT_SECRET env var not found for OAuth");
+        return false;
+      }
+
+      if (!obj["SMTP_TOKEN_URL"]) {
+        logger.error("SMTP_TOKEN_URL env var not found for OAuth");
+        return false;
+      }
+
+      if (!obj["SMTP_SCOPE"]) {
+        logger.error("SMTP_SCOPE env var not found for OAuth");
+        return false;
+      }
     }
 
     return true;
@@ -310,6 +337,10 @@ export default class MailService {
     if (!this.isSMTPConfigValid(obj)) {
       throw new BadDataException("SMTP Config is not valid");
     }
+
+    const authType: SMTPAuthenticationType =
+      (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
+      SMTPAuthenticationType.UsernamePassword;
 
     return {
       id:
@@ -324,6 +355,15 @@ export default class MailService {
       fromName: obj["SMTP_FROM_NAME"]?.toString() as string,
       secure:
         obj["SMTP_IS_SECURE"] === "true" || obj["SMTP_IS_SECURE"] === true,
+      authType: authType,
+      clientId: obj["SMTP_CLIENT_ID"]?.toString() || undefined,
+      clientSecret: obj["SMTP_CLIENT_SECRET"]?.toString() || undefined,
+      tokenUrl: obj["SMTP_TOKEN_URL"]
+        ? URL.fromString(obj["SMTP_TOKEN_URL"].toString())
+        : undefined,
+      scope: obj["SMTP_SCOPE"]?.toString() || undefined,
+      oauthProviderType:
+        (obj["SMTP_OAUTH_PROVIDER_TYPE"] as OAuthProviderType) || undefined,
     };
   }
 

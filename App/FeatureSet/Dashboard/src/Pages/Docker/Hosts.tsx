@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -26,6 +27,9 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<DockerHost>({ modelType: DockerHost });
 
   const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -75,6 +79,9 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         name="Docker Hosts"
         isViewable={true}
         filters={[]}
@@ -208,6 +215,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
+      {labelBulkActionModals}
     </Fragment>
   );
 };

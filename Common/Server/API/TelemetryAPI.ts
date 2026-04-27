@@ -1208,6 +1208,16 @@ router.post(
         ? (body["profileType"] as string)
         : undefined;
 
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
       if (!profileId && !startTime) {
         return Response.sendErrorResponse(
           req,
@@ -1225,6 +1235,8 @@ router.post(
         ...(endTime !== undefined && { endTime }),
         ...(serviceIds !== undefined && { serviceIds }),
         ...(profileType !== undefined && { profileType }),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
       };
 
       const flamegraph: ProfileFlamegraphNode =
@@ -1281,6 +1293,16 @@ router.post(
         ? (body["profileType"] as string)
         : undefined;
 
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
       const limit: number | undefined = body["limit"]
         ? (body["limit"] as number)
         : undefined;
@@ -1296,6 +1318,8 @@ router.post(
         endTime,
         ...(serviceIds !== undefined && { serviceIds }),
         ...(profileType !== undefined && { profileType }),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
         ...(limit !== undefined && { limit }),
         ...(sortBy !== undefined && { sortBy }),
       };
@@ -1506,6 +1530,16 @@ router.post(
         ? (body["profileType"] as string)
         : undefined;
 
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
       const request: DiffFlamegraphRequest = {
         projectId: databaseProps.tenantId,
         baselineStartTime,
@@ -1514,6 +1548,8 @@ router.post(
         comparisonEndTime,
         ...(serviceIds !== undefined && { serviceIds }),
         ...(profileType !== undefined && { profileType }),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
       };
 
       const diffFlamegraph: DiffFlamegraphNode =

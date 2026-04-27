@@ -228,14 +228,14 @@ export default abstract class OtelIngestBaseService {
   protected static async autoDiscoverKubernetesCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
-  }): Promise<void> {
+  }): Promise<ObjectID | null> {
     try {
       const clusterName: string | null = this.getClusterNameFromAttributes(
         data.attributes,
       );
 
       if (!clusterName) {
-        return;
+        return null;
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
@@ -266,11 +266,15 @@ export default abstract class OtelIngestBaseService {
         await KubernetesClusterService.updateLastSeen(
           new ObjectID(clusterIdStr),
         );
+        return new ObjectID(clusterIdStr);
       }
+
+      return null;
     } catch (err) {
       logger.error(
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
       );
+      return null;
     }
   }
 

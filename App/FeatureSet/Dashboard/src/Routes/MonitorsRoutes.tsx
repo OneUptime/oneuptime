@@ -43,6 +43,7 @@ import MonitorViewOwner from "../Pages/Monitor/View/Owners";
 import MonitorViewSettings from "../Pages/Monitor/View/Settings";
 
 import MonitorViewNotificationLogs from "../Pages/Monitor/View/NotificationLogs";
+import MonitorViewAuditLogs from "../Pages/Monitor/View/AuditLogs";
 
 import MonitorCreate from "../Pages/Monitor/Create";
 
@@ -52,6 +53,10 @@ import MonitorSettingsStatus from "../Pages/Monitor/Settings/MonitorStatus";
 import MonitorSettingsCustomFields from "../Pages/Monitor/Settings/MonitorCustomFields";
 
 import MonitorSettingsSecrets from "../Pages/Monitor/Settings/MonitorSecrets";
+
+import MonitorSettingsTemplates from "../Pages/Monitor/Settings/MonitorTemplates";
+
+import MonitorSettingsTemplatesView from "../Pages/Monitor/Settings/MonitorTemplatesView";
 
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -190,6 +195,30 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             <MonitorSettingsSecrets
               {...props}
               pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES] || ""}
+          element={
+            <MonitorSettingsTemplates
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] || ""
+          }
+          element={
+            <MonitorSettingsTemplatesView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] as Route
+              }
             />
           }
         />
@@ -350,6 +379,16 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_AUDIT_LOGS)}
+          element={
+            <MonitorViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

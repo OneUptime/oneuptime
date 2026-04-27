@@ -12,8 +12,10 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const Upgrade: () => JSX.Element = (): ReactElement => {
+  const { t } = useTranslation();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
     useState<boolean>(true);
@@ -25,9 +27,9 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
 
     return (
       <Toggle
-        title="Yearly Plan"
+        title={t("upgrade.yearlyPlan")}
         value={isSubscriptionPlanYearly}
-        description="(Save 20%)"
+        description={t("upgrade.yearlyPlanSave")}
         onChange={(value: boolean) => {
           setIsSubscriptionPlanYearly(value);
         }}
@@ -38,7 +40,7 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
   return (
     <>
       <Button
-        title="Upgrade Plan"
+        title={t("upgrade.upgradePlan")}
         onClick={() => {
           setShowModal(true);
         }}
@@ -48,13 +50,13 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
       {showModal ? (
         <ModelFormModal<Project>
           modelType={Project}
-          title="Change Plan"
-          name="Change Plan"
+          title={t("upgrade.changePlan")}
+          name={t("upgrade.changePlan")}
           modelIdToEdit={ProjectUtil.getCurrentProjectId()!}
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText="Change Plan"
+          submitButtonText={t("upgrade.changePlan")}
           onSuccess={() => {
             Navigation.reload();
           }}
@@ -75,12 +77,14 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
                   getAllEnvVars(),
                 ).map((plan: SubscriptionPlan): RadioButton => {
                   let description: string = plan.isCustomPricing()
-                    ? `Our sales team will contact you soon.`
-                    : `Billed ${
-                        isSubscriptionPlanYearly ? "yearly" : "monthly"
-                      }. ${
+                    ? t("upgrade.salesContact")
+                    : `${
+                        isSubscriptionPlanYearly
+                          ? t("upgrade.billedYearly")
+                          : t("upgrade.billedMonthly")
+                      }${
                         plan.getTrialPeriod() > 0
-                          ? `Free ${plan.getTrialPeriod()} days trial.`
+                          ? ` ${t("upgrade.freeTrialDays", { days: plan.getTrialPeriod() })}`
                           : ""
                       }`;
 
@@ -88,14 +92,14 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
                     isSubscriptionPlanYearly &&
                     plan.getYearlySubscriptionAmountInUSD() === 0
                   ) {
-                    description = "This plan is free, forever. ";
+                    description = t("upgrade.freeForever");
                   }
 
                   if (
                     !isSubscriptionPlanYearly &&
                     plan.getMonthlySubscriptionAmountInUSD() === 0
                   ) {
-                    description = "This plan is free, forever. ";
+                    description = t("upgrade.freeForever");
                   }
 
                   return {
@@ -105,23 +109,24 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
                     title: plan.getName(),
                     description: description,
                     sideTitle: plan.isCustomPricing()
-                      ? "Custom Price"
+                      ? t("upgrade.customPrice")
                       : isSubscriptionPlanYearly
                         ? "$" +
                           plan.getYearlySubscriptionAmountInUSD().toString() +
-                          "/mo billed yearly"
+                          t("upgrade.billedYearlySuffix")
                         : "$" +
                           plan.getMonthlySubscriptionAmountInUSD().toString(),
                     sideDescription: plan.isCustomPricing()
                       ? ""
                       : isSubscriptionPlanYearly
-                        ? `~ $${
-                            plan.getYearlySubscriptionAmountInUSD() * 12
-                          } per user / year`
-                        : `/month per user`,
+                        ? t("upgrade.perUserPerYear", {
+                            amount:
+                              plan.getYearlySubscriptionAmountInUSD() * 12,
+                          })
+                        : t("upgrade.perUserPerMonth"),
                   };
                 }),
-                title: "Please select a plan.",
+                title: t("upgrade.selectPlan"),
                 required: true,
                 footerElement: getFooter(),
               },

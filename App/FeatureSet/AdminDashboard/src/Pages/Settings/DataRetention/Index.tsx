@@ -9,24 +9,26 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Data Retention",
+          title: t("breadcrumbs.dataRetention"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route,
           ),
@@ -37,12 +39,11 @@ const Settings: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Monitor Log Retention Settings"
         cardProps={{
-          title: "Monitor Log Retention",
-          description:
-            "Configure how long monitor logs are retained before being automatically deleted.",
+          title: t("pages.settings.dataRetention.logCardTitle"),
+          description: t("pages.settings.dataRetention.logCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Settings"
+        editButtonText={t("pages.settings.dataRetention.logEditButton")}
         formFields={[
           {
             field: {
@@ -82,12 +83,11 @@ const Settings: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Monitor Metric Retention Settings"
         cardProps={{
-          title: "Monitor Metric Retention",
-          description:
-            "Configure how long monitor metrics are retained before being automatically deleted.",
+          title: t("pages.settings.dataRetention.metricCardTitle"),
+          description: t("pages.settings.dataRetention.metricCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Settings"
+        editButtonText={t("pages.settings.dataRetention.metricEditButton")}
         formFields={[
           {
             field: {

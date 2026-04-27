@@ -4,6 +4,7 @@ import MonitorCriteriaIncidentForm, {
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -15,6 +16,8 @@ export interface ComponentProps {
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
+  monitorType?: MonitorType | undefined;
+  seriesAttributeKeys?: Array<string> | undefined;
 }
 
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
@@ -51,6 +54,8 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             teamDropdownOptions={props.teamDropdownOptions}
             userDropdownOptions={props.userDropdownOptions}
             incidentRoleOptions={props.incidentRoleOptions}
+            monitorType={props.monitorType}
+            seriesAttributeKeys={props.seriesAttributeKeys}
             initialValue={i}
             /*
              * onDelete={() => {

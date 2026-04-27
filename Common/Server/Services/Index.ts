@@ -36,6 +36,7 @@ import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
 import LlmProviderService from "./LlmProviderService";
+import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
@@ -104,7 +105,9 @@ import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
 import WhatsAppLogService from "./WhatsAppLogService";
+import TelegramLogService from "./TelegramLogService";
 import SmsService from "./SmsService";
+import TelegramService from "./TelegramService";
 import SpanService from "./SpanService";
 import StatusPageAnnouncementService from "./StatusPageAnnouncementService";
 import StatusPageAnnouncementTemplateService from "./StatusPageAnnouncementTemplateService";
@@ -146,6 +149,7 @@ import UserWebAuthnService from "./UserWebAuthnService";
 import UserSmsService from "./UserSmsService";
 import UserIncomingCallNumberService from "./UserIncomingCallNumberService";
 import UserWhatsAppService from "./UserWhatsAppService";
+import UserTelegramService from "./UserTelegramService";
 import WorkflowLogService from "./WorkflowLogService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
@@ -307,7 +311,9 @@ const services: Array<BaseService> = [
   ShortLinkService,
   SmsLogService,
   WhatsAppLogService,
+  TelegramLogService,
   SmsService,
+  TelegramService,
 
   StatusPageAnnouncementService,
   StatusPageAnnouncementTemplateService,
@@ -346,6 +352,7 @@ const services: Array<BaseService> = [
   UserSmsService,
   UserIncomingCallNumberService,
   UserWhatsAppService,
+  UserTelegramService,
   UserTotpAuthService,
   UserWebAuthnService,
 
@@ -441,6 +448,7 @@ export const AnalyticsServices: Array<
   MonitorLogService,
   ProfileService,
   ProfileSampleService,
+  AuditLogService,
 ];
 
 export default services;

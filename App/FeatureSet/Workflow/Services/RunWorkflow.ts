@@ -20,9 +20,12 @@ import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ComponentCode, {
+  ExecuteChildWorkflow,
+  MAX_WORKFLOW_CALL_DEPTH,
   RunReturnType,
 } from "Common/Server/Types/Workflow/ComponentCode";
 import Components from "Common/Server/Types/Workflow/Components/Index";
+import QueueWorkflow from "./QueueWorkflow";
 import { RunProps } from "Common/Server/Types/Workflow/Workflow";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import VMAPI from "Common/Server/Utils/VM/VMAPI";
@@ -61,6 +64,7 @@ export default class RunWorkflow {
   private workflowId: ObjectID | null = null;
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
+  private callChain: Array<string> = [];
 
   private getLogAttributes(): LogAttributes {
     return {
@@ -78,6 +82,7 @@ export default class RunWorkflow {
     try {
       this.workflowId = runProps.workflowId;
       this.workflowLogId = runProps.workflowLogId;
+      this.callChain = runProps.callChain || [];
 
       let didWorkflowTimeOut: boolean = false;
       let didWorkflowErrorOut: boolean = false;
@@ -146,6 +151,24 @@ export default class RunWorkflow {
       // form a run stack.
 
       const runStack: RunStack = await this.makeRunStack(workflow.graph);
+
+      /*
+       * Guard against workflows that have no executable entry point. This
+       * commonly happens when:
+       *   - The workflow graph is empty (no nodes at all).
+       *   - The graph has components but no Trigger node to start from.
+       * Without this check, the runner would push an empty-string component
+       * id onto the execution stack and fail with a confusing
+       * "Component with ID  not found" error.
+       */
+      if (
+        Object.keys(runStack.stack).length === 0 ||
+        !runStack.startWithComponentId
+      ) {
+        throw new BadDataException(
+          "This workflow has no components to execute. Please open the workflow and add a Trigger (e.g. a Manual trigger) along with at least one component connected to it.",
+        );
+      }
 
       const getVariableResult: {
         storageMap: StorageMap;
@@ -403,17 +426,89 @@ export default class RunWorkflow {
 
     if (ComponentCode) {
       const instance: ComponentCode = ComponentCode;
+      const callingProjectId: ObjectID = this.projectId!;
       return await instance.run(args, {
         log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
           this.log(data);
         },
         workflowId: this.workflowId!,
         workflowLogId: this.workflowLogId!,
-        projectId: this.projectId!,
+        projectId: callingProjectId,
         onError: (exception: Exception) => {
           this.log(exception);
           onError();
           return exception;
+        },
+        executeWorkflow: async (child: ExecuteChildWorkflow): Promise<void> => {
+          const callingWorkflowIdStr: string = this.workflowId!.toString();
+          const childWorkflowIdStr: string = child.workflowId.toString();
+
+          /*
+           * Build the chain that the child run will see: everything that led
+           * to THIS run, plus this run itself.
+           */
+          const newChain: Array<string> = [
+            ...this.callChain,
+            callingWorkflowIdStr,
+          ];
+
+          /*
+           * Cycle detection across workflow boundaries.
+           * e.g. A -> B -> A, or A -> B -> C -> A.
+           */
+          if (newChain.includes(childWorkflowIdStr)) {
+            throw new BadDataException(
+              "Workflow cycle detected: " +
+                [...newChain, childWorkflowIdStr].join(" -> ") +
+                ". Refusing to enqueue to prevent infinite recursion.",
+            );
+          }
+
+          // Depth cap — catches non-cyclic but pathologically deep chains.
+          if (newChain.length >= MAX_WORKFLOW_CALL_DEPTH) {
+            throw new BadDataException(
+              "Workflow call depth exceeded (max " +
+                MAX_WORKFLOW_CALL_DEPTH +
+                "). Chain: " +
+                newChain.join(" -> "),
+            );
+          }
+
+          /*
+           * Enforce that child workflow belongs to the same project as the
+           * calling workflow. This prevents cross-project triggering.
+           */
+          const targetWorkflow: Workflow | null =
+            await WorkflowService.findOneById({
+              id: child.workflowId,
+              select: {
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!targetWorkflow) {
+            throw new BadDataException(
+              "Target workflow not found: " + child.workflowId.toString(),
+            );
+          }
+
+          if (
+            !targetWorkflow.projectId ||
+            targetWorkflow.projectId.toString() !== callingProjectId.toString()
+          ) {
+            throw new BadDataException(
+              "Target workflow does not belong to this project.",
+            );
+          }
+
+          await QueueWorkflow.addWorkflowToQueue({
+            workflowId: child.workflowId,
+            returnValues: child.returnValues,
+            callChain: newChain,
+          });
         },
       });
     }

@@ -1,4 +1,4 @@
-{{- if .Values.logs.enabled }}
+{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "daemonset") }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:

@@ -9,6 +9,7 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -57,6 +58,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.EditProjectApiKey,
   ],
 })
+@EnableAuditLog()
 @TableMetadata({
   tableName: "ApiKey",
   singularName: "API Key",

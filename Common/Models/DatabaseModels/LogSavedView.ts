@@ -52,6 +52,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
+    Permission.Viewer,
     Permission.ReadAllProjectResources,
   ],
   delete: [
@@ -76,6 +77,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -111,6 +113,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -140,6 +143,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [
@@ -168,6 +172,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -199,6 +204,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -221,6 +227,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -252,6 +259,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -278,6 +286,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [
@@ -309,6 +318,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [
@@ -343,6 +353,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [
@@ -375,6 +386,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [
@@ -407,6 +419,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [
@@ -440,6 +453,7 @@ export default class LogSavedView extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadAllProjectResources,
     ],
     update: [

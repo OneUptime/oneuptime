@@ -112,6 +112,17 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Danger Zone",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AUDIT_LOGS, [
+      "Project",
+      "Settings",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AUDIT_LOGS_SETTINGS, [
+      "Project",
+      "Settings",
+      "Audit Logs",
+      "Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_LLM_PROVIDERS, [
       "Project",
       "Settings",

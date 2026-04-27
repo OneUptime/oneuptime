@@ -8,13 +8,18 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
-import Link from "Common/UI/Components/Link/Link";
-import Route from "Common/Types/API/Route";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
 
 export interface IncidentRoleOption {
   id: string;
@@ -32,6 +37,18 @@ export interface ComponentProps {
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
+  /**
+   * Monitor type that drives which template variables are shown in
+   * the "Dynamic Template Variables" modal. Optional for callers that
+   * don't have it, in which case a generic variable list is shown.
+   */
+  monitorType?: MonitorType | undefined;
+  /**
+   * Per-series group-by attribute keys from the metric query config
+   * (e.g. ["host.name", "resource.k8s.container.name"]). When set,
+   * the template variables modal exposes them as per-series labels.
+   */
+  seriesAttributeKeys?: Array<string> | undefined;
 }
 
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
@@ -161,18 +178,34 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     updateField("incidentMemberRoles", filteredRoles);
   };
 
+  const [isTemplateModalOpen, setIsTemplateModalOpen] =
+    useState<boolean>(false);
+
   const templateDocsLink: ReactElement = (
-    <Link
-      to={new Route("/docs/monitor/incident-alert-templating")}
-      openInNewTab={true}
-      className="underline text-blue-600"
+    <button
+      type="button"
+      onClick={(): void => {
+        setIsTemplateModalOpen(true);
+      }}
+      className="underline text-blue-600 hover:text-blue-800"
     >
       Learn about dynamic templates
-    </Link>
+    </button>
   );
+
+  const templateVariablesModal: ReactElement | null = isTemplateModalOpen ? (
+    <TemplateVariablesModal
+      monitorType={props.monitorType ?? MonitorType.API}
+      seriesAttributeKeys={props.seriesAttributeKeys}
+      onClose={(): void => {
+        setIsTemplateModalOpen(false);
+      }}
+    />
+  ) : null;
 
   return (
     <div className="mt-4 space-y-4">
+      {templateVariablesModal}
       {/* Required Fields - Always Visible */}
       <div className="space-y-4">
         <div>

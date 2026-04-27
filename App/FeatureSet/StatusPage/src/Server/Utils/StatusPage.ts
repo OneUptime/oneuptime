@@ -12,6 +12,7 @@ export interface StatusPageData {
   title: string;
   description: string;
   faviconUrl: string;
+  defaultLanguage: string | null;
 }
 
 export const getStatusPageData: (
@@ -58,6 +59,7 @@ export const getStatusPageData: (
     let title: string = "Status Page";
     let description: string =
       "Status Page lets you see real-time information about the status of our services.";
+    let defaultLanguage: string | null = null;
 
     if (isPreview) {
       // For preview pages, use the extracted ID directly
@@ -97,6 +99,8 @@ export const getStatusPageData: (
 
       title = (response.data?.["title"] as string) || title;
       description = (response.data?.["description"] as string) || description;
+      defaultLanguage =
+        (response.data?.["defaultLanguage"] as string | null) || null;
     }
 
     return {
@@ -104,6 +108,7 @@ export const getStatusPageData: (
       title,
       description,
       faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
+      defaultLanguage,
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "status-page" });

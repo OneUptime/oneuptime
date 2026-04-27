@@ -34,11 +34,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<
@@ -208,10 +210,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title="Announcements"
+      title={t("announcements.title")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -219,7 +221,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Announcements",
+          title: t("announcements.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
@@ -231,7 +233,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {activeAnnounementsParsedData?.items &&
       activeAnnounementsParsedData?.items.length > 0 ? (
         <div>
-          <Section title="Active Announcements" />
+          <Section title={t("announcements.active")} />
 
           <EventHistoryList items={activeAnnounementsParsedData?.items || []} />
         </div>
@@ -242,7 +244,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {pastAnnouncementsParsedData?.items &&
       pastAnnouncementsParsedData?.items.length > 0 ? (
         <div>
-          <Section title="Past Announcements" />
+          <Section title={t("announcements.past")} />
           <EventHistoryList items={pastAnnouncementsParsedData?.items || []} />
         </div>
       ) : (
@@ -252,8 +254,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {announcements.length === 0 ? (
         <EmptyState
           id="announcements-empty-state"
-          title={"No Announcements"}
-          description={"No announcements posted so far on this page."}
+          title={t("announcements.none")}
+          description={t("announcements.noneDescription")}
           icon={IconProp.Announcement}
         />
       ) : (

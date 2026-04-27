@@ -29,13 +29,13 @@ console.log(screenSizeType) // This will list the screen size type in the curren
 
 // Playwright page object belongs to that specific browser context, so you can use it to interact with the browser.
 
-// To take screenshots,
-
-const screenshots = {};
+// To take screenshots, assign them to the `screenshots` object that is provided
+// in the script context. Screenshots captured this way are preserved even if the
+// script later throws — useful for debugging failed runs.
 
 screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
-// when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
+// when you want to return a value, use return statement with data as a prop.
 
 // To log data, use console.log
 // console.log('Hello World');
@@ -44,8 +44,7 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots
+    data: 'Hello World'
 };
 ```
 
@@ -55,21 +54,43 @@ We use Playwright to simulate user interactions. You can use Playwright `page` o
 
 ### Screenshots
 
-You can take screenshots of the page at any point in the script. You can take multiple screenshots and return them in the screenshots array. These screenshots will be available in the OneUptime Dashboard for that specific monitor.
+A pre-declared `screenshots` object is available in the script context. Assign screenshots to it at any point in the script — these screenshots are captured **even if the script throws** (including assertion failures, timeouts, or unexpected errors), so you can see exactly what the page looked like when the run failed. Captured screenshots appear in the OneUptime Dashboard for that specific monitor run.
 
 ```javascript
 
-// To take screenshots,
+// Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 
+await page.goto('https://app.example.com/login');
+screenshots['login-page'] = await page.screenshot();
+
+await page.fill('#email', 'user@example.com');
+await page.fill('#password', 'wrong');
+await page.click('button[type=submit]');
+
+// If the next assertion throws, the `login-page` screenshot above is still captured.
+await page.waitForSelector('.dashboard', { timeout: 5000 });
+
+screenshots['dashboard'] = await page.screenshot();
+
+return {
+    data: 'Login succeeded'
+};
+
+```
+
+#### Returning screenshots (legacy)
+
+For backward compatibility, you can also return screenshots from the script as part of the return value. Screenshots returned this way are **only** captured when the script completes normally — they are lost if the script throws. Prefer the side-channel pattern above when you want evidence of failures.
+
+```javascript
+// Legacy pattern — screenshots only captured on successful return.
 const screenshots = {};
-
 screenshots['screenshot-name'] = await page.screenshot();
 
 return {
     data: 'Hello World',
-    screenshots: screenshots 
+    screenshots: screenshots
 };
-
 ```
 
 
@@ -129,12 +150,10 @@ oneuptime.captureMetric('dashboard.load.time', loadTime, {
     page: 'dashboard'
 });
 
-const screenshots = {};
 screenshots['dashboard'] = await page.screenshot();
 
 return {
-    data: { loadTime },
-    screenshots: screenshots
+    data: { loadTime }
 };
 ```
 
@@ -147,6 +166,7 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 
 ### Modules available in the script
 - `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots. You can access the browser context via `page.context()` if needed (for example, to create a new page or deal with popups).
+- `screenshots`: A pre-declared object that you assign screenshots to (e.g. `screenshots['login-page'] = await page.screenshot()`). Screenshots assigned here are captured even if the script later throws.
 - `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
 - `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
 - `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
@@ -158,7 +178,7 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 
 - The `page` object is the primary interface for interacting with the browser. This is from the Playwright Page class. You can access the browser context via `page.context()` if needed.
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor.
-- You can return the data from the script using the `return` statement. You can also return screenshots in the screenshots array.
+- You can return the data from the script using the `return` statement. Assign screenshots to the provided `screenshots` object so they are preserved even if the script throws.
 - You can use `browserType` and `screenSizeType` variables to get the browser type and screen size type in the current run context. Feel free to use them in your script if you like. 
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.

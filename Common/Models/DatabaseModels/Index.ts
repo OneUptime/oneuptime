@@ -1,7 +1,12 @@
 import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
 import KubernetesCluster from "./KubernetesCluster";
+import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
+import KubernetesResource from "./KubernetesResource";
 import DockerHost from "./DockerHost";
+import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
+import DockerHostOwnerUser from "./DockerHostOwnerUser";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -43,9 +48,17 @@ import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import LogScrubRule from "./LogScrubRule";
+import MetricPipelineRule from "./MetricPipelineRule";
+import MetricRecordingRule from "./MetricRecordingRule";
+import TracePipeline from "./TracePipeline";
+import TracePipelineProcessor from "./TracePipelineProcessor";
+import TraceDropFilter from "./TraceDropFilter";
+import TraceScrubRule from "./TraceScrubRule";
+import TraceRecordingRule from "./TraceRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
+import MonitorTemplate from "./MonitorTemplate";
 // Monitor Groups
 import MonitorGroup from "./MonitorGroup";
 import MonitorGroupOwnerTeam from "./MonitorGroupOwnerTeam";
@@ -128,6 +141,7 @@ import ShortLink from "./ShortLink";
 // SMS
 import SmsLog from "./SmsLog";
 import WhatsAppLog from "./WhatsAppLog";
+import TelegramLog from "./TelegramLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 // Status Page
@@ -164,6 +178,7 @@ import UserCall from "./UserCall";
 import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
+import UserTelegram from "./UserTelegram";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -264,6 +279,13 @@ const AllModelTypes: Array<{
   LogPipelineProcessor,
   LogDropFilter,
   LogScrubRule,
+  MetricPipelineRule,
+  MetricRecordingRule,
+  TracePipeline,
+  TracePipelineProcessor,
+  TraceDropFilter,
+  TraceScrubRule,
+  TraceRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
@@ -287,6 +309,7 @@ const AllModelTypes: Array<{
   MonitorSecret,
   MonitorStatus,
   MonitorCustomField,
+  MonitorTemplate,
 
   IncidentState,
   Incident,
@@ -395,6 +418,7 @@ const AllModelTypes: Array<{
 
   SmsLog,
   WhatsAppLog,
+  TelegramLog,
   PushNotificationLog,
   WorkspaceNotificationLog,
   CallLog,
@@ -405,6 +429,7 @@ const AllModelTypes: Array<{
   UserCall,
   UserPush,
   UserWhatsApp,
+  UserTelegram,
   UserIncomingCallNumber,
 
   UserNotificationRule,
@@ -507,7 +532,12 @@ const AllModelTypes: Array<{
   StatusPageSCIMLog,
 
   KubernetesCluster,
+  KubernetesClusterOwnerTeam,
+  KubernetesClusterOwnerUser,
+  KubernetesResource,
   DockerHost,
+  DockerHostOwnerTeam,
+  DockerHostOwnerUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

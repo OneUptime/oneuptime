@@ -23,6 +23,7 @@ import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import React, {
   Fragment,
@@ -41,6 +42,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [userEmails, setUserEmails] = useState<Array<UserEmail>>([]);
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
   const [userWhatsApps, setUserWhatsApps] = useState<Array<UserWhatsApp>>([]);
+  const [userTelegrams, setUserTelegrams] = useState<Array<UserTelegram>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
   const [
@@ -146,6 +148,19 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             if (userWhatsApp) {
               model.userWhatsAppId = userWhatsApp.id!;
             }
+
+            const userTelegram: UserTelegram | undefined = userTelegrams.find(
+              (userTelegram: UserTelegram) => {
+                return (
+                  userTelegram.id!.toString() ===
+                  miscDataProps["notificationMethod"]?.toString()
+                );
+              },
+            );
+
+            if (userTelegram) {
+              model.userTelegramId = userTelegram.id!;
+            }
           }
 
           return Promise.resolve(model);
@@ -207,6 +222,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userWhatsApp: {
             phone: true,
           },
+          userTelegram: {
+            telegramUserHandle: true,
+            telegramChatId: true,
+          },
         }}
         filters={[]}
         columns={[
@@ -227,6 +246,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               userWhatsApp: {
                 phone: true,
+              },
+              userTelegram: {
+                telegramUserHandle: true,
+                telegramChatId: true,
               },
             },
             title: "Notification Method",
@@ -370,6 +393,26 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setUserWhatsApps(userWhatsAppList.data);
 
+      const userTelegramList: ListResult<UserTelegram> = await ModelAPI.getList(
+        {
+          modelType: UserTelegram,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: User.getUserId(),
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            telegramUserHandle: true,
+            telegramChatId: true,
+          },
+          sort: {},
+        },
+      );
+
+      setUserTelegrams(userTelegramList.data);
+
       setIncidentSeverities(incidentSeverities.data);
 
       const dropdownOptions: Array<DropdownOption> = [
@@ -378,11 +421,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ...userSMSes.data,
         ...userPushDevices.data,
         ...userWhatsAppList.data,
+        ...userTelegramList.data,
       ].map((model: BaseModel) => {
         const isUserCall: boolean = model instanceof UserCall;
         const isUserSms: boolean = model instanceof UserSMS;
         const isUserPush: boolean = model instanceof UserPush;
         const isUserWhatsApp: boolean = model instanceof UserWhatsApp;
+        const isUserTelegram: boolean = model instanceof UserTelegram;
 
         let option: DropdownOption;
 
@@ -392,6 +437,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               "Push: " +
               (model.getColumnValue("deviceName")?.toString() ||
                 "Unknown Device"),
+            value: model.id!.toString(),
+          };
+        } else if (isUserTelegram) {
+          option = {
+            label:
+              "Telegram: " +
+              (model.getColumnValue("telegramUserHandle")?.toString() ||
+                model.getColumnValue("telegramChatId")?.toString() ||
+                "Unknown Chat"),
             value: model.id!.toString(),
           };
         } else {

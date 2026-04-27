@@ -9,7 +9,9 @@ import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
-import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
+import MetricMonitorCriteria, {
+  MetricSeriesEvaluationResult,
+} from "./Criteria/MetricMonitorCriteria";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
@@ -31,7 +33,9 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
-import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeApiIngestResponse, {
+  PerSeriesCriteriaMatch,
+} from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -45,10 +49,17 @@ import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import Hostname from "../../../Types/API/Hostname";
 import Port from "../../../Types/Port";
+import { DashboardClientUrl } from "../../EnvironmentConfig";
 import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
+import MetricCriteriaContext, {
+  MetricBreachingSample,
+  MetricComponent,
+  MetricComponentValue,
+} from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 
 export default class MonitorCriteriaEvaluator {
@@ -67,6 +78,30 @@ export default class MonitorCriteriaEvaluator {
     }
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
+      /*
+       * Record disabled criteria in the summary (so the user can see why
+       * nothing happened) but skip evaluation, status changes, incidents,
+       * and alerts.
+       */
+      if (criteriaInstance.data?.isEnabled === false) {
+        const skipReason: string =
+          "This criteria is disabled and was not evaluated.";
+        const skippedCriteriaResult: MonitorEvaluationCriteriaResult = {
+          criteriaId: criteriaInstance.data?.id,
+          criteriaName: criteriaInstance.data?.name,
+          filterCondition:
+            criteriaInstance.data?.filterCondition || FilterCondition.All,
+          met: false,
+          message: skipReason,
+          filters: [],
+          skipped: true,
+          skipReason: skipReason,
+        };
+
+        input.evaluationSummary.criteriaResults.push(skippedCriteriaResult);
+        continue;
+      }
+
       const criteriaResult: MonitorEvaluationCriteriaResult = {
         criteriaId: criteriaInstance.data?.id,
         criteriaName: criteriaInstance.data?.name,
@@ -108,13 +143,9 @@ export default class MonitorCriteriaEvaluator {
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = `
-**Created because the following criteria was met**: 
+**Created because the following criteria was met**:
 
 **Criteria Name**: ${criteriaInstance.data?.name}
-`;
-
-        input.probeApiIngestResponse.rootCause += `
-**Filter Conditions Met**: ${rootCause}
 `;
 
         const contextBlock: string | null =
@@ -122,9 +153,28 @@ export default class MonitorCriteriaEvaluator {
             dataToProcess: input.dataToProcess,
             monitorStep: input.monitorStep,
             monitor: input.monitor,
+            criteriaInstance: criteriaInstance,
           });
 
-        if (contextBlock) {
+        /*
+         * For metric monitors, render the metric identity (name, unit,
+         * filter attrs, breaching series) before the comparison line so
+         * the reader has context when they reach "Filter Conditions Met".
+         */
+        const isMetricMonitor: boolean =
+          input.monitor.monitorType === MonitorType.Metrics;
+
+        if (contextBlock && isMetricMonitor) {
+          input.probeApiIngestResponse.rootCause += `
+${contextBlock}
+`;
+        }
+
+        input.probeApiIngestResponse.rootCause += `
+**Filter Conditions Met**: ${rootCause}
+`;
+
+        if (contextBlock && !isMetricMonitor) {
           input.probeApiIngestResponse.rootCause += `
 ${contextBlock}
 `;
@@ -135,11 +185,175 @@ ${contextBlock}
 **Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
 `;
         }
+
+        /*
+         * When this is a metric-style monitor with per-series results,
+         * compute the per-series match list so MonitorResource can fan
+         * out one incident per affected series. We do this *after* the
+         * scalar criteriaMetId/rootCause is populated so legacy readers
+         * still see a usable response if perSeriesMatches is ignored.
+         */
+        const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
+          MonitorCriteriaEvaluator.collectPerSeriesMatches({
+            dataToProcess: input.dataToProcess,
+            monitor: input.monitor,
+            monitorStep: input.monitorStep,
+            criteriaInstance,
+          });
+
+        if (perSeriesMatches.length > 0) {
+          input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
+        }
+
         break;
       }
     }
 
     return input.probeApiIngestResponse;
+  }
+
+  /**
+   * For metric-backed monitors (Metrics/Kubernetes/Docker) with
+   * per-series aggregated results, re-evaluate the matched criteria
+   * once per series and return one entry per series that breached.
+   * Returns an empty array when the monitor is not series-aware or
+   * no series matched — the caller falls back to the single-incident
+   * path in that case.
+   */
+  private static collectPerSeriesMatches(input: {
+    dataToProcess: DataToProcess;
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Array<PerSeriesCriteriaMatch> {
+    if (
+      input.monitor.monitorType !== MonitorType.Metrics &&
+      input.monitor.monitorType !== MonitorType.Kubernetes &&
+      input.monitor.monitorType !== MonitorType.Docker
+    ) {
+      return [];
+    }
+
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+      metricResponse.seriesBreakdown;
+
+    if (!seriesBreakdown || seriesBreakdown.length === 0) {
+      return [];
+    }
+
+    const criteriaId: string | undefined = input.criteriaInstance.data?.id;
+    if (!criteriaId) {
+      return [];
+    }
+
+    const filterCondition: FilterCondition =
+      input.criteriaInstance.data?.filterCondition || FilterCondition.All;
+
+    const filters: Array<CriteriaFilter> =
+      input.criteriaInstance.data?.filters || [];
+
+    /*
+     * Evaluate every metric-value filter against every series. We only
+     * handle CheckOn.MetricValue for now — the criteria evaluator's
+     * other filter types don't carry series information.
+     */
+    const metricFilters: Array<CriteriaFilter> = filters.filter(
+      (f: CriteriaFilter) => {
+        return f.checkOn === CheckOn.MetricValue;
+      },
+    );
+
+    if (metricFilters.length === 0) {
+      return [];
+    }
+
+    /*
+     * Key: fingerprint. Value: results of each metric filter for that
+     * series, tracked so we can apply FilterCondition.All/Any per series.
+     */
+    const resultsByFingerprint: Map<
+      string,
+      {
+        labels: JSONObject;
+        filterResults: Array<MetricSeriesEvaluationResult>;
+      }
+    > = new Map();
+
+    for (const criteriaFilter of metricFilters) {
+      const evaluations: Array<MetricSeriesEvaluationResult> =
+        MetricMonitorCriteria.evaluateAllSeries({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter,
+          monitorStep: input.monitorStep,
+        });
+
+      for (const evaluation of evaluations) {
+        const fingerprint: string | undefined = evaluation.fingerprint;
+        if (!fingerprint) {
+          continue;
+        }
+
+        const existing:
+          | {
+              labels: JSONObject;
+              filterResults: Array<MetricSeriesEvaluationResult>;
+            }
+          | undefined = resultsByFingerprint.get(fingerprint);
+
+        if (existing) {
+          existing.filterResults.push(evaluation);
+        } else {
+          resultsByFingerprint.set(fingerprint, {
+            labels: evaluation.labels,
+            filterResults: [evaluation],
+          });
+        }
+      }
+    }
+
+    const matches: Array<PerSeriesCriteriaMatch> = [];
+
+    for (const [fingerprint, entry] of resultsByFingerprint) {
+      // Were all/any of the metric filters met for this series?
+      const matched: Array<MetricSeriesEvaluationResult> =
+        entry.filterResults.filter((r: MetricSeriesEvaluationResult) => {
+          return r.rootCause !== null;
+        });
+
+      const seriesMatched: boolean =
+        filterCondition === FilterCondition.All
+          ? matched.length === entry.filterResults.length &&
+            entry.filterResults.length > 0
+          : matched.length > 0;
+
+      if (!seriesMatched) {
+        continue;
+      }
+
+      /*
+       * For the per-series rootCause, concatenate the matched filter
+       * messages so the incident message reflects exactly what
+       * breached on this specific series.
+       */
+      const rootCauseLines: Array<string> = matched.map(
+        (r: MetricSeriesEvaluationResult) => {
+          return `- ${r.rootCause}`;
+        },
+      );
+
+      matches.push({
+        criteriaMetId: criteriaId,
+        fingerprint,
+        labels: entry.labels,
+        rootCause: rootCauseLines.join("\n"),
+        metricContext: matched[0]?.context,
+      });
+    }
+
+    return matches;
   }
 
   private static async processMonitorCriteriaInstance(input: {
@@ -568,6 +782,7 @@ ${contextBlock}
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance;
   }): Promise<string | null> {
     // Handle Kubernetes monitors with rich resource context
     if (input.monitor.monitorType === MonitorType.Kubernetes) {
@@ -579,6 +794,17 @@ ${contextBlock}
     // Handle Docker monitors with resource context
     if (input.monitor.monitorType === MonitorType.Docker) {
       return MonitorCriteriaEvaluator.buildDockerRootCauseContext(input);
+    }
+
+    // Handle generic Metric monitors with metric identity + breaching series
+    if (
+      input.monitor.monitorType === MonitorType.Metrics &&
+      input.criteriaInstance
+    ) {
+      return MonitorCriteriaEvaluator.buildMetricRootCauseContext({
+        criteriaInstance: input.criteriaInstance,
+        monitor: input.monitor,
+      });
     }
 
     const requestDetails: Array<string> = [];
@@ -687,6 +913,346 @@ ${contextBlock}
     }
 
     return sections.join("\n");
+  }
+
+  private static buildMetricRootCauseContext(input: {
+    criteriaInstance: MonitorCriteriaInstance;
+    monitor: Monitor;
+  }): string | null {
+    /*
+     * Pick the first populated metric context across the instance's filters.
+     * Only metric-value filters populate this at evaluation time, so this
+     * effectively returns the context for the filter that ran.
+     */
+    const ctx: MetricCriteriaContext | undefined = (
+      input.criteriaInstance.data?.filters || []
+    )
+      .map((f: CriteriaFilter) => {
+        return f.metricCriteriaContext;
+      })
+      .find(
+        (c: MetricCriteriaContext | undefined): c is MetricCriteriaContext => {
+          return Boolean(c);
+        },
+      );
+
+    if (!ctx) {
+      return null;
+    }
+
+    const lines: Array<string> = [];
+    lines.push(`- Metric: \`${ctx.metricName}\``);
+    if (ctx.alias) {
+      lines.push(`- Alias: \`${ctx.alias}\``);
+    }
+    if (ctx.unit) {
+      lines.push(`- Unit: ${ctx.unit}`);
+    }
+    if (ctx.aggregationType) {
+      lines.push(`- Aggregation: ${ctx.aggregationType}`);
+    }
+    if (ctx.isFormula && ctx.formulaExpression) {
+      lines.push(`- Formula: \`${ctx.formulaExpression}\``);
+    }
+    if (ctx.timeWindowMinutes) {
+      lines.push(`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
+    }
+
+    /*
+     * For formulas, enumerate the underlying variables so the on-call
+     * engineer can trace `c = a + b` back to "a is container.cpu.time,
+     * b is container.memory.usage in bytes" without clicking away.
+     */
+    if (ctx.components && ctx.components.length > 0) {
+      const componentLines: Array<string> = ctx.components.map(
+        (component: MetricComponent) => {
+          const unitSuffix: string = component.unit
+            ? ` — unit: ${component.unit}`
+            : "";
+          const typeSuffix: string = component.isFormula ? " (formula)" : "";
+          return `  - \`${component.alias}\` = \`${component.name}\`${typeSuffix}${unitSuffix}`;
+        },
+      );
+      lines.push(`- Components:\n${componentLines.join("\n")}`);
+    }
+
+    const filterKeys: Array<string> = Object.keys(ctx.filterAttributes || {});
+    if (filterKeys.length > 0) {
+      const filterLines: Array<string> = filterKeys.map((k: string) => {
+        const v: unknown = (ctx.filterAttributes as Record<string, unknown>)[k];
+        return `  - \`${k}\` = \`${String(v)}\``;
+      });
+      lines.push(`- Filters:\n${filterLines.join("\n")}`);
+    }
+
+    if (ctx.groupBy.length > 0) {
+      lines.push(
+        `- Grouped By: ${ctx.groupBy
+          .map((g: string) => {
+            return `\`${g}\``;
+          })
+          .join(", ")}`,
+      );
+    }
+
+    const sections: Array<string> = [`**Metric Details**\n${lines.join("\n")}`];
+
+    const breachingSamples: Array<MetricBreachingSample> =
+      ctx.breachingSamples && ctx.breachingSamples.length > 0
+        ? ctx.breachingSamples
+        : ctx.breachingSample
+          ? [ctx.breachingSample]
+          : [];
+
+    if (breachingSamples.length > 0) {
+      sections.push(
+        `\n\n${MonitorCriteriaEvaluator.formatBreachingSamplesSection({
+          samples: breachingSamples,
+          totalSamples: ctx.totalSamplesInWindow,
+          unit: ctx.unit,
+          metricName: ctx.metricName,
+          alias: ctx.alias,
+          components: ctx.components || [],
+        })}`,
+      );
+    }
+
+    const deepLink: string | null =
+      MonitorCriteriaEvaluator.buildMetricExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+      });
+
+    if (deepLink) {
+      sections.push(`\n\n[Open metric in dashboard](${deepLink})`);
+    }
+
+    return sections.join("\n");
+  }
+
+  /**
+   * Build the **Breaching Samples** markdown section — a table of
+   * timestamps, values, and any group-by attributes. Caps the row count
+   * so a 30-minute window at 1-second granularity doesn't dump thousands
+   * of lines onto the root-cause page; the caller can always drill in
+   * via the metric explorer link.
+   *
+   * Timestamps are emitted as inline code wrapping ISO 8601 strings so
+   * the client-side markdown viewer can localize them to the viewer's
+   * timezone (without losing the canonical instant).
+   */
+  private static formatBreachingSamplesSection(input: {
+    samples: Array<MetricBreachingSample>;
+    totalSamples?: number | undefined;
+    unit: string | null;
+    metricName: string;
+    alias: string;
+    components: Array<MetricComponent>;
+  }): string {
+    const MAX_ROWS: number = 20;
+
+    // Sort chronologically and de-duplicate any accidental repeats
+    const sorted: Array<MetricBreachingSample> = [...input.samples].sort(
+      (a: MetricBreachingSample, b: MetricBreachingSample) => {
+        return (
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      },
+    );
+
+    const displayedSamples: Array<MetricBreachingSample> = sorted.slice(
+      0,
+      MAX_ROWS,
+    );
+
+    // Collect attribute keys that appear on any displayed sample
+    const attrKeySet: Set<string> = new Set<string>();
+    for (const s of displayedSamples) {
+      for (const k of Object.keys(s.attributes || {})) {
+        attrKeySet.add(k);
+      }
+    }
+    const attrKeys: Array<string> = Array.from(attrKeySet);
+
+    /*
+     * Escape pipe characters that could appear in the metric display
+     * name (formulas like "a | b" are unlikely but possible) so they
+     * don't break GitHub-flavored-markdown tables.
+     */
+    const escapeCell: (value: string) => string = (value: string): string => {
+      return value.replace(/\|/g, "\\|");
+    };
+
+    /*
+     * Column layout:
+     *   Timestamp | Metric | Alias | Value | <component_1> | ... | <attr_1> | ...
+     *
+     * The component columns let the reader see what each variable of a
+     * formula resolved to at the breach time — e.g. "when c = a + b
+     * breached 100, a was 55, b was 46". They are omitted for plain
+     * metric criteria.
+     */
+    const headerCells: Array<string> = [
+      "Timestamp",
+      "Metric",
+      "Alias",
+      "Value",
+    ];
+
+    for (const component of input.components) {
+      const label: string = component.unit
+        ? `${component.alias} (${component.unit})`
+        : component.alias;
+      headerCells.push(label);
+    }
+
+    headerCells.push(...attrKeys);
+
+    const unitSuffix: string = input.unit ? ` ${input.unit}` : "";
+
+    const headerRow: string = `| ${headerCells.join(" | ")} |`;
+    const dividerRow: string = `| ${headerCells
+      .map(() => {
+        return "---";
+      })
+      .join(" | ")} |`;
+
+    const metricCell: string = `\`${escapeCell(input.metricName)}\``;
+    const aliasCell: string = input.alias
+      ? `\`${escapeCell(input.alias)}\``
+      : "-";
+
+    const dataRows: Array<string> = displayedSamples.map(
+      (s: MetricBreachingSample) => {
+        const timestampIso: string = new Date(s.timestamp).toISOString();
+        const cells: Array<string> = [
+          `\`${timestampIso}\``,
+          metricCell,
+          aliasCell,
+          `${MonitorCriteriaEvaluator.formatNumberForDisplay(s.value)}${unitSuffix}`,
+        ];
+
+        for (const component of input.components) {
+          const match: MetricComponentValue | undefined = (
+            s.componentValues || []
+          ).find((cv: MetricComponentValue) => {
+            return cv.alias === component.alias;
+          });
+          if (match && typeof match.value === "number") {
+            const componentUnitSuffix: string = component.unit
+              ? ` ${component.unit}`
+              : "";
+            cells.push(
+              `${MonitorCriteriaEvaluator.formatNumberForDisplay(match.value)}${componentUnitSuffix}`,
+            );
+          } else {
+            cells.push("-");
+          }
+        }
+
+        for (const k of attrKeys) {
+          const v: unknown = (s.attributes as Record<string, unknown>)[k];
+          cells.push(v === undefined || v === null ? "-" : String(v));
+        }
+        return `| ${cells.join(" | ")} |`;
+      },
+    );
+
+    const lines: Array<string> = [
+      `**Breaching Samples**`,
+      MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
+        breachingCount: sorted.length,
+        totalSamples: input.totalSamples,
+      }),
+      "",
+      headerRow,
+      dividerRow,
+      ...dataRows,
+    ];
+
+    if (sorted.length > displayedSamples.length) {
+      lines.push(
+        `\n_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
+      );
+    }
+
+    return lines.join("\n");
+  }
+
+  private static formatBreachingSamplesSummary(input: {
+    breachingCount: number;
+    totalSamples?: number | undefined;
+  }): string {
+    if (
+      typeof input.totalSamples === "number" &&
+      input.totalSamples > 0 &&
+      input.totalSamples >= input.breachingCount
+    ) {
+      return `${input.breachingCount} of ${input.totalSamples} samples breached the threshold.`;
+    }
+    return `${input.breachingCount} sample${input.breachingCount === 1 ? "" : "s"} breached the threshold.`;
+  }
+
+  private static formatNumberForDisplay(value: number): string {
+    if (!Number.isFinite(value)) {
+      return String(value);
+    }
+    if (Number.isInteger(value)) {
+      return value.toString();
+    }
+    return Number(value.toFixed(2)).toString();
+  }
+
+  private static buildMetricExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+  }): string | null {
+    const projectId: string | undefined = input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    /*
+     * Metric explorer expects a JSON-encoded `metricQueries` param plus
+     * optional start/end times. The shape is documented by
+     * MetricExplorer.getMetricQueriesFromQuery(): it reads metricName,
+     * attributes, and aggregationType (correctly spelled, unlike the
+     * internal persisted field).
+     */
+    const aggregationType: string | undefined =
+      input.ctx.aggregationType || undefined;
+
+    const query: {
+      metricName: string;
+      attributes: JSONObject;
+      aggregationType?: string;
+    } = {
+      metricName: input.ctx.metricName,
+      attributes: input.ctx.filterAttributes || {},
+      ...(aggregationType ? { aggregationType } : {}),
+    };
+
+    // Time window: breach moment +- 15 minutes (or fall back to last hour).
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const breachTime: Date | undefined = input.ctx.breachingSample?.timestamp;
+    const startTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, -30)
+      : OneUptimeDate.addRemoveHours(now, -1);
+    const endTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, 15)
+      : now;
+
+    const params: URLSearchParams = new URLSearchParams();
+    params.set("metricQueries", JSON.stringify([query]));
+    params.set("startTime", OneUptimeDate.toString(startTime));
+    params.set("endTime", OneUptimeDate.toString(endTime));
+
+    /*
+     * The route that actually reads these URL params is the metric
+     * explorer at /metrics/view — the /metrics index is the metric list.
+     */
+    return `${DashboardClientUrl.toString()}/${projectId}/metrics/view?${params.toString()}`;
   }
 
   private static async buildKubernetesRootCauseContext(input: {

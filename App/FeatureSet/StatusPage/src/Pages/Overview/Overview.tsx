@@ -59,6 +59,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -68,6 +69,7 @@ import Color from "Common/Types/Color";
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   if (LocalStorage.getItem("redirectUrl")) {
     // const get item
 
@@ -434,7 +436,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               color: currentStatus?.color?.toString() || Green.toString(),
             }}
           >
-            {uptimePercent}% uptime
+            {uptimePercent}
+            {t("overview.uptimeSuffix")}
           </div>
         );
       }
@@ -447,7 +450,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               color: currentStatus?.color?.toString() || Green.toString(),
             }}
           >
-            {currentStatus?.name || "Operational"}
+            {currentStatus?.name || t("overview.operational")}
           </div>
         );
       }
@@ -647,7 +650,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (elements.length === 0) {
       elements.push(
         <div key={1} className="mb-20">
-          <ErrorMessage message="No resources added to this group." />
+          <ErrorMessage message={t("overview.noResourcesInGroup")} />
         </div>,
       );
     }
@@ -915,7 +918,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           {(activeIncidentsInIncidentGroup.length > 0 ||
             activeEpisodesInEpisodeGroup.length > 0) && (
             <div id="incidents-list mt-2">
-              <Section title="Active Incidents" />
+              <Section title={t("overview.activeIncidents")} />
               {activeIncidentsInIncidentGroup.map(
                 (incidentGroup: IncidentGroup, i: number) => {
                   return (
@@ -965,7 +968,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length >
               0 && (
               <div id="scheduled-events-list mt-2">
-                <Section title="Scheduled Maintenance Events" />
+                <Section title={t("overview.scheduledMaintenanceEvents")} />
                 {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
                   (
                     scheduledEventGroup: ScheduledMaintenanceGroup,
@@ -1006,8 +1009,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               <EmptyState
                 id="overview-empty-state"
                 icon={IconProp.CheckCircle}
-                title={"Everything looks great"}
-                description="No resources added to this status page yet. Please add some resources from the dashboard."
+                title={t("overview.allClearTitle")}
+                description={t("overview.allClearDescription")}
               />
             )}
         </div>

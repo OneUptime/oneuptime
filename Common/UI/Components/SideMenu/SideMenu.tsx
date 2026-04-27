@@ -8,6 +8,7 @@ import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import Navigation from "../../Utils/Navigation";
+import useTranslateValue from "../../Utils/Translation";
 import SideMenuItem from "./SideMenuItem";
 import SideMenuSection from "./SideMenuSection";
 import CountModelSideMenuItem from "./CountModelSideMenuItem";
@@ -53,6 +54,7 @@ export interface ComponentProps {
 }
 
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+  const { translateString } = useTranslateValue();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
@@ -148,10 +150,16 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     itemTitle?: string;
     icon?: IconProp;
   } = findActiveMenuItem();
+  const translatedSectionTitle: string | undefined = translateString(
+    activeItem.sectionTitle,
+  );
+  const translatedItemTitle: string | undefined = translateString(
+    activeItem.itemTitle,
+  );
   const displayText: string =
-    activeItem.sectionTitle && activeItem.itemTitle
-      ? `${activeItem.sectionTitle} / ${activeItem.itemTitle}`
-      : activeItem.itemTitle || "Navigation";
+    translatedSectionTitle && translatedItemTitle
+      ? `${translatedSectionTitle} / ${translatedItemTitle}`
+      : translatedItemTitle || translateString("Navigation") || "Navigation";
 
   // Re-run active item detection when location changes
   useEffect(() => {
@@ -309,8 +317,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           aria-expanded={isMobileMenuVisible}
           aria-label={
             isMobileMenuVisible
-              ? "Close navigation menu"
-              : "Open navigation menu"
+              ? translateString("Close navigation menu") ||
+                "Close navigation menu"
+              : translateString("Open navigation menu") ||
+                "Open navigation menu"
           }
           data-testid="mobile-sidemenu-toggle"
         >
@@ -321,7 +331,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-xs text-gray-400 font-medium">Navigate to</p>
+              <p className="text-xs text-gray-400 font-medium">
+                {translateString("Navigate to")}
+              </p>
               <h3 className="text-sm font-semibold text-gray-900 truncate">
                 {displayText}
               </h3>

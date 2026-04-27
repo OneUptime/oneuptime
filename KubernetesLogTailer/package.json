@@ -1,0 +1,27 @@
+{
+  "name": "@oneuptime/kubernetes-log-tailer",
+  "version": "1.0.0",
+  "description": "OneUptime Kubernetes log tailer — collects pod logs via the Kubernetes API (GKE Autopilot compatible) and forwards to OneUptime via OTLP-HTTP.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
+  "main": "Index.ts",
+  "scripts": {
+    "start": "node --require ts-node/register Index.ts",
+    "compile": "tsc",
+    "dev": "npx nodemon",
+    "test": "jest --detectOpenHandles --passWithNoTests"
+  },
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.22.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "nodemon": "^3.0.0"
+  }
+}

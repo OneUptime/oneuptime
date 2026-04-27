@@ -3,6 +3,7 @@ import Icon, { SizeProp } from "../Icon/Icon";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import ButtonType from "./ButtonTypes";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
@@ -86,6 +87,9 @@ const Button: FunctionComponent<ComponentProps> = ({
   ariaHaspopup,
   ariaControls,
 }: ComponentProps): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string | undefined = translateString(title);
+  const translatedTooltip: string | undefined = translateString(tooltip);
   useEffect(() => {
     // componentDidMount
     if (shortcutKey) {
@@ -254,7 +258,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     ariaLabel ||
     (buttonStyle === ButtonStyleType.ICON ||
     buttonStyle === ButtonStyleType.ICON_LIGHT
-      ? title || tooltip
+      ? translatedTitle || translatedTooltip
       : undefined);
 
   const getButton: GetReactElementFunction = (): ReactElement => {
@@ -289,7 +293,9 @@ const Button: FunctionComponent<ComponentProps> = ({
           />
         )}
 
-        {title && buttonStyle !== ButtonStyleType.ICON ? title : ``}
+        {translatedTitle && buttonStyle !== ButtonStyleType.ICON
+          ? translatedTitle
+          : ``}
 
         {shortcutKey && (
           <div className="ml-2">
@@ -302,8 +308,8 @@ const Button: FunctionComponent<ComponentProps> = ({
     );
   };
 
-  if (tooltip) {
-    return <Tooltip text={tooltip}>{getButton()}</Tooltip>;
+  if (translatedTooltip) {
+    return <Tooltip text={translatedTooltip}>{getButton()}</Tooltip>;
   }
   return getButton();
 };

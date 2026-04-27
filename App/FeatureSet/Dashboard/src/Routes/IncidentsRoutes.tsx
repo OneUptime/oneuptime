@@ -21,6 +21,7 @@ import IncidentView from "../Pages/Incidents/View/Index";
 import IncidentViewNotificationLogs from "../Pages/Incidents/View/NotificationLogs";
 
 import IncidentViewAILogs from "../Pages/Incidents/View/AILogs";
+import IncidentViewAuditLogs from "../Pages/Incidents/View/AuditLogs";
 
 import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 
@@ -786,6 +787,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <IncidentViewAILogs
               {...props}
               pageRoute={RouteMap[PageMap.INCIDENT_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_AUDIT_LOGS)}
+          element={
+            <IncidentViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

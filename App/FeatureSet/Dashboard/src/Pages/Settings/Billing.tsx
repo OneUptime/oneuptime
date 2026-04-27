@@ -12,12 +12,14 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import Email from "Common/Types/Email";
 import Text from "Common/Types/Text";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal from "Common/UI/Components/Modal/Modal";
@@ -652,13 +654,29 @@ const Settings: FunctionComponent<ComponentProps> = (
                 },
                 title: "Finance / Accounting Email",
                 description:
-                  "Invoices, receipts and billing notifications will be sent here (optional).",
+                  "Invoices, receipts and billing notifications will be sent here (optional). Separate multiple emails with a comma.",
                 required: false,
-                placeholder: "finance@yourcompany.com",
-                fieldType: FormFieldSchemaType.Email,
+                placeholder:
+                  "finance@yourcompany.com, accounting@yourcompany.com",
+                fieldType: FormFieldSchemaType.Text,
                 validation: {
                   minLength: 3,
-                  maxLength: 200,
+                  maxLength: 500,
+                },
+                customValidation: (
+                  values: FormValues<Project>,
+                ): string | null => {
+                  const raw: string =
+                    typeof values.financeAccountingEmail === "string"
+                      ? values.financeAccountingEmail
+                      : "";
+                  if (!raw.trim()) {
+                    return null;
+                  }
+                  if (!Email.isValidList(raw)) {
+                    return "Enter one or more valid emails separated by a comma.";
+                  }
+                  return null;
                 },
               },
               {
@@ -698,7 +716,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   },
                   title: "Finance / Accounting Email",
                   placeholder: "No finance / accounting email added yet.",
-                  fieldType: FieldType.Email,
+                  fieldType: FieldType.Text,
                 },
                 {
                   field: {

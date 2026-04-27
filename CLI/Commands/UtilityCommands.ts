@@ -13,6 +13,34 @@ import { printInfo, printError } from "../Core/OutputFormatter";
 import { discoverResources } from "./ResourceCommands";
 import Table from "cli-table3";
 import chalk from "chalk";
+import * as fs from "fs";
+import * as path from "path";
+
+/*
+ * Resolve the CLI's package.json at runtime. The relative depth from
+ * this file to package.json differs between dev (ts-node) and the
+ * compiled build/dist output, so try both locations.
+ */
+function readCliVersion(): string {
+  const candidates: Array<string> = [
+    path.join(__dirname, "..", "package.json"),
+    path.join(__dirname, "..", "..", "..", "package.json"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      const contents: string = fs.readFileSync(candidate, "utf-8");
+      const parsed: { version: string } = JSON.parse(contents) as {
+        version: string;
+      };
+      if (parsed.version) {
+        return parsed.version;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+  return "1.0.0";
+}
 
 export function registerUtilityCommands(program: Command): void {
   // Version command
@@ -20,18 +48,8 @@ export function registerUtilityCommands(program: Command): void {
     .command("version")
     .description("Print CLI version")
     .action(() => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-        const pkg: { version: string } = require("../package.json") as {
-          version: string;
-        };
-        // eslint-disable-next-line no-console
-        console.log(pkg.version);
-      } catch {
-        // Fallback if package.json can't be loaded at runtime
-        // eslint-disable-next-line no-console
-        console.log("1.0.0");
-      }
+      // eslint-disable-next-line no-console
+      console.log(readCliVersion());
     });
 
   // Whoami command

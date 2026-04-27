@@ -1,4 +1,5 @@
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
+import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -18,6 +19,11 @@ export enum CheckOn {
   DiskUsagePercent = "Disk Usage (in %)",
   CPUUsagePercent = "CPU Usage (in %)",
   MemoryUsagePercent = "Memory Usage (in %)",
+  LoadAverage1Min = "Load Average (1 minute)",
+  LoadAverage5Min = "Load Average (5 minute)",
+  LoadAverage15Min = "Load Average (15 minute)",
+  SwapUsagePercent = "Swap Usage (in %)",
+  CPUIoWaitPercent = "CPU IO Wait (in %)",
   ExpiresInHours = "Expires In Hours",
   ExpiresInDays = "Expires In Days",
   IsSelfSignedCertificate = "Is Self Signed Certificate",
@@ -103,9 +109,42 @@ export enum EvaluateOverTimeType {
   AnyValue = "Any Value",
 }
 
+export enum NoDataPolicy {
+  /*
+   * Do not treat missing data as a breach. The criterion simply does
+   * not fire. This is the safest default and matches most SaaS tooling.
+   */
+  Ignore = "Ignore",
+  /*
+   * Treat missing data points as zero. Preserves the original behavior
+   * prior to this policy being configurable — useful for counters where
+   * "no events" genuinely means zero.
+   */
+  TreatAsZero = "Treat As Zero",
+  /*
+   * Trigger the criterion as a breach regardless of threshold. Use for
+   * heartbeat-style metrics where the absence of data is itself the
+   * problem.
+   */
+  Trigger = "Trigger",
+}
+
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
+  /*
+   * Governs how the evaluator handles the case where the metric query
+   * returned zero samples in the evaluation window. Defaults to Ignore
+   * when unset.
+   */
+  onNoDataPolicy?: NoDataPolicy | undefined;
+  /*
+   * Unit the user entered the threshold value in (e.g. "MB", "sec").
+   * The evaluator converts the threshold into the metric's native unit
+   * before comparison. When unset, the threshold is assumed to already
+   * be in the metric's native unit (backward compatible).
+   */
+  thresholdUnit?: string | undefined;
 }
 
 export enum EvaluateOverTimeMinutes {
@@ -134,6 +173,13 @@ export interface CriteriaFilter {
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
   evaluateOverTimeOptions?: EvaluateOverTimeOptions | undefined;
+  /*
+   * Populated at evaluation time for metric monitors so downstream code
+   * (e.g. the root cause builder) can include metric-specific context
+   * like metric name, unit, filter/group-by attributes, and the series
+   * that actually breached. Not persisted.
+   */
+  metricCriteriaContext?: MetricCriteriaContext | undefined;
 }
 
 export enum FilterType {
@@ -255,6 +301,11 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DiskUsagePercent ||
       checkOn === CheckOn.CPUUsagePercent ||
       checkOn === CheckOn.MemoryUsagePercent ||
+      checkOn === CheckOn.LoadAverage1Min ||
+      checkOn === CheckOn.LoadAverage5Min ||
+      checkOn === CheckOn.LoadAverage15Min ||
+      checkOn === CheckOn.SwapUsagePercent ||
+      checkOn === CheckOn.CPUIoWaitPercent ||
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpResponseTime ||
       checkOn === CheckOn.SnmpIsOnline ||
@@ -274,6 +325,8 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   metricMonitorOptions: Zod.object({
     metricAlias: Zod.string().optional(),
     metricAggregationType: Zod.string().optional(),
+    onNoDataPolicy: Zod.string().optional(),
+    thresholdUnit: Zod.string().optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),

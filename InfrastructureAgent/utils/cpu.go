@@ -41,8 +41,27 @@ func GetCpuMetrics() *model.CPUMetrics {
 		return nil
 	}
 
-	return &model.CPUMetrics{
-		PercentUsed: avgCorePercent,
-		Cores:       numberOfCpuCores,
+	metrics := &model.CPUMetrics{
+		PercentUsed:    avgCorePercent,
+		Cores:          numberOfCpuCores,
+		PerCorePercent: perCorePercent,
 	}
+
+	// CPU time breakdown. Non-fatal: leave zero values if unsupported on this platform.
+	if times, err := cpu.Times(false); err == nil && len(times) > 0 {
+		t := times[0]
+		total := t.User + t.System + t.Idle + t.Nice + t.Iowait + t.Irq + t.Softirq + t.Steal + t.Guest + t.GuestNice
+		if total > 0 {
+			metrics.TimeUserPercent = (t.User / total) * 100
+			metrics.TimeSystemPercent = (t.System / total) * 100
+			metrics.TimeIdlePercent = (t.Idle / total) * 100
+			metrics.TimeIoWaitPercent = (t.Iowait / total) * 100
+			metrics.TimeStealPercent = (t.Steal / total) * 100
+			metrics.TimeNicePercent = (t.Nice / total) * 100
+			metrics.TimeIrqPercent = (t.Irq / total) * 100
+			metrics.TimeSoftIrqPercent = (t.Softirq / total) * 100
+		}
+	}
+
+	return metrics
 }

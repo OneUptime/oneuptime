@@ -33,10 +33,22 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import TraceDropFilterService from "./TraceDropFilterService";
+import TraceScrubRuleService from "./TraceScrubRuleService";
+import TracePipelineService, {
+  LoadedTracePipeline,
+} from "./TracePipelineService";
+import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
 } from "../Config";
+
+type CompiledTraceScrubRule = {
+  rule: TraceScrubRule;
+  regex: RegExp;
+};
 
 type ParsedUnixNano = {
   unixNano: number;
@@ -65,7 +77,43 @@ type ExceptionEventPayload = {
   dataRententionInDays: number;
 };
 
+const SPAN_KIND_BY_OTEL_INT: Record<number, SpanKind> = {
+  1: SpanKind.Internal,
+  2: SpanKind.Server,
+  3: SpanKind.Client,
+  4: SpanKind.Producer,
+  5: SpanKind.Consumer,
+};
+
 export default class OtelTracesIngestService extends OtelIngestBaseService {
+  /**
+   * OTLP wire format encodes span kind as an integer (1=Internal, 2=Server,
+   * ...). Filter/drop/scrub expressions configured in the UI compare against
+   * the OpenTelemetry string form ('SPAN_KIND_SERVER'). Translate at ingest
+   * time so downstream evaluators see a stable string.
+   */
+  private static mapSpanKind(rawKind: unknown): SpanKind {
+    if (typeof rawKind === "number") {
+      return SPAN_KIND_BY_OTEL_INT[rawKind] || SpanKind.Internal;
+    }
+    if (typeof rawKind === "string") {
+      const asInt: number = parseInt(rawKind, 10);
+      if (!isNaN(asInt) && SPAN_KIND_BY_OTEL_INT[asInt]) {
+        return SPAN_KIND_BY_OTEL_INT[asInt]!;
+      }
+      if (
+        rawKind === SpanKind.Server ||
+        rawKind === SpanKind.Client ||
+        rawKind === SpanKind.Producer ||
+        rawKind === SpanKind.Consumer ||
+        rawKind === SpanKind.Internal
+      ) {
+        return rawKind as SpanKind;
+      }
+    }
+    return SpanKind.Internal;
+  }
+
   private static async flushSpansBuffer(
     spans: Array<JSONObject>,
     force: boolean = false,
@@ -159,6 +207,29 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const dbExceptions: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalSpansProcessed: number = 0;
+
+      const projectId: ObjectID = (req as TelemetryRequest).projectId;
+
+      // Load trace pipeline artifacts once per batch (60s cached inside services).
+      let dropFilters: Array<TraceDropFilter> = [];
+      let scrubRules: Array<CompiledTraceScrubRule> = [];
+      let pipelines: Array<LoadedTracePipeline> = [];
+      try {
+        [dropFilters, scrubRules, pipelines] = await Promise.all([
+          TraceDropFilterService.loadDropFilters(projectId),
+          TraceScrubRuleService.loadScrubRules(projectId),
+          TracePipelineService.loadPipelines(projectId),
+        ]);
+      } catch (err) {
+        logger.warn(
+          `Failed to load trace pipeline rules for project ${projectId.toString()}; skipping: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        dropFilters = [];
+        scrubRules = [];
+        pipelines = [];
+      }
 
       let resourceSpanCounter: number = 0;
       for (const resourceSpan of resourceSpans) {
@@ -262,8 +333,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const attributeKeys: Array<string> =
                     TelemetryUtil.getAttributeKeys(spanAttributes);
 
-                  const projectId: ObjectID = (req as TelemetryRequest)
-                    .projectId;
                   const serviceId: ObjectID =
                     serviceDictionary[serviceName]!.serviceId!;
 
@@ -314,7 +383,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
                   const spanName: string = (span["name"] as string) || "";
                   const spanKind: SpanKind =
-                    (span["kind"] as SpanKind) || SpanKind.Internal;
+                    OtelTracesIngestService.mapSpanKind(span["kind"]);
                   const traceState: string =
                     (span["traceState"] as string) || "";
 
@@ -358,7 +427,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     spanLinks = [];
                   }
 
-                  const spanRow: JSONObject = this.buildSpanRow({
+                  let spanRow: JSONObject = this.buildSpanRow({
                     projectId: projectId,
                     serviceId: serviceId,
                     attributes: spanAttributes,
@@ -377,9 +446,35 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     events: spanEvents,
                     links: spanLinks,
                     hasException: hasException,
+                    isRootSpan: !parentSpanId || parentSpanId === "",
                     dataRententionInDays:
                       serviceDictionary[serviceName]!.dataRententionInDays,
                   });
+
+                  /*
+                   * Apply trace pipeline: drop filter -> scrub -> pipeline.
+                   * Order matches logs: a dropped span never reaches scrub/pipeline.
+                   */
+                  if (
+                    dropFilters.length > 0 &&
+                    TraceDropFilterService.shouldDropSpan(spanRow, dropFilters)
+                  ) {
+                    continue;
+                  }
+
+                  if (scrubRules.length > 0) {
+                    spanRow = TraceScrubRuleService.scrubSpan(
+                      spanRow,
+                      scrubRules,
+                    );
+                  }
+
+                  if (pipelines.length > 0) {
+                    spanRow = TracePipelineService.processSpan(
+                      spanRow,
+                      pipelines,
+                    );
+                  }
 
                   dbSpans.push(spanRow);
                   totalSpansProcessed++;
@@ -678,6 +773,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     events: Array<JSONObject>;
     links: Array<JSONObject>;
     hasException: boolean;
+    isRootSpan: boolean;
     dataRententionInDays: number;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
@@ -712,6 +808,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       events: data.events,
       links: data.links,
       hasException: data.hasException,
+      isRootSpan: data.isRootSpan,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }

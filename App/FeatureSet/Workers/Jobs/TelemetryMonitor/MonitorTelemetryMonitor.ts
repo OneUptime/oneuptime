@@ -36,9 +36,18 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricService from "Common/Server/Services/MetricService";
+import MetricTypeService from "Common/Server/Services/MetricTypeService";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Dictionary from "Common/Types/Dictionary";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import MetricSeriesResult from "Common/Types/Monitor/MetricMonitor/MetricSeriesResult";
+import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
@@ -220,6 +229,402 @@ type MonitorTelemetryMonitorFunction = (data: {
   | ProfileMonitorResponse
 >;
 
+/**
+ * Fetch the native unit (as reported by OpenTelemetry and stored in
+ * MetricType) for each metric name a query config references. Returned
+ * as a lowercase-keyed map so lookups are case-insensitive.
+ */
+const loadNativeUnitsByMetricName: (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  projectId: ObjectID;
+}) => Promise<Map<string, string>> = async (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  projectId: ObjectID;
+}): Promise<Map<string, string>> => {
+  const names: Set<string> = new Set<string>();
+  for (const queryConfig of input.queryConfigs) {
+    const name: string | undefined =
+      queryConfig.metricQueryData?.filterData?.metricName?.toString();
+    if (name) {
+      names.add(name);
+    }
+  }
+
+  if (names.size === 0) {
+    return new Map<string, string>();
+  }
+
+  const metricTypes: Array<MetricType> = await MetricTypeService.findBy({
+    query: {
+      projectId: input.projectId,
+      name: DatabaseQueryHelper.any(Array.from(names)),
+    },
+    select: {
+      name: true,
+      unit: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const unitsByName: Map<string, string> = new Map<string, string>();
+  for (const metricType of metricTypes) {
+    if (metricType.name && metricType.unit) {
+      unitsByName.set(metricType.name.toLowerCase(), metricType.unit);
+    }
+  }
+  return unitsByName;
+};
+
+/**
+ * Collect the union of attribute keys the user asked to group by
+ * across every queryConfig on the monitor step. Per-series
+ * alerting needs a consistent key set across queries so formula
+ * series line up (otherwise `a + b` would split differently for a
+ * and b and the per-series formula evaluation wouldn't align).
+ */
+const collectGroupByAttributeKeys: (
+  queryConfigs: Array<MetricQueryConfigData>,
+) => Array<string> = (
+  queryConfigs: Array<MetricQueryConfigData>,
+): Array<string> => {
+  const keys: Set<string> = new Set<string>();
+  for (const queryConfig of queryConfigs) {
+    const groupKeys: Array<string> | undefined =
+      queryConfig.metricQueryData?.groupByAttributeKeys;
+    if (groupKeys) {
+      for (const key of groupKeys) {
+        if (key) {
+          keys.add(key);
+        }
+      }
+    }
+  }
+  return Array.from(keys);
+};
+
+/**
+ * Bucket a single query's aggregated rows by the fingerprint derived
+ * from the requested attribute keys. Returns a map from fingerprint to
+ * an AggregatedResult containing only the rows that belong to that
+ * series (preserving the original row shape so downstream unit
+ * conversion and criteria evaluation keep working unchanged).
+ */
+const bucketAggregatedResultBySeries: (input: {
+  aggregatedResult: AggregatedResult;
+  attributeKeys: Array<string>;
+}) => Map<
+  string,
+  { labels: JSONObject; aggregatedResult: AggregatedResult }
+> = (input: {
+  aggregatedResult: AggregatedResult;
+  attributeKeys: Array<string>;
+}): Map<string, { labels: JSONObject; aggregatedResult: AggregatedResult }> => {
+  const buckets: Map<
+    string,
+    { labels: JSONObject; aggregatedResult: AggregatedResult }
+  > = new Map();
+
+  for (const row of input.aggregatedResult.data) {
+    const labels: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+      sample: row,
+      attributeKeys: input.attributeKeys,
+    });
+
+    const fingerprint: string =
+      MetricSeriesFingerprint.computeFingerprint(labels);
+
+    const existing:
+      | { labels: JSONObject; aggregatedResult: AggregatedResult }
+      | undefined = buckets.get(fingerprint);
+
+    if (existing) {
+      existing.aggregatedResult.data.push(row);
+    } else {
+      buckets.set(fingerprint, {
+        labels,
+        aggregatedResult: { data: [row] },
+      });
+    }
+  }
+
+  return buckets;
+};
+
+/**
+ * Per-series aggregation path: fetch raw metric rows and bucket them
+ * by (series fingerprint, minute bucket) in code. Returns an
+ * AggregatedResult shaped identically to what `MetricService.aggregateBy`
+ * would have produced with `GROUP BY time, attributes`.
+ *
+ * Why in-code instead of SQL GROUP BY: ClickHouse's parameterized
+ * query returns 0 rows when the GROUP BY clause includes the nested
+ * `attributes` Map column, even though running the exact same SQL
+ * directly returns rows. This is a quirk of the @clickhouse/client
+ * parameter binding for Map columns. Rather than work around the
+ * library bug we fetch raw rows (just like the Kubernetes monitor
+ * already does for its per-resource breakdown) and aggregate in JS.
+ * For the realistic monitor shape — hundreds of hosts × ~60 samples
+ * per minute — the extra work is negligible compared to a cron tick.
+ */
+const aggregatePerSeriesFromRawMetrics: (input: {
+  rawMetrics: Array<Metric>;
+  attributeKeys: Array<string>;
+  aggregationType: MetricsAggregationType;
+}) => AggregatedResult = (input: {
+  rawMetrics: Array<Metric>;
+  attributeKeys: Array<string>;
+  aggregationType: MetricsAggregationType;
+}): AggregatedResult => {
+  const buckets: Map<
+    string,
+    {
+      labels: JSONObject;
+      timestamp: Date;
+      values: Array<number>;
+      attributes: JSONObject;
+    }
+  > = new Map();
+
+  for (const metric of input.rawMetrics) {
+    const attrs: JSONObject = (metric.attributes as JSONObject) || {};
+    const labels: JSONObject = {};
+    for (const key of input.attributeKeys) {
+      const value: unknown = attrs[key];
+      labels[key] =
+        value === undefined || value === null ? "" : (value as string);
+    }
+    const fingerprint: string =
+      MetricSeriesFingerprint.computeFingerprint(labels);
+
+    const metricTime: Date = metric.time ? new Date(metric.time) : new Date();
+    const bucketDate: Date = new Date(
+      Date.UTC(
+        metricTime.getUTCFullYear(),
+        metricTime.getUTCMonth(),
+        metricTime.getUTCDate(),
+        metricTime.getUTCHours(),
+        metricTime.getUTCMinutes(),
+        0,
+        0,
+      ),
+    );
+
+    const bucketKey: string = `${fingerprint}|${bucketDate.toISOString()}`;
+
+    const value: number =
+      typeof metric.value === "number" ? metric.value : Number(metric.value);
+
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+
+    const existing:
+      | {
+          labels: JSONObject;
+          timestamp: Date;
+          values: Array<number>;
+          attributes: JSONObject;
+        }
+      | undefined = buckets.get(bucketKey);
+
+    if (existing) {
+      existing.values.push(value);
+    } else {
+      buckets.set(bucketKey, {
+        labels,
+        timestamp: bucketDate,
+        values: [value],
+        attributes: attrs,
+      });
+    }
+  }
+
+  const rows: Array<AggregatedModel> = [];
+
+  for (const bucket of buckets.values()) {
+    const vs: Array<number> = bucket.values;
+    if (vs.length === 0) {
+      continue;
+    }
+
+    let aggregated: number;
+    switch (input.aggregationType) {
+      case MetricsAggregationType.Sum:
+        aggregated = vs.reduce((a: number, b: number) => {
+          return a + b;
+        }, 0);
+        break;
+      case MetricsAggregationType.Count:
+        aggregated = vs.length;
+        break;
+      case MetricsAggregationType.Max:
+        aggregated = Math.max(...vs);
+        break;
+      case MetricsAggregationType.Min:
+        aggregated = Math.min(...vs);
+        break;
+      case MetricsAggregationType.Avg:
+      default:
+        aggregated =
+          vs.reduce((a: number, b: number) => {
+            return a + b;
+          }, 0) / vs.length;
+        break;
+    }
+
+    rows.push({
+      timestamp: bucket.timestamp,
+      value: aggregated,
+      attributes: bucket.attributes as AggregatedModel[string],
+    });
+  }
+
+  return { data: rows };
+};
+
+/**
+ * Build the per-series breakdown for a monitor step. Each entry in the
+ * returned array has `aggregatedResults` aligned with the provided
+ * `queryConfigs.length + formulaConfigs.length` so formula evaluation
+ * can reuse the same index scheme (queryIndex, queryCount+formulaIndex)
+ * that the ungrouped path uses.
+ *
+ * When a series has no rows for a given query (because that series
+ * didn't appear in that query's results), the aggregated result for
+ * that slot is empty — the criteria evaluator already treats an empty
+ * series as "no data" per the configured NoDataPolicy.
+ */
+const buildSeriesBreakdown: (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  perQueryResults: Array<AggregatedResult>;
+  attributeKeys: Array<string>;
+  projectId: ObjectID;
+}) => Array<MetricSeriesResult> = (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  perQueryResults: Array<AggregatedResult>;
+  attributeKeys: Array<string>;
+  projectId: ObjectID;
+}): Array<MetricSeriesResult> => {
+  /*
+   * Bucket every query's results by fingerprint first. Each query
+   * produces its own fingerprint → rows map; we then take the union of
+   * fingerprints seen across queries so a formula like `a + b` still
+   * yields a row even if one side has no samples for that series.
+   */
+  const perQueryBuckets: Array<
+    Map<string, { labels: JSONObject; aggregatedResult: AggregatedResult }>
+  > = input.perQueryResults.map((aggregatedResult: AggregatedResult) => {
+    return bucketAggregatedResultBySeries({
+      aggregatedResult,
+      attributeKeys: input.attributeKeys,
+    });
+  });
+
+  const fingerprintToLabels: Map<string, JSONObject> = new Map();
+  for (const buckets of perQueryBuckets) {
+    for (const [fingerprint, entry] of buckets) {
+      if (!fingerprintToLabels.has(fingerprint)) {
+        fingerprintToLabels.set(fingerprint, entry.labels);
+      }
+    }
+  }
+
+  const breakdown: Array<MetricSeriesResult> = [];
+
+  for (const [fingerprint, labels] of fingerprintToLabels) {
+    const perQueryForSeries: Array<AggregatedResult> = perQueryBuckets.map(
+      (
+        bucket: Map<
+          string,
+          { labels: JSONObject; aggregatedResult: AggregatedResult }
+        >,
+      ) => {
+        return bucket.get(fingerprint)?.aggregatedResult || { data: [] };
+      },
+    );
+
+    const seriesWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+      queryConfigs: input.queryConfigs,
+      formulaConfigs: input.formulaConfigs,
+      aggregatedResults: perQueryForSeries,
+      projectId: input.projectId,
+    });
+
+    breakdown.push({
+      fingerprint,
+      labels,
+      aggregatedResults: seriesWithFormulas,
+    });
+  }
+
+  return breakdown;
+};
+
+/**
+ * Evaluate all formulas and append their results to the aggregated
+ * results array, in the order they appear in formulaConfigs. Criteria
+ * evaluation (MetricMonitorCriteria) resolves formulas via
+ * `aliasIndex = queryConfigs.length + formulaIndex`, so preserving order
+ * is load-bearing.
+ */
+const appendFormulaResults: (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  aggregatedResults: Array<AggregatedResult>;
+  projectId: ObjectID;
+}) => Array<AggregatedResult> = (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  aggregatedResults: Array<AggregatedResult>;
+  projectId: ObjectID;
+}): Array<AggregatedResult> => {
+  const results: Array<AggregatedResult> = [...input.aggregatedResults];
+
+  for (
+    let index: number = 0;
+    index < (input.formulaConfigs || []).length;
+    index++
+  ) {
+    const formulaConfig: MetricFormulaConfigData = input.formulaConfigs[index]!;
+    const formula: string =
+      formulaConfig.metricFormulaData?.metricFormula || "";
+
+    if (!formula.trim()) {
+      results.push({ data: [] });
+      continue;
+    }
+
+    try {
+      const formulaResult: AggregatedResult =
+        MetricFormulaEvaluator.evaluateFormula({
+          formula,
+          queryConfigs: input.queryConfigs,
+          formulaConfigs: input.formulaConfigs.slice(0, index),
+          results,
+        });
+      results.push(formulaResult);
+    } catch (err) {
+      logger.error("Failed to evaluate metric formula", {
+        service: "workers",
+        projectId: input.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: input.projectId.toString(),
+      });
+      results.push({ data: [] });
+    }
+  }
+
+  return results;
+};
+
 const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
@@ -359,6 +764,10 @@ const monitorMetric: MonitorMetricFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    metricMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
   for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
     const query: Query<Metric> = {
       projectId: data.projectId,
@@ -376,13 +785,47 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         .attributes as Dictionary<string>;
     }
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      /*
+       * Per-series path: fetch raw rows including the full
+       * attributes map, then bucket + aggregate in code. We can't
+       * push this through aggregateBy+SQL because the @clickhouse/client
+       * parameterized query returns 0 rows when GROUP BY includes the
+       * Map column. See aggregatePerSeriesFromRawMetrics for details.
+       */
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
         query: query,
-        aggregationType:
-          (queryConfig.metricQueryData.filterData
-            .aggegationType as MetricsAggregationType) ||
-          MetricsAggregationType.Avg,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp:
@@ -396,8 +839,8 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    }
 
     logger.debug("Aggregated results", {
       service: "workers",
@@ -411,12 +854,52 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     finalResult.push(aggregatedResults);
   }
 
+  /*
+   * Convert each query's raw values from the metric's native unit
+   * (reported by OpenTelemetry) into the unit the user picked on the
+   * query's alias. This means formulas operate on values the user
+   * actually sees in the UI — e.g. "memory in GB + disk in GB" rather
+   * than silently summing bytes with kilobytes.
+   */
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            metricMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
   return {
     projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
-    metricResult: finalResult,
+    metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
+    seriesBreakdown: seriesBreakdown,
   };
 };
 
@@ -533,6 +1016,10 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
   let kubernetesResourceBreakdown: KubernetesResourceBreakdown | undefined =
     undefined;
 
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
   for (const queryConfig of kubernetesMonitorConfig.metricViewConfig
     .queryConfigs) {
     const metricName: string =
@@ -592,13 +1079,40 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       query.attributes = attributes;
     }
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
         query: query,
-        aggregationType:
-          (queryConfig.metricQueryData.filterData
-            .aggegationType as MetricsAggregationType) ||
-          MetricsAggregationType.Avg,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp:
@@ -612,8 +1126,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    }
 
     logger.debug("Kubernetes monitor aggregated results", {
       service: "workers",
@@ -748,13 +1262,47 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     }
   }
 
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
   return {
     projectId: data.projectId,
     metricViewConfig: kubernetesMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
-    metricResult: finalResult,
+    metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     kubernetesResourceBreakdown: kubernetesResourceBreakdown,
+    seriesBreakdown: seriesBreakdown,
   };
 };
 
@@ -782,6 +1330,10 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    dockerMonitorConfig.metricViewConfig.queryConfigs,
+  );
 
   for (const queryConfig of dockerMonitorConfig.metricViewConfig.queryConfigs) {
     const metricName: string =
@@ -834,13 +1386,40 @@ const monitorDocker: MonitorDockerFunction = async (data: {
       query.attributes = attributes;
     }
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
         query: query,
-        aggregationType:
-          (queryConfig.metricQueryData.filterData
-            .aggegationType as MetricsAggregationType) ||
-          MetricsAggregationType.Avg,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
         aggregateColumnName: "value",
         aggregationTimestampColumnName: "time",
         startTimestamp:
@@ -854,8 +1433,8 @@ const monitorDocker: MonitorDockerFunction = async (data: {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    }
 
     logger.debug("Docker monitor aggregated results", {
       service: "workers",
@@ -865,11 +1444,44 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     finalResult.push(aggregatedResults);
   }
 
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
   return {
     projectId: data.projectId,
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
-    metricResult: finalResult,
+    metricResult: resultsWithFormulas,
+    seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };
 };

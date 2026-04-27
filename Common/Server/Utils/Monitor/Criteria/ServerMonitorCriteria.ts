@@ -209,6 +209,77 @@ export default class ServerMonitorCriteria {
     }
 
     if (
+      !(input.dataToProcess as ServerMonitorResponse)
+        .onlyCheckRequestReceivedAt &&
+      (input.criteriaFilter.checkOn === CheckOn.LoadAverage1Min ||
+        input.criteriaFilter.checkOn === CheckOn.LoadAverage5Min ||
+        input.criteriaFilter.checkOn === CheckOn.LoadAverage15Min)
+    ) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      const loadMetrics:
+        | { load1: number; load5: number; load15: number }
+        | undefined = (input.dataToProcess as ServerMonitorResponse)
+        .basicInfrastructureMetrics?.loadMetrics;
+
+      let currentLoad: number | undefined = undefined;
+      if (input.criteriaFilter.checkOn === CheckOn.LoadAverage1Min) {
+        currentLoad = loadMetrics?.load1;
+      } else if (input.criteriaFilter.checkOn === CheckOn.LoadAverage5Min) {
+        currentLoad = loadMetrics?.load5;
+      } else if (input.criteriaFilter.checkOn === CheckOn.LoadAverage15Min) {
+        currentLoad = loadMetrics?.load15;
+      }
+
+      const value: number | Array<number> =
+        (overTimeValue as Array<number>) || currentLoad || 0;
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: value,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (
+      input.criteriaFilter.checkOn === CheckOn.SwapUsagePercent &&
+      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+    ) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      const swapPercent: number | Array<number> =
+        (overTimeValue as Array<number>) ||
+        (input.dataToProcess as ServerMonitorResponse)
+          .basicInfrastructureMetrics?.memoryMetrics?.swapPercentUsed ||
+        0;
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: swapPercent,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (
+      input.criteriaFilter.checkOn === CheckOn.CPUIoWaitPercent &&
+      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+    ) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      const ioWaitPercent: number | Array<number> =
+        (overTimeValue as Array<number>) ||
+        (input.dataToProcess as ServerMonitorResponse)
+          .basicInfrastructureMetrics?.cpuMetrics?.timeIoWaitPercent ||
+        0;
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: ioWaitPercent,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
       threshold &&
       !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt

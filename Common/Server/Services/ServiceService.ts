@@ -1,12 +1,16 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ProjectService from "./ProjectService";
 import ArrayUtil from "../../Utils/Array";
 import { BrightColors } from "../../Types/BrandColors";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/Service";
+import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+const DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -33,6 +37,7 @@ export class Service extends DatabaseService<Model> {
     const service: Model | null = await this.findOneById({
       id: serviceId,
       select: {
+        projectId: true,
         retainTelemetryDataForDays: true,
       },
       props: {
@@ -44,7 +49,28 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Service not found");
     }
 
-    return service.retainTelemetryDataForDays || 15; // default is 15 days.
+    if (service.retainTelemetryDataForDays) {
+      return service.retainTelemetryDataForDays;
+    }
+
+    // Fall back to project-level default.
+    if (service.projectId) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: service.projectId,
+        select: {
+          defaultTelemetryRetentionInDays: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (project?.defaultTelemetryRetentionInDays) {
+        return project.defaultTelemetryRetentionInDays;
+      }
+    }
+
+    return DEFAULT_TELEMETRY_RETENTION_IN_DAYS;
   }
 }
 

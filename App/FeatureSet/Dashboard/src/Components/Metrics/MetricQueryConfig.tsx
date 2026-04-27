@@ -63,6 +63,22 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
     props.data?.metricQueryData?.filterData?.metricName?.toString() ||
     "No metric selected";
 
+  /*
+   * Look up the currently selected metric's native unit so MetricAlias
+   * can show a dropdown of compatible units (e.g. ms/sec/min when the
+   * metric is in seconds) rather than a free-text input.
+   */
+  const selectedMetricType: MetricType | undefined = props.metricTypes.find(
+    (m: MetricType) => {
+      return (
+        m.name ===
+        props.data?.metricQueryData?.filterData?.metricName?.toString()
+      );
+    },
+  );
+  const selectedMetricNativeUnit: string | undefined =
+    selectedMetricType?.unit || undefined;
+
   const aggregationType: string =
     props.data?.metricQueryData?.filterData?.aggegationType?.toString() ||
     "Avg";
@@ -352,6 +368,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     }}
                     isFormula={false}
                     hideVariableBadge={true}
+                    unitFamilyBasedOn={selectedMetricNativeUnit}
                   />
 
                   {/* Thresholds */}

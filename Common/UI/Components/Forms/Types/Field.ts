@@ -57,6 +57,7 @@ export default interface Field<TEntity> {
   cardSelectOptions?:
     | Array<CardSelectOption | CardSelectOptionGroup>
     | undefined;
+  cardSelectSingleColumn?: boolean | undefined;
   fetchDropdownOptions?:
     | ((
         item: FormValues<TEntity>,

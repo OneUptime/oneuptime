@@ -41,6 +41,13 @@ export default class TelemetryIngest {
           | undefined;
       }
 
+      // if x-oneuptime-ingestion-key header is present then use that as token.
+      if (!oneuptimeToken) {
+        oneuptimeToken = req.headers["x-oneuptime-ingestion-key"] as
+          | string
+          | undefined;
+      }
+
       if (!oneuptimeToken) {
         logger.error(
           "Missing header: x-oneuptime-token",

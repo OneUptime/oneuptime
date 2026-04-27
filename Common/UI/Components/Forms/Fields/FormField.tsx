@@ -417,6 +417,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={index}
               dataTestId={props.field.dataTestId}
+              singleColumn={props.field.cardSelectSingleColumn}
               onChange={(value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

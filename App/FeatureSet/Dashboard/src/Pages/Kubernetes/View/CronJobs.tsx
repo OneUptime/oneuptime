@@ -20,11 +20,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterCronJobs: FunctionComponent<
   PageComponentProps
@@ -52,66 +48,29 @@ const KubernetesClusterCronJobs: FunctionComponent<
         return;
       }
 
-      const [cronjobList, cronjobObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
-          clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.cronjob.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "cronjobs",
-        }),
-      ]);
-
-      // Build a set of resource keys we already have from metrics
-      const existingKeys: Set<string> = new Set<string>();
-
-      for (const resource of cronjobList) {
-        const key: string = `${resource.namespace}/${resource.name}`;
-        existingKeys.add(key);
-        const cjObj: KubernetesObjectType | undefined = cronjobObjects.get(key);
-        if (cjObj) {
-          const cronJob: KubernetesCronJobObject =
-            cjObj as KubernetesCronJobObject;
-
-          resource.status = cronJob.spec.suspend ? "Suspended" : "Active";
-
-          resource.additionalAttributes["schedule"] = cronJob.spec.schedule;
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            cronJob.metadata.creationTimestamp,
-          );
-        }
-      }
-
-      // Add cronjobs from k8s objects that were not found via metrics
-      for (const [key, cjObj] of cronjobObjects.entries()) {
-        if (existingKeys.has(key)) {
-          continue;
-        }
-        const cronJob: KubernetesCronJobObject =
-          cjObj as KubernetesCronJobObject;
-
-        cronjobList.push({
-          name: cronJob.metadata.name,
-          namespace: cronJob.metadata.namespace,
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: cronJob.spec.suspend ? "Suspended" : "Active",
-          age: KubernetesResourceUtils.formatAge(
-            cronJob.metadata.creationTimestamp,
-          ),
-          additionalAttributes: {
-            schedule: cronJob.spec.schedule || "",
+      const cronjobList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "CronJob",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            resource.status = spec["suspend"] ? "Suspended" : "Active";
+            resource.additionalAttributes["schedule"] =
+              (spec["schedule"] as string) || "";
           },
         });
-      }
+
+      await KubernetesResourceUtils.enrichWithMetrics({
+        resources: cronjobList,
+        clusterIdentifier: cluster.clusterIdentifier,
+        cpuMetricName: "k8s.pod.cpu.utilization",
+        memoryMetricName: "k8s.pod.memory.usage",
+        resourceNameAttribute: "resource.k8s.cronjob.name",
+      });
 
       setResources(cronjobList);
     } catch (err) {

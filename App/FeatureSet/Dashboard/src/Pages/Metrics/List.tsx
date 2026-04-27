@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import MetricsViewer from "../../Components/Metrics/MetricsViewer";
+import MetricsDashboard from "../../Components/Metrics/MetricsDashboard";
 
-const MetricsListPage: FunctionComponent = (): ReactElement => {
-  return <MetricsViewer />;
+const MetricsInsightsPage: FunctionComponent = (): ReactElement => {
+  return <MetricsDashboard />;
 };
 
-export default MetricsListPage;
+export default MetricsInsightsPage;

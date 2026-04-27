@@ -79,6 +79,16 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_HOST_VIEW_SETTINGS] as Route,

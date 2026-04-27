@@ -5,6 +5,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
@@ -19,6 +20,9 @@ import { Green } from "Common/Types/BrandColors";
 const AIAgentsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<AIAgent>({ modelType: AIAgent });
+
   return (
     <Fragment>
       <>
@@ -103,6 +107,9 @@ const AIAgentsPage: FunctionComponent<
           isEditable={false}
           isViewable={true}
           isCreateable={true}
+          bulkActions={{
+            buttons: [...labelBulkActions],
+          }}
           cardProps={{
             title: "Self-Hosted AI Agents",
             description:
@@ -292,6 +299,7 @@ const AIAgentsPage: FunctionComponent<
             },
           ]}
         />
+        {labelBulkActionModals}
       </>
     </Fragment>
   );

@@ -29,6 +29,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -38,6 +39,7 @@ export type ComponentProps = SubscribePageProps;
 const SubscribePage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [isLaoding, setIsLoading] = useState<boolean>(false);
 
@@ -91,21 +93,21 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       field: {
         slackWorkspaceName: true,
       },
-      title: "Slack Workspace Name",
-      description: "Enter your Slack workspace name for validation.",
+      title: t("subscribe.slack.workspaceName"),
+      description: t("subscribe.slack.workspaceNameDescription"),
       fieldType: FormFieldSchemaType.Text,
       required: true,
-      placeholder: "my-company-workspace",
+      placeholder: t("subscribe.slack.workspaceNamePlaceholder"),
     },
     {
       field: {
         slackIncomingWebhookUrl: true,
       },
-      title: "Slack Incoming Webhook URL",
-      description: "Status page updates will be sent to this Slack webhook.",
+      title: t("subscribe.slack.webhookUrl"),
+      description: t("subscribe.slack.webhookUrlDescription"),
       fieldType: FormFieldSchemaType.URL,
       required: true,
-      placeholder: "https://hooks.slack.com/services/...",
+      placeholder: t("subscribe.slack.webhookUrlPlaceholder"),
     },
   ];
 
@@ -114,9 +116,8 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       field: {
         isSubscribedToAllResources: true,
       },
-      title: "Subscribe to All Resources",
-      description:
-        "Select this option if you want to subscribe to all resources.",
+      title: t("subscribe.resources.all"),
+      description: t("subscribe.resources.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       defaultValue: true,
@@ -126,8 +127,8 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       field: {
         statusPageResources: true,
       },
-      title: "Select Resources to Subscribe",
-      description: "Please select the resources you want to subscribe to.",
+      title: t("subscribe.resources.select"),
+      description: t("subscribe.resources.selectDescription"),
       fieldType: FormFieldSchemaType.CategoryCheckbox,
       required: false,
       categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -142,9 +143,8 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       field: {
         isSubscribedToAllEventTypes: true,
       },
-      title: "Subscribe to All Event Types",
-      description:
-        "Select this option if you want to subscribe to all event types.",
+      title: t("subscribe.eventTypes.all"),
+      description: t("subscribe.eventTypes.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       defaultValue: true,
@@ -154,8 +154,8 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       field: {
         statusPageEventTypes: true,
       },
-      title: "Select Event Types to Subscribe",
-      description: "Please select the event types you want to subscribe to.",
+      title: t("subscribe.eventTypes.select"),
+      description: t("subscribe.eventTypes.selectDescription"),
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       required: false,
       dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
@@ -178,7 +178,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           ).addRoute(`/subscribe/${id.toString()}`)}
           requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
-          submitButtonText={"Subscribe"}
+          submitButtonText={t("subscribe.submit")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
             const id: ObjectID = LocalStorage.getItem(
               "statusPageId",
@@ -210,13 +210,11 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
               field: {
                 slackWorkspaceName: true,
               },
-              title:
-                "Please enter your Slack workspace name you have subscribed with",
-              description:
-                "We will send you a manage subscription link to this workspace.",
+              title: t("subscribe.slack.managePrompt"),
+              description: t("subscribe.slack.manageDescription"),
               fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: "my-company-workspace",
+              placeholder: t("subscribe.slack.workspaceNamePlaceholder"),
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(
@@ -224,7 +222,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           ).addRoute(`/manage-subscription/${id.toString()}`)}
           requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
-          submitButtonText={"Send Management Link"}
+          submitButtonText={t("subscribe.sendManagementLink")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
             const id: ObjectID = LocalStorage.getItem(
               "statusPageId",
@@ -246,10 +244,10 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
 
   return (
     <Page
-      title={"Subscribe"}
+      title={t("subscribe.title")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -257,7 +255,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           ),
         },
         {
-          title: "Subscribe",
+          title: t("subscribe.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK] as Route)
@@ -286,26 +284,24 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           <div>
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
-                You have been subscribed successfully.
+                {t("subscribe.subscribedSuccessfully")}
               </p>
             )}
 
             {!isSuccess ? (
               <div className="">
                 <Card
-                  title="Subscribe by Slack"
-                  description={
-                    "All of our updates will be sent to this Slack webhook."
-                  }
+                  title={t("subscribe.slack.title")}
+                  description={t("subscribe.slack.description")}
                 >
                   <Tabs
                     tabs={[
                       {
-                        name: "New Subscription",
+                        name: t("subscribe.newSubscription"),
                         children: getNewSubscriptionContentElement(),
                       },
                       {
-                        name: "Manage Existing Subscription",
+                        name: t("subscribe.manageExisting"),
                         children: getManageExistingSubscriptionContentElement(),
                       },
                     ]}

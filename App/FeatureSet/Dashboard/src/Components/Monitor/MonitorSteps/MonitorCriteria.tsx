@@ -31,6 +31,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
       <ul role="list" className="space-y-6">
         {props.monitorCriteria.data?.monitorCriteriaInstanceArray.map(
           (i: MonitorCriteriaInstance, index: number) => {
+            const isCriteriaDisabled: boolean = i.data?.isEnabled === false;
             return (
               <li className="relative flex gap-x-4" key={index}>
                 <div className="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
@@ -41,11 +42,21 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                 </div>
 
                 <div className="flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                  <span className="font-medium text-gray-900">
+                  <span
+                    className={`font-medium ${
+                      isCriteriaDisabled ? "text-gray-500" : "text-gray-900"
+                    }`}
+                  >
                     {i.data?.name || "Criteria"}
                   </span>{" "}
-                  This criteria will be checked{" "}
-                  {Text.convertNumberToWords(index + 1)}.
+                  {isCriteriaDisabled && (
+                    <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
+                      Disabled
+                    </span>
+                  )}{" "}
+                  {isCriteriaDisabled
+                    ? "This criteria is disabled and will not be evaluated."
+                    : `This criteria will be checked ${Text.convertNumberToWords(index + 1)}.`}
                   <div className="mt-10 mb-10" key={index}>
                     <MonitorCriteriaInstanceElement
                       monitorStatusOptions={props.monitorStatusOptions}

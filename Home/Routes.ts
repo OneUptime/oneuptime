@@ -1663,6 +1663,18 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/legal/cookies", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        section: "cookies",
+        requestDemoCta: false,
+      });
+    });
+
     app.get("/legal/hipaa", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
@@ -1935,6 +1947,18 @@ const HomeFeatureSet: FeatureSet = {
         cta: true,
         blackLogo: false,
         section: "sla",
+        requestDemoCta: false,
+      });
+    });
+
+    app.get("/legal/security", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "security",
         requestDemoCta: false,
       });
     });

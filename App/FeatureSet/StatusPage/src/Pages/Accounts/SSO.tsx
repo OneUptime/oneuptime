@@ -13,6 +13,7 @@ import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, { FunctionComponent, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   statusPageName: string;
@@ -22,6 +23,7 @@ export interface ComponentProps {
 const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const statusPageObjectId: ObjectID | null = StatusPageUtil.getStatusPageId();
   const statusPageId: string | undefined = statusPageObjectId?.toString();
@@ -84,10 +86,12 @@ const LoginPage: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          Log in with SSO
+          {t("accounts.sso.title")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Please login to view {props.statusPageName || "Status Page"}
+          {t("accounts.sso.loginPrompt", {
+            statusPageName: props.statusPageName || t("common.statusPage"),
+          })}
         </p>
       </div>
 
@@ -106,7 +110,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
               description: true,
               _id: true,
             }}
-            noItemsMessage="No SSO Providers Configured or Enabled"
+            noItemsMessage={t("accounts.sso.noProviders")}
             onSelectChange={(list: Array<StatusPageSSO>) => {
               if (list && list.length > 0) {
                 setIsLoading(true);

@@ -358,6 +358,35 @@ push_to_repository() {
     cp -r "$temp_dir"/.[!.]* . 2>/dev/null || true  # Copy hidden files except . and ..
     rm -rf "$temp_dir"
 
+    # Ensure build artifact directories are not committed to the provider repo.
+    # GoReleaser's second invocation (for archives/signatures) runs with --clean
+    # and will wipe dist/. If dist/ (or builds/) were tracked, that --clean would
+    # leave the working tree dirty and GoReleaser would abort with
+    # "git is in a dirty state". Guarantee a .gitignore exists and untrack any
+    # previously-committed build output.
+    print_status "Ensuring .gitignore excludes build artifacts..."
+    local gitignore_entries=(
+        "dist/"
+        "builds/"
+        "*.zip"
+        "*.sig"
+        "*SHA256SUMS*"
+        "terraform-provider-oneuptime"
+        "terraform-provider-oneuptime.exe"
+    )
+    if [[ ! -f .gitignore ]]; then
+        : > .gitignore
+    fi
+    for entry in "${gitignore_entries[@]}"; do
+        if ! grep -qxF "$entry" .gitignore 2>/dev/null; then
+            echo "$entry" >> .gitignore
+        fi
+    done
+
+    # Remove any previously-tracked build output from the index so it won't be
+    # recommitted (files stay on disk for the subsequent GoReleaser step).
+    git rm -r --cached --ignore-unmatch dist builds 2>/dev/null || true
+
     # Stage all generated files
     print_status "Staging generated files..."
     git add -A

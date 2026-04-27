@@ -58,6 +58,8 @@ import AddDefaultIconsToIncidentRoles from "./AddDefaultIconsToIncidentRoles";
 import UpdateObserverRoleToAllowMultipleUsers from "./UpdateObserverRoleToAllowMultipleUsers";
 import AddColumnsToExceptionInstance from "./AddColumnsToExceptionInstance";
 import AddTraceIdAndSpanIdToMetricTable from "./AddTraceIdAndSpanIdToMetricTable";
+import AddIsRootSpanToSpanTable from "./AddIsRootSpanToSpanTable";
+import AddHistogramProjectionToSpanTable from "./AddHistogramProjectionToSpanTable";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -120,6 +122,8 @@ const DataMigrations: Array<DataMigrationBase> = [
   new UpdateObserverRoleToAllowMultipleUsers(),
   new AddColumnsToExceptionInstance(),
   new AddTraceIdAndSpanIdToMetricTable(),
+  new AddIsRootSpanToSpanTable(),
+  new AddHistogramProjectionToSpanTable(),
 ];
 
 export default DataMigrations;

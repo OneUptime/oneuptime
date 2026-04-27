@@ -1,5 +1,14 @@
 import FiltersForm from "Common/UI/Components/Filters/FiltersForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -33,19 +42,31 @@ export interface ComponentProps {
 const MetricFilter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(true);
+  const [showAdvancedFilters, setShowAdvancedFilters] =
+    useState<boolean>(false);
 
-  const initializedAdvancedFilters: React.MutableRefObject<boolean> =
-    React.useRef<boolean>(false);
+  const toggleAdvancedFilters: () => void = (): void => {
+    setShowAdvancedFilters((prev: boolean): boolean => {
+      const next: boolean = !prev;
+      props.onAdvancedFiltersToggle?.(next);
+      return next;
+    });
+  };
 
-  React.useEffect(() => {
-    if (initializedAdvancedFilters.current) {
-      return;
-    }
+  const groupByOptions: Array<DropdownOption> = (
+    props.telemetryAttributes || []
+  ).map((attr: string) => {
+    return { value: attr, label: attr };
+  });
 
-    initializedAdvancedFilters.current = true;
-    props.onAdvancedFiltersToggle?.(true);
-  }, [props.onAdvancedFiltersToggle]);
+  const selectedGroupByKeys: Array<string> =
+    props.data.groupByAttributeKeys || [];
+
+  const selectedGroupByOptions: Array<DropdownOption> = groupByOptions.filter(
+    (option: DropdownOption) => {
+      return selectedGroupByKeys.includes(String(option.value));
+    },
+  );
 
   return (
     <Fragment>
@@ -60,11 +81,8 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               filterData,
             });
           }}
-          onAdvancedFiltersToggle={(show: boolean) => {
-            setShowAdvancedFilters(show);
-            props.onAdvancedFiltersToggle?.(show);
-          }}
-          showAdvancedFiltersByDefault={true}
+          showAdvancedFilters={showAdvancedFilters}
+          hideAdvancedFilterToggle={true}
           isFilterLoading={
             showAdvancedFilters ? props.isAttributesLoading : false
           }
@@ -80,7 +98,15 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
                 props.metricTypes.map((metricType: MetricType) => {
                   return metricType.name || "";
-                }), // metricType is an array of MetricType
+                }),
+              ),
+            },
+            {
+              key: "aggegationType",
+              type: FieldType.Dropdown,
+              title: "Aggregation Type",
+              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+                MetricsAggregationType,
               ),
             },
             {
@@ -92,15 +118,60 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               onJsonKeySelected: props.onAttributeKeySelected,
               isAdvancedFilter: true,
             },
-            {
-              key: "aggegationType",
-              type: FieldType.Dropdown,
-              title: "Aggregation Type",
-              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                MetricsAggregationType,
-              ),
-            },
           ]}
+        />
+      </div>
+
+      {showAdvancedFilters ? (
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Group By
+          </label>
+          <p className="mt-1 text-xs text-gray-500">
+            Select one or more attributes to group by (e.g. host.name). When
+            this metric is used in a monitor, the monitor fires one incident per
+            unique group (e.g. one incident per host). Leave empty for
+            whole-monitor evaluation.
+          </p>
+          <div className="mt-2">
+            <Dropdown
+              options={groupByOptions}
+              isMultiSelect={true}
+              value={selectedGroupByOptions}
+              placeholder="Select attributes to group by"
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const keys: Array<string> = Array.isArray(value)
+                  ? value.map((v: DropdownValue) => {
+                      return String(v);
+                    })
+                  : value
+                    ? [String(value)]
+                    : [];
+
+                props.onDataChanged({
+                  ...props.data,
+                  groupByAttributeKeys: keys.length > 0 ? keys : undefined,
+                });
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-3">
+        <Button
+          className="-ml-3"
+          buttonSize={ButtonSize.Small}
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          icon={showAdvancedFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
+          title={
+            showAdvancedFilters
+              ? "Hide Advanced Filters"
+              : "Show Advanced Filters"
+          }
+          onClick={toggleAdvancedFilters}
         />
       </div>
     </Fragment>

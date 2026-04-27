@@ -46,8 +46,26 @@ const getFetchRelevantState: (data: MetricViewData) => unknown = (
       : null,
     queryConfigs: data.queryConfigs.map(
       (queryConfig: MetricQueryConfigData) => {
+        /*
+         * legendUnit has to be in here: the raw values come back in the
+         * metric's native unit and only get rescaled to legendUnit inside
+         * the fetch. Without this, changing the Unit dropdown leaves the
+         * chart showing stale pre-conversion numbers until the user
+         * reloads.
+         */
         return {
           metricQueryData: queryConfig.metricQueryData,
+          metricVariable: queryConfig.metricAliasData?.metricVariable,
+          legendUnit: queryConfig.metricAliasData?.legendUnit,
+        };
+      },
+    ),
+    formulaConfigs: data.formulaConfigs.map(
+      (formulaConfig: MetricFormulaConfigData) => {
+        return {
+          formula: formulaConfig.metricFormulaData?.metricFormula,
+          metricVariable: formulaConfig.metricAliasData?.metricVariable,
+          legendUnit: formulaConfig.metricAliasData?.legendUnit,
         };
       },
     ),
@@ -64,13 +82,43 @@ export interface ComponentProps {
   chartCssClass?: string | undefined;
 }
 
+const getNextUnusedVariable: (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+}) => string = (input: {
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+}): string => {
+  const taken: Set<string> = new Set<string>();
+  for (const qc of input.queryConfigs) {
+    const variable: string | undefined = qc.metricAliasData?.metricVariable;
+    if (variable) {
+      taken.add(variable.toLowerCase());
+    }
+  }
+  for (const fc of input.formulaConfigs) {
+    const variable: string | undefined = fc.metricAliasData?.metricVariable;
+    if (variable) {
+      taken.add(variable.toLowerCase());
+    }
+  }
+
+  for (let index: number = 0; index < 26; index++) {
+    const candidate: string = Text.getLetterFromAByNumber(index);
+    if (!taken.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Fall back to incrementing beyond "z" — unlikely but prevents collisions
+  return Text.getLetterFromAByNumber(
+    input.queryConfigs.length + input.formulaConfigs.length,
+  );
+};
+
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(
-    Text.getLetterFromAByNumber(props.data.queryConfigs.length),
-  );
-
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
   const [
@@ -82,8 +130,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
   const getEmptyQueryConfigData: GetEmptyQueryConfigFunction =
     (): MetricQueryConfigData => {
-      const currentVar: string = currentQueryVariable;
-      setCurrentQueryVariable(Text.getNextLowercaseLetter(currentVar));
+      const currentVar: string = getNextUnusedVariable({
+        queryConfigs: props.data.queryConfigs,
+        formulaConfigs: props.data.formulaConfigs,
+      });
 
       return {
         metricAliasData: {
@@ -101,6 +151,29 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 ? metricTypes[0].name
                 : "",
           },
+        },
+      };
+    };
+
+  type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
+
+  const getEmptyFormulaConfigData: GetEmptyFormulaConfigFunction =
+    (): MetricFormulaConfigData => {
+      const currentVar: string = getNextUnusedVariable({
+        queryConfigs: props.data.queryConfigs,
+        formulaConfigs: props.data.formulaConfigs,
+      });
+
+      return {
+        metricAliasData: {
+          metricVariable: currentVar,
+          title: "",
+          description: "",
+          legend: "",
+          legendUnit: "",
+        },
+        metricFormulaData: {
+          metricFormula: "",
         },
       };
     };
@@ -143,12 +216,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
       metricViewDataRef.current,
       props.data,
     );
-
-    if (hasChanged) {
-      setCurrentQueryVariable(
-        Text.getLetterFromAByNumber(props.data.queryConfigs.length),
-      );
-    }
 
     const currentFetchSnapshot: string = JSON.stringify(
       getFetchRelevantState(props.data),
@@ -504,6 +571,96 @@ const MetricView: FunctionComponent<ComponentProps> = (
               <div className="space-y-3">
                 {props.data.formulaConfigs.map(
                   (formulaConfig: MetricFormulaConfigData, index: number) => {
+                    /*
+                     * Formulas may reference any query variable as well as
+                     * any formula variable defined before them — referencing
+                     * a later formula would create a forward dependency the
+                     * evaluator cannot resolve.
+                     */
+                    const availableVariables: Array<string> = [
+                      ...props.data.queryConfigs.map(
+                        (q: MetricQueryConfigData) => {
+                          return q.metricAliasData?.metricVariable || "";
+                        },
+                      ),
+                      ...props.data.formulaConfigs
+                        .slice(0, index)
+                        .map((f: MetricFormulaConfigData) => {
+                          return f.metricAliasData?.metricVariable || "";
+                        }),
+                    ].filter((v: string) => {
+                      return v !== "";
+                    });
+
+                    /*
+                     * Derive the formula's unit family from variables it
+                     * actually references in the formula string. Prefers a
+                     * referenced query's native unit (so the dropdown shows
+                     * the exact same family as its inputs); falls back to a
+                     * referenced formula's configured display unit. When
+                     * nothing shares a known family, MetricAlias falls back
+                     * to its free-text input.
+                     */
+                    const formulaString: string =
+                      formulaConfig.metricFormulaData?.metricFormula || "";
+                    const referencedVars: Array<string> = (
+                      formulaString.match(/\$?[A-Za-z_][A-Za-z0-9_]*/g) || []
+                    ).map((v: string) => {
+                      return v.replace(/^\$/, "").toLowerCase();
+                    });
+
+                    const formulaUnitFamilyBasedOn: string | undefined = (():
+                      | string
+                      | undefined => {
+                      for (const refVar of referencedVars) {
+                        const matchedQuery: MetricQueryConfigData | undefined =
+                          props.data.queryConfigs.find(
+                            (q: MetricQueryConfigData) => {
+                              return (
+                                (
+                                  q.metricAliasData?.metricVariable || ""
+                                ).toLowerCase() === refVar
+                              );
+                            },
+                          );
+                        if (matchedQuery) {
+                          const metricName: string | undefined =
+                            matchedQuery.metricQueryData?.filterData?.metricName?.toString();
+                          const matchedType: MetricType | undefined =
+                            metricTypes.find((m: MetricType) => {
+                              return m.name === metricName;
+                            });
+                          const candidate: string | undefined =
+                            matchedType?.unit ||
+                            matchedQuery.metricAliasData?.legendUnit ||
+                            undefined;
+                          if (candidate && candidate.trim()) {
+                            return candidate;
+                          }
+                        }
+                      }
+                      for (const refVar of referencedVars) {
+                        const matchedFormula:
+                          | MetricFormulaConfigData
+                          | undefined = props.data.formulaConfigs
+                          .slice(0, index)
+                          .find((f: MetricFormulaConfigData) => {
+                            return (
+                              (
+                                f.metricAliasData?.metricVariable || ""
+                              ).toLowerCase() === refVar
+                            );
+                          });
+                        const candidate: string | undefined =
+                          matchedFormula?.metricAliasData?.legendUnit ||
+                          undefined;
+                        if (candidate && candidate.trim()) {
+                          return candidate;
+                        }
+                      }
+                      return undefined;
+                    })();
+
                     return (
                       <MetricGraphConfig
                         key={index}
@@ -519,6 +676,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
                           }
                         }}
                         data={formulaConfig}
+                        availableVariables={availableVariables}
+                        unitFamilyBasedOn={formulaUnitFamilyBasedOn}
+                        hideCard={props.hideCardInQueryElements}
                         onRemove={() => {
                           const newGraphConfigs: Array<MetricFormulaConfigData> =
                             [...props.data.formulaConfigs];
@@ -537,8 +697,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
               </div>
             )}
 
-            {/* Add metric button */}
-            <div className="flex items-center">
+            {/* Add metric / Add formula buttons */}
+            <div className="flex items-center gap-2 pt-2">
               <Button
                 title="Add Metric"
                 buttonSize={ButtonSize.Small}
@@ -556,6 +716,23 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   }
                 }}
               />
+              <Button
+                title="Add Formula"
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                icon={IconProp.Calculator}
+                onClick={() => {
+                  if (props.onChange) {
+                    props.onChange({
+                      ...props.data,
+                      formulaConfigs: [
+                        ...props.data.formulaConfigs,
+                        getEmptyFormulaConfigData(),
+                      ],
+                    });
+                  }
+                }}
+              />
             </div>
           </div>
         )}
@@ -567,7 +744,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         {!isMetricResultsLoading && !metricResultsError && (
           <div
-            className={props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4"}
+            className={
+              props.hideCardInCharts
+                ? "pt-4 mt-2 border-t border-gray-200"
+                : "grid grid-cols-1 gap-4"
+            }
           >
             <MetricCharts
               hideCard={props.hideCardInCharts}

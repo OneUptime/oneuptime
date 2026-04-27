@@ -19,6 +19,7 @@ import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
+import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
@@ -52,6 +53,7 @@ import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimel
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
 import UserIncomingCallNumberAPI from "Common/Server/API/UserIncomingCallNumberAPI";
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
+import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
 import ApiKeyPermissionService, {
@@ -87,6 +89,7 @@ import AlertCustomFieldService, {
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
+import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import AlertNoteTemplateService, {
   Service as AlertNoteTemplateServiceType,
 } from "Common/Server/Services/AlertNoteTemplateService";
@@ -203,6 +206,27 @@ import LogDropFilterService, {
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
+import MetricPipelineRuleService, {
+  Service as MetricPipelineRuleServiceType,
+} from "Common/Server/Services/MetricPipelineRuleService";
+import MetricRecordingRuleService, {
+  Service as MetricRecordingRuleServiceType,
+} from "Common/Server/Services/MetricRecordingRuleService";
+import TracePipelineService, {
+  Service as TracePipelineServiceType,
+} from "Common/Server/Services/TracePipelineService";
+import TracePipelineProcessorService, {
+  Service as TracePipelineProcessorServiceType,
+} from "Common/Server/Services/TracePipelineProcessorService";
+import TraceDropFilterService, {
+  Service as TraceDropFilterServiceType,
+} from "Common/Server/Services/TraceDropFilterService";
+import TraceScrubRuleService, {
+  Service as TraceScrubRuleServiceType,
+} from "Common/Server/Services/TraceScrubRuleService";
+import TraceRecordingRuleService, {
+  Service as TraceRecordingRuleServiceType,
+} from "Common/Server/Services/TraceRecordingRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -236,15 +260,33 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
+import MonitorTemplateService, {
+  Service as MonitorTemplateServiceType,
+} from "Common/Server/Services/MonitorTemplateService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
+import KubernetesClusterOwnerTeamService, {
+  Service as KubernetesClusterOwnerTeamServiceType,
+} from "Common/Server/Services/KubernetesClusterOwnerTeamService";
+import KubernetesClusterOwnerUserService, {
+  Service as KubernetesClusterOwnerUserServiceType,
+} from "Common/Server/Services/KubernetesClusterOwnerUserService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
+import DockerHostOwnerTeamService, {
+  Service as DockerHostOwnerTeamServiceType,
+} from "Common/Server/Services/DockerHostOwnerTeamService";
+import DockerHostOwnerUserService, {
+  Service as DockerHostOwnerUserServiceType,
+} from "Common/Server/Services/DockerHostOwnerUserService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
+import AuditLogService, {
+  AuditLogService as AuditLogServiceType,
+} from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -508,6 +550,7 @@ import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -568,9 +611,14 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
+import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
@@ -669,6 +717,13 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
+import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
+import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
+import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelineProcessor";
+import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -1227,6 +1282,11 @@ const BaseAPIFeatureSet: FeatureSet = {
       new TelemetryExceptionAPI().getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new KubernetesResourceAPI().getRouter(),
+    );
+
     // scheduled maintenance template
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1264,6 +1324,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
+        AuditLog,
+        AuditLogService,
+      ).getRouter(),
     );
 
     app.use(
@@ -1591,6 +1659,62 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MetricPipelineRule, MetricPipelineRuleServiceType>(
+        MetricPipelineRule,
+        MetricPipelineRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MetricRecordingRule, MetricRecordingRuleServiceType>(
+        MetricRecordingRule,
+        MetricRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TracePipeline, TracePipelineServiceType>(
+        TracePipeline,
+        TracePipelineService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TracePipelineProcessor, TracePipelineProcessorServiceType>(
+        TracePipelineProcessor,
+        TracePipelineProcessorService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceDropFilter, TraceDropFilterServiceType>(
+        TraceDropFilter,
+        TraceDropFilterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceScrubRule, TraceScrubRuleServiceType>(
+        TraceScrubRule,
+        TraceScrubRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TraceRecordingRule, TraceRecordingRuleServiceType>(
+        TraceRecordingRule,
+        TraceRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService,
@@ -1785,6 +1909,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorTemplate, MonitorTemplateServiceType>(
+        MonitorTemplate,
+        MonitorTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
         IncidentNoteTemplate,
         IncidentNoteTemplateService,
@@ -1904,9 +2036,47 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        KubernetesClusterOwnerTeam,
+        KubernetesClusterOwnerTeamServiceType
+      >(
+        KubernetesClusterOwnerTeam,
+        KubernetesClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        KubernetesClusterOwnerUser,
+        KubernetesClusterOwnerUserServiceType
+      >(
+        KubernetesClusterOwnerUser,
+        KubernetesClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DockerHost, DockerHostServiceType>(
         DockerHost,
         DockerHostService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostOwnerTeam, DockerHostOwnerTeamServiceType>(
+        DockerHostOwnerTeam,
+        DockerHostOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostOwnerUser, DockerHostOwnerUserServiceType>(
+        DockerHostOwnerUser,
+        DockerHostOwnerUserService,
       ).getRouter(),
     );
 
@@ -1961,6 +2131,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WhatsAppLogAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new TelegramLogAPI().getRouter(),
     );
 
     app.use(
@@ -2167,6 +2342,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserWhatsAppAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserTelegramAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());

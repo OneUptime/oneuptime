@@ -18,28 +18,30 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentAIAgent, setCurrentAIAgent] = useState<AIAgent | null>(null);
 
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Global AI Agents",
+          title: t("breadcrumbs.globalAiAgents"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
           ),
@@ -51,8 +53,8 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       <Banner
         openInNewTab={true}
-        title="Need help with setting up Global AI Agents?"
-        description="Here is a guide which will help you get set up"
+        title={t("pages.settings.aiAgents.bannerTitle")}
+        description={t("pages.settings.aiAgents.bannerDescription")}
         link={Route.fromString("/docs/ai/ai-agent")}
         hideOnMobile={true}
       />
@@ -66,16 +68,15 @@ const Settings: FunctionComponent = (): ReactElement => {
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: "Global AI Agents",
-          description:
-            "Global AI Agents help you automate incident management with AI-powered responses from different locations around the world.",
+          title: t("pages.settings.aiAgents.cardTitle"),
+          description: t("pages.settings.aiAgents.cardDescription"),
         }}
         query={{
           projectId: new IsNull(),
           isGlobalAIAgent: true,
         }}
         modelAPI={AdminModelAPI}
-        noItemsMessage={"No AI agents found."}
+        noItemsMessage={t("pages.settings.aiAgents.noItems")}
         showRefreshButton={true}
         onBeforeCreate={(item: AIAgent) => {
           item.isGlobalAIAgent = true;
@@ -121,7 +122,7 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         actionButtons={[
           {
-            title: "Show ID and Key",
+            title: t("pages.settings.aiAgents.showIdKey"),
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: AIAgent,
@@ -195,7 +196,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               ) {
                 return (
                   <Statusbubble
-                    text={"Connected"}
+                    text={t("common.connected")}
                     color={Green}
                     shouldAnimate={true}
                   />
@@ -204,7 +205,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
               return (
                 <Statusbubble
-                  text={"Disconnected"}
+                  text={t("common.disconnected")}
                   color={Red}
                   shouldAnimate={false}
                 />
@@ -216,23 +217,25 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       {showKeyModal && currentAIAgent ? (
         <ConfirmModal
-          title={`AI Agent Key`}
+          title={t("pages.settings.aiAgents.keyModalTitle")}
           description={
             <div>
-              <span>Here is your AI agent key. Please keep this a secret.</span>
+              <span>{t("pages.settings.aiAgents.keyModalDescription")}</span>
               <br />
               <br />
               <span>
-                <b>AI Agent ID: </b> {currentAIAgent["_id"]?.toString()}
+                <b>{t("pages.settings.aiAgents.agentIdLabel")} </b>{" "}
+                {currentAIAgent["_id"]?.toString()}
               </span>
               <br />
               <br />
               <span>
-                <b>AI Agent Key: </b> {currentAIAgent["key"]?.toString()}
+                <b>{t("pages.settings.aiAgents.agentKeyLabel")} </b>{" "}
+                {currentAIAgent["key"]?.toString()}
               </span>
             </div>
           }
-          submitButtonText={"Close"}
+          submitButtonText={t("common.close")}
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={async () => {
             setShowKeyModal(false);

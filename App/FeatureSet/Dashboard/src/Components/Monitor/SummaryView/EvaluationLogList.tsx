@@ -99,14 +99,24 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     criteria: MonitorEvaluationCriteriaResult,
     index: number,
   ): ReactElement => {
+    const isSkipped: boolean = Boolean(criteria.skipped);
+
     return (
       <div
         key={`criteria-${criteria.criteriaId || index}`}
-        className="rounded-md border border-gray-200 bg-white p-4 shadow-sm"
+        className={`rounded-md border p-4 shadow-sm ${
+          isSkipped
+            ? "border-amber-200 bg-amber-50"
+            : "border-gray-200 bg-white"
+        }`}
       >
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-sm font-semibold text-gray-900">
+            <div
+              className={`text-sm font-semibold ${
+                isSkipped ? "text-gray-700" : "text-gray-900"
+              }`}
+            >
               {criteria.criteriaName || `Criteria ${index + 1}`}
             </div>
             <div className="text-xs text-gray-500">
@@ -114,11 +124,24 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             </div>
           </div>
           <span
-            className={`text-xs font-semibold ${criteria.met ? "text-green-600" : "text-gray-500"}`}
+            className={`text-xs font-semibold ${
+              isSkipped
+                ? "text-amber-700"
+                : criteria.met
+                  ? "text-green-600"
+                  : "text-gray-500"
+            }`}
           >
-            {criteria.met ? "Met" : "Not Met"}
+            {isSkipped ? "Skipped" : criteria.met ? "Met" : "Not Met"}
           </span>
         </div>
+
+        {isSkipped && (
+          <div className="mt-2 text-sm text-amber-800">
+            {criteria.skipReason ||
+              "This criteria was not evaluated because it is disabled."}
+          </div>
+        )}
 
         {criteria.filters.length > 0 && (
           <ul className="mt-3 space-y-2">

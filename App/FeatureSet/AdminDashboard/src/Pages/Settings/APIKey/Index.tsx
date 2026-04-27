@@ -9,24 +9,26 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "API Key",
+          title: t("breadcrumbs.apiKey"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_HOST] as Route,
           ),
@@ -34,16 +36,14 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
-      {/* Project Settings View  */}
       <CardModelDetail
         name="API Key Settings"
         cardProps={{
-          title: "Master API Key Settings",
-          description:
-            "This API key has root access to all the resources in all the projects on OneUptime.",
+          title: t("pages.settings.apiKey.cardTitle"),
+          description: t("pages.settings.apiKey.cardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit API Key Settings"
+        editButtonText={t("pages.settings.apiKey.editButton")}
         formFields={[
           {
             field: {
@@ -77,7 +77,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               opts: {
                 isCopyable: true,
               },
-              placeholder: "API Key not generated yet.",
+              placeholder: t("pages.settings.apiKey.apiKeyNotGenerated"),
             },
             {
               field: {
@@ -87,7 +87,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               description:
                 "Enable or disable the master API key. If disabled, all requests using this key will fail.",
               fieldType: FieldType.Boolean,
-              placeholder: "Not Enabled",
+              placeholder: t("common.notEnabled"),
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

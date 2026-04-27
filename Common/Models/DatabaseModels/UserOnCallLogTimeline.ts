@@ -15,6 +15,7 @@ import UserNotificationRule from "./UserNotificationRule";
 import UserPush from "./UserPush";
 import UserOnCallLog from "./UserOnCallLog";
 import UserSMS from "./UserSMS";
+import UserTelegram from "./UserTelegram";
 import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -979,6 +980,53 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userWhatsAppId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userTelegramId",
+    type: TableColumnType.Entity,
+    modelType: UserTelegram,
+    title: "User Telegram",
+    description:
+      "Relation to User Telegram Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserTelegram;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userTelegramId" })
+  public userTelegram?: UserTelegram = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Telegram ID",
+    description: "ID of User Telegram in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userTelegramId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

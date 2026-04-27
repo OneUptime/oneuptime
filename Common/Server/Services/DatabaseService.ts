@@ -69,6 +69,7 @@ import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import type AuditLogServiceType from "./AuditLogService";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -772,6 +773,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         );
       }
 
+      if (
+        !createBy.props.ignoreHooks &&
+        this.getModel().enableAuditLogOn?.create
+      ) {
+        /*
+         * Lazy require to avoid circular dependency between DatabaseService and
+         * AuditLogService (which depends on ProjectService/UserService, both of
+         * which extend DatabaseService). A top-level import leaves
+         * DatabaseService undefined at class-extension time for subclasses.
+         */
+        const auditLogService: typeof AuditLogServiceType =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+          require("./AuditLogService").default;
+        await auditLogService.recordCreate({
+          model: this.getModel(),
+          createdItem: createBy.data,
+          props: createBy.props,
+        });
+      }
+
       return createBy.data;
     } catch (error) {
       await this.onCreateError(error as Exception);
@@ -1117,6 +1138,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as any)[this.getModel().getTenantColumn() as string] = true;
       }
 
+      /*
+       * If audit logging on delete is enabled, fetch all scalar columns so we
+       * can record a full snapshot of the record before it is deleted.
+       */
+      if (this.getModel().enableAuditLogOn?.delete) {
+        const allColumns: Array<string> =
+          this.getModel().getTableColumns().columns;
+        for (const columnName of allColumns) {
+          (select as any)[columnName] = true;
+        }
+      }
+
       const items: Array<TBaseModel> = await this._findBy({
         query: beforeDeleteBy.query,
         skip: beforeDeleteBy.skip.toNumber(),
@@ -1197,6 +1230,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return new ObjectID(i._id!);
           }),
         );
+      }
+
+      if (this.getModel().enableAuditLogOn?.delete && items.length > 0) {
+        const auditLogService: typeof AuditLogServiceType =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+          require("./AuditLogService").default;
+        for (const item of items) {
+          if (item.id) {
+            await auditLogService.recordDelete({
+              model: this.getModel(),
+              deletedItem: item,
+              itemId: item.id,
+              props: deleteBy.props,
+            });
+          }
+        }
       }
 
       return numberOfDocsAffected;
@@ -1533,6 +1582,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           true;
       }
 
+      /*
+       * When audit logging on update is enabled, ensure the resource's display
+       * name is loaded on the `before` snapshot so the audit entry records the
+       * human-readable resource name even when the update doesn't touch it.
+       */
+      if (this.getModel().enableAuditLogOn?.update) {
+        const nameCandidates: ReadonlyArray<string> = [
+          "name",
+          "title",
+          "displayName",
+        ];
+        const modelColumns: Array<string> =
+          this.getModel().getTableColumns().columns;
+        for (const candidate of nameCandidates) {
+          if (modelColumns.includes(candidate)) {
+            (selectColumns as any)[candidate] = true;
+          }
+        }
+      }
+
       const items: Array<TBaseModel> = await this._findBy({
         query: beforeUpdateBy.query,
         skip: updateBy.skip.toNumber(),
@@ -1581,6 +1650,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               ModelEventType.Update,
             );
           }
+        }
+
+        if (
+          this.getModel().enableAuditLogOn?.update &&
+          !this.hasSameValues({ item, updatedItem }) &&
+          item.id
+        ) {
+          const auditLogService: typeof AuditLogServiceType =
+            // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+            require("./AuditLogService").default;
+          await auditLogService.recordUpdate({
+            model: this.getModel(),
+            before: item,
+            updatedFields: data as JSONObject,
+            itemId: item.id,
+            props: updateBy.props,
+          });
         }
       }
 

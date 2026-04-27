@@ -94,8 +94,8 @@ export class AIBillingService extends BaseService {
         amountInUSD,
         {
           sendInvoiceByEmail: project.sendInvoicesByEmail || false,
-          recipientEmail: project.financeAccountingEmail
-            ? new Email(project.financeAccountingEmail)
+          recipientEmails: project.financeAccountingEmail
+            ? Email.parseList(project.financeAccountingEmail)
             : undefined,
           projectId: project.id || undefined,
         },

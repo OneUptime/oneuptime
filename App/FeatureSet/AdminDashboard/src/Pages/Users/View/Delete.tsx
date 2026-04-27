@@ -6,11 +6,13 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import SideMenuComponent from "./SideMenu";
 import User from "Common/Models/DatabaseModels/User";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 
 const DeletePage: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -19,18 +21,18 @@ const DeletePage: FunctionComponent = (): ReactElement => {
       modelNameField="email"
       modelType={User}
       modelAPI={AdminModelAPI}
-      title={"User"}
+      title={t("pages.userView.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Users",
+          title: t("breadcrumbs.users"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
-          title: "User",
+          title: t("breadcrumbs.user"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
           ),

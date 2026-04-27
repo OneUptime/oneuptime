@@ -130,6 +130,15 @@ import "./Jobs/AIAgent/TimeoutStuckTasks";
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
+// Derived / recording-rule metrics.
+import "./Jobs/Metrics/ComputeRecordingRules";
+
+// Derived metrics from spans.
+import "./Jobs/Traces/ComputeTraceRecordingRules";
+
+// Kubernetes inventory cleanup.
+import "./Jobs/Kubernetes/CleanupStaleResources";
+
 /*
  * Metric retention is handled by ClickHouse TTL on Metric.retentionDate
  * (set at ingest from GlobalConfig), so no cleanup cron is needed here.

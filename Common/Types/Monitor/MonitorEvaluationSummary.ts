@@ -28,6 +28,8 @@ export interface MonitorEvaluationCriteriaResult {
   met: boolean;
   message: string;
   filters: Array<MonitorEvaluationFilterResult>;
+  skipped?: boolean | undefined;
+  skipReason?: string | undefined;
 }
 
 export interface MonitorEvaluationEvent {

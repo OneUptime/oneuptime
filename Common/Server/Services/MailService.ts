@@ -52,6 +52,15 @@ export class MailService extends BaseService {
       body["SMTP_PORT"] = options.mailServer.port.toNumber();
       body["SMTP_HOST"] = options.mailServer.host.toString();
       body["SMTP_PASSWORD"] = options.mailServer.password || undefined;
+      body["SMTP_AUTH_TYPE"] = options.mailServer.authType || undefined;
+      body["SMTP_CLIENT_ID"] = options.mailServer.clientId || undefined;
+      body["SMTP_CLIENT_SECRET"] = options.mailServer.clientSecret || undefined;
+      body["SMTP_TOKEN_URL"] = options.mailServer.tokenUrl
+        ? options.mailServer.tokenUrl.toString()
+        : undefined;
+      body["SMTP_SCOPE"] = options.mailServer.scope || undefined;
+      body["SMTP_OAUTH_PROVIDER_TYPE"] =
+        options.mailServer.oauthProviderType || undefined;
     }
 
     if (options?.userOnCallLogTimelineId) {

@@ -1,11 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import TracesViewer from "../../Components/Traces/TracesViewer";
+import TracesDashboard from "../../Components/Traces/TracesDashboard";
 
-const TracesListPage: FunctionComponent<
+const TracesInsightsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  return <TracesViewer />;
+  return <TracesDashboard />;
 };
 
-export default TracesListPage;
+export default TracesInsightsPage;

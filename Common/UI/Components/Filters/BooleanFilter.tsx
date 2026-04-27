@@ -50,6 +50,7 @@ const BooleanFilter: BooleanFilterFunction = <T extends GenericObject>(
           }
         }}
         placeholder={`Filter by ${filter.title}`}
+        className="relative rounded-md w-full overflow-visible"
       />
     );
   }

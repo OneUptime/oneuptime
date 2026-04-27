@@ -16,6 +16,7 @@ import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   statusPageName: string;
@@ -27,6 +28,7 @@ export interface ComponentProps {
 const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const { t } = useTranslation();
   const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
   const statusPageIdString: string | undefined = statusPageId?.toString();
   const requiresMasterPasswordLock: boolean =
@@ -109,10 +111,12 @@ const LoginPage: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          Welcome back!
+          {t("accounts.login.welcomeBack")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Please login to view {props.statusPageName || "Status Page"}
+          {t("accounts.login.loginPrompt", {
+            statusPageName: props.statusPageName || t("common.statusPage"),
+          })}
         </p>
       </div>
 
@@ -128,7 +132,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                   email: true,
                 },
                 showEvenIfPermissionDoesNotExist: true,
-                title: "Email",
+                title: t("accounts.shared.email"),
                 fieldType: FormFieldSchemaType.Email,
                 required: true,
                 disableSpellCheck: true,
@@ -137,7 +141,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 field: {
                   password: true,
                 },
-                title: "Password",
+                title: t("accounts.shared.password"),
                 required: true,
                 showEvenIfPermissionDoesNotExist: true,
                 validation: {
@@ -145,7 +149,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 },
                 fieldType: FormFieldSchemaType.Password,
                 sideLink: {
-                  text: "Forgot password?",
+                  text: t("accounts.login.forgotPassword"),
                   url: new Route(
                     StatusPageUtil.isPreviewPage()
                       ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/forgot-password`
@@ -157,7 +161,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             ]}
             createOrUpdateApiUrl={apiUrl}
             formType={FormType.Create}
-            submitButtonText={"Login"}
+            submitButtonText={t("accounts.login.submit")}
             onSuccess={(
               value: StatusPagePrivateUser,
               miscData: JSONObject | undefined,
@@ -200,7 +204,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                       }
                       className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                     >
-                      Use single sign-on (SSO) instead
+                      {t("accounts.login.useSSO")}
                     </Link>
                   </p>
                 ) : (

@@ -1,4 +1,5 @@
 import { BarChart } from "../ChartLibrary/BarChart/BarChart";
+import { AvailableChartColorsKeys } from "../ChartLibrary/Utils/ChartColors";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
@@ -8,6 +9,18 @@ import DataPointUtil from "../Utils/DataPoint";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 
+export const BarChartPalette: Array<AvailableChartColorsKeys> = [
+  "indigo",
+  "rose",
+  "emerald",
+  "amber",
+  "cyan",
+  "gray",
+  "pink",
+  "lime",
+  "fuchsia",
+];
+
 export interface ComponentProps {
   data: Array<SeriesPoint>;
   xAxis: XAxis;
@@ -15,6 +28,7 @@ export interface ComponentProps {
   sync: boolean;
   heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  showLegend?: boolean | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -61,19 +75,10 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         tickGap={1}
         index={"Time"}
         categories={categories}
-        colors={[
-          "indigo",
-          "rose",
-          "emerald",
-          "amber",
-          "cyan",
-          "gray",
-          "pink",
-          "lime",
-          "fuchsia",
-        ]}
+        colors={BarChartPalette}
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
+        showLegend={props.showLegend !== false}
         yAxisWidth={60}
         syncid={props.sync ? props.syncid : undefined}
         onValueChange={() => {}}

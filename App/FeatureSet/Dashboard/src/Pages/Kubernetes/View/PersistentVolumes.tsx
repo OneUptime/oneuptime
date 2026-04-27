@@ -17,11 +17,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import {
-  fetchK8sObjectsBatch,
-  KubernetesObjectType,
-} from "../Utils/KubernetesObjectFetcher";
-import { KubernetesPVObject } from "../Utils/KubernetesObjectParser";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterPVs: FunctionComponent<
   PageComponentProps
@@ -49,33 +45,37 @@ const KubernetesClusterPVs: FunctionComponent<
         return;
       }
 
-      const pvObjects: Map<string, KubernetesObjectType> =
-        await fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "persistentvolumes",
-        });
+      const pvResources: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchInventoryResources({
+          kubernetesClusterId: modelId,
+          kind: "PersistentVolume",
+          transform: (
+            resource: KubernetesResource,
+            row: KubernetesResourceModel,
+          ) => {
+            const spec: Record<string, unknown> =
+              (row.spec as unknown as Record<string, unknown>) || {};
+            const capacity: Record<string, unknown> =
+              (spec["capacity"] as Record<string, unknown>) || {};
+            const claimRef: Record<string, unknown> =
+              (spec["claimRef"] as Record<string, unknown>) || {};
 
-      const pvResources: Array<KubernetesResource> = [];
-
-      for (const pvObj of pvObjects.values()) {
-        const pv: KubernetesPVObject = pvObj as KubernetesPVObject;
-        pvResources.push({
-          name: pv.metadata.name,
-          namespace: "",
-          cpuUtilization: null,
-          memoryUsageBytes: null,
-          memoryLimitBytes: null,
-          status: pv.status.phase || "Unknown",
-          age: KubernetesResourceUtils.formatAge(pv.metadata.creationTimestamp),
-          additionalAttributes: {
-            capacity: pv.spec.capacity.storage || "N/A",
-            storageClass: pv.spec.storageClassName || "N/A",
-            reclaimPolicy: pv.spec.persistentVolumeReclaimPolicy || "N/A",
-            claimRef: pv.spec.claimRef.name
-              ? `${pv.spec.claimRef.namespace}/${pv.spec.claimRef.name}`
-              : "N/A",
+            resource.additionalAttributes["capacity"] =
+              (capacity["storage"] as string) || "N/A";
+            resource.additionalAttributes["storageClass"] =
+              (spec["storageClassName"] as string) || "N/A";
+            resource.additionalAttributes["reclaimPolicy"] =
+              (spec["persistentVolumeReclaimPolicy"] as string) || "N/A";
+            resource.additionalAttributes["claimRef"] = claimRef["name"]
+              ? `${claimRef["namespace"]}/${claimRef["name"]}`
+              : "N/A";
           },
         });
+
+      for (const r of pvResources) {
+        if (!r.status) {
+          r.status = "Unknown";
+        }
       }
 
       setResources(pvResources);

@@ -1,6 +1,7 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface CardButtonSchema {
@@ -28,8 +29,14 @@ export interface ComponentProps {
 const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateValue } = useTranslateValue();
   const noRightElementsOrButtons: boolean =
     !props.rightElement && (!props.buttons || props.buttons.length === 0);
+  const translatedTitle: string | ReactElement | undefined = translateValue(
+    props.title,
+  );
+  const translatedDescription: string | ReactElement | undefined =
+    translateValue(props.description);
 
   return (
     <React.Fragment>
@@ -40,21 +47,21 @@ const Card: FunctionComponent<ComponentProps> = (
               <div
                 className={`${noRightElementsOrButtons ? "w-full" : "flex-1 min-w-0"}`}
               >
-                {props.title && (
+                {translatedTitle && (
                   <h2
                     data-testid="card-details-heading"
                     id="card-details-heading"
                     className="text-lg font-semibold leading-6 text-gray-900"
                   >
-                    {props.title}
+                    {translatedTitle}
                   </h2>
                 )}
-                {props.description && (
+                {translatedDescription && (
                   <p
                     data-testid="card-description"
                     className="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
                   >
-                    {props.description}
+                    {translatedDescription}
                   </p>
                 )}
               </div>

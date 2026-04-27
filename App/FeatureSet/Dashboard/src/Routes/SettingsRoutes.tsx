@@ -21,6 +21,8 @@ import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
 
 import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyView";
 
+import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
+
 import SettingLabels from "../Pages/Settings/Labels";
 
 import SettingProbes from "../Pages/Settings/Probes";
@@ -59,12 +61,10 @@ import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
 
-import SettingsLogPipelines from "../Pages/Settings/LogPipelines";
-import SettingsLogPipelineView from "../Pages/Settings/LogPipelineView";
-import SettingsLogDropFilters from "../Pages/Settings/LogDropFilters";
-import SettingsLogDropFilterView from "../Pages/Settings/LogDropFilterView";
-import SettingsLogScrubRules from "../Pages/Settings/LogScrubRules";
 import SettingsMobileApps from "../Pages/Settings/MobileApps";
+
+import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
+import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -90,6 +90,29 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsNotificationLogs
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AUDIT_LOGS)}
+          element={
+            <SettingsAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AUDIT_LOGS_SETTINGS,
+            2,
+          )}
+          element={
+            <SettingsAuditLogsSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route
+              }
             />
           }
         />
@@ -250,6 +273,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_SETTINGS,
+          )}
+          element={
+            <SettingsTelemetrySettings
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_BILLING)}
           element={
             <SettingsBilling
@@ -388,62 +423,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsAIBilling
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_PIPELINES)}
-          element={
-            <SettingsLogPipelines
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_LOG_PIPELINE_VIEW,
-            2,
-          )}
-          element={
-            <SettingsLogPipelineView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_LOG_PIPELINE_VIEW] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_DROP_FILTERS)}
-          element={
-            <SettingsLogDropFilters
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_LOG_DROP_FILTER_VIEW,
-            2,
-          )}
-          element={
-            <SettingsLogDropFilterView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.SETTINGS_LOG_DROP_FILTER_VIEW] as Route
-              }
-            />
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_SCRUB_RULES)}
-          element={
-            <SettingsLogScrubRules
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route}
             />
           }
         />

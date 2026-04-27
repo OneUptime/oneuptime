@@ -18,6 +18,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   onClickUserProfile: () => void;
@@ -26,6 +27,7 @@ export interface ComponentProps {
 const DashboardUserProfile: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
 
   const [profilePictureId, setProfilePictureId] = useState<ObjectID | null>(
@@ -76,7 +78,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
       <HeaderIconDropdownButton
         key={profilePictureId?.toString() || "default"}
         iconImageUrl={profileImageUrl}
-        name="User Profile"
+        name={t("userProfile.label")}
         showDropdown={isDropdownVisible}
         onClick={() => {
           setIsDropdownVisible(true);
@@ -84,7 +86,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
       >
         <IconDropdownMenu>
           <IconDropdownItem
-            title="Profile"
+            title={t("userProfile.profile")}
             onClick={() => {
               setIsDropdownVisible(false);
               props.onClickUserProfile();
@@ -94,7 +96,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
           {User.isMasterAdmin() ? (
             <IconDropdownItem
-              title="Admin Settings"
+              title={t("userProfile.adminSettings")}
               onClick={() => {
                 setIsDropdownVisible(false);
                 Navigation.navigate(ADMIN_DASHBOARD_URL);
@@ -106,7 +108,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
           )}
 
           <IconDropdownItem
-            title="Log out"
+            title={t("userProfile.logOut")}
             onClick={() => {
               setIsDropdownVisible(false);
             }}

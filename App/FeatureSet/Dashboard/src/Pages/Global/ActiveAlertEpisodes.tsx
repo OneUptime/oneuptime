@@ -6,6 +6,7 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -24,6 +25,9 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 const ActiveAlertEpisodes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<AlertEpisode>({ modelType: AlertEpisode });
+
   return (
     <Page
       title={"Active Alert Episodes"}
@@ -68,6 +72,9 @@ const ActiveAlertEpisodes: FunctionComponent<
         isCreateable={false}
         isViewable={true}
         showViewIdButton={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         cardProps={{
           title: "Active Alert Episodes",
           description:
@@ -269,6 +276,7 @@ const ActiveAlertEpisodes: FunctionComponent<
           },
         ]}
       />
+      {labelBulkActionModals}
     </Page>
   );
 };

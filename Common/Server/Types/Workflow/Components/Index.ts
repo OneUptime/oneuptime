@@ -30,6 +30,7 @@ import Schedule from "./Schedule";
 import SlackSendMessageToChannel from "./Slack/SendMessageToChannel";
 import TelegramSendMessageToChat from "./Telegram/SendMessageToChat";
 import WebhookTrigger from "./Webhook";
+import ExecuteWorkflow from "./Workflow";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../../Types/Dictionary";
 import Text from "../../../../Types/Text";
@@ -57,6 +58,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.ApiPut]: new ApiPut(),
   [ComponentID.SendEmail]: new Email(),
   [ComponentID.IfElse]: new IfElse(),
+  [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
 };
 
 for (const baseModelService of Services) {

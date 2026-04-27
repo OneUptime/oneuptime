@@ -29,11 +29,11 @@ const ProfilesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={ProfilesRoutePath[PageMap.PROFILES_LIST] || ""}
+          path={ProfilesRoutePath[PageMap.PROFILES_INSIGHTS] || ""}
           element={
             <ProfilesListPage
               {...props}
-              pageRoute={RouteMap[PageMap.PROFILES_LIST] as Route}
+              pageRoute={RouteMap[PageMap.PROFILES_INSIGHTS] as Route}
             />
           }
         />

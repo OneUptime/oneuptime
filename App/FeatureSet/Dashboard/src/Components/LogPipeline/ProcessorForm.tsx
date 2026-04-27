@@ -15,6 +15,8 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
+import FilterQueryBuilderField from "../FilterQueryBuilder/FilterQueryBuilderField";
+import LogFilterConfig from "../FilterQueryBuilder/LogFilterConfig";
 import SeverityMappingRow, { SeverityMapping } from "./SeverityMappingRow";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -602,40 +604,58 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 title="Category Rules"
                 description="Define categories and the filter conditions that trigger them. Rules are evaluated top to bottom — the first match wins."
               />
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 space-y-3">
                 {categories.map((cat: CategoryRule, index: number) => {
                   return (
                     <div
                       key={index}
-                      className="grid grid-cols-12 gap-3 items-center p-3 bg-gray-50 rounded-md border border-gray-200"
+                      className="p-3 bg-gray-50 rounded-md border border-gray-200 space-y-3"
                     >
-                      <div className="col-span-4">
-                        <Input
-                          type={InputType.TEXT}
-                          placeholder="Category name (e.g. Error)"
-                          value={cat.name}
-                          onChange={(value: string) => {
-                            const newCats: Array<CategoryRule> = [
-                              ...categories,
-                            ];
-                            newCats[index] = {
-                              ...cat,
-                              name: value,
-                            };
-                            setCategories(newCats);
-                          }}
-                        />
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                            Category name
+                          </label>
+                          <Input
+                            type={InputType.TEXT}
+                            placeholder="e.g. Error"
+                            value={cat.name}
+                            onChange={(value: string) => {
+                              const newCats: Array<CategoryRule> = [
+                                ...categories,
+                              ];
+                              newCats[index] = {
+                                ...cat,
+                                name: value,
+                              };
+                              setCategories(newCats);
+                            }}
+                          />
+                        </div>
+                        <div className="flex-shrink-0 pt-5">
+                          <Button
+                            icon={IconProp.Trash}
+                            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                            buttonSize={ButtonSize.Small}
+                            onClick={() => {
+                              setCategories(
+                                categories.filter(
+                                  (_: CategoryRule, i: number) => {
+                                    return i !== index;
+                                  },
+                                ),
+                              );
+                            }}
+                            disabled={categories.length <= 1}
+                          />
+                        </div>
                       </div>
-                      <div className="col-span-1 flex justify-center">
-                        <span className="text-gray-400 text-sm font-medium">
-                          when
-                        </span>
-                      </div>
-                      <div className="col-span-6">
-                        <Input
-                          type={InputType.TEXT}
-                          placeholder="e.g. severityText = 'ERROR'"
-                          value={cat.filterQuery}
+                      <div>
+                        <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                          When logs match
+                        </label>
+                        <FilterQueryBuilderField
+                          initialValue={cat.filterQuery || ""}
                           onChange={(value: string) => {
                             const newCats: Array<CategoryRule> = [
                               ...categories,
@@ -646,23 +666,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                             };
                             setCategories(newCats);
                           }}
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <Button
-                          icon={IconProp.Trash}
-                          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                          buttonSize={ButtonSize.Small}
-                          onClick={() => {
-                            setCategories(
-                              categories.filter(
-                                (_: CategoryRule, i: number) => {
-                                  return i !== index;
-                                },
-                              ),
-                            );
-                          }}
-                          disabled={categories.length <= 1}
+                          config={LogFilterConfig}
                         />
                       </div>
                     </div>

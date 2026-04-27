@@ -13,6 +13,7 @@ import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   statusPageName: string;
@@ -23,6 +24,7 @@ export interface ComponentProps {
 const ForgotPassword: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const { t } = useTranslation();
   useEffect(() => {
     if (props.forceSSO) {
       Navigation.navigate(
@@ -82,20 +84,19 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
           <></>
         )}
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          Forgot Password
+          {t("accounts.forgotPassword.title")}
         </h2>
         {!isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600">
-            If you have forgotten your password for {props.statusPageName},
-            please enter your email and the password reset link will be sent to
-            you.{" "}
+            {t("accounts.forgotPassword.description", {
+              statusPageName: props.statusPageName,
+            })}{" "}
           </p>
         )}
 
         {isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600">
-            We have emailed you the password reset link. Please do not forget to
-            check spam.{" "}
+            {t("accounts.forgotPassword.success")}{" "}
           </p>
         )}
       </div>
@@ -119,7 +120,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                   field: {
                     email: true,
                   },
-                  title: "Email",
+                  title: t("accounts.shared.email"),
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Email,
                   required: true,
@@ -129,7 +130,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
               onSuccess={() => {
                 setIsSuccess(true);
               }}
-              submitButtonText={"Send Password Reset Link"}
+              submitButtonText={t("accounts.forgotPassword.sendLink")}
               formType={FormType.Create}
               maxPrimaryButtonWidth={true}
             />
@@ -138,7 +139,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
 
         <div className="mt-10 text-center">
           <p className="text-muted mb-0 text-gray-500">
-            Remember your password?{" "}
+            {t("accounts.forgotPassword.rememberPassword")}{" "}
             <Link
               to={
                 new Route(
@@ -149,7 +150,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
               }
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Login.
+              {t("accounts.shared.login")}.
             </Link>
           </p>
         </div>

@@ -2,6 +2,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -28,132 +29,141 @@ export interface ComponentProps {
 const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Service>({ modelType: Service });
+
   return (
-    <ModelTable<Service>
-      modelType={Service}
-      id="services-table"
-      isDeleteable={false}
-      isEditable={false}
-      userPreferencesKey="telemetry-services-table"
-      query={props.query || {}}
-      // Default sort: by Name ascending
-      sortBy={"name"}
-      sortOrder={SortOrder.Ascending}
-      actionButtons={props.actionButtons}
-      isCreateable={!props.disableCreate}
-      name="Services"
-      isViewable={true}
-      cardProps={{
-        title: props.title || "Services",
-        description:
-          props.description || "Here is a list of services for this project.",
-        buttons: props.cardButtons,
-      }}
-      showViewIdButton={true}
-      noItemsMessage={props.noItemsMessage || "No services found."}
-      formFields={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Service  Name",
-          validation: {
-            minLength: 2,
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Service Description",
-        },
-      ]}
-      showRefreshButton={true}
-      viewPageRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVICE_VIEW]!,
-      )}
-      filters={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          type: FieldType.Text,
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          type: FieldType.Text,
-        },
-        {
-          field: {
-            labels: {
+    <Fragment>
+      <ModelTable<Service>
+        modelType={Service}
+        id="services-table"
+        isDeleteable={false}
+        isEditable={false}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
+        userPreferencesKey="telemetry-services-table"
+        query={props.query || {}}
+        // Default sort: by Name ascending
+        sortBy={"name"}
+        sortOrder={SortOrder.Ascending}
+        actionButtons={props.actionButtons}
+        isCreateable={!props.disableCreate}
+        name="Services"
+        isViewable={true}
+        cardProps={{
+          title: props.title || "Services",
+          description:
+            props.description || "Here is a list of services for this project.",
+          buttons: props.cardButtons,
+        }}
+        showViewIdButton={true}
+        noItemsMessage={props.noItemsMessage || "No services found."}
+        formFields={[
+          {
+            field: {
               name: true,
-              color: true,
+            },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "Service  Name",
+            validation: {
+              minLength: 2,
             },
           },
-          title: "Labels",
-          type: FieldType.EntityArray,
-
-          filterEntityType: Label,
-          filterQuery: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Service Description",
           },
-          filterDropdownField: {
-            label: "name",
-            value: "_id",
-          },
-        },
-      ]}
-      selectMoreFields={{
-        serviceColor: true,
-      }}
-      columns={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          type: FieldType.Element,
-          getElement: (service: Service): ReactElement => {
-            return (
-              <Fragment>
-                <TelemetryServiceElement telemetryService={service} />
-              </Fragment>
-            );
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          type: FieldType.Text,
-        },
-        {
-          field: {
-            labels: {
+        ]}
+        showRefreshButton={true}
+        viewPageRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICE_VIEW]!,
+        )}
+        filters={[
+          {
+            field: {
               name: true,
-              color: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+
+            filterEntityType: Label,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
             },
           },
-          title: "Labels",
-          type: FieldType.EntityArray,
-
-          getElement: (item: Service): ReactElement => {
-            return <LabelsElement labels={item["labels"] || []} />;
+        ]}
+        selectMoreFields={{
+          serviceColor: true,
+        }}
+        columns={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Element,
+            getElement: (service: Service): ReactElement => {
+              return (
+                <Fragment>
+                  <TelemetryServiceElement telemetryService={service} />
+                </Fragment>
+              );
+            },
           },
-        },
-      ]}
-    />
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+
+            getElement: (item: Service): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+        ]}
+      />
+      {labelBulkActionModals}
+    </Fragment>
   );
 };
 

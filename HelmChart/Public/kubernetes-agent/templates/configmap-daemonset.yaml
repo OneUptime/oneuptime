@@ -1,4 +1,4 @@
-{{- if .Values.logs.enabled }}
+{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "daemonset") }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -95,6 +95,49 @@ data:
           - type: move
             from: attributes.uid
             to: resource["k8s.pod.uid"]
+          # Container runtimes (Docker, containerd, CRI-O) do not record a
+          # severity on the log line, so OTel LogRecords arrive at OneUptime
+          # with severity_number=0 and render as "Unspecified" on the Logs
+          # page. Derive a best-effort severity: route to body-based extraction
+          # when the body carries a recognizable severity keyword (covers
+          # "[ERROR]", "WARN:", " INFO ", etc. used by CoreDNS, most app
+          # frameworks, klog-style Kubernetes components), else fall back to
+          # stdout/stderr mapping. Using a router rather than regex_parser's
+          # on_error keeps this compatible with OTel Collector v0.96.0.
+          - type: router
+            id: severity-router
+            routes:
+              - output: parse-severity-from-body
+                expr: 'body matches "(?i)(?:^|[\\s\\[(])(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\\s\\]:=,)])"'
+            default: add-fallback-severity
+          - type: regex_parser
+            id: parse-severity-from-body
+            regex: '(?i)(?:^|[\s\[(])(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)])'
+            parse_from: body
+            output: severity-parser
+          - type: add
+            id: add-fallback-severity
+            field: attributes.severity_text
+            value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
+            output: severity-parser
+          - type: severity_parser
+            id: severity-parser
+            parse_from: attributes.severity_text
+            preset: default
+            mapping:
+              warn:
+                - warning
+              error:
+                - err
+                - crit
+                - critical
+              fatal:
+                - panic
+              info:
+                - notice
+          - type: remove
+            id: remove-severity-attr
+            field: attributes.severity_text
 
     processors:
       # Enrich with K8s metadata

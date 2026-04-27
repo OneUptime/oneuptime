@@ -2,6 +2,7 @@ import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEvents
 import Route from "../../../Types/API/Route";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
+import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
 import EnableWorkflowOn from "../../../Types/BaseDatabase/EnableWorkflowOn";
 import ModelPermission from "../../../Types/BaseDatabase/ModelPermission";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -120,6 +121,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   public allowAccessIfSubscriptionIsUnpaid!: boolean;
 
   public enableWorkflowOn!: EnableWorkflowOn;
+
+  public enableAuditLogOn!: EnableAuditLogOn | undefined;
 
   public enableDocumentation!: boolean;
   public isMasterAdminApiDocs!: boolean;

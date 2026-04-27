@@ -2,6 +2,7 @@ import MasterPage from "./Components/MasterPage/MasterPage";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import StatusPageUtil from "./Utils/StatusPage";
+import i18n from "./Utils/i18n";
 import Route from "Common/Types/API/Route";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
@@ -241,7 +242,7 @@ const App: () => JSX.Element = () => {
           (JSONFunctions.getJSONValueInPath(
             masterpage || {},
             "statusPage.pageTitle",
-          ) as string | null) || "Status Page";
+          ) as string | null) || i18n.t("common.statusPage");
 
         document
           .querySelector('meta[name="description"]')

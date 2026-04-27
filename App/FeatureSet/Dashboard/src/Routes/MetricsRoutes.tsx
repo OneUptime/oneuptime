@@ -1,5 +1,6 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import MetricsLayout from "../Pages/Metrics/Layout";
+import MetricsSettingsLayout from "../Pages/Metrics/Settings/Layout";
 import MetricsViewLayout from "../Pages/Metrics/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, MetricsRoutePath } from "../Utils/RouteMap";
@@ -11,6 +12,8 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import MetricsPage from "../Pages/Metrics/Index";
 import MetricsListPage from "../Pages/Metrics/List";
 import MetricsDocumentationPage from "../Pages/Metrics/Documentation";
+import MetricsSettingsPipelineRules from "../Pages/Metrics/Settings/PipelineRules";
+import MetricsSettingsRecordingRules from "../Pages/Metrics/Settings/RecordingRules";
 
 import MetricViewPage from "../Pages/Metrics/View/Index";
 
@@ -30,7 +33,7 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={MetricsRoutePath[PageMap.METRICS_LIST] || ""}
+          path={MetricsRoutePath[PageMap.METRICS_INSIGHTS] || ""}
           element={<MetricsListPage />}
         />
         <PageRoute
@@ -42,6 +45,36 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {/* Settings Routes */}
+        <PageRoute element={<MetricsSettingsLayout />}>
+          <PageRoute
+            path={
+              MetricsRoutePath[PageMap.METRICS_SETTINGS_PIPELINE_RULES] || ""
+            }
+            element={
+              <MetricsSettingsPipelineRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.METRICS_SETTINGS_PIPELINE_RULES] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={
+              MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES] || ""
+            }
+            element={
+              <MetricsSettingsRecordingRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.METRICS_SETTINGS_RECORDING_RULES] as Route
+                }
+              />
+            }
+          />
+        </PageRoute>
       </PageRoute>
 
       {/* Metric View */}

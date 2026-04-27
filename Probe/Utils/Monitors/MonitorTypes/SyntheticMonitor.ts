@@ -1,13 +1,14 @@
 import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
 import ProxyConfig from "../../ProxyConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import Dictionary from "Common/Types/Dictionary";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
-import VMRunner from "Common/Server/Utils/VM/VMRunner";
+import VMRunner, { deepUnwrapProxies } from "Common/Server/Utils/VM/VMRunner";
 import { Browser, BrowserContext, Page, chromium, firefox } from "playwright";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import os from "os";
@@ -138,6 +139,14 @@ export default class SyntheticMonitor {
 
     let browserSession: BrowserSession | null = null;
 
+    /*
+     * Shared host-realm object exposed to the sandbox as a global `screenshots`
+     * variable. User code assigns `screenshots['name'] = await page.screenshot()`
+     * and the entries survive whether the script returns or throws — so failed
+     * runs still carry visual evidence (see GitHub issue #2408).
+     */
+    const sharedScreenshots: Dictionary<unknown> = {};
+
     try {
       let result: ReturnResult | null = null;
 
@@ -167,6 +176,7 @@ export default class SyntheticMonitor {
             page: browserSession.page,
             screenSizeType: options.screenSizeType,
             browserType: options.browserType,
+            screenshots: sharedScreenshots,
           },
         },
       });
@@ -188,43 +198,80 @@ export default class SyntheticMonitor {
         );
       }
 
-      if (result.returnValue?.screenshots) {
-        if (!scriptResult.screenshots) {
-          scriptResult.screenshots = {};
-        }
-
-        for (const screenshotName in result.returnValue.screenshots) {
-          if (!result.returnValue.screenshots[screenshotName]) {
-            continue;
-          }
-
-          // check if this is of type Buffer. If it is not, continue.
-
-          if (
-            !(result.returnValue.screenshots[screenshotName] instanceof Buffer)
-          ) {
-            continue;
-          }
-
-          const screenshotBuffer: Buffer = result.returnValue.screenshots[
-            screenshotName
-          ] as Buffer;
-          scriptResult.screenshots[screenshotName] =
-            screenshotBuffer.toString("base64"); // convert screenshots to base 64
-        }
-      }
+      SyntheticMonitor.collectScreenshots({
+        target: scriptResult,
+        sharedScreenshots,
+        returnedScreenshots: result.returnValue?.screenshots,
+      });
 
       scriptResult.result = result?.returnValue?.data;
+
+      if (result.scriptError) {
+        logger.error(result.scriptError);
+        scriptResult.scriptError =
+          result.scriptError.message || result.scriptError.toString();
+      }
     } catch (err: unknown) {
       logger.error(err);
       scriptResult.scriptError =
         (err as Error)?.message || (err as Error).toString();
+
+      // Host-side errors (e.g. browser launch) may still have partial side-channel data.
+      SyntheticMonitor.collectScreenshots({
+        target: scriptResult,
+        sharedScreenshots,
+      });
     } finally {
       // Always dispose browser session to prevent zombie processes
       await SyntheticMonitor.disposeBrowserSession(browserSession);
     }
 
     return scriptResult;
+  }
+
+  /**
+   * Merge screenshots from the sandbox side-channel (host-realm object mutated
+   * by user code) and — when the script returned successfully — the returned
+   * `screenshots` property, into the monitor response as base64 strings.
+   * Return-value screenshots take precedence on key collision.
+   */
+  private static collectScreenshots(data: {
+    target: SyntheticMonitorResponse;
+    sharedScreenshots: Dictionary<unknown>;
+    returnedScreenshots?: unknown;
+  }): void {
+    const { target, sharedScreenshots, returnedScreenshots } = data;
+
+    if (!target.screenshots) {
+      target.screenshots = {};
+    }
+
+    // Unwrap sandbox proxies so Buffer instanceof checks succeed.
+    const sideChannel: Dictionary<unknown> = deepUnwrapProxies(
+      sharedScreenshots,
+    ) as Dictionary<unknown>;
+
+    const addScreenshot: (name: string, value: unknown) => void = (
+      name: string,
+      value: unknown,
+    ): void => {
+      if (!value || !(value instanceof Buffer)) {
+        return;
+      }
+      target.screenshots![name] = value.toString("base64");
+    };
+
+    for (const name of Object.keys(sideChannel)) {
+      addScreenshot(name, sideChannel[name]);
+    }
+
+    if (returnedScreenshots && typeof returnedScreenshots === "object") {
+      const returned: Dictionary<unknown> =
+        returnedScreenshots as Dictionary<unknown>;
+      for (const name of Object.keys(returned)) {
+        addScreenshot(name, returned[name]);
+      }
+    }
   }
 
   private static getViewportHeightAndWidth(options: {

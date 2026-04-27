@@ -187,6 +187,7 @@ export default class QueueWorkflow {
         data: executeWorkflow.returnValues,
         workflowLogId: workflowLog?._id || null,
         workflowId: workflow._id,
+        callChain: executeWorkflow.callChain || [],
       },
       {
         scheduleAt: scheduleAt,

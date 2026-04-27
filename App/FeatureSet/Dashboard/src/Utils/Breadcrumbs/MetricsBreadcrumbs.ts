@@ -6,10 +6,10 @@ import Link from "Common/Types/Link";
 export function getMetricsBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.METRICS, ["Project", "Metrics"]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_LIST, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_INSIGHTS, [
       "Project",
       "Metrics",
-      "All Metrics",
+      "Insights",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.METRIC_VIEW, [
       "Project",
@@ -20,6 +20,18 @@ export function getMetricsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Metrics",
       "Setup Guide",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_SETTINGS_PIPELINE_RULES, [
+      "Project",
+      "Metrics",
+      "Settings",
+      "Pipeline Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_SETTINGS_RECORDING_RULES, [
+      "Project",
+      "Metrics",
+      "Settings",
+      "Recording Rules",
     ]),
   };
   return breadcrumpLinksMap[path];

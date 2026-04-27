@@ -1,11 +1,28 @@
 import { getMetricsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import SideMenu from "./SideMenu";
+import MetricsNavTabs, {
+  MetricsTabKey,
+} from "../../Components/Metrics/MetricsNavTabs";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+
+const getActiveMetricsTab: (path: string) => MetricsTabKey = (
+  path: string,
+): MetricsTabKey => {
+  if (path.includes("/metrics/settings")) {
+    return "settings";
+  }
+  if (path.includes("/metrics/insights")) {
+    return "insights";
+  }
+  if (path.includes("/metrics/documentation")) {
+    return "setup";
+  }
+  return "viewer";
+};
 
 const MetricsLayout: FunctionComponent<
   PageComponentProps
@@ -16,7 +33,7 @@ const MetricsLayout: FunctionComponent<
     <Page
       title="Metrics"
       breadcrumbLinks={getMetricsBreadcrumbs(path)}
-      sideMenu={<SideMenu />}
+      headerRight={<MetricsNavTabs active={getActiveMetricsTab(path)} />}
     >
       <Outlet />
     </Page>

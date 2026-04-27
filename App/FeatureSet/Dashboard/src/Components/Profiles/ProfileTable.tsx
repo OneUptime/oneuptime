@@ -29,6 +29,25 @@ import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import ProfileUtil from "../../Utils/ProfileUtil";
+import Route from "Common/Types/API/Route";
+import Link from "Common/UI/Components/Link/Link";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+
+const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: "CPU time", value: "cpu" },
+  { label: "CPU samples", value: "samples" },
+  { label: "Wall time", value: "wall" },
+  { label: "Live memory (objects)", value: "inuse_objects" },
+  { label: "Live memory (bytes)", value: "inuse_space" },
+  { label: "Allocations (count)", value: "alloc_objects" },
+  { label: "Allocations (bytes)", value: "alloc_space" },
+  { label: "Heap memory", value: "heap" },
+  { label: "Goroutines", value: "goroutine" },
+  { label: "Lock contention", value: "contention" },
+  { label: "Mutex contention", value: "mutex" },
+  { label: "Blocking operations", value: "block" },
+];
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -205,20 +224,23 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             props.isMinimalTable
               ? undefined
               : {
-                  title: "Performance Profiles",
+                  title: "All profiles",
                   description:
-                    "See where your application spends the most time and memory. Use profiles to find slow functions and optimize performance.",
+                    "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \u201cwhat is slow right now\u201d \u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).",
                 }
           }
           query={query}
           selectMoreFields={{
             profileId: true,
+            durationNano: true,
+            traceId: true,
+            unit: true,
           }}
           showViewIdButton={true}
           noItemsMessage={
             props.noItemsMessage
               ? props.noItemsMessage
-              : "No performance profiles found. Once your services start sending profiling data, they will appear here."
+              : "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions."
           }
           showRefreshButton={true}
           sortBy="startTime"
@@ -250,7 +272,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               field: {
                 profileType: true,
               },
-              type: FieldType.Text,
+              type: FieldType.MultiSelectDropdown,
+              filterDropdownOptions: PROFILE_TYPE_FILTER_OPTIONS,
               title: "Type",
             },
             {
@@ -330,14 +353,84 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               field: {
                 sampleCount: true,
               },
-              title: "Data Points",
-              type: FieldType.Number,
+              title: "Duration / Samples",
+              description:
+                "How long the recording covers, and how many samples were collected. More samples = higher fidelity.",
+              type: FieldType.Element,
+              getElement: (profile: Profile): ReactElement => {
+                const durationNano: number = profile.durationNano
+                  ? Number(profile.durationNano)
+                  : 0;
+                const sampleCount: number = profile.sampleCount
+                  ? Number(profile.sampleCount)
+                  : 0;
+
+                const durationLabel: string =
+                  durationNano > 0
+                    ? ProfileUtil.formatProfileValue(
+                        durationNano,
+                        "nanoseconds",
+                      )
+                    : "—";
+
+                return (
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900">
+                      {durationLabel}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {sampleCount.toLocaleString()} samples
+                    </span>
+                  </div>
+                );
+              },
+            },
+            {
+              field: {
+                traceId: true,
+              },
+              title: "Trace",
+              description:
+                "If this profile was captured during a traced request, click to jump to the trace.",
+              type: FieldType.Element,
+              getElement: (profile: Profile): ReactElement => {
+                const traceId: string | undefined = profile.traceId?.toString();
+
+                if (!traceId) {
+                  /*
+                   * Most profiles today aren't attached to a specific
+                   * request; show nothing rather than a confusing em-dash.
+                   */
+                  return <span className="text-xs text-gray-300">—</span>;
+                }
+
+                const traceRoute: Route = RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.TRACE_VIEW]!,
+                  {
+                    modelId: traceId,
+                  },
+                );
+
+                const shortId: string =
+                  traceId.length > 12 ? `${traceId.substring(0, 8)}…` : traceId;
+
+                return (
+                  <Link
+                    to={traceRoute}
+                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
+                    title={`Open trace ${traceId}`}
+                  >
+                    <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
+                    <span className="font-mono">{shortId}</span>
+                  </Link>
+                );
+              },
             },
             {
               field: {
                 startTime: true,
               },
-              title: "Captured At",
+              title: "Captured",
               type: FieldType.DateTime,
             },
           ]}

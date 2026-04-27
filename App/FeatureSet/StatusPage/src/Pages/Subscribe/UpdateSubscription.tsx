@@ -27,10 +27,12 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
   props: SubscribePageProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const statusPageSubscriberId: string | undefined =
     Navigation.getLastParamAsObjectID().toString();
 
@@ -108,13 +110,13 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         subscriberEmail: true,
       },
       showEvenIfPermissionDoesNotExist: true,
-      title: "Your Email",
+      title: t("subscribe.email.yourEmail"),
       fieldType: FormFieldSchemaType.Email,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberEmail);
       },
       disabled: true,
-      placeholder: "subscriber@company.com",
+      placeholder: t("subscribe.email.placeholder"),
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberEmail);
       },
@@ -124,13 +126,13 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         slackWorkspaceName: true,
       },
       showEvenIfPermissionDoesNotExist: true,
-      title: "Slack Workspace Name",
+      title: t("subscribe.slack.workspaceName"),
       fieldType: FormFieldSchemaType.Text,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.slackWorkspaceName);
       },
       disabled: true,
-      placeholder: "your-slack-workspace-name",
+      placeholder: t("subscribe.slack.workspaceNamePlaceholder"),
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.slackWorkspaceName);
       },
@@ -140,12 +142,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         subscriberPhone: true,
       },
       showEvenIfPermissionDoesNotExist: true,
-      title: "Your Phone Number",
+      title: t("subscribe.sms.yourPhoneNumber"),
       fieldType: FormFieldSchemaType.Email,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberPhone);
       },
-      placeholder: "+11234567890",
+      placeholder: t("subscribe.sms.placeholder"),
       disabled: true,
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberPhone);
@@ -159,9 +161,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         isSubscribedToAllResources: true,
       },
       showEvenIfPermissionDoesNotExist: true,
-      title: "Subscribe to All Resources",
-      description:
-        "Select this option if you want to subscribe to all resources.",
+      title: t("subscribe.resources.all"),
+      description: t("subscribe.resources.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       defaultValue: true,
@@ -172,8 +173,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         statusPageResources: true,
       },
       showEvenIfPermissionDoesNotExist: true,
-      title: "Select Resources to Subscribe",
-      description: "Please select the resources you want to subscribe to.",
+      title: t("subscribe.resources.select"),
+      description: t("subscribe.resources.selectDescription"),
       fieldType: FormFieldSchemaType.CategoryCheckbox,
       required: false,
       categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -188,9 +189,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         isSubscribedToAllEventTypes: true,
       },
-      title: "Subscribe to All Event Types",
-      description:
-        "Select this option if you want to subscribe to all event types.",
+      title: t("subscribe.eventTypes.all"),
+      description: t("subscribe.eventTypes.allDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       defaultValue: true,
@@ -200,8 +200,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       field: {
         statusPageEventTypes: true,
       },
-      title: "Select Event Types to Subscribe",
-      description: "Please select the event types you want to subscribe to.",
+      title: t("subscribe.eventTypes.select"),
+      description: t("subscribe.eventTypes.selectDescription"),
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       required: false,
       dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
@@ -216,9 +216,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       isUnsubscribed: true,
     },
     showEvenIfPermissionDoesNotExist: true,
-    title: "Unsubscribe",
-    description:
-      "Please select this if you would like to unsubscribe from all resources.",
+    title: t("subscribe.update.unsubscribe"),
+    description: t("subscribe.update.unsubscribeDescription"),
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
   });
@@ -235,17 +234,15 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
                 {" "}
-                Your changes have been saved.{" "}
+                {t("subscribe.update.saved")}{" "}
               </p>
             )}
 
             {!isSuccess ? (
               <div className="">
                 <Card
-                  title="Update Subscription"
-                  description={
-                    "You can update your subscription preferences or unsubscribe here."
-                  }
+                  title={t("subscribe.update.title")}
+                  description={t("subscribe.update.description")}
                 >
                   <ModelForm<StatusPageSubscriber>
                     modelType={StatusPageSubscriber}
@@ -257,7 +254,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     fetchItemApiUrl={getSubscriptionUrl}
                     formType={FormType.Update}
                     modelIdToEdit={new ObjectID(statusPageSubscriberId)}
-                    submitButtonText={"Update Subscription"}
+                    submitButtonText={t("subscribe.update.title")}
                     onSuccess={() => {
                       setIsSuccess(true);
                     }}

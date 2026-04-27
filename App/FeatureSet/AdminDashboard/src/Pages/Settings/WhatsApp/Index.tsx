@@ -24,6 +24,7 @@ import WhatsAppTemplateMessages, {
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
+import { useTranslation } from "react-i18next";
 
 type ToFriendlyName = (value: string) => string;
 
@@ -205,26 +206,27 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
 const whatsappSetupMarkdown: string = buildWhatsAppSetupMarkdown();
 
 const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
   const [testSuccess, setTestSuccess] = useState<string>("");
 
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "WhatsApp",
+          title: t("breadcrumbs.whatsapp"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_WHATSAPP] as Route,
           ),
@@ -235,12 +237,11 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Meta WhatsApp Settings"
         cardProps={{
-          title: "Meta WhatsApp Settings",
-          description:
-            "Configure Meta WhatsApp credentials. These values are used to send WhatsApp notifications from OneUptime.",
+          title: t("pages.settings.whatsapp.metaCardTitle"),
+          description: t("pages.settings.whatsapp.metaCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Meta WhatsApp Config"
+        editButtonText={t("pages.settings.whatsapp.metaEditButton")}
         formSteps={[
           {
             title: "Credentials",
@@ -335,7 +336,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "Access Token",
               fieldType: FieldType.HiddenText,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -343,7 +344,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "Phone Number ID",
               fieldType: FieldType.ObjectID,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -351,7 +352,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "Business Account ID",
               fieldType: FieldType.ObjectID,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -359,7 +360,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "Webhook Verify Token",
               fieldType: FieldType.HiddenText,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -367,7 +368,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "App ID",
               fieldType: FieldType.ObjectID,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
             {
               field: {
@@ -375,7 +376,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "App Secret",
               fieldType: FieldType.HiddenText,
-              placeholder: "Not Configured",
+              placeholder: t("common.notConfigured"),
             },
           ],
           modelId: ObjectID.getZeroObjectID(),
@@ -383,8 +384,8 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
       />
 
       <Card
-        title="Send Test WhatsApp Message"
-        description="Send a test WhatsApp template message to confirm your Meta configuration."
+        title={t("pages.settings.whatsapp.testCardTitle")}
+        description={t("pages.settings.whatsapp.testCardDescription")}
       >
         {testSuccess ? (
           <Alert
@@ -401,7 +402,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
           name="Send Test WhatsApp Message"
           isLoading={isSendingTest}
           error={testError || ""}
-          submitButtonText="Send Test Message"
+          submitButtonText={t("pages.settings.whatsapp.testSubmitButton")}
           maxPrimaryButtonWidth={true}
           initialValues={{
             phoneNumber: "",
@@ -428,9 +429,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
 
             if (!toPhone) {
               setTestSuccess("");
-              setTestError(
-                "Please enter a WhatsApp number before sending a test message.",
-              );
+              setTestError(t("pages.settings.whatsapp.testMissingNumber"));
               return;
             }
 
@@ -459,12 +458,10 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               }
 
               if (response.isFailure()) {
-                throw new Error("Failed to send test WhatsApp message.");
+                throw new Error(t("pages.settings.whatsapp.testFailure"));
               }
 
-              setTestSuccess(
-                "Test WhatsApp message sent successfully. Check the recipient device to confirm delivery.",
-              );
+              setTestSuccess(t("pages.settings.whatsapp.testSuccess"));
 
               if (onSubmitSuccessful) {
                 onSubmitSuccessful();
@@ -479,8 +476,8 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
       </Card>
 
       <Card
-        title="Meta WhatsApp Setup Guide"
-        description="Steps to connect Meta WhatsApp and the templates you must provision."
+        title={t("pages.settings.whatsapp.setupCardTitle")}
+        description={t("pages.settings.whatsapp.setupCardDescription")}
       >
         <MarkdownViewer text={whatsappSetupMarkdown} />
       </Card>

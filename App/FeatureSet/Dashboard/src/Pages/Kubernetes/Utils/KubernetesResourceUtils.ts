@@ -7,6 +7,10 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 export interface KubernetesResource {
   name: string;
@@ -123,41 +127,64 @@ export default class KubernetesResourceUtils {
   public static async fetchResourceListWithMemory(
     options: FetchResourceListOptions & { memoryMetricName: string },
   ): Promise<Array<KubernetesResource>> {
-    const resources: Array<KubernetesResource> =
-      await KubernetesResourceUtils.fetchResourceList(options);
-
+    /*
+     * Normalize hoursBack here so both the CPU query (inside
+     * fetchResourceList) and the memory query below scan the same
+     * window. The previous default mismatch (24h for CPU, 1h for
+     * memory) meant the two queries joined on fundamentally different
+     * time ranges.
+     */
+    const hoursBack: number = options.hoursBack || 1;
     const endDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.addRemoveHours(
-      endDate,
-      -(options.hoursBack || 1),
-    );
+    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -hoursBack);
 
-    try {
-      const memoryResult: AggregatedResult = await AnalyticsModelAPI.aggregate({
-        modelType: Metric,
-        aggregateBy: {
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            time: new InBetween(startDate, endDate),
-            name: options.memoryMetricName,
-            attributes: {
-              "resource.k8s.cluster.name": options.clusterIdentifier,
-              ...(options.filterAttributes || {}),
-            } as Dictionary<string | number | boolean>,
-          },
-          aggregationType: MetricsAggregationType.Avg,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          startTimestamp: startDate,
-          endTimestamp: endDate,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          groupBy: {
-            attributes: true,
-          },
-        },
-      });
+    /*
+     * Fire CPU and memory aggregations in parallel. They're
+     * independent ClickHouse queries; the old code awaited CPU before
+     * starting memory, which doubled the round-trip cost.
+     */
+    const resourcesPromise: Promise<Array<KubernetesResource>> =
+      KubernetesResourceUtils.fetchResourceList({ ...options, hoursBack });
 
+    const memoryPromise: Promise<AggregatedResult | null> =
+      (async (): Promise<AggregatedResult | null> => {
+        try {
+          return await AnalyticsModelAPI.aggregate({
+            modelType: Metric,
+            aggregateBy: {
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+                time: new InBetween(startDate, endDate),
+                name: options.memoryMetricName,
+                attributes: {
+                  "resource.k8s.cluster.name": options.clusterIdentifier,
+                  ...(options.filterAttributes || {}),
+                } as Dictionary<string | number | boolean>,
+              },
+              aggregationType: MetricsAggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              startTimestamp: startDate,
+              endTimestamp: endDate,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              groupBy: {
+                attributes: true,
+              },
+            },
+          });
+        } catch {
+          // Memory data is optional, don't fail if not available
+          return null;
+        }
+      })();
+
+    const [resources, memoryResult]: [
+      Array<KubernetesResource>,
+      AggregatedResult | null,
+    ] = await Promise.all([resourcesPromise, memoryPromise]);
+
+    if (memoryResult) {
       const memoryMap: Map<string, number> = new Map();
 
       for (const dataPoint of memoryResult.data) {
@@ -183,8 +210,6 @@ export default class KubernetesResourceUtils {
           resource.memoryUsageBytes = memValue;
         }
       }
-    } catch {
-      // Memory data is optional, don't fail if not available
     }
 
     return resources;
@@ -287,5 +312,215 @@ export default class KubernetesResourceUtils {
     }
 
     return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB/s`;
+  }
+
+  /**
+   * Fetch the list of Kubernetes resources of a given kind from the
+   * Postgres inventory table (KubernetesResource).
+   *
+   * This is the authoritative source for "what exists in the cluster
+   * right now" — populated by the k8sobjects snapshot stream. Use
+   * this for list views so the page matches the sidebar badge.
+   *
+   * For CPU/memory columns, enrich the returned resources with metric
+   * data via a separate call — metrics cover recent activity and
+   * won't exist for every namespace/pod.
+   */
+  public static async fetchInventoryResources(options: {
+    kubernetesClusterId: ObjectID;
+    kind: string;
+    transform?: (
+      resource: KubernetesResource,
+      row: KubernetesResourceModel,
+    ) => void;
+  }): Promise<Array<KubernetesResource>> {
+    const result: ListResult<KubernetesResourceModel> =
+      await ModelAPI.getList<KubernetesResourceModel>({
+        modelType: KubernetesResourceModel,
+        query: {
+          kubernetesClusterId: options.kubernetesClusterId,
+          kind: options.kind,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        select: {
+          name: true,
+          namespaceKey: true,
+          phase: true,
+          isReady: true,
+          spec: true,
+          status: true,
+          ownerReferences: true,
+          resourceCreationTimestamp: true,
+        },
+        sort: {
+          namespaceKey: SortOrder.Ascending,
+          name: SortOrder.Ascending,
+        },
+      });
+
+    return result.data.map(
+      (row: KubernetesResourceModel): KubernetesResource => {
+        const statusObj: Record<string, unknown> =
+          (row.status as unknown as Record<string, unknown>) || {};
+
+        /*
+         * Pick a display status by kind:
+         *   - Pod: phase column (Running / Pending / ...)
+         *   - Node: isReady → Ready / NotReady
+         *   - Others: status.phase from the snapshot (Namespace.status.phase
+         *     = "Active"; PV.status.phase = "Bound"), fallback to "".
+         */
+        let displayStatus: string = "";
+        if (options.kind === "Pod") {
+          displayStatus = row.phase || "";
+        } else if (options.kind === "Node") {
+          if (row.isReady === true) {
+            displayStatus = "Ready";
+          } else if (row.isReady === false) {
+            displayStatus = "NotReady";
+          }
+        } else {
+          const phaseVal: unknown = statusObj["phase"];
+          if (typeof phaseVal === "string") {
+            displayStatus = phaseVal;
+          }
+        }
+
+        const creationTsIso: string | undefined = row.resourceCreationTimestamp
+          ? OneUptimeDate.toString(row.resourceCreationTimestamp)
+          : undefined;
+
+        const resource: KubernetesResource = {
+          name: row.name || "",
+          namespace: row.namespaceKey || "",
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status: displayStatus,
+          age: KubernetesResourceUtils.formatAge(creationTsIso),
+          additionalAttributes: {},
+        };
+
+        if (options.transform) {
+          try {
+            options.transform(resource, row);
+          } catch {
+            // transform is best-effort enrichment; don't drop the row.
+          }
+        }
+
+        return resource;
+      },
+    );
+  }
+
+  /**
+   * Enrich a list of resources with CPU+memory values from ClickHouse
+   * metrics. Rows without a recent metric stay at cpuUtilization=null
+   * and memoryUsageBytes=null (rendered as "0%" / "N/A").
+   *
+   * resourceKey decides how a metric datapoint attaches to a row:
+   *   - byName    : only match on resource.name
+   *   - byNsAndName: match on `${namespace}/${name}` (default)
+   */
+  public static async enrichWithMetrics(options: {
+    resources: Array<KubernetesResource>;
+    clusterIdentifier: string;
+    cpuMetricName: string;
+    memoryMetricName: string;
+    resourceNameAttribute: string;
+    namespaceAttribute?: string;
+    hoursBack?: number;
+    resourceKey?: "byName" | "byNsAndName";
+  }): Promise<void> {
+    const {
+      resources,
+      clusterIdentifier,
+      cpuMetricName,
+      memoryMetricName,
+      resourceNameAttribute,
+      namespaceAttribute = "resource.k8s.namespace.name",
+      hoursBack = 1,
+      resourceKey = "byNsAndName",
+    } = options;
+
+    if (resources.length === 0) {
+      return;
+    }
+
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -hoursBack);
+
+    const makeKey: (ns: string, name: string) => string = (
+      ns: string,
+      name: string,
+    ): string => {
+      return resourceKey === "byName" ? name : `${ns}/${name}`;
+    };
+
+    const fetchMap: (
+      metricName: string,
+    ) => Promise<Map<string, number>> = async (
+      metricName: string,
+    ): Promise<Map<string, number>> => {
+      const map: Map<string, number> = new Map();
+      try {
+        const result: AggregatedResult = await AnalyticsModelAPI.aggregate({
+          modelType: Metric,
+          aggregateBy: {
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              time: new InBetween(startDate, endDate),
+              name: metricName,
+              attributes: {
+                "resource.k8s.cluster.name": clusterIdentifier,
+              } as Dictionary<string | number | boolean>,
+            },
+            aggregationType: MetricsAggregationType.Avg,
+            aggregateColumnName: "value",
+            aggregationTimestampColumnName: "time",
+            startTimestamp: startDate,
+            endTimestamp: endDate,
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            groupBy: {
+              attributes: true,
+            },
+          },
+        });
+        for (const dp of result.data) {
+          const attrs: Record<string, unknown> =
+            (dp["attributes"] as Record<string, unknown>) || {};
+          const name: string = (attrs[resourceNameAttribute] as string) || "";
+          if (!name) {
+            continue;
+          }
+          const ns: string = (attrs[namespaceAttribute] as string) || "";
+          const key: string = makeKey(ns, name);
+          if (!map.has(key)) {
+            map.set(key, dp.value ?? 0);
+          }
+        }
+      } catch {
+        // Metrics are supplementary; leave the map empty on failure.
+      }
+      return map;
+    };
+
+    const [cpuMap, memMap]: [Map<string, number>, Map<string, number>] =
+      await Promise.all([fetchMap(cpuMetricName), fetchMap(memoryMetricName)]);
+
+    for (const resource of resources) {
+      const key: string = makeKey(resource.namespace, resource.name);
+      const cpu: number | undefined = cpuMap.get(key);
+      if (cpu !== undefined) {
+        resource.cpuUtilization = cpu;
+      }
+      const mem: number | undefined = memMap.get(key);
+      if (mem !== undefined) {
+        resource.memoryUsageBytes = mem;
+      }
+    }
   }
 }

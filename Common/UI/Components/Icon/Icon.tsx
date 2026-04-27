@@ -1075,6 +1075,21 @@ const Icon: FunctionComponent<ComponentProps> = ({
         />
       </>,
     );
+  } else if (icon === IconProp.Telegram) {
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M7 12.5l2.5 1 1 3 2-2.5 3.5 2.5 1.5-8L6 11l1 1.5z"
+        />
+      </>,
+    );
   } else if (icon === IconProp.Hide) {
     return getSvgWrapper(
       <path
@@ -1226,6 +1241,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"
+      />,
+    );
+  } else if (icon === IconProp.GripVertical) {
+    return getSvgWrapper(
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M9 5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM9 12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM9 19a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18 5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18 12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18 19a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
       />,
     );
   } else if (icon === IconProp.Graph) {

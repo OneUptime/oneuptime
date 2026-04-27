@@ -16,6 +16,7 @@ export interface ComponentProps {
   isLoading?: boolean | undefined;
   error?: string | undefined;
   labels?: Array<LabelModel> | undefined;
+  headerRight?: ReactElement | undefined;
 }
 
 const Page: FunctionComponent<ComponentProps> = (
@@ -62,6 +63,11 @@ const Page: FunctionComponent<ComponentProps> = (
                     {props.title}
                   </h1>
                 </div>
+                {props.headerRight && (
+                  <div className="flex flex-wrap items-center sm:justify-end gap-3">
+                    {props.headerRight}
+                  </div>
+                )}
                 {props.labels && props.labels.length > 0 && (
                   <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                     <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">

@@ -70,6 +70,11 @@ export async function processIncomingRequestFromQueue(
     onlyCheckForIncomingRequestReceivedAt: false,
     requestMethod: httpMethod,
     checkedAt: now,
+    receivedViaProbeId:
+      jobData.receivedViaProbeId &&
+      ObjectID.isValidUUID(jobData.receivedViaProbeId)
+        ? new ObjectID(jobData.receivedViaProbeId)
+        : undefined,
   };
 
   // process probe response here.

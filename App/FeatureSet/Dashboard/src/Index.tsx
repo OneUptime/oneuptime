@@ -1,4 +1,5 @@
 import App from "./App";
+import "./Utils/i18n";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import React from "react";
 import ReactDOM from "react-dom/client";

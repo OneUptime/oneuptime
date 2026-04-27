@@ -57,3 +57,27 @@ Service account name
 {{- include "kubernetes-agent.fullname" . }}
 {{- end }}
 {{- end }}
+
+{{/*
+Effective log collection mode.
+
+Resolution order:
+  1. Explicit .Values.logs.mode ("daemonset" | "api" | "disabled") always wins.
+  2. Otherwise .Values.preset decides:
+       "gke-autopilot" / "eks-fargate" -> api
+       "standard" / "" / unset         -> daemonset
+  3. Anything else falls back to "daemonset".
+*/}}
+{{- define "kubernetes-agent.logMode" -}}
+{{- $explicit := default "" .Values.logs.mode -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else -}}
+{{- $preset := default "" .Values.preset -}}
+{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}
+api
+{{- else -}}
+daemonset
+{{- end -}}
+{{- end -}}
+{{- end }}

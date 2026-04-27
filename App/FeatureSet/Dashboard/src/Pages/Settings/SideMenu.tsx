@@ -70,35 +70,12 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
-            title: "Log Pipelines",
+            title: "Data Retention",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route,
+              RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route,
             ),
           },
-          icon: IconProp.Logs,
-        },
-        {
-          link: {
-            title: "Log Drop Filters",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route,
-            ),
-          },
-          icon: IconProp.Filter,
-        },
-      ],
-    },
-    {
-      title: "Data Privacy",
-      items: [
-        {
-          link: {
-            title: "Log Scrub Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route,
-            ),
-          },
-          icon: IconProp.ShieldCheck,
+          icon: IconProp.Settings,
         },
       ],
     },
@@ -264,6 +241,29 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Refresh,
+        },
+      ],
+    },
+    {
+      title: "Audit Logs",
+      items: [
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
+        {
+          link: {
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
         },
       ],
     },

@@ -3,6 +3,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -17,6 +18,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<IncomingCallPolicy>({ modelType: IncomingCallPolicy });
+
   return (
     <Fragment>
       <ModelTable<IncomingCallPolicy>
@@ -29,6 +33,9 @@ const IncomingCallPoliciesPage: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         cardProps={{
           title: "Incoming Call Policies",
           description:
@@ -192,6 +199,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
           },
         ]}
       />
+      {labelBulkActionModals}
     </Fragment>
   );
 };

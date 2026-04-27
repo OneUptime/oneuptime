@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -9,7 +10,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/Utils/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -24,6 +25,20 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+
+function timeRangeLabel(range: RangeStartAndEndDateTime): string {
+  if (range.range === TimeRange.CUSTOM) {
+    return "the selected time range";
+  }
+  return `the ${(range.range as string).toLowerCase()}`;
+}
 
 interface ServiceTraceSummary {
   service: Service;
@@ -89,227 +104,234 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   const [globalP99, setGlobalP99] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_DAY,
+  });
 
-  const loadDashboard: () => Promise<void> = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const loadDashboard: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError("");
 
-      const now: Date = OneUptimeDate.getCurrentDate();
-      const twentyFourHoursAgo: Date = OneUptimeDate.addRemoveHours(now, -24);
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+        const startDate: Date = dateRange.startValue;
+        const endDate: Date = dateRange.endValue;
 
-      const [servicesResult, spansResult] = await Promise.all([
-        ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        }),
-        AnalyticsModelAPI.getList({
-          modelType: Span,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            startTime: new InBetween(twentyFourHoursAgo, now),
-          },
-          select: {
-            traceId: true,
-            spanId: true,
-            parentSpanId: true,
-            serviceId: true,
-            name: true,
-            startTime: true,
-            statusCode: true,
-            durationUnixNano: true,
-          },
-          limit: 5000,
-          skip: 0,
-          sort: {
-            startTime: SortOrder.Descending,
-          },
-        }),
-      ]);
+        const [servicesResult, spansResult] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            select: {
+              serviceColor: true,
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          AnalyticsModelAPI.getList({
+            modelType: Span,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              startTime: new InBetween(startDate, endDate),
+            },
+            select: {
+              traceId: true,
+              spanId: true,
+              parentSpanId: true,
+              serviceId: true,
+              name: true,
+              startTime: true,
+              statusCode: true,
+              durationUnixNano: true,
+            },
+            limit: 5000,
+            skip: 0,
+            sort: {
+              startTime: SortOrder.Descending,
+            },
+          }),
+        ]);
 
-      const loadedServices: Array<Service> = servicesResult.data || [];
-      setServices(loadedServices);
+        const loadedServices: Array<Service> = servicesResult.data || [];
+        setServices(loadedServices);
 
-      const allSpans: Array<Span> = spansResult.data || [];
+        const allSpans: Array<Span> = spansResult.data || [];
 
-      // Build per-service summaries
-      const summaryMap: Map<string, ServiceTraceSummary> = new Map();
+        // Build per-service summaries
+        const summaryMap: Map<string, ServiceTraceSummary> = new Map();
 
-      for (const service of loadedServices) {
-        const serviceId: string = service.id?.toString() || "";
-        summaryMap.set(serviceId, {
-          service,
-          totalTraces: 0,
-          errorTraces: 0,
-          latestTraceTime: null,
-          p50Nanos: 0,
-          p95Nanos: 0,
-          durations: [],
-        });
-      }
-
-      const serviceTraceIds: Map<string, Set<string>> = new Map();
-      const serviceErrorTraceIds: Map<string, Set<string>> = new Map();
-      const errorTraces: Array<RecentTrace> = [];
-      const allTraces: Array<RecentTrace> = [];
-      const seenTraceIds: Set<string> = new Set();
-      const seenErrorTraceIds: Set<string> = new Set();
-      const allDurations: Array<number> = [];
-
-      for (const span of allSpans) {
-        const serviceId: string = span.serviceId?.toString() || "";
-        const traceId: string = span.traceId?.toString() || "";
-        const duration: number = (span.durationUnixNano as number) || 0;
-        const summary: ServiceTraceSummary | undefined =
-          summaryMap.get(serviceId);
-
-        if (duration > 0) {
-          allDurations.push(duration);
+        for (const service of loadedServices) {
+          const serviceId: string = service.id?.toString() || "";
+          summaryMap.set(serviceId, {
+            service,
+            totalTraces: 0,
+            errorTraces: 0,
+            latestTraceTime: null,
+            p50Nanos: 0,
+            p95Nanos: 0,
+            durations: [],
+          });
         }
 
-        if (summary) {
-          if (!serviceTraceIds.has(serviceId)) {
-            serviceTraceIds.set(serviceId, new Set());
-          }
-          if (!serviceErrorTraceIds.has(serviceId)) {
-            serviceErrorTraceIds.set(serviceId, new Set());
-          }
+        const serviceTraceIds: Map<string, Set<string>> = new Map();
+        const serviceErrorTraceIds: Map<string, Set<string>> = new Map();
+        const errorTraces: Array<RecentTrace> = [];
+        const allTraces: Array<RecentTrace> = [];
+        const seenTraceIds: Set<string> = new Set();
+        const seenErrorTraceIds: Set<string> = new Set();
+        const allDurations: Array<number> = [];
 
-          const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
-          if (!traceSet.has(traceId)) {
-            traceSet.add(traceId);
-            summary.totalTraces += 1;
-          }
+        for (const span of allSpans) {
+          const serviceId: string = span.serviceId?.toString() || "";
+          const traceId: string = span.traceId?.toString() || "";
+          const duration: number = (span.durationUnixNano as number) || 0;
+          const summary: ServiceTraceSummary | undefined =
+            summaryMap.get(serviceId);
 
           if (duration > 0) {
-            summary.durations.push(duration);
+            allDurations.push(duration);
           }
 
-          if (span.statusCode === SpanStatus.Error) {
-            const errorSet: Set<string> = serviceErrorTraceIds.get(serviceId)!;
-            if (!errorSet.has(traceId)) {
-              errorSet.add(traceId);
-              summary.errorTraces += 1;
+          if (summary) {
+            if (!serviceTraceIds.has(serviceId)) {
+              serviceTraceIds.set(serviceId, new Set());
+            }
+            if (!serviceErrorTraceIds.has(serviceId)) {
+              serviceErrorTraceIds.set(serviceId, new Set());
+            }
+
+            const traceSet: Set<string> = serviceTraceIds.get(serviceId)!;
+            if (!traceSet.has(traceId)) {
+              traceSet.add(traceId);
+              summary.totalTraces += 1;
+            }
+
+            if (duration > 0) {
+              summary.durations.push(duration);
+            }
+
+            if (span.statusCode === SpanStatus.Error) {
+              const errorSet: Set<string> =
+                serviceErrorTraceIds.get(serviceId)!;
+              if (!errorSet.has(traceId)) {
+                errorSet.add(traceId);
+                summary.errorTraces += 1;
+              }
+            }
+
+            const spanTime: Date | undefined = span.startTime
+              ? OneUptimeDate.fromString(span.startTime)
+              : undefined;
+            if (
+              spanTime &&
+              (!summary.latestTraceTime || spanTime > summary.latestTraceTime)
+            ) {
+              summary.latestTraceTime = spanTime;
             }
           }
 
-          const spanTime: Date | undefined = span.startTime
-            ? OneUptimeDate.fromString(span.startTime)
-            : undefined;
+          if (!seenTraceIds.has(traceId) && traceId) {
+            seenTraceIds.add(traceId);
+            allTraces.push({
+              traceId,
+              name: span.name?.toString() || "Unknown",
+              serviceId,
+              startTime: span.startTime
+                ? OneUptimeDate.fromString(span.startTime)
+                : new Date(),
+              statusCode: span.statusCode || SpanStatus.Unset,
+              durationNano: duration,
+            });
+          }
+
           if (
-            spanTime &&
-            (!summary.latestTraceTime || spanTime > summary.latestTraceTime)
+            span.statusCode === SpanStatus.Error &&
+            traceId &&
+            !seenErrorTraceIds.has(traceId)
           ) {
-            summary.latestTraceTime = spanTime;
+            seenErrorTraceIds.add(traceId);
+            errorTraces.push({
+              traceId,
+              name: span.name?.toString() || "Unknown",
+              serviceId,
+              startTime: span.startTime
+                ? OneUptimeDate.fromString(span.startTime)
+                : new Date(),
+              statusCode: span.statusCode,
+              durationNano: duration,
+            });
           }
         }
 
-        if (!seenTraceIds.has(traceId) && traceId) {
-          seenTraceIds.add(traceId);
-          allTraces.push({
-            traceId,
-            name: span.name?.toString() || "Unknown",
-            serviceId,
-            startTime: span.startTime
-              ? OneUptimeDate.fromString(span.startTime)
-              : new Date(),
-            statusCode: span.statusCode || SpanStatus.Unset,
-            durationNano: duration,
+        // Compute global percentiles
+        setGlobalP50(getPercentile(allDurations, 50));
+        setGlobalP95(getPercentile(allDurations, 95));
+        setGlobalP99(getPercentile(allDurations, 99));
+
+        // Compute per-service percentiles and filter
+        const summariesWithData: Array<ServiceTraceSummary> = Array.from(
+          summaryMap.values(),
+        )
+          .filter((s: ServiceTraceSummary) => {
+            return s.totalTraces > 0;
+          })
+          .map((s: ServiceTraceSummary) => {
+            return {
+              ...s,
+              p50Nanos: getPercentile(s.durations, 50),
+              p95Nanos: getPercentile(s.durations, 95),
+            };
           });
+
+        // Sort: highest error rate first, then by total traces
+        summariesWithData.sort(
+          (a: ServiceTraceSummary, b: ServiceTraceSummary) => {
+            const aErrorRate: number =
+              a.totalTraces > 0 ? a.errorTraces / a.totalTraces : 0;
+            const bErrorRate: number =
+              b.totalTraces > 0 ? b.errorTraces / b.totalTraces : 0;
+            if (bErrorRate !== aErrorRate) {
+              return bErrorRate - aErrorRate;
+            }
+            return b.totalTraces - a.totalTraces;
+          },
+        );
+
+        let totalReqs: number = 0;
+        let totalErrs: number = 0;
+        for (const s of summariesWithData) {
+          totalReqs += s.totalTraces;
+          totalErrs += s.errorTraces;
         }
+        setTotalRequests(totalReqs);
+        setTotalErrors(totalErrs);
 
-        if (
-          span.statusCode === SpanStatus.Error &&
-          traceId &&
-          !seenErrorTraceIds.has(traceId)
-        ) {
-          seenErrorTraceIds.add(traceId);
-          errorTraces.push({
-            traceId,
-            name: span.name?.toString() || "Unknown",
-            serviceId,
-            startTime: span.startTime
-              ? OneUptimeDate.fromString(span.startTime)
-              : new Date(),
-            statusCode: span.statusCode,
-            durationNano: duration,
-          });
-        }
+        setServiceSummaries(summariesWithData);
+        setRecentErrorTraces(errorTraces.slice(0, 8));
+
+        const slowTraces: Array<RecentTrace> = [...allTraces]
+          .sort((a: RecentTrace, b: RecentTrace) => {
+            return b.durationNano - a.durationNano;
+          })
+          .slice(0, 8);
+        setRecentSlowTraces(slowTraces);
+      } catch (err) {
+        setError(API.getFriendlyErrorMessage(err as Error));
+      } finally {
+        setIsLoading(false);
       }
-
-      // Compute global percentiles
-      setGlobalP50(getPercentile(allDurations, 50));
-      setGlobalP95(getPercentile(allDurations, 95));
-      setGlobalP99(getPercentile(allDurations, 99));
-
-      // Compute per-service percentiles and filter
-      const summariesWithData: Array<ServiceTraceSummary> = Array.from(
-        summaryMap.values(),
-      )
-        .filter((s: ServiceTraceSummary) => {
-          return s.totalTraces > 0;
-        })
-        .map((s: ServiceTraceSummary) => {
-          return {
-            ...s,
-            p50Nanos: getPercentile(s.durations, 50),
-            p95Nanos: getPercentile(s.durations, 95),
-          };
-        });
-
-      // Sort: highest error rate first, then by total traces
-      summariesWithData.sort(
-        (a: ServiceTraceSummary, b: ServiceTraceSummary) => {
-          const aErrorRate: number =
-            a.totalTraces > 0 ? a.errorTraces / a.totalTraces : 0;
-          const bErrorRate: number =
-            b.totalTraces > 0 ? b.errorTraces / b.totalTraces : 0;
-          if (bErrorRate !== aErrorRate) {
-            return bErrorRate - aErrorRate;
-          }
-          return b.totalTraces - a.totalTraces;
-        },
-      );
-
-      let totalReqs: number = 0;
-      let totalErrs: number = 0;
-      for (const s of summariesWithData) {
-        totalReqs += s.totalTraces;
-        totalErrs += s.errorTraces;
-      }
-      setTotalRequests(totalReqs);
-      setTotalErrors(totalErrs);
-
-      setServiceSummaries(summariesWithData);
-      setRecentErrorTraces(errorTraces.slice(0, 8));
-
-      const slowTraces: Array<RecentTrace> = [...allTraces]
-        .sort((a: RecentTrace, b: RecentTrace) => {
-          return b.durationNano - a.durationNano;
-        })
-        .slice(0, 8);
-      setRecentSlowTraces(slowTraces);
-    } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Error));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }, [timeRange]);
 
   useEffect(() => {
     void loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   const getServiceName: (serviceId: string) => string = (
     serviceId: string,
@@ -320,47 +342,104 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     return service?.name?.toString() || "Unknown";
   };
 
+  const rangeLabel: string = timeRangeLabel(timeRange);
+
+  const headerBar: ReactElement = (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 className="text-base font-semibold text-gray-900">Insights</h2>
+        <p className="text-xs text-gray-500">
+          Request health, error rates, and latency in {rangeLabel}.
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <TelemetryTimeRangePicker
+          value={timeRange}
+          onChange={(value: RangeStartAndEndDateTime): void => {
+            setTimeRange(value);
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            void loadDashboard();
+          }}
+          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+          title="Refresh"
+        >
+          <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return (
+      <Fragment>
+        {headerBar}
+        <div className="rounded-xl border border-gray-200 bg-white p-12">
+          <ComponentLoader />
+        </div>
+      </Fragment>
+    );
   }
 
   if (error) {
     return (
-      <ErrorMessage
-        message={error}
-        onRefreshClick={() => {
-          void loadDashboard();
-        }}
-      />
+      <Fragment>
+        {headerBar}
+        <ErrorMessage
+          message={error}
+          onRefreshClick={() => {
+            void loadDashboard();
+          }}
+        />
+      </Fragment>
     );
   }
 
   if (serviceSummaries.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-16 text-center">
-        <div className="mx-auto w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-5">
-          <svg
-            className="h-8 w-8 text-indigo-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+      <Fragment>
+        {headerBar}
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-16 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50">
+            <Icon
+              icon={IconProp.ChartBarSquare}
+              className="h-7 w-7 text-indigo-500"
             />
-          </svg>
+          </div>
+          <h3 className="mt-5 text-lg font-semibold text-gray-900">
+            No traces in {rangeLabel}
+          </h3>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
+            Once your services start sending distributed tracing data, you
+            {"'"}ll see request rates, error rates, latency percentiles, and
+            more. Try widening the time range or check your collectors.
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TRACES] as Route,
+              )}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
+            >
+              <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
+              <span>Open Viewer</span>
+            </AppLink>
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
+              )}
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500"
+            >
+              <Icon icon={IconProp.Book} className="h-3.5 w-3.5" />
+              <span>Setup Guide</span>
+            </AppLink>
+          </div>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          No trace data yet
-        </h3>
-        <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-          Once your services start sending distributed tracing data, you{"'"}ll
-          see request rates, error rates, latency percentiles, and more.
-        </p>
-      </div>
+      </Fragment>
     );
   }
 
@@ -369,6 +448,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
 
   return (
     <Fragment>
+      {headerBar}
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -376,7 +456,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           <p className="text-3xl font-bold text-gray-900 mt-1">
             {totalRequests.toLocaleString()}
           </p>
-          <p className="text-xs text-gray-400 mt-1">last 24 hours</p>
+          <p className="text-xs text-gray-400 mt-1">{rangeLabel}</p>
         </div>
 
         <div
@@ -440,10 +520,10 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           <AppLink
             className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
             to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TRACES_LIST] as Route,
+              RouteMap[PageMap.TRACES] as Route,
             )}
           >
-            View all spans
+            Open Viewer
           </AppLink>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -605,7 +685,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                 </svg>
               </div>
               <p className="text-sm font-medium text-gray-700">
-                No errors in the last 24 hours
+                No errors in {rangeLabel}
               </p>
               <p className="text-xs text-gray-400 mt-1">Looking good!</p>
             </div>
@@ -664,9 +744,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           </div>
           {recentSlowTraces.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-              <p className="text-sm text-gray-500">
-                No traces in the last 24 hours
-              </p>
+              <p className="text-sm text-gray-500">No traces in {rangeLabel}</p>
             </div>
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">

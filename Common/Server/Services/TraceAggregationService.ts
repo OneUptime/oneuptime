@@ -8,6 +8,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
+import logger from "../Utils/Logger";
 
 export interface HistogramBucket {
   time: string;
@@ -66,6 +67,7 @@ export class TraceAggregationService {
     "name",
     "kind",
     "statusCode",
+    "isRootSpan",
   ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
@@ -78,11 +80,23 @@ export class TraceAggregationService {
       TraceAggregationService.buildHistogramStatement(request);
 
     const dbResult: Results = await SpanService.executeQuery(statement);
-    const response: DbJSONResponse = await dbResult.json<{
-      data?: Array<JSONObject>;
-    }>();
 
-    const rows: Array<JSONObject> = response.data || [];
+    let rows: Array<JSONObject> = [];
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+    } catch {
+      /*
+       * When max_execution_time fires with timeout_overflow_mode='break',
+       * ClickHouse may return a truncated JSON response. Return an empty
+       * histogram rather than failing — the user still sees the span list.
+       */
+      logger.warn(
+        "Histogram query returned unparseable response, returning empty result",
+      );
+    }
 
     return rows.map((row: JSONObject): HistogramBucket => {
       return {
@@ -289,41 +303,60 @@ export class TraceAggregationService {
   private static buildHistogramStatement(request: HistogramRequest): Statement {
     const intervalSeconds: number = request.bucketSizeInMinutes * 60;
 
+    /*
+     * Two-stage aggregation. The inner query groups by minute + statusCode,
+     * which exactly matches the proj_hist_by_minute projection. With
+     * optimize_use_projections=1 (default in modern ClickHouse), the inner
+     * scan reads pre-aggregated rows instead of the 1.8B-row span table —
+     * even for multi-week ranges. The outer query then re-buckets the tiny
+     * minute-level result to the requested bucket size.
+     *
+     * If any non-projection filter (kind, name, traceId, nameSearchText,
+     * attributes) is active, ClickHouse transparently falls back to
+     * scanning the main table for the inner query — same cost as before.
+     */
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(startTime, INTERVAL ${{
+        toStartOfInterval(minute, INTERVAL ${{
           type: TableColumnType.Number,
           value: intervalSeconds,
         }} SECOND) AS bucket,
         statusCode,
-        count() AS cnt
-      FROM ${TraceAggregationService.TABLE_NAME}
-      WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: request.projectId,
-      }}
-        AND startTime >= ${{
-          type: TableColumnType.Date,
-          value: request.startTime,
+        sum(cnt_minute) AS cnt
+      FROM (
+        SELECT
+          toStartOfMinute(startTime) AS minute,
+          statusCode,
+          count() AS cnt_minute
+        FROM ${TraceAggregationService.TABLE_NAME}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
         }}
-        AND startTime <= ${{
-          type: TableColumnType.Date,
-          value: request.endTime,
-        }}
+          AND startTime >= ${{
+            type: TableColumnType.Date,
+            value: request.startTime,
+          }}
+          AND startTime <= ${{
+            type: TableColumnType.Date,
+            value: request.endTime,
+          }}
     `;
 
     TraceAggregationService.appendCommonFilters(statement, request);
 
-    statement.append(" GROUP BY bucket, statusCode ORDER BY bucket ASC");
+    statement.append(
+      " GROUP BY minute, statusCode ) GROUP BY bucket, statusCode ORDER BY bucket ASC",
+    );
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
      * proxy_read_timeout. ClickHouse returns partial aggregated results
      * with 'break' mode rather than throwing, which is acceptable for
-     * a density visualization.
+     * a density visualization. Explicitly enable projection use.
      */
     statement.append(
-      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break'",
+      " SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', optimize_use_projections = 1",
     );
 
     return statement;
@@ -401,7 +434,7 @@ export class TraceAggregationService {
     request: TraceFilters,
   ): void {
     if (request.rootOnly) {
-      statement.append(" AND (parentSpanId = '' OR parentSpanId IS NULL)");
+      statement.append(" AND isRootSpan = 1");
     }
 
     if (request.serviceIds && request.serviceIds.length > 0) {

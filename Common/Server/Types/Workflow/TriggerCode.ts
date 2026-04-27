@@ -13,6 +13,13 @@ import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 export interface ExecuteWorkflowType {
   workflowId: ObjectID;
   returnValues: JSONObject;
+  /**
+   * Chain of ancestor workflow IDs (oldest first). Set when one workflow
+   * invokes another via the Execute Workflow component so downstream runs
+   * can detect cycles. Top-level triggers (webhook, manual API, schedule)
+   * should leave this undefined.
+   */
+  callChain?: Array<string>;
 }
 
 export interface InitProps {

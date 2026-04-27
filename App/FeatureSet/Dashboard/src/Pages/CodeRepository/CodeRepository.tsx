@@ -3,6 +3,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -37,6 +38,9 @@ const CodeRepositoryPage: FunctionComponent<
     string | null
   >(null);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<CodeRepository>({ modelType: CodeRepository });
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -248,6 +252,9 @@ const CodeRepositoryPage: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         name="Code Repositories"
         isViewable={true}
         refreshToggle={refreshToggle}
@@ -377,6 +384,8 @@ const CodeRepositoryPage: FunctionComponent<
           },
         ]}
       />
+
+      {labelBulkActionModals}
 
       {/* GitHub Repository Selector Modal */}
       {showGitHubModal && gitHubInstallationId && projectId && (

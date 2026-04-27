@@ -20,9 +20,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import Navigation from "Common/UI/Utils/Navigation";
 
 const Projects: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
     useState<boolean>(true);
 
@@ -91,14 +93,14 @@ const Projects: FunctionComponent = (): ReactElement => {
               isSubscriptionPlanYearly &&
               plan.getYearlySubscriptionAmountInUSD() === 0
             ) {
-              description = "This plan is free, forever. ";
+              description = t("pages.projects.freeForeverDescription");
             }
 
             if (
               !isSubscriptionPlanYearly &&
               plan.getMonthlySubscriptionAmountInUSD() === 0
             ) {
-              description = "This plan is free, forever. ";
+              description = t("pages.projects.freeForeverDescription");
             }
 
             return {
@@ -153,9 +155,9 @@ const Projects: FunctionComponent = (): ReactElement => {
 
     return (
       <Toggle
-        title="Yearly Plan"
+        title={t("pages.projects.yearlyPlanTitle")}
         value={isSubscriptionPlanYearly}
-        description="(Save 20%)"
+        description={t("pages.projects.yearlyPlanDescription")}
         onChange={(value: boolean) => {
           setIsSubscriptionPlanYearly(value);
         }}
@@ -165,14 +167,14 @@ const Projects: FunctionComponent = (): ReactElement => {
 
   return (
     <Page
-      title={"Projects"}
+      title={t("pages.projects.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Projects",
+          title: t("breadcrumbs.projects"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
@@ -189,25 +191,25 @@ const Projects: FunctionComponent = (): ReactElement => {
         name="Projects"
         isViewable={true}
         cardProps={{
-          title: "Projects",
-          description: "Here is a list of proejcts in OneUptime.",
+          title: t("pages.projects.cardTitle"),
+          description: t("pages.projects.cardDescription"),
         }}
         showViewIdButton={true}
         formSteps={
           BILLING_ENABLED
             ? [
                 {
-                  title: "Basic",
+                  title: t("pages.projects.stepBasic"),
                   id: "basic",
                 },
                 {
-                  title: "Select Plan",
+                  title: t("pages.projects.stepSelectPlan"),
                   id: "plan",
                 },
               ]
             : undefined
         }
-        noItemsMessage={"No projects found."}
+        noItemsMessage={t("pages.projects.noItems")}
         formFields={fields}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}

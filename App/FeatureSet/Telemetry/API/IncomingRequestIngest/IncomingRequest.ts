@@ -31,6 +31,11 @@ const processIncomingRequest: RequestHandler = async (
       throw new BadDataException("Invalid Secret Key");
     }
 
+    const probeIdHeader: string | undefined = (
+      requestHeaders["oneuptime-probe-id"] ||
+      requestHeaders["OneUptime-Probe-Id"]
+    )?.toString();
+
     // Return response immediately
     Response.sendEmptySuccessResponse(req, res);
 
@@ -40,6 +45,7 @@ const processIncomingRequest: RequestHandler = async (
       requestHeaders: requestHeaders,
       requestBody: requestBody,
       requestMethod: req.method,
+      receivedViaProbeId: probeIdHeader,
     });
 
     return;

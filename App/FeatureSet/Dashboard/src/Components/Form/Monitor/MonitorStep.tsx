@@ -284,6 +284,7 @@ return {
 
 // - axios: Axios module to make HTTP requests
 // - page: Playwright Page object to interact with the browser
+// - screenshots: Pre-declared object to collect screenshots (preserved even if the script throws)
 // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
 // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
 // - oneuptime.captureMetric: Capture custom metrics for dashboards
@@ -292,11 +293,11 @@ await page.goto('https://playwright.dev/');
 
 // Playwright Documentation here: https://playwright.dev/docs/intro
 
-// To take screenshots,
+// To take screenshots, assign them to the provided \`screenshots\` object.
+// Screenshots captured this way are preserved even when the script throws,
+// so failed runs still have visual evidence attached.
 
-const screenshots = {};
-
-screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
+screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots with different names.
 
 // To capture custom metrics, use oneuptime.captureMetric(name, value, attributes)
 // These metrics can be charted on dashboards via the Metric Explorer.
@@ -307,11 +308,10 @@ oneuptime.captureMetric('page.load.time', Date.now() - startTime);
 // To log data, use console.log
 console.log('Hello World');
 
-// when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
+// when you want to return a value, use return statement with data as a prop.
 
 return {
-    data: 'Hello World',
-    screenshots: screenshots // obj containing screenshots
+    data: 'Hello World'
 };
         `;
   }

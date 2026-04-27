@@ -18,6 +18,7 @@ enum ComponentID {
   ApiPatch = "api-patch",
   SendEmail = "send-email",
   IfElse = "if-else",
+  WorkflowRun = "workflow-run",
 }
 
 export default ComponentID;

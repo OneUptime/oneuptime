@@ -6,6 +6,7 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -34,6 +35,9 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useState<DashboardTemplateType | null>(null);
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Dashboard>({ modelType: Dashboard });
 
   const handleTemplateClick: (type: DashboardTemplateType) => void =
     useCallback((type: DashboardTemplateType): void => {
@@ -96,6 +100,9 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions],
+        }}
         name="Dashboards"
         isViewable={true}
         showCreateForm={showCreateForm}
@@ -228,6 +235,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {labelBulkActionModals}
     </Page>
   );
 };

@@ -30,6 +30,7 @@ export interface MonitorCriteriaInstanceType {
   changeMonitorStatus?: boolean | undefined;
   createIncidents?: boolean | undefined;
   createAlerts?: boolean | undefined;
+  isEnabled?: boolean | undefined;
   id: string;
 }
 
@@ -52,6 +53,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       createIncidents: false,
       createAlerts: false,
       changeMonitorStatus: false,
+      isEnabled: true,
       incidents: [],
       alerts: [],
       name: "",
@@ -1375,6 +1377,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setIsEnabled(isEnabled: boolean | undefined): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.isEnabled = isEnabled;
+    }
+
+    return this;
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -1392,6 +1402,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: this.data.createAlerts,
         changeMonitorStatus: this.data.changeMonitorStatus,
         createIncidents: this.data.createIncidents,
+        isEnabled: this.data.isEnabled,
         name: this.data.name,
         description: this.data.description,
       } as any,
@@ -1499,6 +1510,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       changeMonitorStatus: (json["changeMonitorStatus"] as boolean) || false,
       createIncidents: (json["createIncidents"] as boolean) || false,
       createAlerts: (json["createAlerts"] as boolean) || false,
+      isEnabled:
+        json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
       filters: filters as any,
       incidents: incidents as any,
       alerts: alerts as any,
@@ -1524,6 +1537,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: Zod.boolean().optional(),
         createIncidents: Zod.boolean().optional(),
         createAlerts: Zod.boolean().optional(),
+        isEnabled: Zod.boolean().optional(),
       }).openapi({
         type: "object",
         example: {
