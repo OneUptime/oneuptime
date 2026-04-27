@@ -61,6 +61,7 @@ export interface IncomingRequestIngestJobData {
   requestBody: string | JSONObject;
   requestMethod: string;
   ingestionTimestamp: Date;
+  receivedViaProbeId?: string | undefined;
 }
 
 export interface TelemetryIngestJobData {
@@ -283,6 +284,7 @@ export default class TelemetryQueueService {
     requestHeaders: Dictionary<string>;
     requestBody: string | JSONObject;
     requestMethod: string;
+    receivedViaProbeId?: string | undefined;
   }): Promise<void> {
     try {
       const incomingRequestData: IncomingRequestIngestJobData = {
@@ -291,6 +293,7 @@ export default class TelemetryQueueService {
         requestBody: data.requestBody,
         requestMethod: data.requestMethod,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        receivedViaProbeId: data.receivedViaProbeId,
       };
 
       const jobData: TelemetryIngestJobData = {

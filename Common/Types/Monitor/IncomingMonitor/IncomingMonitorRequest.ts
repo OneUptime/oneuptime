@@ -14,4 +14,5 @@ export default interface IncomingMonitorRequest {
   onlyCheckForIncomingRequestReceivedAt?: boolean | undefined;
   checkedAt: Date;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  receivedViaProbeId?: ObjectID | undefined;
 }

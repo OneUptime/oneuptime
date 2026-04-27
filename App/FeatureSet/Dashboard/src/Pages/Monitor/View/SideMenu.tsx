@@ -100,6 +100,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       },
       icon: IconProp.Bell,
     },
+  ];
+
+  // Audit section items
+  const auditItems: SideMenuItemProps[] = [
     {
       link: {
         title: "Audit Logs",
@@ -232,6 +236,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     {
       title: "Activity",
       items: activityItems,
+    },
+    {
+      title: "Audit",
+      items: auditItems,
     },
   ];
 

@@ -1,5 +1,6 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -15,6 +16,7 @@ export interface ComponentProps {
 const EmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateValue } = useTranslateValue();
   return (
     <React.Fragment>
       <div
@@ -34,9 +36,11 @@ const EmptyState: FunctionComponent<ComponentProps> = (
           )}
 
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            {props.title}
+            {translateValue(props.title)}
           </h3>
-          <p className="mt-1 text-sm text-gray-500">{props.description}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {translateValue(props.description)}
+          </p>
           {props.footer && <div className="mt-6">{props.footer}</div>}
         </div>
       </div>

@@ -22,6 +22,11 @@ export const ExpressJson: GenericFunction = express.json;
 export const ExpressUrlEncoded: GenericFunction = express.urlencoded;
 export const ExpressRaw: GenericFunction = express.raw;
 
+export const createExpressApp: () => express.Application =
+  (): express.Application => {
+    return express();
+  };
+
 export type ProbeRequest = {
   id: ObjectID;
 };
