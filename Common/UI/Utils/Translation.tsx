@@ -27,11 +27,14 @@ const useTranslateValue: () => UseTranslateValueResult =
       if (typeof value !== "string" || value.length === 0) {
         return value;
       }
-      const translated: string = t(value, {
+      const translated: unknown = t(value, {
         defaultValue: value,
         keySeparator: false,
         nsSeparator: false,
       });
+      if (typeof translated !== "string") {
+        return value;
+      }
       return translated;
     };
 

@@ -18,8 +18,7 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     props.defaultCollapsed || false,
   );
-  const translatedTitle: string =
-    translateString(props.title) || props.title;
+  const translatedTitle: string = translateString(props.title) || props.title;
 
   const isCollapsible: boolean = props.collapsible ?? true;
 
