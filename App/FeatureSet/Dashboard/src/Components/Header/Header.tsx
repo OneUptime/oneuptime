@@ -875,10 +875,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         }
         rightComponents={
           <>
-            <NotificationBell
-              items={buildNotificationItems()}
-              onItemClick={handleNotificationItemClick}
-            />
             {BILLING_ENABLED &&
             props.selectedProject?.id &&
             props.selectedProject.paymentProviderPlanId &&
@@ -890,6 +886,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            <NotificationBell
+              items={buildNotificationItems()}
+              onItemClick={handleNotificationItemClick}
+            />
             <Help />
             <UserProfile
               onClickUserProfile={() => {
