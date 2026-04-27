@@ -1,5 +1,6 @@
 import { ButtonStyleType } from "../Button/Button";
 import Modal from "./Modal";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -19,6 +20,9 @@ export interface ComponentProps {
 const ConfirmModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateValue } = useTranslateValue();
+  const translatedDescription: string | ReactElement | undefined =
+    translateValue(props.description);
   return (
     <Modal
       title={props.title}
@@ -46,7 +50,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
         data-testid="confirm-modal-description"
         className="text-gray-500 mt-5 text-sm whitespace-pre-wrap break-words max-h-96 overflow-y-auto pr-1"
       >
-        {props.description}
+        {translatedDescription}
       </div>
     </Modal>
   );

@@ -4,6 +4,7 @@ import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
+import useTranslateValue from "../../Utils/Translation";
 
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -266,6 +267,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const { translateValue } = useTranslateValue();
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -1917,6 +1919,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getCardTitle: GetCardTitleFunction = (
     title: ReactElement | string,
   ): ReactElement => {
+    const renderedTitle: ReactElement | string =
+      typeof title === "string"
+        ? ((translateValue(title) as ReactElement | string | undefined) ??
+          title)
+        : title;
     const plan: PlanType | null = ProjectUtil.getCurrentPlan();
 
     let showPlan: boolean = Boolean(
@@ -1950,7 +1957,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     return (
       <span>
-        {title}
+        {renderedTitle}
         {showPlan && (
           <span
             style={{
