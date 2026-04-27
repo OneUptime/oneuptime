@@ -45,8 +45,7 @@ const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedTitle: string =
-    translateString(props.title) || props.title;
+  const translatedTitle: string = translateString(props.title) || props.title;
   const translatedDescription: string | undefined = translateString(
     props.description,
   );

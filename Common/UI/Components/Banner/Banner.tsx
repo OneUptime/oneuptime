@@ -17,8 +17,7 @@ const Banner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedTitle: string =
-    translateString(props.title) || props.title;
+  const translatedTitle: string = translateString(props.title) || props.title;
   const translatedDescription: string =
     translateString(props.description) || props.description;
   const getContent: GetReactElementFunction = (): ReactElement => {
