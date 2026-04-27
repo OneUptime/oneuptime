@@ -313,7 +313,13 @@ const DocsNav: NavGroup[] = [
   },
   {
     title: "Probe",
-    links: [{ title: "Custom Probes", url: "/docs/probe/custom-probe" }],
+    links: [
+      { title: "Custom Probes", url: "/docs/probe/custom-probe" },
+      {
+        title: "Incoming Request Ingress",
+        url: "/docs/probe/incoming-request-ingress",
+      },
+    ],
   },
   {
     title: "Telemetry",
