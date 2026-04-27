@@ -301,8 +301,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
     });
   });
 
-  // Find Home item from navItems. Match by id so this keeps working when the
-  // title is translated to a non-English language.
+  /*
+   * Find Home item from navItems. Match by id so this keeps working when the
+   * title is translated to a non-English language.
+   */
   const homeItem: NavItem | undefined = props.items.find((item: NavItem) => {
     return item.id === "home-nav-bar-item";
   });
