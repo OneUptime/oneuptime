@@ -4,6 +4,7 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import Link from "../../../Types/Link";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 interface ComponentProps {
@@ -13,12 +14,15 @@ interface ComponentProps {
 const Breadcrumbs: FunctionComponent<ComponentProps> = ({
   links,
 }: ComponentProps): ReactElement => {
+  const { translateString } = useTranslateValue();
   return (
     <nav className="flex hidden md:block" aria-label="Breadcrumb">
       <ol role="list" className="flex items-center space-x-1">
         {links &&
           links.length > 0 &&
           links.map((link: Link, i: number) => {
+            const translatedTitle: string =
+              translateString(link.title) || link.title;
             return (
               <li className="breadcrumb-item" key={i}>
                 {i === 0 && (
@@ -28,7 +32,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                       className="text-gray-400 hover:text-gray-500 -mt-1"
                     >
                       <span className="text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1">
-                        {link.title}
+                        {translatedTitle}
                       </span>
                     </UILink>
                   </div>
@@ -48,7 +52,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                       }
                       className="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1"
                     >
-                      {link.title}
+                      {translatedTitle}
                     </UILink>
                   </div>
                 )}
