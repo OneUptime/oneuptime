@@ -16,6 +16,7 @@ enum ColumnType {
   Port = "Port",
   MapStringString = "Map(String, String)",
   ArrayBigNumber = "Array of Big Numbers",
+  ArrayDecimal = "Array of Decimals",
 }
 
 export default ColumnType;

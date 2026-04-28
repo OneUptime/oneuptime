@@ -275,6 +275,25 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         .join(", ")}]`;
     }
 
+    if (column.type === TableColumnType.ArrayDecimal) {
+      value = `[${(value as Array<number>)
+        .map((v: number) => {
+          if (v && typeof v !== "number") {
+            v = parseFloat(v);
+            return isNaN(v) ? "NULL" : v;
+          }
+          /*
+           * Filter non-finite (NaN/+Inf/-Inf) -> NULL so ClickHouse Float64
+           * serialization succeeds (mirrors `toNumberOrNull` in OTLP ingest).
+           */
+          if (typeof v === "number" && !Number.isFinite(v)) {
+            return "NULL";
+          }
+          return v;
+        })
+        .join(", ")}]`;
+    }
+
     if (column.type === TableColumnType.MapStringString) {
       const mapObj: Record<string, string> = value as Record<string, string>;
       const entries: Array<string> = Object.entries(mapObj)
@@ -745,6 +764,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       "Array(String)": TableColumnType.ArrayText,
       "Array(Int32)": TableColumnType.ArrayNumber,
       "Array(Int64)": TableColumnType.ArrayBigNumber,
+      "Array(Float64)": TableColumnType.ArrayDecimal,
       "Map(String, String)": TableColumnType.MapStringString,
       JSON: TableColumnType.JSON, //JSONArray is also JSON
       Bool: TableColumnType.Boolean,
@@ -766,6 +786,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.JSONArray]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
       [TableColumnType.ArrayBigNumber]: SQL`Array(Int64)`,
+      [TableColumnType.ArrayDecimal]: SQL`Array(Float64)`,
       [TableColumnType.ArrayText]: SQL`Array(String)`,
       [TableColumnType.LongNumber]: SQL`Int128`,
       [TableColumnType.BigNumber]: SQL`Int64`,
