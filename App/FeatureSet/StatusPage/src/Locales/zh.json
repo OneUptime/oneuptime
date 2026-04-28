@@ -34,7 +34,22 @@
     "activeIncidents": "活动事件",
     "scheduledMaintenanceEvents": "计划维护事件",
     "allClearTitle": "一切正常",
-    "allClearDescription": "此状态页尚未添加任何资源。请从控制面板添加一些资源。"
+    "allClearDescription": "此状态页尚未添加任何资源。请从控制面板添加一些资源。",
+    "allResourcesAre": "所有资源{{status}}",
+    "someResourcesAre": "部分资源{{status}}",
+    "someResourcesAreUnder": "部分资源处于{{status}}状态"
+  },
+  "eventItem": {
+    "affectedResources": "受影响的资源",
+    "stateChangedTo": "状态已变更为",
+    "view": "查看{{eventType}}",
+    "updateTo": "此{{eventType}}的更新",
+    "postedOn": "发布于"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} 天前",
+    "today": "今天",
+    "notAvailable": "不可用"
   },
   "incidents": {
     "title": "事件",

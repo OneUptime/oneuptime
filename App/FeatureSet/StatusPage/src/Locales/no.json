@@ -34,7 +34,22 @@
     "activeIncidents": "Aktive hendelser",
     "scheduledMaintenanceEvents": "Planlagte vedlikeholdshendelser",
     "allClearTitle": "Alt ser bra ut",
-    "allClearDescription": "Ingen ressurser er lagt til på denne statussiden ennå. Legg til noen ressurser fra kontrollpanelet."
+    "allClearDescription": "Ingen ressurser er lagt til på denne statussiden ennå. Legg til noen ressurser fra kontrollpanelet.",
+    "allResourcesAre": "Alle ressurser er {{status}}",
+    "someResourcesAre": "Noen ressurser er {{status}}",
+    "someResourcesAreUnder": "Noen ressurser er under {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Berørte ressurser",
+    "stateChangedTo": "status endret til",
+    "view": "Vis {{eventType}}",
+    "updateTo": "Oppdatering for denne {{eventType}}",
+    "postedOn": "publisert"
+  },
+  "monitorOverview": {
+    "daysAgo": "for {{days}} dager siden",
+    "today": "I dag",
+    "notAvailable": "Ikke tilgjengelig"
   },
   "incidents": {
     "title": "Hendelser",

@@ -11,6 +11,7 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 export enum TimelineItemType {
   StateChange = "StateChange",
@@ -61,6 +62,7 @@ export interface ComponentProps {
 const EventItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   return (
     <div className="mt-5 mb-5 bg-white shadow rounded-xl border-gray-100 p-5">
       <div>
@@ -156,7 +158,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
           <div key={0}>
             <div className="flex flex-wrap gap-y-4 space-x-1 active-event-box-body-reesources">
               <div className="text-sm text-gray-400 mr-3 mt-1">
-                Affected resources
+                {t("eventItem.affectedResources")}
               </div>
               {props.eventResourcesAffected?.map((item: string, i: number) => {
                 return (
@@ -222,7 +224,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                 <span className="font-medium text-gray-900 mr-1">
                                   {props.eventType}
                                 </span>
-                                state changed to
+                                {t("eventItem.stateChangedTo")}
                               </span>
                               <span className="mr-1">
                                 <Pill
@@ -294,11 +296,13 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                 >
                                   {item.title
                                     ? item.title
-                                    : `Update to this ${props.eventType}`}
+                                    : t("eventItem.updateTo", {
+                                        eventType: props.eventType,
+                                      })}
                                 </span>
                               </div>
                               <p className="mt-0.5 text-sm text-gray-500">
-                                posted on{" "}
+                                {t("eventItem.postedOn")}{" "}
                                 {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                                   item.date,
                                 )}
@@ -345,7 +349,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 className="cursor-pointer text-gray-400 hover:text-gray-500 text-sm"
                 to={props.eventViewRoute}
               >
-                <>View {props.eventType}</>
+                <>{t("eventItem.view", { eventType: props.eventType })}</>
               </Link>
             </span>
           ) : (

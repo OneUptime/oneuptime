@@ -286,42 +286,44 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     }
                   }
 
-                  const dataPoints: JSONArray = ((
-                    metric["sum"] as JSONObject
-                  )?.["dataPoints"] ||
-                    (metric["gauge"] as JSONObject)?.["dataPoints"] ||
-                    (metric["histogram"] as JSONObject)?.[
-                      "dataPoints"
-                    ]) as JSONArray;
+                  /*
+                   * Detect which of the five OTLP metric data shapes this
+                   * point uses. The proto's `oneof data` ensures only one
+                   * of these fields is populated. Anything else (a malformed
+                   * row, or a future metric type we don't yet model) falls
+                   * through to the warn branch below.
+                   */
+                  const metricTypeWrapper: JSONObject | undefined =
+                    (metric["sum"] as JSONObject | undefined) ||
+                    (metric["gauge"] as JSONObject | undefined) ||
+                    (metric["histogram"] as JSONObject | undefined) ||
+                    (metric["exponentialHistogram"] as
+                      | JSONObject
+                      | undefined) ||
+                    (metric["summary"] as JSONObject | undefined);
+
+                  const dataPoints: JSONArray | undefined = metricTypeWrapper?.[
+                    "dataPoints"
+                  ] as JSONArray | undefined;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
                     const aggregationTemporality: OtelAggregationTemporality =
-                      ((metric["sum"] as JSONObject)?.[
+                      metricTypeWrapper?.[
                         "aggregationTemporality"
-                      ] as OtelAggregationTemporality) ||
-                      ((metric["gauge"] as JSONObject)?.[
-                        "aggregationTemporality"
-                      ] as OtelAggregationTemporality) ||
-                      ((metric["histogram"] as JSONObject)?.[
-                        "aggregationTemporality"
-                      ] as OtelAggregationTemporality);
+                      ] as OtelAggregationTemporality;
 
                     const isMonotonic: boolean | undefined =
-                      ((metric["sum"] as JSONObject)?.["isMonotonic"] as
-                        | boolean
-                        | undefined) ||
-                      ((metric["gauge"] as JSONObject)?.["isMonotonic"] as
-                        | boolean
-                        | undefined) ||
-                      ((metric["histogram"] as JSONObject)?.["isMonotonic"] as
-                        | boolean
-                        | undefined);
+                      metricTypeWrapper?.["isMonotonic"] as boolean | undefined;
 
                     const metricPointType: MetricPointType = metric["sum"]
                       ? MetricPointType.Sum
                       : metric["gauge"]
                         ? MetricPointType.Gauge
-                        : MetricPointType.Histogram;
+                        : metric["histogram"]
+                          ? MetricPointType.Histogram
+                          : metric["exponentialHistogram"]
+                            ? MetricPointType.ExponentialHistogram
+                            : MetricPointType.Summary;
 
                     for (const datapoint of dataPoints) {
                       try {
@@ -373,7 +375,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                       }
                     }
                   } else {
-                    logger.warn("Unknown metric type or missing dataPoints");
+                    logger.warn(
+                      `Unknown metric type or missing dataPoints for metric "${metricName}" (project ${projectId.toString()}, service ${serviceName}). Recognized OTLP types: sum, gauge, histogram, exponentialHistogram, summary.`,
+                    );
                     logger.warn(`Metric data: ${JSON.stringify(metric)}`);
                   }
                 } catch (metricError) {
@@ -523,6 +527,73 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           })
       : [];
 
+    /*
+     * ExponentialHistogram-specific fields. The proto carries `scale`,
+     * `zeroCount`, and two `Buckets { offset, bucket_counts[] }` substructs
+     * (positive/negative). For non-exponential metric types these are all
+     * absent on the datapoint and we default to 0 / [] (matches the column
+     * defaults in the model).
+     */
+    const scale: number | null = this.toNumberOrNull(data.datapoint["scale"]);
+    const zeroCount: number | null = this.toNumberOrNull(
+      data.datapoint["zeroCount"],
+    );
+
+    const parseBucketsField: (raw: unknown) => {
+      offset: number;
+      bucketCounts: Array<number>;
+    } = (raw: unknown): { offset: number; bucketCounts: Array<number> } => {
+      const obj: JSONObject = (raw as JSONObject) || {};
+      const offsetParsed: number | null = this.toNumberOrNull(obj["offset"]);
+      const bucketCountsRaw: Array<number | string> = Array.isArray(
+        obj["bucketCounts"],
+      )
+        ? (obj["bucketCounts"] as Array<number | string>)
+        : [];
+      return {
+        offset: offsetParsed === null ? 0 : offsetParsed,
+        bucketCounts: bucketCountsRaw.map((entry: number | string) => {
+          const parsed: number | null = this.toNumberOrNull(entry);
+          return parsed === null ? 0 : parsed;
+        }),
+      };
+    };
+
+    const positiveBuckets: {
+      offset: number;
+      bucketCounts: Array<number>;
+    } = parseBucketsField(data.datapoint["positive"]);
+    const negativeBuckets: {
+      offset: number;
+      bucketCounts: Array<number>;
+    } = parseBucketsField(data.datapoint["negative"]);
+
+    /*
+     * Summary-specific fields. The proto carries
+     * `quantile_values: repeated { quantile: double, value: double }`.
+     * We split into two parallel Float64 arrays keyed by index, matching the
+     * bucketCounts/explicitBounds convention used by histograms. Any entries
+     * that fail to parse (NaN, +/-Inf, missing) are dropped together so the
+     * two arrays stay length-aligned.
+     */
+    const quantileEntriesRaw: JSONArray = Array.isArray(
+      data.datapoint["quantileValues"],
+    )
+      ? (data.datapoint["quantileValues"] as JSONArray)
+      : [];
+    const summaryQuantiles: Array<number> = [];
+    const summaryValues: Array<number> = [];
+    for (const entryUnknown of quantileEntriesRaw) {
+      const entry: JSONObject = (entryUnknown as JSONObject) || {};
+      const q: number | null = this.toNumberOrNull(entry["quantile"]);
+      const v: number | null = this.toNumberOrNull(entry["value"]);
+      if (q === null || v === null) {
+        continue;
+      }
+      summaryQuantiles.push(q);
+      summaryValues.push(v);
+    }
+
     // Extract exemplar trace/span IDs from the first exemplar that has a traceId
     const exemplarTraceAndSpanIds: {
       traceId: string | null;
@@ -564,6 +635,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       max: max,
       bucketCounts: bucketCounts,
       explicitBounds: explicitBounds,
+      // ExponentialHistogram fields - 0/[] for other metric types.
+      scale: scale === null ? 0 : scale,
+      zeroCount: zeroCount === null ? 0 : zeroCount,
+      positiveOffset: positiveBuckets.offset,
+      positiveBucketCounts: positiveBuckets.bucketCounts,
+      negativeOffset: negativeBuckets.offset,
+      negativeBucketCounts: negativeBuckets.bucketCounts,
+      // Summary fields - empty arrays for other metric types.
+      summaryQuantiles: summaryQuantiles,
+      summaryValues: summaryValues,
       traceId: exemplarTraceAndSpanIds.traceId,
       spanId: exemplarTraceAndSpanIds.spanId,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),

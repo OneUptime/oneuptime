@@ -14,6 +14,7 @@ import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/Sta
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   monitorName: string;
@@ -40,6 +41,7 @@ export interface ComponentProps {
 const MonitorOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedDayIncidents, setSelectedDayIncidents] = useState<
     Array<UptimeBarTooltipIncident>
@@ -75,7 +77,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             color: props.currentStatus?.color?.toString() || Green.toString(),
           }}
         >
-          {uptimePercent}% uptime
+          {uptimePercent}
+          {t("overview.uptimeSuffix")}
         </div>
       );
     }
@@ -88,7 +91,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             color: props.currentStatus?.color?.toString() || Green.toString(),
           }}
         >
-          {props.currentStatus?.name || "Operational"}
+          {props.currentStatus?.name || t("overview.operational")}
         </div>
       );
     }
@@ -109,7 +112,10 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
               {props.monitorName}
             </div>
             {props.tooltip && (
-              <Tooltip key={1} text={props.tooltip || "Not available"}>
+              <Tooltip
+                key={1}
+                text={props.tooltip || t("monitorOverview.notAvailable")}
+              >
                 <div className="ml-1">
                   <Icon
                     className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
@@ -162,8 +168,12 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       {/* Time labels: Visible on all screen sizes */}
       {props.showHistoryChart && (
         <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between flex">
-          <div>{props.uptimeHistoryDays || 90} days ago</div>
-          <div>Today</div>
+          <div>
+            {t("monitorOverview.daysAgo", {
+              days: props.uptimeHistoryDays || 90,
+            })}
+          </div>
+          <div>{t("monitorOverview.today")}</div>
         </div>
       )}
 

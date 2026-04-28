@@ -305,6 +305,22 @@ function toAggregateSql(type: AggregationType): string {
       return "max(value)";
     case AggregationType.Min:
       return "min(value)";
+    /*
+     * Percentile recording rules materialize against the per-row `value`
+     * column. For Sum/Gauge metrics this is the right thing. For
+     * histograms it gives a percentile-of-aggregated-value rather than a
+     * percentile-of-distribution; users who want bucket-derived
+     * percentiles in materialized rules should pre-flatten with
+     * MetricService's percentile aggregation instead.
+     */
+    case AggregationType.P50:
+      return "quantile(0.5)(value)";
+    case AggregationType.P90:
+      return "quantile(0.9)(value)";
+    case AggregationType.P95:
+      return "quantile(0.95)(value)";
+    case AggregationType.P99:
+      return "quantile(0.99)(value)";
   }
 }
 

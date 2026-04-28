@@ -1,6 +1,7 @@
 import LabelElement from "./Label";
 import TableColumnListComponent from "../TableColumnList/TableColumnListComponent";
 import LabelModel from "../../../Models/DatabaseModels/Label";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -10,10 +11,17 @@ export interface ComponentProps {
 const LabelsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const moreText: string =
+    props.labels.length > 4
+      ? translateString("more labels") || "more labels"
+      : translateString("more label") || "more label";
+  const noItemsMessage: string =
+    translateString("No labels attached.") || "No labels attached.";
   return (
     <TableColumnListComponent
       items={props.labels}
-      moreText={props.labels.length > 4 ? "more labels" : "more label"}
+      moreText={moreText}
       className={props.labels.length > 0 ? "-mb-1 -mt-1" : ""}
       getEachElement={(label: LabelModel) => {
         return (
@@ -27,7 +35,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
           </div>
         );
       }}
-      noItemsMessage="No labels attached."
+      noItemsMessage={noItemsMessage}
     />
   );
 };

@@ -35,6 +35,7 @@ import AggregateBy, {
   AggregateUtil,
 } from "../../Types/AnalyticsDatabase/AggregateBy";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { getPercentileLevel } from "../../../Types/BaseDatabase/AggregationType";
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
@@ -269,6 +270,25 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           if (v && typeof v !== "number") {
             v = parseFloat(v);
             return isNaN(v) ? "NULL" : v;
+          }
+          return v;
+        })
+        .join(", ")}]`;
+    }
+
+    if (column.type === TableColumnType.ArrayDecimal) {
+      value = `[${(value as Array<number>)
+        .map((v: number) => {
+          if (v && typeof v !== "number") {
+            v = parseFloat(v);
+            return isNaN(v) ? "NULL" : v;
+          }
+          /*
+           * Filter non-finite (NaN/+Inf/-Inf) -> NULL so ClickHouse Float64
+           * serialization succeeds (mirrors `toNumberOrNull` in OTLP ingest).
+           */
+          if (typeof v === "number" && !Number.isFinite(v)) {
+            return "NULL";
           }
           return v;
         })
@@ -594,19 +614,37 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     /*
      * EXAMPLE:
      * SELECT sum(Metric.value) as avg_value, date_trunc('hour', toStartOfInterval(createdAt, INTERVAL 1 hour)) as createdAt
+     *
+     * Percentile aggregations (P50/P90/P95/P99) compile to ClickHouse's
+     * `quantile(level)(column)`. This is the right thing for scalar
+     * columns (Span.duration, Metric.value when the metric is a Sum or
+     * Gauge, etc.). MetricService overrides this method when it has
+     * histogram bucket data so the percentile is computed from the
+     * actual sample distribution rather than from the per-row aggregated
+     * value.
      */
 
     const selectStatement: Statement = new Statement();
 
-    const aggregationMethod: string =
-      aggregateBy.aggregationType.toLocaleLowerCase();
     const aggregationInterval: string = AggregateUtil.getAggregationInterval({
       startDate: aggregateBy.startTimestamp!,
       endDate: aggregateBy.endTimestamp!,
     });
+    const aggregationColumn: string =
+      aggregateBy.aggregateColumnName.toString();
+    const aggregationTimestampColumn: string =
+      aggregateBy.aggregationTimestampColumnName.toString();
+
+    const percentileLevel: number | null = getPercentileLevel(
+      aggregateBy.aggregationType,
+    );
+    const aggregationExpression: string =
+      percentileLevel !== null
+        ? `quantile(${percentileLevel})(${aggregationColumn})`
+        : `${aggregateBy.aggregationType.toLocaleLowerCase()}(${aggregationColumn})`;
 
     selectStatement.append(
-      `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`,
+      `${aggregationExpression} as ${aggregationColumn}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregationTimestampColumn}`,
     );
 
     const columns: Array<string> = [
@@ -745,6 +783,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       "Array(String)": TableColumnType.ArrayText,
       "Array(Int32)": TableColumnType.ArrayNumber,
       "Array(Int64)": TableColumnType.ArrayBigNumber,
+      "Array(Float64)": TableColumnType.ArrayDecimal,
       "Map(String, String)": TableColumnType.MapStringString,
       JSON: TableColumnType.JSON, //JSONArray is also JSON
       Bool: TableColumnType.Boolean,
@@ -766,6 +805,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.JSONArray]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
       [TableColumnType.ArrayBigNumber]: SQL`Array(Int64)`,
+      [TableColumnType.ArrayDecimal]: SQL`Array(Float64)`,
       [TableColumnType.ArrayText]: SQL`Array(String)`,
       [TableColumnType.LongNumber]: SQL`Int128`,
       [TableColumnType.BigNumber]: SQL`Int64`,

@@ -504,7 +504,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
           if (!currentStatus) {
             currentStatus = new MonitorStatus();
-            currentStatus.name = "Operational";
+            currentStatus.name = t("overview.operational");
             currentStatus.color = Green;
           }
 
@@ -580,7 +580,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
           if (!currentStatus) {
             currentStatus = new MonitorStatus();
-            currentStatus.name = "Operational";
+            currentStatus.name = t("overview.operational");
             currentStatus.color = Green;
           }
 
@@ -833,19 +833,30 @@ const Overview: FunctionComponent<PageComponentProps> = (
             {currentStatus && statusPageResources.length > 0 && (
               <Alert
                 size={AlertSize.Large}
-                title={`${
-                  currentStatus.isOperationalState ? `All` : "Some"
-                } Resources are ${
-                  currentStatus.name?.toLowerCase() === "maintenance"
-                    ? "under"
-                    : ""
-                } ${currentStatus.name}`}
+                title={(() => {
+                  const statusName: string = currentStatus.name || "";
+                  const isMaintenance: boolean =
+                    statusName.toLowerCase() === "maintenance";
+                  if (currentStatus.isOperationalState) {
+                    return t("overview.allResourcesAre", {
+                      status: statusName,
+                    });
+                  }
+                  if (isMaintenance) {
+                    return t("overview.someResourcesAreUnder", {
+                      status: statusName,
+                    });
+                  }
+                  return t("overview.someResourcesAre", {
+                    status: statusName,
+                  });
+                })()}
                 color={currentStatus.color}
                 doNotShowIcon={true}
                 textOnRight={
                   currentStatus.isOperationalState &&
                   statusPage?.showOverallUptimePercentOnStatusPage
-                    ? StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
+                    ? (StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
                         {
                           monitorStatusTimelines: monitorStatusTimelines,
                           statusPageResources: statusPageResources,
@@ -857,7 +868,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                           resourceGroups: resourceGroups,
                           monitorsInGroup: monitorsInGroup,
                         },
-                      )?.toString() + "% uptime" || "100%"
+                      )?.toString() || "100") + t("overview.uptimeSuffix")
                     : undefined
                 }
                 textClassName="text-white text-lg flex justify-between w-full"

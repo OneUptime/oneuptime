@@ -1921,8 +1921,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   ): ReactElement => {
     const renderedTitle: ReactElement | string =
       typeof title === "string"
-        ? ((translateValue(title) as ReactElement | string | undefined) ??
-          title)
+        ? (translateValue(title) as ReactElement | string | undefined) ?? title
         : title;
     const plan: PlanType | null = ProjectUtil.getCurrentPlan();
 

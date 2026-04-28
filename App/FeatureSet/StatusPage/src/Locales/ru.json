@@ -34,7 +34,22 @@
     "activeIncidents": "Активные инциденты",
     "scheduledMaintenanceEvents": "Запланированные работы по обслуживанию",
     "allClearTitle": "Всё работает отлично",
-    "allClearDescription": "На эту страницу статуса ещё не добавлены ресурсы. Пожалуйста, добавьте ресурсы через панель управления."
+    "allClearDescription": "На эту страницу статуса ещё не добавлены ресурсы. Пожалуйста, добавьте ресурсы через панель управления.",
+    "allResourcesAre": "Все ресурсы — {{status}}",
+    "someResourcesAre": "Некоторые ресурсы — {{status}}",
+    "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Затронутые ресурсы",
+    "stateChangedTo": "статус изменён на",
+    "view": "Открыть {{eventType}}",
+    "updateTo": "Обновление этого: {{eventType}}",
+    "postedOn": "опубликовано"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} дней назад",
+    "today": "Сегодня",
+    "notAvailable": "Недоступно"
   },
   "incidents": {
     "title": "Инциденты",

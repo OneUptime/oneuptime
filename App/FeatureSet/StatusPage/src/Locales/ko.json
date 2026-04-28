@@ -34,7 +34,22 @@
     "activeIncidents": "진행 중인 사고",
     "scheduledMaintenanceEvents": "예정된 유지보수 이벤트",
     "allClearTitle": "모든 것이 정상입니다",
-    "allClearDescription": "이 상태 페이지에 아직 리소스가 추가되지 않았습니다. 대시보드에서 리소스를 추가해주세요."
+    "allClearDescription": "이 상태 페이지에 아직 리소스가 추가되지 않았습니다. 대시보드에서 리소스를 추가해주세요.",
+    "allResourcesAre": "모든 리소스가 {{status}}입니다",
+    "someResourcesAre": "일부 리소스가 {{status}}입니다",
+    "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다"
+  },
+  "eventItem": {
+    "affectedResources": "영향을 받은 리소스",
+    "stateChangedTo": "상태가 다음으로 변경됨:",
+    "view": "{{eventType}} 보기",
+    "updateTo": "이 {{eventType}}에 대한 업데이트",
+    "postedOn": "게시일:"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}}일 전",
+    "today": "오늘",
+    "notAvailable": "사용할 수 없음"
   },
   "incidents": {
     "title": "사고",

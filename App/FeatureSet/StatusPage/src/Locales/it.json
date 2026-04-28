@@ -34,7 +34,22 @@
     "activeIncidents": "Incidenti attivi",
     "scheduledMaintenanceEvents": "Eventi di manutenzione pianificata",
     "allClearTitle": "Tutto è a posto",
-    "allClearDescription": "Non sono ancora state aggiunte risorse a questa pagina di stato. Si prega di aggiungere alcune risorse dalla dashboard."
+    "allClearDescription": "Non sono ancora state aggiunte risorse a questa pagina di stato. Si prega di aggiungere alcune risorse dalla dashboard.",
+    "allResourcesAre": "Tutte le risorse sono {{status}}",
+    "someResourcesAre": "Alcune risorse sono {{status}}",
+    "someResourcesAreUnder": "Alcune risorse sono in {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Risorse interessate",
+    "stateChangedTo": "stato cambiato in",
+    "view": "Visualizza {{eventType}}",
+    "updateTo": "Aggiornamento di questo {{eventType}}",
+    "postedOn": "pubblicato il"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} giorni fa",
+    "today": "Oggi",
+    "notAvailable": "Non disponibile"
   },
   "incidents": {
     "title": "Incidenti",

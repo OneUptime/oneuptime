@@ -34,7 +34,22 @@
     "activeIncidents": "Actieve incidenten",
     "scheduledMaintenanceEvents": "Geplande onderhoudsgebeurtenissen",
     "allClearTitle": "Alles ziet er goed uit",
-    "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard."
+    "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
+    "allResourcesAre": "Alle bronnen zijn {{status}}",
+    "someResourcesAre": "Sommige bronnen zijn {{status}}",
+    "someResourcesAreUnder": "Sommige bronnen zijn in {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Getroffen bronnen",
+    "stateChangedTo": "status gewijzigd naar",
+    "view": "{{eventType}} bekijken",
+    "updateTo": "Update voor deze {{eventType}}",
+    "postedOn": "geplaatst op"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} dagen geleden",
+    "today": "Vandaag",
+    "notAvailable": "Niet beschikbaar"
   },
   "incidents": {
     "title": "Incidenten",

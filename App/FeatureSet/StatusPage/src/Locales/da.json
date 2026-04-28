@@ -34,7 +34,22 @@
     "activeIncidents": "Aktive hændelser",
     "scheduledMaintenanceEvents": "Planlagte vedligeholdelseshændelser",
     "allClearTitle": "Alt ser godt ud",
-    "allClearDescription": "Der er endnu ikke tilføjet nogen ressourcer til denne statusside. Tilføj venligst ressourcer fra kontrolpanelet."
+    "allClearDescription": "Der er endnu ikke tilføjet nogen ressourcer til denne statusside. Tilføj venligst ressourcer fra kontrolpanelet.",
+    "allResourcesAre": "Alle ressourcer er {{status}}",
+    "someResourcesAre": "Nogle ressourcer er {{status}}",
+    "someResourcesAreUnder": "Nogle ressourcer er under {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Berørte ressourcer",
+    "stateChangedTo": "status ændret til",
+    "view": "Se {{eventType}}",
+    "updateTo": "Opdatering til denne {{eventType}}",
+    "postedOn": "offentliggjort den"
+  },
+  "monitorOverview": {
+    "daysAgo": "for {{days}} dage siden",
+    "today": "I dag",
+    "notAvailable": "Ikke tilgængelig"
   },
   "incidents": {
     "title": "Hændelser",
