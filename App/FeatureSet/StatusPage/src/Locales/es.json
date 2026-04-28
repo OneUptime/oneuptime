@@ -34,7 +34,22 @@
     "activeIncidents": "Incidencias activas",
     "scheduledMaintenanceEvents": "Eventos de mantenimiento programado",
     "allClearTitle": "Todo parece estar bien",
-    "allClearDescription": "Aún no se han añadido recursos a esta página de estado. Por favor, añada algunos recursos desde el panel de control."
+    "allClearDescription": "Aún no se han añadido recursos a esta página de estado. Por favor, añada algunos recursos desde el panel de control.",
+    "allResourcesAre": "Todos los recursos están {{status}}",
+    "someResourcesAre": "Algunos recursos están {{status}}",
+    "someResourcesAreUnder": "Algunos recursos están en {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Recursos afectados",
+    "stateChangedTo": "estado cambiado a",
+    "view": "Ver {{eventType}}",
+    "updateTo": "Actualización de este {{eventType}}",
+    "postedOn": "publicado el"
+  },
+  "monitorOverview": {
+    "daysAgo": "hace {{days}} días",
+    "today": "Hoy",
+    "notAvailable": "No disponible"
   },
   "incidents": {
     "title": "Incidencias",

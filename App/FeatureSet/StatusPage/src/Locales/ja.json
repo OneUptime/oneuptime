@@ -34,7 +34,22 @@
     "activeIncidents": "進行中のインシデント",
     "scheduledMaintenanceEvents": "予定されたメンテナンスイベント",
     "allClearTitle": "すべて順調です",
-    "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。"
+    "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。",
+    "allResourcesAre": "すべてのリソースは {{status}} です",
+    "someResourcesAre": "一部のリソースは {{status}} です",
+    "someResourcesAreUnder": "一部のリソースは {{status}} 中です"
+  },
+  "eventItem": {
+    "affectedResources": "影響を受けるリソース",
+    "stateChangedTo": "状態が次に変更されました:",
+    "view": "{{eventType}} を表示",
+    "updateTo": "この {{eventType}} の更新",
+    "postedOn": "投稿日:"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} 日前",
+    "today": "今日",
+    "notAvailable": "利用不可"
   },
   "incidents": {
     "title": "インシデント",

@@ -34,7 +34,22 @@
     "activeIncidents": "Active Incidents",
     "scheduledMaintenanceEvents": "Scheduled Maintenance Events",
     "allClearTitle": "Everything looks great",
-    "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard."
+    "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
+    "allResourcesAre": "All Resources are {{status}}",
+    "someResourcesAre": "Some Resources are {{status}}",
+    "someResourcesAreUnder": "Some Resources are under {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Affected resources",
+    "stateChangedTo": "state changed to",
+    "view": "View {{eventType}}",
+    "updateTo": "Update to this {{eventType}}",
+    "postedOn": "posted on"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} days ago",
+    "today": "Today",
+    "notAvailable": "Not available"
   },
   "incidents": {
     "title": "Incidents",

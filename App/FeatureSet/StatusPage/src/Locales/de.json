@@ -34,7 +34,22 @@
     "activeIncidents": "Aktive Vorfälle",
     "scheduledMaintenanceEvents": "Geplante Wartungsereignisse",
     "allClearTitle": "Alles sieht gut aus",
-    "allClearDescription": "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt. Bitte fügen Sie einige Ressourcen über das Dashboard hinzu."
+    "allClearDescription": "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt. Bitte fügen Sie einige Ressourcen über das Dashboard hinzu.",
+    "allResourcesAre": "Alle Ressourcen sind {{status}}",
+    "someResourcesAre": "Einige Ressourcen sind {{status}}",
+    "someResourcesAreUnder": "Einige Ressourcen sind in {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Betroffene Ressourcen",
+    "stateChangedTo": "Status geändert auf",
+    "view": "{{eventType}} anzeigen",
+    "updateTo": "Update zu diesem {{eventType}}",
+    "postedOn": "veröffentlicht am"
+  },
+  "monitorOverview": {
+    "daysAgo": "vor {{days}} Tagen",
+    "today": "Heute",
+    "notAvailable": "Nicht verfügbar"
   },
   "incidents": {
     "title": "Vorfälle",

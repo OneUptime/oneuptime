@@ -34,7 +34,22 @@
     "activeIncidents": "सक्रिय घटनाएँ",
     "scheduledMaintenanceEvents": "निर्धारित रखरखाव कार्यक्रम",
     "allClearTitle": "सब कुछ ठीक दिख रहा है",
-    "allClearDescription": "इस स्थिति पृष्ठ में अभी तक कोई संसाधन नहीं जोड़ा गया है। कृपया डैशबोर्ड से कुछ संसाधन जोड़ें।"
+    "allClearDescription": "इस स्थिति पृष्ठ में अभी तक कोई संसाधन नहीं जोड़ा गया है। कृपया डैशबोर्ड से कुछ संसाधन जोड़ें।",
+    "allResourcesAre": "सभी संसाधन {{status}} हैं",
+    "someResourcesAre": "कुछ संसाधन {{status}} हैं",
+    "someResourcesAreUnder": "कुछ संसाधन {{status}} में हैं"
+  },
+  "eventItem": {
+    "affectedResources": "प्रभावित संसाधन",
+    "stateChangedTo": "स्थिति बदलकर हुई",
+    "view": "{{eventType}} देखें",
+    "updateTo": "इस {{eventType}} पर अपडेट",
+    "postedOn": "पोस्ट किया गया"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} दिन पहले",
+    "today": "आज",
+    "notAvailable": "उपलब्ध नहीं"
   },
   "incidents": {
     "title": "घटनाएँ",
