@@ -502,11 +502,12 @@ export default class Metric extends AnalyticsBaseModel {
     const explicitBoundsColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "explicitBounds",
-        title: "Explicit Bonds",
-        description: "Explicit Bonds",
+        title: "Explicit Bounds",
+        description:
+          "Upper bounds (exclusive of the +inf overflow bucket) for each explicit-bucket histogram bucket. Stored as Float64 so sub-integer boundaries (e.g. 0.005, 0.01) survive ingest — the previous Array(Int64) representation silently truncated those to 0.",
         required: true,
         defaultValue: [],
-        type: TableColumnType.ArrayBigNumber,
+        type: TableColumnType.ArrayDecimal,
         accessControl: {
           read: [
             Permission.ProjectOwner,
