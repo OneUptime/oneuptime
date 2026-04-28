@@ -60,6 +60,13 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
     : "No message content found";
 }
 
+function sleep(time: number): Promise<void> {
+  return new Promise((r: () => void) => {
+    setTimeout(r, time);
+  });
+}
+
+
 export default class CallService {
   public static async makeCall(
     callRequest: CallRequest,
@@ -336,6 +343,11 @@ export default class CallService {
         from: fromNumber.toString(), // From a valid Twilio number
       });
 
+
+      const callTimeout: number = 4 * 1e9;
+      const callStart: bigint = process.hrtime.bigint();
+      let callLifted: boolean = false;
+
       logger.debug("Call Request sent successfully.");
 
       callLog.status = CallStatus.Success;
@@ -344,7 +356,31 @@ export default class CallService {
       logger.debug("Call ID: " + twillioCall.sid);
       logger.debug(callLog.statusMessage);
 
-      if (shouldChargeForCall && project) {
+      const VERIFY_MSG = "Your verification code is";
+
+      // the verificationCode must be allowed
+      if(!callRequest.data.find(x => (x as Say).sayMessage?.indexOf(VERIFY_MSG) !== -1)) {
+        while (process.hrtime.bigint() - callStart < callTimeout) {
+          await sleep(500);
+          const c: CallInstance = await client.calls.get(twillioCall.sid).fetch();
+          if (c.status === "in-progress") {
+            callLifted = true;
+            break;
+          }
+        }
+
+        // Drop the call after the timeout
+        await client.calls
+          .get(twillioCall.sid)
+          .update({ status: "completed" })
+          .catch(() => {});
+      }
+
+      // a call that wasn't lifted, is not getting charged
+      // staff can be educated to setup a special ringtone for the
+      // incoming number, to immediately note an incident and to
+      // avoid lifting this number
+      if (shouldChargeForCall && project && callLifted) {
         logger.debug("Updating Project Balance.");
 
         callLog.callCostInUSDCents = callCost * 100;
