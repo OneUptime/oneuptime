@@ -7,6 +7,7 @@ import {
   getFrontendEnvVars,
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
+import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
 import "./Environment";
 import Express, {
   ExpressApplication,
@@ -106,6 +107,7 @@ const setDefaultHeaders: RequestHandler = (
 };
 
 app.use(cors());
+app.use(HttpMetricsMiddleware);
 app.use(setDefaultHeaders);
 
 // Set the view engine to ejs

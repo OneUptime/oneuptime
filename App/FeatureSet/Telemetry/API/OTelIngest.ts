@@ -13,9 +13,78 @@ import OtelLogsIngestService from "../Services/OtelLogsIngestService";
 import OtelProfilesIngestService from "../Services/OtelProfilesIngestService";
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import { JSONObject } from "Common/Types/JSON";
 
 const router: ExpressRouter = Express.getRouter();
+
+/**
+ * Records a signal-tagged ingest metric (count + duration + payload bytes).
+ * Stacks below the parseBody/getProductType middlewares so payload size is
+ * available, and runs before isAuthorizedServiceMiddleware so that auth
+ * failures still get counted as "rejected".
+ */
+const ingestMetricsMiddleware: (
+  signal: "traces" | "metrics" | "logs" | "profiles",
+) => (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => void = (
+  signal: "traces" | "metrics" | "logs" | "profiles",
+) => {
+  return (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): void => {
+    const startNs: bigint = process.hrtime.bigint();
+
+    // Best-effort payload size (parseBody has already populated req.body).
+    const body: unknown = (req as { body?: unknown }).body;
+    let payloadBytes: number = 0;
+    if (body instanceof Uint8Array) {
+      payloadBytes = body.byteLength;
+    } else if (Buffer.isBuffer(body)) {
+      payloadBytes = body.length;
+    } else if (typeof body === "string") {
+      payloadBytes = Buffer.byteLength(body);
+    }
+
+    if (payloadBytes > 0) {
+      AppMetrics.getIngestPayloadBytes().record(payloadBytes, {
+        "telemetry.signal": signal,
+      });
+    }
+
+    let recorded: boolean = false;
+    const recordOnce: () => void = (): void => {
+      if (recorded) {
+        return;
+      }
+      recorded = true;
+
+      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+      const durationMs: number = Number(elapsedNs) / 1e6;
+      const statusCode: number = res.statusCode || 0;
+      const outcome: string =
+        statusCode >= 200 && statusCode < 300
+          ? "accepted"
+          : statusCode >= 400 && statusCode < 500
+            ? "rejected"
+            : "error";
+
+      const attributes: Record<string, string> = {
+        "telemetry.signal": signal,
+        outcome,
+      };
+
+      AppMetrics.getIngestCounter().add(1, attributes);
+      AppMetrics.getIngestDuration().record(durationMs, attributes);
+    };
+
+    res.on("finish", recordOnce);
+    res.on("close", recordOnce);
+
+    next();
+  };
+};
 
 /**
  *
@@ -26,6 +95,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/otlp/v1/traces",
   OpenTelemetryRequestMiddleware.parseBody,
+  ingestMetricsMiddleware("traces"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
@@ -40,6 +110,7 @@ router.post(
 router.post(
   "/otlp/v1/metrics",
   OpenTelemetryRequestMiddleware.parseBody,
+  ingestMetricsMiddleware("metrics"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
@@ -54,6 +125,7 @@ router.post(
 router.post(
   "/otlp/v1/logs",
   OpenTelemetryRequestMiddleware.parseBody,
+  ingestMetricsMiddleware("logs"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
@@ -68,6 +140,7 @@ router.post(
 router.post(
   "/otlp/v1/profiles",
   OpenTelemetryRequestMiddleware.parseBody,
+  ingestMetricsMiddleware("profiles"),
   OpenTelemetryRequestMiddleware.getProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (

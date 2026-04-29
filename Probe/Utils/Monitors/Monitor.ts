@@ -40,6 +40,7 @@ import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
+import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
@@ -212,6 +213,59 @@ export default class MonitorUtil {
   }
 
   public static async probeMonitorStep(data: {
+    monitorStep: MonitorStep;
+    monitorType: MonitorType;
+    monitorId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<ProbeMonitorResponse | null> {
+    const startNs: bigint = process.hrtime.bigint();
+    const monitorTypeAttr: string = data.monitorType?.toString() || "unknown";
+    let outcome:
+      | "online"
+      | "offline"
+      | "timeout"
+      | "no_step"
+      | "error"
+      | "skipped" = "online";
+
+    try {
+      const result: ProbeMonitorResponse | null =
+        await this.probeMonitorStepInternal(data);
+
+      if (!result) {
+        outcome = "skipped";
+      } else if (result.isTimeout) {
+        outcome = "timeout";
+      } else if (result.isOnline === false) {
+        outcome = "offline";
+      } else if (result.isOnline === true) {
+        outcome = "online";
+      } else {
+        /*
+         * No isOnline determined (e.g. monitor types that report a value
+         * but no boolean status — synthetic, custom code).
+         */
+        outcome = "online";
+      }
+
+      return result;
+    } catch (err) {
+      outcome = "error";
+      throw err;
+    } finally {
+      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+      const durationMs: number = Number(elapsedNs) / 1e6;
+      const attributes: Record<string, string> = {
+        "monitor.type": monitorTypeAttr,
+        outcome,
+      };
+
+      AppMetrics.getProbeCheckCounter().add(1, attributes);
+      AppMetrics.getProbeCheckDuration().record(durationMs, attributes);
+    }
+  }
+
+  private static async probeMonitorStepInternal(data: {
     monitorStep: MonitorStep;
     monitorType: MonitorType;
     monitorId: ObjectID;

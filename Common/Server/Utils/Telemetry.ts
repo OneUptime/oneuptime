@@ -6,6 +6,12 @@ import OpenTelemetryAPI, {
    */
   Meter,
   type AttributeValue,
+  type Attributes,
+  type ObservableCounter,
+  type ObservableGauge,
+  type ObservableResult,
+  type ObservableUpDownCounter,
+  type UpDownCounter,
 } from "@opentelemetry/api";
 import { Logger, logs } from "@opentelemetry/api-logs";
 import {
@@ -42,6 +48,7 @@ import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import { AppVersion, Env, DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
+import RuntimeMetrics from "./Telemetry/RuntimeMetrics";
 
 type ResourceWithRawAttributes = LogsResource & {
   getRawAttributes?: () => Array<[string, AttributeValue | undefined]>;
@@ -59,6 +66,16 @@ export type SpanOptions = opentelemetry.api.SpanOptions;
 export type TelemetryLogger = Logger;
 export type TelemetryAttributes = opentelemetry.api.Attributes;
 export type TelemetryCounter = Counter<opentelemetry.api.Attributes>;
+export type TelemetryHistogram = Histogram<opentelemetry.api.Attributes>;
+export type TelemetryUpDownCounter =
+  UpDownCounter<opentelemetry.api.Attributes>;
+export type TelemetryObservableGauge = ObservableGauge<Attributes>;
+export type TelemetryObservableCounter = ObservableCounter<Attributes>;
+export type TelemetryObservableUpDownCounter =
+  ObservableUpDownCounter<Attributes>;
+export type TelemetryObservableCallback = (
+  result: ObservableResult<Attributes>,
+) => void | Promise<void>;
 
 export enum SpanStatusCode {
   UNSET = 0,
@@ -286,6 +303,13 @@ export default class Telemetry {
       sdk.start();
 
       this.sdk = sdk;
+
+      try {
+        RuntimeMetrics.init();
+      } catch (err) {
+        logger.error("Failed to initialize runtime metrics");
+        logger.error(err);
+      }
     }
 
     return this.sdk;
@@ -387,6 +411,80 @@ export default class Telemetry {
       this.getMeter().createHistogram(name, metricOptions);
 
     return histogram;
+  }
+
+  public static getObservableGauge(data: {
+    name: string;
+    description: string;
+    unit?: string;
+    callback: TelemetryObservableCallback;
+  }): TelemetryObservableGauge {
+    const metricOptions: MetricOptions = {
+      description: data.description,
+    };
+
+    if (data.unit) {
+      metricOptions.unit = data.unit;
+    }
+
+    const gauge: TelemetryObservableGauge =
+      this.getMeter().createObservableGauge(data.name, metricOptions);
+
+    gauge.addCallback(data.callback);
+
+    return gauge;
+  }
+
+  public static getObservableCounter(data: {
+    name: string;
+    description: string;
+    unit?: string;
+    callback: TelemetryObservableCallback;
+  }): TelemetryObservableCounter {
+    const metricOptions: MetricOptions = {
+      description: data.description,
+    };
+
+    if (data.unit) {
+      metricOptions.unit = data.unit;
+    }
+
+    const counter: TelemetryObservableCounter =
+      this.getMeter().createObservableCounter(data.name, metricOptions);
+
+    counter.addCallback(data.callback);
+
+    return counter;
+  }
+
+  public static getObservableUpDownCounter(data: {
+    name: string;
+    description: string;
+    unit?: string;
+    callback: TelemetryObservableCallback;
+  }): TelemetryObservableUpDownCounter {
+    const metricOptions: MetricOptions = {
+      description: data.description,
+    };
+
+    if (data.unit) {
+      metricOptions.unit = data.unit;
+    }
+
+    const counter: TelemetryObservableUpDownCounter =
+      this.getMeter().createObservableUpDownCounter(data.name, metricOptions);
+
+    counter.addCallback(data.callback);
+
+    return counter;
+  }
+
+  public static isMetricsEnabled(): boolean {
+    if (DisableTelemetry) {
+      return false;
+    }
+
+    return Boolean(this.metricReader);
   }
 
   public static getTracer(): opentelemetry.api.Tracer {

@@ -7,6 +7,7 @@ import {
 } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import AppMetrics from "../Utils/Telemetry/AppMetrics";
 import Redis from "./Redis";
 
 export default class QueueWorker {
@@ -29,7 +30,44 @@ export default class QueueWorker {
       maxStalledCount?: number;
     },
   ): Worker {
-    const worker: Worker = new Worker(queueName, onJobInQueue, {
+    const instrumentedJobHandler: (job: QueueJob) => Promise<void> = async (
+      job: QueueJob,
+    ): Promise<void> => {
+      const startNs: bigint = process.hrtime.bigint();
+      const baseAttributes: Record<string, string> = {
+        "messaging.system": "bullmq",
+        "messaging.destination.name": queueName,
+        "messaging.operation.name": job.name || "unknown",
+      };
+
+      AppMetrics.getWorkerJobsInFlight().add(1, baseAttributes);
+
+      let outcome: "success" | "failure" | "timeout" = "success";
+
+      try {
+        await onJobInQueue(job);
+      } catch (err) {
+        outcome =
+          err instanceof TimeoutException ||
+          (err as { name?: string })?.name === "TimeoutException"
+            ? "timeout"
+            : "failure";
+        throw err;
+      } finally {
+        const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+        const durationMs: number = Number(elapsedNs) / 1e6;
+        const attributes: Record<string, string> = {
+          ...baseAttributes,
+          outcome,
+        };
+
+        AppMetrics.getWorkerJobCounter().add(1, attributes);
+        AppMetrics.getWorkerJobDuration().record(durationMs, attributes);
+        AppMetrics.getWorkerJobsInFlight().add(-1, baseAttributes);
+      }
+    };
+
+    const worker: Worker = new Worker(queueName, instrumentedJobHandler, {
       connection: Redis.getRedisOptions(),
       concurrency: options.concurrency,
       // Only set these values if provided so we do not override BullMQ defaults

@@ -17,6 +17,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger from "Common/Server/Utils/Logger";
+import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
@@ -24,6 +25,50 @@ import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
   public static async sendSms(
+    to: Phone,
+    message: string,
+    options: {
+      projectId?: ObjectID | undefined; // project id for sms log
+      customTwilioConfig?: TwilioConfig | undefined;
+      isSensitive?: boolean; // if true, message will not be logged
+      userOnCallLogTimelineId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
+    },
+  ): Promise<void> {
+    const startNs: bigint = process.hrtime.bigint();
+    let outcome: "success" | "failure" = "success";
+
+    try {
+      await this.sendSmsInternal(to, message, options);
+    } catch (err) {
+      outcome = "failure";
+      throw err;
+    } finally {
+      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+      const durationMs: number = Number(elapsedNs) / 1e6;
+      const attributes: Record<string, string> = {
+        "notification.channel": "sms",
+        outcome,
+      };
+
+      AppMetrics.getNotificationCounter().add(1, attributes);
+      AppMetrics.getNotificationDuration().record(durationMs, attributes);
+    }
+  }
+
+  private static async sendSmsInternal(
     to: Phone,
     message: string,
     options: {

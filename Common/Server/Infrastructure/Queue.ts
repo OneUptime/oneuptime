@@ -8,6 +8,8 @@ import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import Telemetry from "../Utils/Telemetry";
+import type { Attributes, ObservableResult } from "@opentelemetry/api";
 import Redis from "./Redis";
 
 export enum QueueName {
@@ -23,6 +25,7 @@ export default class Queue {
   private static queueDict: Dictionary<BullQueue> = {};
   // track queues we have already run initial cleanup on
   private static cleanedQueueNames: Set<string> = new Set<string>();
+  private static queueSizeMetricRegistered: boolean = false;
   // store repeatable jobs to re-add on reconnect
   private static repeatableJobs: Dictionary<
     Dictionary<{
@@ -98,6 +101,9 @@ export default class Queue {
 
     // save it to the dictionary
     this.queueDict[queueName] = queue;
+
+    // Register the observable gauge once any queue exists in this process.
+    this.registerQueueSizeMetric();
 
     // Add event listener to re-add repeatable jobs on reconnect
     this.setupReconnectListener(queue, queueName).catch((err: unknown) => {
@@ -241,6 +247,60 @@ export default class Queue {
     const jobAdded: Job = await queue.add(jobName, data, optionsObject);
 
     return jobAdded;
+  }
+
+  private static registerQueueSizeMetric(): void {
+    if (this.queueSizeMetricRegistered) {
+      return;
+    }
+
+    if (!Telemetry.isMetricsEnabled()) {
+      return;
+    }
+
+    try {
+      Telemetry.getObservableGauge({
+        name: "queue.size",
+        description:
+          "Number of BullMQ jobs in each queue, partitioned by job state.",
+        unit: "1",
+        callback: async (
+          result: ObservableResult<Attributes>,
+        ): Promise<void> => {
+          for (const queueName of Object.keys(this.queueDict)) {
+            try {
+              const stats: {
+                waiting: number;
+                active: number;
+                completed: number;
+                failed: number;
+                delayed: number;
+                total: number;
+              } = await this.getQueueStats(queueName as QueueName);
+
+              const baseAttrs: Attributes = {
+                "messaging.system": "bullmq",
+                "messaging.destination.name": queueName,
+              };
+
+              result.observe(stats.waiting, { ...baseAttrs, state: "waiting" });
+              result.observe(stats.active, { ...baseAttrs, state: "active" });
+              result.observe(stats.delayed, { ...baseAttrs, state: "delayed" });
+              result.observe(stats.failed, { ...baseAttrs, state: "failed" });
+            } catch (err) {
+              // Don't let one queue's stat failure break others.
+              logger.debug("Failed to read queue stats");
+              logger.debug(err);
+            }
+          }
+        },
+      });
+
+      this.queueSizeMetricRegistered = true;
+    } catch (err) {
+      logger.error("Failed to register queue.size metric");
+      logger.error(err);
+    }
   }
 
   @CaptureSpan()
