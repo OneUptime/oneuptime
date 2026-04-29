@@ -81,10 +81,10 @@ Usage:
 - name: HTTP_PROTOCOL
   value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV
-  value: {{ $.Values.skipVerifyTLS }}
-{{- if $.Values.allow--- }}
-- name: NODE_TLS_REJECT_UNAUTHORIZED
-  value: "0"
+  value: {{ $.Values.nodeEnvironment }}
+{{- if $.Values.skipVerifyTLS }}
+  - name: NODE_TLS_REJECT_UNAUTHORIZED
+    value: "0"
 {{- end }} 
 - name: BILLING_ENABLED
   value: {{ $.Values.billing.enabled | squote }}
