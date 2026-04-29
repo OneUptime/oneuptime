@@ -19,6 +19,7 @@ import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
+import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
@@ -52,6 +53,7 @@ import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimel
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
 import UserIncomingCallNumberAPI from "Common/Server/API/UserIncomingCallNumberAPI";
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
+import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
 import ApiKeyPermissionService, {
@@ -258,6 +260,9 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
+import MonitorTemplateService, {
+  Service as MonitorTemplateServiceType,
+} from "Common/Server/Services/MonitorTemplateService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -279,6 +284,9 @@ import DockerHostOwnerUserService, {
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
+import AuditLogService, {
+  AuditLogService as AuditLogServiceType,
+} from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -542,6 +550,7 @@ import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -602,6 +611,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
@@ -1318,6 +1328,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
+        AuditLog,
+        AuditLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<Dashboard, DashboardServiceType>(
         Dashboard,
         DashboardService,
@@ -1891,6 +1909,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorTemplate, MonitorTemplateServiceType>(
+        MonitorTemplate,
+        MonitorTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
         IncidentNoteTemplate,
         IncidentNoteTemplateService,
@@ -2109,6 +2135,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new TelegramLogAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<PushNotificationLog, PushNotificationLogServiceType>(
         PushNotificationLog,
         PushNotificationLogService,
@@ -2311,6 +2342,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserWhatsAppAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserTelegramAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());

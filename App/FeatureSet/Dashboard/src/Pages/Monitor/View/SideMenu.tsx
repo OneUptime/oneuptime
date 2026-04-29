@@ -102,6 +102,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  // Audit section items
+  const auditItems: SideMenuItemProps[] = [
+    {
+      link: {
+        title: "Audit Logs",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_AUDIT_LOGS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.List,
+    },
+  ];
+
   if (!isManualMonitor && !isTelemetryMonitor) {
     activityItems.push({
       link: {
@@ -222,6 +236,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     {
       title: "Activity",
       items: activityItems,
+    },
+    {
+      title: "Audit",
+      items: auditItems,
     },
   ];
 

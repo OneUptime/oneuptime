@@ -1,4 +1,5 @@
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { JSONObject } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -21,6 +22,7 @@ import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMo
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -37,6 +39,21 @@ export default class MonitorTemplateUtil {
   public static buildTemplateStorageMap(data: {
     monitorType: MonitorType;
     dataToProcess: DataToProcess;
+    /**
+     * The monitor that fired this criterion. Used to expose identity
+     * fields (`{{monitorName}}`, `{{monitorId}}`, etc.) to incident
+     * and alert title/description templates. Optional for backwards
+     * compatibility with existing callers.
+     */
+    monitor?: Monitor | undefined;
+    /**
+     * When set, the attribute values identifying the specific series
+     * this template is being rendered for. Each label is exposed to
+     * the template under its own key (so `{{host.name}}` works) and
+     * also collected under a `seriesLabels` object for iteration.
+     * Only populated when a metric monitor fires per-series.
+     */
+    seriesLabels?: JSONObject | undefined;
   }): JSONObject {
     let storageMap: JSONObject = {};
 
@@ -183,16 +200,10 @@ export default class MonitorTemplateUtil {
         }
       }
 
-      if (
-        data.monitorType === MonitorType.SyntheticMonitor ||
-        data.monitorType === MonitorType.CustomJavaScriptCode
-      ) {
+      if (data.monitorType === MonitorType.CustomJavaScriptCode) {
         const customCodeResponse: CustomCodeMonitorResponse | undefined = (
           data.dataToProcess as ProbeMonitorResponse
         ).customCodeMonitorResponse;
-        const syntheticResponse: SyntheticMonitorResponse[] | undefined = (
-          data.dataToProcess as ProbeMonitorResponse
-        ).syntheticMonitorResponse;
 
         storageMap = {
           executionTimeInMs: customCodeResponse?.executionTimeInMS,
@@ -202,16 +213,35 @@ export default class MonitorTemplateUtil {
           failureCause: (data.dataToProcess as ProbeMonitorResponse)
             .failureCause,
         } as JSONObject;
+      }
 
-        // Add synthetic monitor specific fields if available
-        if (syntheticResponse && syntheticResponse.length > 0) {
-          const firstResponse: SyntheticMonitorResponse = syntheticResponse[0]!;
-          if (firstResponse) {
-            storageMap["screenshots"] = firstResponse.screenshots;
-            storageMap["browserType"] = firstResponse.browserType;
-            storageMap["screenSizeType"] = firstResponse.screenSizeType;
-          }
-        }
+      if (data.monitorType === MonitorType.SyntheticMonitor) {
+        const syntheticResponse: SyntheticMonitorResponse[] | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).syntheticMonitorResponse;
+
+        /*
+         * Synthetic monitors run across multiple browser / screen-size combinations.
+         * Each run is exposed through the syntheticResponses array — use
+         * {{syntheticResponses[i].*}} or {{#each syntheticResponses}} in templates.
+         */
+        storageMap = {
+          syntheticResponses: (syntheticResponse || []).map(
+            (response: SyntheticMonitorResponse) => {
+              return {
+                executionTimeInMs: response.executionTimeInMS,
+                result: response.result,
+                scriptError: response.scriptError,
+                logMessages: response.logMessages || [],
+                screenshots: response.screenshots,
+                browserType: response.browserType,
+                screenSizeType: response.screenSizeType,
+              };
+            },
+          ),
+          failureCause: (data.dataToProcess as ProbeMonitorResponse)
+            .failureCause,
+        } as JSONObject;
       }
 
       if (data.monitorType === MonitorType.SNMP) {
@@ -302,6 +332,31 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
+      if (
+        data.monitorType === MonitorType.Metrics ||
+        data.monitorType === MonitorType.Kubernetes ||
+        data.monitorType === MonitorType.Docker
+      ) {
+        const metricResponse: MetricMonitorResponse =
+          data.dataToProcess as MetricMonitorResponse;
+
+        const queryConfigs: Array<unknown> =
+          metricResponse.metricViewConfig?.queryConfigs || [];
+
+        const firstQuery: unknown = queryConfigs[0];
+        const metricName: string | undefined = (
+          firstQuery as
+            | {
+                metricQueryData?: { filterData?: { metricName?: string } };
+              }
+            | undefined
+        )?.metricQueryData?.filterData?.metricName;
+
+        storageMap = {
+          metricName: metricName || "",
+        } as JSONObject;
+      }
+
       if (data.monitorType === MonitorType.ExternalStatusPage) {
         const externalStatusPageResponse:
           | ExternalStatusPageMonitorResponse
@@ -332,6 +387,63 @@ export default class MonitorTemplateUtil {
       }
     } catch (err) {
       logger.error(err);
+    }
+
+    /*
+     * Fold series labels onto the storage map so templates like
+     * `{{host.name}}` or `{{resource.k8s.container.name}}` resolve at
+     * render time. The template engine walks dotted paths as nested
+     * property access (`host` → `.name`), so for each dotted label
+     * key we build up a nested object rather than storing the flat
+     * key. Also expose the full label map under `seriesLabels` for
+     * iteration-style templates.
+     */
+    if (data.seriesLabels && Object.keys(data.seriesLabels).length > 0) {
+      for (const key of Object.keys(data.seriesLabels)) {
+        const value: unknown = data.seriesLabels[key];
+        if (value === undefined || value === null) {
+          continue;
+        }
+        const parts: Array<string> = key.split(".");
+        let cursor: JSONObject = storageMap;
+        for (let i: number = 0; i < parts.length - 1; i++) {
+          const part: string = parts[i]!;
+          const existing: unknown = cursor[part];
+          if (
+            !existing ||
+            typeof existing !== "object" ||
+            Array.isArray(existing)
+          ) {
+            cursor[part] = {};
+          }
+          cursor = cursor[part] as JSONObject;
+        }
+        cursor[parts[parts.length - 1]!] = value as JSONObject[string];
+      }
+      storageMap["seriesLabels"] = data.seriesLabels;
+    }
+
+    /*
+     * Monitor identity fields. Always exposed (when a monitor is provided),
+     * independent of monitorType, so templates like `{{monitorName}}` work
+     * uniformly across Server/VM, Probe, Synthetic, Metric monitors, etc.
+     */
+    if (data.monitor) {
+      if (data.monitor.name) {
+        storageMap["monitorName"] = data.monitor.name;
+      }
+      if (data.monitor.id) {
+        storageMap["monitorId"] = data.monitor.id.toString();
+      }
+      if (data.monitor.description) {
+        storageMap["monitorDescription"] = data.monitor.description;
+      }
+      if (data.monitor.slug) {
+        storageMap["monitorSlug"] = data.monitor.slug;
+      }
+      if (data.monitor.monitorType) {
+        storageMap["monitorType"] = data.monitor.monitorType;
+      }
     }
 
     logger.debug(`Storage Map: ${JSON.stringify(storageMap, null, 2)}`);

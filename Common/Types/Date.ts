@@ -1406,7 +1406,7 @@ export default class OneUptimeDate {
           " " +
           (onlyShowDate
             ? ""
-            : this.getZoneAbbrByTimezone(timezones[i] as Timezone)),
+            : this.getZoneAbbrByTimezone(timezones[i] as Timezone, date)),
       );
     }
 
@@ -1497,8 +1497,17 @@ export default class OneUptimeDate {
     return this.getZoneAbbrByTimezone(this.getCurrentTimezone());
   }
 
-  public static getZoneAbbrByTimezone(timezone: Timezone): string {
-    let zoneAbbr: string = moment.tz(timezone).zoneAbbr();
+  public static getZoneAbbrByTimezone(
+    timezone: Timezone,
+    date?: string | Date | undefined,
+  ): string {
+    /*
+     * Pass the reference date into moment so the abbreviation reflects DST
+     * at that date (e.g. EST in winter, EDT in summer) rather than "now".
+     */
+    let zoneAbbr: string = date
+      ? moment(this.fromString(date)).tz(timezone).zoneAbbr()
+      : moment.tz(timezone).zoneAbbr();
 
     if (zoneAbbr.startsWith("+") || zoneAbbr.startsWith("-")) {
       zoneAbbr = "GMT" + zoneAbbr;

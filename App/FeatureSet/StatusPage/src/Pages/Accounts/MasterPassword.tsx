@@ -12,6 +12,7 @@ import API from "../../Utils/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import React, { FunctionComponent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 
@@ -23,6 +24,7 @@ export interface ComponentProps {
 const MasterPasswordPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): JSX.Element => {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -69,7 +71,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
           .toString()
       : null;
 
-  const privatePageCopy: string = "Please enter the password to continue.";
+  const privatePageCopy: string = t("accounts.masterPassword.prompt");
 
   const handleFormSubmit: (
     values: JSONObject,
@@ -84,7 +86,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
         .trim() || "";
 
     if (!submittedPassword) {
-      setFormError("password is required.");
+      setFormError(t("accounts.masterPassword.passwordRequired"));
       return;
     }
 
@@ -141,8 +143,10 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
         ) : null}
         <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
           {props.statusPageName
-            ? `Enter ${props.statusPageName} Password`
-            : "Enter Password"}
+            ? t("accounts.masterPassword.enterWithName", {
+                statusPageName: props.statusPageName,
+              })
+            : t("accounts.masterPassword.enterGeneric")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           {privatePageCopy}
@@ -162,15 +166,15 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                 field: {
                   password: true,
                 },
-                title: "Password",
-                description: "Enter the password to unlock this page.",
+                title: t("accounts.masterPassword.passwordLabel"),
+                description: t("accounts.masterPassword.passwordDescription"),
                 required: true,
-                placeholder: "Enter password",
+                placeholder: t("accounts.masterPassword.passwordPlaceholder"),
                 fieldType: FormFieldSchemaType.Password,
                 disableSpellCheck: true,
               },
             ]}
-            submitButtonText="Unlock Status Page"
+            submitButtonText={t("accounts.masterPassword.submit")}
             maxPrimaryButtonWidth={true}
             isLoading={isSubmitting}
             error={formError || undefined}

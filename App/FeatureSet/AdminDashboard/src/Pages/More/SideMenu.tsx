@@ -6,14 +6,16 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const MoreSideMenu: () => JSX.Element = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <SideMenu>
-      <SideMenuSection title="Communication">
+      <SideMenuSection title={t("sideMenu.moreCommunication")}>
         <SideMenuItem
           link={{
-            title: "Send Email",
+            title: t("sideMenu.moreSendEmail"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MORE_EMAIL] as Route,
             ),

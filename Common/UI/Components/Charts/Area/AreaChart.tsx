@@ -1,4 +1,5 @@
 import { AreaChart } from "../ChartLibrary/AreaChart/AreaChart";
+import { AvailableChartColorsKeys } from "../ChartLibrary/Utils/ChartColors";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -17,6 +18,19 @@ import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 
+export const AreaChartPalette: Array<AvailableChartColorsKeys> = [
+  "blue",
+  "emerald",
+  "violet",
+  "amber",
+  "cyan",
+  "pink",
+  "lime",
+  "fuchsia",
+  "indigo",
+  "rose",
+];
+
 export interface ComponentProps {
   data: Array<SeriesPoint>;
   xAxis: XAxis;
@@ -27,6 +41,7 @@ export interface ComponentProps {
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  showLegend?: boolean | undefined;
 }
 
 export interface AreaInternalProps extends ComponentProps {
@@ -93,20 +108,10 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         tickGap={1}
         index={"Time"}
         categories={categories}
-        colors={[
-          "blue",
-          "emerald",
-          "violet",
-          "amber",
-          "cyan",
-          "pink",
-          "lime",
-          "fuchsia",
-          "indigo",
-          "rose",
-        ]}
+        colors={AreaChartPalette}
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
+        showLegend={props.showLegend !== false}
         connectNulls={true}
         curve={props.curve || ChartCurve.MONOTONE}
         syncid={props.sync ? props.syncid : undefined}

@@ -280,22 +280,36 @@ export default class MonitorResourceUtil {
 
         logger.debug(dataToProcess);
 
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            serverMonitorRequestReceivedAt:
-              serverMonitorResponse.requestReceivedAt!,
-            serverMonitorResponse,
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-        });
+        /*
+         * Skip persistence when this evaluation originated from the
+         * CheckOnlineStatus cron (onlyCheckRequestReceivedAt=true). The cron
+         * re-evaluates using the already-stale value read from the DB and has
+         * no new heartbeat data to persist — writing it back would race with
+         * (and overwrite) the ingest path's fresh heartbeat update, causing
+         * the monitor to flap between Online and Offline every minute.
+         */
+        if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
+          await MonitorService.updateOneById({
+            id: monitor.id!,
+            data: {
+              serverMonitorRequestReceivedAt:
+                serverMonitorResponse.requestReceivedAt!,
+              serverMonitorResponse,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
 
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} - Monitor Server Response Updated`,
-        );
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Monitor Server Response Updated`,
+          );
+        } else {
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Skipping Monitor Server Response persist (cron re-evaluation).`,
+          );
+        }
       }
 
       if (incomingMonitorRequest) {
@@ -695,6 +709,7 @@ export default class MonitorResourceUtil {
         props: {
           telemetryQuery: telemetryQuery,
         },
+        matchesPerSeries: response.perSeriesMatches,
       });
 
       await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
@@ -707,6 +722,7 @@ export default class MonitorResourceUtil {
         props: {
           telemetryQuery: telemetryQuery,
         },
+        matchesPerSeries: response.perSeriesMatches,
       });
     } else if (
       !response.criteriaMetId &&

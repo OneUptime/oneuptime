@@ -39,6 +39,28 @@ export default class MetricUtil {
      */
     const rawResults: Array<AggregatedResult> = await Promise.all(
       metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
+        /*
+         * Per-series viewing: when the user has selected attribute
+         * keys to group by (e.g. host.name), inject the nested
+         * `attributes` column into the aggregation's GROUP BY so
+         * ClickHouse emits one row per unique attribute map. The
+         * chart layer then splits those rows into one line per
+         * unique label combination via `getSeries` (injected in
+         * MetricView before render).
+         */
+        const hasGroupByAttributes: boolean = Boolean(
+          queryConfig.metricQueryData.groupByAttributeKeys &&
+            queryConfig.metricQueryData.groupByAttributeKeys.length > 0,
+        );
+
+        const aggregationGroupBy: typeof queryConfig.metricQueryData.groupBy =
+          hasGroupByAttributes
+            ? ({
+                ...(queryConfig.metricQueryData.groupBy || {}),
+                attributes: true,
+              } as typeof queryConfig.metricQueryData.groupBy)
+            : queryConfig.metricQueryData.groupBy;
+
         return AnalyticsModelAPI.aggregate({
           modelType: Metric,
           aggregateBy: {
@@ -63,7 +85,7 @@ export default class MetricUtil {
               OneUptimeDate.getCurrentDate(),
             limit: LIMIT_PER_PROJECT,
             skip: 0,
-            groupBy: queryConfig.metricQueryData.groupBy,
+            groupBy: aggregationGroupBy,
           },
         });
       }),

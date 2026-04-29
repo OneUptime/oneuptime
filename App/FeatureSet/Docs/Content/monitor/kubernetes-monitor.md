@@ -157,10 +157,6 @@ OneUptime provides templates for common Kubernetes monitoring scenarios:
 
 ## Setup Requirements
 
-To use Kubernetes monitoring, you need to:
+To use Kubernetes monitoring, you need to install the OneUptime Kubernetes agent in your cluster. The agent ships cluster metrics, events, and pod logs to OneUptime over OTLP.
 
-1. Install the OneUptime OpenTelemetry collector in your Kubernetes cluster
-2. Configure the collector to send metrics to your OneUptime instance
-3. Ensure the collector has appropriate RBAC permissions to read cluster metrics
-
-See the [OpenTelemetry](/docs/telemetry/open-telemetry) documentation for setup instructions.
+See the [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent) guide — it covers the one-command Helm install and the `preset` option for picking the right configuration for your cluster (standard, GKE Autopilot, EKS Fargate).

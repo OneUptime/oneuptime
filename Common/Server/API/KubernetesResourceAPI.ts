@@ -122,6 +122,8 @@ export default class KubernetesResourceAPI extends BaseAPI<
       hpaCount: summary.countsByKind["HorizontalPodAutoscaler"] || 0,
       vpaCount: summary.countsByKind["VerticalPodAutoscaler"] || 0,
       containerCount: summary.containerCount,
+      degradedPods: summary.degradedPods as unknown as JSONObject,
+      degradedNodes: summary.degradedNodes as unknown as JSONObject,
     };
 
     return Response.sendJsonObjectResponse(req, res, responseBody);

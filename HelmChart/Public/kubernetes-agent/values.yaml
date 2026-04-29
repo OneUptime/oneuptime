@@ -1,5 +1,25 @@
 # OneUptime Kubernetes Agent Configuration
 
+# Preset for the kind of cluster you're installing into. Sets compatible
+# defaults for log collection and security context — so you don't have to
+# think about hostPath, Pod Security Standards, or which log collection mode
+# to pick.
+#
+#   standard      — Self-managed, EKS (EC2), GKE Standard, AKS. hostPath
+#                   is available, so logs are collected via a DaemonSet
+#                   tailing /var/log/pods (lowest overhead).
+#
+#   gke-autopilot — GKE Autopilot. hostPath is blocked, so logs are
+#                   collected via the Kubernetes API from a Deployment.
+#                   A hardened security context is applied.
+#
+#   eks-fargate   — EKS Fargate. Same config as gke-autopilot (no host
+#                   access, no DaemonSets on Fargate).
+#
+# If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
+# still be overridden explicitly — they always win over preset defaults.
+preset: ""
+
 # Required: Your OneUptime instance connection details
 oneuptime:
   # URL of your OneUptime instance (e.g., https://oneuptime.example.com)
@@ -59,9 +79,28 @@ controlPlane:
       - https://localhost:10257/metrics
     insecureSkipVerify: true
 
-# Pod log collection via DaemonSet with filelog receiver
+# Pod log collection.
+#
+# Two modes are supported:
+#
+#   daemonset — (default) Runs an OTel Collector DaemonSet that tails pod
+#     log files from /var/log/pods via a hostPath mount. Lower overhead and
+#     works on most clusters, but hostPath is blocked on GKE Autopilot and
+#     some other managed offerings.
+#
+#   api — Runs a single Deployment (the oneuptime-kubernetes-log-tailer image)
+#     that streams logs via the Kubernetes API (pods/log endpoint). No
+#     hostPath, no host access, fully GKE-Autopilot compatible. Scales well
+#     up to a few thousand containers per replica; shard by namespace for
+#     larger clusters.
+#
+#   disabled — no log collection at all (use if you ship logs another way).
 logs:
   enabled: true
+  # Leave empty to let the `preset` choose: "standard" -> daemonset,
+  # "gke-autopilot" / "eks-fargate" -> api. Override explicitly if you know
+  # what you want: "daemonset" | "api" | "disabled".
+  mode: ""
   resources:
     requests:
       cpu: 50m
@@ -69,6 +108,29 @@ logs:
     limits:
       cpu: 200m
       memory: 256Mi
+  # Only used when mode == "api"
+  api:
+    image:
+      repository: oneuptime/kubernetes-log-tailer
+      # Leave empty to track the chart's appVersion — set at release time to
+      # the OneUptime product version (the release pipeline publishes
+      # oneuptime/kubernetes-log-tailer with the same tag). Override to pin.
+      tag: ""
+      pullPolicy: IfNotPresent
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    # Batching and retry tuning. See KubernetesLogTailer/README.md for details.
+    batchMaxRecords: 500
+    batchMaxMs: 5000
+    exportMaxRetries: 5
+    sinceSecondsOnStart: 10
+    logLevel: "info"
 
 # Resource spec collection — pulls full K8s resource objects (pods, nodes,
 # deployments, etc.) for displaying labels, annotations, env vars, status,

@@ -21,6 +21,7 @@ export enum PermissionGroup {
   AIAgent = "AI Agent",
   Probe = "Probe",
   NotificationLog = "Notification Log",
+  AuditLog = "Audit Log",
 }
 
 export interface PermissionProps {
@@ -270,6 +271,7 @@ enum Permission {
 
   ReadSmsLog = "ReadSmsLog",
   ReadWhatsAppLog = "ReadWhatsAppLog",
+  ReadTelegramLog = "ReadTelegramLog",
   ReadEmailLog = "ReadEmailLog",
   ReadCallLog = "ReadCallLog",
   ReadPushLog = "ReadPushLog",
@@ -498,6 +500,8 @@ enum Permission {
   EditWorkflowLog = "EditWorkflowLog",
   ReadWorkflowLog = "ReadWorkflowLog",
 
+  ReadAuditLog = "ReadAuditLog",
+
   CreateWorkflowVariable = "CreateWorkflowVariable",
   DeleteWorkflowVariable = "DeleteWorkflowVariable",
   EditWorkflowVariable = "EditWorkflowVariable",
@@ -674,6 +678,11 @@ enum Permission {
   EditProjectMonitor = "EditProjectMonitor",
   DeleteProjectMonitor = "DeleteProjectMonitor",
   ReadProjectMonitor = "ReadProjectMonitor",
+
+  CreateMonitorTemplate = "CreateMonitorTemplate",
+  DeleteMonitorTemplate = "DeleteMonitorTemplate",
+  EditMonitorTemplate = "EditMonitorTemplate",
+  ReadMonitorTemplate = "ReadMonitorTemplate",
 
   // Resource Permissions (Team Permission)
   CreateProjectStatusPage = "CreateProjectStatusPage",
@@ -2664,6 +2673,16 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Workflow,
       },
+      {
+        permission: Permission.ReadAuditLog,
+        title: "Read Audit Log",
+        description:
+          "This permission can read audit log records of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AuditLog,
+      },
 
       {
         permission: Permission.CreateStatusPageGroup,
@@ -3145,6 +3164,47 @@ export class PermissionHelper {
         permission: Permission.ReadProjectMonitor,
         title: "Read Monitor",
         description: "This permission can read monitor of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+
+      {
+        permission: Permission.CreateMonitorTemplate,
+        title: "Create Monitor Template",
+        description:
+          "This permission can create Monitor Template this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteMonitorTemplate,
+        title: "Delete Monitor Template",
+        description:
+          "This permission can delete Monitor Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditMonitorTemplate,
+        title: "Edit Monitor Template",
+        description:
+          "This permission can edit Monitor Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadMonitorTemplate,
+        title: "Read Monitor Template",
+        description:
+          "This permission can read Monitor Template of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -4514,6 +4574,16 @@ export class PermissionHelper {
         permission: Permission.ReadWhatsAppLog,
         title: "Read WhatsApp Log",
         description: "This permission can read WhatsApp Log of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.NotificationLog,
+      },
+
+      {
+        permission: Permission.ReadTelegramLog,
+        title: "Read Telegram Log",
+        description: "This permission can read Telegram Log of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

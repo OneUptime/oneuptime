@@ -79,6 +79,12 @@ export interface ParsedKubernetesResource {
   annotations: JSONObject | null;
   ownerReferences: JSONObject | null;
   spec: JSONObject | null;
+  /*
+   * For Pod kinds: length of spec.containers at parse time. Lets the
+   * overview summary SUM() a plain int column instead of scanning
+   * every pod's JSONB spec on every page load.
+   */
+  containerCount: number | null;
   status: JSONObject | null;
   lastSeenAt: Date;
   resourceCreationTimestamp: Date | null;
@@ -255,13 +261,20 @@ export function extractInventoryResource(data: {
     return null;
   }
 
-  // Pod-specific hot column
+  // Pod-specific hot columns
   let phase: string | null = null;
+  let containerCount: number | null = null;
   if (kind === "Pod") {
     const podStatus: KubernetesPodObject["status"] = (
       parsed as KubernetesPodObject
     ).status;
     phase = podStatus?.phase || null;
+    const podSpec: KubernetesPodObject["spec"] | undefined = (
+      parsed as KubernetesPodObject
+    ).spec;
+    containerCount = Array.isArray(podSpec?.containers)
+      ? podSpec.containers.length
+      : 0;
   }
 
   // Node-specific hot columns
@@ -318,6 +331,7 @@ export function extractInventoryResource(data: {
           } as unknown as JSONObject)
         : null,
     spec: (anyParsed.spec as JSONObject | undefined) || null,
+    containerCount,
     status: (anyParsed.status as JSONObject | undefined) || null,
     lastSeenAt: data.lastSeenAt,
     resourceCreationTimestamp: parseCreationTimestamp(

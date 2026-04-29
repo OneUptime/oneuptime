@@ -99,6 +99,7 @@ export class Service extends DatabaseService<Model> {
         ? URL.fromString(projectSmtpConfig.tokenUrl)
         : undefined,
       scope: projectSmtpConfig.scope,
+      oauthProviderType: projectSmtpConfig.oauthProviderType,
     };
   }
 }

@@ -52,6 +52,25 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
             ]?.toString()}
           </p>
         )}
+      {item.getColumnValue("userTelegram") &&
+        ((item.getColumnValue("userTelegram") as JSONObject)[
+          "telegramUserHandle"
+        ] ||
+          (item.getColumnValue("userTelegram") as JSONObject)[
+            "telegramChatId"
+          ]) && (
+          <p>
+            Telegram:{" "}
+            {(
+              (item.getColumnValue("userTelegram") as JSONObject)[
+                "telegramUserHandle"
+              ] ||
+              (item.getColumnValue("userTelegram") as JSONObject)[
+                "telegramChatId"
+              ]
+            )?.toString()}
+          </p>
+        )}
       {item.getColumnValue("userPush") &&
         (item.getColumnValue("userPush") as JSONObject)["deviceName"] && (
           <p>

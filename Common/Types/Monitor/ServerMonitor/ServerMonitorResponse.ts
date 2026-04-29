@@ -6,6 +6,14 @@ export interface ServerProcess {
   pid: number;
   name: string;
   command: string;
+
+  cpuPercent?: number | undefined;
+  memoryBytes?: number | undefined;
+  memoryPercent?: number | undefined;
+  status?: string | undefined;
+  threads?: number | undefined;
+  createTimeMs?: number | undefined;
+  username?: string | undefined;
 }
 
 export default interface ServerMonitorResponse {

@@ -1933,6 +1933,41 @@ ${incidentSeverity.name}
   }
 
   @CaptureSpan()
+  public async doesMonitorHaveActiveIncidents(
+    monitorId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const resolvedState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: projectId,
+          isResolvedState: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+      });
+
+    const incidentCount: PositiveNumber = await this.countBy({
+      query: {
+        monitors: QueryHelper.inRelationArray([monitorId]),
+        currentIncidentState: {
+          order: QueryHelper.lessThan(resolvedState?.order as number),
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return incidentCount.toNumber() > 0;
+  }
+
+  @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
     monitors: Array<Monitor>,
@@ -1979,6 +2014,19 @@ ${incidentSeverity.name}
               isRoot: true,
             },
           });
+
+          /*
+           * Don't flip the monitor to operational while other incidents
+           * are still open on it — e.g. a metric monitor with group-by
+           * may have one incident per series, and resolving one series
+           * shouldn't claim the whole monitor is healthy.
+           */
+          const hasOtherActiveIncidents: boolean =
+            await this.doesMonitorHaveActiveIncidents(monitor.id!, projectId!);
+
+          if (hasOtherActiveIncidents) {
+            continue;
+          }
 
           const latestState: MonitorStatusTimeline | null =
             await MonitorStatusTimelineService.findOneBy({

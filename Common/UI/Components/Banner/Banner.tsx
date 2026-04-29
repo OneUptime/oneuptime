@@ -1,6 +1,7 @@
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
@@ -15,10 +16,14 @@ export interface ComponentProps {
 const Banner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) || props.title;
+  const translatedDescription: string =
+    translateString(props.description) || props.description;
   const getContent: GetReactElementFunction = (): ReactElement => {
     return (
       <>
-        <strong className="font-semibold">{props.title}</strong>
+        <strong className="font-semibold">{translatedTitle}</strong>
         <svg
           viewBox="0 0 2 2"
           className="mx-2 inline h-0.5 w-0.5 fill-current"
@@ -26,7 +31,7 @@ const Banner: FunctionComponent<ComponentProps> = (
         >
           <circle cx="1" cy="1" r="1" />
         </svg>
-        {props.description}&nbsp;
+        {translatedDescription}&nbsp;
         <span aria-hidden="true">&rarr;</span>
       </>
     );

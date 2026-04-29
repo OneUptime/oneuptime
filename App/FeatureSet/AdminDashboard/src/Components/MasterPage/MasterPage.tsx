@@ -4,6 +4,7 @@ import NavBar from "../NavBar/NavBar";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import TopAlert from "Common/UI/Components/TopAlert/TopAlert";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -12,11 +13,12 @@ export interface ComponentProps {
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   return (
     <div>
       <TopAlert
-        title="OneUptime Admin Dashboard"
-        description="You can perform your OneUptime server related tasks on this dashboard."
+        title={t("topAlert.title")}
+        description={t("topAlert.description")}
       />
       <MasterPage
         footer={<Footer />}

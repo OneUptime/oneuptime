@@ -342,15 +342,15 @@ export default class Project extends TenantModel {
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
   @TableColumn({
-    type: TableColumnType.Email,
+    type: TableColumnType.LongText,
     title: "Finance / Accounting Email",
     description:
-      "Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.",
-    example: "accounting@example.com",
+      "Invoices, receipts and billing related notifications will be sent to these emails in addition to project owner. Separate multiple emails with a comma.",
+    example: "accounting@example.com, finance@example.com",
   })
   @Column({
-    type: ColumnType.Email,
-    length: ColumnLength.Email,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: true,
     unique: false,
   })
@@ -1145,6 +1145,36 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableWhatsAppNotifications?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Telegram Notifications",
+    description: "Enable Telegram notifications for this project.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableTelegramNotifications?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2032,6 +2062,32 @@ export default class Project extends TenantModel {
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
   @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Default Telemetry Data Retention (Days)",
+    description:
+      "Project-wide default number of days to retain telemetry data (logs, traces, metrics). Services without a per-service override use this value.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 15,
+  })
+  public defaultTelemetryRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     title: "Default Metric Downsampling Retention (days per tier)",
@@ -2044,4 +2100,84 @@ export default class Project extends TenantModel {
   })
   public defaultMetricDownsamplingRetentionDays?: MetricDownsamplingRetentionDays =
     undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Enable Audit Logs",
+    description:
+      "When enabled, changes to resources in this project are recorded as audit log entries.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Enterprise,
+    create: PlanType.Free,
+  })
+  public enableAuditLogs?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    defaultValue: 7,
+    title: "Audit Log Retention (days)",
+    description:
+      "Number of days to retain audit log entries. Minimum 7, maximum 180.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 7,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Enterprise,
+    create: PlanType.Free,
+  })
+  public auditLogsRetentionInDays?: number = undefined;
 }

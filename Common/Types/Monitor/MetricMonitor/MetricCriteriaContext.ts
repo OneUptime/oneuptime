@@ -47,6 +47,17 @@ export default interface MetricCriteriaContext {
   filterAttributes: JSONObject;
   groupBy: Array<string>;
   timeWindowMinutes?: number | undefined;
+  /**
+   * Fingerprint of the specific series this context represents when the
+   * monitor is configured for per-series alerting. Undefined for
+   * traditional whole-monitor evaluation.
+   */
+  seriesFingerprint?: string | undefined;
+  /**
+   * Label values identifying the series (e.g. {host.name: prod-01}).
+   * Populated alongside seriesFingerprint.
+   */
+  seriesLabels?: JSONObject | undefined;
   breachingSample?: MetricBreachingSample | undefined;
   /**
    * All samples in the evaluation window that breached the threshold,

@@ -1,5 +1,15 @@
 import { generateAllFieldsSelect } from "../Utils/SelectFieldGenerator";
 import { JSONObject } from "Common/Types/JSON";
+import DatabaseModelsDefault from "Common/Models/DatabaseModels/Index";
+import * as TableColumnModule from "Common/Types/Database/TableColumn";
+import PermissionDefault from "Common/Types/Permission";
+
+const DatabaseModels: Record<string, unknown> =
+  DatabaseModelsDefault as unknown as Record<string, unknown>;
+const tableColumnModule: Record<string, unknown> =
+  TableColumnModule as unknown as Record<string, unknown>;
+const Permission: Record<string, unknown> =
+  PermissionDefault as unknown as Record<string, unknown>;
 
 /*
  * AnalyticsTableName enum values used in tests (avoids deep import that can
@@ -105,10 +115,6 @@ describe("SelectFieldGenerator", () => {
       });
 
       it("should handle outer exception and return default select", () => {
-        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-        const DatabaseModels: Record<string, unknown> =
-          require("Common/Models/DatabaseModels/Index").default;
-        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
         const origFind: unknown = DatabaseModels.find;
         try {
           DatabaseModels.find = (): never => {
@@ -130,12 +136,6 @@ describe("SelectFieldGenerator", () => {
       });
 
       it("should return default when getTableColumns returns empty", () => {
-        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-        const tableColumnModule: Record<
-          string,
-          unknown
-        > = require("Common/Types/Database/TableColumn");
-        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
         const origGetTableColumns: unknown = tableColumnModule.getTableColumns;
         try {
           tableColumnModule.getTableColumns = (): Record<string, unknown> => {
@@ -157,18 +157,8 @@ describe("SelectFieldGenerator", () => {
       });
 
       it("should return default when all columns are filtered out", () => {
-        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-        const tableColumnModule: Record<
-          string,
-          unknown
-        > = require("Common/Types/Database/TableColumn");
         const origGetTableColumns: unknown = tableColumnModule.getTableColumns;
-        const DatabaseModels: Record<string, unknown> =
-          require("Common/Models/DatabaseModels/Index").default;
         const origFind: unknown = DatabaseModels.find;
-        const Permission: Record<string, unknown> =
-          require("Common/Types/Permission").default;
-        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
         try {
           tableColumnModule.getTableColumns = (): Record<

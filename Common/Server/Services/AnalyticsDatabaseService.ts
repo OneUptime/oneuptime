@@ -454,10 +454,9 @@ export default class AnalyticsDatabaseService<
 
       // convert date column from string to date.
 
-      const groupByColumnName: keyof TBaseModel | undefined =
-        aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0
-          ? (Object.keys(aggregateBy.groupBy)[0] as keyof TBaseModel)
-          : undefined;
+      const groupByColumnNames: Array<string> = aggregateBy.groupBy
+        ? Object.keys(aggregateBy.groupBy)
+        : [];
 
       for (const item of items) {
         if (
@@ -483,6 +482,14 @@ export default class AnalyticsDatabaseService<
             );
         }
 
+        /*
+         * Preserve every group-by column on the aggregated row. The
+         * previous implementation only copied the first column, which
+         * silently dropped the rest when callers grouped by more than
+         * one dimension (e.g. attributes + name). `AggregatedModel`'s
+         * index signature already accepts arbitrary keys, so existing
+         * single-column consumers still work.
+         */
         const aggregatedModel: AggregatedModel = {
           timestamp: OneUptimeDate.fromString(
             (item as JSONObject)[
@@ -492,10 +499,13 @@ export default class AnalyticsDatabaseService<
           value: (item as JSONObject)[
             aggregateBy.aggregateColumnName as string
           ] as number,
-          [groupByColumnName as string]: (item as JSONObject)[
-            groupByColumnName as string
-          ],
         };
+
+        for (const groupByColumnName of groupByColumnNames) {
+          aggregatedModel[groupByColumnName] = (item as JSONObject)[
+            groupByColumnName
+          ] as AggregatedModel[string];
+        }
 
         aggregatedItems.push(aggregatedModel);
       }

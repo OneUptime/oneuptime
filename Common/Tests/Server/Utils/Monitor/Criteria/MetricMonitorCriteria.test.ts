@@ -1,4 +1,5 @@
 import MetricMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
+import MetricSeriesFingerprint from "../../../../../Utils/Metrics/MetricSeriesFingerprint";
 import AggregateModel from "../../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../../Types/BaseDatabase/AggregatedResult";
 import {
@@ -498,5 +499,272 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     expect(message).toContain("greater than 100 ms");
     // The raw comma-joined dump is no longer in the message
     expect(message).not.toContain("110, 120, 130, 140, 150, 160");
+  });
+});
+
+describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => {
+  /*
+   * Build a fixture whose metric response carries a pre-computed
+   * seriesBreakdown with two hosts over threshold and one under. This
+   * mirrors what MonitorTelemetryMonitor produces when groupByAttributeKeys
+   * is set.
+   */
+  function buildInputsWithSeriesBreakdown(input: {
+    criteriaFilter: CriteriaFilter;
+    seriesSamples: Array<{
+      labels: Record<string, string>;
+      values: Array<number>;
+    }>;
+  }): {
+    criteriaFilter: CriteriaFilter;
+    monitorStep: MonitorStep;
+    dataToProcess: MetricMonitorResponse;
+  } {
+    const aliasData: MetricAliasData = {
+      metricVariable: "a",
+      title: "CPU",
+      description: undefined,
+      legend: undefined,
+      legendUnit: "%",
+    };
+
+    const queryConfig: MetricQueryConfigData = {
+      metricAliasData: aliasData,
+      metricQueryData: {
+        filterData: {
+          metricName: "cpu.usage",
+        },
+        groupByAttributeKeys: ["host.name"],
+      } as unknown as MetricQueryData,
+    };
+
+    const metricViewConfig: MetricsViewConfig = {
+      queryConfigs: [queryConfig],
+      formulaConfigs: [],
+    };
+
+    const monitorStep: MonitorStep = new MonitorStep();
+    monitorStep.data = {
+      id: ObjectID.generate().toString(),
+      monitorCriteria: { data: undefined } as never,
+    } as unknown as MonitorStep["data"];
+    monitorStep.data!.metricMonitor = {
+      metricViewConfig,
+      rollingTime: RollingTime.Past1Minute,
+    };
+
+    const seriesBreakdown: Array<{
+      fingerprint: string;
+      labels: Record<string, string>;
+      aggregatedResults: Array<AggregatedResult>;
+    }> = input.seriesSamples.map(
+      (s: { labels: Record<string, string>; values: Array<number> }) => {
+        return {
+          fingerprint: Object.values(s.labels).join("|"),
+          labels: s.labels,
+          aggregatedResults: [
+            {
+              data: s.values.map((v: number) => {
+                return {
+                  timestamp: new Date(),
+                  value: v,
+                  attributes: s.labels,
+                } as unknown as AggregateModel;
+              }),
+            } as AggregatedResult,
+          ],
+        };
+      },
+    );
+
+    // Flat metricResult = union of all series samples, mirroring the worker.
+    const flatData: Array<AggregateModel> = input.seriesSamples.flatMap(
+      (s: { labels: Record<string, string>; values: Array<number> }) => {
+        return s.values.map((v: number) => {
+          return {
+            timestamp: new Date(),
+            value: v,
+            attributes: s.labels,
+          } as unknown as AggregateModel;
+        });
+      },
+    );
+
+    const dataToProcess: MetricMonitorResponse = {
+      projectId: ObjectID.generate(),
+      metricResult: [{ data: flatData } as AggregatedResult],
+      metricViewConfig,
+      monitorId: ObjectID.generate(),
+      seriesBreakdown:
+        seriesBreakdown as unknown as MetricMonitorResponse["seriesBreakdown"],
+    };
+
+    return {
+      criteriaFilter: input.criteriaFilter,
+      monitorStep,
+      dataToProcess,
+    };
+  }
+
+  test("no seriesBreakdown → single synthetic evaluation (backward compatible)", () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "80",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputs> = buildInputs({
+      metricNativeUnit: "%",
+      sampleValues: [95],
+      criteriaFilter,
+    });
+
+    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
+      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.fingerprint).toBeUndefined();
+    expect(results[0]!.rootCause).toBeTruthy();
+  });
+
+  test("seriesBreakdown with 2 breaching + 1 non-breaching → only breaching series return rootCause", () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "80",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputsWithSeriesBreakdown> =
+      buildInputsWithSeriesBreakdown({
+        criteriaFilter,
+        seriesSamples: [
+          { labels: { "host.name": "prod-01" }, values: [95] },
+          { labels: { "host.name": "prod-02" }, values: [92] },
+          { labels: { "host.name": "prod-03" }, values: [50] },
+        ],
+      });
+
+    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
+      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    expect(results).toHaveLength(3);
+
+    const breaching: typeof results = results.filter(
+      (r: (typeof results)[number]) => {
+        return r.rootCause !== null;
+      },
+    );
+    expect(breaching).toHaveLength(2);
+
+    const breachingHosts: Array<string> = breaching
+      .map((r: (typeof results)[number]) => {
+        return r.labels["host.name"] as string;
+      })
+      .sort();
+    expect(breachingHosts).toEqual(["prod-01", "prod-02"]);
+  });
+
+  test("each series gets its own breaching-samples context", () => {
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: "80",
+      metricMonitorOptions: {
+        metricAlias: "a",
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    };
+
+    const inputs: ReturnType<typeof buildInputsWithSeriesBreakdown> =
+      buildInputsWithSeriesBreakdown({
+        criteriaFilter,
+        seriesSamples: [
+          { labels: { "host.name": "prod-01" }, values: [95, 97] },
+          { labels: { "host.name": "prod-02" }, values: [92] },
+        ],
+      });
+
+    const results: ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries> =
+      MetricMonitorCriteria.evaluateAllSeries(inputs);
+    const prod01: (typeof results)[number] = results.find(
+      (r: (typeof results)[number]) => {
+        return r.labels["host.name"] === "prod-01";
+      },
+    )!;
+    const prod02: (typeof results)[number] = results.find(
+      (r: (typeof results)[number]) => {
+        return r.labels["host.name"] === "prod-02";
+      },
+    )!;
+
+    expect(prod01.context.breachingSamples).toHaveLength(2);
+    expect(prod02.context.breachingSamples).toHaveLength(1);
+    expect(prod01.context.seriesLabels).toEqual({ "host.name": "prod-01" });
+  });
+});
+
+describe("MetricSeriesFingerprint", () => {
+  test("fingerprint is stable regardless of key order", () => {
+    const a: { [k: string]: string } = {
+      "host.name": "prod-01",
+      region: "us-east",
+    };
+    const b: { [k: string]: string } = {
+      region: "us-east",
+      "host.name": "prod-01",
+    };
+
+    expect(MetricSeriesFingerprint.computeFingerprint(a)).toBe(
+      MetricSeriesFingerprint.computeFingerprint(b),
+    );
+  });
+
+  test("different label values → different fingerprints", () => {
+    expect(
+      MetricSeriesFingerprint.computeFingerprint({ "host.name": "prod-01" }),
+    ).not.toBe(
+      MetricSeriesFingerprint.computeFingerprint({ "host.name": "prod-02" }),
+    );
+  });
+
+  test("empty labels → sentinel WholeMonitorFingerprint", () => {
+    expect(MetricSeriesFingerprint.computeFingerprint({})).toBe(
+      MetricSeriesFingerprint.WholeMonitorFingerprint,
+    );
+  });
+
+  test("missing attribute keys canonicalize to empty string (stable fingerprint)", () => {
+    const sample1: AggregateModel = {
+      timestamp: new Date(),
+      value: 42,
+      attributes: { "host.name": "prod-01" },
+    } as unknown as AggregateModel;
+    const sample2: AggregateModel = {
+      timestamp: new Date(),
+      value: 42,
+      attributes: { "host.name": "prod-01", region: "us-east" },
+    } as unknown as AggregateModel;
+
+    const labels1: import("../../../../../Types/JSON").JSONObject =
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample1,
+        attributeKeys: ["host.name"],
+      });
+    const labels2: import("../../../../../Types/JSON").JSONObject =
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample2,
+        attributeKeys: ["host.name"],
+      });
+
+    // When only host.name is selected, region doesn't affect the fingerprint
+    expect(MetricSeriesFingerprint.computeFingerprint(labels1)).toBe(
+      MetricSeriesFingerprint.computeFingerprint(labels2),
+    );
   });
 });

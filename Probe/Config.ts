@@ -9,10 +9,14 @@ if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   process.exit(1);
 }
 
-export let PROBE_INGEST_URL: URL = URL.fromString(
+export const ONEUPTIME_BASE_URL: URL = URL.fromString(
   process.env["ONEUPTIME_URL"] ||
     process.env["PROBE_INGEST_URL"] ||
     "https://oneuptime.com",
+);
+
+export let PROBE_INGEST_URL: URL = URL.fromString(
+  ONEUPTIME_BASE_URL.toString(),
 );
 
 // If probe api does not have the path. Add it.
@@ -85,6 +89,38 @@ export const PORT: Port = new Port(
     min: 1,
   }),
 );
+
+/*
+ * Optional inbound ingress for IncomingRequest (heartbeat) monitors.
+ * If set, the probe binds an HTTP listener on this port that accepts
+ * /heartbeat/:secretkey and /incoming-request/:secretkey requests and
+ * forwards them to the OneUptime instance. Lets services in private
+ * networks send heartbeats to a local probe instead of the public URL.
+ * Unset (or 0) disables the listener.
+ */
+export const PROBE_INGRESS_PORT: Port | null = process.env["PROBE_INGRESS_PORT"]
+  ? new Port(
+      NumberUtil.parseNumberWithDefault({
+        value: process.env["PROBE_INGRESS_PORT"],
+        defaultValue: 0,
+        min: 0,
+      }),
+    )
+  : null;
+
+export const PROBE_INGRESS_FORWARD_TIMEOUT_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_INGRESS_FORWARD_TIMEOUT_MS"],
+    defaultValue: 10000,
+    min: 1000,
+  });
+
+export const PROBE_INGRESS_FORWARD_RETRY_LIMIT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_INGRESS_FORWARD_RETRY_LIMIT"],
+    defaultValue: 3,
+    min: 0,
+  });
 
 /*
  * Proxy configuration for all HTTP/HTTPS requests made by the probe

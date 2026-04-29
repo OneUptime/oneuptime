@@ -47,6 +47,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../Utils/i18n";
 import useAsyncEffect from "use-async-effect";
 
 // Incident Event Item Helper
@@ -258,7 +260,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       type: TimelineItemType.Note,
       icon: IconProp.DocumentCheck,
       iconColor: Gray500,
-      title: "Incident Postmortem",
+      title: i18n.t("incidents.postmortem"),
       highlight: true,
       ...(attachments.length > 0
         ? {
@@ -321,7 +323,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       return groupName ? `${groupName}: ${displayName}` : displayName;
     }),
     eventTimeline: timeline,
-    eventType: "Incident",
+    eventType: i18n.t("incidents.singular"),
     eventViewRoute: !isSummary
       ? undefined
       : RouteUtil.populateRouteParams(
@@ -336,7 +338,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     anotherStatusColor: incident.incidentSeverity?.color || undefined,
     anotherStatus: incident.incidentSeverity?.name,
     eventSecondDescription: incidentDeclaredAt
-      ? "Declared at " +
+      ? i18n.t("incidents.declaredAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           incidentDeclaredAt,
         )
@@ -574,7 +576,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
       return groupName ? `${groupName}: ${displayName}` : displayName;
     }),
     eventTimeline: timeline,
-    eventType: "Incident",
+    eventType: i18n.t("incidents.singular"),
     eventViewRoute: !isSummary
       ? undefined
       : RouteUtil.populateRouteParams(
@@ -589,7 +591,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     anotherStatusColor: episode.incidentSeverity?.color || undefined,
     anotherStatus: episode.incidentSeverity?.name,
     eventSecondDescription: episodeDeclaredAt
-      ? "Declared at " +
+      ? i18n.t("incidents.declaredAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           episodeDeclaredAt,
         )
@@ -611,6 +613,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
 const Detail: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   StatusPageUtil.checkIfUserHasLoggedIn();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -854,7 +857,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
-  const pageTitle: string = isEpisode ? "Episode Report" : "Incident Report";
+  const pageTitle: string = isEpisode
+    ? t("episodes.report")
+    : t("incidents.report");
   const hasItem: boolean = isEpisode ? Boolean(episode) : Boolean(incident);
 
   return (
@@ -862,7 +867,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
       title={pageTitle}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -870,7 +875,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Incidents",
+          title: t("incidents.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
@@ -892,11 +897,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
       {!hasItem ? (
         <EmptyState
           id="item-empty-state"
-          title={isEpisode ? "No Episode" : "No Incident"}
+          title={isEpisode ? t("episodes.none") : t("incidents.none")}
           description={
-            isEpisode
-              ? "Episode not found on this status page."
-              : "Incident not found on this status page."
+            isEpisode ? t("episodes.notFound") : t("incidents.notFound")
           }
           icon={isEpisode ? IconProp.Layers : IconProp.Alert}
         />

@@ -230,6 +230,8 @@ function createConfig(options) {
   const isDev = process.env.NODE_ENV !== 'production';
   const isAnalyze = process.env.analyze === 'true';
   const reactRoot = resolvePackageRoot('react');
+  const reactI18nextRoot = resolvePackageRoot('react-i18next');
+  const i18nextRoot = resolvePackageRoot('i18next');
 
   return {
     entryPoints: [entryPoint],
@@ -252,6 +254,12 @@ function createConfig(options) {
       'react': reactRoot,
       'react/jsx-runtime': path.join(reactRoot, 'jsx-runtime.js'),
       'react/jsx-dev-runtime': path.join(reactRoot, 'jsx-dev-runtime.js'),
+      // Force a single instance of i18next/react-i18next so that translations
+      // initialized in the service entry are visible to Common UI components.
+      // Without this, Common's own node_modules copy gets a separate, never-
+      // initialized i18n singleton and useTranslation() returns the raw key.
+      'react-i18next': reactI18nextRoot,
+      'i18next': i18nextRoot,
       ...additionalAlias,
     },
     plugins: [createMermaidPlugin(), createRefractorCompatibilityPlugin(), createCSSPlugin(), createFileLoaderPlugin()],

@@ -42,6 +42,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 
 // Event item with date for sorting
@@ -54,6 +55,7 @@ interface EventWithDate {
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusPageResources, setStatusPageResources] = useState<
@@ -371,10 +373,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title={"Incidents"}
+      title={t("incidents.title")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -382,7 +384,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Incidents",
+          title: t("incidents.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
@@ -394,7 +396,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {parsedActiveEventsData?.items &&
       parsedActiveEventsData?.items.length > 0 ? (
         <div>
-          <Section title="Active Incidents" />
+          <Section title={t("incidents.active")} />
 
           <EventHistoryList items={parsedActiveEventsData?.items || []} />
         </div>
@@ -405,7 +407,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {parsedResolvedEventsData?.items &&
       parsedResolvedEventsData?.items.length > 0 ? (
         <div>
-          <Section title="Resolved Incidents" />
+          <Section title={t("incidents.resolved")} />
 
           <EventHistoryList items={parsedResolvedEventsData?.items || []} />
         </div>
@@ -415,8 +417,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {!hasEvents ? (
         <EmptyState
           id={"incidents-empty-state"}
-          title={"No Incident"}
-          description={"No incidents posted on this status page."}
+          title={t("incidents.none")}
+          description={t("incidents.noneDescription")}
           icon={IconProp.Alert}
         />
       ) : (

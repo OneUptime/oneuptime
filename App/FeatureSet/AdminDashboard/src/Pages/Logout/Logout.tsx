@@ -10,8 +10,10 @@ import UiAnalytics from "Common/UI/Utils/Analytics";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const Logout: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [error, setError] = React.useState<string | null>(null);
 
   const logout: PromiseVoidFunction = async (): Promise<void> => {
@@ -28,14 +30,14 @@ const Logout: FunctionComponent = (): ReactElement => {
 
   return (
     <Page
-      title={"Logout"}
+      title={t("pages.logout.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.INIT] as Route),
         },
         {
-          title: "Logout",
+          title: t("breadcrumbs.logout"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route),
         },
       ]}

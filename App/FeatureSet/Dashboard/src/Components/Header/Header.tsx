@@ -40,6 +40,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { useTranslation } from "react-i18next";
 import Realtime from "Common/UI/Utils/Realtime";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
@@ -72,6 +73,7 @@ export interface ComponentProps {
 const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [incidentsCount, setIncidentsCount] = useState<number>(0);
   const [alertsCount, setAlertsCount] = useState<number>(0);
   const [alertEpisodesCount, setAlertEpisodesCount] = useState<number>(0);
@@ -609,9 +611,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        setOnCallDutyPolicyFetchError(
-          "Something isnt right, we are unable to fetch on-call policies that you are on duty for. Reload the page to try again.",
-        );
+        setOnCallDutyPolicyFetchError(t("header.onCallPoliciesFetchError"));
       }
     };
 
@@ -664,40 +664,60 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       items.push({
         id: "incidents",
         icon: IconProp.Alert,
-        title: `${incidentsCount} Active ${incidentsCount === 1 ? "Incident" : "Incidents"}`,
+        title: t(
+          incidentsCount === 1
+            ? "header.incidentsActiveOne"
+            : "header.incidentsActiveOther",
+          { count: incidentsCount },
+        ),
         count: incidentsCount,
         alertType: HeaderAlertType.ERROR,
-        tooltip: "View all active incidents",
+        tooltip: t("header.incidentsTooltip"),
       });
 
       // Alerts - ERROR type
       items.push({
         id: "alerts",
         icon: IconProp.ExclaimationCircle,
-        title: `${alertsCount} Active ${alertsCount === 1 ? "Alert" : "Alerts"}`,
+        title: t(
+          alertsCount === 1
+            ? "header.alertsActiveOne"
+            : "header.alertsActiveOther",
+          { count: alertsCount },
+        ),
         count: alertsCount,
         alertType: HeaderAlertType.ERROR,
-        tooltip: "View all active alerts",
+        tooltip: t("header.alertsTooltip"),
       });
 
       // Alert Episodes - ERROR type
       items.push({
         id: "alertEpisodes",
         icon: IconProp.SquareStack3D,
-        title: `${alertEpisodesCount} Active Alert ${alertEpisodesCount === 1 ? "Episode" : "Episodes"}`,
+        title: t(
+          alertEpisodesCount === 1
+            ? "header.alertEpisodesOne"
+            : "header.alertEpisodesOther",
+          { count: alertEpisodesCount },
+        ),
         count: alertEpisodesCount,
         alertType: HeaderAlertType.ERROR,
-        tooltip: "View all active alert episodes",
+        tooltip: t("header.alertEpisodesTooltip"),
       });
 
       // Incident Episodes - ERROR type
       items.push({
         id: "incidentEpisodes",
         icon: IconProp.SquareStack3D,
-        title: `${incidentEpisodesCount} Active Incident ${incidentEpisodesCount === 1 ? "Episode" : "Episodes"}`,
+        title: t(
+          incidentEpisodesCount === 1
+            ? "header.incidentEpisodesOne"
+            : "header.incidentEpisodesOther",
+          { count: incidentEpisodesCount },
+        ),
         count: incidentEpisodesCount,
         alertType: HeaderAlertType.ERROR,
-        tooltip: "View all active incident episodes",
+        tooltip: t("header.incidentEpisodesTooltip"),
       });
 
       // On-Call Policies - SUCCESS type
@@ -705,10 +725,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         items.push({
           id: "oncall",
           icon: IconProp.Call,
-          title: `On duty for ${currentOnCallPolicies.length} ${currentOnCallPolicies.length === 1 ? "policy" : "policies"}`,
+          title: t(
+            currentOnCallPolicies.length === 1
+              ? "header.onDutyOne"
+              : "header.onDutyOther",
+            { count: currentOnCallPolicies.length },
+          ),
           count: currentOnCallPolicies.length,
           alertType: HeaderAlertType.SUCCESS,
-          tooltip: "On-call policies you are currently on duty for",
+          tooltip: t("header.onDutyTooltip"),
         });
       }
 
@@ -716,11 +741,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       items.push({
         id: "invitations",
         icon: IconProp.Folder,
-        title: `${invitationsCount} Pending ${invitationsCount === 1 ? "Invitation" : "Invitations"}`,
+        title: t(
+          invitationsCount === 1
+            ? "header.invitationsPendingOne"
+            : "header.invitationsPendingOther",
+          { count: invitationsCount },
+        ),
         count: invitationsCount,
         alertType: HeaderAlertType.INFO,
-        tooltip:
-          "Looks like you have pending project invitations. Please click here to review and accept them.",
+        tooltip: t("header.invitationsTooltip"),
       });
 
       // Trial Days - INFO type (only if showTrialButton is true)
@@ -728,11 +757,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         items.push({
           id: "trial",
           icon: IconProp.Clock,
-          title: `Trial ends in ${trialDaysRemaining} ${trialDaysRemaining === 1 ? "day" : "days"}`,
+          title: t(
+            trialDaysRemaining === 1
+              ? "header.trialEndsOne"
+              : "header.trialEndsOther",
+            { count: trialDaysRemaining },
+          ),
           count: trialDaysRemaining,
           alertType: HeaderAlertType.INFO,
-          tooltip:
-            "Your trial ends soon. Add card details to continue using the service.",
+          tooltip: t("header.trialTooltip"),
         });
       }
 
@@ -741,11 +774,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         items.push({
           id: "addcard",
           icon: IconProp.Billing,
-          title: "Add Card Details",
+          title: t("header.addCardDetails"),
           count: 1,
           alertType: HeaderAlertType.INFO,
-          tooltip:
-            "Add your payment card details to continue using the service.",
+          tooltip: t("header.addCardTooltip"),
         });
       }
 
@@ -808,11 +840,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       {onCallDutyPolicyFetchError ? (
         <ConfirmModal
           description={onCallDutyPolicyFetchError}
-          title={`Error loading on-call policies`}
+          title={t("header.errorTitleOnCallPolicies")}
           onSubmit={() => {
             setOnCallDutyPolicyFetchError(null);
           }}
-          submitButtonText={`Close`}
+          submitButtonText={t("common.close")}
           submitButtonType={ButtonStyleType.NORMAL}
         />
       ) : (
@@ -843,10 +875,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         }
         rightComponents={
           <>
-            <NotificationBell
-              items={buildNotificationItems()}
-              onItemClick={handleNotificationItemClick}
-            />
             {BILLING_ENABLED &&
             props.selectedProject?.id &&
             props.selectedProject.paymentProviderPlanId &&
@@ -858,6 +886,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            <NotificationBell
+              items={buildNotificationItems()}
+              onItemClick={handleNotificationItemClick}
+            />
             <Help />
             <UserProfile
               onClickUserProfile={() => {

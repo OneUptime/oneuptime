@@ -1,0 +1,91 @@
+{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "api") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-logs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: log-collector
+spec:
+  replicas: {{ .Values.logs.api.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: log-collector
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: log-collector
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
+      # compatible. The tailer only needs the ServiceAccount's API access.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: log-tailer
+          image: "{{ .Values.logs.api.image.repository }}:{{ .Values.logs.api.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.logs.api.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: ONEUPTIME_URL
+              value: {{ .Values.oneuptime.url | quote }}
+            - name: ONEUPTIME_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubernetes-agent.fullname" . }}
+                  key: api-key
+            - name: CLUSTER_NAME
+              value: {{ .Values.clusterName | quote }}
+            - name: NAMESPACE_INCLUDE
+              value: {{ join "," .Values.namespaceFilters.include | quote }}
+            - name: NAMESPACE_EXCLUDE
+              value: {{ join "," .Values.namespaceFilters.exclude | quote }}
+            - name: AGENT_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: AGENT_LABEL_SELECTOR
+              value: "app.kubernetes.io/instance={{ .Release.Name }}"
+            - name: BATCH_MAX_RECORDS
+              value: {{ .Values.logs.api.batchMaxRecords | default 500 | quote }}
+            - name: BATCH_MAX_MS
+              value: {{ .Values.logs.api.batchMaxMs | default 5000 | quote }}
+            - name: EXPORT_MAX_RETRIES
+              value: {{ .Values.logs.api.exportMaxRetries | default 5 | quote }}
+            - name: SINCE_SECONDS_ON_START
+              value: {{ .Values.logs.api.sinceSecondsOnStart | default 10 | quote }}
+            - name: HEALTH_PORT
+              value: "13133"
+            - name: LOG_LEVEL
+              value: {{ .Values.logs.api.logLevel | default "info" | quote }}
+          ports:
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.logs.api.resources | nindent 12 }}
+{{- end }}

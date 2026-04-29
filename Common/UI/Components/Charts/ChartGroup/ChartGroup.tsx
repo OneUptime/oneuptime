@@ -36,6 +36,13 @@ export interface Chart {
   metricInfo?: ChartMetricInfo | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  /**
+   * Optional control panel rendered between the chart title and the
+   * chart body. Used by per-series-grouped metric charts to surface a
+   * search box, per-series toggles, and a "show all" escape hatch so
+   * the chart stays usable at thousands of unique label combinations.
+   */
+  seriesControls?: ReactElement | undefined;
 }
 
 export interface ComponentProps {
@@ -58,6 +65,13 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     chart: Chart,
     index: number,
   ): ReactElement => {
+    /*
+     * When the chart has its own seriesControls panel, that panel doubles
+     * as a colored, interactive legend — so we suppress the built-in
+     * Recharts legend to avoid showing two legends for the same series.
+     */
+    const showLegend: boolean = !chart.seriesControls;
+
     switch (chart.type) {
       case ChartType.LINE:
         return (
@@ -68,6 +82,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
+            showLegend={showLegend}
           />
         );
       case ChartType.BAR:
@@ -77,6 +92,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             {...(chart.props as BarChartProps)}
             syncid={syncId}
             heightInPx={props.heightInPx}
+            showLegend={showLegend}
           />
         );
       case ChartType.AREA:
@@ -88,6 +104,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             heightInPx={props.heightInPx}
             exemplarPoints={chart.exemplarPoints}
             onExemplarClick={chart.onExemplarClick}
+            showLegend={showLegend}
           />
         );
       default:
@@ -239,6 +256,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       </p>
                     )}
                   </div>
+                  {chart.seriesControls ? (
+                    <div className="mb-3">{chart.seriesControls}</div>
+                  ) : null}
                   {getChartContent(chart, index)}
                 </div>
               </div>
@@ -283,6 +303,9 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.description}
                 </p>
               )}
+              {chart.seriesControls ? (
+                <div className="mt-3">{chart.seriesControls}</div>
+              ) : null}
               {getChartContent(chart, index)}
             </div>
           );

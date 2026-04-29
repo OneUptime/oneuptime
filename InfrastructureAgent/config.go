@@ -97,6 +97,18 @@ func (c *ConfigFile) removeConfigFile() error {
 	return nil
 }
 
+// isDirWritable probes whether the current process can create files in dir.
+func isDirWritable(dir string) bool {
+	probe, err := os.CreateTemp(dir, ".oneuptime-agent-write-check-")
+	if err != nil {
+		return false
+	}
+	probePath := probe.Name()
+	_ = probe.Close()
+	_ = os.Remove(probePath)
+	return true
+}
+
 // ensureDir checks if a directory exists and makes it if it does not.
 func (c *ConfigFile) ensureDir(dirName string) error {
 	// Check if the directory exists
@@ -117,7 +129,17 @@ func (c *ConfigFile) ensureDir(dirName string) error {
 
 // configPath returns the full path to the configuration file,
 // ensuring the directory exists or creating it if it does not.
+//
+// An explicit path can be supplied via the ONEUPTIME_AGENT_CONFIG_PATH
+// env var. When unset, the agent uses the system-wide default
+// (/etc/... on Unix, %PROGRAMDATA%\... on Windows) and falls back to
+// $HOME/.oneuptime-infrastructure-agent/ when the system path is not
+// writable (e.g. unprivileged local testing).
 func (c *ConfigFile) configPath() string {
+	if override := os.Getenv("ONEUPTIME_AGENT_CONFIG_PATH"); override != "" {
+		return override
+	}
+
 	var basePath string
 	if runtime.GOOS == "windows" {
 		basePath = os.Getenv("PROGRAMDATA")
@@ -128,15 +150,21 @@ func (c *ConfigFile) configPath() string {
 		basePath = fmt.Sprintf("%setc", string(filepath.Separator))
 	}
 
-	// Define the directory path where the configuration file will be stored.
 	configDirectory := filepath.Join(basePath, "oneuptime-infrastructure-agent")
 
-	// Ensure the directory exists.
-	err := c.ensureDir(configDirectory)
-	if err != nil {
-		slog.Error("Failed to create config directory: %v", err)
+	// If the system dir isn't usable (missing or not writable by us, e.g. the
+	// directory was created by a prior root install), fall back to $HOME so
+	// an unprivileged user can still run the agent locally.
+	if err := c.ensureDir(configDirectory); err != nil || !isDirWritable(configDirectory) {
+		if home, herr := os.UserHomeDir(); herr == nil {
+			configDirectory = filepath.Join(home, ".oneuptime-infrastructure-agent")
+			if ferr := c.ensureDir(configDirectory); ferr != nil {
+				slog.Error("Failed to create config directory", "error", ferr)
+			}
+		} else {
+			slog.Error("Failed to create config directory", "error", err)
+		}
 	}
 
-	// Return the full path to the configuration file.
 	return filepath.Join(configDirectory, "config.json")
 }

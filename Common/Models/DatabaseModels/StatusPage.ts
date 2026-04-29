@@ -18,6 +18,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableMCP from "../../Types/Database/EnableMCP";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -42,6 +43,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageLanguage";
 
 @EnableDocumentation()
 @EnableMCP()
@@ -85,6 +87,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
   update: true,
   read: true,
 })
+@EnableAuditLog()
 @CrudApiEndpoint(new Route("/status-page"))
 @SlugifyColumn("name", "slug")
 @Entity({
@@ -2989,4 +2992,83 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public embeddedOverallStatusToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageManager,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageManager,
+      Permission.ReadProjectStatusPage,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageManager,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Default Language",
+    required: false,
+    defaultValue: DEFAULT_STATUS_PAGE_LANGUAGE,
+    description:
+      "Default language that the status page is shown in when a visitor arrives for the first time.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    default: DEFAULT_STATUS_PAGE_LANGUAGE,
+  })
+  public defaultLanguage?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageManager,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageManager,
+      Permission.ReadProjectStatusPage,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageManager,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Enabled Languages",
+    description:
+      "Languages offered in the footer language switcher. Leave empty to offer all supported languages.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public enabledLanguages?: Array<string> = undefined;
 }

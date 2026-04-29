@@ -219,6 +219,23 @@ data:
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
 
+      # The k8sobjects receiver emits LogRecords without a severity, so
+      # Kubernetes events and resource snapshots arrive at OneUptime with
+      # severity_number=0 and render as "Unspecified" on the Logs page.
+      # Default to INFO and upgrade Warning-type events to WARN so severity
+      # filters work out of the box.
+      transform/severity:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(severity_text, "INFO") where severity_text == ""
+              - set(severity_number, SEVERITY_NUMBER_INFO) where severity_number == 0
+              - set(severity_text, "WARN") where IsMap(body) and body["type"] == "Warning"
+              - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and body["type"] == "Warning"
+              - set(severity_text, "WARN") where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
+              - set(severity_number, SEVERITY_NUMBER_WARN) where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
+
       # Batch telemetry for efficient export
       batch:
         send_batch_size: 100
@@ -271,6 +288,7 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
+            - transform/severity
             - batch
           exporters:
             - otlphttp

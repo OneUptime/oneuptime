@@ -68,6 +68,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Terminal,
         },
+        {
+          link: {
+            title: "Data Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
       ],
     },
     {
@@ -232,6 +241,29 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Refresh,
+        },
+      ],
+    },
+    {
+      title: "Audit Logs",
+      items: [
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
+        {
+          link: {
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
         },
       ],
     },

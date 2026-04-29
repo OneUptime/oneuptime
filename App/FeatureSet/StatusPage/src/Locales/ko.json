@@ -1,0 +1,233 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "submit": "제출",
+    "close": "닫기",
+    "back": "뒤로",
+    "next": "다음",
+    "loading": "로딩 중...",
+    "search": "검색",
+    "edit": "편집",
+    "delete": "삭제",
+    "yes": "예",
+    "no": "아니오",
+    "statusPage": "상태 페이지"
+  },
+  "language": {
+    "label": "언어",
+    "switchLanguage": "언어 변경"
+  },
+  "nav": {
+    "overview": "개요",
+    "incidents": "사고",
+    "announcements": "공지사항",
+    "scheduledEvents": "예정된 이벤트",
+    "subscribe": "구독",
+    "login": "로그인",
+    "logout": "로그아웃"
+  },
+  "overview": {
+    "uptimeSuffix": "% 가동 시간",
+    "operational": "정상 작동",
+    "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
+    "activeIncidents": "진행 중인 사고",
+    "scheduledMaintenanceEvents": "예정된 유지보수 이벤트",
+    "allClearTitle": "모든 것이 정상입니다",
+    "allClearDescription": "이 상태 페이지에 아직 리소스가 추가되지 않았습니다. 대시보드에서 리소스를 추가해주세요.",
+    "allResourcesAre": "모든 리소스가 {{status}}입니다",
+    "someResourcesAre": "일부 리소스가 {{status}}입니다",
+    "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다"
+  },
+  "eventItem": {
+    "affectedResources": "영향을 받은 리소스",
+    "stateChangedTo": "상태가 다음으로 변경됨:",
+    "view": "{{eventType}} 보기",
+    "updateTo": "이 {{eventType}}에 대한 업데이트",
+    "postedOn": "게시일:"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}}일 전",
+    "today": "오늘",
+    "notAvailable": "사용할 수 없음"
+  },
+  "incidents": {
+    "title": "사고",
+    "singular": "사고",
+    "active": "진행 중인 사고",
+    "resolved": "해결된 사고",
+    "none": "사고 없음",
+    "noneDescription": "이 상태 페이지에 게시된 사고가 없습니다.",
+    "postmortem": "사고 사후 분석",
+    "declaredAt": "발생 시각: ",
+    "report": "사고 보고서",
+    "notFound": "이 상태 페이지에서 사고를 찾을 수 없습니다."
+  },
+  "episodes": {
+    "report": "에피소드 보고서",
+    "none": "에피소드 없음",
+    "notFound": "이 상태 페이지에서 에피소드를 찾을 수 없습니다."
+  },
+  "announcements": {
+    "title": "공지사항",
+    "singular": "공지사항",
+    "active": "활성 공지사항",
+    "past": "지난 공지사항",
+    "none": "공지사항 없음",
+    "noneDescription": "이 페이지에 아직 게시된 공지사항이 없습니다.",
+    "announcedAt": "공지 시각: ",
+    "notFound": "이 상태 페이지에서 공지사항을 찾을 수 없습니다."
+  },
+  "scheduledEvents": {
+    "title": "예정된 이벤트",
+    "singular": "예정된 이벤트",
+    "scheduledMaintenance": "예정된 유지보수",
+    "ongoing": "진행 중인 이벤트",
+    "upcoming": "예정된 이벤트",
+    "completed": "완료된 이벤트",
+    "none": "예정된 이벤트 없음",
+    "noneDescription": "이 상태 페이지에 게시된 예정된 이벤트가 없습니다.",
+    "scheduledAt": "예정 시각: ",
+    "report": "예정된 이벤트 보고서",
+    "notFound": "이 상태 페이지에서 예정된 이벤트를 찾을 수 없습니다."
+  },
+  "subscribe": {
+    "title": "구독",
+    "submit": "구독",
+    "newSubscription": "새 구독",
+    "manageExisting": "기존 구독 관리",
+    "sendManagementLink": "관리 링크 보내기",
+    "subscribedSuccessfully": "구독이 완료되었습니다.",
+    "emailSentCheckSpam": "링크가 포함된 이메일이 이메일 주소로 전송되었습니다. 이메일이 보이지 않으면 스팸 폴더를 확인해주세요.",
+    "menu": {
+      "email": "이메일",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "이메일로 구독",
+      "description": "모든 업데이트가 이 이메일 주소로 전송됩니다.",
+      "yourEmail": "이메일 주소",
+      "placeholder": "subscriber@company.kr",
+      "managePrompt": "구독 시 사용한 이메일을 입력해주세요",
+      "manageDescription": "구독 관리 링크를 이 이메일로 보내드리겠습니다.",
+      "managePlaceholder": "email@yourcompany.kr"
+    },
+    "sms": {
+      "title": "SMS로 구독",
+      "description": "모든 업데이트가 이 전화번호로 전송됩니다.",
+      "yourPhoneNumber": "전화번호",
+      "placeholder": "+821012345678",
+      "managePrompt": "구독 시 사용한 전화번호를 입력해주세요",
+      "manageDescription": "구독 관리 링크를 이 전화번호로 보내드리겠습니다."
+    },
+    "slack": {
+      "title": "Slack으로 구독",
+      "description": "모든 업데이트가 이 Slack 웹훅으로 전송됩니다.",
+      "workspaceName": "Slack 워크스페이스 이름",
+      "workspaceNameDescription": "검증을 위해 Slack 워크스페이스 이름을 입력해주세요.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "상태 페이지 업데이트가 이 Slack 웹훅으로 전송됩니다.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "구독 시 사용한 Slack 워크스페이스 이름을 입력해주세요",
+      "manageDescription": "구독 관리 링크를 이 워크스페이스로 보내드리겠습니다."
+    },
+    "microsoftTeams": {
+      "title": "Microsoft Teams로 구독",
+      "description": "모든 업데이트가 이 Teams 웹훅으로 전송됩니다.",
+      "workspaceName": "Microsoft Teams 워크스페이스 이름",
+      "workspaceNameDescription": "검증을 위해 Microsoft Teams 워크스페이스 이름을 입력해주세요.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "상태 페이지 업데이트가 이 Teams 웹훅으로 전송됩니다.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "구독 시 사용한 Microsoft Teams 워크스페이스 이름을 입력해주세요",
+      "manageDescription": "구독 관리 링크를 이 워크스페이스로 보내드리겠습니다."
+    },
+    "resources": {
+      "all": "모든 리소스 구독",
+      "allDescription": "모든 리소스를 구독하려면 이 옵션을 선택하세요.",
+      "select": "구독할 리소스 선택",
+      "selectDescription": "구독하고 싶은 리소스를 선택해주세요."
+    },
+    "eventTypes": {
+      "all": "모든 이벤트 유형 구독",
+      "allDescription": "모든 이벤트 유형을 구독하려면 이 옵션을 선택하세요.",
+      "select": "구독할 이벤트 유형 선택",
+      "selectDescription": "구독하고 싶은 이벤트 유형을 선택해주세요."
+    },
+    "update": {
+      "title": "구독 업데이트",
+      "description": "여기에서 구독 설정을 업데이트하거나 구독을 취소할 수 있습니다.",
+      "saved": "변경 사항이 저장되었습니다.",
+      "unsubscribe": "구독 취소",
+      "unsubscribeDescription": "모든 리소스의 구독을 취소하려면 이 옵션을 선택하세요."
+    },
+    "confirm": {
+      "title": "구독 확인",
+      "success": "구독이 확인되었습니다"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "이메일",
+      "password": "비밀번호",
+      "newPassword": "새 비밀번호",
+      "confirmPassword": "비밀번호 확인",
+      "login": "로그인"
+    },
+    "login": {
+      "welcomeBack": "다시 오신 것을 환영합니다!",
+      "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
+      "forgotPassword": "비밀번호를 잊으셨나요?",
+      "submit": "로그인",
+      "useSSO": "대신 싱글 사인온(SSO) 사용"
+    },
+    "sso": {
+      "title": "SSO로 로그인",
+      "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
+      "noProviders": "구성되거나 활성화된 SSO 제공자가 없습니다"
+    },
+    "forgotPassword": {
+      "title": "비밀번호 분실",
+      "description": "{{statusPageName}}의 비밀번호를 잊으셨다면 이메일을 입력해주세요. 비밀번호 재설정 링크를 보내드립니다.",
+      "success": "비밀번호 재설정 링크를 이메일로 보내드렸습니다. 스팸 폴더도 확인해주세요.",
+      "sendLink": "비밀번호 재설정 링크 보내기",
+      "rememberPassword": "비밀번호가 기억나셨나요?"
+    },
+    "resetPassword": {
+      "description": "{{statusPageName}} 계정의 새 비밀번호를 만들어주세요.",
+      "instructions": "새 비밀번호를 입력하시면 업데이트해드립니다.",
+      "success": "비밀번호가 업데이트되었습니다. 로그인해주세요.",
+      "submit": "비밀번호 재설정",
+      "knowPassword": "비밀번호를 알고 계신가요?"
+    },
+    "masterPassword": {
+      "enterWithName": "{{statusPageName}} 비밀번호 입력",
+      "enterGeneric": "비밀번호 입력",
+      "prompt": "계속하려면 비밀번호를 입력해주세요.",
+      "passwordRequired": "비밀번호는 필수입니다.",
+      "passwordLabel": "비밀번호",
+      "passwordDescription": "이 페이지의 잠금을 해제하려면 비밀번호를 입력해주세요.",
+      "passwordPlaceholder": "비밀번호 입력",
+      "submit": "상태 페이지 잠금 해제"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "페이지를 찾을 수 없습니다.",
+      "description": "찾으시는 페이지가 존재하지 않습니다."
+    },
+    "forbidden": {
+      "title": "접근 금지",
+      "description": "이 페이지에 접근할 권한이 없습니다."
+    },
+    "generic": "문제가 발생했습니다. 다시 시도해주세요."
+  },
+  "footer": {
+    "poweredBy": "Powered by OneUptime"
+  }
+}

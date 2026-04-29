@@ -5,6 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import SideMenuComponent from "./SideMenu";
 import User from "Common/Models/DatabaseModels/User";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -13,6 +14,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FieldType from "Common/UI/Components/Types/FieldType";
 
 const UserSettings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -21,18 +23,18 @@ const UserSettings: FunctionComponent = (): ReactElement => {
       modelNameField="email"
       modelType={User}
       modelAPI={AdminModelAPI}
-      title={"User"}
+      title={t("pages.userView.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Users",
+          title: t("breadcrumbs.users"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
-          title: "User",
+          title: t("breadcrumbs.user"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
             {
@@ -41,7 +43,7 @@ const UserSettings: FunctionComponent = (): ReactElement => {
           ),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_SETTINGS] as Route,
             {
@@ -56,12 +58,11 @@ const UserSettings: FunctionComponent = (): ReactElement => {
         name="user-master-admin-settings"
         modelAPI={AdminModelAPI}
         cardProps={{
-          title: "Master Admin Access",
-          description:
-            "Grant or revoke master admin access for this user. Master admins can manage every project and workspace.",
+          title: t("pages.userView.masterAdminCardTitle"),
+          description: t("pages.userView.masterAdminCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Update Access"
+        editButtonText={t("pages.userView.masterAdminEditButton")}
         formFields={[
           {
             field: {
@@ -84,7 +85,7 @@ const UserSettings: FunctionComponent = (): ReactElement => {
               },
               title: "Master Admin",
               fieldType: FieldType.Boolean,
-              placeholder: "No",
+              placeholder: t("common.no"),
             },
           ],
           modelId: modelId,

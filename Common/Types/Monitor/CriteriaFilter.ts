@@ -19,6 +19,11 @@ export enum CheckOn {
   DiskUsagePercent = "Disk Usage (in %)",
   CPUUsagePercent = "CPU Usage (in %)",
   MemoryUsagePercent = "Memory Usage (in %)",
+  LoadAverage1Min = "Load Average (1 minute)",
+  LoadAverage5Min = "Load Average (5 minute)",
+  LoadAverage15Min = "Load Average (15 minute)",
+  SwapUsagePercent = "Swap Usage (in %)",
+  CPUIoWaitPercent = "CPU IO Wait (in %)",
   ExpiresInHours = "Expires In Hours",
   ExpiresInDays = "Expires In Days",
   IsSelfSignedCertificate = "Is Self Signed Certificate",
@@ -296,6 +301,11 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DiskUsagePercent ||
       checkOn === CheckOn.CPUUsagePercent ||
       checkOn === CheckOn.MemoryUsagePercent ||
+      checkOn === CheckOn.LoadAverage1Min ||
+      checkOn === CheckOn.LoadAverage5Min ||
+      checkOn === CheckOn.LoadAverage15Min ||
+      checkOn === CheckOn.SwapUsagePercent ||
+      checkOn === CheckOn.CPUIoWaitPercent ||
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpResponseTime ||
       checkOn === CheckOn.SnmpIsOnline ||

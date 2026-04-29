@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import MoreSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Page from "Common/UI/Components/Page/Page";
 import Card from "Common/UI/Components/Card/Card";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -19,6 +20,7 @@ import Modal from "Common/UI/Components/Modal/Modal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 const MoreEmail: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
   const [isSendingAll, setIsSendingAll] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -58,10 +60,10 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
       }
 
       if (response.isFailure()) {
-        throw new Error("Failed to send test email.");
+        throw new Error(t("pages.moreEmail.testFailure"));
       }
 
-      setTestSuccess("Test email sent successfully. Please check your inbox.");
+      setTestSuccess(t("pages.moreEmail.testSuccess"));
     } catch (err) {
       setTestError(API.getFriendlyMessage(err));
     } finally {
@@ -91,12 +93,10 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
       }
 
       if (response.isFailure()) {
-        throw new Error("Failed to send emails.");
+        throw new Error(t("pages.moreEmail.allFailure"));
       }
 
-      setSuccess(
-        "Broadcast email job has been started. Emails will be sent in the background.",
-      );
+      setSuccess(t("pages.moreEmail.allSuccess"));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -106,20 +106,20 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
 
   return (
     <Page
-      title={"Send Announcement Email"}
+      title={t("pages.moreEmail.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "More",
+          title: t("breadcrumbs.more"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.MORE_EMAIL] as Route,
           ),
         },
         {
-          title: "Send Email",
+          title: t("breadcrumbs.sendEmail"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.MORE_EMAIL] as Route,
           ),
@@ -128,8 +128,8 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
       sideMenu={<MoreSideMenu />}
     >
       <Card
-        title="Send Announcement Email"
-        description="Compose an announcement email to send to all registered users. You can send a test email first to preview how it looks."
+        title={t("pages.moreEmail.cardTitle")}
+        description={t("pages.moreEmail.cardDescription")}
       >
         {success ? (
           <Alert type={AlertType.SUCCESS} title={success} className="mb-4" />
@@ -177,7 +177,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
           footer={
             <div className="flex w-full justify-end mt-3 space-x-3">
               <Button
-                title="Send Test Email"
+                title={t("pages.moreEmail.sendTestButton")}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   const subject: string = String(
@@ -188,9 +188,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
                   ).trim();
 
                   if (!subject || !message) {
-                    setError(
-                      "Please fill in subject and message before sending a test.",
-                    );
+                    setError(t("pages.moreEmail.fillSubjectMessage"));
                     return;
                   }
 
@@ -204,7 +202,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
                 }}
               />
               <Button
-                title="Send to All Users"
+                title={t("pages.moreEmail.sendAllButton")}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 isLoading={isSendingAll}
                 onClick={() => {
@@ -217,7 +215,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
 
                   if (!subject || !message) {
                     setSuccess("");
-                    setError("Please fill in all fields.");
+                    setError(t("pages.moreEmail.fillAllFields"));
                     return;
                   }
 
@@ -234,16 +232,16 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
 
       {showTestModal ? (
         <Modal
-          title="Send Test Email"
-          description="Enter an email address to send a test of this announcement."
+          title={t("pages.moreEmail.testModalTitle")}
+          description={t("pages.moreEmail.testModalDescription")}
           onClose={() => {
             setShowTestModal(false);
           }}
-          submitButtonText="Send Test"
+          submitButtonText={t("pages.moreEmail.testModalSubmitButton")}
           isLoading={isSendingTest}
           onSubmit={() => {
             if (!testEmail.trim()) {
-              setTestError("Please enter a test email address.");
+              setTestError(t("pages.moreEmail.testModalMissingEmail"));
               return;
             }
             sendTestEmail().catch(() => {});
@@ -264,13 +262,13 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
               htmlFor="test-email-input"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Test Email Address
+              {t("pages.moreEmail.testModalEmailLabel")}
             </label>
             <input
               id="test-email-input"
               type="email"
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-              placeholder="test@example.com"
+              placeholder={t("pages.moreEmail.testModalEmailPlaceholder")}
               value={testEmail}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setTestEmail(e.target.value);
@@ -284,9 +282,9 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
 
       {showConfirmModal ? (
         <ConfirmModal
-          title="Confirm Send to All Users"
-          description="Are you sure you want to send this announcement email to all registered users? This action cannot be undone."
-          submitButtonText="Yes, Send to All Users"
+          title={t("pages.moreEmail.confirmTitle")}
+          description={t("pages.moreEmail.confirmDescription")}
+          submitButtonText={t("pages.moreEmail.confirmButton")}
           onSubmit={async () => {
             setShowConfirmModal(false);
             await sendToAllUsers();

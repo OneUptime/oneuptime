@@ -148,6 +148,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Audit">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Notes">
         <SideMenuItem
           link={{

@@ -58,6 +58,7 @@ import TraceRecordingRule from "./TraceRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
+import MonitorTemplate from "./MonitorTemplate";
 // Monitor Groups
 import MonitorGroup from "./MonitorGroup";
 import MonitorGroupOwnerTeam from "./MonitorGroupOwnerTeam";
@@ -140,6 +141,7 @@ import ShortLink from "./ShortLink";
 // SMS
 import SmsLog from "./SmsLog";
 import WhatsAppLog from "./WhatsAppLog";
+import TelegramLog from "./TelegramLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 // Status Page
@@ -176,6 +178,7 @@ import UserCall from "./UserCall";
 import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
+import UserTelegram from "./UserTelegram";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -306,6 +309,7 @@ const AllModelTypes: Array<{
   MonitorSecret,
   MonitorStatus,
   MonitorCustomField,
+  MonitorTemplate,
 
   IncidentState,
   Incident,
@@ -414,6 +418,7 @@ const AllModelTypes: Array<{
 
   SmsLog,
   WhatsAppLog,
+  TelegramLog,
   PushNotificationLog,
   WorkspaceNotificationLog,
   CallLog,
@@ -424,6 +429,7 @@ const AllModelTypes: Array<{
   UserCall,
   UserPush,
   UserWhatsApp,
+  UserTelegram,
   UserIncomingCallNumber,
 
   UserNotificationRule,

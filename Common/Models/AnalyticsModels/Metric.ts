@@ -20,6 +20,7 @@ export enum MetricPointType {
   Gauge = "Gauge",
   Histogram = "Histogram",
   ExponentialHistogram = "ExponentialHistogram",
+  Summary = "Summary",
 }
 
 export enum ServiceType {
@@ -501,8 +502,116 @@ export default class Metric extends AnalyticsBaseModel {
     const explicitBoundsColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
       {
         key: "explicitBounds",
-        title: "Explicit Bonds",
-        description: "Explicit Bonds",
+        title: "Explicit Bounds",
+        description:
+          "Upper bounds (exclusive of the +inf overflow bucket) for each explicit-bucket histogram bucket. Stored as Float64 so sub-integer boundaries (e.g. 0.005, 0.01) survive ingest — the previous Array(Int64) representation silently truncated those to 0.",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayDecimal,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      },
+    );
+
+    /*
+     * --- ExponentialHistogram-only columns ----------------------------------
+     * These are populated only when metricPointType = ExponentialHistogram.
+     * For other metric types they are left at their defaults (0 / []).
+     */
+
+    const scaleColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "scale",
+      title: "Scale",
+      description:
+        "ExponentialHistogram resolution. base = 2^(2^-scale); bucket index `i` covers (base^i, base^(i+1)].",
+      required: false,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const zeroCountColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "zeroCount",
+      title: "Zero Count",
+      description:
+        "ExponentialHistogram count of values within the zero region (|v| <= zeroThreshold).",
+      required: false,
+      type: TableColumnType.BigNumber,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const positiveOffsetColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "positiveOffset",
+        title: "Positive Bucket Offset",
+        description:
+          "Bucket index of the first entry in positiveBucketCounts (ExponentialHistogram).",
+        required: false,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      },
+    );
+
+    const positiveBucketCountsColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "positiveBucketCounts",
+        title: "Positive Bucket Counts",
+        description:
+          "Counts for the positive range of an ExponentialHistogram, indexed from positiveOffset.",
         required: true,
         defaultValue: [],
         type: TableColumnType.ArrayBigNumber,
@@ -521,8 +630,117 @@ export default class Metric extends AnalyticsBaseModel {
           ],
           update: [],
         },
+      });
+
+    const negativeOffsetColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "negativeOffset",
+        title: "Negative Bucket Offset",
+        description:
+          "Bucket index of the first entry in negativeBucketCounts (ExponentialHistogram).",
+        required: false,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
       },
     );
+
+    const negativeBucketCountsColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "negativeBucketCounts",
+        title: "Negative Bucket Counts",
+        description:
+          "Counts for the negative range of an ExponentialHistogram, indexed from negativeOffset.",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayBigNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    /*
+     * --- Summary-only columns -----------------------------------------------
+     * Populated only when metricPointType = Summary. Two parallel arrays
+     * keyed by index (mirrors the bucketCounts/explicitBounds convention):
+     *   summaryQuantiles[i] in [0,1], summaryValues[i] is value at that quantile.
+     */
+
+    const summaryQuantilesColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "summaryQuantiles",
+        title: "Summary Quantiles",
+        description:
+          "Quantile percentages in [0,1] for a Summary metric (parallel to summaryValues).",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayDecimal,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    const summaryValuesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "summaryValues",
+      title: "Summary Values",
+      description:
+        "Values corresponding to each quantile in summaryQuantiles for a Summary metric.",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayDecimal,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
 
     const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "traceId",
@@ -647,6 +865,14 @@ export default class Metric extends AnalyticsBaseModel {
         maxColumn,
         bucketCountsColumn,
         explicitBoundsColumn,
+        scaleColumn,
+        zeroCountColumn,
+        positiveOffsetColumn,
+        positiveBucketCountsColumn,
+        negativeOffsetColumn,
+        negativeBucketCountsColumn,
+        summaryQuantilesColumn,
+        summaryValuesColumn,
         traceIdColumn,
         spanIdColumn,
         retentionDateColumn,
@@ -845,5 +1071,73 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set retentionDate(v: Date | undefined) {
     this.setColumnValue("retentionDate", v);
+  }
+
+  public get scale(): number | undefined {
+    return this.getColumnValue("scale") as number | undefined;
+  }
+
+  public set scale(v: number | undefined) {
+    this.setColumnValue("scale", v);
+  }
+
+  public get zeroCount(): number | undefined {
+    return this.getColumnValue("zeroCount") as number | undefined;
+  }
+
+  public set zeroCount(v: number | undefined) {
+    this.setColumnValue("zeroCount", v);
+  }
+
+  public get positiveOffset(): number | undefined {
+    return this.getColumnValue("positiveOffset") as number | undefined;
+  }
+
+  public set positiveOffset(v: number | undefined) {
+    this.setColumnValue("positiveOffset", v);
+  }
+
+  public get positiveBucketCounts(): Array<number> | undefined {
+    return this.getColumnValue("positiveBucketCounts") as
+      | Array<number>
+      | undefined;
+  }
+
+  public set positiveBucketCounts(v: Array<number> | undefined) {
+    this.setColumnValue("positiveBucketCounts", v);
+  }
+
+  public get negativeOffset(): number | undefined {
+    return this.getColumnValue("negativeOffset") as number | undefined;
+  }
+
+  public set negativeOffset(v: number | undefined) {
+    this.setColumnValue("negativeOffset", v);
+  }
+
+  public get negativeBucketCounts(): Array<number> | undefined {
+    return this.getColumnValue("negativeBucketCounts") as
+      | Array<number>
+      | undefined;
+  }
+
+  public set negativeBucketCounts(v: Array<number> | undefined) {
+    this.setColumnValue("negativeBucketCounts", v);
+  }
+
+  public get summaryQuantiles(): Array<number> | undefined {
+    return this.getColumnValue("summaryQuantiles") as Array<number> | undefined;
+  }
+
+  public set summaryQuantiles(v: Array<number> | undefined) {
+    this.setColumnValue("summaryQuantiles", v);
+  }
+
+  public get summaryValues(): Array<number> | undefined {
+    return this.getColumnValue("summaryValues") as Array<number> | undefined;
+  }
+
+  public set summaryValues(v: Array<number> | undefined) {
+    this.setColumnValue("summaryValues", v);
   }
 }

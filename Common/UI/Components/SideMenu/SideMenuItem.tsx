@@ -1,4 +1,5 @@
 import Navigation from "../../Utils/Navigation";
+import useTranslateValue from "../../Utils/Translation";
 import Badge, { BadgeType } from "../Badge/Badge";
 import Icon from "../Icon/Icon";
 import UILink from "../Link/Link";
@@ -21,10 +22,16 @@ export interface ComponentProps {
 const SideMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const { translateString } = useTranslateValue();
   const isActive: boolean = Navigation.isOnThisPage(props.link.to);
   const isSubItemActive: boolean = props.subItemLink
     ? Navigation.isOnThisPage(props.subItemLink.to)
     : false;
+  const translatedTitle: string =
+    translateString(props.link.title) || props.link.title;
+  const translatedSubItemTitle: string | undefined = props.subItemLink
+    ? translateString(props.subItemLink.title) || props.subItemLink.title
+    : undefined;
 
   return (
     <>
@@ -84,7 +91,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
               ${isActive ? "font-semibold" : ""}
             `}
           >
-            {props.link.title}
+            {translatedTitle}
           </span>
         </div>
 
@@ -160,7 +167,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 }
               `}
             />
-            <span className="truncate">{props.subItemLink.title}</span>
+            <span className="truncate">{translatedSubItemTitle}</span>
           </div>
         </UILink>
       )}

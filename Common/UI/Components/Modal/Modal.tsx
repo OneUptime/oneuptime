@@ -6,6 +6,7 @@ import ModalBody from "./ModalBody";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -43,6 +44,17 @@ export interface ComponentProps {
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) || props.title;
+  const translatedDescription: string | undefined = translateString(
+    props.description,
+  );
+  const translatedSubmitButtonText: string | undefined = translateString(
+    props.submitButtonText,
+  );
+  const translatedCloseButtonText: string | undefined = translateString(
+    props.closeButtonText,
+  );
   const modalRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
@@ -162,15 +174,15 @@ const Modal: FunctionComponent<ComponentProps> = (
                       }`}
                       id="modal-title"
                     >
-                      {props.title}
+                      {translatedTitle}
                     </h3>
-                    {props.description && (
+                    {translatedDescription && (
                       <p
                         id="modal-description"
                         data-testid="modal-description"
                         className="text-sm leading-6 text-gray-500 mt-2"
                       >
-                        {props.description}
+                        {translatedDescription}
                       </p>
                     )}
                   </div>
@@ -214,10 +226,14 @@ const Modal: FunctionComponent<ComponentProps> = (
                   : ButtonStyleType.NORMAL
               }
               submitButtonText={
-                props.submitButtonText ? props.submitButtonText : "Save"
+                translatedSubmitButtonText
+                  ? translatedSubmitButtonText
+                  : translateString("Save") || "Save"
               }
               closeButtonText={
-                props.closeButtonText ? props.closeButtonText : "Cancel"
+                translatedCloseButtonText
+                  ? translatedCloseButtonText
+                  : translateString("Cancel") || "Cancel"
               }
               onSubmit={props.onSubmit}
               onClose={props.onClose ? props.onClose : undefined}

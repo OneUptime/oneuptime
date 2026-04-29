@@ -285,6 +285,14 @@ import { AddTracePipelineTables1776505976155 } from "./1776505976155-AddTracePip
 import { MigrationName1776509413763 } from "./1776509413763-MigrationName";
 import { MigrationName1776541018853 } from "./1776541018853-MigrationName";
 import { MigrationName1776544084793 } from "./1776544084793-MigrationName";
+import { MigrationName1776761171349 } from "./1776761171349-MigrationName";
+import { MigrationName1776801030808 } from "./1776801030808-MigrationName";
+import { MigrationName1776865086264 } from "./1776865086264-MigrationName";
+import { DedupeKubernetesClustersAndAddUniqueIndex1776881254913 } from "./1776881254913-DedupeKubernetesClustersAndAddUniqueIndex";
+import { MigrationName1776940714709 } from "./1776940714709-MigrationName";
+import { AddStatusPageLanguageSettings1776971364783 } from "./1776971364783-AddStatusPageLanguageSettings";
+import { AddTelemetryRetentionSettings1777018175127 } from "./1777018175127-AddTelemetryRetentionSettings";
+import { AddMonitorTemplate1777201966799 } from "./1777201966799-AddMonitorTemplate";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -573,4 +581,12 @@ export default [
   MigrationName1776509413763,
   MigrationName1776541018853,
   MigrationName1776544084793,
+  MigrationName1776761171349,
+  MigrationName1776801030808,
+  MigrationName1776865086264,
+  DedupeKubernetesClustersAndAddUniqueIndex1776881254913,
+  MigrationName1776940714709,
+  AddStatusPageLanguageSettings1776971364783,
+  AddTelemetryRetentionSettings1777018175127,
+  AddMonitorTemplate1777201966799,
 ];

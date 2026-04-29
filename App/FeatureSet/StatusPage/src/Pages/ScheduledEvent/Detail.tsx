@@ -44,6 +44,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../Utils/i18n";
 import useAsyncEffect from "use-async-effect";
 
 export type GetScheduledEventEventItemFunctionProps = {
@@ -281,7 +283,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     eventTitle: scheduledMaintenance.title || "",
     eventDescription: scheduledMaintenance.description,
     eventTimeline: timeline,
-    eventType: "Scheduled Maintenance",
+    eventType: i18n.t("scheduledEvents.scheduledMaintenance"),
     eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
       const groupName: string = i.statusPageGroup?.name || "";
       const displayName: string = i.displayName || "";
@@ -300,7 +302,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     currentStatusColor: currentStatusColor,
     eventTypeColor: Yellow,
     eventSecondDescription: scheduledMaintenance.startsAt
-      ? "Scheduled at " +
+      ? i18n.t("scheduledEvents.scheduledAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           scheduledMaintenance.startsAt!,
         )
@@ -318,6 +320,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [
@@ -462,10 +465,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title="Scheduled Event Report"
+      title={t("scheduledEvents.report")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -473,7 +476,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Scheduled Events",
+          title: t("scheduledEvents.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
@@ -481,7 +484,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Scheduled Event",
+          title: t("scheduledEvents.singular"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
@@ -495,8 +498,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {!scheduledMaintenanceEvent ? (
         <EmptyState
           id="scheduled-event-empty-state"
-          title={"No Scheduled Event"}
-          description={"No scheduled event found for this status page."}
+          title={t("scheduledEvents.singular")}
+          description={t("scheduledEvents.notFound")}
           icon={IconProp.Clock}
         />
       ) : (

@@ -1,0 +1,233 @@
+{
+  "common": {
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "submit": "Skicka",
+    "close": "Stäng",
+    "back": "Tillbaka",
+    "next": "Nästa",
+    "loading": "Laddar...",
+    "search": "Sök",
+    "edit": "Redigera",
+    "delete": "Radera",
+    "yes": "Ja",
+    "no": "Nej",
+    "statusPage": "Statussida"
+  },
+  "language": {
+    "label": "Språk",
+    "switchLanguage": "Byt språk"
+  },
+  "nav": {
+    "overview": "Översikt",
+    "incidents": "Incidenter",
+    "announcements": "Meddelanden",
+    "scheduledEvents": "Planerade händelser",
+    "subscribe": "Prenumerera",
+    "login": "Logga in",
+    "logout": "Logga ut"
+  },
+  "overview": {
+    "uptimeSuffix": "% drifttid",
+    "operational": "Fungerar",
+    "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
+    "activeIncidents": "Aktiva incidenter",
+    "scheduledMaintenanceEvents": "Planerade underhållshändelser",
+    "allClearTitle": "Allt ser bra ut",
+    "allClearDescription": "Inga resurser har ännu lagts till på den här statussidan. Lägg till några resurser från kontrollpanelen.",
+    "allResourcesAre": "Alla resurser är {{status}}",
+    "someResourcesAre": "Vissa resurser är {{status}}",
+    "someResourcesAreUnder": "Vissa resurser är under {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Berörda resurser",
+    "stateChangedTo": "status ändrad till",
+    "view": "Visa {{eventType}}",
+    "updateTo": "Uppdatering för denna {{eventType}}",
+    "postedOn": "publicerad"
+  },
+  "monitorOverview": {
+    "daysAgo": "för {{days}} dagar sedan",
+    "today": "I dag",
+    "notAvailable": "Inte tillgänglig"
+  },
+  "incidents": {
+    "title": "Incidenter",
+    "singular": "Incident",
+    "active": "Aktiva incidenter",
+    "resolved": "Lösta incidenter",
+    "none": "Inga incidenter",
+    "noneDescription": "Inga incidenter har publicerats på den här statussidan.",
+    "postmortem": "Incidentanalys",
+    "declaredAt": "Rapporterad den ",
+    "report": "Incidentrapport",
+    "notFound": "Incidenten kunde inte hittas på den här statussidan."
+  },
+  "episodes": {
+    "report": "Episodrapport",
+    "none": "Ingen episod",
+    "notFound": "Episoden kunde inte hittas på den här statussidan."
+  },
+  "announcements": {
+    "title": "Meddelanden",
+    "singular": "Meddelande",
+    "active": "Aktiva meddelanden",
+    "past": "Tidigare meddelanden",
+    "none": "Inga meddelanden",
+    "noneDescription": "Inga meddelanden har publicerats på den här sidan hittills.",
+    "announcedAt": "Meddelat den ",
+    "notFound": "Meddelandet kunde inte hittas på den här statussidan."
+  },
+  "scheduledEvents": {
+    "title": "Planerade händelser",
+    "singular": "Planerad händelse",
+    "scheduledMaintenance": "Planerat underhåll",
+    "ongoing": "Pågående händelser",
+    "upcoming": "Planerade händelser",
+    "completed": "Slutförda händelser",
+    "none": "Inga planerade händelser",
+    "noneDescription": "Inga planerade händelser har publicerats för den här statussidan.",
+    "scheduledAt": "Planerad till ",
+    "report": "Rapport för planerad händelse",
+    "notFound": "Ingen planerad händelse hittades för den här statussidan."
+  },
+  "subscribe": {
+    "title": "Prenumerera",
+    "submit": "Prenumerera",
+    "newSubscription": "Ny prenumeration",
+    "manageExisting": "Hantera befintlig prenumeration",
+    "sendManagementLink": "Skicka hanteringslänk",
+    "subscribedSuccessfully": "Du har prenumererat.",
+    "emailSentCheckSpam": "Ett e-postmeddelande med länken har skickats till din e-postadress. Om du inte ser e-postmeddelandet, kontrollera din skräppostmapp.",
+    "menu": {
+      "email": "E-post",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Prenumerera via e-post",
+      "description": "Alla våra uppdateringar skickas till den här e-postadressen.",
+      "yourEmail": "Din e-post",
+      "placeholder": "prenumerant@foretag.se",
+      "managePrompt": "Ange den e-postadress du prenumererar med",
+      "manageDescription": "Vi skickar en hanteringslänk till den här e-postadressen.",
+      "managePlaceholder": "epost@dittforetag.se"
+    },
+    "sms": {
+      "title": "Prenumerera via SMS",
+      "description": "Alla våra uppdateringar skickas till det här telefonnumret.",
+      "yourPhoneNumber": "Ditt telefonnummer",
+      "placeholder": "+46701234567",
+      "managePrompt": "Ange det telefonnummer du prenumererar med",
+      "manageDescription": "Vi skickar en hanteringslänk till det här telefonnumret."
+    },
+    "slack": {
+      "title": "Prenumerera via Slack",
+      "description": "Alla våra uppdateringar skickas till den här Slack-webhooken.",
+      "workspaceName": "Slack-arbetsytans namn",
+      "workspaceNameDescription": "Ange namnet på din Slack-arbetsyta för validering.",
+      "workspaceNamePlaceholder": "mitt-foretag-arbetsyta",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "Uppdateringar från statussidan skickas till den här Slack-webhooken.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Ange namnet på den Slack-arbetsyta du prenumererar med",
+      "manageDescription": "Vi skickar en hanteringslänk till den här arbetsytan."
+    },
+    "microsoftTeams": {
+      "title": "Prenumerera via Microsoft Teams",
+      "description": "Alla våra uppdateringar skickas till den här Teams-webhooken.",
+      "workspaceName": "Microsoft Teams-arbetsytans namn",
+      "workspaceNameDescription": "Ange namnet på din Microsoft Teams-arbetsyta för validering.",
+      "workspaceNamePlaceholder": "mitt-foretag-arbetsyta",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "Uppdateringar från statussidan skickas till den här Teams-webhooken.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Ange namnet på den Microsoft Teams-arbetsyta du prenumererar med",
+      "manageDescription": "Vi skickar en hanteringslänk till den här arbetsytan."
+    },
+    "resources": {
+      "all": "Prenumerera på alla resurser",
+      "allDescription": "Välj det här alternativet om du vill prenumerera på alla resurser.",
+      "select": "Välj resurser att prenumerera på",
+      "selectDescription": "Välj de resurser du vill prenumerera på."
+    },
+    "eventTypes": {
+      "all": "Prenumerera på alla händelsetyper",
+      "allDescription": "Välj det här alternativet om du vill prenumerera på alla händelsetyper.",
+      "select": "Välj händelsetyper att prenumerera på",
+      "selectDescription": "Välj de händelsetyper du vill prenumerera på."
+    },
+    "update": {
+      "title": "Uppdatera prenumeration",
+      "description": "Du kan uppdatera dina prenumerationsinställningar eller avsluta prenumerationen här.",
+      "saved": "Dina ändringar har sparats.",
+      "unsubscribe": "Avsluta prenumeration",
+      "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser."
+    },
+    "confirm": {
+      "title": "Bekräfta prenumeration",
+      "success": "Prenumeration bekräftad"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "E-post",
+      "password": "Lösenord",
+      "newPassword": "Nytt lösenord",
+      "confirmPassword": "Bekräfta lösenord",
+      "login": "Logga in"
+    },
+    "login": {
+      "welcomeBack": "Välkommen tillbaka!",
+      "loginPrompt": "Logga in för att se {{statusPageName}}",
+      "forgotPassword": "Glömt lösenord?",
+      "submit": "Logga in",
+      "useSSO": "Använd single sign-on (SSO) istället"
+    },
+    "sso": {
+      "title": "Logga in med SSO",
+      "loginPrompt": "Logga in för att se {{statusPageName}}",
+      "noProviders": "Inga SSO-leverantörer har konfigurerats eller aktiverats"
+    },
+    "forgotPassword": {
+      "title": "Glömt lösenord",
+      "description": "Om du har glömt ditt lösenord för {{statusPageName}}, ange din e-postadress så skickar vi dig länken för återställning av lösenordet.",
+      "success": "Vi har skickat dig länken för återställning av lösenordet via e-post. Glöm inte att kontrollera skräppostmappen.",
+      "sendLink": "Skicka länk för återställning av lösenord",
+      "rememberPassword": "Kommer du ihåg ditt lösenord?"
+    },
+    "resetPassword": {
+      "description": "Skapa ett nytt lösenord för ditt {{statusPageName}}-konto.",
+      "instructions": "Ange ditt nya lösenord så uppdaterar vi det.",
+      "success": "Ditt lösenord har uppdaterats. Vänligen logga in.",
+      "submit": "Återställ lösenord",
+      "knowPassword": "Kommer du ihåg ditt lösenord?"
+    },
+    "masterPassword": {
+      "enterWithName": "Ange lösenord för {{statusPageName}}",
+      "enterGeneric": "Ange lösenord",
+      "prompt": "Ange lösenordet för att fortsätta.",
+      "passwordRequired": "lösenord krävs.",
+      "passwordLabel": "Lösenord",
+      "passwordDescription": "Ange lösenordet för att låsa upp den här sidan.",
+      "passwordPlaceholder": "Ange lösenord",
+      "submit": "Lås upp statussida"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Sidan hittades inte.",
+      "description": "Sidan du letar efter finns inte."
+    },
+    "forbidden": {
+      "title": "Åtkomst nekad",
+      "description": "Du har inte behörighet att komma åt den här sidan."
+    },
+    "generic": "Något gick fel. Försök igen."
+  },
+  "footer": {
+    "poweredBy": "Drivs av OneUptime"
+  }
+}

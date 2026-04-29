@@ -40,6 +40,8 @@ import StatusPageViewReports from "../Pages/StatusPages/View/Reports";
 
 import StatusPageViewSettings from "../Pages/StatusPages/View/StatusPageSettings";
 
+import StatusPageViewLanguages from "../Pages/StatusPages/View/Languages";
+
 import StatusPagesViewOverviewPageBranding from "../Pages/StatusPages/View/OverviewPageBranding";
 
 import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
@@ -54,6 +56,7 @@ import AnnouncementViewNotificationLogs from "../Pages/StatusPages/Announcements
 import AnnouncementViewDelete from "../Pages/StatusPages/Announcements/View/Delete";
 
 import StatusPageViewNotificationLogs from "../Pages/StatusPages/View/NotificationLogs";
+import StatusPageViewAuditLogs from "../Pages/StatusPages/View/AuditLogs";
 
 // Settings Pages
 import StatusPagesSettingsAnnouncementTemplates from "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates";
@@ -288,6 +291,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <StatusPageViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_BRANDING)}
           element={
             <StatusPagesViewBranding
@@ -415,6 +429,16 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_LANGUAGES)}
+          element={
+            <StatusPageViewLanguages
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route}
             />
           }
         />

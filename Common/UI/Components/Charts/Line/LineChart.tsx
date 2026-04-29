@@ -1,4 +1,5 @@
 import { LineChart } from "../ChartLibrary/LineChart/LineChart";
+import { AvailableChartColorsKeys } from "../ChartLibrary/Utils/ChartColors";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -17,6 +18,18 @@ import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 
+export const LineChartPalette: Array<AvailableChartColorsKeys> = [
+  "indigo",
+  "rose",
+  "emerald",
+  "amber",
+  "cyan",
+  "gray",
+  "pink",
+  "lime",
+  "fuchsia",
+];
+
 export interface ComponentProps {
   data: Array<SeriesPoint>;
   xAxis: XAxis;
@@ -27,6 +40,7 @@ export interface ComponentProps {
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  showLegend?: boolean | undefined;
 }
 
 export interface LineInternalProps extends ComponentProps {
@@ -93,19 +107,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         tickGap={1}
         index={"Time"}
         categories={categories}
-        colors={[
-          "indigo",
-          "rose",
-          "emerald",
-          "amber",
-          "cyan",
-          "gray",
-          "pink",
-          "lime",
-          "fuchsia",
-        ]}
+        colors={LineChartPalette}
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
+        showLegend={props.showLegend !== false}
         connectNulls={true}
         curve={props.curve}
         syncid={props.sync ? props.syncid : undefined}

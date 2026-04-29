@@ -12,6 +12,7 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   show: boolean;
@@ -29,6 +30,7 @@ export interface ComponentProps {
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -101,7 +103,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   );
   navItems.push({
     id: "overview-nav-bar-item",
-    title: "Overview",
+    title: t("nav.overview"),
     icon: IconProp.CheckCircle,
     route: overviewRoute,
     isActive: Navigation.isOnThisPage(overviewRoute),
@@ -116,7 +118,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     );
     navItems.push({
       id: "incidents-nav-bar-item",
-      title: "Incidents",
+      title: t("nav.incidents"),
       icon: IconProp.Alert,
       route: incidentsRoute,
       isActive: Navigation.isOnThisPage(incidentsRoute),
@@ -132,7 +134,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     );
     navItems.push({
       id: "announcements-nav-bar-item",
-      title: "Announcements",
+      title: t("nav.announcements"),
       icon: IconProp.Announcement,
       route: announcementsRoute,
       isActive: Navigation.isOnThisPage(announcementsRoute),
@@ -148,7 +150,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     );
     navItems.push({
       id: "scheduled-events-nav-bar-item",
-      title: "Scheduled Events",
+      title: t("nav.scheduledEvents"),
       icon: IconProp.Clock,
       route: scheduledEventsRoute,
       isActive: Navigation.isOnThisPage(scheduledEventsRoute),
@@ -169,7 +171,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     );
     navItems.push({
       id: "subscribe-nav-bar-item",
-      title: "Subscribe",
+      title: t("nav.subscribe"),
       icon: IconProp.Email,
       route: subscribeRoute,
       isActive: Navigation.isOnThisPage(subscribeRoute),
@@ -185,7 +187,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     );
     navItems.push({
       id: "logout-nav-bar-item",
-      title: "Logout",
+      title: t("nav.logout"),
       icon: IconProp.Logout,
       route: logoutRoute,
       isActive: Navigation.isOnThisPage(logoutRoute),
@@ -270,7 +272,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     >
       <NavBarItem
         id="overview-nav-bar-item"
-        title="Overview"
+        title={t("nav.overview")}
         icon={IconProp.CheckCircle}
         exact={true}
         route={RouteUtil.populateRouteParams(
@@ -283,7 +285,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       {props.showIncidentsOnStatusPage ? (
         <NavBarItem
           id="incidents-nav-bar-item"
-          title="Incidents"
+          title={t("nav.incidents")}
           icon={IconProp.Alert}
           exact={true}
           route={RouteUtil.populateRouteParams(
@@ -299,7 +301,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       {props.showAnnouncementsOnStatusPage ? (
         <NavBarItem
           id="announcements-nav-bar-item"
-          title="Announcements"
+          title={t("nav.announcements")}
           icon={IconProp.Announcement}
           exact={true}
           route={RouteUtil.populateRouteParams(
@@ -315,7 +317,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       {props.showScheduledMaintenanceEventsOnStatusPage ? (
         <NavBarItem
           id="scheduled-events-nav-bar-item"
-          title="Scheduled Events"
+          title={t("nav.scheduledEvents")}
           icon={IconProp.Clock}
           exact={true}
           route={RouteUtil.populateRouteParams(
@@ -334,7 +336,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         props.enableSlackSubscribers) ? (
         <NavBarItem
           id="subscribe-nav-bar-item"
-          title="Subscribe"
+          title={t("nav.subscribe")}
           icon={IconProp.Email}
           exact={true}
           route={RouteUtil.populateRouteParams(
@@ -350,7 +352,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       {props.isPrivateStatusPage ? (
         <NavBarItem
           id="logout-nav-bar-item"
-          title="Logout"
+          title={t("nav.logout")}
           icon={IconProp.Logout}
           exact={true}
           route={RouteUtil.populateRouteParams(

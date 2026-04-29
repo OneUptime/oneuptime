@@ -38,11 +38,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [
@@ -304,10 +306,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page
-      title="Scheduled Events"
+      title={t("scheduledEvents.title")}
       breadcrumbLinks={[
         {
-          title: "Overview",
+          title: t("nav.overview"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -315,7 +317,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Scheduled Events",
+          title: t("scheduledEvents.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
@@ -327,7 +329,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {ongoingEventsParsedData?.items &&
       ongoingEventsParsedData?.items.length > 0 ? (
         <div>
-          <Section title="Ongoing Events" />
+          <Section title={t("scheduledEvents.ongoing")} />
 
           <EventHistoryList items={ongoingEventsParsedData?.items || []} />
         </div>
@@ -338,7 +340,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {scheduledEventsParsedData?.items &&
       scheduledEventsParsedData?.items.length > 0 ? (
         <div>
-          <Section title="Scheduled Events" />
+          <Section title={t("scheduledEvents.upcoming")} />
 
           <EventHistoryList items={scheduledEventsParsedData?.items || []} />
         </div>
@@ -349,7 +351,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {endedEventsParsedData?.items &&
       endedEventsParsedData?.items.length > 0 ? (
         <div>
-          <Section title="Completed Events" />
+          <Section title={t("scheduledEvents.completed")} />
 
           <EventHistoryList items={endedEventsParsedData?.items || []} />
         </div>
@@ -360,8 +362,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {scheduledMaintenanceEvents.length === 0 ? (
         <EmptyState
           id="scheduled-events-empty-state"
-          title={"No Scheduled Events"}
-          description={"No scheduled events posted for this status page."}
+          title={t("scheduledEvents.none")}
+          description={t("scheduledEvents.noneDescription")}
           icon={IconProp.Clock}
         />
       ) : (

@@ -570,8 +570,13 @@ export async function fetchClusterWarningEvents(options: {
     return [];
   }
 
+  /*
+   * 3h window keeps the scan small on the overview page. K8s events
+   * have a ~1h TTL in the API server anyway, so anything older won't
+   * be re-ingested — a wider window mostly scans empty partitions.
+   */
   const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -3);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

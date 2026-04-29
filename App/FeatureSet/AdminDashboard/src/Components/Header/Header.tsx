@@ -7,8 +7,10 @@ import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const DashboardHeader: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <>
       <Header
@@ -30,7 +32,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
           <>
             <EditionLabel className="mr-3 hidden md:inline-flex" />
             <Button
-              title="Exit Admin"
+              title={t("header.exitAdmin")}
               buttonStyle={ButtonStyleType.NORMAL}
               onClick={() => {
                 Navigation.navigate(DASHBOARD_URL);

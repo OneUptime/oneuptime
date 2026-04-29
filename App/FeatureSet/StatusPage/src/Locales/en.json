@@ -1,0 +1,233 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "search": "Search",
+    "edit": "Edit",
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No",
+    "statusPage": "Status Page"
+  },
+  "language": {
+    "label": "Language",
+    "switchLanguage": "Switch language"
+  },
+  "nav": {
+    "overview": "Overview",
+    "incidents": "Incidents",
+    "announcements": "Announcements",
+    "scheduledEvents": "Scheduled Events",
+    "subscribe": "Subscribe",
+    "login": "Log In",
+    "logout": "Log Out"
+  },
+  "overview": {
+    "uptimeSuffix": "% uptime",
+    "operational": "Operational",
+    "noResourcesInGroup": "No resources added to this group.",
+    "activeIncidents": "Active Incidents",
+    "scheduledMaintenanceEvents": "Scheduled Maintenance Events",
+    "allClearTitle": "Everything looks great",
+    "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
+    "allResourcesAre": "All Resources are {{status}}",
+    "someResourcesAre": "Some Resources are {{status}}",
+    "someResourcesAreUnder": "Some Resources are under {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Affected resources",
+    "stateChangedTo": "state changed to",
+    "view": "View {{eventType}}",
+    "updateTo": "Update to this {{eventType}}",
+    "postedOn": "posted on"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} days ago",
+    "today": "Today",
+    "notAvailable": "Not available"
+  },
+  "incidents": {
+    "title": "Incidents",
+    "singular": "Incident",
+    "active": "Active Incidents",
+    "resolved": "Resolved Incidents",
+    "none": "No Incident",
+    "noneDescription": "No incidents posted on this status page.",
+    "postmortem": "Incident Postmortem",
+    "declaredAt": "Declared at ",
+    "report": "Incident Report",
+    "notFound": "Incident not found on this status page."
+  },
+  "episodes": {
+    "report": "Episode Report",
+    "none": "No Episode",
+    "notFound": "Episode not found on this status page."
+  },
+  "announcements": {
+    "title": "Announcements",
+    "singular": "Announcement",
+    "active": "Active Announcements",
+    "past": "Past Announcements",
+    "none": "No Announcement",
+    "noneDescription": "No announcements posted so far on this page.",
+    "announcedAt": "Announced at ",
+    "notFound": "Announcement not found on this status page."
+  },
+  "scheduledEvents": {
+    "title": "Scheduled Events",
+    "singular": "Scheduled Event",
+    "scheduledMaintenance": "Scheduled Maintenance",
+    "ongoing": "Ongoing Events",
+    "upcoming": "Scheduled Events",
+    "completed": "Completed Events",
+    "none": "No Scheduled Events",
+    "noneDescription": "No scheduled events posted for this status page.",
+    "scheduledAt": "Scheduled at ",
+    "report": "Scheduled Event Report",
+    "notFound": "No scheduled event found for this status page."
+  },
+  "subscribe": {
+    "title": "Subscribe",
+    "submit": "Subscribe",
+    "newSubscription": "New Subscription",
+    "manageExisting": "Manage Existing Subscription",
+    "sendManagementLink": "Send Management Link",
+    "subscribedSuccessfully": "You have been subscribed successfully.",
+    "emailSentCheckSpam": "An email with the link has been sent to your email. If you don't see the email, please check your spam folder.",
+    "menu": {
+      "email": "Email",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Subscribe by Email",
+      "description": "All of our updates will be sent to this email address.",
+      "yourEmail": "Your Email",
+      "placeholder": "subscriber@company.com",
+      "managePrompt": "Please enter your email you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this email.",
+      "managePlaceholder": "email@yourcompany.com"
+    },
+    "sms": {
+      "title": "Subscribe by SMS",
+      "description": "All of our updates will be sent to this phone number.",
+      "yourPhoneNumber": "Your Phone Number",
+      "placeholder": "+11234567890",
+      "managePrompt": "Please enter your phone number you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this phone number."
+    },
+    "slack": {
+      "title": "Subscribe by Slack",
+      "description": "All of our updates will be sent to this Slack webhook.",
+      "workspaceName": "Slack Workspace Name",
+      "workspaceNameDescription": "Enter your Slack workspace name for validation.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "Status page updates will be sent to this Slack webhook.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Please enter your Slack workspace name you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this workspace."
+    },
+    "microsoftTeams": {
+      "title": "Subscribe by Microsoft Teams",
+      "description": "All of our updates will be sent to this Teams webhook.",
+      "workspaceName": "Microsoft Teams Workspace Name",
+      "workspaceNameDescription": "Enter your Microsoft Teams workspace name for validation.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "Status page updates will be sent to this Teams webhook.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Please enter your Microsoft Teams workspace name you have subscribed with",
+      "manageDescription": "We will send you a manage subscription link to this workspace."
+    },
+    "resources": {
+      "all": "Subscribe to All Resources",
+      "allDescription": "Select this option if you want to subscribe to all resources.",
+      "select": "Select Resources to Subscribe",
+      "selectDescription": "Please select the resources you want to subscribe to."
+    },
+    "eventTypes": {
+      "all": "Subscribe to All Event Types",
+      "allDescription": "Select this option if you want to subscribe to all event types.",
+      "select": "Select Event Types to Subscribe",
+      "selectDescription": "Please select the event types you want to subscribe to."
+    },
+    "update": {
+      "title": "Update Subscription",
+      "description": "You can update your subscription preferences or unsubscribe here.",
+      "saved": "Your changes have been saved.",
+      "unsubscribe": "Unsubscribe",
+      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources."
+    },
+    "confirm": {
+      "title": "Confirm Subscription",
+      "success": "Subscription confirmed successfully"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "login": "Log in"
+    },
+    "login": {
+      "welcomeBack": "Welcome back!",
+      "loginPrompt": "Please login to view {{statusPageName}}",
+      "forgotPassword": "Forgot password?",
+      "submit": "Login",
+      "useSSO": "Use single sign-on (SSO) instead"
+    },
+    "sso": {
+      "title": "Log in with SSO",
+      "loginPrompt": "Please login to view {{statusPageName}}",
+      "noProviders": "No SSO Providers Configured or Enabled"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "description": "If you have forgotten your password for {{statusPageName}}, please enter your email and the password reset link will be sent to you.",
+      "success": "We have emailed you the password reset link. Please do not forget to check spam.",
+      "sendLink": "Send Password Reset Link",
+      "rememberPassword": "Remember your password?"
+    },
+    "resetPassword": {
+      "description": "Create a new password for your {{statusPageName}} account.",
+      "instructions": "Please enter your new password and we will have it updated.",
+      "success": "Your password has been updated. Please log in.",
+      "submit": "Reset Password",
+      "knowPassword": "Know your password?"
+    },
+    "masterPassword": {
+      "enterWithName": "Enter {{statusPageName}} Password",
+      "enterGeneric": "Enter Password",
+      "prompt": "Please enter the password to continue.",
+      "passwordRequired": "password is required.",
+      "passwordLabel": "Password",
+      "passwordDescription": "Enter the password to unlock this page.",
+      "passwordPlaceholder": "Enter password",
+      "submit": "Unlock Status Page"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page not found.",
+      "description": "Page you are looking for does not exist."
+    },
+    "forbidden": {
+      "title": "Forbidden",
+      "description": "You do not have permission to access this page."
+    },
+    "generic": "Something went wrong. Please try again."
+  },
+  "footer": {
+    "poweredBy": "Powered by OneUptime"
+  }
+}

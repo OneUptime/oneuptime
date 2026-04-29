@@ -168,6 +168,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Lock,
         },
+        {
+          link: {
+            title: "Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.Template,
+        },
       ],
     },
   ];

@@ -21,6 +21,8 @@ import SettingsIngestionKeys from "../Pages/Settings/TelemetryIngestionKeys";
 
 import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyView";
 
+import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
+
 import SettingLabels from "../Pages/Settings/Labels";
 
 import SettingProbes from "../Pages/Settings/Probes";
@@ -61,6 +63,9 @@ import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
 
 import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
+import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
+import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -85,6 +90,29 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsNotificationLogs
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AUDIT_LOGS)}
+          element={
+            <SettingsAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AUDIT_LOGS_SETTINGS,
+            2,
+          )}
+          element={
+            <SettingsAuditLogsSettings
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route
+              }
             />
           }
         />
@@ -240,6 +268,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_SETTINGS,
+          )}
+          element={
+            <SettingsTelemetrySettings
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route}
             />
           }
         />

@@ -6,6 +6,7 @@ enum AnalyticsTableName {
   MonitorLog = "MonitorLogV2",
   Profile = "ProfileItemV2",
   ProfileSample = "ProfileSampleItemV2",
+  AuditLog = "AuditLogV1",
 }
 
 export default AnalyticsTableName;

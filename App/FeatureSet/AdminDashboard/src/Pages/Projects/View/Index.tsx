@@ -6,6 +6,7 @@ import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -13,6 +14,7 @@ import ModelPage from "Common/UI/Components/Page/ModelPage";
 import SideMenuComponent from "./SideMenu";
 
 const Projects: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -21,20 +23,20 @@ const Projects: FunctionComponent = (): ReactElement => {
       modelNameField="name"
       modelType={Project}
       modelAPI={AdminModelAPI}
-      title={"Project"}
+      title={t("pages.projectView.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Projects",
+          title: t("breadcrumbs.projects"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
         },
         {
-          title: "Project",
+          title: t("breadcrumbs.project"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_VIEW] as Route,
           ),
@@ -47,11 +49,11 @@ const Projects: FunctionComponent = (): ReactElement => {
           name="Project"
           modelAPI={AdminModelAPI}
           cardProps={{
-            title: "Project",
-            description: "Project details",
+            title: t("pages.projectView.cardTitle"),
+            description: t("pages.projectView.cardDescription"),
           }}
           isEditable={true}
-          editButtonText="Edit Project"
+          editButtonText={t("pages.projectView.editButton")}
           formFields={[
             {
               field: {

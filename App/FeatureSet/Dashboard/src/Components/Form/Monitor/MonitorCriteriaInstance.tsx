@@ -32,6 +32,7 @@ import React, {
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 
 export interface ComponentProps {
@@ -55,6 +56,25 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const monitorCriteriaInstance: MonitorCriteriaInstance =
     props.value || new MonitorCriteriaInstance();
+
+  /*
+   * Gather the per-series group-by attribute keys from every metric
+   * query on this monitor step so the template-variables modal can
+   * expose them as per-host / per-container variables
+   * (`{{host.name}}`, `{{resource.k8s.container.name}}`, …). When the
+   * monitor isn't metric-shaped, this is an empty array and the modal
+   * simply doesn't render the series-labels section.
+   */
+  const seriesAttributeKeys: Array<string> = Array.from(
+    new Set(
+      (
+        props.monitorStep?.data?.metricMonitor?.metricViewConfig
+          ?.queryConfigs || []
+      ).flatMap((q: MetricQueryConfigData): Array<string> => {
+        return q.metricQueryData?.groupByAttributeKeys || [];
+      }),
+    ),
+  );
 
   const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
     ObjectID | undefined
@@ -129,6 +149,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
   const hasActions: boolean =
     showMonitorStatusChangeControl || showAlertControl || showIncidentControl;
+
+  const isEnabled: boolean = monitorCriteriaInstance?.data?.isEnabled !== false;
 
   return (
     <div className="mt-4">
@@ -431,6 +453,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 labelDropdownOptions={props.labelDropdownOptions}
                 teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
+                monitorType={props.monitorType}
+                seriesAttributeKeys={seriesAttributeKeys}
                 onChange={(value: Array<CriteriaAlert>) => {
                   monitorCriteriaInstance.setAlerts(value);
                   if (props.onChange) {
@@ -489,6 +513,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
                 incidentRoleOptions={props.incidentRoleOptions}
+                monitorType={props.monitorType}
+                seriesAttributeKeys={seriesAttributeKeys}
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {
@@ -500,6 +526,32 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Settings Section - Collapsible */}
+      <CollapsibleSection
+        title="Settings"
+        description="Configure additional settings for this criteria."
+        badge={isEnabled ? "Enabled" : "Disabled"}
+        variant="bordered"
+        defaultCollapsed={true}
+        className="mb-4"
+      >
+        <div className="mt-2">
+          <Toggle
+            value={isEnabled}
+            title="Enable this criteria"
+            description="When disabled, this criteria will not be evaluated. It will not change the monitor status, create incidents, or trigger alerts."
+            onChange={(value: boolean) => {
+              monitorCriteriaInstance.setIsEnabled(value);
+              if (props.onChange) {
+                props.onChange(
+                  MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                );
+              }
+            }}
+          />
         </div>
       </CollapsibleSection>
 

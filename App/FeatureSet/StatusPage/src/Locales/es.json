@@ -1,0 +1,233 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "loading": "Cargando...",
+    "search": "Buscar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "yes": "Sí",
+    "no": "No",
+    "statusPage": "Página de estado"
+  },
+  "language": {
+    "label": "Idioma",
+    "switchLanguage": "Cambiar idioma"
+  },
+  "nav": {
+    "overview": "Resumen",
+    "incidents": "Incidencias",
+    "announcements": "Anuncios",
+    "scheduledEvents": "Eventos programados",
+    "subscribe": "Suscribirse",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión"
+  },
+  "overview": {
+    "uptimeSuffix": "% de disponibilidad",
+    "operational": "Operativo",
+    "noResourcesInGroup": "No se han añadido recursos a este grupo.",
+    "activeIncidents": "Incidencias activas",
+    "scheduledMaintenanceEvents": "Eventos de mantenimiento programado",
+    "allClearTitle": "Todo parece estar bien",
+    "allClearDescription": "Aún no se han añadido recursos a esta página de estado. Por favor, añada algunos recursos desde el panel de control.",
+    "allResourcesAre": "Todos los recursos están {{status}}",
+    "someResourcesAre": "Algunos recursos están {{status}}",
+    "someResourcesAreUnder": "Algunos recursos están en {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Recursos afectados",
+    "stateChangedTo": "estado cambiado a",
+    "view": "Ver {{eventType}}",
+    "updateTo": "Actualización de este {{eventType}}",
+    "postedOn": "publicado el"
+  },
+  "monitorOverview": {
+    "daysAgo": "hace {{days}} días",
+    "today": "Hoy",
+    "notAvailable": "No disponible"
+  },
+  "incidents": {
+    "title": "Incidencias",
+    "singular": "Incidencia",
+    "active": "Incidencias activas",
+    "resolved": "Incidencias resueltas",
+    "none": "Sin incidencias",
+    "noneDescription": "No hay incidencias publicadas en esta página de estado.",
+    "postmortem": "Análisis posterior a la incidencia",
+    "declaredAt": "Declarado el ",
+    "report": "Informe de incidencia",
+    "notFound": "Incidencia no encontrada en esta página de estado."
+  },
+  "episodes": {
+    "report": "Informe de episodio",
+    "none": "Sin episodios",
+    "notFound": "Episodio no encontrado en esta página de estado."
+  },
+  "announcements": {
+    "title": "Anuncios",
+    "singular": "Anuncio",
+    "active": "Anuncios activos",
+    "past": "Anuncios pasados",
+    "none": "Sin anuncios",
+    "noneDescription": "No se han publicado anuncios hasta ahora en esta página.",
+    "announcedAt": "Anunciado el ",
+    "notFound": "Anuncio no encontrado en esta página de estado."
+  },
+  "scheduledEvents": {
+    "title": "Eventos programados",
+    "singular": "Evento programado",
+    "scheduledMaintenance": "Mantenimiento programado",
+    "ongoing": "Eventos en curso",
+    "upcoming": "Eventos programados",
+    "completed": "Eventos finalizados",
+    "none": "Sin eventos programados",
+    "noneDescription": "No se han publicado eventos programados para esta página de estado.",
+    "scheduledAt": "Programado para ",
+    "report": "Informe de evento programado",
+    "notFound": "No se encontraron eventos programados para esta página de estado."
+  },
+  "subscribe": {
+    "title": "Suscribirse",
+    "submit": "Suscribirse",
+    "newSubscription": "Nueva suscripción",
+    "manageExisting": "Gestionar suscripción existente",
+    "sendManagementLink": "Enviar enlace de gestión",
+    "subscribedSuccessfully": "Se ha suscrito correctamente.",
+    "emailSentCheckSpam": "Se ha enviado un correo electrónico con el enlace a su dirección. Si no ve el correo, revise su carpeta de spam.",
+    "menu": {
+      "email": "Correo electrónico",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Suscribirse por correo electrónico",
+      "description": "Todas nuestras actualizaciones se enviarán a esta dirección de correo electrónico.",
+      "yourEmail": "Su correo electrónico",
+      "placeholder": "suscriptor@empresa.es",
+      "managePrompt": "Introduzca el correo electrónico con el que se suscribió",
+      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este correo electrónico.",
+      "managePlaceholder": "email@suempresa.es"
+    },
+    "sms": {
+      "title": "Suscribirse por SMS",
+      "description": "Todas nuestras actualizaciones se enviarán a este número de teléfono.",
+      "yourPhoneNumber": "Su número de teléfono",
+      "placeholder": "+34612345678",
+      "managePrompt": "Introduzca el número de teléfono con el que se suscribió",
+      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este número de teléfono."
+    },
+    "slack": {
+      "title": "Suscribirse vía Slack",
+      "description": "Todas nuestras actualizaciones se enviarán a este webhook de Slack.",
+      "workspaceName": "Nombre del espacio de trabajo de Slack",
+      "workspaceNameDescription": "Introduzca el nombre de su espacio de trabajo de Slack para la validación.",
+      "workspaceNamePlaceholder": "mi-espacio-empresa",
+      "webhookUrl": "URL del webhook entrante de Slack",
+      "webhookUrlDescription": "Las actualizaciones de la página de estado se enviarán a este webhook de Slack.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Introduzca el nombre del espacio de trabajo de Slack con el que se suscribió",
+      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este espacio de trabajo."
+    },
+    "microsoftTeams": {
+      "title": "Suscribirse vía Microsoft Teams",
+      "description": "Todas nuestras actualizaciones se enviarán a este webhook de Teams.",
+      "workspaceName": "Nombre del espacio de trabajo de Microsoft Teams",
+      "workspaceNameDescription": "Introduzca el nombre de su espacio de trabajo de Microsoft Teams para la validación.",
+      "workspaceNamePlaceholder": "mi-espacio-empresa",
+      "webhookUrl": "URL del webhook entrante de Microsoft Teams",
+      "webhookUrlDescription": "Las actualizaciones de la página de estado se enviarán a este webhook de Teams.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Introduzca el nombre del espacio de trabajo de Microsoft Teams con el que se suscribió",
+      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este espacio de trabajo."
+    },
+    "resources": {
+      "all": "Suscribirse a todos los recursos",
+      "allDescription": "Seleccione esta opción si desea suscribirse a todos los recursos.",
+      "select": "Seleccionar recursos para suscribirse",
+      "selectDescription": "Seleccione los recursos a los que desea suscribirse."
+    },
+    "eventTypes": {
+      "all": "Suscribirse a todos los tipos de eventos",
+      "allDescription": "Seleccione esta opción si desea suscribirse a todos los tipos de eventos.",
+      "select": "Seleccionar tipos de eventos para suscribirse",
+      "selectDescription": "Seleccione los tipos de eventos a los que desea suscribirse."
+    },
+    "update": {
+      "title": "Actualizar suscripción",
+      "description": "Puede actualizar sus preferencias de suscripción o cancelar la suscripción aquí.",
+      "saved": "Sus cambios se han guardado.",
+      "unsubscribe": "Cancelar suscripción",
+      "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos."
+    },
+    "confirm": {
+      "title": "Confirmar suscripción",
+      "success": "Suscripción confirmada con éxito"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "login": "Iniciar sesión"
+    },
+    "login": {
+      "welcomeBack": "¡Bienvenido de nuevo!",
+      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "forgotPassword": "¿Olvidó su contraseña?",
+      "submit": "Iniciar sesión",
+      "useSSO": "Usar inicio de sesión único (SSO) en su lugar"
+    },
+    "sso": {
+      "title": "Iniciar sesión con SSO",
+      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "noProviders": "No hay proveedores SSO configurados o habilitados"
+    },
+    "forgotPassword": {
+      "title": "Contraseña olvidada",
+      "description": "Si ha olvidado su contraseña para {{statusPageName}}, introduzca su correo electrónico y le enviaremos el enlace para restablecer la contraseña.",
+      "success": "Le hemos enviado por correo electrónico el enlace para restablecer la contraseña. No olvide revisar su carpeta de spam.",
+      "sendLink": "Enviar enlace de restablecimiento de contraseña",
+      "rememberPassword": "¿Recuerda su contraseña?"
+    },
+    "resetPassword": {
+      "description": "Cree una nueva contraseña para su cuenta de {{statusPageName}}.",
+      "instructions": "Introduzca su nueva contraseña y la actualizaremos.",
+      "success": "Su contraseña ha sido actualizada. Inicie sesión.",
+      "submit": "Restablecer contraseña",
+      "knowPassword": "¿Conoce su contraseña?"
+    },
+    "masterPassword": {
+      "enterWithName": "Introduzca la contraseña de {{statusPageName}}",
+      "enterGeneric": "Introduzca la contraseña",
+      "prompt": "Introduzca la contraseña para continuar.",
+      "passwordRequired": "la contraseña es obligatoria.",
+      "passwordLabel": "Contraseña",
+      "passwordDescription": "Introduzca la contraseña para desbloquear esta página.",
+      "passwordPlaceholder": "Introducir contraseña",
+      "submit": "Desbloquear página de estado"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Página no encontrada.",
+      "description": "La página que busca no existe."
+    },
+    "forbidden": {
+      "title": "Acceso denegado",
+      "description": "No tiene permiso para acceder a esta página."
+    },
+    "generic": "Algo salió mal. Por favor, inténtelo de nuevo."
+  },
+  "footer": {
+    "poweredBy": "Desarrollado por OneUptime"
+  }
+}

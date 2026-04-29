@@ -50,6 +50,7 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
+import AlertAffectedResources from "./AffectedResources";
 import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
 import Query from "Common/Types/BaseDatabase/Query";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
@@ -638,6 +639,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             query={telemetryQuery.telemetryQuery as Query<ExceptionInstance>}
           />
         )}
+
+      <AlertAffectedResources alertId={modelId} />
 
       <AlertFeedElement alertId={modelId} />
     </Fragment>

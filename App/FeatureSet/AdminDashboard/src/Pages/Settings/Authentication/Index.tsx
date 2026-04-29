@@ -9,24 +9,26 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 const Settings: FunctionComponent = (): ReactElement => {
+  const { t } = useTranslation();
   return (
     <Page
-      title={"Admin Settings"}
+      title={t("pages.settings.title")}
       breadcrumbLinks={[
         {
-          title: "Admin Dashboard",
+          title: t("breadcrumbs.adminDashboard"),
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Settings",
+          title: t("breadcrumbs.settings"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
-          title: "Authentication",
+          title: t("breadcrumbs.authentication"),
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route,
           ),
@@ -34,16 +36,14 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
-      {/* Project Settings View  */}
       <CardModelDetail
         name="Authentication Settings"
         cardProps={{
-          title: "Authentication Settings",
-          description:
-            "Authentication Settings for this OneUptime Server instance.",
+          title: t("pages.settings.authentication.authCardTitle"),
+          description: t("pages.settings.authentication.authCardDescription"),
         }}
         isEditable={true}
-        editButtonText="Edit Settings"
+        editButtonText={t("pages.settings.authentication.authEditButton")}
         formFields={[
           {
             field: {
@@ -65,7 +65,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               fieldType: FieldType.Boolean,
               title: "Disable Sign Up",
-              placeholder: "No",
+              placeholder: t("common.no"),
               description:
                 "Should we disable sign up of new users to OneUptime?",
             },
@@ -77,12 +77,15 @@ const Settings: FunctionComponent = (): ReactElement => {
       <CardModelDetail
         name="Project Creation Settings"
         cardProps={{
-          title: "Project Creation",
-          description:
-            "Control who can create new projects on this OneUptime Server.",
+          title: t("pages.settings.authentication.projectCreationCardTitle"),
+          description: t(
+            "pages.settings.authentication.projectCreationCardDescription",
+          ),
         }}
         isEditable={true}
-        editButtonText="Edit Settings"
+        editButtonText={t(
+          "pages.settings.authentication.projectCreationEditButton",
+        )}
         formFields={[
           {
             field: {
@@ -105,7 +108,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               fieldType: FieldType.Boolean,
               title: "Restrict Project Creation to Admins Only",
-              placeholder: "No",
+              placeholder: t("common.no"),
               description:
                 "When enabled, only master admin users can create new projects.",
             },

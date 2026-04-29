@@ -1,0 +1,233 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "loading": "Carregando...",
+    "search": "Pesquisar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "yes": "Sim",
+    "no": "Não",
+    "statusPage": "Página de status"
+  },
+  "language": {
+    "label": "Idioma",
+    "switchLanguage": "Alterar idioma"
+  },
+  "nav": {
+    "overview": "Visão geral",
+    "incidents": "Incidentes",
+    "announcements": "Anúncios",
+    "scheduledEvents": "Eventos agendados",
+    "subscribe": "Inscrever-se",
+    "login": "Entrar",
+    "logout": "Sair"
+  },
+  "overview": {
+    "uptimeSuffix": "% de disponibilidade",
+    "operational": "Operacional",
+    "noResourcesInGroup": "Nenhum recurso adicionado a este grupo.",
+    "activeIncidents": "Incidentes ativos",
+    "scheduledMaintenanceEvents": "Eventos de manutenção agendada",
+    "allClearTitle": "Tudo parece ótimo",
+    "allClearDescription": "Nenhum recurso adicionado a esta página de status ainda. Por favor, adicione alguns recursos pelo painel.",
+    "allResourcesAre": "Todos os recursos estão {{status}}",
+    "someResourcesAre": "Alguns recursos estão {{status}}",
+    "someResourcesAreUnder": "Alguns recursos estão em {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Recursos afetados",
+    "stateChangedTo": "estado alterado para",
+    "view": "Ver {{eventType}}",
+    "updateTo": "Atualização deste {{eventType}}",
+    "postedOn": "publicado em"
+  },
+  "monitorOverview": {
+    "daysAgo": "há {{days}} dias",
+    "today": "Hoje",
+    "notAvailable": "Não disponível"
+  },
+  "incidents": {
+    "title": "Incidentes",
+    "singular": "Incidente",
+    "active": "Incidentes ativos",
+    "resolved": "Incidentes resolvidos",
+    "none": "Sem incidentes",
+    "noneDescription": "Nenhum incidente publicado nesta página de status.",
+    "postmortem": "Análise pós-incidente",
+    "declaredAt": "Declarado em ",
+    "report": "Relatório de incidente",
+    "notFound": "Incidente não encontrado nesta página de status."
+  },
+  "episodes": {
+    "report": "Relatório de episódio",
+    "none": "Sem episódios",
+    "notFound": "Episódio não encontrado nesta página de status."
+  },
+  "announcements": {
+    "title": "Anúncios",
+    "singular": "Anúncio",
+    "active": "Anúncios ativos",
+    "past": "Anúncios anteriores",
+    "none": "Sem anúncios",
+    "noneDescription": "Nenhum anúncio publicado até agora nesta página.",
+    "announcedAt": "Anunciado em ",
+    "notFound": "Anúncio não encontrado nesta página de status."
+  },
+  "scheduledEvents": {
+    "title": "Eventos agendados",
+    "singular": "Evento agendado",
+    "scheduledMaintenance": "Manutenção agendada",
+    "ongoing": "Eventos em andamento",
+    "upcoming": "Eventos agendados",
+    "completed": "Eventos concluídos",
+    "none": "Sem eventos agendados",
+    "noneDescription": "Nenhum evento agendado publicado para esta página de status.",
+    "scheduledAt": "Agendado para ",
+    "report": "Relatório de evento agendado",
+    "notFound": "Nenhum evento agendado encontrado para esta página de status."
+  },
+  "subscribe": {
+    "title": "Inscrever-se",
+    "submit": "Inscrever-se",
+    "newSubscription": "Nova inscrição",
+    "manageExisting": "Gerenciar inscrição existente",
+    "sendManagementLink": "Enviar link de gerenciamento",
+    "subscribedSuccessfully": "Você foi inscrito com sucesso.",
+    "emailSentCheckSpam": "Um e-mail com o link foi enviado para seu e-mail. Se não ver o e-mail, verifique sua pasta de spam.",
+    "menu": {
+      "email": "E-mail",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Inscrever-se por e-mail",
+      "description": "Todas as nossas atualizações serão enviadas para este endereço de e-mail.",
+      "yourEmail": "Seu e-mail",
+      "placeholder": "assinante@empresa.com",
+      "managePrompt": "Por favor, digite o e-mail com o qual você se inscreveu",
+      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este e-mail.",
+      "managePlaceholder": "email@suaempresa.com"
+    },
+    "sms": {
+      "title": "Inscrever-se por SMS",
+      "description": "Todas as nossas atualizações serão enviadas para este número de telefone.",
+      "yourPhoneNumber": "Seu número de telefone",
+      "placeholder": "+5511123456789",
+      "managePrompt": "Por favor, digite o número de telefone com o qual você se inscreveu",
+      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este número de telefone."
+    },
+    "slack": {
+      "title": "Inscrever-se via Slack",
+      "description": "Todas as nossas atualizações serão enviadas para este webhook do Slack.",
+      "workspaceName": "Nome do workspace do Slack",
+      "workspaceNameDescription": "Digite o nome do seu workspace do Slack para validação.",
+      "workspaceNamePlaceholder": "meu-workspace-empresa",
+      "webhookUrl": "URL do webhook de entrada do Slack",
+      "webhookUrlDescription": "As atualizações da página de status serão enviadas para este webhook do Slack.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Por favor, digite o nome do workspace do Slack com o qual você se inscreveu",
+      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este workspace."
+    },
+    "microsoftTeams": {
+      "title": "Inscrever-se via Microsoft Teams",
+      "description": "Todas as nossas atualizações serão enviadas para este webhook do Teams.",
+      "workspaceName": "Nome do workspace do Microsoft Teams",
+      "workspaceNameDescription": "Digite o nome do seu workspace do Microsoft Teams para validação.",
+      "workspaceNamePlaceholder": "meu-workspace-empresa",
+      "webhookUrl": "URL do webhook de entrada do Microsoft Teams",
+      "webhookUrlDescription": "As atualizações da página de status serão enviadas para este webhook do Teams.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Por favor, digite o nome do workspace do Microsoft Teams com o qual você se inscreveu",
+      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este workspace."
+    },
+    "resources": {
+      "all": "Inscrever-se em todos os recursos",
+      "allDescription": "Selecione esta opção se desejar se inscrever em todos os recursos.",
+      "select": "Selecionar recursos para inscrever-se",
+      "selectDescription": "Selecione os recursos nos quais deseja se inscrever."
+    },
+    "eventTypes": {
+      "all": "Inscrever-se em todos os tipos de eventos",
+      "allDescription": "Selecione esta opção se desejar se inscrever em todos os tipos de eventos.",
+      "select": "Selecionar tipos de eventos para inscrever-se",
+      "selectDescription": "Selecione os tipos de eventos nos quais deseja se inscrever."
+    },
+    "update": {
+      "title": "Atualizar inscrição",
+      "description": "Você pode atualizar suas preferências de inscrição ou cancelar a inscrição aqui.",
+      "saved": "Suas alterações foram salvas.",
+      "unsubscribe": "Cancelar inscrição",
+      "unsubscribeDescription": "Selecione esta opção se desejar cancelar a inscrição em todos os recursos."
+    },
+    "confirm": {
+      "title": "Confirmar inscrição",
+      "success": "Inscrição confirmada com sucesso"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "E-mail",
+      "password": "Senha",
+      "newPassword": "Nova senha",
+      "confirmPassword": "Confirmar senha",
+      "login": "Entrar"
+    },
+    "login": {
+      "welcomeBack": "Bem-vindo de volta!",
+      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "forgotPassword": "Esqueceu a senha?",
+      "submit": "Entrar",
+      "useSSO": "Usar login único (SSO) em vez disso"
+    },
+    "sso": {
+      "title": "Entrar com SSO",
+      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "noProviders": "Nenhum provedor SSO configurado ou habilitado"
+    },
+    "forgotPassword": {
+      "title": "Esqueceu a senha",
+      "description": "Se você esqueceu sua senha para {{statusPageName}}, digite seu e-mail e o link de redefinição de senha será enviado a você.",
+      "success": "Enviamos o link de redefinição de senha para seu e-mail. Não se esqueça de verificar a pasta de spam.",
+      "sendLink": "Enviar link de redefinição de senha",
+      "rememberPassword": "Lembrou da sua senha?"
+    },
+    "resetPassword": {
+      "description": "Crie uma nova senha para sua conta {{statusPageName}}.",
+      "instructions": "Digite sua nova senha e nós a atualizaremos.",
+      "success": "Sua senha foi atualizada. Por favor, faça login.",
+      "submit": "Redefinir senha",
+      "knowPassword": "Sabe sua senha?"
+    },
+    "masterPassword": {
+      "enterWithName": "Digitar senha de {{statusPageName}}",
+      "enterGeneric": "Digitar senha",
+      "prompt": "Digite a senha para continuar.",
+      "passwordRequired": "a senha é obrigatória.",
+      "passwordLabel": "Senha",
+      "passwordDescription": "Digite a senha para desbloquear esta página.",
+      "passwordPlaceholder": "Digitar senha",
+      "submit": "Desbloquear página de status"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Página não encontrada.",
+      "description": "A página que você está procurando não existe."
+    },
+    "forbidden": {
+      "title": "Acesso negado",
+      "description": "Você não tem permissão para acessar esta página."
+    },
+    "generic": "Algo deu errado. Por favor, tente novamente."
+  },
+  "footer": {
+    "poweredBy": "Desenvolvido por OneUptime"
+  }
+}

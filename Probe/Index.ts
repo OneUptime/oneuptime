@@ -1,5 +1,6 @@
 import {
   PORT,
+  PROBE_INGRESS_PORT,
   PROBE_MONITORING_WORKERS,
   PROBE_MONITOR_FETCH_LIMIT,
   PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
@@ -11,13 +12,20 @@ import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import MetricsAPI from "./API/Metrics";
+import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
 import ProxyConfig from "./Utils/ProxyConfig";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import Express, {
+  ExpressApplication,
+  ExpressJson,
+  ExpressRaw,
+  ExpressUrlEncoded,
+  createExpressApp,
+} from "Common/Server/Utils/Express";
 import "ejs";
 
 const APP_NAME: string = "probe";
@@ -74,6 +82,26 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // add default routes
     await App.addDefaultRoutes();
+
+    /*
+     * Optional ingress listener for IncomingRequest (heartbeat) monitors.
+     * Runs on a dedicated port so it can be exposed to a private network
+     * without also exposing the probe's status/metrics endpoints.
+     */
+    if (PROBE_INGRESS_PORT !== null && PROBE_INGRESS_PORT.toNumber() > 0) {
+      const ingressPortNumber: number = PROBE_INGRESS_PORT.toNumber();
+      const ingressApp: ExpressApplication = createExpressApp();
+      ingressApp.use(ExpressJson({ limit: "50mb" }));
+      ingressApp.use(ExpressUrlEncoded({ extended: true, limit: "50mb" }));
+      ingressApp.use(ExpressRaw({ type: "application/octet-stream" }));
+      ingressApp.use(IncomingRequestIngressAPI);
+
+      ingressApp.listen(ingressPortNumber, () => {
+        logger.info(
+          `Probe ingress listener started on port ${ingressPortNumber} (heartbeat / incoming-request endpoints)`,
+        );
+      });
+    }
 
     try {
       // Register this probe.

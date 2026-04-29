@@ -10,7 +10,9 @@ import {
   ServiceType,
 } from "../../../Models/AnalyticsModels/Metric";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
-import BasicInfrastructureMetrics from "../../../Types/Infrastructure/BasicMetrics";
+import BasicInfrastructureMetrics, {
+  NetworkInterfaceMetrics,
+} from "../../../Types/Infrastructure/BasicMetrics";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
@@ -157,6 +159,73 @@ export default class MonitorMetricUtil {
       value: data.value ?? null,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     } as JSONObject;
+  }
+
+  /*
+   * Helper that collapses the "build attributes → build row → push → register MetricType"
+   * pattern used repeatedly below. Silently skips emission when value is missing/non-finite
+   * so callers can pass optional agent fields directly.
+   */
+  private static async pushMonitorMetric(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    monitorName: string | undefined;
+    probeName: string | undefined;
+    metricName: string;
+    value: number | null | undefined;
+    description: string;
+    unit: string;
+    extraAttributes?: JSONObject;
+    metricPointType?: MetricPointType;
+    metricRows: Array<JSONObject>;
+    metricNameServiceNameMap: Dictionary<MetricType>;
+  }): Promise<void> {
+    if (
+      data.value === undefined ||
+      data.value === null ||
+      typeof data.value !== "number" ||
+      !isFinite(data.value)
+    ) {
+      return;
+    }
+
+    const attributeInput: {
+      monitorId: ObjectID;
+      projectId: ObjectID;
+      monitorName?: string | undefined;
+      probeName?: string | undefined;
+      extraAttributes?: JSONObject;
+    } = {
+      monitorId: data.monitorId,
+      projectId: data.projectId,
+      monitorName: data.monitorName,
+      probeName: data.probeName,
+    };
+
+    if (data.extraAttributes) {
+      attributeInput.extraAttributes = data.extraAttributes;
+    }
+
+    const attributes: JSONObject =
+      this.buildMonitorMetricAttributes(attributeInput);
+
+    const metricRow: JSONObject = await this.buildMonitorMetricRow({
+      projectId: data.projectId,
+      monitorId: data.monitorId,
+      metricName: data.metricName,
+      value: data.value,
+      attributes: attributes,
+      metricPointType: data.metricPointType || MetricPointType.Sum,
+    });
+
+    data.metricRows.push(metricRow);
+
+    const metricType: MetricType = new MetricType();
+    metricType.name = data.metricName;
+    metricType.description = data.description;
+    metricType.unit = data.unit;
+
+    data.metricNameServiceNameMap[data.metricName] = metricType;
   }
 
   @CaptureSpan()
@@ -333,6 +402,359 @@ export default class MonitorMetricUtil {
           metricNameServiceNameMap[MonitorMetricType.DiskUsagePercent] =
             metricType;
         }
+
+        // Per-disk I/O counters (cumulative since boot).
+        for (const diskMetric of basicMetrics.diskMetrics) {
+          const diskAttrs: JSONObject = {};
+          if (diskMetric.diskPath) {
+            diskAttrs["diskPath"] = diskMetric.diskPath;
+          }
+          if (diskMetric.device) {
+            diskAttrs["device"] = diskMetric.device;
+          }
+          if (diskMetric.fstype) {
+            diskAttrs["fstype"] = diskMetric.fstype;
+          }
+
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.DiskReadBytesTotal,
+            value: diskMetric.readBytes,
+            description: "Total bytes read from disk since boot",
+            unit: "bytes",
+            extraAttributes: diskAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.DiskWriteBytesTotal,
+            value: diskMetric.writeBytes,
+            description: "Total bytes written to disk since boot",
+            unit: "bytes",
+            extraAttributes: diskAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.DiskReadOpsTotal,
+            value: diskMetric.readCount,
+            description: "Total disk read operations since boot",
+            unit: "ops",
+            extraAttributes: diskAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.DiskWriteOpsTotal,
+            value: diskMetric.writeCount,
+            description: "Total disk write operations since boot",
+            unit: "ops",
+            extraAttributes: diskAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+        }
+      }
+
+      // Load average (1/5/15 min). Emitted only when the agent provides it.
+      if (basicMetrics.loadMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.LoadAverage1Min,
+          value: basicMetrics.loadMetrics.load1,
+          description: "1-minute load average",
+          unit: "",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.LoadAverage5Min,
+          value: basicMetrics.loadMetrics.load5,
+          description: "5-minute load average",
+          unit: "",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.LoadAverage15Min,
+          value: basicMetrics.loadMetrics.load15,
+          description: "15-minute load average",
+          unit: "",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+      }
+
+      // Memory extras: swap + available.
+      if (basicMetrics.memoryMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.SwapUsagePercent,
+          value: basicMetrics.memoryMetrics.swapPercentUsed,
+          description: "Swap memory usage percentage",
+          unit: "%",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.MemoryAvailableBytes,
+          value: basicMetrics.memoryMetrics.available,
+          description: "Memory available to new allocations",
+          unit: "bytes",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+      }
+
+      // CPU time breakdown — drills down into what the CPU was doing.
+      if (basicMetrics.cpuMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.CPUTimeUserPercent,
+          value: basicMetrics.cpuMetrics.timeUserPercent,
+          description: "CPU time spent in user space",
+          unit: "%",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.CPUTimeSystemPercent,
+          value: basicMetrics.cpuMetrics.timeSystemPercent,
+          description: "CPU time spent in kernel space",
+          unit: "%",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.CPUTimeIoWaitPercent,
+          value: basicMetrics.cpuMetrics.timeIoWaitPercent,
+          description: "CPU time spent waiting on I/O",
+          unit: "%",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.CPUTimeIdlePercent,
+          value: basicMetrics.cpuMetrics.timeIdlePercent,
+          description: "CPU time spent idle",
+          unit: "%",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.CPUTimeStealPercent,
+          value: basicMetrics.cpuMetrics.timeStealPercent,
+          description: "CPU time stolen by the hypervisor",
+          unit: "%",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+      }
+
+      // Network counters — both per-interface and aggregate.
+      if (basicMetrics.networkMetrics) {
+        const net: typeof basicMetrics.networkMetrics =
+          basicMetrics.networkMetrics;
+
+        for (const iface of net.interfaces || []) {
+          const ifaceAttrs: JSONObject = {
+            interfaceName: (iface as NetworkInterfaceMetrics).interfaceName,
+          };
+
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.NetworkBytesReceivedTotal,
+            value: iface.bytesReceived,
+            description: "Network bytes received since boot (per-interface)",
+            unit: "bytes",
+            extraAttributes: ifaceAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.NetworkBytesSentTotal,
+            value: iface.bytesSent,
+            description: "Network bytes sent since boot (per-interface)",
+            unit: "bytes",
+            extraAttributes: ifaceAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.NetworkPacketsReceivedTotal,
+            value: iface.packetsReceived,
+            description: "Network packets received since boot (per-interface)",
+            unit: "packets",
+            extraAttributes: ifaceAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.NetworkPacketsSentTotal,
+            value: iface.packetsSent,
+            description: "Network packets sent since boot (per-interface)",
+            unit: "packets",
+            extraAttributes: ifaceAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.NetworkErrorsIn,
+            value: iface.errorsIn,
+            description: "Network receive errors since boot (per-interface)",
+            unit: "errors",
+            extraAttributes: ifaceAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: MonitorMetricType.NetworkErrorsOut,
+            value: iface.errorsOut,
+            description: "Network transmit errors since boot (per-interface)",
+            unit: "errors",
+            extraAttributes: ifaceAttrs,
+            metricRows,
+            metricNameServiceNameMap,
+          });
+        }
+
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.NetworkConnectionsEstablished,
+          value: net.connectionsEstablished,
+          description: "Count of ESTABLISHED network connections",
+          unit: "connections",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.NetworkConnectionsListen,
+          value: net.connectionsListen,
+          description: "Count of LISTENing network sockets",
+          unit: "connections",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+      }
+
+      // Host uptime.
+      if (basicMetrics.hostMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.HostUptimeSeconds,
+          value: basicMetrics.hostMetrics.uptimeSeconds,
+          description: "Host uptime in seconds",
+          unit: "seconds",
+          metricRows,
+          metricNameServiceNameMap,
+        });
+      }
+
+      // Process count — simple scalar derived from the processes array.
+      const serverProcesses: Array<unknown> | undefined = (
+        data.dataToProcess as ServerMonitorResponse
+      ).processes;
+      if (serverProcesses && serverProcesses.length >= 0) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.ProcessCountTotal,
+          value: serverProcesses.length,
+          description: "Total running processes on the server",
+          unit: "processes",
+          metricRows,
+          metricNameServiceNameMap,
+        });
       }
     }
 

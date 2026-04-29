@@ -5,6 +5,7 @@ import PageLoader from "../Loader/PageLoader";
 import LabelElement from "../Label/Label";
 import Link from "../../../Types/Link";
 import LabelModel from "../../../Models/DatabaseModels/Label";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -22,6 +23,9 @@ export interface ComponentProps {
 const Page: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string | undefined = translateString(props.title);
+
   useEffect(() => {
     if (props.breadcrumbLinks && props.breadcrumbLinks.length > 0) {
       Analytics.capture(
@@ -60,7 +64,7 @@ const Page: FunctionComponent<ComponentProps> = (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap sm:gap-4">
                 <div className="flex flex-col gap-1 min-w-0">
                   <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
-                    {props.title}
+                    {translatedTitle}
                   </h1>
                 </div>
                 {props.headerRight && (
@@ -71,7 +75,7 @@ const Page: FunctionComponent<ComponentProps> = (
                 {props.labels && props.labels.length > 0 && (
                   <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                     <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
-                      Labels
+                      {translateString("Labels") || "Labels"}
                     </span>
                     <div className="flex flex-wrap items-center gap-2 justify-end">
                       {props.labels

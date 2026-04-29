@@ -1,0 +1,233 @@
+{
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "close": "Закрыть",
+    "back": "Назад",
+    "next": "Далее",
+    "loading": "Загрузка...",
+    "search": "Поиск",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "yes": "Да",
+    "no": "Нет",
+    "statusPage": "Страница статуса"
+  },
+  "language": {
+    "label": "Язык",
+    "switchLanguage": "Сменить язык"
+  },
+  "nav": {
+    "overview": "Обзор",
+    "incidents": "Инциденты",
+    "announcements": "Объявления",
+    "scheduledEvents": "Запланированные события",
+    "subscribe": "Подписаться",
+    "login": "Войти",
+    "logout": "Выйти"
+  },
+  "overview": {
+    "uptimeSuffix": "% времени работы",
+    "operational": "Работает",
+    "noResourcesInGroup": "В эту группу не добавлены ресурсы.",
+    "activeIncidents": "Активные инциденты",
+    "scheduledMaintenanceEvents": "Запланированные работы по обслуживанию",
+    "allClearTitle": "Всё работает отлично",
+    "allClearDescription": "На эту страницу статуса ещё не добавлены ресурсы. Пожалуйста, добавьте ресурсы через панель управления.",
+    "allResourcesAre": "Все ресурсы — {{status}}",
+    "someResourcesAre": "Некоторые ресурсы — {{status}}",
+    "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}"
+  },
+  "eventItem": {
+    "affectedResources": "Затронутые ресурсы",
+    "stateChangedTo": "статус изменён на",
+    "view": "Открыть {{eventType}}",
+    "updateTo": "Обновление этого: {{eventType}}",
+    "postedOn": "опубликовано"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} дней назад",
+    "today": "Сегодня",
+    "notAvailable": "Недоступно"
+  },
+  "incidents": {
+    "title": "Инциденты",
+    "singular": "Инцидент",
+    "active": "Активные инциденты",
+    "resolved": "Решённые инциденты",
+    "none": "Нет инцидентов",
+    "noneDescription": "На этой странице статуса не опубликовано ни одного инцидента.",
+    "postmortem": "Анализ инцидента",
+    "declaredAt": "Зарегистрирован ",
+    "report": "Отчёт об инциденте",
+    "notFound": "Инцидент не найден на этой странице статуса."
+  },
+  "episodes": {
+    "report": "Отчёт об эпизоде",
+    "none": "Нет эпизода",
+    "notFound": "Эпизод не найден на этой странице статуса."
+  },
+  "announcements": {
+    "title": "Объявления",
+    "singular": "Объявление",
+    "active": "Активные объявления",
+    "past": "Прошлые объявления",
+    "none": "Нет объявлений",
+    "noneDescription": "На этой странице пока не опубликовано ни одного объявления.",
+    "announcedAt": "Объявлено ",
+    "notFound": "Объявление не найдено на этой странице статуса."
+  },
+  "scheduledEvents": {
+    "title": "Запланированные события",
+    "singular": "Запланированное событие",
+    "scheduledMaintenance": "Запланированное обслуживание",
+    "ongoing": "Текущие события",
+    "upcoming": "Запланированные события",
+    "completed": "Завершённые события",
+    "none": "Нет запланированных событий",
+    "noneDescription": "На этой странице статуса не опубликовано ни одного запланированного события.",
+    "scheduledAt": "Запланировано на ",
+    "report": "Отчёт о запланированном событии",
+    "notFound": "Запланированное событие не найдено для этой страницы статуса."
+  },
+  "subscribe": {
+    "title": "Подписаться",
+    "submit": "Подписаться",
+    "newSubscription": "Новая подписка",
+    "manageExisting": "Управление существующей подпиской",
+    "sendManagementLink": "Отправить ссылку для управления",
+    "subscribedSuccessfully": "Вы успешно подписаны.",
+    "emailSentCheckSpam": "Письмо со ссылкой отправлено на ваш адрес электронной почты. Если вы не видите его, пожалуйста, проверьте папку со спамом.",
+    "menu": {
+      "email": "Email",
+      "sms": "SMS",
+      "slack": "Slack",
+      "microsoftTeams": "MS Teams",
+      "webhooks": "Webhooks"
+    },
+    "email": {
+      "title": "Подписаться по электронной почте",
+      "description": "Все наши обновления будут отправляться на этот адрес электронной почты.",
+      "yourEmail": "Ваш email",
+      "placeholder": "subscriber@company.ru",
+      "managePrompt": "Пожалуйста, введите email, с которым вы подписались",
+      "manageDescription": "Мы отправим вам ссылку для управления подпиской на этот адрес электронной почты.",
+      "managePlaceholder": "email@vashakompaniya.ru"
+    },
+    "sms": {
+      "title": "Подписаться по SMS",
+      "description": "Все наши обновления будут отправляться на этот номер телефона.",
+      "yourPhoneNumber": "Ваш номер телефона",
+      "placeholder": "+79001234567",
+      "managePrompt": "Пожалуйста, введите номер телефона, с которым вы подписались",
+      "manageDescription": "Мы отправим вам ссылку для управления подпиской на этот номер телефона."
+    },
+    "slack": {
+      "title": "Подписаться через Slack",
+      "description": "Все наши обновления будут отправляться в этот Slack-webhook.",
+      "workspaceName": "Название рабочего пространства Slack",
+      "workspaceNameDescription": "Введите название вашего рабочего пространства Slack для проверки.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Slack Incoming Webhook URL",
+      "webhookUrlDescription": "Обновления страницы статуса будут отправляться в этот Slack-webhook.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "Пожалуйста, введите название рабочего пространства Slack, с которым вы подписались",
+      "manageDescription": "Мы отправим вам ссылку для управления подпиской в это рабочее пространство."
+    },
+    "microsoftTeams": {
+      "title": "Подписаться через Microsoft Teams",
+      "description": "Все наши обновления будут отправляться в этот Teams-webhook.",
+      "workspaceName": "Название рабочего пространства Microsoft Teams",
+      "workspaceNameDescription": "Введите название вашего рабочего пространства Microsoft Teams для проверки.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "Microsoft Teams Incoming Webhook URL",
+      "webhookUrlDescription": "Обновления страницы статуса будут отправляться в этот Teams-webhook.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "Пожалуйста, введите название рабочего пространства Microsoft Teams, с которым вы подписались",
+      "manageDescription": "Мы отправим вам ссылку для управления подпиской в это рабочее пространство."
+    },
+    "resources": {
+      "all": "Подписаться на все ресурсы",
+      "allDescription": "Выберите этот параметр, если хотите подписаться на все ресурсы.",
+      "select": "Выберите ресурсы для подписки",
+      "selectDescription": "Пожалуйста, выберите ресурсы, на которые вы хотите подписаться."
+    },
+    "eventTypes": {
+      "all": "Подписаться на все типы событий",
+      "allDescription": "Выберите этот параметр, если хотите подписаться на все типы событий.",
+      "select": "Выберите типы событий для подписки",
+      "selectDescription": "Пожалуйста, выберите типы событий, на которые вы хотите подписаться."
+    },
+    "update": {
+      "title": "Обновить подписку",
+      "description": "Здесь вы можете обновить настройки подписки или отписаться.",
+      "saved": "Ваши изменения сохранены.",
+      "unsubscribe": "Отписаться",
+      "unsubscribeDescription": "Выберите этот параметр, если хотите отписаться от всех ресурсов."
+    },
+    "confirm": {
+      "title": "Подтвердить подписку",
+      "success": "Подписка успешно подтверждена"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "Email",
+      "password": "Пароль",
+      "newPassword": "Новый пароль",
+      "confirmPassword": "Подтвердите пароль",
+      "login": "Войти"
+    },
+    "login": {
+      "welcomeBack": "С возвращением!",
+      "loginPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}",
+      "forgotPassword": "Забыли пароль?",
+      "submit": "Войти",
+      "useSSO": "Использовать единый вход (SSO) вместо этого"
+    },
+    "sso": {
+      "title": "Войти через SSO",
+      "loginPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}",
+      "noProviders": "Провайдеры SSO не настроены или не включены"
+    },
+    "forgotPassword": {
+      "title": "Забыли пароль",
+      "description": "Если вы забыли свой пароль от {{statusPageName}}, пожалуйста, введите ваш email, и мы отправим вам ссылку для сброса пароля.",
+      "success": "Мы отправили вам ссылку для сброса пароля по электронной почте. Не забудьте проверить папку со спамом.",
+      "sendLink": "Отправить ссылку для сброса пароля",
+      "rememberPassword": "Вспомнили пароль?"
+    },
+    "resetPassword": {
+      "description": "Создайте новый пароль для вашей учётной записи {{statusPageName}}.",
+      "instructions": "Пожалуйста, введите ваш новый пароль, и мы обновим его.",
+      "success": "Ваш пароль обновлён. Пожалуйста, войдите.",
+      "submit": "Сбросить пароль",
+      "knowPassword": "Знаете свой пароль?"
+    },
+    "masterPassword": {
+      "enterWithName": "Введите пароль для {{statusPageName}}",
+      "enterGeneric": "Введите пароль",
+      "prompt": "Пожалуйста, введите пароль, чтобы продолжить.",
+      "passwordRequired": "пароль обязателен.",
+      "passwordLabel": "Пароль",
+      "passwordDescription": "Введите пароль, чтобы разблокировать эту страницу.",
+      "passwordPlaceholder": "Введите пароль",
+      "submit": "Разблокировать страницу статуса"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Страница не найдена.",
+      "description": "Страница, которую вы ищете, не существует."
+    },
+    "forbidden": {
+      "title": "Доступ запрещён",
+      "description": "У вас нет разрешения на доступ к этой странице."
+    },
+    "generic": "Что-то пошло не так. Пожалуйста, попробуйте снова."
+  },
+  "footer": {
+    "poweredBy": "Работает на OneUptime"
+  }
+}

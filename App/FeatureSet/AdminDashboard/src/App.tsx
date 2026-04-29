@@ -7,6 +7,7 @@ import SettingsAuthentication from "./Pages/Settings/Authentication/Index";
 import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
 import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
+import SettingsTelegram from "./Pages/Settings/Telegram/Index";
 // Settings Pages.
 import SettingsEmail from "./Pages/Settings/Email/Index";
 import SettingsProbes from "./Pages/Settings/Probes/Index";
@@ -120,6 +121,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_WHATSAPP]?.toString() || ""}
           element={<SettingsWhatsApp />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_TELEGRAM]?.toString() || ""}
+          element={<SettingsTelegram />}
         />
 
         <PageRoute

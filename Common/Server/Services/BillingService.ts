@@ -138,13 +138,37 @@ export class BillingService extends BaseService {
       line2 = rest.substring(0, 200);
     }
 
+    /*
+     * financeAccountingEmail may be a comma/semicolon-separated list. Parse the first
+     * valid address for Stripe (which stores a single email), and keep the full list
+     * in metadata so OneUptime can fan out invoice emails to every recipient.
+     */
+    const parsedEmails: Array<Email> = financeAccountingEmail
+      ? (() => {
+          try {
+            return Email.parseList(financeAccountingEmail);
+          } catch (err) {
+            logger.error(
+              `[Invoice Email] Failed to parse financeAccountingEmail for customer ${id}: ${err}`,
+            );
+            return [];
+          }
+        })()
+      : [];
+
+    const normalizedEmailList: string = parsedEmails
+      .map((e: Email): string => {
+        return e.toString();
+      })
+      .join(", ");
+
     const metadata: Record<string, string> = {
       business_details_full: businessDetails.substring(0, 5000),
     };
-    if (financeAccountingEmail) {
-      metadata["finance_accounting_email"] = financeAccountingEmail.substring(
+    if (normalizedEmailList) {
+      metadata["finance_accounting_email"] = normalizedEmailList.substring(
         0,
-        200,
+        500,
       );
     } else {
       // Remove if cleared
@@ -165,11 +189,11 @@ export class BillingService extends BaseService {
     };
 
     /*
-     * If finance / accounting email provided, set it as the customer email so Stripe sends
-     * invoices / receipts there. (Stripe only supports a single email via API currently.)
+     * Stripe's customer.email only accepts one address. Use the first parsed email;
+     * the rest are delivered by OneUptime's own webhook-driven invoice email path.
      */
-    if (financeAccountingEmail && financeAccountingEmail.trim().length > 0) {
-      updateParams.email = financeAccountingEmail.trim();
+    if (parsedEmails.length > 0) {
+      updateParams.email = parsedEmails[0]!.toString();
     }
 
     if (line1) {
@@ -956,11 +980,16 @@ export class BillingService extends BaseService {
   @CaptureSpan()
   public async sendInvoiceByEmail(
     invoiceId: string,
-    recipientEmail?: Email,
+    recipientEmails?: Array<Email>,
     projectId?: ObjectID,
   ): Promise<void> {
+    const recipientsForLog: string = (recipientEmails || [])
+      .map((e: Email): string => {
+        return e.toString();
+      })
+      .join(", ");
     logger.debug(
-      `[Invoice Email] sendInvoiceByEmail called for invoice: ${invoiceId}, recipientEmail: ${recipientEmail?.toString()}`,
+      `[Invoice Email] sendInvoiceByEmail called for invoice: ${invoiceId}, recipients: ${recipientsForLog}`,
     );
 
     if (!this.isBillingEnabled()) {
@@ -986,13 +1015,22 @@ export class BillingService extends BaseService {
         return;
       }
 
-      // Determine recipient email
-      let toEmail: Email | undefined = recipientEmail;
-      if (!toEmail && stripeInvoice.customer_email) {
-        toEmail = new Email(stripeInvoice.customer_email);
+      /*
+       * Determine recipient list. Fall back to the invoice's customer email when no
+       * explicit recipients were supplied by the caller.
+       */
+      let toEmails: Array<Email> = recipientEmails || [];
+      if (toEmails.length === 0 && stripeInvoice.customer_email) {
+        try {
+          toEmails = Email.parseList(stripeInvoice.customer_email);
+        } catch (err) {
+          logger.error(
+            `[Invoice Email] Failed to parse Stripe customer_email "${stripeInvoice.customer_email}" for invoice ${invoiceId}: ${err}`,
+          );
+        }
       }
 
-      if (!toEmail) {
+      if (toEmails.length === 0) {
         logger.error(
           `[Invoice Email] No recipient email found for invoice ${invoiceId}`,
           { projectId: projectId?.toString() } as LogAttributes,
@@ -1021,33 +1059,41 @@ export class BillingService extends BaseService {
         dashboardLink = `${DashboardClientUrl.toString()}/dashboard/${projectId.toString()}/settings/billing`;
       }
 
-      logger.debug(
-        `[Invoice Email] Sending invoice email to ${toEmail.toString()} - Invoice #${invoiceNumber}, Amount: ${amount}`,
-      );
+      for (const toEmail of toEmails) {
+        logger.debug(
+          `[Invoice Email] Sending invoice email to ${toEmail.toString()} - Invoice #${invoiceNumber}, Amount: ${amount}`,
+        );
+        try {
+          await MailService.sendMail(
+            {
+              toEmail: toEmail,
+              templateType: EmailTemplateType.Invoice,
+              vars: {
+                invoiceNumber: invoiceNumber,
+                invoiceDate: invoiceDate,
+                amount: amount,
+                description: description || "",
+                invoicePdfUrl: invoicePdfUrl || "",
+                dashboardLink: dashboardLink || "",
+              },
+              subject: `Invoice #${invoiceNumber} from OneUptime`,
+            },
+            {
+              projectId: projectId,
+            },
+          );
 
-      // Send email via OneUptime MailService
-      await MailService.sendMail(
-        {
-          toEmail: toEmail,
-          templateType: EmailTemplateType.Invoice,
-          vars: {
-            invoiceNumber: invoiceNumber,
-            invoiceDate: invoiceDate,
-            amount: amount,
-            description: description || "",
-            invoicePdfUrl: invoicePdfUrl || "",
-            dashboardLink: dashboardLink || "",
-          },
-          subject: `Invoice #${invoiceNumber} from OneUptime`,
-        },
-        {
-          projectId: projectId,
-        },
-      );
-
-      logger.debug(
-        `[Invoice Email] Successfully sent invoice ${invoiceId} email to ${toEmail.toString()}`,
-      );
+          logger.debug(
+            `[Invoice Email] Successfully sent invoice ${invoiceId} email to ${toEmail.toString()}`,
+          );
+        } catch (perRecipientErr) {
+          // Keep going for the remaining recipients if one fails.
+          logger.error(
+            `[Invoice Email] Failed to send invoice ${invoiceId} to ${toEmail.toString()}: ${perRecipientErr}`,
+            { projectId: projectId?.toString() } as LogAttributes,
+          );
+        }
+      }
     } catch (err) {
       logger.error(
         `[Invoice Email] Failed to send invoice ${invoiceId} by email: ${err}`,
@@ -1108,16 +1154,21 @@ export class BillingService extends BaseService {
     amountInUsd: number,
     options?: {
       sendInvoiceByEmail?: boolean | undefined;
-      recipientEmail?: Email | undefined;
+      recipientEmails?: Array<Email> | undefined;
       projectId?: ObjectID | undefined;
     },
   ): Promise<void> {
     const sendInvoiceByEmail: boolean = options?.sendInvoiceByEmail || false;
-    const recipientEmail: Email | undefined = options?.recipientEmail;
+    const recipientEmails: Array<Email> | undefined = options?.recipientEmails;
     const projectId: ObjectID | undefined = options?.projectId;
 
+    const recipientsForLog: string = (recipientEmails || [])
+      .map((e: Email): string => {
+        return e.toString();
+      })
+      .join(", ");
     logger.debug(
-      `[Invoice Email] generateInvoiceAndChargeCustomer called - customer: ${customerId}, amount: $${amountInUsd}, sendInvoiceByEmail: ${sendInvoiceByEmail}, recipientEmail: ${recipientEmail?.toString()}, projectId: ${projectId?.toString()}`,
+      `[Invoice Email] generateInvoiceAndChargeCustomer called - customer: ${customerId}, amount: $${amountInUsd}, sendInvoiceByEmail: ${sendInvoiceByEmail}, recipients: ${recipientsForLog}, projectId: ${projectId?.toString()}`,
     );
 
     const invoice: Stripe.Invoice = await this.stripe.invoices.create({
@@ -1161,7 +1212,7 @@ export class BillingService extends BaseService {
         logger.debug(
           `[Invoice Email] sendInvoiceByEmail is true, sending invoice ${invoice.id} by email`,
         );
-        await this.sendInvoiceByEmail(invoice.id!, recipientEmail, projectId);
+        await this.sendInvoiceByEmail(invoice.id!, recipientEmails, projectId);
       } else {
         logger.debug(
           `[Invoice Email] sendInvoiceByEmail is false, skipping email for invoice ${invoice.id}`,
@@ -1350,16 +1401,33 @@ export class BillingService extends BaseService {
             },
           });
 
-          let recipientEmail: Email | undefined = undefined;
+          let recipientEmails: Array<Email> | undefined = undefined;
           let projectId: ObjectID | undefined = undefined;
 
           if (project) {
             projectId = project.id || undefined;
             if (project.financeAccountingEmail) {
-              recipientEmail = new Email(project.financeAccountingEmail);
+              try {
+                recipientEmails = Email.parseList(
+                  project.financeAccountingEmail,
+                );
+              } catch (parseErr) {
+                /*
+                 * Log and fall back to Stripe customer email rather than dropping
+                 * the invoice delivery entirely due to a malformed address.
+                 */
+                logger.error(
+                  `[Invoice Email] Failed to parse financeAccountingEmail for project ${projectId?.toString()}: ${parseErr}`,
+                );
+              }
             }
+            const parsedForLog: string = (recipientEmails || [])
+              .map((e: Email): string => {
+                return e.toString();
+              })
+              .join(", ");
             logger.debug(
-              `[Invoice Email] Found project ${projectId?.toString()}, financeAccountingEmail: ${recipientEmail?.toString()}`,
+              `[Invoice Email] Found project ${projectId?.toString()}, financeAccountingEmail recipients: ${parsedForLog}`,
             );
           } else {
             logger.debug(
@@ -1370,7 +1438,7 @@ export class BillingService extends BaseService {
           logger.debug(
             `[Invoice Email] Sending invoice ${invoice.id} by email`,
           );
-          await this.sendInvoiceByEmail(invoice.id, recipientEmail, projectId);
+          await this.sendInvoiceByEmail(invoice.id, recipientEmails, projectId);
           logger.debug(
             `[Invoice Email] Successfully processed invoice.finalized - sent invoice ${invoice.id} by email`,
           );
