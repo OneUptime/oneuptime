@@ -318,6 +318,9 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "hostAliases": {
+                    "type": "object"
                 }
             },
             "additionalProperties": false
@@ -1130,6 +1133,9 @@
                         "containerSecurityContext": {
                             "type": "object"
                         },
+                        "hostAliases": {
+                            "type": "object"
+                        },
                         "additionalContainers": {
                             "type": "array"
                         },
@@ -1716,6 +1722,9 @@
                 "podSecurityContext": {
                     "type": "object"
                 },
+                "hostAliases": {
+                    "type": "object"
+                },
                 "containerSecurityContext": {
                     "type": "object"
                 },
@@ -1811,6 +1820,9 @@
                     "type": "object"
                 },
                 "podSecurityContext": {
+                    "type": "object"
+                },
+                "hostAliases": {
                     "type": "object"
                 },
                 "containerSecurityContext": {
@@ -2060,6 +2072,9 @@
                     "type": "object"
                 },
                 "containerSecurityContext": {
+                    "type": "object"
+                },
+                "hostAliases": {
                     "type": "object"
                 },
                 "keda": {
