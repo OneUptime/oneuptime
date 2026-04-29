@@ -311,6 +311,11 @@ autoscaling:
 
 nodeEnvironment: production
 
+# Disable TLS certificate verification for outbound HTTPS requests.
+# Useful for self-signed certs or testing setups.
+# Not safe for production (risk of MITM attacks)!
+skipVerifyTLS: false
+
 billing:
   enabled: false
   publicKey:
