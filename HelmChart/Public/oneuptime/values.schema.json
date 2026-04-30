@@ -37,6 +37,10 @@
                 "provision": {
                     "type": "boolean",
                     "description": "Automatically provision a Let's Encrypt certificate for the primary host"
+                },
+                "skipVerification": {
+                    "type": "boolean",
+                    "description": "Skip TLS certificate verification for outbound HTTPS requests. Not safe for production."
                 }
             },
             "additionalProperties": false
@@ -765,9 +769,6 @@
         },
         "nodeEnvironment": {
             "type": "string"
-        },
-        "skipVerifyTLS": {
-            "type": "boolean"
         },
         "billing": {
             "type": "object",

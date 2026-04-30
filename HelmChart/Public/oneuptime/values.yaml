@@ -12,6 +12,9 @@ ssl:
   # Automatically provision a Let's Encrypt certificate for the primary host when set to true.
   # If you enable this, please make sure that the host is publicly accessible via port 80 and 443.
   provision: false
+  # Skip TLS certificate verification for outbound HTTPS requests (self-signed certs / internal endpoints).
+  # Not safe for production — risk of MITM attacks.
+  skipVerification: false
 
 image:
   registry: docker.io
@@ -311,11 +314,6 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 nodeEnvironment: production
-
-# Disable TLS certificate verification for outbound HTTPS requests.
-# Useful for self-signed certs or testing setups.
-# Not safe for production (risk of MITM attacks)!
-skipVerifyTLS: false
 
 billing:
   enabled: false

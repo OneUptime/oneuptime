@@ -82,10 +82,10 @@ Usage:
   value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV
   value: {{ $.Values.nodeEnvironment }}
-{{- if $.Values.skipVerifyTLS }}
+{{- if $.Values.ssl.skipVerification }}
 - name: NODE_TLS_REJECT_UNAUTHORIZED
   value: "0"
-{{- end }} 
+{{- end }}
 - name: BILLING_ENABLED
   value: {{ $.Values.billing.enabled | squote }}
 - name: BILLING_PUBLIC_KEY
