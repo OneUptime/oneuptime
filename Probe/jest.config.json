@@ -1,10 +1,12 @@
 {
-   
+
  "preset": "ts-jest",
 "testPathIgnorePatterns": [
         "node_modules",
-        "dist"
+        "dist",
+        "<rootDir>/build/"
     ],
+    "modulePathIgnorePatterns": ["<rootDir>/build/"],
     "verbose": true,
     "globals": {
         "ts-jest": {
