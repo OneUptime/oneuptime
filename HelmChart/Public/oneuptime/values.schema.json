@@ -766,6 +766,9 @@
         "nodeEnvironment": {
             "type": "string"
         },
+        "skipVerifyTLS": {
+            "type": "boolean"
+        },
         "billing": {
             "type": "object",
             "properties": {
