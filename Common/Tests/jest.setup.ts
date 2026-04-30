@@ -8,8 +8,10 @@ import { webcrypto, randomUUID } from "crypto";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (global as any).TextDecoder = TextDecoder;
 
-// jsdom does not expose crypto.randomUUID, so back it with Node's webcrypto
-// (UUID.ts calls globalThis.crypto.randomUUID() to stay browser-bundle-safe).
+/*
+ * jsdom does not expose crypto.randomUUID, so back it with Node's webcrypto
+ * (UUID.ts calls globalThis.crypto.randomUUID() to stay browser-bundle-safe).
+ */
 if (!globalThis.crypto) {
   Object.defineProperty(globalThis, "crypto", {
     value: webcrypto,
