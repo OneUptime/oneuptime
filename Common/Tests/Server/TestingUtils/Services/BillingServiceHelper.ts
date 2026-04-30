@@ -15,28 +15,11 @@ import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 
-const ensureMeteredPlanPriceIdsInTestEnv: () => void = (): void => {
-  process.env["BILLING_METERED_PLAN_PRICE_ID_ACTIVE_MONITORING"] =
-    process.env["BILLING_METERED_PLAN_PRICE_ID_ACTIVE_MONITORING"] ||
-    "test_price_active_monitoring";
-  process.env["BILLING_METERED_PLAN_PRICE_ID_LOGS"] =
-    process.env["BILLING_METERED_PLAN_PRICE_ID_LOGS"] || "test_price_logs";
-  process.env["BILLING_METERED_PLAN_PRICE_ID_TRACES"] =
-    process.env["BILLING_METERED_PLAN_PRICE_ID_TRACES"] || "test_price_traces";
-  process.env["BILLING_METERED_PLAN_PRICE_ID_METRICS"] =
-    process.env["BILLING_METERED_PLAN_PRICE_ID_METRICS"] ||
-    "test_price_metrics";
-  process.env["BILLING_METERED_PLAN_PRICE_ID_PROFILES"] =
-    process.env["BILLING_METERED_PLAN_PRICE_ID_PROFILES"] ||
-    "test_price_profiles";
-};
-
 type MockIsBillingEnabledFunction = (value: boolean) => Promise<BillingService>;
 
 const mockIsBillingEnabled: MockIsBillingEnabledFunction = async (
   value: boolean,
 ): Promise<BillingService> => {
-  ensureMeteredPlanPriceIdsInTestEnv();
   jest.resetModules();
   jest.doMock("../../../../Server/BillingConfig", () => {
     return {
@@ -79,8 +62,6 @@ type GetStripeSubscriptionFunction = () => Stripe.Subscription;
 
 const getStripeSubscription: GetStripeSubscriptionFunction =
   (): Stripe.Subscription => {
-    ensureMeteredPlanPriceIdsInTestEnv();
-
     return {
       id: Faker.generateRandomObjectID().toString(),
       items: {

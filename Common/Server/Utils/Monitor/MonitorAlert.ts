@@ -121,7 +121,6 @@ export default class MonitorAlert {
       `${input.monitor.id?.toString()} - Check open alerts.`,
       alertLogAttributes,
     );
-    // check active alerts and if there are open alerts, do not create another alert.
 
     const breachingSeriesFingerprints: Set<string> | undefined =
       input.matchesPerSeries

@@ -144,7 +144,6 @@ export default class MonitorIncident {
       `${input.monitor.id?.toString()} - Check open incidents.`,
       incidentLogAttributes,
     );
-    // check active incidents and if there are open incidents, do not create another incident.
 
     /*
      * Per-series mode: close any open incident for a series that's no
