@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 export default class UUID {
   public static generate(): string {
-    return uuidv4();
+    return randomUUID();
   }
 }

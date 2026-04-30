@@ -685,13 +685,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 />
                 <Area
                   dataKey={seriesKeys[0] || "count"}
-                  stroke={CHART_COLORS[0]}
+                  stroke={CHART_COLORS[0]!}
                   strokeWidth={2}
                   fill="url(#areaGradient0)"
                   dot={false}
                   activeDot={{
                     r: 4,
-                    fill: CHART_COLORS[0],
+                    fill: CHART_COLORS[0]!,
                     stroke: "#fff",
                     strokeWidth: 2,
                   }}
