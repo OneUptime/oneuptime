@@ -37,7 +37,7 @@ export default class MonitorAlert {
     evaluationSummary?: MonitorEvaluationSummary | undefined;
     breachingSeriesFingerprints?: Set<string> | undefined;
   }): Promise<Array<Alert>> {
-    // check active alerts and if there are open alerts, do not cretae anothr alert.
+    // check active alerts and if there are open alerts, do not create another alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         monitor: input.monitorId!,
@@ -121,6 +121,7 @@ export default class MonitorAlert {
       `${input.monitor.id?.toString()} - Check open alerts.`,
       alertLogAttributes,
     );
+    // check active alerts and if there are open alerts, do not create another alert.
 
     const breachingSeriesFingerprints: Set<string> | undefined =
       input.matchesPerSeries

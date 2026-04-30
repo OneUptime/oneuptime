@@ -172,7 +172,7 @@ export default class SlackAlertActions {
       return;
     }
 
-    // invlaid action type.
+    // invalid action type.
     return Response.sendErrorResponse(
       req,
       res,
@@ -263,7 +263,7 @@ export default class SlackAlertActions {
       return;
     }
 
-    // invlaid action type.
+    // invalid action type.
     return Response.sendErrorResponse(
       req,
       res,

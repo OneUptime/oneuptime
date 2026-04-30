@@ -239,7 +239,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           description: tableDescription,
           buttons: createButtons,
         }}
-        noItemsMessage={"No permisisons created for this team so far."}
+        noItemsMessage={"No permissions created for this team so far."}
         formFields={
           createPermissionType === CreatePermissionType.RoleBased
             ? [

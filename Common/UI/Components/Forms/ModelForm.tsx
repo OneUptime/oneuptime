@@ -295,7 +295,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     fieldsToSet = await fetchDropdownOptions(fieldsToSet);
 
-    // if there are no fields to set, then show permission erorr. This is useful when there are no fields to show.
+    // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
       const field: ModelField<TBaseModel> | undefined = props.fields[0];
 
@@ -303,7 +303,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         const fieldName: string | undefined = Object.keys(field.field || {})[0];
 
         if (fieldName) {
-          const fieldPermisisons: Array<Permission> =
+          const fieldPermissions: Array<Permission> =
             getFieldPermissions(fieldName);
 
           const columnMetadata: TableColumnMetadata =
@@ -312,7 +312,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
           setError(
             `You don't have enough permissions to ${
               props.formType === FormType.Create ? "create" : "edit"
-            } ${columnMetadata.title} on ${model.singularName}. You need one of the following permissions: ${fieldPermisisons.join(", ")}`,
+            } ${columnMetadata.title} on ${model.singularName}. You need one of the following permissions: ${fieldPermissions.join(", ")}`,
           );
         }
       }

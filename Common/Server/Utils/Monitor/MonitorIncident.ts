@@ -50,7 +50,7 @@ export default class MonitorIncident {
      */
     breachingSeriesFingerprints?: Set<string> | undefined;
   }): Promise<Array<Incident>> {
-    // check active incidents and if there are open incidents, do not cretae anothr incident.
+    // check active incidents and if there are open incidents, do not create another incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitorId],
@@ -144,6 +144,7 @@ export default class MonitorIncident {
       `${input.monitor.id?.toString()} - Check open incidents.`,
       incidentLogAttributes,
     );
+    // check active incidents and if there are open incidents, do not create another incident.
 
     /*
      * Per-series mode: close any open incident for a series that's no

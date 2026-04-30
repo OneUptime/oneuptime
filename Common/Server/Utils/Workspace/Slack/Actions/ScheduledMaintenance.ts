@@ -638,7 +638,7 @@ export default class SlackScheduledMaintenanceActions {
       return;
     }
 
-    // invlaid action type.
+    // invalid action type.
     return Response.sendErrorResponse(
       req,
       res,
@@ -774,7 +774,7 @@ export default class SlackScheduledMaintenanceActions {
       return;
     }
 
-    // invlaid action type.
+    // invalid action type.
     return Response.sendErrorResponse(
       req,
       res,
