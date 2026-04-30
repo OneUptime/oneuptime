@@ -3,6 +3,7 @@ import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
+import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -67,15 +68,18 @@ RunCron(
       const cutoff: Date = KubernetesResourceService.getStaleThresholdDate();
 
       let totalDeleted: number = 0;
+      let totalContainersDeleted: number = 0;
       for (const cluster of connectedClusters) {
         if (!cluster._id) {
           continue;
         }
 
+        const clusterId: ObjectID = new ObjectID(cluster._id.toString());
+
         try {
           const deleted: number =
             await KubernetesResourceService.deleteStaleForCluster({
-              kubernetesClusterId: new ObjectID(cluster._id.toString()),
+              kubernetesClusterId: clusterId,
               olderThan: cutoff,
             });
           totalDeleted += deleted;
@@ -84,11 +88,24 @@ RunCron(
             `CleanupStaleResources: deleteStaleForCluster failed for cluster ${cluster._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
+
+        try {
+          const deletedContainers: number =
+            await KubernetesContainerService.deleteStaleForCluster({
+              kubernetesClusterId: clusterId,
+              olderThan: cutoff,
+            });
+          totalContainersDeleted += deletedContainers;
+        } catch (err) {
+          logger.error(
+            `CleanupStaleResources: container deleteStaleForCluster failed for cluster ${cluster._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
 
-      if (totalDeleted > 0) {
+      if (totalDeleted > 0 || totalContainersDeleted > 0) {
         logger.debug(
-          `CleanupStaleResources: pruned ${totalDeleted} stale KubernetesResource row(s) across ${connectedClusters.length} cluster(s) (cutoff ${cutoff.toISOString()})`,
+          `CleanupStaleResources: pruned ${totalDeleted} stale KubernetesResource row(s) and ${totalContainersDeleted} KubernetesContainer row(s) across ${connectedClusters.length} cluster(s) (cutoff ${cutoff.toISOString()})`,
         );
       }
     } catch (err) {

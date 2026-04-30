@@ -11,6 +11,17 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import URL from "Common/Types/API/URL";
+import API from "Common/UI/Utils/API/API";
+import { APP_API_URL } from "Common/UI/Config";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+
+export interface PodMetricAggregate {
+  cpuPercent: number;
+  memoryBytes: number;
+}
 
 export interface KubernetesResource {
   name: string;
@@ -314,6 +325,14 @@ export default class KubernetesResourceUtils {
     return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB/s`;
   }
 
+  /*
+   * Latest CPU/memory points older than this are treated as "no
+   * data" by the list view so the bar chart doesn't lie about a
+   * resource that's actually fallen off the metric stream.
+   * Matches the cleanup worker's stale-resource cutoff.
+   */
+  private static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;
+
   /**
    * Fetch the list of Kubernetes resources of a given kind from the
    * Postgres inventory table (KubernetesResource).
@@ -322,18 +341,39 @@ export default class KubernetesResourceUtils {
    * right now" — populated by the k8sobjects snapshot stream. Use
    * this for list views so the page matches the sidebar badge.
    *
-   * For CPU/memory columns, enrich the returned resources with metric
-   * data via a separate call — metrics cover recent activity and
-   * won't exist for every namespace/pod.
+   * Latest CPU and memory values are read directly off the same row
+   * (latestCpuPercent / latestMemoryBytes), populated by the metric
+   * ingest path. No ClickHouse round-trip needed.
+   *
+   * Pass `selectFullSpec: true` for pages that need spec/status
+   * JSONB (e.g. Pods uses it to surface container count + waiting
+   * reason). The default is a slim select.
    */
   public static async fetchInventoryResources(options: {
     kubernetesClusterId: ObjectID;
     kind: string;
+    selectFullSpec?: boolean;
     transform?: (
       resource: KubernetesResource,
       row: KubernetesResourceModel,
     ) => void;
   }): Promise<Array<KubernetesResource>> {
+    const select: Record<string, boolean> = {
+      name: true,
+      namespaceKey: true,
+      phase: true,
+      isReady: true,
+      ownerReferences: true,
+      resourceCreationTimestamp: true,
+      latestCpuPercent: true,
+      latestMemoryBytes: true,
+      metricsUpdatedAt: true,
+    };
+    if (options.selectFullSpec) {
+      select["spec"] = true;
+      select["status"] = true;
+    }
+
     const result: ListResult<KubernetesResourceModel> =
       await ModelAPI.getList<KubernetesResourceModel>({
         modelType: KubernetesResourceModel,
@@ -343,22 +383,14 @@ export default class KubernetesResourceUtils {
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        select: {
-          name: true,
-          namespaceKey: true,
-          phase: true,
-          isReady: true,
-          spec: true,
-          status: true,
-          ownerReferences: true,
-          resourceCreationTimestamp: true,
-        },
+        select: select,
         sort: {
           namespaceKey: SortOrder.Ascending,
           name: SortOrder.Ascending,
         },
       });
 
+    const now: number = Date.now();
     return result.data.map(
       (row: KubernetesResourceModel): KubernetesResource => {
         const statusObj: Record<string, unknown> =
@@ -391,11 +423,33 @@ export default class KubernetesResourceUtils {
           ? OneUptimeDate.toString(row.resourceCreationTimestamp)
           : undefined;
 
+        // Stale-cutoff metric reads: render N/A rather than stale numbers.
+        let cpu: number | null = null;
+        let mem: number | null = null;
+        if (row.metricsUpdatedAt) {
+          const ageMs: number =
+            now - new Date(row.metricsUpdatedAt as Date).getTime();
+          if (ageMs <= KubernetesResourceUtils.METRIC_STALE_MS) {
+            if (
+              row.latestCpuPercent !== null &&
+              row.latestCpuPercent !== undefined
+            ) {
+              cpu = Number(row.latestCpuPercent);
+            }
+            if (
+              row.latestMemoryBytes !== null &&
+              row.latestMemoryBytes !== undefined
+            ) {
+              mem = Number(row.latestMemoryBytes);
+            }
+          }
+        }
+
         const resource: KubernetesResource = {
           name: row.name || "",
           namespace: row.namespaceKey || "",
-          cpuUtilization: null,
-          memoryUsageBytes: null,
+          cpuUtilization: cpu,
+          memoryUsageBytes: mem,
           memoryLimitBytes: null,
           status: displayStatus,
           age: KubernetesResourceUtils.formatAge(creationTsIso),
@@ -413,6 +467,101 @@ export default class KubernetesResourceUtils {
         return resource;
       },
     );
+  }
+
+  /**
+   * Fetch the per-namespace CPU/memory aggregates for the cluster.
+   * Server-side computed from KubernetesResource snapshot rows
+   * (kind=Pod) where metricsUpdatedAt is fresh. Drops the prior
+   * ClickHouse `groupBy attributes` round-trip from the Namespaces
+   * list view.
+   */
+  public static async fetchPodMetricsByNamespace(
+    kubernetesClusterId: ObjectID,
+  ): Promise<Map<string, PodMetricAggregate>> {
+    const url: URL = URL.fromString(APP_API_URL.toString())
+      .addRoute("/kubernetes-resource/latest-pod-metrics-by-namespace/")
+      .addRoute(kubernetesClusterId.toString());
+    const result: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+      {
+        url,
+        data: {},
+        headers: { ...ModelAPI.getCommonHeaders() },
+      },
+    );
+    return KubernetesResourceUtils.parseAggregatesResponse(result);
+  }
+
+  /**
+   * Fetch CPU/memory aggregates by Pod ownerReferences[].name for a
+   * given owner kind (e.g. "Deployment"). Powers the corresponding
+   * list views.
+   */
+  public static async fetchPodMetricsByOwner(
+    kubernetesClusterId: ObjectID,
+    ownerKind: string,
+  ): Promise<Map<string, PodMetricAggregate>> {
+    const url: URL = URL.fromString(APP_API_URL.toString())
+      .addRoute("/kubernetes-resource/latest-pod-metrics-by-owner/")
+      .addRoute(kubernetesClusterId.toString())
+      .addRoute(`/${encodeURIComponent(ownerKind)}`);
+    const result: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+      {
+        url,
+        data: {},
+        headers: { ...ModelAPI.getCommonHeaders() },
+      },
+    );
+    return KubernetesResourceUtils.parseAggregatesResponse(result);
+  }
+
+  private static parseAggregatesResponse(
+    result: HTTPResponse<JSONObject> | HTTPErrorResponse,
+  ): Map<string, PodMetricAggregate> {
+    const out: Map<string, PodMetricAggregate> = new Map();
+    if (result instanceof HTTPErrorResponse) {
+      return out;
+    }
+    const aggregates: Record<string, unknown> =
+      (result.data?.["aggregates"] as Record<string, unknown>) || {};
+    for (const key of Object.keys(aggregates)) {
+      const v: Record<string, unknown> = (aggregates[key] || {}) as Record<
+        string,
+        unknown
+      >;
+      const cpu: number =
+        typeof v["cpuPercent"] === "number"
+          ? (v["cpuPercent"] as number)
+          : parseInt((v["cpuPercent"] as string) || "0", 10) || 0;
+      const memRaw: unknown = v["memoryBytes"];
+      const mem: number =
+        typeof memRaw === "number"
+          ? memRaw
+          : parseInt((memRaw as string) || "0", 10) || 0;
+      out.set(key, { cpuPercent: cpu, memoryBytes: mem });
+    }
+    return out;
+  }
+
+  /**
+   * Apply pre-aggregated CPU/memory values onto the list resources by
+   * matching on resource.name. Used by Namespace/Deployment/etc. list
+   * views in place of the ClickHouse `enrichWithMetrics` path.
+   */
+  public static applyAggregateMetrics(options: {
+    resources: Array<KubernetesResource>;
+    aggregates: Map<string, PodMetricAggregate>;
+  }): void {
+    for (const resource of options.resources) {
+      const agg: PodMetricAggregate | undefined = options.aggregates.get(
+        resource.name,
+      );
+      if (!agg) {
+        continue;
+      }
+      resource.cpuUtilization = agg.cpuPercent;
+      resource.memoryUsageBytes = agg.memoryBytes;
+    }
   }
 
   /**

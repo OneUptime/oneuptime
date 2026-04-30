@@ -13,29 +13,27 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * ------------------------------------------------------------------
- *                         KubernetesResource
+ *                         KubernetesContainer
  * ------------------------------------------------------------------
  *
- * Inventory snapshot of a single Kubernetes object (Pod, Node,
- * Deployment, ...) in a single cluster. Populated by the OTel logs
- * ingest path from the k8sobjects receiver snapshot stream
- * (kubernetes-agent pulls every 5 min by default).
+ * One row per container in the Pod inventory snapshot. Lets the
+ * Containers list page do a single indexed SELECT instead of
+ * fetching every Pod and unpacking JSONB at render time, and lets
+ * the metric ingest path write latest CPU/memory directly so the
+ * page never needs to hit ClickHouse.
  *
- * The overview page reads aggregates from this table instead of
- * groupBy-ing over 24h of ClickHouse metric/log data.
+ * Populated together with KubernetesResource: when a Pod snapshot
+ * arrives, the ingest path emits one parent KubernetesResource row
+ * (kind = "Pod") and N child KubernetesContainer rows.
  *
- * Rows are upserted per snapshot and hard-deleted once lastSeenAt
- * falls behind "now - 15min" for clusters that remain connected.
- *
- * Writes go through KubernetesResourceService under isRoot; users
- * never create/update/delete rows directly.
+ * Hard-deleted alongside its parent Pod by the cleanup worker once
+ * the Pod's lastSeenAt falls behind the staleness threshold.
  *
  * ------------------------------------------------------------------
  */
@@ -57,22 +55,23 @@ const READ_PERMISSIONS: Array<Permission> = [
   update: [],
   delete: [],
 })
-@CrudApiEndpoint(new Route("/kubernetes-resource"))
+@CrudApiEndpoint(new Route("/kubernetes-container"))
 @TableMetadata({
-  tableName: "KubernetesResource",
-  singularName: "Kubernetes Resource",
-  pluralName: "Kubernetes Resources",
+  tableName: "KubernetesContainer",
+  singularName: "Kubernetes Container",
+  pluralName: "Kubernetes Containers",
   icon: IconProp.Cube,
   tableDescription:
-    "Snapshot of a Kubernetes object (pod, node, deployment, etc.) as last reported by the kubernetes-agent. Populated by the telemetry ingest pipeline; not user-editable.",
+    "Snapshot of a single container inside a Pod, populated by the telemetry ingest pipeline. Not user-editable.",
 })
-@Index(["projectId", "kubernetesClusterId", "kind", "namespaceKey", "name"], {
-  unique: true,
-})
+@Index(
+  ["projectId", "kubernetesClusterId", "podNamespaceKey", "podName", "name"],
+  { unique: true },
+)
 @Entity({
-  name: "KubernetesResource",
+  name: "KubernetesContainer",
 })
-export default class KubernetesResource extends BaseModel {
+export default class KubernetesContainer extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: READ_PERMISSIONS,
@@ -83,7 +82,7 @@ export default class KubernetesResource extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Project,
     title: "Project",
-    description: "Relation to Project this resource belongs to.",
+    description: "Relation to Project this container belongs to.",
   })
   @ManyToOne(
     () => {
@@ -110,7 +109,7 @@ export default class KubernetesResource extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Project ID",
-    description: "ID of the Project this resource belongs to.",
+    description: "ID of the Project this container belongs to.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -129,7 +128,7 @@ export default class KubernetesResource extends BaseModel {
     type: TableColumnType.Entity,
     modelType: KubernetesCluster,
     title: "Kubernetes Cluster",
-    description: "Cluster this resource lives in.",
+    description: "Cluster this container lives in.",
   })
   @ManyToOne(
     () => {
@@ -156,7 +155,7 @@ export default class KubernetesResource extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Kubernetes Cluster ID",
-    description: "ID of the Kubernetes Cluster this resource lives in.",
+    description: "ID of the Kubernetes Cluster this container lives in.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -174,16 +173,17 @@ export default class KubernetesResource extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Kind",
+    title: "Pod Namespace Key",
     description:
-      "Kubernetes resource kind in singular PascalCase (e.g. Pod, Node, Deployment).",
+      "Namespace of the parent Pod. Empty string for the rare cluster-scoped pod case; kept non-null so the upsert unique index works.",
   })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
+    default: "",
   })
-  public kind?: string = undefined;
+  public podNamespaceKey?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -194,17 +194,15 @@ export default class KubernetesResource extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Namespace Key",
-    description:
-      "Kubernetes namespace, or empty string for cluster-scoped resources. Kept non-null so the upsert unique index works.",
+    title: "Pod Name",
+    description: "metadata.name of the parent Pod.",
   })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: "",
   })
-  public namespaceKey?: string = undefined;
+  public podName?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -216,7 +214,7 @@ export default class KubernetesResource extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Kubernetes resource name (metadata.name).",
+    description: "Container name (spec.containers[].name).",
   })
   @Column({
     nullable: false,
@@ -232,17 +230,17 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
-    title: "UID",
-    description: "Kubernetes metadata.uid — stable identity across restarts.",
+    title: "Image",
+    description: "Container image reference (spec.containers[].image).",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
-  public uid?: string = undefined;
+  public image?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -253,16 +251,36 @@ export default class KubernetesResource extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Phase",
+    title: "State",
     description:
-      "Pod.status.phase (Running / Pending / Failed / Succeeded / Unknown). Null for non-Pod kinds.",
+      "Container state from status.containerStatuses[].state (running / waiting / terminated). Null until status is observed.",
   })
   @Column({
     nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public phase?: string = undefined;
+  public state?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Reason",
+    description:
+      "Container state reason (e.g. ImagePullBackOff, CrashLoopBackOff). Surfaced on the list page when the container is not Running.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public reason?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -275,7 +293,7 @@ export default class KubernetesResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Is Ready",
     description:
-      "True if Node.status.conditions[type=Ready].status == True. Null for non-Node kinds.",
+      "True when status.containerStatuses[].ready is true. Null until status is observed.",
   })
   @Column({
     nullable: true,
@@ -290,139 +308,17 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.Boolean,
+    type: TableColumnType.PositiveNumber,
     canReadOnRelationQuery: true,
-    title: "Has Memory Pressure",
-    description: "Node MemoryPressure condition. Null for non-Node kinds.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Boolean,
-  })
-  public hasMemoryPressure?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Boolean,
-    canReadOnRelationQuery: true,
-    title: "Has Disk Pressure",
-    description: "Node DiskPressure condition. Null for non-Node kinds.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Boolean,
-  })
-  public hasDiskPressure?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Boolean,
-    canReadOnRelationQuery: true,
-    title: "Has PID Pressure",
-    description: "Node PIDPressure condition. Null for non-Node kinds.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Boolean,
-  })
-  public hasPidPressure?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Labels",
-    description: "Kubernetes metadata.labels.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.JSON,
-  })
-  public labels?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Annotations",
-    description: "Kubernetes metadata.annotations.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.JSON,
-  })
-  public annotations?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Owner References",
-    description: "Kubernetes metadata.ownerReferences array.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.JSON,
-  })
-  public ownerReferences?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Spec",
-    description: "Kubernetes spec block, verbatim from the last snapshot.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.JSON,
-  })
-  public spec?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Number,
-    canReadOnRelationQuery: true,
-    title: "Container Count",
+    title: "Restart Count",
     description:
-      "For Pods: count of entries in spec.containers, cached so the overview page can SUM it without scanning JSONB. Null for non-Pod kinds.",
+      "Restart counter from status.containerStatuses[].restartCount.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Number,
+    type: ColumnType.PositiveNumber,
   })
-  public containerCount?: number = undefined;
+  public restartCount?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -431,55 +327,32 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.JSON,
-    title: "Status",
-    description: "Kubernetes status block, verbatim from the last snapshot.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.JSON,
-  })
-  public status?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.BigPositiveNumber,
     canReadOnRelationQuery: true,
-    title: "Controller Deployment Name",
+    title: "Memory Limit Bytes",
     description:
-      "For Pod kinds: the Deployment that ultimately owns this Pod (one hop above the ReplicaSet). Populated from `resource.k8s.deployment.name` on the metric stream so the Deployments list view can SUM by this column without inventorying ReplicaSets. Null for non-Pod kinds and for Pods not owned by a Deployment.",
+      "spec.containers[].resources.limits.memory parsed to bytes, used to render the % memory bar on the list view.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.BigPositiveNumber,
+    transformer: {
+      to: (value: number | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return Math.trunc(value).toString();
+      },
+      from: (value: string | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const parsed: number = parseInt(value, 10);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
   })
-  public controllerDeploymentName?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.ShortText,
-    canReadOnRelationQuery: true,
-    title: "Controller CronJob Name",
-    description:
-      "For Pod kinds: the CronJob that ultimately owns this Pod (one hop above the Job). Populated from `resource.k8s.cronjob.name` on the metric stream. Null for non-Pod kinds and Pods not owned by a CronJob.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  public controllerCronJobName?: string = undefined;
+  public memoryLimitBytes?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -492,7 +365,7 @@ export default class KubernetesResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Latest CPU Percent",
     description:
-      "Most recent CPU utilization percent for this resource (Pod or Node). Stored as decimal so sub-percent precision survives the round trip. Can exceed 100 when the resource consumes more than one core. Null until the first metric arrives.",
+      "Most recent CPU utilization percent for this container. Stored as decimal so sub-percent precision survives the round trip. Null until the first metric arrives.",
   })
   @Column({
     nullable: true,
@@ -529,7 +402,7 @@ export default class KubernetesResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Latest Memory Bytes",
     description:
-      "Most recent memory usage (bytes) for this resource (Pod or Node). Stored as bigint so values past 2 GiB don't overflow. Same lifecycle as latestCpuPercent.",
+      "Most recent memory usage (bytes) for this container. Same lifecycle as latestCpuPercent.",
   })
   @Column({
     nullable: true,
@@ -582,31 +455,13 @@ export default class KubernetesResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description:
-      "Agent-observed timestamp of the most recent snapshot for this resource. Also acts as the monotonic guard for upserts.",
+      "Agent-observed timestamp of the most recent Pod snapshot containing this container. Acts as the monotonic guard for upserts and the cutoff for stale-row cleanup.",
   })
   @Column({
     nullable: false,
     type: ColumnType.Date,
   })
   public lastSeenAt?: Date = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: READ_PERMISSIONS,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Date,
-    canReadOnRelationQuery: true,
-    title: "Resource Creation Timestamp",
-    description: "Kubernetes metadata.creationTimestamp of this object.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Date,
-  })
-  public resourceCreationTimestamp?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

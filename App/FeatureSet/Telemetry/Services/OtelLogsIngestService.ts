@@ -32,10 +32,13 @@ import LogDropFilterService from "./LogDropFilterService";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogScrubRuleService from "./LogScrubRuleService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
+import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
 import {
   extractInventoryResource,
+  ExtractedInventoryRecord,
   INVENTORIED_RESOURCE_TYPES,
   ParsedKubernetesResource,
+  ParsedKubernetesContainerRow,
 } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
@@ -123,6 +126,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const k8sInventoryBuffer: Map<
         string,
         Array<ParsedKubernetesResource>
+      > = new Map();
+
+      /*
+       * Parallel buffer for the per-container snapshot rows expanded
+       * out of each Pod record. Empty for non-Pod kinds.
+       */
+      const k8sContainerBuffer: Map<
+        string,
+        Array<ParsedKubernetesContainerRow>
       > = new Map();
 
       // Load pipelines, drop filters, and scrub rules once per batch
@@ -363,7 +375,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       )
                     ) {
                       try {
-                        const parsed: ParsedKubernetesResource | null =
+                        const parsed: ExtractedInventoryRecord | null =
                           extractInventoryResource({
                             resourceType: recordK8sResourceType,
                             logBody: body,
@@ -378,7 +390,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                             bucket = [];
                             k8sInventoryBuffer.set(key, bucket);
                           }
-                          bucket.push(parsed);
+                          bucket.push(parsed.resource);
+
+                          if (parsed.containers.length > 0) {
+                            let cbucket:
+                              | Array<ParsedKubernetesContainerRow>
+                              | undefined = k8sContainerBuffer.get(key);
+                            if (!cbucket) {
+                              cbucket = [];
+                              k8sContainerBuffer.set(key, cbucket);
+                            }
+                            for (const c of parsed.containers) {
+                              cbucket.push(c);
+                            }
+                          }
                         }
                       } catch (invErr) {
                         // Inventory parsing must never fail log ingest.
@@ -537,6 +562,30 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           } catch (invErr) {
             logger.error(
               `Error upserting KubernetesResource inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      /*
+       * Flush container rows after the parent KubernetesResource flush
+       * so the cleanup worker's foreign-key-style invariant ("a
+       * container row's parent Pod row exists") holds at any moment.
+       */
+      if (k8sContainerBuffer.size > 0) {
+        for (const [clusterIdStr, containers] of k8sContainerBuffer.entries()) {
+          if (containers.length === 0) {
+            continue;
+          }
+          try {
+            await KubernetesContainerService.bulkUpsert({
+              projectId,
+              kubernetesClusterId: new ObjectID(clusterIdStr),
+              containers,
+            });
+          } catch (invErr) {
+            logger.error(
+              `Error upserting KubernetesContainer inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
             );
           }
         }

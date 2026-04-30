@@ -36,6 +36,12 @@ import MetricPipelineRuleService, {
 import OneUptimeDate from "Common/Types/Date";
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
+import KubernetesResourceService, {
+  ResourceLatestMetric,
+} from "Common/Server/Services/KubernetesResourceService";
+import KubernetesContainerService, {
+  ContainerLatestMetric,
+} from "Common/Server/Services/KubernetesContainerService";
 
 type MetricTimestamp = {
   nano: string;
@@ -43,6 +49,54 @@ type MetricTimestamp = {
   db: string;
   date: Date;
 };
+
+/*
+ * ------------------------------------------------------------------
+ * Kubernetes snapshot metric write-back
+ * ------------------------------------------------------------------
+ *
+ * The Kubernetes list pages (Pods, Nodes, Namespaces, ...) need a
+ * "latest CPU + memory per resource" lookup that's fast and free of
+ * ClickHouse aggregation. We achieve that by mirroring the most
+ * recent point of a small allow-list of metrics into Postgres, on
+ * the row that already represents that resource (KubernetesResource
+ * for Pods/Nodes, KubernetesContainer for individual containers).
+ *
+ * Snapshot writes are best-effort: failures must never affect
+ * ClickHouse ingest.
+ *
+ * Allow-list (lowercased) of metric names whose latest point we
+ * mirror. Anything else is ignored entirely, so the cost on
+ * non-Kubernetes batches is one Set.has check per datapoint.
+ */
+const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "k8s.pod.cpu.utilization",
+  "k8s.pod.memory.usage",
+  "k8s.node.cpu.utilization",
+  "k8s.node.memory.usage",
+  "container.cpu.utilization",
+  "container.memory.usage",
+]);
+
+interface ResourceMetricBufferEntry {
+  kind: string;
+  namespaceKey: string;
+  name: string;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+  controllerDeploymentName: string | null;
+  controllerCronJobName: string | null;
+}
+
+interface ContainerMetricBufferEntry {
+  podNamespaceKey: string;
+  podName: string;
+  name: string;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
 
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static async flushMetricsBuffer(
@@ -121,6 +175,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
+      /*
+       * Snapshot buffers keyed by cluster ID. Inner maps key by the
+       * unique tuple of the resource being tracked so multiple
+       * datapoints across a batch collapse into a single UPDATE.
+       */
+      const k8sResourceMetricsBuffer: Map<
+        string,
+        Map<string, ResourceMetricBufferEntry>
+      > = new Map();
+      const k8sContainerMetricsBuffer: Map<
+        string,
+        Map<string, ContainerMetricBufferEntry>
+      > = new Map();
+
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
       try {
@@ -152,10 +220,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
 
           // Auto-discover Kubernetes cluster from resource attributes
-          await this.autoDiscoverKubernetesCluster({
-            projectId,
-            attributes: resourceAttributes_raw,
-          });
+          const kubernetesClusterId: ObjectID | null =
+            await this.autoDiscoverKubernetesCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
 
           // Auto-discover Docker host from resource attributes
           await this.autoDiscoverDockerHost({
@@ -327,6 +396,29 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                     for (const datapoint of dataPoints) {
                       try {
+                        /*
+                         * Mirror the latest CPU / memory point of a small
+                         * allow-list of metrics into the Postgres snapshot
+                         * table. Cheap fast-path: a Set.has check, then a
+                         * few attribute reads. Pipeline rules below don't
+                         * affect this — snapshots reflect actual cluster
+                         * state regardless of long-term storage choices.
+                         */
+                        if (
+                          kubernetesClusterId &&
+                          K8S_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferKubernetesSnapshotMetric({
+                            clusterIdStr: kubernetesClusterId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            resourceBuffer: k8sResourceMetricsBuffer,
+                            containerBuffer: k8sContainerMetricsBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -403,6 +495,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       await this.flushMetricsBuffer(dbMetrics, true);
 
+      /*
+       * Drain the snapshot buffers. Failures are logged and swallowed —
+       * snapshots are best-effort and must not affect ClickHouse ingest.
+       */
+      await this.flushKubernetesSnapshotBuffers({
+        projectId,
+        resourceBuffer: k8sResourceMetricsBuffer,
+        containerBuffer: k8sContainerMetricsBuffer,
+      });
+
       if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");
         return;
@@ -437,6 +539,344 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       );
       logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
+    }
+  }
+
+  /*
+   * Read a string attribute from the merged metric attribute map.
+   * Returns "" when the attribute is missing or non-string so callers
+   * can rely on a string type.
+   */
+  private static readSnapshotAttr(
+    attrs: Dictionary<AttributeType | Array<AttributeType>>,
+    key: string,
+  ): string {
+    const v: AttributeType | Array<AttributeType> | undefined = attrs[key];
+    if (typeof v === "string") {
+      return v;
+    }
+    return "";
+  }
+
+  /*
+   * Convert a raw datapoint value to a percent. Most OTel Kubernetes
+   * CPU metrics emit a unit-less ratio (0.0-1.0+); a few emit a raw
+   * percent. We use the metric's `unit` field to decide:
+   *   - "%"          -> already a percent, take as-is
+   *   - "1" / "" / undefined / unknown -> ratio, multiply by 100
+   * Sub-percent precision is preserved end-to-end; values past 100
+   * are kept (200% means 2 fully utilized cores).
+   */
+  private static cpuValueToPercent(
+    rawValue: number,
+    metricUnit: string | undefined,
+  ): number {
+    const unit: string = (metricUnit || "").trim();
+    if (unit === "%") {
+      return rawValue;
+    }
+    return rawValue * 100;
+  }
+
+  /*
+   * Match an allow-listed Kubernetes metric to its target snapshot
+   * row, fold the latest CPU/memory point into the per-cluster
+   * buffer. Cheap: every check is a string compare against attrs.
+   */
+  private static bufferKubernetesSnapshotMetric(data: {
+    clusterIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
+    containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "k8s snapshot timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const ns: string = this.readSnapshotAttr(
+      attrs,
+      "resource.k8s.namespace.name",
+    );
+
+    const isCpu: boolean = data.metricName.endsWith(".cpu.utilization");
+    const isMem: boolean = data.metricName.endsWith(".memory.usage");
+
+    if (data.metricName.startsWith("container.")) {
+      const podName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.pod.name",
+      );
+      const containerName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.container.name",
+      );
+      if (!podName || !containerName) {
+        return;
+      }
+      this.foldContainerSnapshot({
+        buffer: data.containerBuffer,
+        clusterIdStr: data.clusterIdStr,
+        ns,
+        podName,
+        containerName,
+        cpuPercent: isCpu
+          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          : null,
+        memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        observedAt: ts.date,
+      });
+      return;
+    }
+
+    if (data.metricName.startsWith("k8s.pod.")) {
+      const podName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.pod.name",
+      );
+      if (!podName) {
+        return;
+      }
+      /*
+       * Pull the resolved Deployment / CronJob names off the metric
+       * attributes (the OTel collector walks the owner chain). These
+       * are denormalized onto the Pod row so the Deployments and
+       * CronJobs list views can SUM over them without inventorying
+       * ReplicaSets or doing a 2-hop SQL join.
+       */
+      const deployName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.deployment.name",
+      );
+      const cronName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.cronjob.name",
+      );
+      this.foldResourceSnapshot({
+        buffer: data.resourceBuffer,
+        clusterIdStr: data.clusterIdStr,
+        kind: "Pod",
+        ns,
+        name: podName,
+        cpuPercent: isCpu
+          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          : null,
+        memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        observedAt: ts.date,
+        controllerDeploymentName: deployName || null,
+        controllerCronJobName: cronName || null,
+      });
+      return;
+    }
+
+    if (data.metricName.startsWith("k8s.node.")) {
+      const nodeName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.node.name",
+      );
+      if (!nodeName) {
+        return;
+      }
+      this.foldResourceSnapshot({
+        buffer: data.resourceBuffer,
+        clusterIdStr: data.clusterIdStr,
+        kind: "Node",
+        ns: "", // Nodes are cluster-scoped
+        name: nodeName,
+        cpuPercent: isCpu
+          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          : null,
+        memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        observedAt: ts.date,
+        controllerDeploymentName: null,
+        controllerCronJobName: null,
+      });
+      return;
+    }
+  }
+
+  private static foldResourceSnapshot(data: {
+    buffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
+    clusterIdStr: string;
+    kind: string;
+    ns: string;
+    name: string;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+    controllerDeploymentName: string | null;
+    controllerCronJobName: string | null;
+  }): void {
+    let perCluster: Map<string, ResourceMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const key: string = `${data.kind}|${data.ns}|${data.name}`;
+    const existing: ResourceMetricBufferEntry | undefined = perCluster.get(key);
+    if (!existing) {
+      perCluster.set(key, {
+        kind: data.kind,
+        namespaceKey: data.ns,
+        name: data.name,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+        controllerDeploymentName: data.controllerDeploymentName,
+        controllerCronJobName: data.controllerCronJobName,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+    /*
+     * Controller names don't change for a Pod; first-non-null wins so
+     * later batches missing the attribute don't blank the row.
+     */
+    if (
+      data.controllerDeploymentName !== null &&
+      existing.controllerDeploymentName === null
+    ) {
+      existing.controllerDeploymentName = data.controllerDeploymentName;
+    }
+    if (
+      data.controllerCronJobName !== null &&
+      existing.controllerCronJobName === null
+    ) {
+      existing.controllerCronJobName = data.controllerCronJobName;
+    }
+  }
+
+  private static foldContainerSnapshot(data: {
+    buffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+    clusterIdStr: string;
+    ns: string;
+    podName: string;
+    containerName: string;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+  }): void {
+    let perCluster: Map<string, ContainerMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const key: string = `${data.ns}|${data.podName}|${data.containerName}`;
+    const existing: ContainerMetricBufferEntry | undefined =
+      perCluster.get(key);
+    if (!existing) {
+      perCluster.set(key, {
+        podNamespaceKey: data.ns,
+        podName: data.podName,
+        name: data.containerName,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+  }
+
+  private static async flushKubernetesSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
+    containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.resourceBuffer.size > 0) {
+      for (const [clusterIdStr, byKey] of data.resourceBuffer.entries()) {
+        if (byKey.size === 0) {
+          continue;
+        }
+        try {
+          const metrics: Array<ResourceLatestMetric> = [];
+          for (const e of byKey.values()) {
+            metrics.push({
+              kind: e.kind,
+              namespaceKey: e.namespaceKey,
+              name: e.name,
+              cpuPercent: e.cpuPercent,
+              memoryBytes: e.memoryBytes,
+              observedAt: e.observedAt,
+              controllerDeploymentName: e.controllerDeploymentName,
+              controllerCronJobName: e.controllerCronJobName,
+            });
+          }
+          await KubernetesResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            kubernetesClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `K8s snapshot writeback (resource) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    if (data.containerBuffer.size > 0) {
+      for (const [clusterIdStr, byKey] of data.containerBuffer.entries()) {
+        if (byKey.size === 0) {
+          continue;
+        }
+        try {
+          const metrics: Array<ContainerLatestMetric> = [];
+          for (const e of byKey.values()) {
+            metrics.push({
+              podNamespaceKey: e.podNamespaceKey,
+              podName: e.podName,
+              name: e.name,
+              cpuPercent: e.cpuPercent,
+              memoryBytes: e.memoryBytes,
+              observedAt: e.observedAt,
+            });
+          }
+          await KubernetesContainerService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            kubernetesClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `K8s snapshot writeback (container) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
     }
   }
 

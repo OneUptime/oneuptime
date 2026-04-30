@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
 import KubernetesResourceUtils, {
   KubernetesResource,
@@ -12,7 +11,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -60,24 +58,17 @@ const KubernetesClusterPods: FunctionComponent<
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const cluster: KubernetesCluster | null = await ModelAPI.getItem({
-        modelType: KubernetesCluster,
-        id: modelId,
-        select: {
-          clusterIdentifier: true,
-        },
-      });
-
-      if (!cluster?.clusterIdentifier) {
-        setError("Cluster not found.");
-        setIsLoading(false);
-        return;
-      }
-
+      /*
+       * Latest CPU + memory come straight off the snapshot row
+       * (latestCpuPercent / latestMemoryBytes), populated by the
+       * metric ingest path. spec/status are still fetched for the
+       * waiting-reason / container count / node-name extraction.
+       */
       const podList: Array<KubernetesResource> =
         await KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "Pod",
+          selectFullSpec: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,
@@ -128,14 +119,6 @@ const KubernetesClusterPods: FunctionComponent<
             }
           },
         });
-
-      await KubernetesResourceUtils.enrichWithMetrics({
-        resources: podList,
-        clusterIdentifier: cluster.clusterIdentifier,
-        cpuMetricName: "k8s.pod.cpu.utilization",
-        memoryMetricName: "k8s.pod.memory.usage",
-        resourceNameAttribute: "resource.k8s.pod.name",
-      });
 
       setResources(podList);
     } catch (err) {
