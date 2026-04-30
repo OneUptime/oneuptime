@@ -9,7 +9,9 @@ Do not worry about circular dependencies. All the import should be on the top of
 
 #### Postgres
 
-If you are doing any postgres migration. Please do not write migraton code manually, run npm run generate-postgres-migration instead. 
+If you are doing any postgres migration. Please do not write migraton code manually, run npm run generate-postgres-migration instead.
+
+After generating the migration file, you MUST also register it in `Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — add the import at the top and append the class to the default export array. The migration will not run on app startup until it is registered there. 
 
 #### Clickhouse
 

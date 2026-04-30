@@ -293,6 +293,7 @@ import { MigrationName1776940714709 } from "./1776940714709-MigrationName";
 import { AddStatusPageLanguageSettings1776971364783 } from "./1776971364783-AddStatusPageLanguageSettings";
 import { AddTelemetryRetentionSettings1777018175127 } from "./1777018175127-AddTelemetryRetentionSettings";
 import { AddMonitorTemplate1777201966799 } from "./1777201966799-AddMonitorTemplate";
+import { MigrationName1777550162848 } from "./1777550162848-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -589,4 +590,5 @@ export default [
   AddStatusPageLanguageSettings1776971364783,
   AddTelemetryRetentionSettings1777018175127,
   AddMonitorTemplate1777201966799,
+  MigrationName1777550162848,
 ];
