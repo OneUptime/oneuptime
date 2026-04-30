@@ -157,9 +157,20 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
+            # See test-server above for why Common is mounted by subdirectory.
+            - ./Common/Models:/usr/src/Common/Models:cached
+            - ./Common/UI:/usr/src/Common/UI:cached
+            - ./Common/Types:/usr/src/Common/Types:cached
+            - ./Common/Utils:/usr/src/Common/Utils:cached
+            - ./Common/Server:/usr/src/Common/Server:cached
+            - ./Common/Scripts:/usr/src/Common/Scripts:cached
+            - ./Common/Tests:/usr/src/Common/Tests:cached
+            - ./Common/Typings:/usr/src/Common/Typings:cached
+            - ./Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+            - ./Common/package.json:/usr/src/Common/package.json:cached
+            - ./Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+            - ./Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+            - ./Common/jest.config.json:/usr/src/Common/jest.config.json:cached
 
 
         extends:
@@ -178,9 +189,20 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
+            # See test-server above for why Common is mounted by subdirectory.
+            - ./Common/Models:/usr/src/Common/Models:cached
+            - ./Common/UI:/usr/src/Common/UI:cached
+            - ./Common/Types:/usr/src/Common/Types:cached
+            - ./Common/Utils:/usr/src/Common/Utils:cached
+            - ./Common/Server:/usr/src/Common/Server:cached
+            - ./Common/Scripts:/usr/src/Common/Scripts:cached
+            - ./Common/Tests:/usr/src/Common/Tests:cached
+            - ./Common/Typings:/usr/src/Common/Typings:cached
+            - ./Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+            - ./Common/package.json:/usr/src/Common/package.json:cached
+            - ./Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+            - ./Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+            - ./Common/jest.config.json:/usr/src/Common/jest.config.json:cached
 
 
         extends:
@@ -199,9 +221,20 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
+            # See test-server above for why Common is mounted by subdirectory.
+            - ./Common/Models:/usr/src/Common/Models:cached
+            - ./Common/UI:/usr/src/Common/UI:cached
+            - ./Common/Types:/usr/src/Common/Types:cached
+            - ./Common/Utils:/usr/src/Common/Utils:cached
+            - ./Common/Server:/usr/src/Common/Server:cached
+            - ./Common/Scripts:/usr/src/Common/Scripts:cached
+            - ./Common/Tests:/usr/src/Common/Tests:cached
+            - ./Common/Typings:/usr/src/Common/Typings:cached
+            - ./Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+            - ./Common/package.json:/usr/src/Common/package.json:cached
+            - ./Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+            - ./Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+            - ./Common/jest.config.json:/usr/src/Common/jest.config.json:cached
 
 
         extends:

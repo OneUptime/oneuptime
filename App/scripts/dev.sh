@@ -14,6 +14,11 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+# Ensure Common has Linux-built node_modules before any frontend build runs.
+# The image may carry a stale node_modules if package.json changed since the
+# last image build, so refresh in place when key deps are missing.
+bash ./scripts/prepare-native-deps.sh
+
 npm run build-frontends
 
 npm run watch-frontend:accounts &
@@ -30,8 +35,6 @@ pids+=($!)
 
 npm run watch-frontend:public-dashboard &
 pids+=($!)
-
-bash ./scripts/prepare-native-deps.sh
 
 npm run dev:api &
 pids+=($!)
