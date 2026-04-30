@@ -282,7 +282,9 @@ export default class OpenCodeAgent implements CodeAgent {
       case LlmType.Ollama:
         return "ollama";
       default:
-        throw new BadDataException("Unsupported LLM type for OpenCode agent");
+        throw new BadDataException(
+          `LLM provider "${this.config.llmType}" is not supported by the OpenCode AI agent. Configure an Anthropic, OpenAI, or Ollama provider for code agent tasks.`,
+        );
     }
   }
 
@@ -300,7 +302,9 @@ export default class OpenCodeAgent implements CodeAgent {
       case LlmType.Ollama:
         return "llama2";
       default:
-        throw new BadDataException("Unsupported LLM type for OpenCode agent");
+        throw new BadDataException(
+          `LLM provider "${this.config.llmType}" is not supported by the OpenCode AI agent. Configure an Anthropic, OpenAI, or Ollama provider for code agent tasks.`,
+        );
     }
   }
 
@@ -318,7 +322,9 @@ export default class OpenCodeAgent implements CodeAgent {
       case LlmType.Ollama:
         return "llama2";
       default:
-        throw new BadDataException("Unsupported LLM type for OpenCode agent");
+        throw new BadDataException(
+          `LLM provider "${this.config.llmType}" is not supported by the OpenCode AI agent. Configure an Anthropic, OpenAI, or Ollama provider for code agent tasks.`,
+        );
     }
   }
 
