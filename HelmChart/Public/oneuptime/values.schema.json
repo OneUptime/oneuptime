@@ -320,7 +320,7 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": "object"
+                    "type": ["array", "null"]
                 }
             },
             "additionalProperties": false
@@ -1134,7 +1134,7 @@
                             "type": "object"
                         },
                         "hostAliases": {
-                            "type": "object"
+                            "type": ["array", "null"]
                         },
                         "additionalContainers": {
                             "type": "array"
@@ -1238,6 +1238,12 @@
         "nodeSelector": {
             "type": [
                 "object",
+                "null"
+            ]
+        },
+        "hostAliases": {
+            "type": [
+                "array",
                 "null"
             ]
         },
@@ -1723,7 +1729,7 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": "object"
+                    "type": ["array", "null"]
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -1823,7 +1829,7 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": "object"
+                    "type": ["array", "null"]
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -2075,7 +2081,7 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": "object"
+                    "type": ["array", "null"]
                 },
                 "keda": {
                     "type": "object",

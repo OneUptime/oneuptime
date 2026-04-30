@@ -99,7 +99,7 @@ nginx:
   resources: {}
   nodeSelector: {}
   podSecurityContext: {}
-  hostAliases: {}
+  hostAliases: []
   containerSecurityContext: {}
 
 postgresql:
@@ -434,7 +434,7 @@ probes:
     resources: {}
     nodeSelector: {}
     podSecurityContext: {}
-    hostAliases: {}
+    hostAliases: []
     containerSecurityContext: {}
 #   additionalContainers:
 # two:
@@ -650,7 +650,7 @@ home:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
-  hostAliases: {}
+  hostAliases: []
   containerSecurityContext: {}
 
 
@@ -669,7 +669,7 @@ app:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
-  hostAliases: {}
+  hostAliases: []
   containerSecurityContext: {}
   # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry)
   keda:
@@ -707,7 +707,7 @@ aiAgent:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
-  hostAliases: {}
+  hostAliases: []
   containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
