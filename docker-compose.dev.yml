@@ -42,9 +42,24 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
+            # Bind mount Common subdirectories explicitly (not the parent) so
+            # /usr/src/Common/node_modules is never shadowed by host node_modules.
+            # Mounting ./Common as a whole + an anonymous volume on node_modules is
+            # unreliable on Docker Desktop for Mac — the volume can get unmasked,
+            # exposing host platform binaries (e.g. darwin-arm64) to the Linux container.
+            - ./Common/Models:/usr/src/Common/Models:cached
+            - ./Common/UI:/usr/src/Common/UI:cached
+            - ./Common/Types:/usr/src/Common/Types:cached
+            - ./Common/Utils:/usr/src/Common/Utils:cached
+            - ./Common/Server:/usr/src/Common/Server:cached
+            - ./Common/Scripts:/usr/src/Common/Scripts:cached
+            - ./Common/Tests:/usr/src/Common/Tests:cached
+            - ./Common/Typings:/usr/src/Common/Typings:cached
+            - ./Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+            - ./Common/package.json:/usr/src/Common/package.json:cached
+            - ./Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+            - ./Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+            - ./Common/jest.config.json:/usr/src/Common/jest.config.json:cached
 
 
         extends:
@@ -67,8 +82,20 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
+            # See test-server above for why Common is mounted by subdirectory.
+            - ./Common/Models:/usr/src/Common/Models:cached
+            - ./Common/UI:/usr/src/Common/UI:cached
+            - ./Common/Types:/usr/src/Common/Types:cached
+            - ./Common/Utils:/usr/src/Common/Utils:cached
+            - ./Common/Server:/usr/src/Common/Server:cached
+            - ./Common/Scripts:/usr/src/Common/Scripts:cached
+            - ./Common/Tests:/usr/src/Common/Tests:cached
+            - ./Common/Typings:/usr/src/Common/Typings:cached
+            - ./Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+            - ./Common/package.json:/usr/src/Common/package.json:cached
+            - ./Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+            - ./Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+            - ./Common/jest.config.json:/usr/src/Common/jest.config.json:cached
         extends:
             file: ./docker-compose.base.yml
             service: home
@@ -97,8 +124,20 @@ services:
             - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
             - /usr/src/app/FeatureSet/StatusPage/node_modules/
             - /usr/src/app/FeatureSet/PublicDashboard/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
+            # See test-server above for why Common is mounted by subdirectory.
+            - ./Common/Models:/usr/src/Common/Models:cached
+            - ./Common/UI:/usr/src/Common/UI:cached
+            - ./Common/Types:/usr/src/Common/Types:cached
+            - ./Common/Utils:/usr/src/Common/Utils:cached
+            - ./Common/Server:/usr/src/Common/Server:cached
+            - ./Common/Scripts:/usr/src/Common/Scripts:cached
+            - ./Common/Tests:/usr/src/Common/Tests:cached
+            - ./Common/Typings:/usr/src/Common/Typings:cached
+            - ./Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+            - ./Common/package.json:/usr/src/Common/package.json:cached
+            - ./Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+            - ./Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+            - ./Common/jest.config.json:/usr/src/Common/jest.config.json:cached
         extends:
             file: ./docker-compose.base.yml
             service: app
