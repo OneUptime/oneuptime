@@ -101,9 +101,9 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             stepId: "provider-settings",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "gpt-4o, gpt-5.4-mini, claude-3-opus, llama2",
+            placeholder: "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
             description:
-              "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq).",
+              "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral).",
           },
           {
             field: {
@@ -115,7 +115,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "http://localhost:11434",
             description:
-              "Required for Azure OpenAI and Ollama. For Azure OpenAI use your endpoint (e.g. https://<resource>.services.ai.azure.com/api/projects/<project>/openai/v1). Optional for others to override the default endpoint.",
+              "Required for Azure OpenAI and Ollama. For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
           },
           {
             field: {

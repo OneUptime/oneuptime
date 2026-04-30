@@ -146,6 +146,29 @@ export default class LLMService {
     };
   }
 
+  /*
+   * Default Azure OpenAI API version. Users can override by including
+   * ?api-version=... in their configured base URL.
+   */
+  private static readonly AZURE_OPENAI_DEFAULT_API_VERSION: string =
+    "2024-10-21";
+
+  private static buildAzureOpenAIChatCompletionsUrl(baseUrl: string): string {
+    const trimmed: string = baseUrl.replace(/\/+$/, "");
+    const queryIndex: number = trimmed.indexOf("?");
+    const pathPart: string =
+      queryIndex >= 0 ? trimmed.substring(0, queryIndex) : trimmed;
+    const queryPart: string =
+      queryIndex >= 0 ? trimmed.substring(queryIndex + 1) : "";
+
+    const params: URLSearchParams = new URLSearchParams(queryPart);
+    if (!params.has("api-version")) {
+      params.set("api-version", LLMService.AZURE_OPENAI_DEFAULT_API_VERSION);
+    }
+
+    return `${pathPart}/chat/completions?${params.toString()}`;
+  }
+
   @CaptureSpan()
   private static async getAzureOpenAICompletion(
     config: LLMProviderConfig,
@@ -157,15 +180,18 @@ export default class LLMService {
 
     if (!config.baseUrl) {
       throw new BadDataException(
-        "Azure OpenAI Base URL is required (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>/)",
+        "Azure OpenAI Base URL is required (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>)",
       );
     }
 
     const modelName: string = config.modelName || "gpt-4o";
+    const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
+      config.baseUrl,
+    );
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
-        url: URL.fromString(`${config.baseUrl}/chat/completions`),
+        url: URL.fromString(requestUrl),
         data: {
           model: modelName,
           messages: request.messages.map((msg: LLMMessage) => {
