@@ -2180,4 +2180,44 @@ export default class Project extends TenantModel {
     create: PlanType.Free,
   })
   public auditLogsRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Store System Events",
+    description:
+      "When enabled, audit logs will also include events triggered by the system. By default, only events triggered by users are recorded.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Enterprise,
+    create: PlanType.Free,
+  })
+  public storeSystemEventsInAuditLogs?: boolean = undefined;
 }

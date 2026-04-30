@@ -39,6 +39,7 @@ const NAME_CANDIDATE_FIELDS: ReadonlyArray<string> = [
 interface CachedProjectSettings {
   enableAuditLogs: boolean;
   retentionInDays: number;
+  storeSystemEventsInAuditLogs: boolean;
   planName: PlanType | undefined;
   expiresAt: number;
 }
@@ -263,13 +264,17 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
 
   private isEligible(
     settings: CachedProjectSettings | null,
-    _props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps,
   ): boolean {
     if (!settings) {
       return false;
     }
 
     if (!settings.enableAuditLogs) {
+      return false;
+    }
+
+    if (!settings.storeSystemEventsInAuditLogs && this.isSystemEvent(props)) {
       return false;
     }
 
@@ -286,6 +291,15 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
      * available on the free self-hosted build.
      */
     return false;
+  }
+
+  private isSystemEvent(props: DatabaseCommonInteractionProps): boolean {
+    /*
+     * A system event is one not initiated by a user — no userType is set and
+     * the operation is running with root privileges (e.g. background jobs,
+     * internal cleanup tasks).
+     */
+    return !props.userType && Boolean(props.isRoot);
   }
 
   private async getProjectSettings(
@@ -306,6 +320,7 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
         _id: true,
         enableAuditLogs: true,
         auditLogsRetentionInDays: true,
+        storeSystemEventsInAuditLogs: true,
         planName: true,
       },
       props: { isRoot: true },
@@ -318,6 +333,9 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     const settings: CachedProjectSettings = {
       enableAuditLogs: Boolean(project.enableAuditLogs),
       retentionInDays: project.auditLogsRetentionInDays ?? 7,
+      storeSystemEventsInAuditLogs: Boolean(
+        project.storeSystemEventsInAuditLogs,
+      ),
       planName: project.planName,
       expiresAt: now + PROJECT_SETTINGS_CACHE_TTL_MS,
     };

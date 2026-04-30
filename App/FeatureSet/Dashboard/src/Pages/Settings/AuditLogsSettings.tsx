@@ -65,6 +65,14 @@ const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
               maxValue: 180,
             },
           },
+          {
+            field: { storeSystemEventsInAuditLogs: true },
+            title: "Store System Events",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, audit logs will also include events triggered by the system. By default, only events triggered by users are recorded.",
+          },
         ]}
         onSaveSuccess={() => {
           Navigation.reload();
@@ -84,6 +92,12 @@ const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Number,
               title: "Retention (days)",
               placeholder: "7",
+            },
+            {
+              field: { storeSystemEventsInAuditLogs: true },
+              fieldType: FieldType.Boolean,
+              title: "Store System Events",
+              placeholder: "No",
             },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,
