@@ -99,6 +99,7 @@ nginx:
   resources: {}
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: {}
   containerSecurityContext: {}
 
 postgresql:
@@ -433,6 +434,7 @@ probes:
     resources: {}
     nodeSelector: {}
     podSecurityContext: {}
+    hostAliases: {}
     containerSecurityContext: {}
 #   additionalContainers:
 # two:
@@ -493,6 +495,7 @@ podSecurityContext:
 affinity:
 tolerations:
 nodeSelector:
+hostAliases:
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR, OFF
 # Please do not set this to DEBUG in production. This is only for development / debugging purposes.
@@ -647,6 +650,7 @@ home:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: {}
   containerSecurityContext: {}
 
 
@@ -665,6 +669,7 @@ app:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: {}
   containerSecurityContext: {}
   # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry)
   keda:
@@ -702,6 +707,7 @@ aiAgent:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: {}
   containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:

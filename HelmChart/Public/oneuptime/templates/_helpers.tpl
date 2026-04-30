@@ -662,6 +662,10 @@ spec:
       securityContext:
         {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
+      {{- if $.hostAliases }}
+      hostAliases:
+        {{- toYaml $.hostAliases | nindent 8 }}
+      {{- end }}
       {{- if $.Values.affinity }}
       affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
       {{- end }}
