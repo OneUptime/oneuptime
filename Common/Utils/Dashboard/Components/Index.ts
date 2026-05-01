@@ -9,6 +9,9 @@ import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
+import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
+import DashboardMonitorStatusComponentUtil from "./DashboardMonitorStatusComponent";
+import DashboardEmbedComponentUtil from "./DashboardEmbedComponent";
 
 export default class DashboardComponentsUtil {
   public static getComponentSettingsArguments(
@@ -52,6 +55,24 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.TraceList) {
       return DashboardTraceListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.AlertList) {
+      return DashboardAlertListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.MonitorStatus) {
+      return DashboardMonitorStatusComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.Embed) {
+      return DashboardEmbedComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

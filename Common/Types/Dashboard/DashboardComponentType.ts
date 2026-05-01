@@ -6,6 +6,9 @@ enum DashboardComponentType {
   Gauge = `Gauge`,
   LogStream = `LogStream`,
   TraceList = `TraceList`,
+  AlertList = `AlertList`,
+  MonitorStatus = `MonitorStatus`,
+  Embed = `Embed`,
 }
 
 export default DashboardComponentType;

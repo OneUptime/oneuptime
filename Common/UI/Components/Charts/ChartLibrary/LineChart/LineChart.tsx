@@ -577,6 +577,14 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   customTooltip?: React.ComponentType<TooltipProps>;
   syncid?: string | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  formattedVerticalReferenceLines?:
+    | Array<{
+        formattedX: string;
+        label: string | undefined;
+        color: string;
+        strokeDasharray: string | undefined;
+      }>
+    | undefined;
   formattedExemplarPoints?: Array<FormattedExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
 }
@@ -1017,6 +1025,39 @@ const LineChart: React.ForwardRefExoticComponent<
                         fill={refLine.color}
                         fontSize={11}
                         fontWeight={500}
+                      />
+                    )}
+                  </ReferenceLine>
+                );
+              },
+            )}
+            {props.formattedVerticalReferenceLines?.map(
+              (
+                vref: {
+                  formattedX: string;
+                  label: string | undefined;
+                  color: string;
+                  strokeDasharray: string | undefined;
+                },
+                vIndex: number,
+              ) => {
+                return (
+                  <ReferenceLine
+                    key={`vref-${vIndex}`}
+                    x={vref.formattedX}
+                    stroke={vref.color}
+                    strokeDasharray={vref.strokeDasharray || "3 3"}
+                    strokeWidth={1.25}
+                    ifOverflow="extendDomain"
+                  >
+                    {vref.label && (
+                      <Label
+                        value={vref.label}
+                        position="insideTop"
+                        fill={vref.color}
+                        fontSize={10}
+                        fontWeight={500}
+                        offset={4}
                       />
                     )}
                   </ReferenceLine>

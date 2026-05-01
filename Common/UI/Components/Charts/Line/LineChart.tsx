@@ -14,6 +14,7 @@ import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import FormattedExemplarPoint from "../ChartLibrary/Types/FormattedExemplarPoint";
 import DataPointUtil from "../Utils/DataPoint";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
+import ChartVerticalReferenceLineProps from "../Types/VerticalReferenceLineProps";
 import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
@@ -38,6 +39,7 @@ export interface ComponentProps {
   sync: boolean;
   heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  verticalReferenceLines?: Array<ChartVerticalReferenceLineProps> | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   showLegend?: boolean | undefined;
@@ -86,6 +88,38 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     });
   }, [props.exemplarPoints, props.xAxis]);
 
+  /*
+   * Annotation lines use the same X-axis formatter so they line up exactly
+   * with the data points Recharts is rendering.
+   */
+  const formattedVerticalReferenceLines: Array<{
+    formattedX: string;
+    label: string | undefined;
+    color: string;
+    strokeDasharray: string | undefined;
+  }> = useMemo(() => {
+    if (
+      !props.verticalReferenceLines ||
+      props.verticalReferenceLines.length === 0
+    ) {
+      return [];
+    }
+    const formatter: (value: Date) => string = XAxisUtil.getFormatter({
+      xAxisMax: props.xAxis.options.max,
+      xAxisMin: props.xAxis.options.min,
+    });
+    return props.verticalReferenceLines.map(
+      (ref: ChartVerticalReferenceLineProps) => {
+        return {
+          formattedX: formatter(ref.time),
+          label: ref.label,
+          color: ref.color,
+          strokeDasharray: ref.strokeDasharray,
+        };
+      },
+    );
+  }, [props.verticalReferenceLines, props.xAxis]);
+
   const className: string = props.heightInPx ? `` : "h-80";
   const style: React.CSSProperties = props.heightInPx
     ? { height: `${props.heightInPx}px` }
@@ -117,6 +151,11 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         yAxisWidth={60}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
+        formattedVerticalReferenceLines={
+          formattedVerticalReferenceLines.length > 0
+            ? formattedVerticalReferenceLines
+            : undefined
+        }
         formattedExemplarPoints={
           formattedExemplars.length > 0 ? formattedExemplars : undefined
         }

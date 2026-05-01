@@ -29,6 +29,7 @@ import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ChartVerticalReferenceLineProps from "Common/UI/Components/Charts/Types/VerticalReferenceLineProps";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
@@ -58,6 +59,12 @@ export interface ComponentProps {
   hideCard?: boolean | undefined;
   heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
+  /*
+   * When set, draws a vertical line at each annotation's timestamp on
+   * every chart in the group. Used by dashboards to overlay incidents
+   * and other operational events onto metric charts.
+   */
+  verticalAnnotations?: Array<ChartVerticalReferenceLineProps> | undefined;
 }
 
 /*
@@ -787,6 +794,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           sync: true,
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
+          verticalReferenceLines:
+            props.verticalAnnotations && props.verticalAnnotations.length > 0
+              ? props.verticalAnnotations
+              : undefined,
         },
       };
 

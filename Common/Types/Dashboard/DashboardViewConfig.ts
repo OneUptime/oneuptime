@@ -1,6 +1,7 @@
 import { ObjectType } from "../JSON";
 import DashboardBaseComponent from "./DashboardComponents/DashboardBaseComponent";
 import DashboardVariable from "./DashboardVariable";
+import { DashboardAnnotationsConfig } from "./DashboardAnnotation";
 
 export enum AutoRefreshInterval {
   OFF = "off",
@@ -64,4 +65,5 @@ export default interface DashboardViewConfig {
   heightInDashboardUnits: number;
   refreshInterval?: AutoRefreshInterval | undefined;
   variables?: Array<DashboardVariable> | undefined;
+  annotations?: DashboardAnnotationsConfig | undefined;
 }

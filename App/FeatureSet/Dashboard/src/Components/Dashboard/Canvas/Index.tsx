@@ -16,6 +16,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardAnnotation from "Common/Types/Dashboard/DashboardAnnotation";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -33,6 +34,7 @@ export interface ComponentProps {
   refreshTick?: number | undefined;
   dashboardVariables?: Array<DashboardVariable> | undefined;
   comparisonStartAndEndDate?: RangeStartAndEndDateTime | undefined;
+  annotations?: Array<DashboardAnnotation> | undefined;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -109,6 +111,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
                 refreshTick={props.refreshTick}
                 dashboardVariables={props.dashboardVariables}
                 comparisonStartAndEndDate={props.comparisonStartAndEndDate}
+                annotations={props.annotations}
                 onClick={() => {}}
               />
             </div>
@@ -313,6 +316,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         refreshTick={props.refreshTick}
         dashboardVariables={props.dashboardVariables}
         comparisonStartAndEndDate={props.comparisonStartAndEndDate}
+        annotations={props.annotations}
         onClick={() => {
           props.onComponentSelected(componentId);
         }}

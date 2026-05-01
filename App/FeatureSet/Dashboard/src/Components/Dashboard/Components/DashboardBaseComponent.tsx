@@ -20,6 +20,7 @@ import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardAnnotation from "Common/Types/Dashboard/DashboardAnnotation";
 
 /*
  * Most props are forwarded through to the panel renderer via spread, so
@@ -45,6 +46,7 @@ export interface DashboardBaseComponentProps {
   refreshTick?: number | undefined;
   dashboardVariables?: Array<DashboardVariable> | undefined;
   comparisonStartAndEndDate?: RangeStartAndEndDateTime | undefined;
+  annotations?: Array<DashboardAnnotation> | undefined;
 }
 /* eslint-enable react/no-unused-prop-types */
 

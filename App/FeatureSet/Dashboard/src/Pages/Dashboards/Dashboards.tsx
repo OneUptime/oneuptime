@@ -20,6 +20,7 @@ import React, {
 } from "react";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
 import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
+import DashboardQuickAccess from "../../Components/Dashboard/DashboardQuickAccess";
 import {
   DashboardTemplates,
   DashboardTemplateType,
@@ -92,6 +93,8 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ) : (
         <></>
       )}
+
+      <DashboardQuickAccess />
 
       <ModelTable<Dashboard>
         modelType={Dashboard}

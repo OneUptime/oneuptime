@@ -40,6 +40,15 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import useDashboardHistory, {
   DashboardHistory,
 } from "./Hooks/useDashboardHistory";
+import useDashboardAnnotations from "./Hooks/useDashboardAnnotations";
+import DashboardAnnotation from "Common/Types/Dashboard/DashboardAnnotation";
+import DashboardLocalPreferences from "Common/Utils/Dashboard/DashboardLocalPreferences";
+import DashboardVersionHistory from "Common/Utils/Dashboard/DashboardVersionHistory";
+import useDashboardCrossFilter, {
+  CrossFilterController,
+} from "./Hooks/useDashboardCrossFilter";
+import VersionHistoryModal from "./VersionHistoryModal";
+import ShareModal from "./ShareModal";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -58,6 +67,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     });
 
   const [comparisonEnabled, setComparisonEnabled] = useState<boolean>(false);
+
+  const [isFavorite, setIsFavorite] = useState<boolean>(
+    DashboardLocalPreferences.isFavorite(props.dashboardId.toString()),
+  );
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -123,6 +136,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               JSONFunctions.serializeValue(dashboardViewConfig),
           },
         });
+        /*
+         * Record a local-history snapshot AFTER the save succeeds — that
+         * way a failed write doesn't pollute the recovery list.
+         */
+        DashboardVersionHistory.record(
+          props.dashboardId.toString(),
+          dashboardViewConfig,
+        );
       } catch (err) {
         setError(API.getFriendlyErrorMessage(err as Error));
       }
@@ -196,6 +217,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       if (config.variables) {
         setDashboardVariables(config.variables);
       }
+
+      /*
+       * Record this visit for the per-user "recently viewed" surface on
+       * the dashboards list page.
+       */
+      DashboardLocalPreferences.recordVisit(
+        props.dashboardId.toString(),
+        dashboard.pageTitle || dashboard.name || "Untitled Dashboard",
+      );
     };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
@@ -337,6 +367,17 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const isMobile: boolean = isMobileViewport(dashboardTotalWidth);
 
+  const annotations: Array<DashboardAnnotation> = useDashboardAnnotations({
+    dashboardStartAndEndDate: startAndEndDate,
+    config: dashboardViewConfig.annotations,
+    refreshTick,
+  });
+
+  const crossFilter: CrossFilterController = useDashboardCrossFilter();
+
+  const [showVersionHistory, setShowVersionHistory] = useState<boolean>(false);
+  const [showShareModal, setShowShareModal] = useState<boolean>(false);
+
   return (
     <div
       ref={dashboardViewRef}
@@ -429,6 +470,41 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onComparisonToggle={(enabled: boolean) => {
           setComparisonEnabled(enabled);
         }}
+        isFavorite={isFavorite}
+        onFavoriteToggle={() => {
+          const next: boolean = DashboardLocalPreferences.toggleFavorite(
+            props.dashboardId.toString(),
+          );
+          setIsFavorite(next);
+        }}
+        crossFilters={crossFilter.filters}
+        onClearCrossFilter={crossFilter.clearFilter}
+        onClearAllCrossFilters={crossFilter.clearAll}
+        onShowVersionHistory={() => {
+          setShowVersionHistory(true);
+        }}
+        onShowShareModal={() => {
+          setShowShareModal(true);
+        }}
+        annotationsEnabled={dashboardViewConfig.annotations?.enabled === true}
+        onAnnotationsToggle={(enabled: boolean) => {
+          /*
+           * Annotations toggle is a view-mode setting — persist it (so
+           * reload remembers) but skip the undo stack since it isn't an
+           * edit operation. Default sources: incidents on, others off.
+           */
+          dashboardHistory.setConfig(
+            {
+              ...dashboardViewConfig,
+              annotations: {
+                ...(dashboardViewConfig.annotations || {}),
+                enabled,
+                incidents: dashboardViewConfig.annotations?.incidents ?? true,
+              },
+            },
+            { skipHistory: true },
+          );
+        }}
         onVariableValueChange={(variableId: string, value: string) => {
           const updatedVariables: Array<DashboardVariable> =
             dashboardVariables.map((v: DashboardVariable) => {
@@ -497,8 +573,31 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           refreshTick={refreshTick}
           dashboardVariables={dashboardVariables}
           comparisonStartAndEndDate={comparisonStartAndEndDate}
+          annotations={annotations}
         />
       </div>
+
+      {showVersionHistory && (
+        <VersionHistoryModal
+          dashboardId={props.dashboardId.toString()}
+          onClose={() => {
+            setShowVersionHistory(false);
+          }}
+          onRestore={(snapshotConfig: DashboardViewConfig) => {
+            // Restoring is undoable so users can recover from a wrong pick.
+            setDashboardViewConfig(snapshotConfig);
+          }}
+        />
+      )}
+
+      {showShareModal && (
+        <ShareModal
+          dashboardName={dashboardName}
+          onClose={() => {
+            setShowShareModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

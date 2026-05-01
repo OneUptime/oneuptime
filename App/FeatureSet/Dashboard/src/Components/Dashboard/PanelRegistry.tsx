@@ -20,6 +20,9 @@ import DashboardTableComponent from "./Components/DashboardTableComponent";
 import DashboardGaugeComponent from "./Components/DashboardGaugeComponent";
 import DashboardLogStreamComponent from "./Components/DashboardLogStreamComponent";
 import DashboardTraceListComponent from "./Components/DashboardTraceListComponent";
+import DashboardAlertListComponent from "./Components/DashboardAlertListComponent";
+import DashboardMonitorStatusComponent from "./Components/DashboardMonitorStatusComponent";
+import DashboardEmbedComponent from "./Components/DashboardEmbedComponent";
 
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
@@ -28,6 +31,9 @@ import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/Dashb
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
+import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
+import DashboardMonitorStatusComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorStatusComponent";
+import DashboardEmbedComponentUtil from "Common/Utils/Dashboard/Components/DashboardEmbedComponent";
 
 import { DashboardBaseComponentProps } from "./Components/DashboardBaseComponent";
 
@@ -126,6 +132,36 @@ const definitions: Array<PanelDefinition> = [
       DashboardTraceListComponent as unknown as ComponentType<PanelRendererProps>,
     createDefault: () => {
       return DashboardTraceListComponentUtil.getDefaultComponent();
+    },
+  },
+  {
+    type: DashboardComponentType.AlertList,
+    label: "Alert / Incident List",
+    icon: IconProp.Alert,
+    Renderer:
+      DashboardAlertListComponent as unknown as ComponentType<PanelRendererProps>,
+    createDefault: () => {
+      return DashboardAlertListComponentUtil.getDefaultComponent();
+    },
+  },
+  {
+    type: DashboardComponentType.MonitorStatus,
+    label: "Monitor Status",
+    icon: IconProp.Activity,
+    Renderer:
+      DashboardMonitorStatusComponent as unknown as ComponentType<PanelRendererProps>,
+    createDefault: () => {
+      return DashboardMonitorStatusComponentUtil.getDefaultComponent();
+    },
+  },
+  {
+    type: DashboardComponentType.Embed,
+    label: "Embed (iframe)",
+    icon: IconProp.ExternalLink,
+    Renderer:
+      DashboardEmbedComponent as unknown as ComponentType<PanelRendererProps>,
+    createDefault: () => {
+      return DashboardEmbedComponentUtil.getDefaultComponent();
     },
   },
 ];

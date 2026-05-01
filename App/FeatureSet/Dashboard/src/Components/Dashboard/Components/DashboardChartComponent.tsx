@@ -16,6 +16,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import ChartVerticalReferenceLineProps from "Common/UI/Components/Charts/Types/VerticalReferenceLineProps";
+import DashboardAnnotation from "Common/Types/Dashboard/DashboardAnnotation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -279,6 +281,19 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           metricViewData={chartMetricViewData}
           hideCard={true}
           heightInPx={heightOfChart}
+          verticalAnnotations={
+            props.annotations && props.annotations.length > 0
+              ? props.annotations.map(
+                  (a: DashboardAnnotation): ChartVerticalReferenceLineProps => {
+                    return {
+                      time: a.time,
+                      label: a.label,
+                      color: a.color,
+                    };
+                  },
+                )
+              : undefined
+          }
         />
       </div>
     </div>

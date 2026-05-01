@@ -16,6 +16,7 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import { PanelDefinitions, PanelDefinition } from "../PanelRegistry";
+import { CrossFilter } from "../Hooks/useDashboardCrossFilter";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import DashboardViewConfig, {
@@ -57,6 +58,15 @@ export interface ComponentProps {
   canRedo?: boolean | undefined;
   comparisonEnabled?: boolean | undefined;
   onComparisonToggle?: ((enabled: boolean) => void) | undefined;
+  annotationsEnabled?: boolean | undefined;
+  onAnnotationsToggle?: ((enabled: boolean) => void) | undefined;
+  isFavorite?: boolean | undefined;
+  onFavoriteToggle?: (() => void) | undefined;
+  crossFilters?: Array<CrossFilter> | undefined;
+  onClearCrossFilter?: ((key: string) => void) | undefined;
+  onClearAllCrossFilters?: (() => void) | undefined;
+  onShowVersionHistory?: (() => void) | undefined;
+  onShowShareModal?: (() => void) | undefined;
 }
 
 interface CountdownCircleProps {
@@ -375,6 +385,27 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                 )}
 
+                {/* Annotations (events on charts) toggle */}
+                {props.onAnnotationsToggle && (
+                  <button
+                    type="button"
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border text-xs ${
+                      props.annotationsEnabled
+                        ? "bg-rose-50/50 border-rose-100 text-rose-600 hover:bg-rose-50"
+                        : "bg-gray-50 border-gray-200/60 text-gray-500 hover:bg-gray-100"
+                    }`}
+                    onClick={() => {
+                      props.onAnnotationsToggle?.(!props.annotationsEnabled);
+                    }}
+                    title="Overlay incidents on charts"
+                  >
+                    <Icon icon={IconProp.Alert} className="w-3.5 h-3.5" />
+                    <span>
+                      {props.annotationsEnabled ? "Events on" : "Events"}
+                    </span>
+                  </button>
+                )}
+
                 {/* Compare to previous period toggle */}
                 {props.onComparisonToggle && (
                   <button
@@ -401,6 +432,31 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
               </>
             )}
 
+            {/* Favorite toggle (view mode) */}
+            {!isEditMode && props.onFavoriteToggle && (
+              <button
+                type="button"
+                className={`flex items-center justify-center rounded-lg w-8 h-8 transition-colors cursor-pointer border ${
+                  props.isFavorite
+                    ? "bg-amber-50 border-amber-200 hover:bg-amber-100"
+                    : "bg-gray-50 border-gray-200/60 hover:bg-gray-100"
+                }`}
+                onClick={props.onFavoriteToggle}
+                title={
+                  props.isFavorite
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }
+              >
+                <Icon
+                  icon={props.isFavorite ? IconProp.Star : IconProp.Star}
+                  className={`w-4 h-4 ${
+                    props.isFavorite ? "text-amber-500" : "text-gray-400"
+                  }`}
+                />
+              </button>
+            )}
+
             {/* More menu: Edit + Full Screen (always visible in view mode) */}
             {!isEditMode && (
               <MoreMenu
@@ -423,6 +479,17 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Pencil}
                   key={"edit"}
                   onClick={props.onEditClick}
+                />
+                <MoreMenuItem
+                  text={"Share"}
+                  icon={IconProp.Link}
+                  key={"share"}
+                  onClick={
+                    props.onShowShareModal ||
+                    ((): void => {
+                      return undefined;
+                    })
+                  }
                 />
                 <MoreMenuItem
                   text={"Full Screen"}
@@ -450,6 +517,20 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     );
                   })}
                 </MoreMenu>
+
+                {props.onShowVersionHistory && (
+                  <>
+                    <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                    <Button
+                      icon={IconProp.Clock}
+                      title="History"
+                      buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      onClick={props.onShowVersionHistory}
+                      tooltip="Restore a previous saved version"
+                    />
+                  </>
+                )}
 
                 {(props.onUndo || props.onRedo) && (
                   <>
@@ -508,6 +589,46 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
+
+        {/* Active cross-filter chips (view mode, has filters) */}
+        {!isEditMode && props.crossFilters && props.crossFilters.length > 0 && (
+          <div className="px-4 pb-2.5 flex items-center flex-wrap gap-1.5 border-t border-gray-100/60 pt-2">
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mr-1">
+              Filters
+            </span>
+            {props.crossFilters.map((f: CrossFilter) => {
+              const display: string = f.label || `${f.key} = ${f.value}`;
+              return (
+                <button
+                  type="button"
+                  key={f.key}
+                  onClick={() => {
+                    props.onClearCrossFilter?.(f.key);
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-colors cursor-pointer"
+                  title="Click to remove this filter"
+                >
+                  <span className="text-[11px] text-indigo-700 font-medium">
+                    {display}
+                  </span>
+                  <Icon
+                    icon={IconProp.Close}
+                    className="w-3 h-3 text-indigo-400"
+                  />
+                </button>
+              );
+            })}
+            {props.crossFilters.length > 1 && props.onClearAllCrossFilters && (
+              <button
+                type="button"
+                className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-wider ml-1"
+                onClick={props.onClearAllCrossFilters}
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {showCancelModal ? (
