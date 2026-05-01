@@ -172,6 +172,30 @@ class BaseAPI extends API {
     return await this.refreshPromise;
   }
 
+  /*
+   * When dashboards mount and fire many panel requests in parallel, the
+   * first 401 kicks off a token refresh. Any other request that's about
+   * to fire would also 401 and trigger the (coalesced) refresh, but it
+   * still re-fires after — so cold-load traffic doubles. By awaiting any
+   * in-flight refresh here, those concurrent requests instead queue
+   * briefly, then go out once with fresh auth.
+   *
+   * This is a no-op when no refresh is in progress, so the warm path
+   * pays nothing.
+   */
+  protected static override async waitForAuthReady(): Promise<void> {
+    if (this.refreshPromise) {
+      try {
+        await this.refreshPromise;
+      } catch {
+        /*
+         * Refresh failure surfaces as a 401 on the original request,
+         * which has its own handling — swallow here.
+         */
+      }
+    }
+  }
+
   protected static getLoginRoute(): Route {
     return new Route("/accounts/login");
   }

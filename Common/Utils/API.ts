@@ -112,6 +112,22 @@ export default class API {
     return false;
   }
 
+  /*
+   * Optional hook subclasses can override to gate outgoing requests on
+   * an in-flight auth refresh. When one request hits a 401 and starts a
+   * token refresh, every other request that arrives during that window
+   * waits here instead of firing a doomed call that will also 401, get
+   * coalesced into the same refresh, and then have to re-fire. This
+   * roughly halves cold-load network traffic on dashboards that mount
+   * many panels simultaneously.
+   *
+   * Default: no-op (server-side / probe contexts have no notion of an
+   * interactive session refresh).
+   */
+  protected static async waitForAuthReady(): Promise<void> {
+    return;
+  }
+
   public async get<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
@@ -364,6 +380,17 @@ export default class API {
 
     if (params) {
       url.addQueryParams(params);
+    }
+
+    /*
+     * If an auth refresh is already in flight (kicked off by some other
+     * request that 401'd), wait for it to finish before issuing this
+     * one. The refresh-token request itself bypasses this gate via
+     * skipAuthRefresh, and the per-request retry path bypasses it via
+     * hasAttemptedAuthRefresh — so we only gate fresh top-level calls.
+     */
+    if (!options?.skipAuthRefresh && !options?.hasAttemptedAuthRefresh) {
+      await this.waitForAuthReady();
     }
 
     try {
