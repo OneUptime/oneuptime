@@ -4,6 +4,7 @@ import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize, {
   GetDashboardUnitWidthInPx,
   SpaceBetweenUnitsInPx,
+  isMobileViewport,
 } from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import BlankDashboardUnitElement from "./BlankDashboardUnit";
@@ -14,6 +15,7 @@ import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -29,6 +31,8 @@ export interface ComponentProps {
   };
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   refreshTick?: number | undefined;
+  dashboardVariables?: Array<DashboardVariable> | undefined;
+  comparisonStartAndEndDate?: RangeStartAndEndDateTime | undefined;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -42,7 +46,83 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     props.currentTotalDashboardWidthInPx,
   );
 
+  const isMobile: boolean = isMobileViewport(
+    props.currentTotalDashboardWidthInPx,
+  );
+
+  const renderMobileStack: GetReactElementFunction = (): ReactElement => {
+    /*
+     * Sort components top-to-bottom, left-to-right based on their saved
+     * grid coordinates so the stacked order on mobile mirrors the desktop
+     * reading order.
+     */
+    const sorted: Array<DashboardBaseComponent> = [
+      ...props.dashboardViewConfig.components,
+    ].sort((a: DashboardBaseComponent, b: DashboardBaseComponent) => {
+      if (a.topInDashboardUnits !== b.topInDashboardUnits) {
+        return a.topInDashboardUnits - b.topInDashboardUnits;
+      }
+      return a.leftInDashboardUnits - b.leftInDashboardUnits;
+    });
+
+    const mobileItemHeightPx: number = 240;
+    const mobileItemWidthPx: number = props.currentTotalDashboardWidthInPx - 16;
+
+    return (
+      <div className="flex flex-col gap-3 px-1 py-1">
+        {sorted.map((component: DashboardBaseComponent) => {
+          return (
+            <div
+              key={component.componentId.toString()}
+              style={{ width: "100%", height: `${mobileItemHeightPx}px` }}
+            >
+              <DashboardBaseComponentElement
+                dashboardViewConfig={props.dashboardViewConfig}
+                isEditMode={false}
+                dashboardCanvasHeightInPx={
+                  dashboardCanvasRef.current?.clientHeight || 0
+                }
+                dashboardComponentWidthInPx={mobileItemWidthPx}
+                dashboardComponentHeightInPx={mobileItemHeightPx}
+                metricTypes={props.metrics.metricTypes}
+                dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+                dashboardCanvasWidthInPx={
+                  dashboardCanvasRef.current?.clientWidth || 0
+                }
+                dashboardCanvasTopInPx={
+                  dashboardCanvasRef.current?.clientTop || 0
+                }
+                dashboardCanvasLeftInPx={
+                  dashboardCanvasRef.current?.clientLeft || 0
+                }
+                totalCurrentDashboardWidthInPx={
+                  props.currentTotalDashboardWidthInPx
+                }
+                componentId={component.componentId}
+                key={component.componentId.toString()}
+                onComponentUpdate={(
+                  updatedComponent: DashboardBaseComponent,
+                ) => {
+                  updateComponent(updatedComponent);
+                }}
+                isSelected={false}
+                refreshTick={props.refreshTick}
+                dashboardVariables={props.dashboardVariables}
+                comparisonStartAndEndDate={props.comparisonStartAndEndDate}
+                onClick={() => {}}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderComponents: GetReactElementFunction = (): ReactElement => {
+    if (isMobile) {
+      return renderMobileStack();
+    }
+
     const canvasHeight: number =
       props.dashboardViewConfig.heightInDashboardUnits ||
       DefaultDashboardSize.heightInDashboardUnits;
@@ -231,6 +311,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }}
         isSelected={isSelected}
         refreshTick={props.refreshTick}
+        dashboardVariables={props.dashboardVariables}
+        comparisonStartAndEndDate={props.comparisonStartAndEndDate}
         onClick={() => {
           props.onComponentSelected(componentId);
         }}

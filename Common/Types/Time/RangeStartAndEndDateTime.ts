@@ -8,6 +8,29 @@ export default interface RangeStartAndEndDateTime {
 }
 
 export class RangeStartAndEndDateTimeUtil {
+  /**
+   * Returns the comparison window — the same-duration range immediately
+   * preceding the current one. For "Past 1 Hour" this returns the hour
+   * before that, suitable for "vs previous period" overlays.
+   */
+  public static getComparisonStartAndEndDate(
+    dashboardStartAndEndDate: RangeStartAndEndDateTime,
+  ): InBetween<Date> {
+    const current: InBetween<Date> = this.getStartAndEndDate(
+      dashboardStartAndEndDate,
+    );
+    if (!current.startValue || !current.endValue) {
+      return current;
+    }
+    const startMs: number = current.startValue.getTime();
+    const endMs: number = current.endValue.getTime();
+    const durationMs: number = endMs - startMs;
+    return new InBetween<Date>(
+      new Date(startMs - durationMs),
+      new Date(startMs),
+    );
+  }
+
   public static getStartAndEndDate(
     dashboardStartAndEndDate: RangeStartAndEndDateTime,
   ): InBetween<Date> {

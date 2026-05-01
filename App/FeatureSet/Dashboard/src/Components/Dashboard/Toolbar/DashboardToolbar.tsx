@@ -15,6 +15,7 @@ import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { PanelDefinitions, PanelDefinition } from "../PanelRegistry";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import DashboardViewConfig, {
@@ -50,6 +51,12 @@ export interface ComponentProps {
     | undefined;
   canResetZoom?: boolean | undefined;
   onResetZoom?: (() => void) | undefined;
+  onUndo?: (() => void) | undefined;
+  onRedo?: (() => void) | undefined;
+  canUndo?: boolean | undefined;
+  canRedo?: boolean | undefined;
+  comparisonEnabled?: boolean | undefined;
+  onComparisonToggle?: ((enabled: boolean) => void) | undefined;
 }
 
 interface CountdownCircleProps {
@@ -367,6 +374,30 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     tooltip="Reset to original time range"
                   />
                 )}
+
+                {/* Compare to previous period toggle */}
+                {props.onComparisonToggle && (
+                  <button
+                    type="button"
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border text-xs ${
+                      props.comparisonEnabled
+                        ? "bg-indigo-50/50 border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                        : "bg-gray-50 border-gray-200/60 text-gray-500 hover:bg-gray-100"
+                    }`}
+                    onClick={() => {
+                      props.onComparisonToggle?.(!props.comparisonEnabled);
+                    }}
+                    title="Compare to previous period"
+                  >
+                    <Icon
+                      icon={IconProp.AdjustmentHorizontal}
+                      className="w-3.5 h-3.5"
+                    />
+                    <span>
+                      {props.comparisonEnabled ? "Comparing" : "Compare"}
+                    </span>
+                  </button>
+                )}
               </>
             )}
 
@@ -406,67 +437,47 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             {!isSaving && isEditMode && (
               <div className="flex items-center gap-1">
                 <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
-                  <MoreMenuItem
-                    text={"Chart"}
-                    icon={IconProp.ChartBar}
-                    key={"add-chart"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Chart);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Value"}
-                    icon={IconProp.Hashtag}
-                    key={"add-value"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Value);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Text"}
-                    icon={IconProp.Text}
-                    key={"add-text"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Text);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Table"}
-                    icon={IconProp.TableCells}
-                    key={"add-table"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Table);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Gauge"}
-                    icon={IconProp.Gauge}
-                    key={"add-gauge"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Gauge);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Log Stream"}
-                    icon={IconProp.Logs}
-                    key={"add-log-stream"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.LogStream,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Trace List"}
-                    icon={IconProp.Waterfall}
-                    key={"add-trace-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.TraceList,
-                      );
-                    }}
-                  />
+                  {PanelDefinitions.map((def: PanelDefinition) => {
+                    return (
+                      <MoreMenuItem
+                        text={def.label}
+                        icon={def.icon}
+                        key={`add-${def.type}`}
+                        onClick={() => {
+                          props.onAddComponentClick(def.type);
+                        }}
+                      />
+                    );
+                  })}
                 </MoreMenu>
+
+                {(props.onUndo || props.onRedo) && (
+                  <>
+                    <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                    {props.onUndo && (
+                      <Button
+                        icon={IconProp.ArrowUturnLeft}
+                        title="Undo"
+                        buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                        buttonSize={ButtonSize.Small}
+                        onClick={props.onUndo}
+                        disabled={!props.canUndo}
+                        tooltip="Undo last change (⌘Z)"
+                      />
+                    )}
+                    {props.onRedo && (
+                      <Button
+                        icon={IconProp.ArrowUturnRight}
+                        title="Redo"
+                        buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                        buttonSize={ButtonSize.Small}
+                        onClick={props.onRedo}
+                        disabled={!props.canRedo}
+                        tooltip="Redo last undone change (⌘⇧Z)"
+                      />
+                    )}
+                  </>
+                )}
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 

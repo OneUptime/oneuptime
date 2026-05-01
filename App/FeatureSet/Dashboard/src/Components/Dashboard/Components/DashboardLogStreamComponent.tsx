@@ -18,6 +18,8 @@ import {
   queryStringToFilter,
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogStreamComponent;
@@ -93,31 +95,38 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         ),
       } as Query<Log>;
 
+      const variables: Array<DashboardVariable> =
+        props.dashboardVariables || [];
+
       // Add severity filter if set
-      if (
-        props.component.arguments.severityFilter &&
-        props.component.arguments.severityFilter !== ""
-      ) {
-        (query as Record<string, unknown>)["severityText"] =
-          props.component.arguments.severityFilter;
+      const severityFilter: string =
+        DashboardVariableInterpolation.interpolateString(
+          props.component.arguments.severityFilter || "",
+          variables,
+        );
+      if (severityFilter && severityFilter !== "") {
+        (query as Record<string, unknown>)["severityText"] = severityFilter;
       }
 
       // Add body contains filter if set
-      if (
-        props.component.arguments.bodyContains &&
-        props.component.arguments.bodyContains.trim() !== ""
-      ) {
-        (query as Record<string, unknown>)["body"] =
-          props.component.arguments.bodyContains.trim();
+      const bodyContains: string =
+        DashboardVariableInterpolation.interpolateString(
+          props.component.arguments.bodyContains || "",
+          variables,
+        );
+      if (bodyContains && bodyContains.trim() !== "") {
+        (query as Record<string, unknown>)["body"] = bodyContains.trim();
       }
 
       // Add attribute filters if set
-      if (
-        props.component.arguments.attributeFilterQuery &&
-        props.component.arguments.attributeFilterQuery.trim() !== ""
-      ) {
+      const attributeFilterQuery: string =
+        DashboardVariableInterpolation.interpolateString(
+          props.component.arguments.attributeFilterQuery || "",
+          variables,
+        );
+      if (attributeFilterQuery && attributeFilterQuery.trim() !== "") {
         const parsedFilter: LogFilter = queryStringToFilter(
-          props.component.arguments.attributeFilterQuery.trim(),
+          attributeFilterQuery.trim(),
         );
 
         if (parsedFilter.attributes) {
@@ -157,7 +166,11 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchLogs();
-  }, [props.dashboardStartAndEndDate, props.refreshTick]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.refreshTick,
+    props.dashboardVariables,
+  ]);
 
   useEffect(() => {
     fetchLogs();

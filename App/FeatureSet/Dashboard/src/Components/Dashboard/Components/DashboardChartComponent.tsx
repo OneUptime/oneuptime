@@ -5,7 +5,7 @@ import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricUtil from "../../Metrics/Utils/Metrics";
+import DashboardMetricFetcher from "../Utils/MetricFetcher";
 import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
@@ -15,6 +15,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -49,8 +50,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   const queryConfigs: Array<MetricQueryConfigData> = resolveQueryConfigs();
 
+  const interpolatedQueryConfigs: Array<MetricQueryConfigData> =
+    DashboardVariableInterpolation.interpolateValue(
+      queryConfigs,
+      props.dashboardVariables || [],
+    );
+
   const metricViewData: MetricViewData = {
-    queryConfigs: queryConfigs,
+    queryConfigs: interpolatedQueryConfigs,
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -98,9 +105,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       }
 
       try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
-        });
+        const results: Array<AggregatedResult> =
+          await DashboardMetricFetcher.fetchResults({
+            metricViewData: metricViewData,
+          });
 
         setMetricResults(results);
         setError("");
@@ -113,7 +121,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.metricTypes,
+    props.refreshTick,
+    props.dashboardVariables,
+  ]);
 
   const [prevQueryConfigs, setPrevQueryConfigs] = React.useState<
     Array<MetricQueryConfigData> | MetricQueryConfigData | undefined
@@ -215,19 +228,21 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   const chartMetricViewData: MetricViewData = {
-    queryConfigs: queryConfigs.map((config: MetricQueryConfigData) => {
-      return {
-        ...config,
-        metricAliasData: {
-          metricVariable: config.metricAliasData?.metricVariable || undefined,
-          title: config.metricAliasData?.title || undefined,
-          description: config.metricAliasData?.description || undefined,
-          legend: config.metricAliasData?.legend || undefined,
-          legendUnit: config.metricAliasData?.legendUnit || undefined,
-        },
-        chartType: config.chartType || getMetricChartType(),
-      };
-    }),
+    queryConfigs: interpolatedQueryConfigs.map(
+      (config: MetricQueryConfigData) => {
+        return {
+          ...config,
+          metricAliasData: {
+            metricVariable: config.metricAliasData?.metricVariable || undefined,
+            title: config.metricAliasData?.title || undefined,
+            description: config.metricAliasData?.description || undefined,
+            legend: config.metricAliasData?.legend || undefined,
+            legendUnit: config.metricAliasData?.legendUnit || undefined,
+          },
+          chartType: config.chartType || getMetricChartType(),
+        };
+      },
+    ),
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),

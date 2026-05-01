@@ -11,6 +11,20 @@ const DefaultDashboardSize: DashboardSize = {
 export const SpaceBetweenUnitsInPx: number = 10;
 export const MarginForEachUnitInPx: number = 10 / 2;
 
+/*
+ * Below this viewport width the canvas drops to a stacked single-column
+ * layout: each component renders full-width in display order. Edit-mode
+ * drag/resize is disabled at this width since absolute coordinates lose
+ * their meaning on a 1-column grid.
+ */
+export const MobileBreakpointInPx: number = 768;
+
+export const isMobileViewport: (widthInPx: number) => boolean = (
+  widthInPx: number,
+): boolean => {
+  return widthInPx > 0 && widthInPx < MobileBreakpointInPx;
+};
+
 type GetDashboardUnitWidthInPxFunction = (
   currentTotalDashboardWidthInPx: number,
 ) => number;

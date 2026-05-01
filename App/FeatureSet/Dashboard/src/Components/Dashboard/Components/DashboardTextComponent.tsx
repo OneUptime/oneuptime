@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import DashboardTextComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTextComponent;
@@ -10,10 +11,15 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const renderedText: string = DashboardVariableInterpolation.interpolateString(
+    props.component.arguments.text || "",
+    props.dashboardVariables || [],
+  );
+
   if (props.component.arguments.isMarkdown) {
     return (
       <div className="h-full overflow-auto p-2">
-        <LazyMarkdownViewer text={props.component.arguments.text || ""} />
+        <LazyMarkdownViewer text={renderedText} />
       </div>
     );
   }
@@ -32,7 +38,7 @@ const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
           fontSize: textHeightInxPx > 0 ? `${textHeightInxPx}px` : "",
         }}
       >
-        {props.component.arguments.text || (
+        {renderedText || (
           <span className="text-gray-300 text-sm">No text configured</span>
         )}
       </div>

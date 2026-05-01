@@ -4,7 +4,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricUtil from "../../Metrics/Utils/Metrics";
+import DashboardMetricFetcher from "../Utils/MetricFetcher";
 import API from "Common/UI/Utils/API/API";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -14,6 +14,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -88,16 +89,25 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const [metricResults, setMetricResults] = React.useState<
     Array<AggregatedResult>
   >([]);
+  const [comparisonResults, setComparisonResults] = React.useState<
+    Array<AggregatedResult>
+  >([]);
   const [aggregationType, setAggregationType] = React.useState<AggregationType>(
     AggregationType.Avg,
   );
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
+  const interpolatedQueryConfig: MetricQueryConfigData | undefined = props
+    .component.arguments.metricQueryConfig
+    ? DashboardVariableInterpolation.interpolateValue(
+        props.component.arguments.metricQueryConfig,
+        props.dashboardVariables || [],
+      )
+    : undefined;
+
   const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [props.component.arguments.metricQueryConfig]
-      : [],
+    queryConfigs: interpolatedQueryConfig ? [interpolatedQueryConfig] : [],
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -144,14 +154,40 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       );
 
       try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
-        });
+        const results: Array<AggregatedResult> =
+          await DashboardMetricFetcher.fetchResults({
+            metricViewData: metricViewData,
+          });
 
         setMetricResults(results);
         setError("");
       } catch (err: unknown) {
         setError(API.getFriendlyErrorMessage(err as Error));
+      }
+
+      /*
+       * Comparison fetch — silent (no spinner, no error fail). If it errors
+       * we just hide the comparison badge.
+       */
+      if (props.comparisonStartAndEndDate && interpolatedQueryConfig) {
+        try {
+          const comparison: Array<AggregatedResult> =
+            await DashboardMetricFetcher.fetchResults({
+              metricViewData: {
+                queryConfigs: [interpolatedQueryConfig],
+                startAndEndDate:
+                  RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+                    props.comparisonStartAndEndDate,
+                  ),
+                formulaConfigs: [],
+              },
+            });
+          setComparisonResults(comparison);
+        } catch {
+          setComparisonResults([]);
+        }
+      } else {
+        setComparisonResults([]);
       }
 
       setIsLoading(false);
@@ -163,7 +199,13 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.metricTypes,
+    props.refreshTick,
+    props.dashboardVariables,
+    props.comparisonStartAndEndDate,
+  ]);
 
   useEffect(() => {
     if (
@@ -322,11 +364,68 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     sparklineFill = "rgba(245, 158, 11, 0.08)";
   }
 
-  // Calculate trend (compare first half avg to second half avg)
+  /*
+   * Calculate trend.
+   * If comparison-to-prior-period is enabled and we have comparison data,
+   * compare aggregated current vs aggregated prior. Otherwise fall back to
+   * the within-window first-half-vs-second-half heuristic.
+   */
   let trendPercent: number | null = null;
   let trendDirection: "up" | "down" | "flat" = "flat";
+  let comparisonLabel: string = "";
 
-  if (sparklineData.length >= 4) {
+  const comparisonValue: number | null = (() => {
+    if (!props.comparisonStartAndEndDate || comparisonResults.length === 0) {
+      return null;
+    }
+    let total: number = 0;
+    let count: number = 0;
+    let computed: number =
+      aggregationType === AggregationType.Min ? Infinity : 0;
+    for (const result of comparisonResults) {
+      for (const item of result.data) {
+        const value: number = item.value;
+        if (aggregationType === AggregationType.Avg) {
+          total += value;
+          count += 1;
+        } else if (aggregationType === AggregationType.Sum) {
+          total += value;
+        } else if (aggregationType === AggregationType.Min) {
+          computed = Math.min(computed, value);
+        } else if (aggregationType === AggregationType.Max) {
+          computed = Math.max(computed, value);
+        } else if (aggregationType === AggregationType.Count) {
+          total += 1;
+        }
+      }
+    }
+    if (aggregationType === AggregationType.Avg) {
+      return count > 0 ? total / count : null;
+    }
+    if (
+      aggregationType === AggregationType.Sum ||
+      aggregationType === AggregationType.Count
+    ) {
+      return total;
+    }
+    if (computed === Infinity || computed === -Infinity) {
+      return null;
+    }
+    return computed;
+  })();
+
+  if (comparisonValue !== null) {
+    if (comparisonValue !== 0) {
+      trendPercent =
+        Math.round(
+          ((aggregatedValue - comparisonValue) / Math.abs(comparisonValue)) *
+            1000,
+        ) / 10;
+      trendDirection =
+        trendPercent > 0.5 ? "up" : trendPercent < -0.5 ? "down" : "flat";
+      comparisonLabel = "vs prior";
+    }
+  } else if (sparklineData.length >= 4) {
     const midpoint: number = Math.floor(sparklineData.length / 2);
     const firstHalf: Array<number> = sparklineData.slice(0, midpoint);
     const secondHalf: Array<number> = sparklineData.slice(midpoint);
@@ -403,7 +502,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       {/* Trend indicator */}
       {trendPercent !== null && trendDirection !== "flat" && (
         <div
-          className={`flex items-center gap-0.5 mt-0.5 ${
+          className={`flex items-center gap-1 mt-0.5 ${
             trendDirection === "up" ? "text-emerald-500" : "text-red-500"
           }`}
           style={{
@@ -414,6 +513,9 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
           <span className="font-medium tabular-nums">
             {Math.abs(trendPercent)}%
           </span>
+          {comparisonLabel && (
+            <span className="text-gray-400 font-normal">{comparisonLabel}</span>
+          )}
         </div>
       )}
 

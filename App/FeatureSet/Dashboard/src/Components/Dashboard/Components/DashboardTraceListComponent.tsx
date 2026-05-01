@@ -14,6 +14,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceListComponent;
@@ -99,13 +100,14 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
       } as Query<Span>;
 
       // Add status filter if set
-      if (
-        props.component.arguments.statusFilter &&
-        props.component.arguments.statusFilter !== ""
-      ) {
-        (query as Record<string, unknown>)["statusCode"] = parseInt(
-          props.component.arguments.statusFilter,
+      const statusFilter: string =
+        DashboardVariableInterpolation.interpolateString(
+          props.component.arguments.statusFilter || "",
+          props.dashboardVariables || [],
         );
+      if (statusFilter && statusFilter !== "") {
+        (query as Record<string, unknown>)["statusCode"] =
+          parseInt(statusFilter);
       }
 
       const listResult: ListResult<Span> =
@@ -141,7 +143,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchTraces();
-  }, [props.dashboardStartAndEndDate, props.refreshTick]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.refreshTick,
+    props.dashboardVariables,
+  ]);
 
   useEffect(() => {
     fetchTraces();

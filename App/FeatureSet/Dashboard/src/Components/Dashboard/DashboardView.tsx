@@ -16,13 +16,7 @@ import DashboardViewConfig, {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import { ObjectType } from "Common/Types/JSON";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
-import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
-import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/DashboardTextComponent";
-import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
-import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
-import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
-import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
+import { getPanelDefinition } from "./PanelRegistry";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -31,14 +25,21 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
-import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
+import DefaultDashboardSize, {
+  isMobileViewport,
+} from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
-import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import useDashboardHistory, {
+  DashboardHistory,
+} from "./Hooks/useDashboardHistory";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -55,6 +56,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     useState<RangeStartAndEndDateTime>({
       range: TimeRange.PAST_ONE_HOUR,
     });
+
+  const [comparisonEnabled, setComparisonEnabled] = useState<boolean>(false);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -140,12 +143,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [selectedComponentId, setSelectedComponentId] =
     useState<ObjectID | null>(null);
 
-  const [dashboardViewConfig, setDashboardViewConfig] =
-    useState<DashboardViewConfig>({
-      _type: ObjectType.DashboardViewConfig,
-      components: [],
-      heightInDashboardUnits: DefaultDashboardSize.heightInDashboardUnits,
-    });
+  const dashboardHistory: DashboardHistory = useDashboardHistory({
+    _type: ObjectType.DashboardViewConfig,
+    components: [],
+    heightInDashboardUnits: DefaultDashboardSize.heightInDashboardUnits,
+  });
+  const dashboardViewConfig: DashboardViewConfig = dashboardHistory.config;
+  const setDashboardViewConfig: (config: DashboardViewConfig) => void =
+    dashboardHistory.setConfig;
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -174,7 +179,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
       ) as DashboardViewConfig;
 
-      setDashboardViewConfig(config);
+      dashboardHistory.reset(config);
       setDashboardName(
         dashboard.pageTitle || dashboard.name || "Untitled Dashboard",
       );
@@ -256,6 +261,63 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
 
+  /*
+   * When comparison is on (view mode only), derive a same-duration window
+   * immediately preceding the current range. We pass it as a custom range
+   * so downstream code can reuse RangeStartAndEndDateTimeUtil.getStartAndEndDate.
+   */
+  const comparisonStartAndEndDate: RangeStartAndEndDateTime | undefined =
+    comparisonEnabled && !isEditMode
+      ? {
+          range: TimeRange.CUSTOM,
+          startAndEndDate:
+            RangeStartAndEndDateTimeUtil.getComparisonStartAndEndDate(
+              startAndEndDate,
+            ),
+        }
+      : undefined;
+
+  /*
+   * Keyboard shortcuts: Cmd/Ctrl+Z to undo, Cmd/Ctrl+Shift+Z (or Cmd/Ctrl+Y) to redo.
+   * Only active in edit mode and when focus isn't in an input/textarea/contenteditable.
+   */
+  useEffect(() => {
+    if (!isEditMode) {
+      return;
+    }
+    const handler: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
+      const target: HTMLElement | null = e.target as HTMLElement | null;
+      if (target) {
+        const tag: string = target.tagName;
+        const editable: boolean = Boolean(
+          target.isContentEditable ||
+            tag === "INPUT" ||
+            tag === "TEXTAREA" ||
+            tag === "SELECT",
+        );
+        if (editable) {
+          return;
+        }
+      }
+      const meta: boolean = e.metaKey || e.ctrlKey;
+      if (!meta) {
+        return;
+      }
+      const key: string = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        dashboardHistory.undo();
+      } else if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        dashboardHistory.redo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+    };
+  }, [isEditMode, dashboardHistory.undo, dashboardHistory.redo]);
+
   const sideBarWidth: number = isEditMode && selectedComponentId ? 650 : 0;
 
   useEffect(() => {
@@ -273,12 +335,19 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  const isMobile: boolean = isMobileViewport(dashboardTotalWidth);
+
   return (
     <div
       ref={dashboardViewRef}
       className="min-h-screen"
       style={{
-        minWidth: "1000px",
+        /*
+         * On phones, drop the desktop min-width so the dashboard fits the
+         * viewport. The canvas itself collapses to a single-column layout
+         * at the same breakpoint.
+         */
+        minWidth: isMobile ? undefined : "1000px",
         width: `calc(100% - ${sideBarWidth}px)`,
         background: isEditMode
           ? "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)"
@@ -352,6 +421,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         isRefreshing={isRefreshing}
         variables={dashboardVariables}
+        onUndo={dashboardHistory.undo}
+        onRedo={dashboardHistory.redo}
+        canUndo={dashboardHistory.canUndo}
+        canRedo={dashboardHistory.canRedo}
+        comparisonEnabled={comparisonEnabled}
+        onComparisonToggle={(enabled: boolean) => {
+          setComparisonEnabled(enabled);
+        }}
         onVariableValueChange={(variableId: string, value: string) => {
           const updatedVariables: Array<DashboardVariable> =
             dashboardVariables.map((v: DashboardVariable) => {
@@ -367,43 +444,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           });
         }}
         onAddComponentClick={(componentType: DashboardComponentType) => {
-          let newComponent: DashboardBaseComponent | null = null;
-
-          if (componentType === DashboardComponentType.Chart) {
-            newComponent = DashboardChartComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.Value) {
-            newComponent = DashboardValueComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.Text) {
-            newComponent = DashboardTextComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.Table) {
-            newComponent = DashboardTableComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.Gauge) {
-            newComponent = DashboardGaugeComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.LogStream) {
-            newComponent =
-              DashboardLogStreamComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.TraceList) {
-            newComponent =
-              DashboardTraceListComponentUtil.getDefaultComponent();
-          }
-
-          if (!newComponent) {
+          const definition: ReturnType<typeof getPanelDefinition> =
+            getPanelDefinition(componentType);
+          if (!definition) {
             throw new BadDataException(
               `Unknown component type: ${componentType}`,
             );
           }
+          const newComponent: DashboardBaseComponent =
+            definition.createDefault();
 
           const newDashboardConfig: DashboardViewConfig =
             JSONFunctions.deserializeValue(
@@ -446,6 +495,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             metricTypes,
           }}
           refreshTick={refreshTick}
+          dashboardVariables={dashboardVariables}
+          comparisonStartAndEndDate={comparisonStartAndEndDate}
         />
       </div>
     </div>

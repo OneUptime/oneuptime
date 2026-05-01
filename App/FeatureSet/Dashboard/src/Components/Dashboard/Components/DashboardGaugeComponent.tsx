@@ -4,12 +4,13 @@ import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricUtil from "../../Metrics/Utils/Metrics";
+import DashboardMetricFetcher from "../Utils/MetricFetcher";
 import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardGaugeComponent;
@@ -27,10 +28,16 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
+  const interpolatedQueryConfig: MetricQueryConfigData | undefined = props
+    .component.arguments.metricQueryConfig
+    ? DashboardVariableInterpolation.interpolateValue(
+        props.component.arguments.metricQueryConfig,
+        props.dashboardVariables || [],
+      )
+    : undefined;
+
   const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [props.component.arguments.metricQueryConfig]
-      : [],
+    queryConfigs: interpolatedQueryConfig ? [interpolatedQueryConfig] : [],
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -78,9 +85,10 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
       );
 
       try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
-        });
+        const results: Array<AggregatedResult> =
+          await DashboardMetricFetcher.fetchResults({
+            metricViewData: metricViewData,
+          });
 
         setMetricResults(results);
         setError("");
@@ -97,7 +105,12 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.metricTypes,
+    props.refreshTick,
+    props.dashboardVariables,
+  ]);
 
   useEffect(() => {
     if (

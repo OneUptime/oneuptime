@@ -6,7 +6,7 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricUtil from "../../Metrics/Utils/Metrics";
+import DashboardMetricFetcher from "../Utils/MetricFetcher";
 import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -14,6 +14,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import OneUptimeDate from "Common/Types/Date";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTableComponent;
@@ -28,10 +29,16 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
+  const interpolatedQueryConfig: MetricQueryConfigData | undefined = props
+    .component.arguments.metricQueryConfig
+    ? DashboardVariableInterpolation.interpolateValue(
+        props.component.arguments.metricQueryConfig,
+        props.dashboardVariables || [],
+      )
+    : undefined;
+
   const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [props.component.arguments.metricQueryConfig]
-      : [],
+    queryConfigs: interpolatedQueryConfig ? [interpolatedQueryConfig] : [],
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -79,9 +86,10 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
       }
 
       try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
-        });
+        const results: Array<AggregatedResult> =
+          await DashboardMetricFetcher.fetchResults({
+            metricViewData: metricViewData,
+          });
 
         setMetricResults(results);
         setError("");
@@ -94,7 +102,12 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.metricTypes,
+    props.refreshTick,
+    props.dashboardVariables,
+  ]);
 
   const [metricQueryConfig, setMetricQueryConfig] = React.useState<
     MetricQueryConfigData | undefined

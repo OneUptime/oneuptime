@@ -5,21 +5,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
-import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
-import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
-import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
-import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
-import DashboardLogStreamComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
-import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import DashboardChartComponent from "./DashboardChartComponent";
-import DashboardValueComponent from "./DashboardValueComponent";
-import DashboardTextComponent from "./DashboardTextComponent";
-import DashboardTableComponent from "./DashboardTableComponent";
-import DashboardGaugeComponent from "./DashboardGaugeComponent";
-import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
-import DashboardTraceListComponent from "./DashboardTraceListComponent";
+import { renderPanel } from "../PanelRegistry";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -30,10 +17,15 @@ import DefaultDashboardSize, {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
-import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
+/*
+ * Most props are forwarded through to the panel renderer via spread, so
+ * react/no-unused-prop-types misses the use. The renderer reads them.
+ */
+/* eslint-disable react/no-unused-prop-types */
 export interface DashboardBaseComponentProps {
   componentId: ObjectID;
   isEditMode: boolean;
@@ -51,7 +43,10 @@ export interface DashboardBaseComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   metricTypes: Array<MetricType>;
   refreshTick?: number | undefined;
+  dashboardVariables?: Array<DashboardVariable> | undefined;
+  comparisonStartAndEndDate?: RangeStartAndEndDateTime | undefined;
 }
+/* eslint-enable react/no-unused-prop-types */
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   onClick: () => void;
@@ -566,62 +561,12 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           padding: showHandles ? "28px 12px 12px 12px" : "12px",
         }}
       >
-        {component.componentType === DashboardComponentType.Text && (
-          <DashboardTextComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTextComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Chart && (
-          <DashboardChartComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardChartComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Value && (
-          <DashboardValueComponent
-            {...props}
-            isSelected={props.isSelected}
-            isEditMode={props.isEditMode}
-            component={component as DashboardValueComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Table && (
-          <DashboardTableComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTableComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Gauge && (
-          <DashboardGaugeComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardGaugeComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.LogStream && (
-          <DashboardLogStreamComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardLogStreamComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.TraceList && (
-          <DashboardTraceListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTraceListComponentType}
-          />
-        )}
+        {renderPanel(component.componentType, {
+          ...props,
+          isEditMode: props.isEditMode,
+          isSelected: props.isSelected,
+          component,
+        })}
       </div>
 
       {getResizeWidthHandle()}
