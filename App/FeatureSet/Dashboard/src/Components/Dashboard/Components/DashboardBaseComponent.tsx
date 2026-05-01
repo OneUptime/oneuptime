@@ -481,12 +481,23 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Pin to explicit grid coordinates rather than relying on auto-flow.
+   * The Canvas now renders components and blank drop targets in any
+   * order (sparse instead of dense), so each panel must declare where
+   * it lives. Coordinates are 1-indexed in CSS Grid.
+   */
+  const gridColumnStart: number = component.leftInDashboardUnits + 1;
+  const gridRowStart: number = component.topInDashboardUnits + 1;
+
   return (
     <div
       className={className}
       style={{
-        gridColumn: `span ${widthOfComponent}`,
-        gridRow: `span ${heightOfComponent}`,
+        gridColumnStart,
+        gridColumnEnd: `span ${widthOfComponent}`,
+        gridRowStart,
+        gridRowEnd: `span ${heightOfComponent}`,
         boxShadow: isDragging
           ? "0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08)"
           : props.isSelected && props.isEditMode

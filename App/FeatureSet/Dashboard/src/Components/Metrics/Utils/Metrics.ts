@@ -281,6 +281,34 @@ export default class MetricUtil {
     }
   }
 
+  /*
+   * Per-process result cache for the two metadata calls. Metric types and
+   * telemetry attributes change rarely (a new metric ingest, a deploy
+   * adding a new attribute) but this method is called on every dashboard
+   * mount and on every metric explorer open. Caching for a short window
+   * cuts repeated dashboard navigations from O(N round-trips) to O(1) —
+   * by far the biggest win on dashboard TTI.
+   */
+  private static metadataCache: {
+    expiresAt: number;
+    metricTypes: Array<MetricType>;
+    telemetryAttributes: Array<string>;
+  } | null = null;
+
+  private static metadataCacheKey: string | null = null;
+
+  private static metadataInFlight: Promise<{
+    metricTypes: Array<MetricType>;
+    telemetryAttributes: Array<string>;
+    telemetryAttributesError?: string;
+  }> | null = null;
+
+  public static invalidateMetricsMetadataCache(): void {
+    MetricUtil.metadataCache = null;
+    MetricUtil.metadataCacheKey = null;
+    MetricUtil.metadataInFlight = null;
+  }
+
   public static async loadAllMetricsTypes(options?: {
     includeAttributes?: boolean;
   }): Promise<{
@@ -290,42 +318,118 @@ export default class MetricUtil {
   }> {
     const includeAttributes: boolean = options?.includeAttributes ?? true;
 
-    const metrics: ListResult<MetricType> = await ModelAPI.getList({
-      modelType: MetricType,
-      select: {
-        name: true,
-        unit: true,
-      },
-      query: {
-        projectId: ProjectUtil.getCurrentProjectId()!,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      sort: {
-        name: SortOrder.Ascending,
-      },
-    });
+    const projectId: string =
+      ProjectUtil.getCurrentProjectId()?.toString() || "";
+    /*
+     * Cache key includes both the project (so switching projects invalidates)
+     * and the includeAttributes flag (the no-attributes path returns less
+     * data and should not poison the with-attributes cache).
+     */
+    const cacheKey: string = `${projectId}:${includeAttributes ? "1" : "0"}`;
+    const cacheTtlMs: number = 60 * 1000; // 60 seconds
 
-    const metricTypes: Array<MetricType> = metrics.data;
-
-    let telemetryAttributes: Array<string> = [];
-    let telemetryAttributesError: string | undefined;
-
-    if (includeAttributes) {
-      try {
-        telemetryAttributes = await MetricUtil.getTelemetryAttributes();
-      } catch (err) {
-        telemetryAttributesError = API.getFriendlyErrorMessage(err as Error);
-      }
+    if (
+      MetricUtil.metadataCache !== null &&
+      MetricUtil.metadataCacheKey === cacheKey &&
+      MetricUtil.metadataCache.expiresAt > Date.now()
+    ) {
+      return {
+        metricTypes: MetricUtil.metadataCache.metricTypes,
+        telemetryAttributes: MetricUtil.metadataCache.telemetryAttributes,
+      };
     }
 
-    return {
-      metricTypes: metricTypes,
-      telemetryAttributes,
-      ...(telemetryAttributesError !== undefined
-        ? { telemetryAttributesError }
-        : {}),
-    };
+    if (
+      MetricUtil.metadataInFlight !== null &&
+      MetricUtil.metadataCacheKey === cacheKey
+    ) {
+      return MetricUtil.metadataInFlight;
+    }
+
+    const fetchPromise: Promise<{
+      metricTypes: Array<MetricType>;
+      telemetryAttributes: Array<string>;
+      telemetryAttributesError?: string;
+    }> = (async (): Promise<{
+      metricTypes: Array<MetricType>;
+      telemetryAttributes: Array<string>;
+      telemetryAttributesError?: string;
+    }> => {
+      /*
+       * Fire the metric-type list and the attribute list in parallel.
+       * Before this change they ran serially, doubling the time-to-first
+       * chart on every dashboard load.
+       */
+      const [metricsResult, attributesResult] = await Promise.all([
+        ModelAPI.getList({
+          modelType: MetricType,
+          select: {
+            name: true,
+            unit: true,
+          },
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        }),
+        includeAttributes
+          ? MetricUtil.getTelemetryAttributes().then(
+              (attrs: Array<string>) => {
+                return { ok: true as const, attrs };
+              },
+              (err: unknown) => {
+                return {
+                  ok: false as const,
+                  error: API.getFriendlyErrorMessage(err as Error),
+                };
+              },
+            )
+          : Promise.resolve({ ok: true as const, attrs: [] as Array<string> }),
+      ]);
+
+      const metricTypes: Array<MetricType> = (
+        metricsResult as ListResult<MetricType>
+      ).data;
+      const telemetryAttributes: Array<string> = attributesResult.ok
+        ? attributesResult.attrs
+        : [];
+      const telemetryAttributesError: string | undefined = attributesResult.ok
+        ? undefined
+        : attributesResult.error;
+
+      MetricUtil.metadataCache = {
+        expiresAt: Date.now() + cacheTtlMs,
+        metricTypes,
+        telemetryAttributes,
+      };
+      MetricUtil.metadataCacheKey = cacheKey;
+
+      return {
+        metricTypes,
+        telemetryAttributes,
+        ...(telemetryAttributesError !== undefined
+          ? { telemetryAttributesError }
+          : {}),
+      };
+    })();
+
+    MetricUtil.metadataCacheKey = cacheKey;
+    MetricUtil.metadataInFlight = fetchPromise;
+    try {
+      return await fetchPromise;
+    } finally {
+      /*
+       * Clear the in-flight slot once settled so transient failures
+       * don't permanently block retries.
+       */
+      if (MetricUtil.metadataInFlight === fetchPromise) {
+        MetricUtil.metadataInFlight = null;
+      }
+    }
   }
 
   public static async getTelemetryAttributes(data?: {

@@ -232,8 +232,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
     setError(null);
     try {
-      await loadAllMetricsTypes();
-      await fetchDashboardViewConfig();
+      /*
+       * Fire metric metadata + dashboard config in parallel. The two are
+       * independent — panels only need metricTypes when they render their
+       * value labels, and the config tells us what panels to render at all.
+       * Running serially used to double the time-to-paint on every dashboard
+       * load (each call ~1-3s on a real environment).
+       */
+      await Promise.all([loadAllMetricsTypes(), fetchDashboardViewConfig()]);
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
@@ -357,16 +363,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  const isMobile: boolean = isMobileViewport(dashboardTotalWidth);
-
+  /*
+   * Hooks below this line must run on every render — keep them above the
+   * error/loading early returns to satisfy React's Rules of Hooks. Adding
+   * a hook below an early return crashes the app with
+   * "Rendered fewer hooks than expected" the first time the early-return
+   * branch flips false.
+   */
   const annotations: Array<DashboardAnnotation> = useDashboardAnnotations({
     dashboardStartAndEndDate: startAndEndDate,
     config: dashboardViewConfig.annotations,
@@ -377,6 +380,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const [showVersionHistory, setShowVersionHistory] = useState<boolean>(false);
   const [showShareModal, setShowShareModal] = useState<boolean>(false);
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  const isMobile: boolean = isMobileViewport(dashboardTotalWidth);
 
   return (
     <div

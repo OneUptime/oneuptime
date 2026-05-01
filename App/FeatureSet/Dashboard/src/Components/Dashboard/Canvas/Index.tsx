@@ -126,100 +126,117 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       return renderMobileStack();
     }
 
-    const canvasHeight: number =
-      props.dashboardViewConfig.heightInDashboardUnits ||
-      DefaultDashboardSize.heightInDashboardUnits;
-
     const canvasWidth: number = DefaultDashboardSize.widthInDashboardUnits;
 
     const allComponents: Array<DashboardBaseComponent> =
       props.dashboardViewConfig.components;
 
-    // Create a 2D array to represent the grid
-    const grid: Array<Array<DashboardBaseComponent | null>> = [];
-
-    // Fill the grid with null initially
-    for (let row: number = 0; row < canvasHeight; row++) {
-      grid[row] = new Array(canvasWidth).fill(null);
-    }
-
+    /*
+     * Compute occupancy as a sparse Map<row, Set<col>> instead of a dense
+     * canvasHeight × canvasWidth 2D array. The dense version allocated
+     * 720 cells for a default 60-row dashboard regardless of how many
+     * components were on it — and rendered a BlankDashboardUnit for every
+     * empty cell in edit mode, which dominated render time on dashboards
+     * with only a handful of panels.
+     */
+    const occupiedByRow: Map<number, Set<number>> = new Map<
+      number,
+      Set<number>
+    >();
     let maxHeightInDashboardUnits: number = 0;
 
-    // Place components in the grid
-    allComponents.forEach((component: DashboardBaseComponent) => {
+    for (const component of allComponents) {
       const {
         topInDashboardUnits,
         leftInDashboardUnits,
         widthInDashboardUnits,
         heightInDashboardUnits,
       } = component;
-
       for (
         let i: number = topInDashboardUnits;
         i < topInDashboardUnits + heightInDashboardUnits;
         i++
       ) {
-        if (!grid[i]) {
-          grid[i] = new Array(canvasWidth).fill(null);
+        let rowSet: Set<number> | undefined = occupiedByRow.get(i);
+        if (!rowSet) {
+          rowSet = new Set<number>();
+          occupiedByRow.set(i, rowSet);
         }
-
         for (
           let j: number = leftInDashboardUnits;
           j < leftInDashboardUnits + widthInDashboardUnits;
           j++
         ) {
-          grid[i]![j] = component;
+          rowSet.add(j);
         }
-
-        maxHeightInDashboardUnits = Math.max(
-          maxHeightInDashboardUnits,
-          topInDashboardUnits + heightInDashboardUnits,
-        );
       }
+      maxHeightInDashboardUnits = Math.max(
+        maxHeightInDashboardUnits,
+        topInDashboardUnits + heightInDashboardUnits,
+      );
+    }
+
+    /*
+     * In edit mode we still want a drop target of a few empty rows below
+     * the lowest component so users can extend the dashboard. Cap that at
+     * 5 rows instead of always rendering up to the canvas height.
+     */
+    const editModeExtraRows: number = 5;
+    const renderHeight: number = props.isEditMode
+      ? maxHeightInDashboardUnits + editModeExtraRows
+      : maxHeightInDashboardUnits;
+
+    const renderedComponents: Array<ReactElement> = [];
+
+    /*
+     * Render each component once. Sort by (top, left) so React can match
+     * keys to layout order and avoid unnecessary node moves.
+     */
+    const sortedComponents: Array<DashboardBaseComponent> = [
+      ...allComponents,
+    ].sort((a: DashboardBaseComponent, b: DashboardBaseComponent) => {
+      if (a.topInDashboardUnits !== b.topInDashboardUnits) {
+        return a.topInDashboardUnits - b.topInDashboardUnits;
+      }
+      return a.leftInDashboardUnits - b.leftInDashboardUnits;
     });
+    for (const component of sortedComponents) {
+      renderedComponents.push(renderComponent(component.componentId));
+    }
 
-    const renderedComponentsIds: Array<string> = [];
-
-    const renderedComponents: Array<ReactElement | null> = [];
-
-    for (let i: number = 0; i < canvasHeight; i++) {
-      for (let j: number = 0; j < canvasWidth; j++) {
-        const component: DashboardBaseComponent | null | undefined =
-          grid[i]![j];
-
-        if (
-          component &&
-          !renderedComponentsIds.includes(component.componentId.toString())
-        ) {
-          renderedComponents.push(renderComponent(component.componentId));
-          renderedComponentsIds.push(component.componentId.toString());
-        }
-
-        if (!component) {
-          if (!props.isEditMode && i >= maxHeightInDashboardUnits) {
+    /*
+     * Edit-mode-only: render blank drop targets only for cells that are
+     * actually empty AND inside the editable range. Each cell needs an
+     * explicit grid-position style now that we no longer rely on
+     * implicit ordering from the dense iteration.
+     */
+    if (props.isEditMode) {
+      for (let i: number = 0; i < renderHeight; i++) {
+        const occupiedCols: Set<number> | undefined = occupiedByRow.get(i);
+        for (let j: number = 0; j < canvasWidth; j++) {
+          if (occupiedCols && occupiedCols.has(j)) {
             continue;
           }
-
           renderedComponents.push(
-            <BlankDashboardUnitElement
-              isEditMode={props.isEditMode}
+            <div
               key={`blank-unit-${i}-${j}`}
-              onClick={() => {
-                props.onComponentUnselected();
+              style={{
+                gridRowStart: i + 1,
+                gridColumnStart: j + 1,
               }}
-              id={`blank-unit-${i}-${j}`}
-            />,
+            >
+              <BlankDashboardUnitElement
+                isEditMode={true}
+                onClick={() => {
+                  props.onComponentUnselected();
+                }}
+                id={`blank-unit-${i}-${j}`}
+              />
+            </div>,
           );
         }
       }
     }
-
-    const finalRenderedComponents: Array<ReactElement> =
-      renderedComponents.filter(
-        (component: ReactElement | null): component is ReactElement => {
-          return component !== null;
-        },
-      );
 
     return (
       <div
@@ -227,13 +244,14 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${canvasWidth}, 1fr)`,
+          gridTemplateRows: `repeat(${Math.max(renderHeight, 1)}, ${unitSize}px)`,
           gap: `${gap}px`,
           gridAutoRows: `${unitSize}px`,
           borderRadius: "16px",
           padding: "8px",
         }}
       >
-        {finalRenderedComponents}
+        {renderedComponents}
       </div>
     );
   };
