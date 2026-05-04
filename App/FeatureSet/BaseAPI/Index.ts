@@ -484,9 +484,7 @@ import StatusPageResourceService, {
 import StatusPageSSOService, {
   Service as StatusPageSSOServiceType,
 } from "Common/Server/Services/StatusPageSsoService";
-import TeamMemberService, {
-  TeamMemberService as TeamMemberServiceType,
-} from "Common/Server/Services/TeamMemberService";
+import TeamMemberAPI from "Common/Server/API/TeamMemberAPI";
 import TeamMemberCustomFieldService, {
   Service as TeamMemberCustomFieldServiceType,
 } from "Common/Server/Services/TeamMemberCustomFieldService";
@@ -678,7 +676,6 @@ import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivat
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
@@ -1578,10 +1575,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamMember, TeamMemberServiceType>(
-        TeamMember,
-        TeamMemberService,
-      ).getRouter(),
+      new TeamMemberAPI().getRouter(),
     );
 
     app.use(

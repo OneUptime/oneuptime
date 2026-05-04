@@ -3,6 +3,7 @@ import ProxyConfig from "../../ProxyConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Dictionary from "Common/Types/Dictionary";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
+import { RetryAttempt } from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -78,9 +79,11 @@ export default class SyntheticMonitor {
     screenSizeType: ScreenSizeType;
     retryCountOnError: number;
     currentRetry?: number;
+    attemptHistory?: Array<RetryAttempt>;
   }): Promise<SyntheticMonitorResponse | null> {
     const currentRetry: number = options.currentRetry || 0;
     const maxRetries: number = options.retryCountOnError;
+    const attemptHistory: Array<RetryAttempt> = options.attemptHistory || [];
 
     const result: SyntheticMonitorResponse | null =
       await this.executeByBrowserAndScreenSize({
@@ -88,6 +91,14 @@ export default class SyntheticMonitor {
         browserType: options.browserType,
         screenSizeType: options.screenSizeType,
       });
+
+    if (result) {
+      attemptHistory.push({
+        attemptNumber: currentRetry + 1,
+        scriptError: result.scriptError,
+        executionTimeInMS: result.executionTimeInMS,
+      });
+    }
 
     // If there's an error and we haven't exceeded retry count, retry
     if (result?.scriptError && currentRetry < maxRetries) {
@@ -106,7 +117,13 @@ export default class SyntheticMonitor {
         screenSizeType: options.screenSizeType,
         retryCountOnError: maxRetries,
         currentRetry: currentRetry + 1,
+        attemptHistory: attemptHistory,
       });
+    }
+
+    if (result && attemptHistory.length > 1) {
+      result.retryAttempts = attemptHistory;
+      result.totalAttempts = attemptHistory.length;
     }
 
     return result;

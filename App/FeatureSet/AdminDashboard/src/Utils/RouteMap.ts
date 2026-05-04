@@ -15,6 +15,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROJECT_DELETE]: new Route(
     `/admin/projects/${RouteParams.ModelID}/delete`,
   ),
+  [PageMap.PROJECT_USERS]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/users`,
+  ),
+  [PageMap.PROJECT_USER_VIEW]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/users/${RouteParams.SubModelID}`,
+  ),
+  [PageMap.PROJECT_TEAMS]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/teams`,
+  ),
+  [PageMap.PROJECT_TEAM_VIEW]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/teams/${RouteParams.SubModelID}`,
+  ),
 
   [PageMap.USERS]: new Route(`/admin/users`),
   [PageMap.USER_VIEW]: new Route(`/admin/users/${RouteParams.ModelID}`),

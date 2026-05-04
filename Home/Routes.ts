@@ -1964,6 +1964,21 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
+      "/legal/deprecation-policy",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "deprecation-policy",
+          requestDemoCta: false,
+        });
+      },
+    );
+
+    app.get(
       "/compare/:product",
       (req: ExpressRequest, res: ExpressResponse) => {
         const productConfig: Product = ProductCompare(

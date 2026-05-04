@@ -35,6 +35,10 @@ import UserDelete from "./Pages/Users/View/Delete";
 import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
 import ProjectDelete from "./Pages/Projects/View/Delete";
+import ProjectUsers from "./Pages/Projects/View/Users";
+import ProjectUserView from "./Pages/Projects/View/UserView";
+import ProjectTeams from "./Pages/Projects/View/Teams";
+import ProjectTeamView from "./Pages/Projects/View/TeamView";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -96,6 +100,26 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.PROJECT_DELETE]?.toString() || ""}
           element={<ProjectDelete />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_USERS]?.toString() || ""}
+          element={<ProjectUsers />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_USER_VIEW]?.toString() || ""}
+          element={<ProjectUserView />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_TEAMS]?.toString() || ""}
+          element={<ProjectTeams />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_TEAM_VIEW]?.toString() || ""}
+          element={<ProjectTeamView />}
         />
 
         <PageRoute

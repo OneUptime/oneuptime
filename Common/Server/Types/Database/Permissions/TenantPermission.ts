@@ -2,13 +2,29 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
+import TablePermission from "./TablePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+
+/*
+ * Permissions auto-granted to every logged-in tenant user. Holding only these
+ * (without an actual role permission) does not signal admin authority and so
+ * should not unlock cross-row access on models that scope by user.
+ */
+const AUTO_GRANTED_TENANT_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.CurrentUser,
+  Permission.Public,
+  Permission.UnAuthorizedSsoUser,
+];
 
 export default class TenantPermission {
   @CaptureSpan()
@@ -32,6 +48,22 @@ export default class TenantPermission {
     // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
     if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
       (query as any)[tenantColumn] = props.tenantId;
+
+      /*
+       * If Permission.CurrentUser is the only thing letting the user through
+       * for this model+operation, also restrict the query to records they own.
+       * Otherwise the tenant filter alone leaves the user able to act on any
+       * row in the project (CVE-class issue when CurrentUser appears in a
+       * model's delete/update list alongside admin permissions).
+       */
+      if (
+        TenantPermission.shouldScopeQueryByCurrentUser(modelType, props, type)
+      ) {
+        const userColumn: string | null = model.getUserColumn();
+        if (userColumn) {
+          (query as any)[userColumn] = props.userId;
+        }
+      }
     }
     // if model allows user query without tenant, and user column is present, and userId is present, then add userId to query.
     else if (
@@ -123,5 +155,55 @@ export default class TenantPermission {
     }
 
     return query;
+  }
+
+  /**
+   * True if the only permission letting this user through the table-level
+   * check for this op is Permission.CurrentUser. In that case the query must
+   * be restricted to rows the user owns (via the model's user column).
+   */
+  private static shouldScopeQueryByCurrentUser<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): boolean {
+    const model: BaseModel = new modelType();
+
+    if (!model.getUserColumn() || !props.userId) {
+      return false;
+    }
+
+    const modelPermissions: Array<Permission> =
+      TablePermission.getTablePermission(modelType, type);
+
+    if (!modelPermissions.includes(Permission.CurrentUser)) {
+      return false;
+    }
+
+    const userPermissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ).map((up: { permission: Permission }) => {
+        return up.permission;
+      });
+
+    const intersection: Array<Permission> = userPermissions.filter(
+      (p: Permission) => {
+        return modelPermissions.includes(p);
+      },
+    );
+
+    if (!intersection.includes(Permission.CurrentUser)) {
+      return false;
+    }
+
+    const adminMatch: Array<Permission> = intersection.filter(
+      (p: Permission) => {
+        return !AUTO_GRANTED_TENANT_PERMISSIONS.includes(p);
+      },
+    );
+
+    return adminMatch.length === 0;
   }
 }

@@ -9,8 +9,15 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import API from "Common/UI/Utils/API/API";
+import { APP_API_URL } from "Common/UI/Config";
+import UserUtil from "Common/UI/Utils/User";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
@@ -68,6 +75,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const complianceStatusTableRef: React.Ref<TeamComplianceStatusTableRef> =
     React.useRef<TeamComplianceStatusTableRef>(null);
+
+  const currentUserId: ObjectID | null = (() => {
+    const id: ObjectID = UserUtil.getUserId();
+    return id && id.toString() ? id : null;
+  })();
 
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
@@ -541,6 +553,57 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         showRefreshButton={true}
         deleteButtonText="Remove Member"
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
+        actionButtons={[
+          {
+            title: "Leave Team",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Logout,
+            isVisible: (item: TeamMember): boolean => {
+              if (isPushGroupsManaged) {
+                return false;
+              }
+              if (!currentUserId) {
+                return false;
+              }
+              return item.userId?.toString() === currentUserId.toString();
+            },
+            onClick: async (
+              item: TeamMember,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                if (!item._id) {
+                  throw new BadDataException("Team member id is missing");
+                }
+                const url: URL = URL.fromString(APP_API_URL.toString())
+                  .addRoute("/team-member")
+                  .addRoute(`/${item._id.toString()}/leave`);
+
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                  await API.post({
+                    url,
+                    data: {},
+                    headers: { ...ModelAPI.getCommonHeaders() },
+                  });
+
+                if (response instanceof HTTPErrorResponse) {
+                  throw response;
+                }
+
+                onCompleteAction();
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.HOME] as Route,
+                  ),
+                  { forceNavigate: true },
+                );
+              } catch (err) {
+                onError(err as Error);
+              }
+            },
+          },
+        ]}
         filters={[
           {
             field: {

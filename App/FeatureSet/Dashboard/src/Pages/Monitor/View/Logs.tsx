@@ -39,6 +39,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
+import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -111,6 +112,32 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const isProbableMonitor: boolean = monitorType
     ? MonitorTypeHelper.isProbableMonitor(monitorType)
     : false;
+
+  const isSyntheticMonitor: boolean =
+    monitorType === MonitorType.SyntheticMonitor;
+
+  type GetMaxAttemptsFunction = (logBody: unknown) => number;
+
+  /*
+   * A synthetic run can produce one SyntheticMonitorResponse per browser × screen-size.
+   * Each carries its own retry history, so we surface the highest attempt count.
+   */
+  const getMaxAttempts: GetMaxAttemptsFunction = (logBody: unknown): number => {
+    const responses: Array<SyntheticMonitorResponse> | undefined = (
+      logBody as { syntheticMonitorResponse?: Array<SyntheticMonitorResponse> }
+    )?.syntheticMonitorResponse;
+
+    if (!responses || responses.length === 0) {
+      return 0;
+    }
+
+    return responses.reduce(
+      (max: number, response: SyntheticMonitorResponse) => {
+        return Math.max(max, response.totalAttempts || 0);
+      },
+      0,
+    );
+  };
 
   const getPageContent: GetReactElementFunction = (): ReactElement => {
     if (!monitorType || isLoading) {
@@ -217,6 +244,34 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                     return (
                       <span className="text-sm text-gray-700">{probeName}</span>
+                    );
+                  },
+                },
+              ]
+            : []),
+          /*
+           * Synthetic monitors are the only type that retries today; column is
+           * hidden for other monitor types to avoid an always-empty column.
+           */
+          ...(isSyntheticMonitor
+            ? [
+                {
+                  field: {
+                    logBody: true,
+                  },
+                  title: "Attempts",
+                  type: FieldType.Text,
+                  getElement: (item: MonitorLog): ReactElement => {
+                    const maxAttempts: number = getMaxAttempts(item.logBody);
+
+                    if (maxAttempts <= 1) {
+                      return <span className="text-sm text-gray-400">—</span>;
+                    }
+
+                    return (
+                      <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">
+                        {maxAttempts} attempts
+                      </span>
                     );
                   },
                 },

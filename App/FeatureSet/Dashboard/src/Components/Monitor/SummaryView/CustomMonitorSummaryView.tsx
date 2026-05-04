@@ -1,5 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
-import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CustomCodeMonitorResponse, {
+  RetryAttempt,
+} from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
@@ -68,9 +70,24 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const totalAttempts: number = customCodeMonitorResponse.totalAttempts || 0;
+  const retryAttempts: Array<RetryAttempt> =
+    customCodeMonitorResponse.retryAttempts || [];
+  const hadRetries: boolean = totalAttempts > 1 && retryAttempts.length > 0;
+
   return (
     <div className="space-y-5">
       <div className="space-y-5">
+        {hadRetries && (
+          <div className="rounded-md border-2 border-yellow-100 bg-yellow-50 p-3 text-sm text-yellow-900">
+            This check required <strong>{totalAttempts} attempts</strong> to
+            complete
+            {customCodeMonitorResponse.scriptError
+              ? " and ultimately failed."
+              : "."}
+          </div>
+        )}
+
         <div className="flex space-x-3 w-full">
           {props.probeName && (
             <InfoCard
@@ -105,7 +122,52 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
         </div>
 
         {showMoreDetails && (
-          <div>
+          <div className="space-y-5">
+            {hadRetries && (
+              <div className="rounded-md border-2 border-gray-100 p-4">
+                <div className="text-sm font-medium text-gray-900 mb-1">
+                  Retry Attempts
+                </div>
+                <div className="text-xs text-gray-500 mb-3">
+                  Each attempt made for this check, in order.
+                </div>
+                <ul className="space-y-2">
+                  {retryAttempts.map((attempt: RetryAttempt) => {
+                    const failed: boolean = Boolean(attempt.scriptError);
+                    return (
+                      <li
+                        key={attempt.attemptNumber}
+                        className="text-sm text-gray-700"
+                      >
+                        <div>
+                          <span className="font-mono">
+                            Attempt {attempt.attemptNumber}/{totalAttempts}
+                          </span>
+                          <span className="mx-2 text-gray-400">—</span>
+                          <span
+                            className={
+                              failed ? "text-red-700" : "text-green-700"
+                            }
+                          >
+                            {failed ? "Failed" : "Succeeded"}
+                          </span>
+                          <span className="mx-2 text-gray-400">—</span>
+                          <span>
+                            {Math.round(attempt.executionTimeInMS)} ms
+                          </span>
+                        </div>
+                        {failed && attempt.scriptError && (
+                          <div className="ml-4 mt-1 text-xs text-gray-500 break-all">
+                            {attempt.scriptError}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
             <Detail<CustomCodeMonitorResponse>
               id={"custom-code-monitor-summary-detail"}
               item={customCodeMonitorResponse}
