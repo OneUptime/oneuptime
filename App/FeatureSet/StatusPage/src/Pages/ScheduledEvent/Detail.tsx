@@ -46,6 +46,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../Utils/i18n";
+import { translateStatusName } from "../../Utils/StatusTranslation";
 import useAsyncEffect from "use-async-effect";
 
 export type GetScheduledEventEventItemFunctionProps = {
@@ -189,6 +190,9 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     ) {
       timeline.push({
         state: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
+        stateDisplayName: translateStatusName(
+          scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.name,
+        ),
         date:
           scheduledMaintenanceEventstateTimeline?.startsAt ||
           (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
@@ -209,9 +213,10 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
       });
 
       if (!currentStateStatus) {
-        currentStateStatus =
+        currentStateStatus = translateStatusName(
           scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-            ?.name || "";
+            ?.name,
+        );
         currentStatusColor =
           scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
             ?.color || Green;
@@ -320,7 +325,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n: i18nInstance } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [
@@ -449,7 +454,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         isSummary: false,
       }),
     );
-  }, [isLoading]);
+  }, [isLoading, i18nInstance.resolvedLanguage]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

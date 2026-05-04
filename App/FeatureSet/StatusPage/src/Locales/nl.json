@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Mogelijk gemaakt door OneUptime"
+  },
+  "statusNames": {
+    "identified": "Geïdentificeerd",
+    "acknowledged": "Bevestigd",
+    "resolved": "Opgelost",
+    "criticalIncident": "Kritiek incident",
+    "majorIncident": "Belangrijk incident",
+    "minorIncident": "Klein incident",
+    "operational": "Operationeel",
+    "degraded": "Verminderd",
+    "offline": "Offline",
+    "scheduled": "Gepland",
+    "ongoing": "Lopend",
+    "ended": "Beëindigd",
+    "completed": "Voltooid"
   }
 }

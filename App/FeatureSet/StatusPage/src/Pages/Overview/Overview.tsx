@@ -60,6 +60,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { translateStatusName } from "../../Utils/StatusTranslation";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -302,14 +303,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             declaredAt: incident.declaredAt || new Date(),
             incidentSeverity: incident.incidentSeverity
               ? {
-                  name: incident.incidentSeverity.name || "",
+                  name: translateStatusName(incident.incidentSeverity.name),
                   color:
                     incident.incidentSeverity.color || new Color("#000000"),
                 }
               : undefined,
             currentIncidentState: incident.currentIncidentState
               ? {
-                  name: incident.currentIncidentState.name || "",
+                  name: translateStatusName(incident.currentIncidentState.name),
                   color:
                     incident.currentIncidentState.color || new Color("#000000"),
                 }
@@ -450,7 +451,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               color: currentStatus?.color?.toString() || Green.toString(),
             }}
           >
-            {currentStatus?.name || t("overview.operational")}
+            {translateStatusName(currentStatus?.name) ||
+              t("overview.operational")}
           </div>
         );
       }
@@ -834,9 +836,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
               <Alert
                 size={AlertSize.Large}
                 title={(() => {
-                  const statusName: string = currentStatus.name || "";
+                  const rawStatusName: string = currentStatus.name || "";
+                  const statusName: string =
+                    translateStatusName(rawStatusName) || rawStatusName;
                   const isMaintenance: boolean =
-                    statusName.toLowerCase() === "maintenance";
+                    rawStatusName.toLowerCase() === "maintenance";
                   if (currentStatus.isOperationalState) {
                     return t("overview.allResourcesAre", {
                       status: statusName,

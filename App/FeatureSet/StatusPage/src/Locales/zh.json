@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "由 OneUptime 提供"
+  },
+  "statusNames": {
+    "identified": "已识别",
+    "acknowledged": "已确认",
+    "resolved": "已解决",
+    "criticalIncident": "严重事件",
+    "majorIncident": "重大事件",
+    "minorIncident": "轻微事件",
+    "operational": "运行正常",
+    "degraded": "性能下降",
+    "offline": "离线",
+    "scheduled": "已计划",
+    "ongoing": "进行中",
+    "ended": "已结束",
+    "completed": "已完成"
   }
 }

@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Powered by OneUptime"
+  },
+  "statusNames": {
+    "identified": "확인됨",
+    "acknowledged": "인지됨",
+    "resolved": "해결됨",
+    "criticalIncident": "심각한 인시던트",
+    "majorIncident": "주요 인시던트",
+    "minorIncident": "경미한 인시던트",
+    "operational": "정상",
+    "degraded": "저하됨",
+    "offline": "오프라인",
+    "scheduled": "예정됨",
+    "ongoing": "진행 중",
+    "ended": "종료됨",
+    "completed": "완료됨"
   }
 }

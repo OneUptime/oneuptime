@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Работает на OneUptime"
+  },
+  "statusNames": {
+    "identified": "Выявлен",
+    "acknowledged": "Подтверждён",
+    "resolved": "Устранён",
+    "criticalIncident": "Критический инцидент",
+    "majorIncident": "Серьёзный инцидент",
+    "minorIncident": "Незначительный инцидент",
+    "operational": "Работает",
+    "degraded": "Снижение производительности",
+    "offline": "Не в сети",
+    "scheduled": "Запланировано",
+    "ongoing": "В процессе",
+    "ended": "Завершено",
+    "completed": "Завершено"
   }
 }

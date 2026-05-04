@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "OneUptime द्वारा संचालित"
+  },
+  "statusNames": {
+    "identified": "पहचाना गया",
+    "acknowledged": "स्वीकार किया गया",
+    "resolved": "सुलझाया गया",
+    "criticalIncident": "गंभीर घटना",
+    "majorIncident": "प्रमुख घटना",
+    "minorIncident": "छोटी घटना",
+    "operational": "परिचालन",
+    "degraded": "घटित",
+    "offline": "ऑफ़लाइन",
+    "scheduled": "निर्धारित",
+    "ongoing": "जारी",
+    "ended": "समाप्त",
+    "completed": "पूर्ण"
   }
 }

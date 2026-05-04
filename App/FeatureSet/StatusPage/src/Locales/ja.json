@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Powered by OneUptime"
+  },
+  "statusNames": {
+    "identified": "確認済み",
+    "acknowledged": "承認済み",
+    "resolved": "解決済み",
+    "criticalIncident": "重大インシデント",
+    "majorIncident": "主要インシデント",
+    "minorIncident": "軽微なインシデント",
+    "operational": "稼働中",
+    "degraded": "性能低下",
+    "offline": "オフライン",
+    "scheduled": "予定",
+    "ongoing": "進行中",
+    "ended": "終了",
+    "completed": "完了"
   }
 }

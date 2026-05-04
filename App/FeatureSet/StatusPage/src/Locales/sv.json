@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Drivs av OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identifierad",
+    "acknowledged": "Bekräftad",
+    "resolved": "Löst",
+    "criticalIncident": "Kritisk incident",
+    "majorIncident": "Stor incident",
+    "minorIncident": "Mindre incident",
+    "operational": "Drift",
+    "degraded": "Försämrad",
+    "offline": "Offline",
+    "scheduled": "Schemalagd",
+    "ongoing": "Pågående",
+    "ended": "Avslutad",
+    "completed": "Slutförd"
   }
 }

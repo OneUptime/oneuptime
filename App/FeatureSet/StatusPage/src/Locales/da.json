@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Drevet af OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identificeret",
+    "acknowledged": "Bekræftet",
+    "resolved": "Løst",
+    "criticalIncident": "Kritisk hændelse",
+    "majorIncident": "Større hændelse",
+    "minorIncident": "Mindre hændelse",
+    "operational": "Driftsklar",
+    "degraded": "Forringet",
+    "offline": "Offline",
+    "scheduled": "Planlagt",
+    "ongoing": "Igangværende",
+    "ended": "Afsluttet",
+    "completed": "Fuldført"
   }
 }

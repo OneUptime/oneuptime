@@ -229,5 +229,20 @@
   },
   "footer": {
     "poweredBy": "Powered by OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identified",
+    "acknowledged": "Acknowledged",
+    "resolved": "Resolved",
+    "criticalIncident": "Critical Incident",
+    "majorIncident": "Major Incident",
+    "minorIncident": "Minor Incident",
+    "operational": "Operational",
+    "degraded": "Degraded",
+    "offline": "Offline",
+    "scheduled": "Scheduled",
+    "ongoing": "Ongoing",
+    "ended": "Ended",
+    "completed": "Completed"
   }
 }
