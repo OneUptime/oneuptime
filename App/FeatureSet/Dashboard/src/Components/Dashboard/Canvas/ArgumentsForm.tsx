@@ -219,11 +219,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
     return (
       <BasicForm
+        /*
+         * Remount the form when the user picks a different widget so
+         * initialValues seed the form state again. BasicForm only reads
+         * initialValues at mount, so without this key its internal state
+         * would stick to whichever widget was selected first and the new
+         * widget's defaults (e.g. Text widget's "Hello, World!") would
+         * never appear in the inputs.
+         */
+        key={`${component.componentId.toString()}-${sectionKey}`}
         hideSubmitButton={true}
         ref={(ref: FormProps<FormValues<JSONObject>> | null) => {
           formRefs.current[sectionKey] = ref;
         }}
-        values={{
+        initialValues={{
           ...(component?.arguments || {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {

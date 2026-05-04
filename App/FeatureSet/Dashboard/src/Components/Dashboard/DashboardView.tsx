@@ -144,6 +144,17 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [selectedComponentId, setSelectedComponentId] =
     useState<ObjectID | null>(null);
 
+  /*
+   * Component id we want to scroll into view. Set when a widget is added,
+   * cleared once the scroll has been performed. The scroll is driven by a
+   * useEffect rather than executed inline because adding a widget also
+   * opens the settings sidebar, which in turn triggers a resize and a
+   * canvas reflow — calling scrollIntoView before those settle scrolls
+   * to a stale Y coordinate.
+   */
+  const [pendingScrollComponentId, setPendingScrollComponentId] =
+    useState<ObjectID | null>(null);
+
   const [dashboardViewConfig, setDashboardViewConfig] =
     useState<DashboardViewConfig>({
       _type: ObjectType.DashboardViewConfig,
@@ -265,6 +276,44 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     handleResize();
   }, [dashboardMode, selectedComponentId]);
+
+  /*
+   * Scroll the most-recently added widget into view. Depends on
+   * dashboardTotalWidth so the scroll waits for the canvas to reflow
+   * after the settings sidebar opens (sidebar steals 650px from the
+   * canvas, which shrinks unitSize and shifts every widget's Y).
+   */
+  useEffect(() => {
+    if (!pendingScrollComponentId) {
+      return undefined;
+    }
+    const id: string = `dashboard-component-${pendingScrollComponentId.toString()}`;
+    /*
+     * Scroll the widget into view in two passes. The settings sidebar
+     * opens (sidebar steals 650px from the canvas, which shrinks unitSize
+     * and shifts every widget's Y) and chart/list children render
+     * asynchronously, so the layout keeps drifting for a few hundred
+     * milliseconds. The first pass lands us close; the second corrects
+     * any drift that happened between the two passes.
+     */
+    const firstPass: ReturnType<typeof setTimeout> = setTimeout(() => {
+      const el: HTMLElement | null = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "auto", block: "center" });
+      }
+    }, 100);
+    const secondPass: ReturnType<typeof setTimeout> = setTimeout(() => {
+      const el: HTMLElement | null = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setPendingScrollComponentId(null);
+    }, 500);
+    return () => {
+      clearTimeout(firstPass);
+      clearTimeout(secondPass);
+    };
+  }, [pendingScrollComponentId]);
 
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
@@ -468,19 +517,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardViewConfig(newDashboardConfig);
           /*
            * Open the settings panel for the freshly added component and
-           * scroll it into view so the user does not have to hunt for it
-           * at the bottom of the canvas.
+           * queue a scroll-into-view. The scroll itself runs from a
+           * useEffect once dashboardTotalWidth has settled, so we scroll
+           * to the widget's final post-reflow position.
            */
-          const newComponentId: ObjectID = newComponent.componentId;
-          setSelectedComponentId(newComponentId);
-          window.requestAnimationFrame(() => {
-            const el: HTMLElement | null = document.getElementById(
-              `dashboard-component-${newComponentId.toString()}`,
-            );
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
-          });
+          setSelectedComponentId(newComponent.componentId);
+          setPendingScrollComponentId(newComponent.componentId);
         }}
       />
       <div
