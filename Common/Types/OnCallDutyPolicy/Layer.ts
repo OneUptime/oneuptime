@@ -486,7 +486,13 @@ export default class LayerUtil {
         rotation: data.rotation,
       });
 
-    const maxIterations: number = 1000;
+    /*
+     * Generous safety bound: 10000 covers ~27 years of daily rotation or
+     * ~14 months of hourly rotation. The loop normally exits via the
+     * isBefore check; this cap only fires for pathologically long-running
+     * schedules to keep the function bounded.
+     */
+    const maxIterations: number = 10000;
     let iterations: number = 0;
 
     while (
