@@ -295,9 +295,8 @@ import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
 
-import MetricService, {
-  MetricService as MetricServiceType,
-} from "Common/Server/Services/MetricService";
+import MetricService from "Common/Server/Services/MetricService";
+import MetricAPI from "Common/Server/API/MetricAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -556,7 +555,6 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
-import Metric from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
@@ -1356,10 +1354,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<Metric, MetricServiceType>(
-        Metric,
-        MetricService,
-      ).getRouter(),
+      new MetricAPI(MetricService).getRouter(),
     );
 
     app.use(

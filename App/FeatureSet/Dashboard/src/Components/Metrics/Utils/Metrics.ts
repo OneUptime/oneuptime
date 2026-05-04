@@ -13,6 +13,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import OneUptimeDate from "Common/Types/Date";
@@ -31,6 +32,84 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+
+/*
+ * In-flight aggregate request deduplication.
+ *
+ * A dashboard with N widgets pointed at the same metric used to issue N
+ * identical aggregate calls back-to-back. The promise registry below
+ * coalesces concurrent identical requests onto a single network call,
+ * and a short result cache (lifetime: AGGREGATE_RESULT_TTL_MS) lets a
+ * brand-new widget pick up a freshly-completed neighbor's result
+ * without going to the wire.
+ *
+ * This is intentionally cheap and module-local. It is invalidated by
+ * tab navigation (the module re-evaluates on full reload), and the TTL
+ * is short enough that auto-refresh-driven freshness wins for any
+ * dashboard polling at 30s+.
+ */
+const AGGREGATE_RESULT_TTL_MS: number = 8_000;
+
+interface AggregateCacheEntry {
+  result: AggregatedResult;
+  expiresAt: number;
+}
+
+const inFlightAggregates: Map<string, Promise<AggregatedResult>> = new Map();
+const aggregateResultCache: Map<string, AggregateCacheEntry> = new Map();
+
+function buildAggregateCacheKey(aggregateBy: AggregateBy<Metric>): string {
+  /*
+   * Stable JSON serialization for the request shape. Date instances on
+   * the time window are normalized to ISO strings so that two callers
+   * passing logically-equal Date objects collide in the cache.
+   */
+  return JSON.stringify(aggregateBy, (_key: string, value: unknown) => {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return value;
+  });
+}
+
+function dedupedAggregate(
+  aggregateBy: AggregateBy<Metric>,
+): Promise<AggregatedResult> {
+  const cacheKey: string = buildAggregateCacheKey(aggregateBy);
+
+  const cached: AggregateCacheEntry | undefined =
+    aggregateResultCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return Promise.resolve(cached.result);
+  }
+  if (cached) {
+    aggregateResultCache.delete(cacheKey);
+  }
+
+  const inFlight: Promise<AggregatedResult> | undefined =
+    inFlightAggregates.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const promise: Promise<AggregatedResult> = AnalyticsModelAPI.aggregate({
+    modelType: Metric,
+    aggregateBy,
+  })
+    .then((result: AggregatedResult) => {
+      aggregateResultCache.set(cacheKey, {
+        result,
+        expiresAt: Date.now() + AGGREGATE_RESULT_TTL_MS,
+      });
+      return result;
+    })
+    .finally(() => {
+      inFlightAggregates.delete(cacheKey);
+    });
+
+  inFlightAggregates.set(cacheKey, promise);
+  return promise;
+}
 
 type SanitizeAttributeFiltersFunction = (
   attributes: Dictionary<DictionaryEntryValue> | undefined,
@@ -74,6 +153,11 @@ export default class MetricUtil {
      * render many charts (CPU/memory/network/etc.), and fetching them
      * sequentially made page load O(N * perQueryLatency). With Promise.all
      * it becomes O(max(perQueryLatency)).
+     *
+     * dedupedAggregate (defined at module top) coalesces structurally
+     * identical aggregate calls onto a single in-flight promise and
+     * caches the result for a few seconds, so dashboards with many
+     * widgets pointed at the same metric collapse to one round trip.
      */
     const rawResults: Array<AggregatedResult> = await Promise.all(
       metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
@@ -99,36 +183,33 @@ export default class MetricUtil {
               } as typeof queryConfig.metricQueryData.groupBy)
             : queryConfig.metricQueryData.groupBy;
 
-        return AnalyticsModelAPI.aggregate({
-          modelType: Metric,
-          aggregateBy: {
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              time: metricViewData.startAndEndDate!,
-              name: queryConfig.metricQueryData.filterData.metricName!,
-              attributes: sanitizeAttributeFilters(
-                queryConfig.metricQueryData.filterData.attributes as
-                  | Dictionary<DictionaryEntryValue>
-                  | undefined,
-              ) as any,
-            },
-            aggregationType:
-              (queryConfig.metricQueryData.filterData
-                .aggegationType as MetricsAggregationType) ||
-              MetricsAggregationType.Avg,
-            aggregateColumnName: "value",
-            aggregationTimestampColumnName: "time",
-            startTimestamp:
-              (metricViewData.startAndEndDate?.startValue as Date) ||
-              OneUptimeDate.getCurrentDate(),
-            endTimestamp:
-              (metricViewData.startAndEndDate?.endValue as Date) ||
-              OneUptimeDate.getCurrentDate(),
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            groupBy: aggregationGroupBy,
+        return dedupedAggregate({
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            time: metricViewData.startAndEndDate!,
+            name: queryConfig.metricQueryData.filterData.metricName!,
+            attributes: sanitizeAttributeFilters(
+              queryConfig.metricQueryData.filterData.attributes as
+                | Dictionary<DictionaryEntryValue>
+                | undefined,
+            ) as any,
           },
-        });
+          aggregationType:
+            (queryConfig.metricQueryData.filterData
+              .aggegationType as MetricsAggregationType) ||
+            MetricsAggregationType.Avg,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp:
+            (metricViewData.startAndEndDate?.startValue as Date) ||
+            OneUptimeDate.getCurrentDate(),
+          endTimestamp:
+            (metricViewData.startAndEndDate?.endValue as Date) ||
+            OneUptimeDate.getCurrentDate(),
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          groupBy: aggregationGroupBy,
+        } as AggregateBy<Metric>);
       }),
     );
 

@@ -62,6 +62,7 @@ import AddIsRootSpanToSpanTable from "./AddIsRootSpanToSpanTable";
 import AddHistogramProjectionToSpanTable from "./AddHistogramProjectionToSpanTable";
 import AddExponentialHistogramAndSummaryColumnsToMetric from "./AddExponentialHistogramAndSummaryColumnsToMetric";
 import ChangeExplicitBoundsToFloat64 from "./ChangeExplicitBoundsToFloat64";
+import AddMetricMinuteAggregateMaterializedView from "./AddMetricMinuteAggregateMaterializedView";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -128,6 +129,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddHistogramProjectionToSpanTable(),
   new AddExponentialHistogramAndSummaryColumnsToMetric(),
   new ChangeExplicitBoundsToFloat64(),
+  new AddMetricMinuteAggregateMaterializedView(),
 ];
 
 export default DataMigrations;

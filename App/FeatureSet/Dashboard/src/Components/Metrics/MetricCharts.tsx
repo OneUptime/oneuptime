@@ -351,27 +351,58 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     });
   };
 
-  // Fetch exemplars for all queried metrics
+  /*
+   * Build a stable dependency for the exemplar effect. Previously this
+   * depended on `props.metricViewData.queryConfigs` (a fresh array on
+   * every parent render) which kicked off N exemplar requests per
+   * widget per re-render. We now key off the start/end timestamps and
+   * the deduplicated set of metric names — re-runs only when the time
+   * window or metric set actually changes.
+   */
+  const startMs: number | undefined =
+    props.metricViewData.startAndEndDate?.startValue instanceof Date
+      ? (props.metricViewData.startAndEndDate.startValue as Date).getTime()
+      : undefined;
+  const endMs: number | undefined =
+    props.metricViewData.startAndEndDate?.endValue instanceof Date
+      ? (props.metricViewData.startAndEndDate.endValue as Date).getTime()
+      : undefined;
+
+  const uniqueMetricNamesKey: string = (() => {
+    const names: Set<string> = new Set<string>();
+    for (const queryConfig of props.metricViewData.queryConfigs) {
+      const name: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      if (name) {
+        names.add(name);
+      }
+    }
+    return Array.from(names).sort().join("|");
+  })();
+
   useEffect(() => {
-    if (
-      !props.metricViewData.startAndEndDate?.startValue ||
-      !props.metricViewData.startAndEndDate?.endValue
-    ) {
+    if (startMs === undefined || endMs === undefined) {
+      return;
+    }
+
+    const metricNames: Array<string> = uniqueMetricNamesKey
+      ? uniqueMetricNamesKey.split("|")
+      : [];
+
+    if (metricNames.length === 0) {
       return;
     }
 
     const startAndEndDate: InBetween<Date> = new InBetween<Date>(
-      props.metricViewData.startAndEndDate.startValue as Date,
-      props.metricViewData.startAndEndDate.endValue as Date,
+      new Date(startMs),
+      new Date(endMs),
     );
 
-    for (const queryConfig of props.metricViewData.queryConfigs) {
-      const metricName: string =
-        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
-      if (!metricName) {
-        continue;
-      }
-
+    /*
+     * Fetch exemplars per unique metric name (was: per queryConfig, which
+     * caused 5 charts of the same metric to issue 5 identical requests).
+     */
+    for (const metricName of metricNames) {
       MetricUtil.fetchExemplars({
         metricName,
         startAndEndDate,
@@ -388,7 +419,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           // Best-effort: don't break charts if exemplar fetch fails
         });
     }
-  }, [props.metricViewData.startAndEndDate, props.metricViewData.queryConfigs]);
+  }, [startMs, endMs, uniqueMetricNamesKey]);
 
   const handleExemplarClick: (exemplar: ExemplarPoint) => void = useCallback(
     (exemplar: ExemplarPoint): void => {

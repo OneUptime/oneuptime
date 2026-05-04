@@ -2,9 +2,12 @@ import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
+import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
 import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
+import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
 import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
@@ -52,6 +55,24 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.TraceList) {
       return DashboardTraceListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.IncidentList) {
+      return DashboardIncidentListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.AlertList) {
+      return DashboardAlertListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.MonitorList) {
+      return DashboardMonitorListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }
