@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -265,6 +266,39 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
+  /*
+   * Stable references for the props handed to DashboardCanvas. Without
+   * memoization, every refresh tick / state change in this component
+   * (auto-refresh, drag, resize, save) emits a new `metrics` object and
+   * fresh callbacks, defeating React.memo on every widget downstream
+   * and causing all charts to re-render in lockstep.
+   */
+  const metricsBundle: {
+    telemetryAttributes: Array<string>;
+    metricTypes: Array<MetricType>;
+  } = useMemo(() => {
+    return {
+      telemetryAttributes,
+      metricTypes,
+    };
+  }, [telemetryAttributes, metricTypes]);
+
+  const handleConfigChange: (newConfig: DashboardViewConfig) => void =
+    useCallback((newConfig: DashboardViewConfig) => {
+      setDashboardViewConfig(newConfig);
+    }, []);
+
+  const handleComponentSelected: (componentId: ObjectID) => void = useCallback(
+    (componentId: ObjectID) => {
+      setSelectedComponentId(componentId);
+    },
+    [],
+  );
+
+  const handleComponentUnselected: () => void = useCallback(() => {
+    setSelectedComponentId(null);
+  }, []);
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -427,24 +461,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       >
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
-          onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
-            setDashboardViewConfig(newConfig);
-          }}
-          onComponentSelected={(componentId: ObjectID) => {
-            // Do nothing
-            setSelectedComponentId(componentId);
-          }}
-          onComponentUnselected={() => {
-            setSelectedComponentId(null);
-          }}
+          onDashboardViewConfigChange={handleConfigChange}
+          onComponentSelected={handleComponentSelected}
+          onComponentUnselected={handleComponentUnselected}
           dashboardStartAndEndDate={startAndEndDate}
           selectedComponentId={selectedComponentId}
           isEditMode={isEditMode}
           currentTotalDashboardWidthInPx={dashboardTotalWidth}
-          metrics={{
-            telemetryAttributes,
-            metricTypes,
-          }}
+          metrics={metricsBundle}
           refreshTick={refreshTick}
         />
       </div>
