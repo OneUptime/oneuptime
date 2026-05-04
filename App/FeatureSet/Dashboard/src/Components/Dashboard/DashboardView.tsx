@@ -466,6 +466,21 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             ) as DashboardViewConfig;
 
           setDashboardViewConfig(newDashboardConfig);
+          /*
+           * Open the settings panel for the freshly added component and
+           * scroll it into view so the user does not have to hunt for it
+           * at the bottom of the canvas.
+           */
+          const newComponentId: ObjectID = newComponent.componentId;
+          setSelectedComponentId(newComponentId);
+          window.requestAnimationFrame(() => {
+            const el: HTMLElement | null = document.getElementById(
+              `dashboard-component-${newComponentId.toString()}`,
+            );
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          });
         }}
       />
       <div

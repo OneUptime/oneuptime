@@ -74,13 +74,28 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     }
   }, [hasFormValidationErrors]);
 
-  useEffect(() => {
-    props.onFormChange(component);
-  }, [component]);
-
+  /*
+   * Sync local state when the parent swaps the component being edited
+   * (e.g. user picks a different widget). We intentionally do NOT propagate
+   * local changes back up via a useEffect — that would create a feedback
+   * loop with the parent re-rendering and handing us a fresh component
+   * reference on every keystroke, which causes the form input to flicker.
+   * User-initiated edits call props.onFormChange directly below.
+   */
   useEffect(() => {
     setComponent(props.component);
   }, [props.component]);
+
+  type CommitComponentFunction = (
+    updatedComponent: DashboardBaseComponent,
+  ) => void;
+
+  const commitComponent: CommitComponentFunction = (
+    updatedComponent: DashboardBaseComponent,
+  ): void => {
+    setComponent(updatedComponent);
+    props.onFormChange(updatedComponent);
+  };
 
   const componentType: DashboardComponentType = component.componentType;
   const componentArguments: Array<ComponentArgument<DashboardBaseComponent>> =
@@ -212,7 +227,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           ...(component?.arguments || {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {
-          setComponent({
+          commitComponent({
             ...component,
             arguments: {
               ...((component.arguments as JSONObject) || {}),
@@ -294,7 +309,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         ];
                         updated.splice(index, 1);
                         setMultiQueryConfigs(updated);
-                        setComponent({
+                        commitComponent({
                           ...component,
                           arguments: {
                             ...((component.arguments as JSONObject) || {}),
@@ -315,7 +330,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       ];
                       updated[index] = data;
                       setMultiQueryConfigs(updated);
-                      setComponent({
+                      commitComponent({
                         ...component,
                         arguments: {
                           ...((component.arguments as JSONObject) || {}),
@@ -357,7 +372,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 newQuery,
               ];
               setMultiQueryConfigs(updated);
-              setComponent({
+              commitComponent({
                 ...component,
                 arguments: {
                   ...((component.arguments as JSONObject) || {}),

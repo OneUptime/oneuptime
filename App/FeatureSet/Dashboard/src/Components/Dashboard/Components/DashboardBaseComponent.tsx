@@ -492,6 +492,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      id={`dashboard-component-${props.componentId.toString()}`}
       className={className}
       style={{
         gridColumn: `span ${widthOfComponent}`,
