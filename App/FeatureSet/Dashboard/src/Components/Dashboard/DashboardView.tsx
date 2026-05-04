@@ -24,6 +24,9 @@ import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/Dashb
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
+import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardIncidentListComponent";
+import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
+import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -431,6 +434,21 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.TraceList) {
             newComponent =
               DashboardTraceListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.IncidentList) {
+            newComponent =
+              DashboardIncidentListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.AlertList) {
+            newComponent =
+              DashboardAlertListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.MonitorList) {
+            newComponent =
+              DashboardMonitorListComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

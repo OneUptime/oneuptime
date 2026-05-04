@@ -466,6 +466,36 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       );
                     }}
                   />
+                  <MoreMenuItem
+                    text={"Incident List"}
+                    icon={IconProp.Alert}
+                    key={"add-incident-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.IncidentList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Alert List"}
+                    icon={IconProp.Bell}
+                    key={"add-alert-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.AlertList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Monitor List"}
+                    icon={IconProp.AltGlobe}
+                    key={"add-monitor-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.MonitorList,
+                      );
+                    }}
+                  />
                 </MoreMenu>
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
