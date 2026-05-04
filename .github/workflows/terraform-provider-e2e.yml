@@ -130,7 +130,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.6.0"
+          terraform_version: "latest"
           terraform_wrapper: false
 
       - name: Run E2E Tests
