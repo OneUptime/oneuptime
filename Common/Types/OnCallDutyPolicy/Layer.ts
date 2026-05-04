@@ -85,6 +85,7 @@ export default class LayerUtil {
       startDateTimeOfLayer: data.startDateTimeOfLayer,
       users: data.users,
       currentEventStartTime,
+      restrictionTimes: data.restrictionTimes,
     });
 
     // update handoff time to the same day as current start time
@@ -191,11 +192,19 @@ export default class LayerUtil {
         rotation: data.rotation,
       });
 
-      // update the current user index
-      currentUserIndex = this.incrementUserIndex(
-        currentUserIndex,
-        data.users.length,
-      );
+      /*
+       * Only advance the rotation if at least one event was actually generated
+       * for this rotation period. Otherwise the user "lost" their turn to a
+       * fully restricted window (e.g. a weekend with Mon-Fri restrictions),
+       * which would skip rotations and break ordering across the gap. See
+       * issue #2413.
+       */
+      if (trimmedStartAndEndTimes.length > 0) {
+        currentUserIndex = this.incrementUserIndex(
+          currentUserIndex,
+          data.users.length,
+        );
+      }
     }
 
     // increment ids of all the events and return them, to make sure they are unique
@@ -443,14 +452,11 @@ export default class LayerUtil {
     startDateTimeOfLayer: Date;
     users: Array<UserModel>;
     currentEventStartTime: Date;
+    restrictionTimes: RestrictionTimes;
   }): number {
-    let intervalBetweenStartTimeAndHandoffTime: number = 0;
-    const rotation: Recurring = data.rotation;
-    const handOffTime: Date = data.handOffTime;
     let currentUserIndex: number = data.currentUserIndex;
 
-    // if current event start time if before the start time of the layer then return current Index
-
+    // if current event start time is before layer start, idx unchanged.
     if (
       OneUptimeDate.isBefore(
         data.currentEventStartTime,
@@ -460,74 +466,63 @@ export default class LayerUtil {
       return currentUserIndex;
     }
 
-    // if handoff time is ahead of current event stat time then return current index
-
-    if (OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)) {
+    // if handoff is after current start, no rotation has occurred yet — idx unchanged.
+    if (OneUptimeDate.isAfter(data.handOffTime, data.currentEventStartTime)) {
       return currentUserIndex;
     }
 
-    if (rotation.intervalType === EventInterval.Day) {
-      // calculate the number of days between the start time of the layer and the handoff time.
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getDaysBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
+    /*
+     * Simulate rotation periods from layer start up to currentEventStartTime,
+     * only incrementing the user index when a period would have produced an
+     * event under the restriction. This mirrors the main loop in getEvents
+     * (see issue #2413) and keeps the rotation continuous across calendar
+     * windows that begin in the future (e.g. previewing next week).
+     */
+    let simulatedTime: Date = data.startDateTimeOfLayer;
+    let simulatedHandOff: Date =
+      this.moveHandsOffTimeAfterCurrentEventStartTime({
+        handOffTime: data.handOffTime,
+        currentEventStartTime: simulatedTime,
+        rotation: data.rotation,
+      });
+
+    const maxIterations: number = 1000;
+    let iterations: number = 0;
+
+    while (
+      OneUptimeDate.isBefore(simulatedTime, data.currentEventStartTime) &&
+      iterations < maxIterations
+    ) {
+      iterations++;
+
+      const eventEnd: Date = simulatedHandOff;
+
+      // Stop once the rotation period would extend past the target.
+      if (OneUptimeDate.isAfter(eventEnd, data.currentEventStartTime)) {
+        break;
+      }
+
+      const trimmed: Array<StartAndEndTime> =
+        this.trimStartAndEndTimesBasedOnRestrictionTimes({
+          eventStartTime: simulatedTime,
+          eventEndTime: eventEnd,
+          restrictionTimes: data.restrictionTimes,
+        });
+
+      if (trimmed.length > 0) {
+        currentUserIndex = this.incrementUserIndex(
+          currentUserIndex,
+          data.users.length,
         );
+      }
+
+      simulatedTime = OneUptimeDate.addRemoveSeconds(eventEnd, 1);
+      simulatedHandOff = this.moveHandsOffTimeAfterCurrentEventStartTime({
+        handOffTime: simulatedHandOff,
+        currentEventStartTime: simulatedTime,
+        rotation: data.rotation,
+      });
     }
-
-    if (rotation.intervalType === EventInterval.Hour) {
-      // calculate the number of hours between the start time of the layer and the handoff time.
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getHoursBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
-    }
-
-    if (rotation.intervalType === EventInterval.Week) {
-      // calculate the number of weeks between the start time of the layer and the handoff time.
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
-    }
-
-    if (rotation.intervalType === EventInterval.Month) {
-      // calculate the number of months between the start time of the layer and the handoff time.
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
-    }
-
-    if (rotation.intervalType === EventInterval.Year) {
-      // calculate the number of years between the start time of the layer and the handoff time.
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getYearsBetweenTwoDatesInclusive(
-          data.startDateTimeOfLayer,
-          handOffTime,
-        );
-    }
-
-    // now divide the interval between start time and handoff time by the interval count.
-
-    let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.ceil(
-      intervalBetweenStartTimeAndHandoffTime /
-        rotation.intervalCount.toNumber(),
-    );
-
-    if (numberOfIntervalsBetweenStartAndHandoffTime < 0) {
-      numberOfIntervalsBetweenStartAndHandoffTime =
-        numberOfIntervalsBetweenStartAndHandoffTime * -1;
-    }
-
-    currentUserIndex = this.incrementUserIndex(
-      currentUserIndex,
-      data.users.length,
-      numberOfIntervalsBetweenStartAndHandoffTime,
-    );
 
     return currentUserIndex;
   }
@@ -852,11 +847,14 @@ export default class LayerUtil {
         reachedTheEndOfTheCurrentEvent = true;
       }
 
-      // 2 - Start Restriction: If the current event starts after the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the current event and end time of the restriction
+      /*
+       * 2 - Start Restriction: If the current event starts after the restriction start time and ends after the restriction end time, we need to return the current event with the start time of the current event and end time of the restriction
+       * Use strict isAfter on the end so this branch does not double-fire with case 1 when currentEnd === restrictionEnd.
+       */
 
       if (
         OneUptimeDate.isOnOrAfter(currentStartTime, restrictionStartTime) &&
-        OneUptimeDate.isOnOrAfter(currentEndTime, restrictionEndTime)
+        OneUptimeDate.isAfter(currentEndTime, restrictionEndTime)
       ) {
         trimmedStartAndEndTimes.push({
           startTime: currentStartTime,
