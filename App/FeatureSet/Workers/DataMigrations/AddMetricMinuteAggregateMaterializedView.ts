@@ -53,9 +53,9 @@ export default class AddMetricMinuteAggregateMaterializedView extends DataMigrat
     await this.execute(
       `CREATE TABLE IF NOT EXISTS MetricItemAggMV1m
        (
-         projectId UUID,
+         projectId String,
          name String,
-         serviceId UUID,
+         serviceId String,
          bucketTime DateTime,
          valueSumState AggregateFunction(sum, Float64),
          valueCountState AggregateFunction(count, Float64),
@@ -95,20 +95,15 @@ export default class AddMetricMinuteAggregateMaterializedView extends DataMigrat
          minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
          maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
          max(retentionDate) AS retentionDate
-       FROM MetricItem
+       FROM MetricItemV2
        GROUP BY projectId, name, serviceId, bucketTime`,
       "Create MetricItemAggMV1m_mv materialized view",
     );
   }
 
   private async execute(sql: string, description: string): Promise<void> {
-    try {
-      await MetricService.execute(sql);
-      logger.info(`${description} - SUCCESS`);
-    } catch (err) {
-      logger.error(`${description} - FAILED`);
-      logger.error(err);
-    }
+    await MetricService.execute(sql);
+    logger.info(`${description} - SUCCESS`);
   }
 
   public override async rollback(): Promise<void> {
