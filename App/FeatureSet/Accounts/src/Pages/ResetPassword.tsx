@@ -8,8 +8,10 @@ import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
-const RegisterPage: () => JSX.Element = () => {
+const ResetPasswordPage: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const apiUrl: URL = RESET_PASSWORD_API_URL;
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
@@ -19,21 +21,21 @@ const RegisterPage: () => JSX.Element = () => {
         <img
           className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
-          alt="Your Company"
+          alt={t("common.yourCompany")}
         />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-          Reset your password
+          {t("resetPassword.title")}
         </h2>
 
         {!isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-            Please enter your new password and we will have it updated.{" "}
+            {t("resetPassword.subtitle")}{" "}
           </p>
         )}
 
         {isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-            Your password has been updated. Please log in.
+            {t("resetPassword.successMessage")}
           </p>
         )}
       </div>
@@ -64,8 +66,8 @@ const RegisterPage: () => JSX.Element = () => {
                   validation: {
                     minLength: 6,
                   },
-                  placeholder: "New Password",
-                  title: "New Password",
+                  placeholder: t("common.newPassword"),
+                  title: t("common.newPassword"),
                   required: true,
                   showEvenIfPermissionDoesNotExist: true,
                   disableSpellCheck: true,
@@ -79,8 +81,8 @@ const RegisterPage: () => JSX.Element = () => {
                     toMatchField: "password",
                   },
                   fieldType: FormFieldSchemaType.Password,
-                  placeholder: "Confirm Password",
-                  title: "Confirm Password",
+                  placeholder: t("common.confirmPassword"),
+                  title: t("common.confirmPassword"),
                   overrideFieldKey: "confirmPassword",
                   required: true,
                   showEvenIfPermissionDoesNotExist: true,
@@ -89,7 +91,7 @@ const RegisterPage: () => JSX.Element = () => {
               ]}
               createOrUpdateApiUrl={apiUrl}
               formType={FormType.Create}
-              submitButtonText={"Reset Password"}
+              submitButtonText={t("resetPassword.submitButton")}
               onSuccess={() => {
                 setIsSuccess(true);
               }}
@@ -99,12 +101,12 @@ const RegisterPage: () => JSX.Element = () => {
 
         <div className="mt-4 sm:mt-5 text-center">
           <p className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-            Know your password?{" "}
+            {t("resetPassword.knowPasswordPrompt")}{" "}
             <Link
               to={new Route("/accounts/login")}
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Log in.
+              {t("resetPassword.loginLink")}
             </Link>
           </p>
         </div>
@@ -113,4 +115,4 @@ const RegisterPage: () => JSX.Element = () => {
   );
 };
 
-export default RegisterPage;
+export default ResetPasswordPage;

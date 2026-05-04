@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "submit": "제출",
+    "close": "닫기",
+    "loading": "로딩 중...",
+    "email": "이메일",
+    "password": "비밀번호",
+    "fullName": "전체 이름",
+    "companyName": "회사명",
+    "phoneNumber": "전화번호",
+    "confirmPassword": "비밀번호 확인",
+    "newPassword": "새 비밀번호",
+    "code": "코드",
+    "yourCompany": "귀하의 회사"
+  },
+  "language": {
+    "label": "언어",
+    "switchLanguage": "언어 변경"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "연락처",
+    "privacyAndTerms": "개인정보 및 약관"
+  },
+  "captcha": {
+    "title": "사람 확인",
+    "description": "봇이 아님을 확인할 수 있도록 captcha 챌린지를 완료해 주세요.",
+    "errorOnSignIn": "로그인하기 전에 captcha 챌린지를 완료해 주세요.",
+    "errorOnSignUp": "가입하기 전에 captcha 챌린지를 완료해 주세요."
+  },
+  "login": {
+    "title": "계정에 로그인",
+    "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
+    "submitButton": "로그인",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "useSso": "대신 SSO (단일 로그인) 사용",
+    "noAccountPrompt": "계정이 없으신가요?",
+    "registerLink": "등록.",
+    "twoFactor": {
+      "title": "이중 인증",
+      "subtitle": "이중 인증 방법을 선택하세요. 선택한 방법에서 코드를 입력하라는 메시지가 표시됩니다.",
+      "authenticatorApp": "인증 앱",
+      "securityKey": "보안 키",
+      "authenticatingWithSecurityKey": "보안 키로 인증 중",
+      "securityKeyInstructions": "보안 키 장치의 지침을 따르세요.",
+      "codeFieldDescription": "인증 앱에서 코드를 입력하세요",
+      "selectDifferentMethod": "다른 이중 인증 방법 선택"
+    }
+  },
+  "register": {
+    "title": "OneUptime 계정 만들기",
+    "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
+    "noCreditCard": "신용카드가 필요하지 않습니다.",
+    "submitButton": "가입하기",
+    "haveAccountPrompt": "이미 계정이 있으신가요?",
+    "loginLink": "로그인.",
+    "notifySelfHosted": "보안 패치 및 새 릴리스에 대한 알림 받기"
+  },
+  "forgotPassword": {
+    "title": "비밀번호 잊음",
+    "subtitle": "이메일을 입력하시면 비밀번호 재설정 링크가 발송됩니다.",
+    "successMessage": "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸 폴더도 확인해 주세요.",
+    "submitButton": "비밀번호 재설정 링크 보내기",
+    "returnToSignIn": "로그인으로 돌아가기.",
+    "rememberPasswordPrompt": "비밀번호를 기억하시나요?",
+    "loginLink": "로그인."
+  },
+  "resetPassword": {
+    "title": "비밀번호 재설정",
+    "subtitle": "새 비밀번호를 입력하시면 업데이트됩니다.",
+    "successMessage": "비밀번호가 업데이트되었습니다. 로그인하세요.",
+    "submitButton": "비밀번호 재설정",
+    "knowPasswordPrompt": "비밀번호를 아시나요?",
+    "loginLink": "로그인."
+  },
+  "sso": {
+    "title": "SSO로 로그인",
+    "subtitle": "계정에 액세스하려면 SSO 공급자로 로그인하세요.",
+    "submitButton": "SSO로 로그인",
+    "useUsernameInstead": "대신 사용자 이름과 비밀번호 사용.",
+    "noAccountPrompt": "계정이 없으신가요?",
+    "registerLink": "등록.",
+    "selectProjectTitle": "프로젝트 선택",
+    "selectProjectSubtitle": "로그인할 프로젝트를 선택하세요.",
+    "noConfigForEmail": "이메일에 대한 SSO 구성을 찾을 수 없습니다: {{email}}",
+    "emailRequired": "이 작업을 수행하려면 이메일이 필요합니다",
+    "defaultProjectName": "프로젝트"
+  },
+  "verifyEmail": {
+    "successTitle": "이메일이 확인되었습니다.",
+    "successDescription": "이메일을 확인해 주셔서 감사합니다. 이제 OneUptime에 로그인할 수 있습니다.",
+    "errorTitle": "죄송합니다. 문제가 발생했습니다!",
+    "returnToSignIn": "로그인으로 돌아가시겠습니까?",
+    "loginLink": "로그인."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "금지됨",
+      "description": "이 페이지에 액세스할 권한이 없습니다."
+    },
+    "notFound": {
+      "title": "페이지를 찾을 수 없음",
+      "description": "찾고 계신 페이지가 존재하지 않습니다."
+    }
+  }
+}

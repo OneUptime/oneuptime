@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Gem",
+    "cancel": "Annuller",
+    "submit": "Indsend",
+    "close": "Luk",
+    "loading": "Indlæser...",
+    "email": "E-mail",
+    "password": "Adgangskode",
+    "fullName": "Fulde navn",
+    "companyName": "Firmanavn",
+    "phoneNumber": "Telefonnummer",
+    "confirmPassword": "Bekræft adgangskode",
+    "newPassword": "Ny adgangskode",
+    "code": "Kode",
+    "yourCompany": "Dit firma"
+  },
+  "language": {
+    "label": "Sprog",
+    "switchLanguage": "Skift sprog"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Kontakt",
+    "privacyAndTerms": "Privatliv og betingelser"
+  },
+  "captcha": {
+    "title": "Menneskelig verifikation",
+    "description": "Fuldfør captcha-udfordringen, så vi ved, at du ikke er en bot.",
+    "errorOnSignIn": "Fuldfør captcha-udfordringen, før du logger ind.",
+    "errorOnSignUp": "Fuldfør captcha-udfordringen, før du tilmelder dig."
+  },
+  "login": {
+    "title": "Log ind på din konto",
+    "subtitle": "Slut dig til tusindvis af virksomheder, der bruger OneUptime til at holde sig online hele tiden.",
+    "submitButton": "Log ind",
+    "forgotPassword": "Glemt adgangskode?",
+    "useSso": "Brug i stedet single sign-on (SSO)",
+    "noAccountPrompt": "Har du ikke en konto?",
+    "registerLink": "Registrer.",
+    "twoFactor": {
+      "title": "Tofaktorgodkendelse",
+      "subtitle": "Vælg tofaktorgodkendelsesmetode. Du vil blive bedt om at indtaste en kode fra den valgte metode.",
+      "authenticatorApp": "Autentifikator-app",
+      "securityKey": "Sikkerhedsnøgle",
+      "authenticatingWithSecurityKey": "Godkender med sikkerhedsnøgle",
+      "securityKeyInstructions": "Følg venligst instruktionerne på din sikkerhedsnøgleenhed.",
+      "codeFieldDescription": "Indtast koden fra din autentifikator-app",
+      "selectDifferentMethod": "Vælg en anden tofaktorgodkendelsesmetode"
+    }
+  },
+  "register": {
+    "title": "Opret din OneUptime-konto",
+    "subtitle": "Slut dig til tusindvis af virksomheder, der bruger OneUptime til at holde sig online hele tiden.",
+    "noCreditCard": "Intet kreditkort kræves.",
+    "submitButton": "Tilmeld",
+    "haveAccountPrompt": "Har du allerede en konto?",
+    "loginLink": "Log ind.",
+    "notifySelfHosted": "Underret mig om sikkerhedsrettelser og nye udgivelser"
+  },
+  "forgotPassword": {
+    "title": "Glemt adgangskode",
+    "subtitle": "Indtast venligst din e-mail, og linket til nulstilling af adgangskode vil blive sendt til dig.",
+    "successMessage": "Vi har sendt linket til nulstilling af adgangskode til din e-mail. Glem ikke at tjekke spam.",
+    "submitButton": "Send link til nulstilling",
+    "returnToSignIn": "Tilbage til login.",
+    "rememberPasswordPrompt": "Husker du din adgangskode?",
+    "loginLink": "Log ind."
+  },
+  "resetPassword": {
+    "title": "Nulstil din adgangskode",
+    "subtitle": "Indtast venligst din nye adgangskode, og vi opdaterer den.",
+    "successMessage": "Din adgangskode er blevet opdateret. Log venligst ind.",
+    "submitButton": "Nulstil adgangskode",
+    "knowPasswordPrompt": "Kender du din adgangskode?",
+    "loginLink": "Log ind."
+  },
+  "sso": {
+    "title": "Log ind med SSO",
+    "subtitle": "Log ind med din SSO-udbyder for at få adgang til din konto.",
+    "submitButton": "Log ind med SSO",
+    "useUsernameInstead": "Brug i stedet brugernavn og adgangskode.",
+    "noAccountPrompt": "Har du ikke en konto?",
+    "registerLink": "Registrer.",
+    "selectProjectTitle": "Vælg projekt",
+    "selectProjectSubtitle": "Vælg det projekt, du vil logge ind på.",
+    "noConfigForEmail": "Ingen SSO-konfiguration fundet for e-mailen: {{email}}",
+    "emailRequired": "E-mail er påkrævet for at udføre denne handling",
+    "defaultProjectName": "Projekt"
+  },
+  "verifyEmail": {
+    "successTitle": "Din e-mail er verificeret.",
+    "successDescription": "Tak fordi du verificerede din e-mail. Du kan nu logge ind på OneUptime.",
+    "errorTitle": "Beklager, noget gik galt!",
+    "returnToSignIn": "Tilbage til login?",
+    "loginLink": "Log ind."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Forbudt",
+      "description": "Du har ikke tilladelse til at få adgang til denne side."
+    },
+    "notFound": {
+      "title": "Side ikke fundet",
+      "description": "Den side, du leder efter, eksisterer ikke."
+    }
+  }
+}

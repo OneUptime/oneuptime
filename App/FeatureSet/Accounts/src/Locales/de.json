@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Senden",
+    "close": "Schließen",
+    "loading": "Wird geladen...",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "fullName": "Vollständiger Name",
+    "companyName": "Firmenname",
+    "phoneNumber": "Telefonnummer",
+    "confirmPassword": "Passwort bestätigen",
+    "newPassword": "Neues Passwort",
+    "code": "Code",
+    "yourCompany": "Ihr Unternehmen"
+  },
+  "language": {
+    "label": "Sprache",
+    "switchLanguage": "Sprache wechseln"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Kontakt",
+    "privacyAndTerms": "Datenschutz & AGB"
+  },
+  "captcha": {
+    "title": "Menschliche Überprüfung",
+    "description": "Vervollständigen Sie das Captcha, damit wir wissen, dass Sie kein Bot sind.",
+    "errorOnSignIn": "Bitte vervollständigen Sie das Captcha, bevor Sie sich anmelden.",
+    "errorOnSignUp": "Bitte vervollständigen Sie das Captcha, bevor Sie sich registrieren."
+  },
+  "login": {
+    "title": "Melden Sie sich bei Ihrem Konto an",
+    "subtitle": "Schließen Sie sich Tausenden von Unternehmen an, die OneUptime nutzen, um stets online zu bleiben.",
+    "submitButton": "Anmelden",
+    "forgotPassword": "Passwort vergessen?",
+    "useSso": "Stattdessen Single Sign-On (SSO) verwenden",
+    "noAccountPrompt": "Sie haben noch kein Konto?",
+    "registerLink": "Registrieren.",
+    "twoFactor": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "subtitle": "Wählen Sie eine Zwei-Faktor-Authentifizierungsmethode. Sie werden aufgefordert, einen Code aus der ausgewählten Methode einzugeben.",
+      "authenticatorApp": "Authenticator-App",
+      "securityKey": "Sicherheitsschlüssel",
+      "authenticatingWithSecurityKey": "Authentifizierung mit Sicherheitsschlüssel",
+      "securityKeyInstructions": "Bitte folgen Sie den Anweisungen auf Ihrem Sicherheitsschlüsselgerät.",
+      "codeFieldDescription": "Geben Sie den Code aus Ihrer Authenticator-App ein",
+      "selectDifferentMethod": "Wählen Sie eine andere Zwei-Faktor-Authentifizierungsmethode"
+    }
+  },
+  "register": {
+    "title": "Erstellen Sie Ihr OneUptime-Konto",
+    "subtitle": "Schließen Sie sich Tausenden von Unternehmen an, die OneUptime nutzen, um stets online zu bleiben.",
+    "noCreditCard": "Keine Kreditkarte erforderlich.",
+    "submitButton": "Registrieren",
+    "haveAccountPrompt": "Sie haben bereits ein Konto?",
+    "loginLink": "Anmelden.",
+    "notifySelfHosted": "Benachrichtigen Sie mich über Sicherheitsupdates und neue Versionen"
+  },
+  "forgotPassword": {
+    "title": "Passwort vergessen",
+    "subtitle": "Bitte geben Sie Ihre E-Mail-Adresse ein, und der Link zum Zurücksetzen des Passworts wird an Sie gesendet.",
+    "successMessage": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail gesendet. Vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
+    "submitButton": "Link zum Zurücksetzen senden",
+    "returnToSignIn": "Zurück zur Anmeldung.",
+    "rememberPasswordPrompt": "Erinnern Sie sich an Ihr Passwort?",
+    "loginLink": "Anmelden."
+  },
+  "resetPassword": {
+    "title": "Passwort zurücksetzen",
+    "subtitle": "Bitte geben Sie Ihr neues Passwort ein, und wir werden es aktualisieren.",
+    "successMessage": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
+    "submitButton": "Passwort zurücksetzen",
+    "knowPasswordPrompt": "Kennen Sie Ihr Passwort?",
+    "loginLink": "Anmelden."
+  },
+  "sso": {
+    "title": "Mit SSO anmelden",
+    "subtitle": "Melden Sie sich mit Ihrem SSO-Anbieter an, um auf Ihr Konto zuzugreifen.",
+    "submitButton": "Mit SSO anmelden",
+    "useUsernameInstead": "Stattdessen Benutzername und Passwort verwenden.",
+    "noAccountPrompt": "Sie haben noch kein Konto?",
+    "registerLink": "Registrieren.",
+    "selectProjectTitle": "Projekt auswählen",
+    "selectProjectSubtitle": "Wählen Sie das Projekt aus, bei dem Sie sich anmelden möchten.",
+    "noConfigForEmail": "Keine SSO-Konfiguration für die E-Mail-Adresse gefunden: {{email}}",
+    "emailRequired": "E-Mail ist erforderlich, um diese Aktion auszuführen",
+    "defaultProjectName": "Projekt"
+  },
+  "verifyEmail": {
+    "successTitle": "Ihre E-Mail ist bestätigt.",
+    "successDescription": "Vielen Dank für die Bestätigung Ihrer E-Mail. Sie können sich jetzt bei OneUptime anmelden.",
+    "errorTitle": "Entschuldigung, etwas ist schiefgelaufen!",
+    "returnToSignIn": "Zurück zur Anmeldung?",
+    "loginLink": "Anmelden."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Verboten",
+      "description": "Sie haben keine Berechtigung, auf diese Seite zuzugreifen."
+    },
+    "notFound": {
+      "title": "Seite nicht gefunden",
+      "description": "Die gesuchte Seite existiert nicht."
+    }
+  }
+}

@@ -10,6 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { ReactElement, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
@@ -20,6 +21,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
 
 const LoginPage: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const apiUrl: URL = SERVICE_PROVIDER_LOGIN_URL;
 
   if (UserUtil.isLoggedIn()) {
@@ -54,9 +56,7 @@ const LoginPage: () => JSX.Element = () => {
         }
 
         if (!listResult.data || (listResult.data as JSONArray).length === 0) {
-          setError(
-            "No SSO configuration found for the email: " + email.toString(),
-          );
+          setError(t("sso.noConfigForEmail", { email: email.toString() }));
         } else {
           setProjectSsoConfigList(
             ProjectSSO.fromJSONArray(listResult["data"], ProjectSSO),
@@ -66,7 +66,7 @@ const LoginPage: () => JSX.Element = () => {
         setError(API.getFriendlyErrorMessage(error as Error));
       }
     } else {
-      setError("Email is required to perform this action");
+      setError(t("sso.emailRequired"));
     }
 
     setIsLoading(false);
@@ -115,7 +115,7 @@ const LoginPage: () => JSX.Element = () => {
       .map((config: ProjectSSO) => {
         return config.project?.name;
       });
-    return projectNames[0] || "Project";
+    return projectNames[0] || t("sso.defaultProjectName");
   };
 
   if (projectSsoConfigList.length > 0 && !error && !isLoading) {
@@ -135,10 +135,10 @@ const LoginPage: () => JSX.Element = () => {
               alt="OneUptime"
             />
             <h2 className="mt-6 sm:mt-10 text-center text-lg sm:text-xl tracking-tight text-gray-900">
-              Select Project
+              {t("sso.selectProjectTitle")}
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-              Select the project you want to login to.
+              {t("sso.selectProjectSubtitle")}
             </p>
           </div>
 
@@ -172,10 +172,10 @@ const LoginPage: () => JSX.Element = () => {
           alt="OneUptime"
         />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-          Login with SSO
+          {t("sso.title")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-          Login with your SSO provider to access your account.
+          {t("sso.subtitle")}
         </p>
       </div>
 
@@ -194,13 +194,13 @@ const LoginPage: () => JSX.Element = () => {
                 fieldType: FormFieldSchemaType.Email,
                 placeholder: "jeff@example.com",
                 required: true,
-                title: "Email",
+                title: t("common.email"),
                 dataTestId: "email",
                 disableSpellCheck: true,
               },
             ]}
             maxPrimaryButtonWidth={true}
-            submitButtonText="Login with SSO"
+            submitButtonText={t("sso.submitButton")}
             onSubmit={async (data: JSONObject) => {
               await fetchSsoConfigs(data["email"] as Email);
             }}
@@ -209,7 +209,7 @@ const LoginPage: () => JSX.Element = () => {
                 <div>
                   <Link to={new Route("/accounts/login")}>
                     <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                      Use username and password instead.
+                      {t("sso.useUsernameInstead")}
                     </div>
                   </Link>
                 </div>
@@ -219,12 +219,12 @@ const LoginPage: () => JSX.Element = () => {
         </div>
         <div className="mt-6 sm:mt-10 text-center">
           <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-            Don&apos;t have an account?{" "}
+            {t("sso.noAccountPrompt")}{" "}
             <Link
               to={new Route("/accounts/register")}
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Register.
+              {t("sso.registerLink")}
             </Link>
           </div>
         </div>

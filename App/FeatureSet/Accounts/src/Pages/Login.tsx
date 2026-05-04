@@ -31,6 +31,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import API from "Common/UI/Utils/API/API";
@@ -41,6 +42,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 
 const LoginPage: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const apiUrl: URL = LOGIN_API_URL;
 
   if (UserUtil.isLoggedIn()) {
@@ -104,7 +106,7 @@ const LoginPage: () => JSX.Element = () => {
       placeholder: "jeff@example.com",
       required: true,
       disabled: Boolean(initialValues && initialValues["email"]),
-      title: "Email",
+      title: t("common.email"),
       dataTestId: "email",
       disableSpellCheck: true,
     },
@@ -112,14 +114,14 @@ const LoginPage: () => JSX.Element = () => {
       field: {
         password: true,
       },
-      title: "Password",
+      title: t("common.password"),
       required: true,
       validation: {
         minLength: 6,
       },
       fieldType: FormFieldSchemaType.Password,
       sideLink: {
-        text: "Forgot password?",
+        text: t("login.forgotPassword"),
         url: new Route("/accounts/forgot-password"),
         openLinkInNewTab: false,
       },
@@ -136,9 +138,8 @@ const LoginPage: () => JSX.Element = () => {
         },
         overrideFieldKey: "captchaToken",
         fieldType: FormFieldSchemaType.CustomComponent,
-        title: "Human Verification",
-        description:
-          "Complete the captcha challenge so we know you're not a bot.",
+        title: t("captcha.title"),
+        description: t("captcha.description"),
         required: true,
         showEvenIfPermissionDoesNotExist: true,
         getCustomElement: (
@@ -286,11 +287,10 @@ const LoginPage: () => JSX.Element = () => {
         {!showTwoFactorAuth && (
           <>
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-              Sign in to your account
+              {t("login.title")}
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-              Join thousands of business that use OneUptime to help them stay
-              online all the time.
+              {t("login.subtitle")}
             </p>
           </>
         )}
@@ -298,11 +298,10 @@ const LoginPage: () => JSX.Element = () => {
         {showTwoFactorAuth && (
           <>
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-              Two Factor Authentication
+              {t("login.twoFactor.title")}
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-              Select two factor authentication method. You will be asked to
-              enter a code from the selected method.
+              {t("login.twoFactor.subtitle")}
             </p>
           </>
         )}
@@ -318,7 +317,7 @@ const LoginPage: () => JSX.Element = () => {
               fields={loginFields}
               createOrUpdateApiUrl={apiUrl}
               formType={FormType.Create}
-              submitButtonText={"Login"}
+              submitButtonText={t("login.submitButton")}
               onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
                 if (isCaptchaEnabled) {
                   const captchaToken: string | undefined = (
@@ -328,9 +327,7 @@ const LoginPage: () => JSX.Element = () => {
                     .trim();
 
                   if (!captchaToken) {
-                    throw new Error(
-                      "Please complete the captcha challenge before signing in.",
-                    );
+                    throw new Error(t("captcha.errorOnSignIn"));
                   }
 
                   miscDataProps["captchaToken"] = captchaToken;
@@ -385,7 +382,7 @@ const LoginPage: () => JSX.Element = () => {
                   <div>
                     <Link to={new Route("/accounts/sso")}>
                       <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                        Use single sign-on (SSO) instead
+                        {t("login.useSso")}
                       </div>
                     </Link>
                   </div>
@@ -415,8 +412,8 @@ const LoginPage: () => JSX.Element = () => {
                       </div>
                       <div className="text-sm text-gray-500">
                         {method.type === "totp"
-                          ? "Authenticator App"
-                          : "Security Key"}
+                          ? t("login.twoFactor.authenticatorApp")
+                          : t("login.twoFactor.securityKey")}
                       </div>
                     </div>
                   );
@@ -428,10 +425,10 @@ const LoginPage: () => JSX.Element = () => {
           {showTwoFactorAuth && selectedWebAuthn && (
             <div className="text-center">
               <div className="text-lg font-medium mb-4">
-                Authenticating with Security Key
+                {t("login.twoFactor.authenticatingWithSecurityKey")}
               </div>
               <div className="text-sm text-gray-500 mb-4">
-                Please follow the instructions on your security key device.
+                {t("login.twoFactor.securityKeyInstructions")}
               </div>
               {isTwoFactorAuthLoading && <ComponentLoader />}
               {twofactorAuthError && (
@@ -449,14 +446,14 @@ const LoginPage: () => JSX.Element = () => {
                   field: {
                     code: true,
                   },
-                  title: "Code",
-                  description: "Enter the code from your authenticator app",
+                  title: t("common.code"),
+                  description: t("login.twoFactor.codeFieldDescription"),
                   required: true,
                   dataTestId: "code",
                   fieldType: FormFieldSchemaType.Text,
                 },
               ]}
-              submitButtonText={"Login"}
+              submitButtonText={t("login.submitButton")}
               maxPrimaryButtonWidth={true}
               isLoading={isTwoFactorAuthLoading}
               error={twofactorAuthError}
@@ -507,12 +504,12 @@ const LoginPage: () => JSX.Element = () => {
         <div className="mt-6 sm:mt-10 text-center">
           {!selectedTotpAuth && !selectedWebAuthn && (
             <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-              Don&apos;t have an account?{" "}
+              {t("login.noAccountPrompt")}{" "}
               <Link
                 to={new Route("/accounts/register")}
                 className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
               >
-                Register.
+                {t("login.registerLink")}
               </Link>
             </div>
           )}
@@ -525,7 +522,7 @@ const LoginPage: () => JSX.Element = () => {
                 }}
                 className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
               >
-                Select a different two factor authentication method
+                {t("login.twoFactor.selectDifferentMethod")}
               </Link>
             </div>
           ) : (

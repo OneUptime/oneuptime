@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "submit": "送信",
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "email": "メール",
+    "password": "パスワード",
+    "fullName": "氏名",
+    "companyName": "会社名",
+    "phoneNumber": "電話番号",
+    "confirmPassword": "パスワードを確認",
+    "newPassword": "新しいパスワード",
+    "code": "コード",
+    "yourCompany": "あなたの会社"
+  },
+  "language": {
+    "label": "言語",
+    "switchLanguage": "言語を切り替える"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "お問い合わせ",
+    "privacyAndTerms": "プライバシーと利用規約"
+  },
+  "captcha": {
+    "title": "人間認証",
+    "description": "あなたがボットでないことを確認するため、captchaチャレンジを完了してください。",
+    "errorOnSignIn": "ログインする前にcaptchaチャレンジを完了してください。",
+    "errorOnSignUp": "登録する前にcaptchaチャレンジを完了してください。"
+  },
+  "login": {
+    "title": "アカウントにサインインする",
+    "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
+    "submitButton": "ログイン",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "useSso": "代わりにシングルサインオン（SSO）を使用する",
+    "noAccountPrompt": "アカウントをお持ちでない方は",
+    "registerLink": "登録。",
+    "twoFactor": {
+      "title": "二要素認証",
+      "subtitle": "二要素認証方法を選択してください。選択した方法のコードを入力するように求められます。",
+      "authenticatorApp": "認証アプリ",
+      "securityKey": "セキュリティキー",
+      "authenticatingWithSecurityKey": "セキュリティキーで認証中",
+      "securityKeyInstructions": "セキュリティキーデバイスの指示に従ってください。",
+      "codeFieldDescription": "認証アプリからコードを入力してください",
+      "selectDifferentMethod": "別の二要素認証方法を選択"
+    }
+  },
+  "register": {
+    "title": "OneUptimeアカウントを作成する",
+    "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
+    "noCreditCard": "クレジットカードは不要です。",
+    "submitButton": "サインアップ",
+    "haveAccountPrompt": "すでにアカウントをお持ちですか？",
+    "loginLink": "ログイン。",
+    "notifySelfHosted": "セキュリティパッチと新リリースについて通知する"
+  },
+  "forgotPassword": {
+    "title": "パスワードをお忘れの場合",
+    "subtitle": "メールアドレスを入力してください。パスワードリセットリンクが送信されます。",
+    "successMessage": "パスワードリセットリンクをメールでお送りしました。スパムフォルダーも確認してください。",
+    "submitButton": "パスワードリセットリンクを送信",
+    "returnToSignIn": "サインインに戻る。",
+    "rememberPasswordPrompt": "パスワードを覚えていますか？",
+    "loginLink": "ログイン。"
+  },
+  "resetPassword": {
+    "title": "パスワードをリセット",
+    "subtitle": "新しいパスワードを入力してください。更新されます。",
+    "successMessage": "パスワードが更新されました。ログインしてください。",
+    "submitButton": "パスワードをリセット",
+    "knowPasswordPrompt": "パスワードを知っていますか？",
+    "loginLink": "ログイン。"
+  },
+  "sso": {
+    "title": "SSOでログイン",
+    "subtitle": "アカウントにアクセスするためにSSOプロバイダーでログインしてください。",
+    "submitButton": "SSOでログイン",
+    "useUsernameInstead": "代わりにユーザー名とパスワードを使用する。",
+    "noAccountPrompt": "アカウントをお持ちでない方は",
+    "registerLink": "登録。",
+    "selectProjectTitle": "プロジェクトを選択",
+    "selectProjectSubtitle": "ログインしたいプロジェクトを選択してください。",
+    "noConfigForEmail": "メールアドレスのSSO設定が見つかりません：{{email}}",
+    "emailRequired": "このアクションを実行するにはメールアドレスが必要です",
+    "defaultProjectName": "プロジェクト"
+  },
+  "verifyEmail": {
+    "successTitle": "メールが確認されました。",
+    "successDescription": "メールを確認していただきありがとうございます。OneUptimeにログインできるようになりました。",
+    "errorTitle": "申し訳ございませんが、エラーが発生しました！",
+    "returnToSignIn": "サインインに戻りますか？",
+    "loginLink": "ログイン。"
+  },
+  "errors": {
+    "forbidden": {
+      "title": "禁止されています",
+      "description": "このページにアクセスする権限がありません。"
+    },
+    "notFound": {
+      "title": "ページが見つかりません",
+      "description": "お探しのページは存在しません。"
+    }
+  }
+}
