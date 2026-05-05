@@ -16,18 +16,20 @@ export interface SyncLinkedMonitorsResult {
 
 /**
  * Subset of Monitor fields that a template push can overwrite. Anything
- * outside this set (name, description, labels, monitorType, etc.) is
- * intentionally never touched by sync — those are per-monitor concerns.
+ * outside this set (name, description, monitorType, etc.) is intentionally
+ * never touched by sync — those are per-monitor concerns.
  */
 export type SyncableTemplateField =
   | "monitorSteps"
   | "monitoringInterval"
-  | "minimumProbeAgreement";
+  | "minimumProbeAgreement"
+  | "labels";
 
 const ALL_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
   "monitorSteps",
   "monitoringInterval",
   "minimumProbeAgreement",
+  "labels",
 ];
 
 export class Service extends DatabaseService<Model> {
@@ -125,6 +127,9 @@ export class Service extends DatabaseService<Model> {
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
+        labels: {
+          _id: true,
+        },
       },
       props: data.props,
     });
@@ -203,6 +208,9 @@ export class Service extends DatabaseService<Model> {
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
+        labels: {
+          _id: true,
+        },
       },
       props: data.props,
     });

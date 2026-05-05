@@ -87,15 +87,22 @@ const MonitorTemplatesView: FunctionComponent<
   const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
     null,
   );
-  const [showSyncAllModal, setShowSyncAllModal] = useState<boolean>(false);
-  const [isSyncingAll, setIsSyncingAll] = useState<boolean>(false);
-  const [syncAllError, setSyncAllError] = useState<string>("");
   const [syncResultMessage, setSyncResultMessage] = useState<string>("");
 
   const [showCriteriaSyncModal, setShowCriteriaSyncModal] =
     useState<boolean>(false);
   const [isSyncingCriteria, setIsSyncingCriteria] = useState<boolean>(false);
   const [criteriaSyncError, setCriteriaSyncError] = useState<string>("");
+
+  const [showIntervalSyncModal, setShowIntervalSyncModal] =
+    useState<boolean>(false);
+  const [isSyncingInterval, setIsSyncingInterval] = useState<boolean>(false);
+  const [intervalSyncError, setIntervalSyncError] = useState<string>("");
+
+  const [showLabelsSyncModal, setShowLabelsSyncModal] =
+    useState<boolean>(false);
+  const [isSyncingLabels, setIsSyncingLabels] = useState<boolean>(false);
+  const [labelsSyncError, setLabelsSyncError] = useState<string>("");
 
   const [singleSyncMonitor, setSingleSyncMonitor] = useState<Monitor | null>(
     null,
@@ -161,40 +168,6 @@ const MonitorTemplatesView: FunctionComponent<
     fetchMonitorType();
   }, []);
 
-  const onSyncAllSubmit: () => Promise<void> = async (): Promise<void> => {
-    setIsSyncingAll(true);
-    setSyncAllError("");
-    try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
-          ),
-        });
-
-      if (response.isFailure()) {
-        setSyncAllError(API.getFriendlyMessage(response));
-        setIsSyncingAll(false);
-        return;
-      }
-
-      const synced: number = (response.data["syncedMonitors"] as number) || 0;
-      const total: number =
-        (response.data["totalLinkedMonitors"] as number) || 0;
-
-      setSyncResultMessage(
-        `Synced ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
-      setShowSyncAllModal(false);
-      setIsSyncingAll(false);
-      fetchLinkedMonitorCount();
-      setTableRefreshToggle(Math.random().toString());
-    } catch (e) {
-      setSyncAllError(API.getFriendlyMessage(e));
-      setIsSyncingAll(false);
-    }
-  };
-
   const onSyncCriteriaSubmit: () => Promise<void> = async (): Promise<void> => {
     setIsSyncingCriteria(true);
     setCriteriaSyncError("");
@@ -229,6 +202,80 @@ const MonitorTemplatesView: FunctionComponent<
     } catch (e) {
       setCriteriaSyncError(API.getFriendlyMessage(e));
       setIsSyncingCriteria(false);
+    }
+  };
+
+  const onSyncIntervalSubmit: () => Promise<void> = async (): Promise<void> => {
+    setIsSyncingInterval(true);
+    setIntervalSyncError("");
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
+          ),
+          data: {
+            fields: ["monitoringInterval", "minimumProbeAgreement"],
+          },
+        });
+
+      if (response.isFailure()) {
+        setIntervalSyncError(API.getFriendlyMessage(response));
+        setIsSyncingInterval(false);
+        return;
+      }
+
+      const synced: number = (response.data["syncedMonitors"] as number) || 0;
+      const total: number =
+        (response.data["totalLinkedMonitors"] as number) || 0;
+
+      setSyncResultMessage(
+        `Synced monitoring interval onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
+      );
+      setShowIntervalSyncModal(false);
+      setIsSyncingInterval(false);
+      fetchLinkedMonitorCount();
+      setTableRefreshToggle(Math.random().toString());
+    } catch (e) {
+      setIntervalSyncError(API.getFriendlyMessage(e));
+      setIsSyncingInterval(false);
+    }
+  };
+
+  const onSyncLabelsSubmit: () => Promise<void> = async (): Promise<void> => {
+    setIsSyncingLabels(true);
+    setLabelsSyncError("");
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
+          ),
+          data: {
+            fields: ["labels"],
+          },
+        });
+
+      if (response.isFailure()) {
+        setLabelsSyncError(API.getFriendlyMessage(response));
+        setIsSyncingLabels(false);
+        return;
+      }
+
+      const synced: number = (response.data["syncedMonitors"] as number) || 0;
+      const total: number =
+        (response.data["totalLinkedMonitors"] as number) || 0;
+
+      setSyncResultMessage(
+        `Synced labels onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
+      );
+      setShowLabelsSyncModal(false);
+      setIsSyncingLabels(false);
+      fetchLinkedMonitorCount();
+      setTableRefreshToggle(Math.random().toString());
+    } catch (e) {
+      setLabelsSyncError(API.getFriendlyMessage(e));
+      setIsSyncingLabels(false);
     }
   };
 
@@ -402,15 +449,20 @@ const MonitorTemplatesView: FunctionComponent<
     }
   };
 
-  const syncAllButtonTitle: string =
-    linkedMonitorCount === null
-      ? "Sync All Linked Monitors"
-      : `Sync All ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
-
   const syncCriteriaButtonTitle: string =
     linkedMonitorCount === null
       ? "Sync Criteria to Linked Monitors"
       : `Sync Criteria to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+
+  const syncIntervalButtonTitle: string =
+    linkedMonitorCount === null
+      ? "Sync Interval to Linked Monitors"
+      : `Sync Interval to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+
+  const syncLabelsButtonTitle: string =
+    linkedMonitorCount === null
+      ? "Sync Labels to Linked Monitors"
+      : `Sync Labels to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
 
   return (
     <Fragment>
@@ -683,6 +735,19 @@ const MonitorTemplatesView: FunctionComponent<
               title: "Monitoring Interval",
               description:
                 "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.",
+              buttons: [
+                {
+                  title: syncIntervalButtonTitle,
+                  icon: IconProp.Refresh,
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  disabled: linkedMonitorCount === 0,
+                  onClick: () => {
+                    setSyncResultMessage("");
+                    setIntervalSyncError("");
+                    setShowIntervalSyncModal(true);
+                  },
+                },
+              ],
             }}
             isEditable={true}
             editButtonText="Edit Interval"
@@ -758,6 +823,19 @@ const MonitorTemplatesView: FunctionComponent<
           title: "Labels",
           description:
             "Default labels applied to monitors created from this template.",
+          buttons: [
+            {
+              title: syncLabelsButtonTitle,
+              icon: IconProp.Refresh,
+              buttonStyle: ButtonStyleType.NORMAL,
+              disabled: linkedMonitorCount === 0,
+              onClick: () => {
+                setSyncResultMessage("");
+                setLabelsSyncError("");
+                setShowLabelsSyncModal(true);
+              },
+            },
+          ],
         }}
         isEditable={true}
         editButtonText="Edit Labels"
@@ -804,7 +882,7 @@ const MonitorTemplatesView: FunctionComponent<
 
       <MonitorsTable
         title="Linked Monitors"
-        description="Monitors created from or linked to this template. Sync to push the template's current criteria, monitoring interval, and minimum probe agreement onto a monitor."
+        description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor."
         noItemsMessage="No monitors are linked to this template yet."
         disableCreate={true}
         query={linkedMonitorsQuery}
@@ -818,17 +896,6 @@ const MonitorTemplatesView: FunctionComponent<
               setSyncResultMessage("");
               setLinkError("");
               setShowLinkModal(true);
-            },
-          },
-          {
-            title: syncAllButtonTitle,
-            icon: IconProp.Refresh,
-            buttonStyle: ButtonStyleType.NORMAL,
-            disabled: linkedMonitorCount === 0,
-            onClick: () => {
-              setSyncResultMessage("");
-              setSyncAllError("");
-              setShowSyncAllModal(true);
             },
           },
         ]}
@@ -880,26 +947,6 @@ const MonitorTemplatesView: FunctionComponent<
         }}
       />
 
-      {showSyncAllModal && (
-        <ConfirmModal
-          title="Sync All Linked Monitors"
-          description={
-            <span>
-              {`This will overwrite the criteria, monitoring interval, and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Per-monitor name, description, and labels will be left alone. This cannot be undone.`}
-            </span>
-          }
-          submitButtonText="Sync All"
-          submitButtonType={ButtonStyleType.PRIMARY}
-          isLoading={isSyncingAll}
-          error={syncAllError}
-          onSubmit={onSyncAllSubmit}
-          onClose={() => {
-            setShowSyncAllModal(false);
-            setSyncAllError("");
-          }}
-        />
-      )}
-
       {showCriteriaSyncModal && (
         <ConfirmModal
           title="Sync Criteria to Linked Monitors"
@@ -920,12 +967,52 @@ const MonitorTemplatesView: FunctionComponent<
         />
       )}
 
+      {showIntervalSyncModal && (
+        <ConfirmModal
+          title="Sync Interval to Linked Monitors"
+          description={
+            <span>
+              {`This will overwrite the monitoring interval and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, name, description, and labels will be left alone. This cannot be undone.`}
+            </span>
+          }
+          submitButtonText="Sync Interval"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isSyncingInterval}
+          error={intervalSyncError}
+          onSubmit={onSyncIntervalSubmit}
+          onClose={() => {
+            setShowIntervalSyncModal(false);
+            setIntervalSyncError("");
+          }}
+        />
+      )}
+
+      {showLabelsSyncModal && (
+        <ConfirmModal
+          title="Sync Labels to Linked Monitors"
+          description={
+            <span>
+              {`This will overwrite ONLY the labels on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, monitoring interval, minimum probe agreement, name, and description will be left alone. This cannot be undone.`}
+            </span>
+          }
+          submitButtonText="Sync Labels"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isSyncingLabels}
+          error={labelsSyncError}
+          onSubmit={onSyncLabelsSubmit}
+          onClose={() => {
+            setShowLabelsSyncModal(false);
+            setLabelsSyncError("");
+          }}
+        />
+      )}
+
       {singleSyncMonitor && (
         <ConfirmModal
           title="Sync Monitor from Template"
           description={
             <span>
-              {`This will overwrite the criteria, monitoring interval, and minimum probe agreement on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name, description, and labels will be left alone. This cannot be undone.`}
+              {`This will overwrite the criteria, monitoring interval, minimum probe agreement, and labels on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name and description will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Now"
