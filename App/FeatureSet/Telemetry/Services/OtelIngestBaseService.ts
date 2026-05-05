@@ -401,17 +401,21 @@ export default abstract class OtelIngestBaseService {
   /**
    * Auto-discover a Host (generic OTel host) from resource attributes.
    *
-   * Phantom-host gate: only register a row when the batch carries
-   * something stronger than "any service that happens to have a
-   * hostname". Any one of the following is enough:
-   *   - host.id, host.arch, or os.type resource attribute present
-   *   - container.runtime resource attribute present (existing Docker case)
-   *   - k8s.cluster.name resource attribute present (k8s nodes are hosts too)
+   * Phantom-host gate: only register a row when the batch carries a
+   * strong signal that this is real host telemetry, not an application
+   * SDK auto-detecting hostname inside a pod. Any one of:
+   *   - os.type resource attribute (set by resourcedetection processor
+   *     with the system detector — needs native OS calls, app SDKs
+   *     typically don't include it)
+   *   - container.runtime resource attribute (Docker host)
+   *   - k8s.cluster.name resource attribute (k8s node — also a host)
    *   - hasInfraSignal=true (caller saw system.* / process.* metrics)
    *
-   * Without one of these we silently skip — application telemetry from
-   * inside a pod or VM will carry host.name but should not flood the
-   * Hosts list.
+   * Notably we DO NOT accept host.id or host.arch alone — both are
+   * commonly auto-detected by application SDKs from inside a container,
+   * so trusting them would flood the Hosts list with pod-name rows.
+   * They are still captured into the Host record if present, just not
+   * sufficient to create a row by themselves.
    */
   @CaptureSpan()
   protected static async autoDiscoverHost(data: {
@@ -461,7 +465,7 @@ export default abstract class OtelIngestBaseService {
       );
 
       const hasResourceSignal: boolean = Boolean(
-        hostIdAttr || hostArch || osType || containerRuntime || k8sClusterName,
+        osType || containerRuntime || k8sClusterName,
       );
 
       if (!hasResourceSignal && !data.hasInfraSignal) {
