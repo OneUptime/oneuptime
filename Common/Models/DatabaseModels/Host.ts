@@ -558,6 +558,39 @@ export default class Host extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Host IP Addresses",
+    description:
+      "Comma-separated list of IP addresses reported by the OTel host.ip resource attribute. The first non-loopback IPv4 is used for display.",
+    example: "192.168.1.42, 10.0.0.5",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public hostIpAddresses?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsManager,
+      Permission.ReadHost,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditHost,
+    ],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "CPU Cores",

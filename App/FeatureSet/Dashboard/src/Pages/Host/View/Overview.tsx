@@ -642,6 +642,44 @@ const HostOverview: FunctionComponent<
             },
             {
               field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Addresses",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                const ipString: string = (item.hostIpAddresses as string) || "";
+                if (!ipString) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                const ips: Array<string> = ipString
+                  .split(",")
+                  .map((s: string) => {
+                    return s.trim();
+                  })
+                  .filter((s: string) => {
+                    return s.length > 0;
+                  });
+                if (ips.length === 0) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {ips.map((ip: string) => {
+                      return (
+                        <span
+                          key={ip}
+                          className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs font-mono text-gray-700"
+                        >
+                          {ip}
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              },
+            },
+            {
+              field: {
                 cpuCores: true,
               },
               title: "CPU Cores",

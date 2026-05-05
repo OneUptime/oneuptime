@@ -88,6 +88,7 @@ export class Service extends DatabaseService<Model> {
       hostId?: string | undefined;
       hostArch?: string | undefined;
       hostType?: string | undefined;
+      hostIpAddresses?: string | undefined;
       cpuCores?: number | undefined;
       totalMemoryBytes?: number | undefined;
       processCount?: number | undefined;
@@ -108,6 +109,7 @@ export class Service extends DatabaseService<Model> {
         (extra.hostId ||
           extra.hostArch ||
           extra.hostType ||
+          extra.hostIpAddresses ||
           extra.cpuCores !== undefined ||
           extra.totalMemoryBytes !== undefined ||
           extra.processCount !== undefined ||
@@ -152,6 +154,9 @@ export class Service extends DatabaseService<Model> {
     }
     if (extra?.hostType) {
       data.hostType = extra.hostType;
+    }
+    if (extra?.hostIpAddresses) {
+      data.hostIpAddresses = extra.hostIpAddresses;
     }
     if (extra?.cpuCores !== undefined) {
       data.cpuCores = extra.cpuCores;

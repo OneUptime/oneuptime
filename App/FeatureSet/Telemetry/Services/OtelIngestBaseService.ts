@@ -309,6 +309,48 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
+  /**
+   * Read an OTel attribute that may be either a single string or an
+   * array of strings, returning the values as a list. Used for
+   * attributes like host.ip whose schema is "array of IP addresses".
+   * Falls back to a single stringValue if the attribute uses that
+   * shape (some SDKs flatten single-element arrays to a string).
+   */
+  @CaptureSpan()
+  protected static getStringArrayAttribute(
+    attributes: JSONArray,
+    key: string,
+  ): Array<string> {
+    for (const attribute of attributes) {
+      if (attribute["key"] !== key || !attribute["value"]) {
+        continue;
+      }
+      const value: JSONObject = attribute["value"] as JSONObject;
+
+      const arrayValue: JSONObject | undefined = value["arrayValue"] as
+        | JSONObject
+        | undefined;
+      if (arrayValue && Array.isArray(arrayValue["values"])) {
+        const out: Array<string> = [];
+        for (const v of arrayValue["values"] as JSONArray) {
+          const sv: JSONValue = (v as JSONObject)["stringValue"];
+          if (typeof sv === "string" && sv.trim()) {
+            out.push(sv.trim());
+          }
+        }
+        if (out.length > 0) {
+          return out;
+        }
+      }
+
+      const stringValue: JSONValue = value["stringValue"];
+      if (typeof stringValue === "string" && stringValue.trim()) {
+        return [stringValue.trim()];
+      }
+    }
+    return [];
+  }
+
   @CaptureSpan()
   protected static isDockerRuntime(attributes: JSONArray): boolean {
     for (const attribute of attributes) {
@@ -449,6 +491,12 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "host.type",
       );
+      const ipAddresses: Array<string> = this.getStringArrayAttribute(
+        data.attributes,
+        "host.ip",
+      );
+      const hostIpJoined: string | null =
+        ipAddresses.length > 0 ? ipAddresses.join(", ") : null;
       const osType: string | null = this.getStringAttribute(
         data.attributes,
         "os.type",
@@ -502,6 +550,7 @@ export default abstract class OtelIngestBaseService {
           hostId: hostIdAttr || undefined,
           hostArch: hostArch || undefined,
           hostType: hostType || undefined,
+          hostIpAddresses: hostIpJoined || undefined,
           cpuCores: data.cpuCores,
           totalMemoryBytes: data.totalMemoryBytes,
           processCount: data.processCount,

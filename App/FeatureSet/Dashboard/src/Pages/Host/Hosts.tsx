@@ -114,6 +114,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           osType: true,
           osVersion: true,
           hostArch: true,
+          hostIpAddresses: true,
           cpuCores: true,
           totalMemoryBytes: true,
           processCount: true,
@@ -233,6 +234,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
+              hostIpAddresses: true,
+            },
+            title: "IP Address",
+            type: FieldType.Text,
+          },
+          {
+            field: {
               labels: true,
             },
             title: "Labels",
@@ -299,6 +307,41 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     <span className="ml-1.5 text-xs font-mono text-gray-500">
                       {arch}
                     </span>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              hostIpAddresses: true,
+            },
+            title: "IP Address",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              const ipString: string = (item.hostIpAddresses as string) || "";
+              if (!ipString) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              const ips: Array<string> = ipString
+                .split(",")
+                .map((s: string) => {
+                  return s.trim();
+                })
+                .filter((s: string) => {
+                  return s.length > 0;
+                });
+              if (ips.length === 0) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              const primary: string = ips[0]!;
+              const rest: number = ips.length - 1;
+              return (
+                <div className="text-sm text-gray-700">
+                  <div className="font-mono">{primary}</div>
+                  {rest > 0 && (
+                    <div className="text-xs text-gray-500">+{rest} more</div>
                   )}
                 </div>
               );

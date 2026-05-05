@@ -64,6 +64,14 @@ const formatBytes: (value: number | null) => string = (
   return `${v.toFixed(1)} ${units[i]}`;
 };
 
+/*
+ * Processes are ephemeral — pids come and go on every collector scrape
+ * (typically every 30s). 15 minutes balances "show recent processes"
+ * with "don't show ghosts that exited 30 minutes ago". A user who needs
+ * a fresher snapshot can hit Refresh.
+ */
+const PROCESS_LOOKBACK_MINUTES: number = 15;
+
 const HostProcesses: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -73,6 +81,9 @@ const HostProcesses: FunctionComponent<
   const [rows, setRows] = useState<Array<ProcessRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [latestSampleAt, setLatestSampleAt] = useState<Date | null>(null);
+  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -96,7 +107,10 @@ const HostProcesses: FunctionComponent<
       setHost(item);
 
       const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);
+      const startDate: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -PROCESS_LOOKBACK_MINUTES,
+      );
       const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,6 +154,7 @@ const HostProcesses: FunctionComponent<
       ]);
 
       const byKey: Map<string, ProcessRow> = new Map();
+      let newestSample: Date | null = null;
 
       const upsert: (
         result: ListResult<Metric>,
@@ -149,6 +164,15 @@ const HostProcesses: FunctionComponent<
         field: "cpuPercent" | "memoryBytes" | "memoryPercent",
       ): void => {
         for (const m of result.data) {
+          if (m.time) {
+            const t: Date = new Date(m.time as unknown as string | Date);
+            if (
+              !Number.isNaN(t.getTime()) &&
+              (newestSample === null || t > newestSample)
+            ) {
+              newestSample = t;
+            }
+          }
           const attrs: Record<string, unknown> =
             (m.attributes as Record<string, unknown>) || {};
           const pidRaw: unknown = attrs[PROCESS_PID_ATTR];
@@ -203,10 +227,20 @@ const HostProcesses: FunctionComponent<
       );
 
       setRows(sorted);
+      setLatestSampleAt(newestSample);
+      setRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
     setIsLoading(false);
+    setIsRefreshing(false);
+  };
+
+  const refresh: () => void = (): void => {
+    setIsRefreshing(true);
+    fetchData().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
   };
 
   useEffect(() => {
@@ -227,11 +261,54 @@ const HostProcesses: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
+  const renderRefreshButton: () => ReactElement = (): ReactElement => {
+    return (
+      <button
+        type="button"
+        onClick={refresh}
+        disabled={isRefreshing}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+      >
+        <svg
+          className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.582m0 0a8.003 8.003 0 01-15.356-2m15.356 2H15"
+          />
+        </svg>
+        {isRefreshing ? "Refreshing…" : "Refresh"}
+      </button>
+    );
+  };
+
+  const renderFreshness: () => ReactElement = (): ReactElement => {
+    const parts: Array<string> = [];
+    if (latestSampleAt) {
+      parts.push(`latest sample ${OneUptimeDate.fromNow(latestSampleAt)}`);
+    }
+    if (refreshedAt) {
+      parts.push(`refreshed ${OneUptimeDate.fromNow(refreshedAt)}`);
+    }
+    return (
+      <span className="text-xs text-gray-500">
+        Looking back {PROCESS_LOOKBACK_MINUTES} minutes
+        {parts.length > 0 ? ` · ${parts.join(" · ")}` : ""}
+      </span>
+    );
+  };
+
   if (rows.length === 0) {
     return (
       <Card
         title="Processes"
         description="Per-process CPU, memory, and ownership data from the OTel `process` scraper."
+        rightElement={renderRefreshButton()}
       >
         <div className="px-4 py-12 text-center">
           <div className="mx-auto h-12 w-12 rounded-xl bg-slate-50 ring-1 ring-slate-200 flex items-center justify-center mb-4">
@@ -250,7 +327,7 @@ const HostProcesses: FunctionComponent<
             </svg>
           </div>
           <p className="text-sm font-semibold text-gray-900 mb-1">
-            No process metrics yet
+            No process metrics in the last {PROCESS_LOOKBACK_MINUTES} minutes
           </p>
           <p className="text-xs text-gray-500 max-w-md mx-auto">
             Enable the{" "}
@@ -261,7 +338,7 @@ const HostProcesses: FunctionComponent<
             <code className="text-[11px] bg-gray-100 px-1 py-0.5 rounded">
               hostmetrics
             </code>{" "}
-            receiver to see per-process CPU, memory, and ownership here. The{" "}
+            receiver to see per-process CPU, memory, and ownership here. The
             Documentation tab has a ready-to-paste config snippet.
           </p>
         </div>
@@ -302,7 +379,8 @@ const HostProcesses: FunctionComponent<
   return (
     <Card
       title="Processes"
-      description="Latest snapshot of processes on this host (last 5 minutes), sorted by CPU usage."
+      description={`Latest snapshot of processes on this host (last ${PROCESS_LOOKBACK_MINUTES} minutes), sorted by CPU usage.`}
+      rightElement={renderRefreshButton()}
     >
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <table className="min-w-full divide-y divide-gray-200">
@@ -376,9 +454,11 @@ const HostProcesses: FunctionComponent<
           </tbody>
         </table>
       </div>
-      <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-gray-100 bg-gray-50/50">
-        {rows.length} process{rows.length === 1 ? "" : "es"} · refreshes when
-        you reload the page
+      <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <span className="text-xs text-gray-600">
+          {rows.length} process{rows.length === 1 ? "" : "es"}
+        </span>
+        {renderFreshness()}
       </div>
     </Card>
   );
