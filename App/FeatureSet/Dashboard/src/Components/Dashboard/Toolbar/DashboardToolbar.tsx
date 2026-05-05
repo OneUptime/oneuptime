@@ -576,6 +576,26 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       );
                     }}
                   />
+                  <MoreMenuItem
+                    text={"Docker Hosts"}
+                    icon={IconProp.Server}
+                    key={"add-docker-host-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.DockerHostList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Docker Containers"}
+                    icon={IconProp.Cube}
+                    key={"add-docker-container-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.DockerContainerList,
+                      );
+                    }}
+                  />
                 </MoreMenu>
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>

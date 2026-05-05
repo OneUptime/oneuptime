@@ -35,6 +35,8 @@ import DashboardKubernetesStatefulSetListComponentUtil from "Common/Utils/Dashbo
 import DashboardKubernetesDaemonSetListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesDaemonSetListComponent";
 import DashboardKubernetesJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesJobListComponent";
 import DashboardKubernetesCronJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesCronJobListComponent";
+import DashboardDockerHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerHostListComponent";
+import DashboardDockerContainerListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerContainerListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -554,6 +556,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.KubernetesCronJobList) {
             newComponent =
               DashboardKubernetesCronJobListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerHostList) {
+            newComponent =
+              DashboardDockerHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerContainerList) {
+            newComponent =
+              DashboardDockerContainerListComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

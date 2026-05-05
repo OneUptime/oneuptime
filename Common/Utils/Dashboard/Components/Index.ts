@@ -4,6 +4,8 @@ import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentT
 import BadDataException from "../../../Types/Exception/BadDataException";
 import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
+import DashboardDockerContainerListComponentUtil from "./DashboardDockerContainerListComponent";
+import DashboardDockerHostListComponentUtil from "./DashboardDockerHostListComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
 import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
 import DashboardKubernetesCronJobListComponentUtil from "./DashboardKubernetesCronJobListComponent";
@@ -140,6 +142,18 @@ export default class DashboardComponentsUtil {
       dashboardComponentType === DashboardComponentType.KubernetesCronJobList
     ) {
       return DashboardKubernetesCronJobListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerHostList) {
+      return DashboardDockerHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerContainerList) {
+      return DashboardDockerContainerListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

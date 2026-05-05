@@ -23,6 +23,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
@@ -82,6 +83,12 @@ function getEntityModelDef(
     case EntityFilterModelType.KubernetesCluster:
       return {
         modelType: KubernetesCluster as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+      };
+    case EntityFilterModelType.DockerHost:
+      return {
+        modelType: DockerHost as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
       };

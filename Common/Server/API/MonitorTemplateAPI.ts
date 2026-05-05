@@ -95,5 +95,37 @@ export default class MonitorTemplateAPI extends BaseAPI<
         return;
       },
     );
+
+    // Push the template's current configuration onto a single linked monitor.
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/:monitorTemplateId/sync-to-monitor/:monitorId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const monitorTemplateId: ObjectID = new ObjectID(
+            req.params["monitorTemplateId"] as string,
+          );
+          const monitorId: ObjectID = new ObjectID(
+            req.params["monitorId"] as string,
+          );
+
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          await MonitorTemplateService.syncToMonitor({
+            monitorTemplateId,
+            monitorId,
+            props,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (e) {
+          next(e);
+        }
+        return;
+      },
+    );
   }
 }

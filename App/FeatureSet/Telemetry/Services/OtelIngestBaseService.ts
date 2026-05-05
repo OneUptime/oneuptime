@@ -330,10 +330,10 @@ export default abstract class OtelIngestBaseService {
   protected static async autoDiscoverDockerHost(data: {
     projectId: ObjectID;
     attributes: JSONArray;
-  }): Promise<void> {
+  }): Promise<ObjectID | null> {
     try {
       if (!this.isDockerRuntime(data.attributes)) {
-        return;
+        return null;
       }
 
       const hostName: string | null = this.getHostNameFromAttributes(
@@ -341,7 +341,7 @@ export default abstract class OtelIngestBaseService {
       );
 
       if (!hostName) {
-        return;
+        return null;
       }
 
       const osType: string | null = this.getStringAttribute(
@@ -381,11 +381,15 @@ export default abstract class OtelIngestBaseService {
           osType: osType || undefined,
           osVersion: osVersion || undefined,
         });
+        return new ObjectID(hostIdStr);
       }
+
+      return null;
     } catch (err) {
       logger.error(
         "Error auto-discovering Docker host: " + (err as Error).message,
       );
+      return null;
     }
   }
 

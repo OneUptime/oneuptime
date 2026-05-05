@@ -60,6 +60,7 @@ export interface ComponentProps {
   cardButtons?: Array<CardButtonSchema> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   videoLink?: Route | URL | undefined;
+  refreshToggle?: string | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -473,6 +474,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={false}
         isViewable={true}
+        refreshToggle={props.refreshToggle}
         query={props.query || {}}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{

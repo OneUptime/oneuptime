@@ -26,6 +26,7 @@ export enum EntityFilterModelType {
   Monitor = "Monitor",
   Label = "Label",
   KubernetesCluster = "KubernetesCluster",
+  DockerHost = "DockerHost",
 }
 
 export interface ComponentArgumentSection {

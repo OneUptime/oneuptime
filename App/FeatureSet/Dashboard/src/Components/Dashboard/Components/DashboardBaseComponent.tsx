@@ -23,6 +23,8 @@ import DashboardKubernetesStatefulSetListComponentType from "Common/Types/Dashbo
 import DashboardKubernetesDaemonSetListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDaemonSetListComponent";
 import DashboardKubernetesJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesJobListComponent";
 import DashboardKubernetesCronJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesCronJobListComponent";
+import DashboardDockerHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerHostListComponent";
+import DashboardDockerContainerListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerContainerListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -42,6 +44,8 @@ import DashboardKubernetesStatefulSetListComponent from "./DashboardKubernetesSt
 import DashboardKubernetesDaemonSetListComponent from "./DashboardKubernetesDaemonSetListComponent";
 import DashboardKubernetesJobListComponent from "./DashboardKubernetesJobListComponent";
 import DashboardKubernetesCronJobListComponent from "./DashboardKubernetesCronJobListComponent";
+import DashboardDockerHostListComponent from "./DashboardDockerHostListComponent";
+import DashboardDockerContainerListComponent from "./DashboardDockerContainerListComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -747,6 +751,23 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardKubernetesCronJobListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.DockerHostList && (
+          <DashboardDockerHostListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardDockerHostListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.DockerContainerList && (
+          <DashboardDockerContainerListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardDockerContainerListComponentType}
           />
         )}
       </div>

@@ -17,6 +17,8 @@ enum DashboardComponentType {
   KubernetesDaemonSetList = `KubernetesDaemonSetList`,
   KubernetesJobList = `KubernetesJobList`,
   KubernetesCronJobList = `KubernetesCronJobList`,
+  DockerHostList = `DockerHostList`,
+  DockerContainerList = `DockerContainerList`,
 }
 
 export default DashboardComponentType;

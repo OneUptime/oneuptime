@@ -2,11 +2,13 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
+import MonitorsTable from "../../../Components/Monitor/MonitorTable";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -18,8 +20,10 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
@@ -51,10 +55,21 @@ const MonitorTemplatesView: FunctionComponent<
   const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
     null,
   );
-  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncError, setSyncError] = useState<string>("");
+  const [showSyncAllModal, setShowSyncAllModal] = useState<boolean>(false);
+  const [isSyncingAll, setIsSyncingAll] = useState<boolean>(false);
+  const [syncAllError, setSyncAllError] = useState<string>("");
   const [syncResultMessage, setSyncResultMessage] = useState<string>("");
+
+  const [singleSyncMonitor, setSingleSyncMonitor] = useState<Monitor | null>(
+    null,
+  );
+  const [isSyncingSingle, setIsSyncingSingle] = useState<boolean>(false);
+  const [singleSyncError, setSingleSyncError] = useState<string>("");
+
+  // Bumping this triggers a refetch in the linked-monitors MonitorTable.
+  const [tableRefreshToggle, setTableRefreshToggle] = useState<string>(
+    Math.random().toString(),
+  );
 
   const fetchLinkedMonitorCount: () => Promise<void> =
     async (): Promise<void> => {
@@ -81,9 +96,9 @@ const MonitorTemplatesView: FunctionComponent<
     fetchLinkedMonitorCount();
   }, []);
 
-  const onSyncSubmit: () => Promise<void> = async (): Promise<void> => {
-    setIsSyncing(true);
-    setSyncError("");
+  const onSyncAllSubmit: () => Promise<void> = async (): Promise<void> => {
+    setIsSyncingAll(true);
+    setSyncAllError("");
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post<JSONObject>({
@@ -93,8 +108,8 @@ const MonitorTemplatesView: FunctionComponent<
         });
 
       if (response.isFailure()) {
-        setSyncError(API.getFriendlyMessage(response));
-        setIsSyncing(false);
+        setSyncAllError(API.getFriendlyMessage(response));
+        setIsSyncingAll(false);
         return;
       }
 
@@ -105,19 +120,52 @@ const MonitorTemplatesView: FunctionComponent<
       setSyncResultMessage(
         `Synced ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
       );
-      setShowSyncModal(false);
-      setIsSyncing(false);
+      setShowSyncAllModal(false);
+      setIsSyncingAll(false);
       fetchLinkedMonitorCount();
+      setTableRefreshToggle(Math.random().toString());
     } catch (e) {
-      setSyncError(API.getFriendlyMessage(e));
-      setIsSyncing(false);
+      setSyncAllError(API.getFriendlyMessage(e));
+      setIsSyncingAll(false);
     }
   };
 
-  const syncButtonTitle: string =
+  const onSingleSyncSubmit: () => Promise<void> = async (): Promise<void> => {
+    if (!singleSyncMonitor || !singleSyncMonitor.id) {
+      return;
+    }
+
+    setIsSyncingSingle(true);
+    setSingleSyncError("");
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/monitor-template/${modelId.toString()}/sync-to-monitor/${singleSyncMonitor.id.toString()}`,
+          ),
+        });
+
+      if (response.isFailure()) {
+        setSingleSyncError(API.getFriendlyMessage(response));
+        setIsSyncingSingle(false);
+        return;
+      }
+
+      const monitorName: string = singleSyncMonitor.name || "monitor";
+      setSingleSyncMonitor(null);
+      setIsSyncingSingle(false);
+      setSyncResultMessage(`Synced "${monitorName}" from this template.`);
+      setTableRefreshToggle(Math.random().toString());
+    } catch (e) {
+      setSingleSyncError(API.getFriendlyMessage(e));
+      setIsSyncingSingle(false);
+    }
+  };
+
+  const syncAllButtonTitle: string =
     linkedMonitorCount === null
-      ? "Sync to Linked Monitors"
-      : `Sync to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+      ? "Sync All Linked Monitors"
+      : `Sync All ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
 
   return (
     <Fragment>
@@ -127,17 +175,6 @@ const MonitorTemplatesView: FunctionComponent<
           title: "Monitor Template Details",
           description: "Here are the details for this monitor template.",
           buttons: [
-            {
-              title: syncButtonTitle,
-              icon: IconProp.Refresh,
-              buttonStyle: ButtonStyleType.NORMAL,
-              disabled: !linkedMonitorCount,
-              onClick: () => {
-                setSyncResultMessage("");
-                setSyncError("");
-                setShowSyncModal(true);
-              },
-            },
             {
               title: "Create Monitor from Template",
               icon: IconProp.Add,
@@ -416,6 +453,48 @@ const MonitorTemplatesView: FunctionComponent<
         }}
       />
 
+      <MonitorsTable
+        title="Linked Monitors"
+        description="Monitors created from this template. Sync to push the template's current criteria, monitoring interval, and minimum probe agreement onto a monitor."
+        noItemsMessage="No monitors have been created from this template yet."
+        disableCreate={true}
+        query={{
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          monitorTemplateId: modelId,
+        }}
+        cardButtons={[
+          {
+            title: syncAllButtonTitle,
+            icon: IconProp.Refresh,
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !linkedMonitorCount,
+            onClick: () => {
+              setSyncResultMessage("");
+              setSyncAllError("");
+              setShowSyncAllModal(true);
+            },
+          },
+        ]}
+        actionButtons={[
+          {
+            title: "Sync from Template",
+            icon: IconProp.Refresh,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            onClick: (
+              monitor: Monitor,
+              onCompleteAction: VoidFunction,
+              _onError: ErrorFunction,
+            ) => {
+              setSyncResultMessage("");
+              setSingleSyncError("");
+              setSingleSyncMonitor(monitor);
+              onCompleteAction();
+            },
+          },
+        ]}
+        refreshToggle={tableRefreshToggle}
+      />
+
       <ModelDelete
         modelType={MonitorTemplate}
         modelId={modelId}
@@ -429,22 +508,42 @@ const MonitorTemplatesView: FunctionComponent<
         }}
       />
 
-      {showSyncModal && (
+      {showSyncAllModal && (
         <ConfirmModal
-          title="Sync to Linked Monitors"
+          title="Sync All Linked Monitors"
           description={
             <span>
               {`This will overwrite the criteria, monitoring interval, and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Per-monitor name, description, and labels will be left alone. This cannot be undone.`}
             </span>
           }
+          submitButtonText="Sync All"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isSyncingAll}
+          error={syncAllError}
+          onSubmit={onSyncAllSubmit}
+          onClose={() => {
+            setShowSyncAllModal(false);
+            setSyncAllError("");
+          }}
+        />
+      )}
+
+      {singleSyncMonitor && (
+        <ConfirmModal
+          title="Sync Monitor from Template"
+          description={
+            <span>
+              {`This will overwrite the criteria, monitoring interval, and minimum probe agreement on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name, description, and labels will be left alone. This cannot be undone.`}
+            </span>
+          }
           submitButtonText="Sync Now"
           submitButtonType={ButtonStyleType.PRIMARY}
-          isLoading={isSyncing}
-          error={syncError}
-          onSubmit={onSyncSubmit}
+          isLoading={isSyncingSingle}
+          error={singleSyncError}
+          onSubmit={onSingleSyncSubmit}
           onClose={() => {
-            setShowSyncModal(false);
-            setSyncError("");
+            setSingleSyncMonitor(null);
+            setSingleSyncError("");
           }}
         />
       )}

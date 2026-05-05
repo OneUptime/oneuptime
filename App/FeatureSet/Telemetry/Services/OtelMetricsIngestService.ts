@@ -42,6 +42,9 @@ import KubernetesResourceService, {
 import KubernetesContainerService, {
   ContainerLatestMetric,
 } from "Common/Server/Services/KubernetesContainerService";
+import DockerResourceService, {
+  ParsedDockerContainer,
+} from "Common/Server/Services/DockerResourceService";
 
 type MetricTimestamp = {
   nano: string;
@@ -78,6 +81,17 @@ const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "container.memory.usage",
 ]);
 
+/*
+ * Docker snapshot metrics — emitted by the docker_stats receiver
+ * with container.id / container.name / container.image.name as
+ * resource attributes. Container row inventory is upserted from
+ * these in the same pass as the ClickHouse insert.
+ */
+const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage.total",
+]);
+
 interface ResourceMetricBufferEntry {
   kind: string;
   namespaceKey: string;
@@ -93,6 +107,15 @@ interface ContainerMetricBufferEntry {
   podNamespaceKey: string;
   podName: string;
   name: string;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface DockerContainerMetricBufferEntry {
+  containerName: string;
+  containerId: string | null;
+  imageName: string | null;
   cpuPercent: number | null;
   memoryBytes: number | null;
   observedAt: Date;
@@ -188,6 +211,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         Map<string, ContainerMetricBufferEntry>
       > = new Map();
+      const dockerContainerMetricsBuffer: Map<
+        string,
+        Map<string, DockerContainerMetricBufferEntry>
+      > = new Map();
 
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
@@ -227,10 +254,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             });
 
           // Auto-discover Docker host from resource attributes
-          await this.autoDiscoverDockerHost({
-            projectId,
-            attributes: resourceAttributes_raw,
-          });
+          const dockerHostId: ObjectID | null =
+            await this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
 
           if (!serviceDictionary[serviceName]) {
             const service: {
@@ -419,6 +447,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
+                        if (
+                          dockerHostId &&
+                          DOCKER_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferDockerSnapshotMetric({
+                            hostIdStr: dockerHostId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: dockerContainerMetricsBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -503,6 +545,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: k8sResourceMetricsBuffer,
         containerBuffer: k8sContainerMetricsBuffer,
+      });
+
+      await this.flushDockerSnapshotBuffer({
+        projectId,
+        buffer: dockerContainerMetricsBuffer,
       });
 
       if (totalMetricsProcessed === 0) {
@@ -876,6 +923,159 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             `K8s snapshot writeback (container) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
+      }
+    }
+  }
+
+  /*
+   * Match a Docker container metric to its row, fold the latest CPU
+   * or memory point into the per-host buffer. Identical pattern to
+   * the K8s buffering, but Docker has no separate inventory snapshot
+   * stream — every metric flush both creates and updates rows in
+   * one ON-CONFLICT statement.
+   */
+  private static bufferDockerSnapshotMetric(data: {
+    hostIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, DockerContainerMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "docker snapshot timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const containerName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.container.name",
+    );
+    if (!containerName) {
+      return;
+    }
+    const containerId: string =
+      this.readSnapshotAttr(attrs, "resource.container.id") ||
+      this.readSnapshotAttr(attrs, "container.id");
+    const imageName: string =
+      this.readSnapshotAttr(attrs, "resource.container.image.name") ||
+      this.readSnapshotAttr(attrs, "container.image.name");
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean = data.metricName === "container.memory.usage.total";
+
+    this.foldDockerContainerSnapshot({
+      buffer: data.buffer,
+      hostIdStr: data.hostIdStr,
+      containerName,
+      containerId: containerId || null,
+      imageName: imageName || null,
+      cpuPercent: isCpu
+        ? this.cpuValueToPercent(rawValue, data.metricUnit)
+        : null,
+      memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+      observedAt: ts.date,
+    });
+  }
+
+  private static foldDockerContainerSnapshot(data: {
+    buffer: Map<string, Map<string, DockerContainerMetricBufferEntry>>;
+    hostIdStr: string;
+    containerName: string;
+    containerId: string | null;
+    imageName: string | null;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+  }): void {
+    let perHost: Map<string, DockerContainerMetricBufferEntry> | undefined =
+      data.buffer.get(data.hostIdStr);
+    if (!perHost) {
+      perHost = new Map();
+      data.buffer.set(data.hostIdStr, perHost);
+    }
+    const key: string = data.containerName;
+    const existing: DockerContainerMetricBufferEntry | undefined =
+      perHost.get(key);
+    if (!existing) {
+      perHost.set(key, {
+        containerName: data.containerName,
+        containerId: data.containerId,
+        imageName: data.imageName,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+    /*
+     * Container ID and image name don't change for the lifetime of a
+     * container; first-non-null wins so later metrics missing the
+     * attribute don't blank the row.
+     */
+    if (data.containerId && !existing.containerId) {
+      existing.containerId = data.containerId;
+    }
+    if (data.imageName && !existing.imageName) {
+      existing.imageName = data.imageName;
+    }
+  }
+
+  private static async flushDockerSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, DockerContainerMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [hostIdStr, byKey] of data.buffer.entries()) {
+      if (byKey.size === 0) {
+        continue;
+      }
+      try {
+        const containers: Array<ParsedDockerContainer> = [];
+        for (const e of byKey.values()) {
+          containers.push({
+            containerName: e.containerName,
+            containerId: e.containerId,
+            imageName: e.imageName,
+            state: "running",
+            cpuPercent: e.cpuPercent,
+            memoryBytes: e.memoryBytes,
+            observedAt: e.observedAt,
+          });
+        }
+        await DockerResourceService.bulkUpsertContainers({
+          projectId: data.projectId,
+          dockerHostId: new ObjectID(hostIdStr),
+          containers,
+        });
+      } catch (err) {
+        logger.warn(
+          `Docker snapshot writeback failed for host ${hostIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
   }

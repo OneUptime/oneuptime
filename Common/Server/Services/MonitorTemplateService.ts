@@ -116,5 +116,86 @@ export class Service extends DatabaseService<Model> {
       syncedMonitors,
     };
   }
+
+  /**
+   * Sync the template's current configuration onto a single monitor that was
+   * created from it. The monitor must be linked to this template — passing an
+   * arbitrary monitor ID is rejected so the endpoint can't be tricked into
+   * pushing config to an unrelated monitor.
+   */
+  @CaptureSpan()
+  public async syncToMonitor(data: {
+    monitorTemplateId: ObjectID;
+    monitorId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const template: Model | null = await this.findOneById({
+      id: data.monitorTemplateId,
+      select: {
+        _id: true,
+        projectId: true,
+        monitorSteps: true,
+        monitoringInterval: true,
+        minimumProbeAgreement: true,
+      },
+      props: data.props,
+    });
+
+    if (!template) {
+      throw new BadDataException("Monitor template not found");
+    }
+
+    if (!template.projectId) {
+      throw new BadDataException("Monitor template is missing projectId");
+    }
+
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: data.monitorId,
+      select: {
+        _id: true,
+        projectId: true,
+        monitorTemplateId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!monitor) {
+      throw new BadDataException("Monitor not found");
+    }
+
+    if (
+      !monitor.monitorTemplateId ||
+      monitor.monitorTemplateId.toString() !== template.id!.toString()
+    ) {
+      throw new BadDataException("Monitor is not linked to this template");
+    }
+
+    if (
+      !monitor.projectId ||
+      monitor.projectId.toString() !== template.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "Monitor and template belong to different projects",
+      );
+    }
+
+    const updateData: Partial<Monitor> = {};
+
+    if (template.monitorSteps !== undefined) {
+      updateData.monitorSteps = template.monitorSteps;
+    }
+    if (template.monitoringInterval !== undefined) {
+      updateData.monitoringInterval = template.monitoringInterval;
+    }
+    if (template.minimumProbeAgreement !== undefined) {
+      updateData.minimumProbeAgreement = template.minimumProbeAgreement;
+    }
+
+    await MonitorService.updateOneById({
+      id: data.monitorId,
+      data: updateData as any,
+      props: data.props,
+    });
+  }
 }
 export default new Service();
