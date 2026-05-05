@@ -101,6 +101,31 @@ receivers:
         id: remove-severity-attr
         field: attributes.severity_text
 
+  # Inventory snapshots produced by inventory-snapshot.sh. Each line
+  # in the file is a JSON envelope:
+  #   {"oneuptime.docker.kind":"Container","data":{...}}
+  # The json_parser promotes both fields to attributes, then we move
+  # `data` into the body and surface the kind on a dedicated log
+  # record attribute the OneUptime backend reads.
+  filelog/inventory:
+    include:
+      - /var/log/oneuptime-docker-inventory.log
+    start_at: beginning
+    include_file_path: false
+    include_file_name: false
+    # The poller atomically rewrites the file on each interval, so we
+    # need to re-read from the top each time it changes.
+    poll_interval: 30s
+    operators:
+      - type: json_parser
+        id: parser-inventory
+      - type: move
+        from: attributes.data
+        to: body
+      - type: move
+        from: 'attributes["oneuptime.docker.kind"]'
+        to: 'attributes["oneuptime.docker.kind"]'
+
 processors:
   resource:
     attributes:
@@ -147,4 +172,11 @@ service:
       receivers: [filelog]
       processors:
         [memory_limiter, filter/drop_self_logs, resourcedetection, resource, batch]
+      exporters: [otlphttp]
+    # Inventory snapshots travel on a separate logs pipeline so the
+    # drop-self-logs filter (which is body-match against runtime
+    # noise) cannot accidentally swallow them.
+    logs/inventory:
+      receivers: [filelog/inventory]
+      processors: [memory_limiter, resourcedetection, resource, batch]
       exporters: [otlphttp]

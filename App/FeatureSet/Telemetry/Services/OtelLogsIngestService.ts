@@ -33,6 +33,9 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogScrubRuleService from "./LogScrubRuleService";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
+import DockerResourceService, {
+  ParsedDockerResource,
+} from "Common/Server/Services/DockerResourceService";
 import {
   extractInventoryResource,
   ExtractedInventoryRecord,
@@ -40,6 +43,12 @@ import {
   ParsedKubernetesResource,
   ParsedKubernetesContainerRow,
 } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
+import {
+  extractDockerInventoryResource,
+  ExtractedDockerInventoryRecord,
+  INVENTORY_KIND_ATTRIBUTE as DOCKER_INVENTORY_KIND_ATTRIBUTE,
+  isInventoriedDockerKind,
+} from "Common/Types/Docker/DockerInventoryExtractor";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
@@ -137,6 +146,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         Array<ParsedKubernetesContainerRow>
       > = new Map();
 
+      /*
+       * Docker inventory buffer keyed by docker host ID. Populated only
+       * when a log record carries the Docker agent's snapshot envelope
+       * attribute (oneuptime.docker.kind).
+       */
+      const dockerInventoryBuffer: Map<
+        string,
+        Array<ParsedDockerResource>
+      > = new Map();
+
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
@@ -191,10 +210,18 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const isK8sInventoryEligible: boolean = Boolean(kubernetesClusterId);
 
           // Auto-discover Docker host from resource attributes
-          await this.autoDiscoverDockerHost({
-            projectId,
-            attributes: resourceAttributes_raw,
-          });
+          const dockerHostId: ObjectID | null =
+            await this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          /*
+           * Docker inventory eligibility — same shape as the K8s gate.
+           * Per-record check happens inside the loop below since the
+           * agent tags each line individually.
+           */
+          const isDockerInventoryEligible: boolean = Boolean(dockerHostId);
 
           if (!serviceDictionary[serviceName]) {
             const service: {
@@ -414,6 +441,45 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * Docker inventory hook: the agent's snapshot script
+                   * emits each container/image/network/volume as a JSON
+                   * envelope tagged with `oneuptime.docker.kind`. We
+                   * route these into the DockerResource inventory table
+                   * exactly like the K8s flow above.
+                   */
+                  if (isDockerInventoryEligible && dockerHostId && body) {
+                    const recordDockerKind: unknown =
+                      attributesObject[DOCKER_INVENTORY_KIND_ATTRIBUTE];
+                    if (
+                      typeof recordDockerKind === "string" &&
+                      isInventoriedDockerKind(recordDockerKind)
+                    ) {
+                      try {
+                        const parsed: ExtractedDockerInventoryRecord | null =
+                          extractDockerInventoryResource({
+                            kind: recordDockerKind,
+                            logBody: body,
+                            lastSeenAt: timeDate,
+                          });
+                        if (parsed) {
+                          const key: string = dockerHostId.toString();
+                          let bucket: Array<ParsedDockerResource> | undefined =
+                            dockerInventoryBuffer.get(key);
+                          if (!bucket) {
+                            bucket = [];
+                            dockerInventoryBuffer.set(key, bucket);
+                          }
+                          bucket.push(parsed.resource);
+                        }
+                      } catch (invErr) {
+                        logger.warn(
+                          `Docker inventory parse failed for kind=${recordDockerKind}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+                        );
+                      }
+                    }
+                  }
+
                   let traceId: string = "";
                   try {
                     traceId = Text.convertBase64ToHex(log["traceId"] as string);
@@ -586,6 +652,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           } catch (invErr) {
             logger.error(
               `Error upserting KubernetesContainer inventory for cluster ${clusterIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
+            );
+          }
+        }
+      }
+
+      if (dockerInventoryBuffer.size > 0) {
+        for (const [hostIdStr, resources] of dockerInventoryBuffer.entries()) {
+          if (resources.length === 0) {
+            continue;
+          }
+          try {
+            await DockerResourceService.bulkUpsert({
+              projectId,
+              dockerHostId: new ObjectID(hostIdStr),
+              resources,
+            });
+          } catch (invErr) {
+            logger.error(
+              `Error upserting DockerResource inventory for host ${hostIdStr}: ${invErr instanceof Error ? invErr.message : String(invErr)}`,
             );
           }
         }

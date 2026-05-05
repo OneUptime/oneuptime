@@ -25,6 +25,9 @@ import DashboardKubernetesJobListComponentType from "Common/Types/Dashboard/Dash
 import DashboardKubernetesCronJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesCronJobListComponent";
 import DashboardDockerHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerHostListComponent";
 import DashboardDockerContainerListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerContainerListComponent";
+import DashboardDockerImageListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerImageListComponent";
+import DashboardDockerNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
+import DashboardDockerVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerVolumeListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -46,6 +49,9 @@ import DashboardKubernetesJobListComponent from "./DashboardKubernetesJobListCom
 import DashboardKubernetesCronJobListComponent from "./DashboardKubernetesCronJobListComponent";
 import DashboardDockerHostListComponent from "./DashboardDockerHostListComponent";
 import DashboardDockerContainerListComponent from "./DashboardDockerContainerListComponent";
+import DashboardDockerImageListComponent from "./DashboardDockerImageListComponent";
+import DashboardDockerNetworkListComponent from "./DashboardDockerNetworkListComponent";
+import DashboardDockerVolumeListComponent from "./DashboardDockerVolumeListComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -768,6 +774,32 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardDockerContainerListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.DockerImageList && (
+          <DashboardDockerImageListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardDockerImageListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.DockerNetworkList && (
+          <DashboardDockerNetworkListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardDockerNetworkListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.DockerVolumeList && (
+          <DashboardDockerVolumeListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardDockerVolumeListComponentType}
           />
         )}
       </div>

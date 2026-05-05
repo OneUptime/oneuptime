@@ -27,6 +27,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import Icon from "Common/UI/Components/Icon/Icon";
+import AddWidgetModal from "./AddWidgetModal";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -266,6 +267,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
+  const [showAddWidgetModal, setShowAddWidgetModal] = useState<boolean>(false);
 
   const isSaving: boolean = props.isSaving;
 
@@ -405,198 +407,15 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             {/* Edit mode actions */}
             {!isSaving && isEditMode && (
               <div className="flex items-center gap-1">
-                <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
-                  <MoreMenuItem
-                    text={"Chart"}
-                    icon={IconProp.ChartBar}
-                    key={"add-chart"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Chart);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Value"}
-                    icon={IconProp.Hashtag}
-                    key={"add-value"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Value);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Text"}
-                    icon={IconProp.Text}
-                    key={"add-text"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Text);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Table"}
-                    icon={IconProp.TableCells}
-                    key={"add-table"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Table);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Gauge"}
-                    icon={IconProp.Gauge}
-                    key={"add-gauge"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Gauge);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Log Stream"}
-                    icon={IconProp.Logs}
-                    key={"add-log-stream"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.LogStream,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Trace List"}
-                    icon={IconProp.Waterfall}
-                    key={"add-trace-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.TraceList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Incident List"}
-                    icon={IconProp.Alert}
-                    key={"add-incident-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.IncidentList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Alert List"}
-                    icon={IconProp.Bell}
-                    key={"add-alert-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.AlertList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Monitor List"}
-                    icon={IconProp.AltGlobe}
-                    key={"add-monitor-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.MonitorList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes Pods"}
-                    icon={IconProp.Cube}
-                    key={"add-k8s-pod-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesPodList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes Nodes"}
-                    icon={IconProp.Server}
-                    key={"add-k8s-node-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesNodeList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes Namespaces"}
-                    icon={IconProp.Folder}
-                    key={"add-k8s-namespace-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesNamespaceList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes Deployments"}
-                    icon={IconProp.ServerStack}
-                    key={"add-k8s-deployment-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesDeploymentList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes StatefulSets"}
-                    icon={IconProp.ServerStack}
-                    key={"add-k8s-statefulset-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesStatefulSetList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes DaemonSets"}
-                    icon={IconProp.ServerStack}
-                    key={"add-k8s-daemonset-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesDaemonSetList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes Jobs"}
-                    icon={IconProp.Clock}
-                    key={"add-k8s-job-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesJobList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Kubernetes CronJobs"}
-                    icon={IconProp.Clock}
-                    key={"add-k8s-cronjob-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.KubernetesCronJobList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Docker Hosts"}
-                    icon={IconProp.Server}
-                    key={"add-docker-host-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.DockerHostList,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Docker Containers"}
-                    icon={IconProp.Cube}
-                    key={"add-docker-container-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.DockerContainerList,
-                      );
-                    }}
-                  />
-                </MoreMenu>
+                <Button
+                  icon={IconProp.Add}
+                  title="Add Widget"
+                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    setShowAddWidgetModal(true);
+                  }}
+                />
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 
@@ -644,6 +463,19 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setShowCancelModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showAddWidgetModal ? (
+        <AddWidgetModal
+          onAddComponentClick={(type: DashboardComponentType) => {
+            props.onAddComponentClick(type);
+          }}
+          onClose={() => {
+            setShowAddWidgetModal(false);
           }}
         />
       ) : (

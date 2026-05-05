@@ -20,6 +20,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -34,10 +35,7 @@ import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import MonitorStepsViewer from "../../../Components/Monitor/MonitorSteps/MonitorSteps";
 import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import {
-  CustomElementProps,
-  FormFieldStyleType,
-} from "Common/UI/Components/Forms/Types/Field";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import React, {
   Fragment,
@@ -52,6 +50,15 @@ const MonitorTemplatesView: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
+  /*
+   * monitorType is loaded once at the top so the Criteria and Interval cards
+   * can decide whether to render. Each card otherwise fetches its own slice of
+   * the template independently.
+   */
+  const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
+    undefined,
+  );
+
   const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
     null,
   );
@@ -59,6 +66,11 @@ const MonitorTemplatesView: FunctionComponent<
   const [isSyncingAll, setIsSyncingAll] = useState<boolean>(false);
   const [syncAllError, setSyncAllError] = useState<string>("");
   const [syncResultMessage, setSyncResultMessage] = useState<string>("");
+
+  const [showCriteriaSyncModal, setShowCriteriaSyncModal] =
+    useState<boolean>(false);
+  const [isSyncingCriteria, setIsSyncingCriteria] = useState<boolean>(false);
+  const [criteriaSyncError, setCriteriaSyncError] = useState<string>("");
 
   const [singleSyncMonitor, setSingleSyncMonitor] = useState<Monitor | null>(
     null,
@@ -74,26 +86,43 @@ const MonitorTemplatesView: FunctionComponent<
   const fetchLinkedMonitorCount: () => Promise<void> =
     async (): Promise<void> => {
       try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.get<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/monitor-template/${modelId.toString()}/linked-monitor-count`,
-            ),
-          });
-
-        if (response.isFailure()) {
-          setLinkedMonitorCount(0);
-          return;
-        }
-
-        setLinkedMonitorCount((response.data["count"] as number) || 0);
+        const count: number = await ModelAPI.count<Monitor>({
+          modelType: Monitor,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            monitorTemplateId: modelId,
+          },
+        });
+        setLinkedMonitorCount(count);
       } catch {
+        /*
+         * Surface as 0 — the table is the source of truth and will still
+         * render whatever monitors actually match.
+         */
         setLinkedMonitorCount(0);
       }
     };
 
   useEffect(() => {
     fetchLinkedMonitorCount();
+
+    const fetchMonitorType: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const item: MonitorTemplate | null =
+          await ModelAPI.getItem<MonitorTemplate>({
+            modelType: MonitorTemplate,
+            id: modelId,
+            select: {
+              monitorType: true,
+            },
+          });
+        setMonitorType(item?.monitorType);
+      } catch {
+        // Leave undefined — the dependent cards will simply not render.
+      }
+    };
+
+    fetchMonitorType();
   }, []);
 
   const onSyncAllSubmit: () => Promise<void> = async (): Promise<void> => {
@@ -129,6 +158,45 @@ const MonitorTemplatesView: FunctionComponent<
       setIsSyncingAll(false);
     }
   };
+
+  const onSyncCriteriaSubmit: () => Promise<void> =
+    async (): Promise<void> => {
+      setIsSyncingCriteria(true);
+      setCriteriaSyncError("");
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
+            ),
+            data: {
+              fields: ["monitorSteps"],
+            },
+          });
+
+        if (response.isFailure()) {
+          setCriteriaSyncError(API.getFriendlyMessage(response));
+          setIsSyncingCriteria(false);
+          return;
+        }
+
+        const synced: number =
+          (response.data["syncedMonitors"] as number) || 0;
+        const total: number =
+          (response.data["totalLinkedMonitors"] as number) || 0;
+
+        setSyncResultMessage(
+          `Synced criteria onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
+        );
+        setShowCriteriaSyncModal(false);
+        setIsSyncingCriteria(false);
+        fetchLinkedMonitorCount();
+        setTableRefreshToggle(Math.random().toString());
+      } catch (e) {
+        setCriteriaSyncError(API.getFriendlyMessage(e));
+        setIsSyncingCriteria(false);
+      }
+    };
 
   const onSingleSyncSubmit: () => Promise<void> = async (): Promise<void> => {
     if (!singleSyncMonitor || !singleSyncMonitor.id) {
@@ -167,13 +235,19 @@ const MonitorTemplatesView: FunctionComponent<
       ? "Sync All Linked Monitors"
       : `Sync All ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
 
+  const syncCriteriaButtonTitle: string =
+    linkedMonitorCount === null
+      ? "Sync Criteria to Linked Monitors"
+      : `Sync Criteria to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+
   return (
     <Fragment>
+      {/* Template Info — identity of the template itself. */}
       <CardModelDetail<MonitorTemplate>
-        name="Monitor Template Details"
+        name="Template Info"
         cardProps={{
-          title: "Monitor Template Details",
-          description: "Here are the details for this monitor template.",
+          title: "Template Info",
+          description: "Identity for this monitor template.",
           buttons: [
             {
               title: "Create Monitor from Template",
@@ -192,38 +266,8 @@ const MonitorTemplatesView: FunctionComponent<
             },
           ],
         }}
-        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Monitor Defaults",
-            id: "monitor-defaults",
-          },
-          {
-            title: "Criteria",
-            id: "criteria",
-            showIf: (values: FormValues<MonitorTemplate>) => {
-              return values.monitorType !== MonitorType.Manual;
-            },
-          },
-          {
-            title: "Interval",
-            id: "monitoring-interval",
-            showIf: (values: FormValues<MonitorTemplate>) => {
-              return MonitorTypeHelper.doesMonitorTypeHaveInterval(
-                values.monitorType as MonitorType,
-              );
-            },
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
+        editButtonText="Edit Template Info"
         formFields={[
           {
             field: {
@@ -231,7 +275,6 @@ const MonitorTemplatesView: FunctionComponent<
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Production API Health",
             validation: {
@@ -244,129 +287,17 @@ const MonitorTemplatesView: FunctionComponent<
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "What is this template for?",
             validation: {
               minLength: 2,
             },
           },
-          {
-            field: {
-              monitorName: true,
-            },
-            title: "Default Monitor Name",
-            description:
-              "Default name applied to monitors created from this template.",
-            fieldType: FormFieldSchemaType.Text,
-            stepId: "monitor-defaults",
-            required: true,
-            placeholder: "Monitor Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              monitorDescription: true,
-            },
-            title: "Default Monitor Description",
-            fieldType: FormFieldSchemaType.LongText,
-            stepId: "monitor-defaults",
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              monitorType: true,
-            },
-            title: "Monitor Type",
-            description: "What kind of monitor will this template produce?",
-            stepId: "monitor-defaults",
-            fieldType: FormFieldSchemaType.CardSelect,
-            required: true,
-            cardSelectOptions:
-              MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
-          },
-          {
-            field: {
-              monitorSteps: true,
-            },
-            stepId: "criteria",
-            styleType: FormFieldStyleType.Heading,
-            title: "Monitor Details",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: true,
-            customValidation: (values: FormValues<MonitorTemplate>) => {
-              return MonitorStepsType.getValidationError(
-                values.monitorSteps as MonitorStepsType,
-                values.monitorType as MonitorType,
-              );
-            },
-            getCustomElement: (
-              value: FormValues<MonitorTemplate>,
-              fieldProps: CustomElementProps,
-            ) => {
-              return (
-                <MonitorStepsForm
-                  {...fieldProps}
-                  monitorType={value.monitorType || MonitorType.Manual}
-                  monitorName={value.monitorName || ""}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              monitoringInterval: true,
-            },
-            stepId: "monitoring-interval",
-            title: "Monitoring Interval",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            fetchDropdownOptions: (item: FormValues<MonitorTemplate>) => {
-              let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-              if (
-                item &&
-                (item.monitorType === MonitorType.SyntheticMonitor ||
-                  item.monitorType === MonitorType.CustomJavaScriptCode ||
-                  item.monitorType === MonitorType.SSLCertificate)
-              ) {
-                interval = interval.filter((option: DropdownOption) => {
-                  return (
-                    option.value !== "* * * * *" &&
-                    option.value !== "*/2 * * * *"
-                  );
-                });
-              }
-
-              return Promise.resolve(interval);
-            },
-            placeholder: "Select Monitoring Interval",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Default labels applied to monitors created from this template.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: MonitorTemplate,
-          id: "model-detail-monitor-template",
+          id: "model-detail-monitor-template-info",
           fields: [
             {
               field: {
@@ -391,6 +322,80 @@ const MonitorTemplatesView: FunctionComponent<
             },
             {
               field: {
+                createdAt: true,
+              },
+              title: "Created At",
+              fieldType: FieldType.DateTime,
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      {/* Monitor Defaults — what new monitors created from this template start with. */}
+      <CardModelDetail<MonitorTemplate>
+        name="Monitor Defaults"
+        cardProps={{
+          title: "Monitor Defaults",
+          description:
+            "Default name, description, and type applied to monitors created from this template.",
+        }}
+        createEditModalWidth={ModalWidth.Large}
+        isEditable={true}
+        editButtonText="Edit Monitor Defaults"
+        formFields={[
+          {
+            field: {
+              monitorName: true,
+            },
+            title: "Default Monitor Name",
+            description:
+              "Default name applied to monitors created from this template.",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "Monitor Name",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              monitorDescription: true,
+            },
+            title: "Default Monitor Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Description",
+          },
+          {
+            field: {
+              monitorType: true,
+            },
+            title: "Monitor Type",
+            description: "What kind of monitor will this template produce?",
+            fieldType: FormFieldSchemaType.CardSelect,
+            required: true,
+            cardSelectOptions:
+              MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
+          },
+        ]}
+        onSaveSuccess={(item: MonitorTemplate) => {
+          if (item.monitorType) {
+            setMonitorType(item.monitorType as MonitorType);
+          }
+        }}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 2,
+          modelType: MonitorTemplate,
+          id: "model-detail-monitor-template-defaults",
+          onItemLoaded: (item: MonitorTemplate) => {
+            if (item.monitorType && !monitorType) {
+              setMonitorType(item.monitorType as MonitorType);
+            }
+          },
+          fields: [
+            {
+              field: {
                 monitorName: true,
               },
               title: "Default Monitor Name",
@@ -405,36 +410,208 @@ const MonitorTemplatesView: FunctionComponent<
             },
             {
               field: {
-                monitoringInterval: true,
+                monitorDescription: true,
               },
-              title: "Monitoring Interval",
-              fieldType: FieldType.Text,
+              title: "Default Monitor Description",
+              fieldType: FieldType.LongText,
             },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      {/* Monitoring Criteria — only meaningful for non-Manual monitor types. */}
+      {monitorType && monitorType !== MonitorType.Manual && (
+        <CardModelDetail<MonitorTemplate>
+          name="Monitoring Criteria"
+          cardProps={{
+            title: "Monitoring Criteria",
+            description:
+              "What this template watches for and when it should fire.",
+            buttons: [
+              {
+                title: syncCriteriaButtonTitle,
+                icon: IconProp.Refresh,
+                buttonStyle: ButtonStyleType.NORMAL,
+                disabled: !linkedMonitorCount,
+                onClick: () => {
+                  setSyncResultMessage("");
+                  setCriteriaSyncError("");
+                  setShowCriteriaSyncModal(true);
+                },
+              },
+            ],
+          }}
+          createEditModalWidth={ModalWidth.Large}
+          isEditable={true}
+          editButtonText="Edit Criteria"
+          formFields={[
             {
               field: {
                 monitorSteps: true,
               },
-              title: "Criteria",
-              fieldType: FieldType.Element,
-              getElement: (item: MonitorTemplate): ReactElement => {
-                if (!item.monitorSteps) {
-                  return <p>No criteria configured.</p>;
-                }
+              title: "Monitor Details",
+              fieldType: FormFieldSchemaType.CustomComponent,
+              required: true,
+              customValidation: (values: FormValues<MonitorTemplate>) => {
+                return MonitorStepsType.getValidationError(
+                  values.monitorSteps as MonitorStepsType,
+                  monitorType,
+                );
+              },
+              getCustomElement: (
+                _value: FormValues<MonitorTemplate>,
+                fieldProps: CustomElementProps,
+              ) => {
                 return (
-                  <MonitorStepsViewer
-                    monitorSteps={item.monitorSteps as MonitorStepsType}
-                    monitorType={item.monitorType as MonitorType}
+                  <MonitorStepsForm
+                    {...fieldProps}
+                    monitorType={monitorType}
+                    monitorName={""}
                   />
                 );
               },
             },
-            {
-              field: {
-                createdAt: true,
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: MonitorTemplate,
+            id: "model-detail-monitor-template-criteria",
+            fields: [
+              {
+                field: {
+                  monitorSteps: true,
+                },
+                title: "",
+                fieldType: FieldType.Element,
+                getElement: (item: MonitorTemplate): ReactElement => {
+                  if (!item.monitorSteps) {
+                    return <p>No criteria configured.</p>;
+                  }
+                  return (
+                    <MonitorStepsViewer
+                      monitorSteps={item.monitorSteps as MonitorStepsType}
+                      monitorType={monitorType}
+                    />
+                  );
+                },
               },
-              title: "Created At",
-              fieldType: FieldType.DateTime,
+            ],
+            modelId: modelId,
+          }}
+        />
+      )}
+
+      {/* Monitoring Interval — only for monitor types that have an interval. */}
+      {monitorType &&
+        MonitorTypeHelper.doesMonitorTypeHaveInterval(monitorType) && (
+          <CardModelDetail<MonitorTemplate>
+            name="Monitoring Interval"
+            cardProps={{
+              title: "Monitoring Interval",
+              description:
+                "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.",
+            }}
+            isEditable={true}
+            editButtonText="Edit Interval"
+            formFields={[
+              {
+                field: {
+                  monitoringInterval: true,
+                },
+                title: "Monitoring Interval",
+                fieldType: FormFieldSchemaType.Dropdown,
+                required: true,
+                fetchDropdownOptions: () => {
+                  let interval: Array<DropdownOption> = [...MonitoringInterval];
+
+                  if (
+                    monitorType === MonitorType.SyntheticMonitor ||
+                    monitorType === MonitorType.CustomJavaScriptCode ||
+                    monitorType === MonitorType.SSLCertificate
+                  ) {
+                    interval = interval.filter((option: DropdownOption) => {
+                      return (
+                        option.value !== "* * * * *" &&
+                        option.value !== "*/2 * * * *"
+                      );
+                    });
+                  }
+
+                  return Promise.resolve(interval);
+                },
+                placeholder: "Select Monitoring Interval",
+              },
+              {
+                field: {
+                  minimumProbeAgreement: true,
+                },
+                title: "Minimum Probe Agreement",
+                description:
+                  "Minimum number of probes that must agree before a status change. Leave blank to require all enabled probes to agree.",
+                fieldType: FormFieldSchemaType.Number,
+                required: false,
+                placeholder: "e.g. 2",
+              },
+            ]}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 2,
+              modelType: MonitorTemplate,
+              id: "model-detail-monitor-template-interval",
+              fields: [
+                {
+                  field: {
+                    monitoringInterval: true,
+                  },
+                  title: "Monitoring Interval",
+                  fieldType: FieldType.Text,
+                },
+                {
+                  field: {
+                    minimumProbeAgreement: true,
+                  },
+                  title: "Minimum Probe Agreement",
+                  fieldType: FieldType.Number,
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+        )}
+
+      {/* Labels — applied to monitors created from this template. */}
+      <CardModelDetail<MonitorTemplate>
+        name="Labels"
+        cardProps={{
+          title: "Labels",
+          description:
+            "Default labels applied to monitors created from this template.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Labels"
+        formFields={[
+          {
+            field: {
+              labels: true,
             },
+            title: "Labels",
+            description:
+              "Default labels applied to monitors created from this template.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: MonitorTemplate,
+          id: "model-detail-monitor-template-labels",
+          fields: [
             {
               field: {
                 labels: {
@@ -524,6 +701,26 @@ const MonitorTemplatesView: FunctionComponent<
           onClose={() => {
             setShowSyncAllModal(false);
             setSyncAllError("");
+          }}
+        />
+      )}
+
+      {showCriteriaSyncModal && (
+        <ConfirmModal
+          title="Sync Criteria to Linked Monitors"
+          description={
+            <span>
+              {`This will overwrite ONLY the monitor criteria on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Monitoring interval, minimum probe agreement, name, description, and labels will be left alone. This cannot be undone.`}
+            </span>
+          }
+          submitButtonText="Sync Criteria"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isSyncingCriteria}
+          error={criteriaSyncError}
+          onSubmit={onSyncCriteriaSubmit}
+          onClose={() => {
+            setShowCriteriaSyncModal(false);
+            setCriteriaSyncError("");
           }}
         />
       )}

@@ -14,6 +14,22 @@ export interface SyncLinkedMonitorsResult {
   syncedMonitors: number;
 }
 
+/**
+ * Subset of Monitor fields that a template push can overwrite. Anything
+ * outside this set (name, description, labels, monitorType, etc.) is
+ * intentionally never touched by sync — those are per-monitor concerns.
+ */
+export type SyncableTemplateField =
+  | "monitorSteps"
+  | "monitoringInterval"
+  | "minimumProbeAgreement";
+
+const ALL_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
+  "monitorSteps",
+  "monitoringInterval",
+  "minimumProbeAgreement",
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -42,20 +58,65 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * Validate and narrow a list of field names to the syncable subset.
+   * Anything not in the whitelist throws — we never silently drop a field the
+   * caller asked for, that would mask UI bugs.
+   */
+  private validateSyncableFields(
+    fields: Array<string> | undefined,
+  ): Array<SyncableTemplateField> {
+    if (!fields || fields.length === 0) {
+      return [...ALL_SYNCABLE_FIELDS];
+    }
+
+    const allowed: Set<string> = new Set(ALL_SYNCABLE_FIELDS);
+    for (const field of fields) {
+      if (!allowed.has(field)) {
+        throw new BadDataException(
+          `Field "${field}" is not syncable from a monitor template`,
+        );
+      }
+    }
+    return fields as Array<SyncableTemplateField>;
+  }
+
+  private buildUpdateData(
+    template: Model,
+    fields: Array<SyncableTemplateField>,
+  ): Partial<Monitor> {
+    const updateData: Partial<Monitor> = {};
+
+    for (const field of fields) {
+      const value: unknown = (template as unknown as Record<string, unknown>)[
+        field
+      ];
+      if (value === undefined) {
+        continue;
+      }
+      (updateData as unknown as Record<string, unknown>)[field] = value;
+    }
+
+    return updateData;
+  }
+
+  /**
    * Push the template's current configuration onto every monitor that was
    * created from it. Sync is intentionally explicit (button-triggered) so a
    * config tweak doesn't silently re-deploy across the whole fleet.
    *
-   * Synced fields: monitorSteps, monitoringInterval, minimumProbeAgreement.
-   * Per-monitor identity (name, description) and the monitor type are left
-   * alone. Labels are left alone too — users routinely customize labels on
-   * individual monitors after creation.
+   * Pass `fields` to scope the sync — e.g. `["monitorSteps"]` to push only the
+   * criteria. If omitted, every syncable field is pushed.
    */
   @CaptureSpan()
   public async syncLinkedMonitors(data: {
     monitorTemplateId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    fields?: Array<string>;
   }): Promise<SyncLinkedMonitorsResult> {
+    const fields: Array<SyncableTemplateField> = this.validateSyncableFields(
+      data.fields,
+    );
+
     const template: Model | null = await this.findOneById({
       id: data.monitorTemplateId,
       select: {
@@ -88,16 +149,13 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    const updateData: Partial<Monitor> = {};
+    const updateData: Partial<Monitor> = this.buildUpdateData(template, fields);
 
-    if (template.monitorSteps !== undefined) {
-      updateData.monitorSteps = template.monitorSteps;
-    }
-    if (template.monitoringInterval !== undefined) {
-      updateData.monitoringInterval = template.monitoringInterval;
-    }
-    if (template.minimumProbeAgreement !== undefined) {
-      updateData.minimumProbeAgreement = template.minimumProbeAgreement;
+    if (Object.keys(updateData).length === 0) {
+      return {
+        totalLinkedMonitors,
+        syncedMonitors: 0,
+      };
     }
 
     const syncedMonitors: number = await MonitorService.updateBy({
@@ -122,13 +180,21 @@ export class Service extends DatabaseService<Model> {
    * created from it. The monitor must be linked to this template — passing an
    * arbitrary monitor ID is rejected so the endpoint can't be tricked into
    * pushing config to an unrelated monitor.
+   *
+   * Pass `fields` to scope the sync; if omitted, every syncable field is
+   * pushed.
    */
   @CaptureSpan()
   public async syncToMonitor(data: {
     monitorTemplateId: ObjectID;
     monitorId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    fields?: Array<string>;
   }): Promise<void> {
+    const fields: Array<SyncableTemplateField> = this.validateSyncableFields(
+      data.fields,
+    );
+
     const template: Model | null = await this.findOneById({
       id: data.monitorTemplateId,
       select: {
@@ -179,16 +245,10 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const updateData: Partial<Monitor> = {};
+    const updateData: Partial<Monitor> = this.buildUpdateData(template, fields);
 
-    if (template.monitorSteps !== undefined) {
-      updateData.monitorSteps = template.monitorSteps;
-    }
-    if (template.monitoringInterval !== undefined) {
-      updateData.monitoringInterval = template.monitoringInterval;
-    }
-    if (template.minimumProbeAgreement !== undefined) {
-      updateData.minimumProbeAgreement = template.minimumProbeAgreement;
+    if (Object.keys(updateData).length === 0) {
+      return;
     }
 
     await MonitorService.updateOneById({

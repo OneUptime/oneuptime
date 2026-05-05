@@ -37,6 +37,9 @@ import DashboardKubernetesJobListComponentUtil from "Common/Utils/Dashboard/Comp
 import DashboardKubernetesCronJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesCronJobListComponent";
 import DashboardDockerHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerHostListComponent";
 import DashboardDockerContainerListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerContainerListComponent";
+import DashboardDockerImageListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerImageListComponent";
+import DashboardDockerNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerNetworkListComponent";
+import DashboardDockerVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerVolumeListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -566,6 +569,21 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.DockerContainerList) {
             newComponent =
               DashboardDockerContainerListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerImageList) {
+            newComponent =
+              DashboardDockerImageListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerNetworkList) {
+            newComponent =
+              DashboardDockerNetworkListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerVolumeList) {
+            newComponent =
+              DashboardDockerVolumeListComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

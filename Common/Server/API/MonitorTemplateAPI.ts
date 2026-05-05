@@ -16,54 +16,35 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 
+/**
+ * Pull a `fields` whitelist out of the request body for a sync endpoint.
+ * Returns undefined when the caller didn't ask to scope the sync — the
+ * service treats that as "sync everything syncable".
+ */
+function readSyncFields(req: ExpressRequest): Array<string> | undefined {
+  const raw: unknown = (req.body as Record<string, unknown> | undefined)?.[
+    "fields"
+  ];
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  if (!Array.isArray(raw)) {
+    throw new BadDataException("`fields` must be an array of strings");
+  }
+  for (const entry of raw) {
+    if (typeof entry !== "string") {
+      throw new BadDataException("`fields` must be an array of strings");
+    }
+  }
+  return raw as Array<string>;
+}
+
 export default class MonitorTemplateAPI extends BaseAPI<
   MonitorTemplate,
   MonitorTemplateServiceType
 > {
   public constructor() {
     super(MonitorTemplate, MonitorTemplateService);
-
-    // Count monitors created from this template (used by the sync UI).
-    this.router.get(
-      `${new this.entityType()
-        .getCrudApiPath()
-        ?.toString()}/:monitorTemplateId/linked-monitor-count`,
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const monitorTemplateId: ObjectID = new ObjectID(
-            req.params["monitorTemplateId"] as string,
-          );
-
-          const props: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-          if (!props.tenantId) {
-            throw new BadDataException("Project ID is required");
-          }
-
-          // Verify the user can read this template before exposing the count.
-          await MonitorTemplateService.findOneById({
-            id: monitorTemplateId,
-            select: { _id: true },
-            props,
-          });
-
-          const count: number =
-            await MonitorTemplateService.countLinkedMonitors({
-              monitorTemplateId,
-              projectId: props.tenantId as ObjectID,
-            });
-
-          return Response.sendJsonObjectResponse(req, res, {
-            count,
-          });
-        } catch (e) {
-          next(e);
-        }
-        return;
-      },
-    );
 
     // Push the template's current configuration onto every linked monitor.
     this.router.post(
@@ -80,10 +61,13 @@ export default class MonitorTemplateAPI extends BaseAPI<
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          const fields: Array<string> | undefined = readSyncFields(req);
+
           const result: SyncLinkedMonitorsResult =
             await MonitorTemplateService.syncLinkedMonitors({
               monitorTemplateId,
               props,
+              fields,
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -114,10 +98,13 @@ export default class MonitorTemplateAPI extends BaseAPI<
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          const fields: Array<string> | undefined = readSyncFields(req);
+
           await MonitorTemplateService.syncToMonitor({
             monitorTemplateId,
             monitorId,
             props,
+            fields,
           });
 
           return Response.sendEmptySuccessResponse(req, res);
