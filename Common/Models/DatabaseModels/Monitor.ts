@@ -513,7 +513,13 @@ export default class Monitor extends BaseModel {
       Permission.ReadProjectMonitor,
       Permission.ReadAllProjectResources,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorManager,
+      Permission.EditProjectMonitor,
+    ],
   })
   @Index()
   @TableColumn({

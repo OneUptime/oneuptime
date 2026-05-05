@@ -257,5 +257,112 @@ export class Service extends DatabaseService<Model> {
       props: data.props,
     });
   }
+
+  /**
+   * Link an existing monitor to this template. The monitor must be in the same
+   * project AND have the same monitorType as the template — anything else is
+   * rejected, so a user can't (e.g.) link an API monitor to a Server-monitor
+   * template and then sync incompatible criteria onto it.
+   */
+  @CaptureSpan()
+  public async linkMonitor(data: {
+    monitorTemplateId: ObjectID;
+    monitorId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const template: Model | null = await this.findOneById({
+      id: data.monitorTemplateId,
+      select: {
+        _id: true,
+        projectId: true,
+        monitorType: true,
+      },
+      props: data.props,
+    });
+
+    if (!template) {
+      throw new BadDataException("Monitor template not found");
+    }
+    if (!template.projectId) {
+      throw new BadDataException("Monitor template is missing projectId");
+    }
+    if (!template.monitorType) {
+      throw new BadDataException("Monitor template is missing monitorType");
+    }
+
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: data.monitorId,
+      select: {
+        _id: true,
+        projectId: true,
+        monitorType: true,
+      },
+      props: data.props,
+    });
+
+    if (!monitor) {
+      throw new BadDataException("Monitor not found");
+    }
+    if (
+      !monitor.projectId ||
+      monitor.projectId.toString() !== template.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "Monitor and template belong to different projects",
+      );
+    }
+    if (monitor.monitorType !== template.monitorType) {
+      throw new BadDataException(
+        `Monitor type "${monitor.monitorType}" does not match template type "${template.monitorType}"`,
+      );
+    }
+
+    await MonitorService.updateOneById({
+      id: data.monitorId,
+      data: {
+        monitorTemplateId: template.id!,
+      } as any,
+      props: data.props,
+    });
+  }
+
+  /**
+   * Detach a monitor from this template. The monitor must currently be linked
+   * to *this* template — passing a monitor linked elsewhere (or unlinked) is
+   * rejected so a stale UI can't accidentally clear someone else's link.
+   */
+  @CaptureSpan()
+  public async unlinkMonitor(data: {
+    monitorTemplateId: ObjectID;
+    monitorId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: data.monitorId,
+      select: {
+        _id: true,
+        monitorTemplateId: true,
+      },
+      props: data.props,
+    });
+
+    if (!monitor) {
+      throw new BadDataException("Monitor not found");
+    }
+    if (
+      !monitor.monitorTemplateId ||
+      monitor.monitorTemplateId.toString() !== data.monitorTemplateId.toString()
+    ) {
+      throw new BadDataException("Monitor is not linked to this template");
+    }
+
+    await MonitorService.updateOneById({
+      id: data.monitorId,
+      data: {
+        monitorTemplateId: null,
+      } as any,
+      props: data.props,
+    });
+  }
 }
 export default new Service();

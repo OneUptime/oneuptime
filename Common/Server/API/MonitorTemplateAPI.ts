@@ -67,7 +67,7 @@ export default class MonitorTemplateAPI extends BaseAPI<
             await MonitorTemplateService.syncLinkedMonitors({
               monitorTemplateId,
               props,
-              fields,
+              ...(fields !== undefined ? { fields } : {}),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -104,7 +104,71 @@ export default class MonitorTemplateAPI extends BaseAPI<
             monitorTemplateId,
             monitorId,
             props,
-            fields,
+            ...(fields !== undefined ? { fields } : {}),
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (e) {
+          next(e);
+        }
+        return;
+      },
+    );
+
+    // Link an existing monitor to this template.
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/:monitorTemplateId/link-monitor/:monitorId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const monitorTemplateId: ObjectID = new ObjectID(
+            req.params["monitorTemplateId"] as string,
+          );
+          const monitorId: ObjectID = new ObjectID(
+            req.params["monitorId"] as string,
+          );
+
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          await MonitorTemplateService.linkMonitor({
+            monitorTemplateId,
+            monitorId,
+            props,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (e) {
+          next(e);
+        }
+        return;
+      },
+    );
+
+    // Detach a monitor from this template.
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/:monitorTemplateId/unlink-monitor/:monitorId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const monitorTemplateId: ObjectID = new ObjectID(
+            req.params["monitorTemplateId"] as string,
+          );
+          const monitorId: ObjectID = new ObjectID(
+            req.params["monitorId"] as string,
+          );
+
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          await MonitorTemplateService.unlinkMonitor({
+            monitorTemplateId,
+            monitorId,
+            props,
           });
 
           return Response.sendEmptySuccessResponse(req, res);

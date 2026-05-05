@@ -20,8 +20,12 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Query from "Common/Types/BaseDatabase/Query";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -42,13 +46,34 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
 const MonitorTemplatesView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  /*
+   * Memoize modelId so child components (CardModelDetail / ModelDetail) get a
+   * stable reference. Without this, Navigation.getLastParamAsObjectID() returns
+   * a new ObjectID every render, ModelDetail's useEffect dep changes, and the
+   * page re-fetches in a loop — that's the flicker.
+   */
+  const modelId: ObjectID = useMemo(() => {
+    return Navigation.getLastParamAsObjectID();
+  }, []);
+
+  /*
+   * Memoized so MonitorsTable's underlying ModelTable doesn't see a new query
+   * reference every render — that would cancel the in-flight fetch and refetch
+   * each time, contributing to the flicker.
+   */
+  const linkedMonitorsQuery: Query<Monitor> = useMemo(() => {
+    return {
+      projectId: ProjectUtil.getCurrentProjectId()!,
+      monitorTemplateId: modelId,
+    };
+  }, [modelId]);
 
   /*
    * monitorType is loaded once at the top so the Criteria and Interval cards
@@ -77,6 +102,17 @@ const MonitorTemplatesView: FunctionComponent<
   );
   const [isSyncingSingle, setIsSyncingSingle] = useState<boolean>(false);
   const [singleSyncError, setSingleSyncError] = useState<string>("");
+
+  const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
+  const [eligibleMonitors, setEligibleMonitors] = useState<Array<Monitor>>([]);
+  const [isLoadingEligibleMonitors, setIsLoadingEligibleMonitors] =
+    useState<boolean>(false);
+  const [isLinking, setIsLinking] = useState<boolean>(false);
+  const [linkError, setLinkError] = useState<string>("");
+
+  const [unlinkTarget, setUnlinkTarget] = useState<Monitor | null>(null);
+  const [isUnlinking, setIsUnlinking] = useState<boolean>(false);
+  const [unlinkError, setUnlinkError] = useState<string>("");
 
   // Bumping this triggers a refetch in the linked-monitors MonitorTable.
   const [tableRefreshToggle, setTableRefreshToggle] = useState<string>(
@@ -159,44 +195,42 @@ const MonitorTemplatesView: FunctionComponent<
     }
   };
 
-  const onSyncCriteriaSubmit: () => Promise<void> =
-    async (): Promise<void> => {
-      setIsSyncingCriteria(true);
-      setCriteriaSyncError("");
-      try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
-            ),
-            data: {
-              fields: ["monitorSteps"],
-            },
-          });
+  const onSyncCriteriaSubmit: () => Promise<void> = async (): Promise<void> => {
+    setIsSyncingCriteria(true);
+    setCriteriaSyncError("");
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
+          ),
+          data: {
+            fields: ["monitorSteps"],
+          },
+        });
 
-        if (response.isFailure()) {
-          setCriteriaSyncError(API.getFriendlyMessage(response));
-          setIsSyncingCriteria(false);
-          return;
-        }
-
-        const synced: number =
-          (response.data["syncedMonitors"] as number) || 0;
-        const total: number =
-          (response.data["totalLinkedMonitors"] as number) || 0;
-
-        setSyncResultMessage(
-          `Synced criteria onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-        );
-        setShowCriteriaSyncModal(false);
+      if (response.isFailure()) {
+        setCriteriaSyncError(API.getFriendlyMessage(response));
         setIsSyncingCriteria(false);
-        fetchLinkedMonitorCount();
-        setTableRefreshToggle(Math.random().toString());
-      } catch (e) {
-        setCriteriaSyncError(API.getFriendlyMessage(e));
-        setIsSyncingCriteria(false);
+        return;
       }
-    };
+
+      const synced: number = (response.data["syncedMonitors"] as number) || 0;
+      const total: number =
+        (response.data["totalLinkedMonitors"] as number) || 0;
+
+      setSyncResultMessage(
+        `Synced criteria onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
+      );
+      setShowCriteriaSyncModal(false);
+      setIsSyncingCriteria(false);
+      fetchLinkedMonitorCount();
+      setTableRefreshToggle(Math.random().toString());
+    } catch (e) {
+      setCriteriaSyncError(API.getFriendlyMessage(e));
+      setIsSyncingCriteria(false);
+    }
+  };
 
   const onSingleSyncSubmit: () => Promise<void> = async (): Promise<void> => {
     if (!singleSyncMonitor || !singleSyncMonitor.id) {
@@ -227,6 +261,144 @@ const MonitorTemplatesView: FunctionComponent<
     } catch (e) {
       setSingleSyncError(API.getFriendlyMessage(e));
       setIsSyncingSingle(false);
+    }
+  };
+
+  /*
+   * Pull monitors eligible to be linked when the Link modal opens. We fetch
+   * all monitors in this project of the matching type and filter out the ones
+   * already linked here on the client — there's no clean cross-project
+   * null-or-not-equal filter at the query-DSL level.
+   */
+  useEffect(() => {
+    if (!showLinkModal || !monitorType) {
+      return;
+    }
+
+    const loadEligible: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingEligibleMonitors(true);
+      setLinkError("");
+      try {
+        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+          modelType: Monitor,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            monitorType: monitorType,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            monitorTemplateId: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+        const templateIdString: string = modelId.toString();
+        const eligible: Array<Monitor> = result.data.filter(
+          (monitor: Monitor) => {
+            return (
+              !monitor.monitorTemplateId ||
+              monitor.monitorTemplateId.toString() !== templateIdString
+            );
+          },
+        );
+
+        setEligibleMonitors(eligible);
+      } catch (e) {
+        setLinkError(API.getFriendlyMessage(e));
+        setEligibleMonitors([]);
+      }
+      setIsLoadingEligibleMonitors(false);
+    };
+
+    loadEligible();
+  }, [showLinkModal, monitorType, modelId]);
+
+  const onLinkSubmit: (formData: {
+    monitorIds: Array<string>;
+  }) => Promise<void> = async (formData: {
+    monitorIds: Array<string>;
+  }): Promise<void> => {
+    const monitorIds: Array<string> = formData.monitorIds || [];
+    if (monitorIds.length === 0) {
+      setLinkError("Select at least one monitor to link.");
+      return;
+    }
+
+    setIsLinking(true);
+    setLinkError("");
+
+    const errors: Array<string> = [];
+    for (const monitorId of monitorIds) {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/monitor-template/${modelId.toString()}/link-monitor/${monitorId}`,
+            ),
+          });
+        if (response.isFailure()) {
+          errors.push(API.getFriendlyMessage(response));
+        }
+      } catch (e) {
+        errors.push(API.getFriendlyMessage(e));
+      }
+    }
+
+    setIsLinking(false);
+
+    if (errors.length > 0) {
+      setLinkError(
+        errors.length === 1
+          ? errors[0]!
+          : `${errors.length} of ${monitorIds.length} link operations failed: ${errors.join("; ")}`,
+      );
+      return;
+    }
+
+    setShowLinkModal(false);
+    setEligibleMonitors([]);
+    setSyncResultMessage(
+      `Linked ${monitorIds.length} monitor${monitorIds.length === 1 ? "" : "s"} to this template.`,
+    );
+    fetchLinkedMonitorCount();
+    setTableRefreshToggle(Math.random().toString());
+  };
+
+  const onUnlinkSubmit: () => Promise<void> = async (): Promise<void> => {
+    if (!unlinkTarget || !unlinkTarget.id) {
+      return;
+    }
+
+    setIsUnlinking(true);
+    setUnlinkError("");
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/monitor-template/${modelId.toString()}/unlink-monitor/${unlinkTarget.id.toString()}`,
+          ),
+        });
+
+      if (response.isFailure()) {
+        setUnlinkError(API.getFriendlyMessage(response));
+        setIsUnlinking(false);
+        return;
+      }
+
+      const monitorName: string = unlinkTarget.name || "monitor";
+      setUnlinkTarget(null);
+      setIsUnlinking(false);
+      setSyncResultMessage(`Unlinked "${monitorName}" from this template.`);
+      fetchLinkedMonitorCount();
+      setTableRefreshToggle(Math.random().toString());
+    } catch (e) {
+      setUnlinkError(API.getFriendlyMessage(e));
+      setIsUnlinking(false);
     }
   };
 
@@ -433,7 +605,7 @@ const MonitorTemplatesView: FunctionComponent<
                 title: syncCriteriaButtonTitle,
                 icon: IconProp.Refresh,
                 buttonStyle: ButtonStyleType.NORMAL,
-                disabled: !linkedMonitorCount,
+                disabled: linkedMonitorCount === 0,
                 onClick: () => {
                   setSyncResultMessage("");
                   setCriteriaSyncError("");
@@ -632,19 +804,27 @@ const MonitorTemplatesView: FunctionComponent<
 
       <MonitorsTable
         title="Linked Monitors"
-        description="Monitors created from this template. Sync to push the template's current criteria, monitoring interval, and minimum probe agreement onto a monitor."
-        noItemsMessage="No monitors have been created from this template yet."
+        description="Monitors created from or linked to this template. Sync to push the template's current criteria, monitoring interval, and minimum probe agreement onto a monitor."
+        noItemsMessage="No monitors are linked to this template yet."
         disableCreate={true}
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          monitorTemplateId: modelId,
-        }}
+        query={linkedMonitorsQuery}
         cardButtons={[
+          {
+            title: "Link Existing Monitors",
+            icon: IconProp.Add,
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !monitorType,
+            onClick: () => {
+              setSyncResultMessage("");
+              setLinkError("");
+              setShowLinkModal(true);
+            },
+          },
           {
             title: syncAllButtonTitle,
             icon: IconProp.Refresh,
             buttonStyle: ButtonStyleType.NORMAL,
-            disabled: !linkedMonitorCount,
+            disabled: linkedMonitorCount === 0,
             onClick: () => {
               setSyncResultMessage("");
               setSyncAllError("");
@@ -665,6 +845,21 @@ const MonitorTemplatesView: FunctionComponent<
               setSyncResultMessage("");
               setSingleSyncError("");
               setSingleSyncMonitor(monitor);
+              onCompleteAction();
+            },
+          },
+          {
+            title: "Unlink from Template",
+            icon: IconProp.Close,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            onClick: (
+              monitor: Monitor,
+              onCompleteAction: VoidFunction,
+              _onError: ErrorFunction,
+            ) => {
+              setSyncResultMessage("");
+              setUnlinkError("");
+              setUnlinkTarget(monitor);
               onCompleteAction();
             },
           },
@@ -745,9 +940,71 @@ const MonitorTemplatesView: FunctionComponent<
         />
       )}
 
+      {showLinkModal && (
+        <BasicFormModal<{ monitorIds: Array<string> }>
+          title="Link Existing Monitors"
+          description={
+            isLoadingEligibleMonitors
+              ? "Loading monitors that can be linked…"
+              : `Select ${monitorType ? monitorType : ""} monitors in this project to link to this template. Monitors already linked here are hidden; monitors linked to a different template will be moved to this one.`
+          }
+          submitButtonText="Link"
+          isLoading={isLinking}
+          error={linkError}
+          onClose={() => {
+            setShowLinkModal(false);
+            setLinkError("");
+            setEligibleMonitors([]);
+          }}
+          onSubmit={onLinkSubmit}
+          formProps={{
+            fields: [
+              {
+                field: {
+                  monitorIds: true,
+                },
+                title: "Monitors",
+                description:
+                  eligibleMonitors.length === 0 && !isLoadingEligibleMonitors
+                    ? "No eligible monitors found in this project for this monitor type."
+                    : "",
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                required: true,
+                dropdownOptions: eligibleMonitors.map((monitor: Monitor) => {
+                  return {
+                    label: monitor.name || "(unnamed monitor)",
+                    value: monitor._id?.toString() || "",
+                  };
+                }),
+              },
+            ],
+          }}
+        />
+      )}
+
+      {unlinkTarget && (
+        <ConfirmModal
+          title="Unlink Monitor from Template"
+          description={
+            <span>
+              {`This will detach "${unlinkTarget.name || "this monitor"}" from this template. The monitor keeps its current criteria, interval, and other settings — but it will no longer receive sync updates from this template.`}
+            </span>
+          }
+          submitButtonText="Unlink"
+          submitButtonType={ButtonStyleType.DANGER}
+          isLoading={isUnlinking}
+          error={unlinkError}
+          onSubmit={onUnlinkSubmit}
+          onClose={() => {
+            setUnlinkTarget(null);
+            setUnlinkError("");
+          }}
+        />
+      )}
+
       {syncResultMessage && (
         <ConfirmModal
-          title="Sync Complete"
+          title="Done"
           description={syncResultMessage}
           submitButtonText="OK"
           submitButtonType={ButtonStyleType.PRIMARY}
