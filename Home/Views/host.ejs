@@ -18,13 +18,16 @@
   <main id="main-content">
     <!-- Hero Section -->
     <div class="relative isolate overflow-hidden bg-white" id="host-hero-section">
+      <!-- Subtle grid pattern background -->
       <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
+      <!-- Grid glow effect that follows cursor -->
       <div id="host-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(71, 85, 105, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(71, 85, 105, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
       <div class="py-20 sm:py-28 lg:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
             <p class="text-sm font-medium text-slate-600 mb-4">OpenTelemetry Native Host Monitoring</p>
 
             <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
@@ -44,6 +47,7 @@
               </a>
             </div>
 
+            <!-- Subtle feature list -->
             <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
               <span>Auto-discovery</span>
               <span class="hidden sm:inline text-gray-300">|</span>
@@ -311,208 +315,837 @@
       </div>
     </div>
 
-    <!-- How it works -->
-    <div class="bg-gray-50 py-20 sm:py-28">
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-3xl text-center mb-16">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-slate-600 uppercase tracking-wide mb-3">How It Works</p>
           <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
             One collector. Every host you run.
           </h2>
           <p class="mt-4 text-lg text-gray-600">
-            Auto-discovery is keyed on the OTel <code class="px-1.5 py-0.5 bg-gray-200 rounded text-sm">host.name</code> resource attribute. Send any <code class="px-1.5 py-0.5 bg-gray-200 rounded text-sm">system.*</code> or <code class="px-1.5 py-0.5 bg-gray-200 rounded text-sm">process.*</code> metric and the host shows up in your project — no agent install, no manifest, no manual registration.
+            Auto-discovery is keyed on the OTel <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">host.name</code> resource attribute — no agent install, no manual registration.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-2xl p-8 ring-1 ring-gray-200">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 mb-5">
-              <span class="text-sm font-semibold text-slate-700">1</span>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Drop in the OTel collector</h3>
-            <p class="text-sm text-gray-600">
-              Run any standard OpenTelemetry Collector with the <code class="text-xs">hostmetrics</code> and <code class="text-xs">process</code> receivers. Point its OTLP exporter at OneUptime.
-            </p>
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-slate-200"></div>
           </div>
 
-          <div class="bg-white rounded-2xl p-8 ring-1 ring-gray-200">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 mb-5">
-              <span class="text-sm font-semibold text-slate-700">2</span>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Hosts appear automatically</h3>
-            <p class="text-sm text-gray-600">
-              The first metric batch carrying <code class="text-xs">host.name</code> registers the host. OS, architecture, CPU cores, and total memory are captured from resource attributes on the same call.
-            </p>
-          </div>
-
-          <div class="bg-white rounded-2xl p-8 ring-1 ring-gray-200">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 mb-5">
-              <span class="text-sm font-semibold text-slate-700">3</span>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Browse, alert, correlate</h3>
-            <p class="text-sm text-gray-600">
-              Charts, processes, and logs are all filtered by host. Run a Docker host or a Kubernetes node? It's auto-linked to the existing entity in those sections.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Feature grid -->
-    <div class="bg-white py-20 sm:py-28">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-3xl text-center mb-16">
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            Everything you need on a host. Nothing you don't.
-          </h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Live system metrics</h3>
-            <p class="text-sm text-gray-600">
-              CPU utilization by state, memory usage and utilization, filesystem usage by mount, disk read/write, network I/O and errors, load average, paging, processes count.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Per-process detail</h3>
-            <p class="text-sm text-gray-600">
-              Latest CPU and memory per pid + executable, with command line and owner. Pulled straight from the OTel <code class="text-xs">process</code> scraper.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Correlated logs</h3>
-            <p class="text-sm text-gray-600">
-              The Logs tab on every host filters ClickHouse logs by <code class="text-xs">resource.host.name</code>. Anything your collector ships shows up where it belongs.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-linked Docker hosts</h3>
-            <p class="text-sm text-gray-600">
-              When a host also runs Docker, the Host record links to the matching Docker Host so you can jump to container-level metrics in one click.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Kubernetes-aware</h3>
-            <p class="text-sm text-gray-600">
-              Hosts that report <code class="text-xs">k8s.cluster.name</code> are linked to the cluster they belong to — the Host page acts as a per-node deep-link from your Kubernetes view.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Connection status</h3>
-            <p class="text-sm text-gray-600">
-              <code class="text-xs">otelCollectorStatus</code> flips to disconnected when telemetry stops arriving. <code class="text-xs">lastSeenAt</code> is throttled per host to avoid hammering the database.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Phantom-host gate</h3>
-            <p class="text-sm text-gray-600">
-              Backend services that happen to set <code class="text-xs">host.name</code> won't pollute your Hosts list. We require a real infra signal — <code class="text-xs">host.id</code>, <code class="text-xs">os.type</code>, or any <code class="text-xs">system.*</code> metric.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">OS &amp; hardware metadata</h3>
-            <p class="text-sm text-gray-600">
-              OS type, OS description, host architecture, instance type, CPU core count, and total physical memory captured from resource attributes and the <code class="text-xs">hostmetrics</code> stream.
-            </p>
-          </div>
-
-          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Open source</h3>
-            <p class="text-sm text-gray-600">
-              No proprietary agent, no hidden lock-in. The collector is upstream OTel; the OneUptime backend ingest, schemas, and dashboards are open source. Self-host or use the cloud.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick collector snippet -->
-    <div class="bg-gray-50 py-20 sm:py-28">
-      <div class="mx-auto max-w-5xl px-6 lg:px-8">
-        <div class="mx-auto max-w-3xl text-center mb-12">
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            One config. Every host visible.
-          </h2>
-          <p class="mt-4 text-lg text-gray-600">
-            Drop this into your collector and the host appears in OneUptime within seconds.
-          </p>
-        </div>
-
-        <div class="bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
-          <div class="bg-gray-800 px-6 py-3 flex items-center justify-between border-b border-gray-700">
-            <div class="flex items-center gap-2">
-              <div class="flex gap-1.5">
-                <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div class="w-3 h-3 rounded-full bg-green-400"></div>
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-slate-700 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-700 ring-2 ring-slate-700">1</span>
               </div>
-              <span class="text-xs text-gray-400 font-mono ml-2">otel-collector-config.yaml</span>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Drop in the OTel collector</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Run any standard OpenTelemetry Collector with the <code class="text-xs bg-gray-100 px-1 rounded">hostmetrics</code> receiver enabled.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-slate-700 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-700 ring-2 ring-slate-700">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Point at OneUptime</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Set the OTLP exporter endpoint to your OneUptime workspace and add your ingestion key.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-slate-700 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-700 ring-2 ring-slate-700">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-discovered</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Your host appears the moment the first metric batch lands. OS, architecture, cores, and total memory captured automatically.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-slate-700 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-700 ring-2 ring-slate-700">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alert on what matters</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Set thresholds for CPU saturation, memory pressure, disk fill, and process count anomalies.</p>
             </div>
           </div>
-          <pre class="p-6 text-sm text-gray-100 font-mono overflow-x-auto leading-relaxed"><code>receivers:
-  hostmetrics:
-    collection_interval: 30s
-    scrapers:
-      cpu:
-      memory:
-      disk:
-      filesystem:
-      load:
-      network:
-      processes:
-      process:
-        mute_process_name_error: true
-
-processors:
-  resourcedetection:
-    detectors: [system, env]
-  batch:
-
-exporters:
-  otlphttp/oneuptime:
-    endpoint: https://oneuptime.com/otlp
-    headers:
-      x-oneuptime-token: &lt;your-ingestion-key&gt;
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]</code></pre>
         </div>
       </div>
     </div>
 
-    <!-- CTA -->
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-600/20 mb-6">
+            <svg class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-slate-700">Why OneUptime for Hosts</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Host observability built for production
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            From bare-metal servers to ephemeral cloud VMs, OneUptime captures the full picture — system metrics, processes, logs, and the entities your host belongs to.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Auto-discovery -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                  <svg class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-slate-600 uppercase tracking-wide">Auto-Discovery</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Hosts appear the moment they emit telemetry</h3>
+              <p class="mt-4 text-lg text-gray-600">No manifests, no manual registration, no separate agent. Send any <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">system.*</code> or <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">process.*</code> metric and the host shows up automatically.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Keyed on the OTel <code class="text-xs">host.name</code> resource attribute
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Phantom-host gate stops app-only telemetry from polluting the list
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  OS, architecture, host ID and instance type captured on first ingest
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Hosts list mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Hosts · auto-discovered</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                      <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">prod-app-01</div>
+                            <div class="text-xs text-gray-500">linux · 8 cores · 32 GB</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Connected</span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">prod-db-01</div>
+                            <div class="text-xs text-gray-500">linux · 16 cores · 64 GB</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Connected</span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">staging-app-01</div>
+                            <div class="text-xs text-gray-500">linux · last seen 7m ago</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-amber-600 font-medium">Disconnected</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: System metrics -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- System metrics mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">prod-app-01 · system metrics</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">CPU Utilization</span>
+                        <span class="text-xs text-gray-900 font-semibold">42%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: 42%"></div>
+                      </div>
+                      <div class="mt-1 text-[10px] text-gray-500">user 28% · system 12% · iowait 2%</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Memory</span>
+                        <span class="text-xs text-gray-900 font-semibold">20.2 / 32 GB</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-violet-500 h-2 rounded-full" style="width: 63%"></div>
+                      </div>
+                      <div class="mt-1 text-[10px] text-gray-500">used 63% · cached 22% · free 15%</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Disk I/O</span>
+                        <span class="text-xs text-gray-900 font-semibold">14.6 MB/s</span>
+                      </div>
+                      <div class="flex items-center gap-4 text-[10px] text-gray-500 mt-1">
+                        <span>read: 9.4 MB/s</span>
+                        <span>write: 5.2 MB/s</span>
+                      </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-600 font-medium">Load Avg</span>
+                        <span class="text-xs text-gray-900 font-semibold">2.14 / 1.97 / 1.64</span>
+                      </div>
+                      <div class="text-[10px] text-gray-500">1m / 5m / 15m</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                  <svg class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-slate-600 uppercase tracking-wide">System Metrics</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every <code class="text-base bg-gray-100 px-1.5 py-0.5 rounded">system.*</code> metric, charted</h3>
+              <p class="mt-4 text-lg text-gray-600">CPU utilization by state, memory by state, filesystem usage by mount, disk I/O by device, network I/O and errors, load average, paging — all visible from a time-range-aware dashboard on every host.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  CPU, memory, disk, filesystem, network
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Load average and process counts
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Time-range selector with sub-second precision
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Per-process detail -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                  <svg class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-slate-600 uppercase tracking-wide">Per-Process Detail</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">See exactly which process is hogging the box</h3>
+              <p class="mt-4 text-lg text-gray-600">Latest CPU and memory per pid + executable, with command line and owner, pulled straight from the OTel <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">process</code> scraper. Sorted by CPU, ready to investigate.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  PID, executable, command, and owner
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  CPU and memory utilization per process
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Refresh interval honors collector cadence
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Processes mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Processes · sorted by CPU</span>
+                    </div>
+                  </div>
+                  <table class="w-full text-xs">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">PID</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Executable</th>
+                        <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">CPU</th>
+                        <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Mem</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                      <tr>
+                        <td class="px-3 py-2 font-mono text-gray-700">1842</td>
+                        <td class="px-3 py-2"><div class="font-medium text-gray-900">node</div><div class="text-[10px] text-gray-500 truncate">node /app/server.js</div></td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">78%</td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">512 MB</td>
+                      </tr>
+                      <tr>
+                        <td class="px-3 py-2 font-mono text-gray-700">904</td>
+                        <td class="px-3 py-2"><div class="font-medium text-gray-900">postgres</div><div class="text-[10px] text-gray-500 truncate">postgres -D /var/lib/postgresql</div></td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">54%</td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">2.1 GB</td>
+                      </tr>
+                      <tr>
+                        <td class="px-3 py-2 font-mono text-gray-700">312</td>
+                        <td class="px-3 py-2"><div class="font-medium text-gray-900">otelcol</div><div class="text-[10px] text-gray-500 truncate">otelcol --config /etc/otel.yaml</div></td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">31%</td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">218 MB</td>
+                      </tr>
+                      <tr>
+                        <td class="px-3 py-2 font-mono text-gray-700">1124</td>
+                        <td class="px-3 py-2"><div class="font-medium text-gray-900">redis-server</div><div class="text-[10px] text-gray-500 truncate">redis-server *:6379</div></td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">18%</td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">96 MB</td>
+                      </tr>
+                      <tr>
+                        <td class="px-3 py-2 font-mono text-gray-700">2461</td>
+                        <td class="px-3 py-2"><div class="font-medium text-gray-900">nginx</div><div class="text-[10px] text-gray-500 truncate">nginx: worker process</div></td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">9%</td>
+                        <td class="px-3 py-2 text-right font-mono text-gray-900">42 MB</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Linked infrastructure -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Linked infra mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Linked Resources</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-blue-100 bg-blue-50 hover:bg-blue-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/docker', {iconClass: 'h-4 w-4'}) %>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-900">Docker Host</div>
+                        <div class="text-xs text-gray-500">prod-app-01 · 12 containers, 4 images</div>
+                      </div>
+                      <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-cyan-100 bg-cyan-50 hover:bg-cyan-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-cyan-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-900">Kubernetes Node</div>
+                        <div class="text-xs text-gray-500">cluster: prod-eks · namespace: default</div>
+                      </div>
+                      <svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50 hover:bg-amber-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-900">Host Logs</div>
+                        <div class="text-xs text-gray-500">2,418 entries in the last hour</div>
+                      </div>
+                      <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                  <svg class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-slate-600 uppercase tracking-wide">Linked Infra</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">One host, every angle</h3>
+              <p class="mt-4 text-lg text-gray-600">When the same host also runs Docker, OneUptime auto-links the Host record to its DockerHost. When it's a Kubernetes node, it links to the cluster. Every Host page is also the launchpad to logs and traces tagged with that host name.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Auto-linked Docker host
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Auto-linked Kubernetes cluster
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Logs and traces filtered by <code class="text-xs">resource.host.name</code>
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-600/20 mb-6">
+            <svg class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-slate-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need on a host
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for teams running real workloads — from a single VM to a fleet of thousands.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: OpenTelemetry Native -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-slate-300 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                  <svg class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">No proprietary agent. The standard upstream OTel collector with the <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">hostmetrics</code> + <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">process</code> receivers is all you need.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Connection status -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Connection status</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed"><code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">otelCollectorStatus</code> flips to disconnected when telemetry stops arriving. <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">lastSeenAt</code> is throttled per host so the DB stays cool.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Phantom-host gate -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Phantom-host gate</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Backend services that happen to set <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">host.name</code> won't pollute the list. We require a real infra signal before registering.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Logs correlated -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Correlated logs</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Every host's Logs tab filters ClickHouse logs by <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">resource.host.name</code>. Anything your collector ships shows up where it belongs.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: OS metadata -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-cyan-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OS &amp; hardware metadata</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">OS type and version, host architecture, instance type, CPU core count, and total physical memory captured automatically from resource attributes.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Open source -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Open source</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Self-host or use the cloud. The collector is upstream OTel; the OneUptime backend, schemas, and dashboards are open source. Your data stays your data.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-slate-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Host alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get instant notifications for high CPU saturation, memory pressure, disk fill, and disconnected collectors in Slack and Microsoft Teams. Acknowledge and investigate without leaving your chat app.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive host alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                CPU & memory threshold alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Disconnect notifications
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#host-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime Hosts</span>
+                      <span class="text-xs text-white/40">2:47 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-red-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 ring-1 ring-red-500/30">CRITICAL</span>
+                          <span class="text-white/40 text-xs">Filesystem Almost Full</span>
+                        </div>
+                        <p class="text-white font-semibold">/data at 96% on prod-app-01</p>
+                        <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+                            </svg>
+                            host: prod-app-01
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            12m above threshold
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-slate-600 text-white hover:bg-slate-700 transition-colors">
+                            View Host Metrics
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">3</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🚨</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #host-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
     <%- include('cta') -%>
   </main>
 
   <%- include('footer') -%>
 
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
   <script>
     (function() {
-      var hero = document.getElementById('host-hero-section');
-      var glow = document.getElementById('host-grid-glow');
-      if (!hero || !glow) return;
-      hero.addEventListener('mousemove', function(e) {
-        var rect = hero.getBoundingClientRect();
-        var x = ((e.clientX - rect.left) / rect.width) * 100;
-        var y = ((e.clientY - rect.top) / rect.height) * 100;
-        glow.style.setProperty('--mouse-x', x + '%');
-        glow.style.setProperty('--mouse-y', y + '%');
-        glow.style.opacity = '1';
-      });
-      hero.addEventListener('mouseleave', function() {
-        glow.style.opacity = '0';
-      });
+      const heroSection = document.getElementById('host-hero-section');
+      const gridGlow = document.getElementById('host-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
     })();
   </script>
 </body>

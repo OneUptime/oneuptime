@@ -38,14 +38,29 @@ const NavBarMenu: FunctionComponent<ComponentProps> = (
       },
     );
 
+    /*
+     * Lay every category out in a single horizontal row. Settings keeps its
+     * right-hand divider; the four content categories share the remaining
+     * width as equal columns. We pick the column count from
+     * mainSections.length so adding or removing a category stays one row.
+     */
+    const mainColsClass: string =
+      mainSections.length >= 4
+        ? "md:grid-cols-4"
+        : mainSections.length === 3
+          ? "md:grid-cols-3"
+          : mainSections.length === 2
+            ? "md:grid-cols-2"
+            : "md:grid-cols-1";
+
     return (
-      <div className="absolute left-0 z-50 mt-8 w-screen max-w-5xl transform px-2 sm:px-0">
+      <div className="absolute left-0 z-50 mt-8 w-screen max-w-7xl transform px-2 sm:px-0">
         <div className="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 bg-white">
           {/* Sections */}
           <div className="p-6">
             <div className="flex gap-6">
               {/* Main sections grid */}
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`flex-1 grid grid-cols-1 ${mainColsClass} gap-6`}>
                 {mainSections.map((section: MenuSection, index: number) => {
                   return (
                     <div key={index} className="space-y-3">

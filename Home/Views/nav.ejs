@@ -62,7 +62,7 @@
                 <div class="grid grid-cols-12 divide-x divide-gray-100">
                   <!-- Main Products Section -->
                   <div class="col-span-9 p-6">
-                    <div class="grid grid-cols-3 gap-x-8 gap-y-1">
+                    <div class="grid grid-cols-4 gap-x-8 gap-y-1">
                       <!-- Incident Response Column -->
                       <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 ml-2.5">Essentials</h3>
@@ -173,6 +173,23 @@
                             </div>
                           </a>
 
+                          <!-- Profiles - Rose -->
+                          <a href="/product/profiles" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-rose-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
+                              <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Profiles</p>
+                              <p class="text-xs text-gray-500">CPU & memory profiling</p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
+
+                      <!-- Infrastructure Column -->
+                      <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 ml-2.5">Infrastructure</h3>
+                        <div class="space-y-1">
                           <!-- Kubernetes - Cyan -->
                           <a href="/product/kubernetes" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-cyan-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200 group-hover:bg-cyan-100 group-hover:ring-cyan-300">
@@ -203,17 +220,6 @@
                             <div>
                               <p class="text-sm font-medium text-gray-900">Hosts</p>
                               <p class="text-xs text-gray-500">Auto-discovered server metrics</p>
-                            </div>
-                          </a>
-
-                          <!-- Profiles - Rose -->
-                          <a href="/product/profiles" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-rose-50">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
-                              <%- include('./Partials/icons/profiles', {iconClass: 'h-4 w-4'}) %>
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-gray-900">Profiles</p>
-                              <p class="text-xs text-gray-500">CPU & memory profiling</p>
                             </div>
                           </a>
                         </div>
