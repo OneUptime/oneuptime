@@ -17,6 +17,67 @@ import vm, { Context } from "vm";
  */
 const PROXY_TARGET_SYMBOL: unique symbol = Symbol("sandboxProxyTarget");
 
+/**
+ * Hardening prelude injected before user code in `runCodeInNodeVM`.
+ *
+ * Node's `vm` module is not a security boundary. The published PoC for
+ * GHSA-g9cp-35m2-fjv6 forces a stack-overflow `RangeError`, walks
+ * `e.__proto__.__proto__.__proto__` to `Object.prototype`, then reads
+ * `.toString.constructor` to obtain a `Function` constructor that compiles
+ * code in a realm where `process.binding('spawn_sync')` is reachable.
+ *
+ * This prelude closes that path by:
+ *  - severing `Error.prototype`'s link to `Object.prototype` so the 3-level
+ *    walk lands on `null` instead of `Object.prototype`;
+ *  - deleting `.constructor` from every built-in prototype, so even a
+ *    different walk (e.g. `(0).constructor.constructor`) cannot resolve to a
+ *    function constructor;
+ *  - clearing `Function` / `eval` from the sandbox global;
+ *  - freezing the affected prototypes so user code cannot reattach them.
+ *
+ * This is a hotfix for the public PoC. The durable fix is to drop
+ * `runCodeInNodeVM` in favor of running synthetic monitor scripts in an
+ * out-of-process sandbox (tracked on the `probe-runner` branch).
+ */
+const VM_HARDENING_PRELUDE: string = `(() => {
+  const _ctors = [
+    Object, Function, Array, String, Number, Boolean, RegExp,
+    Error, RangeError, TypeError, SyntaxError, ReferenceError, EvalError, URIError,
+    Symbol, Date, Map, Set, WeakMap, WeakSet, Promise, Proxy,
+    ArrayBuffer, DataView,
+    Int8Array, Uint8Array, Uint8ClampedArray,
+    Int16Array, Uint16Array, Int32Array, Uint32Array,
+    Float32Array, Float64Array,
+  ];
+  if (typeof BigInt !== 'undefined') _ctors.push(BigInt);
+
+  for (const C of _ctors) {
+    try { if (C && C.prototype) delete C.prototype.constructor; } catch (_) {}
+  }
+
+  // Generator / async-function prototypes have no named global — reach via syntax.
+  try { delete Object.getPrototypeOf(function*(){}).constructor; } catch (_) {}
+  try { delete Object.getPrototypeOf(async function(){}).constructor; } catch (_) {}
+  try { delete Object.getPrototypeOf(async function*(){}).constructor; } catch (_) {}
+
+  try { Object.setPrototypeOf(Error.prototype, null); } catch (_) {}
+
+  try {
+    Object.defineProperty(globalThis, 'Function', {
+      value: undefined, writable: false, configurable: false,
+    });
+  } catch (_) {}
+  try {
+    Object.defineProperty(globalThis, 'eval', {
+      value: undefined, writable: false, configurable: false,
+    });
+  } catch (_) {}
+
+  for (const C of _ctors) {
+    try { if (C && C.prototype) Object.freeze(C.prototype); } catch (_) {}
+  }
+})();`;
+
 /** Properties blocked on every host-realm object exposed to the sandbox. */
 const BLOCKED_SANDBOX_PROPERTIES: ReadonlySet<string> = new Set([
   "constructor",
@@ -465,6 +526,7 @@ export default class VMRunner {
     });
 
     const script: string = `(async()=>{
+        ${VM_HARDENING_PRELUDE}
         ${code}
       })()`;
 

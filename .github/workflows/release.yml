@@ -188,7 +188,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -270,7 +270,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -352,7 +352,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -434,7 +434,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -516,7 +516,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -598,7 +598,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -680,7 +680,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -764,7 +764,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -848,7 +848,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -930,7 +930,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -998,7 +998,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
       - name: Update npm for OIDC support
         run: npm install -g npm@latest
@@ -1027,7 +1027,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'latest'
+          node-version: '24'
           cache: 'npm'
 
       - name: Setup Go
@@ -1204,7 +1204,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
       - name: Preinstall and enable billing
         run: |
           set -euo pipefail
@@ -1335,7 +1335,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
       - name: Preinstall
         run: |
           set -euo pipefail
@@ -1540,7 +1540,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Install dependencies
         run: cd MobileApp && npm install
@@ -1590,7 +1590,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Install dependencies
         run: cd MobileApp && npm install
@@ -1781,7 +1781,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Install dependencies
         run: cd MobileApp && npm install
@@ -1843,7 +1843,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Install dependencies
         run: cd MobileApp && npm install
