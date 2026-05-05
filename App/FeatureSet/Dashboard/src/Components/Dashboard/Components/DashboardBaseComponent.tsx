@@ -15,6 +15,14 @@ import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardCom
 import DashboardIncidentListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardIncidentListComponent";
 import DashboardAlertListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
 import DashboardMonitorListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
+import DashboardKubernetesPodListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesPodListComponent";
+import DashboardKubernetesNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNodeListComponent";
+import DashboardKubernetesNamespaceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNamespaceListComponent";
+import DashboardKubernetesDeploymentListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDeploymentListComponent";
+import DashboardKubernetesStatefulSetListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesStatefulSetListComponent";
+import DashboardKubernetesDaemonSetListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDaemonSetListComponent";
+import DashboardKubernetesJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesJobListComponent";
+import DashboardKubernetesCronJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesCronJobListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -26,6 +34,14 @@ import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DashboardIncidentListComponent from "./DashboardIncidentListComponent";
 import DashboardAlertListComponent from "./DashboardAlertListComponent";
 import DashboardMonitorListComponent from "./DashboardMonitorListComponent";
+import DashboardKubernetesPodListComponent from "./DashboardKubernetesPodListComponent";
+import DashboardKubernetesNodeListComponent from "./DashboardKubernetesNodeListComponent";
+import DashboardKubernetesNamespaceListComponent from "./DashboardKubernetesNamespaceListComponent";
+import DashboardKubernetesDeploymentListComponent from "./DashboardKubernetesDeploymentListComponent";
+import DashboardKubernetesStatefulSetListComponent from "./DashboardKubernetesStatefulSetListComponent";
+import DashboardKubernetesDaemonSetListComponent from "./DashboardKubernetesDaemonSetListComponent";
+import DashboardKubernetesJobListComponent from "./DashboardKubernetesJobListComponent";
+import DashboardKubernetesCronJobListComponent from "./DashboardKubernetesCronJobListComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -651,6 +667,86 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardMonitorListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesPodList && (
+          <DashboardKubernetesPodListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardKubernetesPodListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesNodeList && (
+          <DashboardKubernetesNodeListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardKubernetesNodeListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesNamespaceList && (
+          <DashboardKubernetesNamespaceListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={
+              component as DashboardKubernetesNamespaceListComponentType
+            }
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesDeploymentList && (
+          <DashboardKubernetesDeploymentListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={
+              component as DashboardKubernetesDeploymentListComponentType
+            }
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesStatefulSetList && (
+          <DashboardKubernetesStatefulSetListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={
+              component as DashboardKubernetesStatefulSetListComponentType
+            }
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesDaemonSetList && (
+          <DashboardKubernetesDaemonSetListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={
+              component as DashboardKubernetesDaemonSetListComponentType
+            }
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesJobList && (
+          <DashboardKubernetesJobListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardKubernetesJobListComponentType}
+          />
+        )}
+        {component.componentType ===
+          DashboardComponentType.KubernetesCronJobList && (
+          <DashboardKubernetesCronJobListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardKubernetesCronJobListComponentType}
           />
         )}
       </div>

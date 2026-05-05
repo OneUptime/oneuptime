@@ -6,8 +6,14 @@ import {
   ComponentArgument,
   ComponentArgumentSection,
   ComponentInputType,
+  EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import {
+  MonitorTypeHelper,
+  MonitorTypeProps,
+} from "../../../Types/Monitor/MonitorType";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -21,6 +27,24 @@ const FiltersSection: ComponentArgumentSection = {
   order: 2,
   defaultCollapsed: true,
 };
+
+function getMonitorTypeDropdownOptions(): Array<DropdownOption> {
+  const options: Array<DropdownOption> =
+    MonitorTypeHelper.getAllMonitorTypeProps().map(
+      (props: MonitorTypeProps) => {
+        return {
+          label: props.title,
+          value: props.monitorType,
+        };
+      },
+    );
+
+  options.sort((a: DropdownOption, b: DropdownOption) => {
+    return (a.label as string).localeCompare(b.label as string);
+  });
+
+  return options;
+}
 
 export default class DashboardMonitorListComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardMonitorListComponent {
@@ -67,8 +91,8 @@ export default class DashboardMonitorListComponentUtil extends DashboardBaseComp
     });
 
     componentArguments.push({
-      name: "Status",
-      description: "Filter monitors by current status",
+      name: "Operational Status",
+      description: "Quick filter by operational state",
       required: false,
       type: ComponentInputType.Dropdown,
       id: "statusFilter",
@@ -78,6 +102,39 @@ export default class DashboardMonitorListComponentUtil extends DashboardBaseComp
         { label: "Operational only", value: "operational" },
         { label: "Not operational only", value: "non-operational" },
       ],
+    });
+
+    componentArguments.push({
+      name: "Status",
+      description: "Show only monitors with the selected statuses",
+      required: false,
+      type: ComponentInputType.EntityMultiSelectDropdown,
+      id: "monitorStatusIds",
+      placeholder: "All statuses",
+      section: FiltersSection,
+      entityFilterModelType: EntityFilterModelType.MonitorStatus,
+    });
+
+    componentArguments.push({
+      name: "Monitor Type",
+      description: "Show only monitors of the selected types",
+      required: false,
+      type: ComponentInputType.MultiSelectDropdown,
+      id: "monitorTypes",
+      placeholder: "All monitor types",
+      section: FiltersSection,
+      dropdownOptions: getMonitorTypeDropdownOptions(),
+    });
+
+    componentArguments.push({
+      name: "Labels",
+      description: "Show only monitors tagged with the selected labels",
+      required: false,
+      type: ComponentInputType.EntityMultiSelectDropdown,
+      id: "labelIds",
+      placeholder: "All labels",
+      section: FiltersSection,
+      entityFilterModelType: EntityFilterModelType.Label,
     });
 
     return componentArguments;

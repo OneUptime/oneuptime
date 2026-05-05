@@ -9,5 +9,8 @@ export default interface DashboardMonitorListComponent extends BaseComponent {
     title?: string | undefined;
     maxRows?: number | undefined;
     statusFilter?: string | undefined;
+    monitorStatusIds?: Array<string> | undefined;
+    monitorTypes?: Array<string> | undefined;
+    labelIds?: Array<string> | undefined;
   };
 }

@@ -9,5 +9,9 @@ export default interface DashboardIncidentListComponent extends BaseComponent {
     title?: string | undefined;
     maxRows?: number | undefined;
     stateFilter?: string | undefined;
+    severityIds?: Array<string> | undefined;
+    stateIds?: Array<string> | undefined;
+    monitorIds?: Array<string> | undefined;
+    labelIds?: Array<string> | undefined;
   };
 }

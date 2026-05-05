@@ -121,9 +121,15 @@ export default class SyntheticMonitor {
       });
     }
 
-    if (result && attemptHistory.length > 1) {
-      result.retryAttempts = attemptHistory;
+    if (result) {
       result.totalAttempts = attemptHistory.length;
+      /*
+       * Per-attempt history is only useful when more than one attempt occurred.
+       * Skip populating it for clean single-attempt runs to keep the log payload small.
+       */
+      if (attemptHistory.length > 1) {
+        result.retryAttempts = attemptHistory;
+      }
     }
 
     return result;

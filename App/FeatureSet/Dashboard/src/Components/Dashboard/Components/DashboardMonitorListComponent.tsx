@@ -16,6 +16,7 @@ import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -45,6 +46,16 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const maxRows: number = props.component.arguments.maxRows || 25;
   const statusFilter: string | undefined =
     props.component.arguments.statusFilter;
+  const monitorStatusIds: Array<string> | undefined =
+    props.component.arguments.monitorStatusIds;
+  const monitorTypes: Array<string> | undefined =
+    props.component.arguments.monitorTypes;
+  const labelIds: Array<string> | undefined =
+    props.component.arguments.labelIds;
+
+  const monitorStatusIdsKey: string = (monitorStatusIds || []).join(",");
+  const monitorTypesKey: string = (monitorTypes || []).join(",");
+  const labelIdsKey: string = (labelIds || []).join(",");
 
   const fetchMonitors: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -69,6 +80,21 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         (query as Record<string, unknown>)["currentMonitorStatus"] = {
           isOperationalState: false,
         };
+      }
+
+      if (monitorStatusIds && monitorStatusIds.length > 0) {
+        (query as Record<string, unknown>)["currentMonitorStatusId"] =
+          new Includes(monitorStatusIds);
+      }
+
+      if (monitorTypes && monitorTypes.length > 0) {
+        (query as Record<string, unknown>)["monitorType"] = new Includes(
+          monitorTypes,
+        );
+      }
+
+      if (labelIds && labelIds.length > 0) {
+        (query as Record<string, unknown>)["labels"] = new Includes(labelIds);
       }
 
       const listResult: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
@@ -97,7 +123,13 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter]);
+  }, [
+    maxRows,
+    statusFilter,
+    monitorStatusIdsKey,
+    monitorTypesKey,
+    labelIdsKey,
+  ]);
 
   useEffect(() => {
     fetchMonitors();

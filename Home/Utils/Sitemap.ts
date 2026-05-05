@@ -57,6 +57,7 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/pricing": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/demo": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/overview": { priority: 0.8, changefreq: "weekly" },
+  "/trust": { priority: 0.8, changefreq: "weekly" },
   "/about": { priority: 0.7, changefreq: "weekly" },
   "/support": { priority: 0.7, changefreq: "weekly" },
 

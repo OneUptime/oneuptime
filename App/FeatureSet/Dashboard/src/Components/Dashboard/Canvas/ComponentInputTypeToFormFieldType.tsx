@@ -66,6 +66,25 @@ export default class ComponentInputTypeToFormFieldType {
       };
     }
 
+    if (componentInputType === ComponentInputType.MultiSelectDropdown) {
+      return {
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        dropdownOptions: dropdownOptions || [],
+      };
+    }
+
+    if (componentInputType === ComponentInputType.EntityDropdown) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.EntityMultiSelectDropdown) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
     return {
       fieldType: FormFieldSchemaType.Text,
       dropdownOptions: [],

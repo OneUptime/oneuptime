@@ -12,6 +12,7 @@ import {
   ComponentArgument,
   ComponentArgumentSection,
   ComponentInputType,
+  EntityFilterModelType,
 } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentsUtil from "Common/Utils/Dashboard/Components/Index";
 import ComponentInputTypeToFormFieldType from "./ComponentInputTypeToFormFieldType";
@@ -29,6 +30,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import EntityFilterDropdown from "./EntityFilterDropdown";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
@@ -189,6 +191,57 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     };
   };
 
+  type GetEntityDropdownFormFunction = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+    isMultiSelect: boolean,
+  ) => (
+    value: FormValues<JSONObject>,
+    componentProps: CustomElementProps,
+  ) => ReactElement;
+
+  const getEntityDropdownForm: GetEntityDropdownFormFunction = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+    isMultiSelect: boolean,
+  ): ((
+    value: FormValues<JSONObject>,
+    componentProps: CustomElementProps,
+  ) => ReactElement) => {
+    // eslint-disable-next-line react/display-name
+    return (
+      value: FormValues<JSONObject>,
+      componentProps: CustomElementProps,
+    ) => {
+      const entityFilterModelType: EntityFilterModelType | undefined =
+        arg.entityFilterModelType;
+
+      if (!entityFilterModelType) {
+        return (
+          <ErrorMessage
+            message={`No entity filter model type configured for "${arg.name}".`}
+          />
+        );
+      }
+
+      const currentValue: string | Array<string> | undefined = value[
+        arg.id as string
+      ] as string | Array<string> | undefined;
+
+      return (
+        <EntityFilterDropdown
+          entityFilterModelType={entityFilterModelType}
+          isMultiSelect={isMultiSelect}
+          value={currentValue}
+          placeholder={arg.placeholder}
+          onChange={(newValue: string | Array<string> | null) => {
+            if (componentProps.onChange) {
+              componentProps.onChange(newValue);
+            }
+          }}
+        />
+      );
+    };
+  };
+
   type GetCustomElementFunction = (
     arg: ComponentArgument<DashboardBaseComponent>,
   ) =>
@@ -208,6 +261,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     | undefined => {
     if (arg.type === ComponentInputType.MetricsQueryConfig) {
       return getMetricsQueryConfigForm(arg);
+    }
+    if (arg.type === ComponentInputType.EntityDropdown) {
+      return getEntityDropdownForm(arg, false);
+    }
+    if (arg.type === ComponentInputType.EntityMultiSelectDropdown) {
+      return getEntityDropdownForm(arg, true);
     }
     return undefined;
   };

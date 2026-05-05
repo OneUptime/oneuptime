@@ -17,6 +17,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -46,6 +47,19 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
 
   const maxRows: number = props.component.arguments.maxRows || 25;
   const stateFilter: string | undefined = props.component.arguments.stateFilter;
+  const severityIds: Array<string> | undefined =
+    props.component.arguments.severityIds;
+  const stateIds: Array<string> | undefined =
+    props.component.arguments.stateIds;
+  const monitorIds: Array<string> | undefined =
+    props.component.arguments.monitorIds;
+  const labelIds: Array<string> | undefined =
+    props.component.arguments.labelIds;
+
+  const severityIdsKey: string = (severityIds || []).join(",");
+  const stateIdsKey: string = (stateIds || []).join(",");
+  const monitorIdsKey: string = (monitorIds || []).join(",");
+  const labelIdsKey: string = (labelIds || []).join(",");
 
   const fetchAlerts: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -74,6 +88,27 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
         (query as Record<string, unknown>)["currentAlertState"] = {
           isAcknowledgedState: true,
         };
+      }
+
+      if (severityIds && severityIds.length > 0) {
+        (query as Record<string, unknown>)["alertSeverityId"] = new Includes(
+          severityIds,
+        );
+      }
+
+      if (stateIds && stateIds.length > 0) {
+        (query as Record<string, unknown>)["currentAlertStateId"] =
+          new Includes(stateIds);
+      }
+
+      if (monitorIds && monitorIds.length > 0) {
+        (query as Record<string, unknown>)["monitorId"] = new Includes(
+          monitorIds,
+        );
+      }
+
+      if (labelIds && labelIds.length > 0) {
+        (query as Record<string, unknown>)["labels"] = new Includes(labelIds);
       }
 
       const listResult: ListResult<Alert> = await ModelAPI.getList<Alert>({
@@ -106,7 +141,14 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [maxRows, stateFilter]);
+  }, [
+    maxRows,
+    stateFilter,
+    severityIdsKey,
+    stateIdsKey,
+    monitorIdsKey,
+    labelIdsKey,
+  ]);
 
   useEffect(() => {
     fetchAlerts();

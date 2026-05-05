@@ -6,6 +6,14 @@ import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
 import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
+import DashboardKubernetesCronJobListComponentUtil from "./DashboardKubernetesCronJobListComponent";
+import DashboardKubernetesDaemonSetListComponentUtil from "./DashboardKubernetesDaemonSetListComponent";
+import DashboardKubernetesDeploymentListComponentUtil from "./DashboardKubernetesDeploymentListComponent";
+import DashboardKubernetesJobListComponentUtil from "./DashboardKubernetesJobListComponent";
+import DashboardKubernetesNamespaceListComponentUtil from "./DashboardKubernetesNamespaceListComponent";
+import DashboardKubernetesNodeListComponentUtil from "./DashboardKubernetesNodeListComponent";
+import DashboardKubernetesPodListComponentUtil from "./DashboardKubernetesPodListComponent";
+import DashboardKubernetesStatefulSetListComponentUtil from "./DashboardKubernetesStatefulSetListComponent";
 import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
 import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
 import DashboardTableComponentUtil from "./DashboardTableComponent";
@@ -73,6 +81,65 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.MonitorList) {
       return DashboardMonitorListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.KubernetesPodList) {
+      return DashboardKubernetesPodListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.KubernetesNodeList) {
+      return DashboardKubernetesNodeListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesNamespaceList
+    ) {
+      return DashboardKubernetesNamespaceListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesDeploymentList
+    ) {
+      return DashboardKubernetesDeploymentListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType ===
+      DashboardComponentType.KubernetesStatefulSetList
+    ) {
+      return DashboardKubernetesStatefulSetListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesDaemonSetList
+    ) {
+      return DashboardKubernetesDaemonSetListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.KubernetesJobList) {
+      return DashboardKubernetesJobListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesCronJobList
+    ) {
+      return DashboardKubernetesCronJobListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

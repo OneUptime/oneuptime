@@ -246,6 +246,12 @@ const MonitorCreate: FunctionComponent<
                   },
                 },
               ]}
+              onBeforeCreate={async (item: Monitor): Promise<Monitor> => {
+                if (monitorTemplateId) {
+                  item.monitorTemplateId = new ObjectID(monitorTemplateId);
+                }
+                return item;
+              }}
               onSuccess={(createdItem: Monitor) => {
                 Navigation.navigate(
                   RouteUtil.populateRouteParams(

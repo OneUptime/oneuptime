@@ -26,6 +26,7 @@ import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import EnterpriseLicenseAPI from "Common/Server/API/EnterpriseLicenseAPI";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
+import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
@@ -264,9 +265,6 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
-import MonitorTemplateService, {
-  Service as MonitorTemplateServiceType,
-} from "Common/Server/Services/MonitorTemplateService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -611,7 +609,6 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
-import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
@@ -1910,10 +1907,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorTemplate, MonitorTemplateServiceType>(
-        MonitorTemplate,
-        MonitorTemplateService,
-      ).getRouter(),
+      new MonitorTemplateAPI().getRouter(),
     );
 
     app.use(

@@ -6,6 +6,7 @@ import {
   ComponentArgument,
   ComponentArgumentSection,
   ComponentInputType,
+  EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 
@@ -67,8 +68,8 @@ export default class DashboardIncidentListComponentUtil extends DashboardBaseCom
     });
 
     componentArguments.push({
-      name: "State",
-      description: "Filter incidents by lifecycle state",
+      name: "Lifecycle State",
+      description: "Quick filter by lifecycle state",
       required: false,
       type: ComponentInputType.Dropdown,
       id: "stateFilter",
@@ -79,6 +80,50 @@ export default class DashboardIncidentListComponentUtil extends DashboardBaseCom
         { label: "Acknowledged", value: "acknowledged" },
         { label: "Resolved", value: "resolved" },
       ],
+    });
+
+    componentArguments.push({
+      name: "Severity",
+      description: "Show only incidents matching the selected severities",
+      required: false,
+      type: ComponentInputType.EntityMultiSelectDropdown,
+      id: "severityIds",
+      placeholder: "All severities",
+      section: FiltersSection,
+      entityFilterModelType: EntityFilterModelType.IncidentSeverity,
+    });
+
+    componentArguments.push({
+      name: "State",
+      description: "Show only incidents in the selected states",
+      required: false,
+      type: ComponentInputType.EntityMultiSelectDropdown,
+      id: "stateIds",
+      placeholder: "All states",
+      section: FiltersSection,
+      entityFilterModelType: EntityFilterModelType.IncidentState,
+    });
+
+    componentArguments.push({
+      name: "Monitors",
+      description: "Show only incidents linked to the selected monitors",
+      required: false,
+      type: ComponentInputType.EntityMultiSelectDropdown,
+      id: "monitorIds",
+      placeholder: "All monitors",
+      section: FiltersSection,
+      entityFilterModelType: EntityFilterModelType.Monitor,
+    });
+
+    componentArguments.push({
+      name: "Labels",
+      description: "Show only incidents tagged with the selected labels",
+      required: false,
+      type: ComponentInputType.EntityMultiSelectDropdown,
+      id: "labelIds",
+      placeholder: "All labels",
+      section: FiltersSection,
+      entityFilterModelType: EntityFilterModelType.Label,
     });
 
     return componentArguments;

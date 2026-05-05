@@ -496,6 +496,86 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       );
                     }}
                   />
+                  <MoreMenuItem
+                    text={"Kubernetes Pods"}
+                    icon={IconProp.Cube}
+                    key={"add-k8s-pod-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesPodList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes Nodes"}
+                    icon={IconProp.Server}
+                    key={"add-k8s-node-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesNodeList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes Namespaces"}
+                    icon={IconProp.Folder}
+                    key={"add-k8s-namespace-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesNamespaceList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes Deployments"}
+                    icon={IconProp.ServerStack}
+                    key={"add-k8s-deployment-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesDeploymentList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes StatefulSets"}
+                    icon={IconProp.ServerStack}
+                    key={"add-k8s-statefulset-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesStatefulSetList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes DaemonSets"}
+                    icon={IconProp.ServerStack}
+                    key={"add-k8s-daemonset-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesDaemonSetList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes Jobs"}
+                    icon={IconProp.Clock}
+                    key={"add-k8s-job-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesJobList,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Kubernetes CronJobs"}
+                    icon={IconProp.Clock}
+                    key={"add-k8s-cronjob-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.KubernetesCronJobList,
+                      );
+                    }}
+                  />
                 </MoreMenu>
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>

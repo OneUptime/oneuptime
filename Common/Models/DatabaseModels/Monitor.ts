@@ -1,5 +1,6 @@
 import Label from "./Label";
 import MonitorStatus from "./MonitorStatus";
+import MonitorTemplate from "./MonitorTemplate";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -453,6 +454,82 @@ export default class Monitor extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorManager,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorManager,
+      Permission.ReadProjectMonitor,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "monitorTemplateId",
+    type: TableColumnType.Entity,
+    modelType: MonitorTemplate,
+    title: "Monitor Template",
+    description:
+      "Template this monitor was created from. Used to sync configuration changes from the template to monitors created from it.",
+  })
+  @ManyToOne(
+    () => {
+      return MonitorTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "monitorTemplateId" })
+  public monitorTemplate?: MonitorTemplate = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorManager,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorManager,
+      Permission.ReadProjectMonitor,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor Template ID",
+    description:
+      "ID of the Monitor Template this monitor was created from. Null for monitors not created from a template.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

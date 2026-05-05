@@ -3,14 +3,21 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import API from "Common/UI/Utils/API/API";
+import { APP_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
@@ -28,12 +35,89 @@ import {
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 const MonitorTemplatesView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
+    null,
+  );
+  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<string>("");
+  const [syncResultMessage, setSyncResultMessage] = useState<string>("");
+
+  const fetchLinkedMonitorCount: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/monitor-template/${modelId.toString()}/linked-monitor-count`,
+            ),
+          });
+
+        if (response.isFailure()) {
+          setLinkedMonitorCount(0);
+          return;
+        }
+
+        setLinkedMonitorCount((response.data["count"] as number) || 0);
+      } catch {
+        setLinkedMonitorCount(0);
+      }
+    };
+
+  useEffect(() => {
+    fetchLinkedMonitorCount();
+  }, []);
+
+  const onSyncSubmit: () => Promise<void> = async (): Promise<void> => {
+    setIsSyncing(true);
+    setSyncError("");
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
+          ),
+        });
+
+      if (response.isFailure()) {
+        setSyncError(API.getFriendlyMessage(response));
+        setIsSyncing(false);
+        return;
+      }
+
+      const synced: number = (response.data["syncedMonitors"] as number) || 0;
+      const total: number =
+        (response.data["totalLinkedMonitors"] as number) || 0;
+
+      setSyncResultMessage(
+        `Synced ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
+      );
+      setShowSyncModal(false);
+      setIsSyncing(false);
+      fetchLinkedMonitorCount();
+    } catch (e) {
+      setSyncError(API.getFriendlyMessage(e));
+      setIsSyncing(false);
+    }
+  };
+
+  const syncButtonTitle: string =
+    linkedMonitorCount === null
+      ? "Sync to Linked Monitors"
+      : `Sync to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
 
   return (
     <Fragment>
@@ -43,6 +127,17 @@ const MonitorTemplatesView: FunctionComponent<
           title: "Monitor Template Details",
           description: "Here are the details for this monitor template.",
           buttons: [
+            {
+              title: syncButtonTitle,
+              icon: IconProp.Refresh,
+              buttonStyle: ButtonStyleType.NORMAL,
+              disabled: !linkedMonitorCount,
+              onClick: () => {
+                setSyncResultMessage("");
+                setSyncError("");
+                setShowSyncModal(true);
+              },
+            },
             {
               title: "Create Monitor from Template",
               icon: IconProp.Add,
@@ -333,6 +428,38 @@ const MonitorTemplatesView: FunctionComponent<
           );
         }}
       />
+
+      {showSyncModal && (
+        <ConfirmModal
+          title="Sync to Linked Monitors"
+          description={
+            <span>
+              {`This will overwrite the criteria, monitoring interval, and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Per-monitor name, description, and labels will be left alone. This cannot be undone.`}
+            </span>
+          }
+          submitButtonText="Sync Now"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isSyncing}
+          error={syncError}
+          onSubmit={onSyncSubmit}
+          onClose={() => {
+            setShowSyncModal(false);
+            setSyncError("");
+          }}
+        />
+      )}
+
+      {syncResultMessage && (
+        <ConfirmModal
+          title="Sync Complete"
+          description={syncResultMessage}
+          submitButtonText="OK"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          onSubmit={() => {
+            setSyncResultMessage("");
+          }}
+        />
+      )}
     </Fragment>
   );
 };

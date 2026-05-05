@@ -27,6 +27,14 @@ import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/D
 import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardIncidentListComponent";
 import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
 import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
+import DashboardKubernetesPodListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesPodListComponent";
+import DashboardKubernetesNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNodeListComponent";
+import DashboardKubernetesNamespaceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNamespaceListComponent";
+import DashboardKubernetesDeploymentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesDeploymentListComponent";
+import DashboardKubernetesStatefulSetListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesStatefulSetListComponent";
+import DashboardKubernetesDaemonSetListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesDaemonSetListComponent";
+import DashboardKubernetesJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesJobListComponent";
+import DashboardKubernetesCronJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesCronJobListComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -498,6 +506,54 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.MonitorList) {
             newComponent =
               DashboardMonitorListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesPodList) {
+            newComponent =
+              DashboardKubernetesPodListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesNodeList) {
+            newComponent =
+              DashboardKubernetesNodeListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesNamespaceList
+          ) {
+            newComponent =
+              DashboardKubernetesNamespaceListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesDeploymentList
+          ) {
+            newComponent =
+              DashboardKubernetesDeploymentListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesStatefulSetList
+          ) {
+            newComponent =
+              DashboardKubernetesStatefulSetListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesDaemonSetList
+          ) {
+            newComponent =
+              DashboardKubernetesDaemonSetListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesJobList) {
+            newComponent =
+              DashboardKubernetesJobListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesCronJobList) {
+            newComponent =
+              DashboardKubernetesCronJobListComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

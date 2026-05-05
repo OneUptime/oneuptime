@@ -12,6 +12,20 @@ export enum ComponentInputType {
   MetricsQueryConfigs = "MetricsQueryConfigs",
   LongText = "Long Text",
   Dropdown = "Dropdown",
+  MultiSelectDropdown = "MultiSelectDropdown",
+  EntityDropdown = "EntityDropdown",
+  EntityMultiSelectDropdown = "EntityMultiSelectDropdown",
+}
+
+export enum EntityFilterModelType {
+  IncidentSeverity = "IncidentSeverity",
+  AlertSeverity = "AlertSeverity",
+  IncidentState = "IncidentState",
+  AlertState = "AlertState",
+  MonitorStatus = "MonitorStatus",
+  Monitor = "Monitor",
+  Label = "Label",
+  KubernetesCluster = "KubernetesCluster",
 }
 
 export interface ComponentArgumentSection {
@@ -32,4 +46,5 @@ export interface ComponentArgument<T extends DashboardBaseComponent> {
   placeholder?: string | undefined;
   dropdownOptions?: Array<DropdownOption> | undefined;
   section?: ComponentArgumentSection | undefined;
+  entityFilterModelType?: EntityFilterModelType | undefined;
 }

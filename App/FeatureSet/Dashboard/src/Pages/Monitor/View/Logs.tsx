@@ -121,6 +121,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   /*
    * A synthetic run can produce one SyntheticMonitorResponse per browser × screen-size.
    * Each carries its own retry history, so we surface the highest attempt count.
+   * Falls back to 1 per response when totalAttempts is missing — historical log rows
+   * written before retry tracking was added don't carry the field.
    */
   const getMaxAttempts: GetMaxAttemptsFunction = (logBody: unknown): number => {
     const responses: Array<SyntheticMonitorResponse> | undefined = (
@@ -133,7 +135,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     return responses.reduce(
       (max: number, response: SyntheticMonitorResponse) => {
-        return Math.max(max, response.totalAttempts || 0);
+        return Math.max(max, response.totalAttempts || 1);
       },
       0,
     );
@@ -264,8 +266,14 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   getElement: (item: MonitorLog): ReactElement => {
                     const maxAttempts: number = getMaxAttempts(item.logBody);
 
-                    if (maxAttempts <= 1) {
+                    if (maxAttempts === 0) {
                       return <span className="text-sm text-gray-400">—</span>;
+                    }
+
+                    if (maxAttempts === 1) {
+                      return (
+                        <span className="text-sm text-gray-700">1 attempt</span>
+                      );
                     }
 
                     return (
