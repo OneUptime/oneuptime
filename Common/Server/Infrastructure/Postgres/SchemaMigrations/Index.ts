@@ -298,6 +298,7 @@ import { MigrationName1777571961028 } from "./1777571961028-MigrationName";
 import { MigrationName1777629313843 } from "./1777629313843-MigrationName";
 import { MigrationName1777933061000 } from "./1777933061000-MigrationName";
 import { MigrationName1777972687018 } from "./1777972687018-MigrationName";
+import { AddHostTables1778006035712 } from "./1778006035712-AddHostTables";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -599,4 +600,5 @@ export default [
   MigrationName1777629313843,
   MigrationName1777933061000,
   MigrationName1777972687018,
+  AddHostTables1778006035712,
 ];

@@ -142,6 +142,9 @@ import "./Jobs/Kubernetes/CleanupStaleResources";
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
 
+// Host disconnection sweeper.
+import "./Jobs/Host/CleanupStaleHosts";
+
 /*
  * Metric retention is handled by ClickHouse TTL on Metric.retentionDate
  * (set at ingest from GlobalConfig), so no cleanup cron is needed here.

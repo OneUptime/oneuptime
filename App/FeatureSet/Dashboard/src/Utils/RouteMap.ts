@@ -115,6 +115,18 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_DOCUMENTATION]: `documentation`,
 };
 
+export const HostRoutePath: Dictionary<string> = {
+  [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
+  [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.HOST_DOCUMENTATION]: `documentation`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
@@ -1878,6 +1890,66 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DOCKER_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_DOCUMENTATION]
+    }`,
+  ),
+
+  // Hosts
+
+  [PageMap.HOST_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/host/*`),
+
+  [PageMap.HOSTS]: new Route(`/dashboard/${RouteParams.ProjectID}/host`),
+
+  [PageMap.HOST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_PROCESSES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_PROCESSES]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.HOST_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_DOCUMENTATION]
     }`,
   ),
 

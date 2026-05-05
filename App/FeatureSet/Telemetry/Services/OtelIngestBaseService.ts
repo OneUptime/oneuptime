@@ -6,6 +6,8 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import HostService from "Common/Server/Services/HostService";
+import Host from "Common/Models/DatabaseModels/Host";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
@@ -391,6 +393,264 @@ export default abstract class OtelIngestBaseService {
       );
       return null;
     }
+  }
+
+  private static readonly HOST_ID_CACHE_NAMESPACE: string = "host-id";
+  private static readonly HOST_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
+
+  /**
+   * Auto-discover a Host (generic OTel host) from resource attributes.
+   *
+   * Phantom-host gate: only register a row when the batch carries
+   * something stronger than "any service that happens to have a
+   * hostname". Any one of the following is enough:
+   *   - host.id, host.arch, or os.type resource attribute present
+   *   - container.runtime resource attribute present (existing Docker case)
+   *   - k8s.cluster.name resource attribute present (k8s nodes are hosts too)
+   *   - hasInfraSignal=true (caller saw system.* / process.* metrics)
+   *
+   * Without one of these we silently skip — application telemetry from
+   * inside a pod or VM will carry host.name but should not flood the
+   * Hosts list.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    hasInfraSignal?: boolean;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+    cpuCores?: number | undefined;
+    totalMemoryBytes?: number | undefined;
+    processCount?: number | undefined;
+  }): Promise<ObjectID | null> {
+    try {
+      const hostName: string | null = this.getHostNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!hostName) {
+        return null;
+      }
+
+      const hostIdAttr: string | null = this.getStringAttribute(
+        data.attributes,
+        "host.id",
+      );
+      const hostArch: string | null = this.getStringAttribute(
+        data.attributes,
+        "host.arch",
+      );
+      const hostType: string | null = this.getStringAttribute(
+        data.attributes,
+        "host.type",
+      );
+      const osType: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.type",
+      );
+      const osVersion: string | null =
+        this.getStringAttribute(data.attributes, "os.description") ||
+        this.getStringAttribute(data.attributes, "os.version");
+      const containerRuntime: string | null = this.getStringAttribute(
+        data.attributes,
+        "container.runtime",
+      );
+      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      const hasResourceSignal: boolean = Boolean(
+        hostIdAttr || hostArch || osType || containerRuntime || k8sClusterName,
+      );
+
+      if (!hasResourceSignal && !data.hasInfraSignal) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
+      let hostIdStr: string | null = await GlobalCache.getString(
+        this.HOST_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!hostIdStr) {
+        const host: Host = await HostService.findOrCreateByHostIdentifier({
+          projectId: data.projectId,
+          hostIdentifier: hostName,
+        });
+
+        if (host._id) {
+          hostIdStr = host._id.toString();
+          await GlobalCache.setString(
+            this.HOST_ID_CACHE_NAMESPACE,
+            cacheKey,
+            hostIdStr,
+            { expiresInSeconds: this.HOST_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (hostIdStr) {
+        await HostService.updateLastSeen(new ObjectID(hostIdStr), {
+          osType: osType || undefined,
+          osVersion: osVersion || undefined,
+          hostId: hostIdAttr || undefined,
+          hostArch: hostArch || undefined,
+          hostType: hostType || undefined,
+          cpuCores: data.cpuCores,
+          totalMemoryBytes: data.totalMemoryBytes,
+          processCount: data.processCount,
+          containerRuntime: containerRuntime || undefined,
+          dockerHostId: data.dockerHostId || undefined,
+          kubernetesClusterId: data.kubernetesClusterId || undefined,
+        });
+        return new ObjectID(hostIdStr);
+      }
+
+      return null;
+    } catch (err) {
+      logger.error("Error auto-discovering Host: " + (err as Error).message);
+      return null;
+    }
+  }
+
+  /**
+   * Pre-scan a resourceMetric's scopeMetrics to detect host-level
+   * infrastructure signals and capture stats that the Host row caches
+   * (cpuCores, totalMemoryBytes, processCount). Returning a single
+   * struct lets the caller pass everything through to autoDiscoverHost
+   * + HostService.updateLastSeen in one DB write per batch.
+   *
+   * O(metrics) per resource — same magnitude as the existing inner
+   * loops; no datapoint walk beyond the small set we care about.
+   */
+  protected static scanHostInfraStatsFromMetrics(
+    scopeMetrics: JSONArray | undefined,
+  ): {
+    hasInfraSignal: boolean;
+    cpuCores?: number;
+    totalMemoryBytes?: number;
+    processCount?: number;
+  } {
+    const result: {
+      hasInfraSignal: boolean;
+      cpuCores?: number;
+      totalMemoryBytes?: number;
+      processCount?: number;
+    } = {
+      hasInfraSignal: false,
+    };
+
+    if (!scopeMetrics || !Array.isArray(scopeMetrics)) {
+      return result;
+    }
+
+    for (const scopeMetric of scopeMetrics) {
+      const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
+        "metrics"
+      ] as JSONArray | undefined;
+      if (!metrics || !Array.isArray(metrics)) {
+        continue;
+      }
+
+      for (const metric of metrics) {
+        const m: JSONObject = metric as JSONObject;
+        const name: string = ((m["name"] as string) || "").toLowerCase();
+
+        if (name.startsWith("system.") || name.startsWith("process.")) {
+          result.hasInfraSignal = true;
+        }
+
+        if (name === "system.cpu.logical.count") {
+          const v: number | null = this.firstDatapointNumber(m);
+          if (v !== null) {
+            result.cpuCores = Math.round(v);
+          }
+          continue;
+        }
+
+        if (name === "system.memory.usage") {
+          const v: number | null = this.sumDatapointNumbers(m);
+          if (v !== null) {
+            result.totalMemoryBytes = Math.round(v);
+          }
+          continue;
+        }
+
+        if (name === "system.processes.count") {
+          const v: number | null = this.firstDatapointNumber(m);
+          if (v !== null) {
+            result.processCount = Math.round(v);
+          }
+          continue;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private static datapointValue(dp: JSONObject): number | null {
+    const asInt: JSONValue = dp["asInt"];
+    if (typeof asInt === "string" || typeof asInt === "number") {
+      const n: number = Number(asInt);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    const asDouble: JSONValue = dp["asDouble"];
+    if (typeof asDouble === "string" || typeof asDouble === "number") {
+      const n: number = Number(asDouble);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    return null;
+  }
+
+  private static metricDataPoints(metric: JSONObject): JSONArray | null {
+    const wrapper: JSONObject | undefined =
+      (metric["sum"] as JSONObject | undefined) ||
+      (metric["gauge"] as JSONObject | undefined);
+    const points: JSONArray | undefined = wrapper?.["dataPoints"] as
+      | JSONArray
+      | undefined;
+    if (!points || !Array.isArray(points)) {
+      return null;
+    }
+    return points;
+  }
+
+  private static firstDatapointNumber(metric: JSONObject): number | null {
+    const points: JSONArray | null = this.metricDataPoints(metric);
+    if (!points) {
+      return null;
+    }
+    for (const dp of points) {
+      const v: number | null = this.datapointValue(dp as JSONObject);
+      if (v !== null) {
+        return v;
+      }
+    }
+    return null;
+  }
+
+  private static sumDatapointNumbers(metric: JSONObject): number | null {
+    const points: JSONArray | null = this.metricDataPoints(metric);
+    if (!points) {
+      return null;
+    }
+    let sum: number = 0;
+    let any: boolean = false;
+    for (const dp of points) {
+      const v: number | null = this.datapointValue(dp as JSONObject);
+      if (v !== null) {
+        sum += v;
+        any = true;
+      }
+    }
+    return any ? sum : null;
   }
 
   @CaptureSpan()

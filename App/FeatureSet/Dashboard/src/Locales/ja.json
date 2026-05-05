@@ -69,6 +69,8 @@
       "kubernetesDescription": "Kubernetesクラスターを監視。",
       "dockerTitle": "Docker",
       "dockerDescription": "Dockerホストとコンテナを監視。",
+      "hostsTitle": "ホスト",
+      "hostsDescription": "OTelテレメトリから自動検出されたホストを監視。",
       "dashboardsTitle": "ダッシュボード",
       "dashboardsDescription": "すべてのデータを可視化。",
       "workflowsTitle": "ワークフロー",

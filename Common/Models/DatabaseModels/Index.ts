@@ -9,6 +9,9 @@ import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
+import Host from "./Host";
+import HostOwnerTeam from "./HostOwnerTeam";
+import HostOwnerUser from "./HostOwnerUser";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -542,6 +545,9 @@ const AllModelTypes: Array<{
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,
+  Host,
+  HostOwnerTeam,
+  HostOwnerUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

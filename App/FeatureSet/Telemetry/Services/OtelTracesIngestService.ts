@@ -238,12 +238,28 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             await Promise.resolve();
           }
           resourceSpanCounter++;
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
+          const resourceAttributes_raw: JSONArray =
             ((resourceSpan["resource"] as JSONObject)?.[
               "attributes"
-            ] as JSONArray) || [],
+            ] as JSONArray) || [];
+
+          const serviceName: string = await this.getServiceNameFromAttributes(
+            req,
+            resourceAttributes_raw,
           );
+
+          /*
+           * Generic Host auto-discovery from resource attributes.
+           * Traces don't carry infra metrics; we gate on resource
+           * signals (host.id / host.arch / os.type / container.runtime /
+           * k8s.cluster.name) so app-only traces don't flood the Hosts
+           * list.
+           */
+          await this.autoDiscoverHost({
+            projectId,
+            attributes: resourceAttributes_raw,
+            hasInfraSignal: false,
+          });
 
           if (!serviceDictionary[serviceName]) {
             const service: {
@@ -269,10 +285,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
             }),
             ...TelemetryUtil.getAttributes({
-              items:
-                ((resourceSpan["resource"] as JSONObject)?.[
-                  "attributes"
-                ] as JSONArray) || [],
+              items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
             }),
           };

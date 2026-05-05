@@ -185,6 +185,15 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "blue",
       category: observabilityCategory,
     },
+    {
+      title: t("navbar.items.hostsTitle"),
+      description: t("navbar.items.hostsDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
+      activeRoute: RouteMap[PageMap.HOSTS],
+      icon: IconProp.Server,
+      iconColor: "slate",
+      category: observabilityCategory,
+    },
     // Automation & Analytics
     {
       title: t("navbar.items.dashboardsTitle"),

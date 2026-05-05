@@ -812,6 +812,21 @@ enum Permission {
   EditDockerHostOwnerUser = "EditDockerHostOwnerUser",
   ReadDockerHostOwnerUser = "ReadDockerHostOwnerUser",
 
+  CreateHost = "CreateHost",
+  DeleteHost = "DeleteHost",
+  EditHost = "EditHost",
+  ReadHost = "ReadHost",
+
+  CreateHostOwnerTeam = "CreateHostOwnerTeam",
+  DeleteHostOwnerTeam = "DeleteHostOwnerTeam",
+  EditHostOwnerTeam = "EditHostOwnerTeam",
+  ReadHostOwnerTeam = "ReadHostOwnerTeam",
+
+  CreateHostOwnerUser = "CreateHostOwnerUser",
+  DeleteHostOwnerUser = "DeleteHostOwnerUser",
+  EditHostOwnerUser = "EditHostOwnerUser",
+  ReadHostOwnerUser = "ReadHostOwnerUser",
+
   CreateService = "CreateService",
   DeleteService = "DeleteService",
   EditService = "EditService",
@@ -5596,6 +5611,125 @@ export class PermissionHelper {
         title: "Read Docker Host User Owner",
         description:
           "This permission can read Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHost,
+        title: "Create Host",
+        description: "This permission can create Host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHost,
+        title: "Delete Host",
+        description: "This permission can delete Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHost,
+        title: "Edit Host",
+        description: "This permission can edit Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHost,
+        title: "Read Host",
+        description: "This permission can read Host of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHostOwnerTeam,
+        title: "Create Host Team Owner",
+        description:
+          "This permission can create Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHostOwnerTeam,
+        title: "Delete Host Team Owner",
+        description:
+          "This permission can delete Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostOwnerTeam,
+        title: "Edit Host Team Owner",
+        description:
+          "This permission can edit Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostOwnerTeam,
+        title: "Read Host Team Owner",
+        description:
+          "This permission can read Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHostOwnerUser,
+        title: "Create Host User Owner",
+        description:
+          "This permission can create Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHostOwnerUser,
+        title: "Delete Host User Owner",
+        description:
+          "This permission can delete Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostOwnerUser,
+        title: "Edit Host User Owner",
+        description:
+          "This permission can edit Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostOwnerUser,
+        title: "Read Host User Owner",
+        description:
+          "This permission can read Host User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

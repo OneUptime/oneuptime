@@ -69,6 +69,8 @@
       "kubernetesDescription": "Kubernetes-Cluster überwachen.",
       "dockerTitle": "Docker",
       "dockerDescription": "Docker-Hosts und -Container überwachen.",
+      "hostsTitle": "Hosts",
+      "hostsDescription": "Hosts überwachen, die automatisch aus OTel-Telemetrie erkannt werden.",
       "dashboardsTitle": "Dashboards",
       "dashboardsDescription": "Alle Ihre Daten visualisieren.",
       "workflowsTitle": "Workflows",

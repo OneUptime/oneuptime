@@ -260,6 +260,33 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             });
 
+          /*
+           * Generic Host auto-discovery. Pre-scan the resource's
+           * scopeMetrics to detect host-level signal (system.* /
+           * process.*) and capture cached stats (cpuCores,
+           * totalMemoryBytes, processCount) — collapses everything
+           * into a single Host upsert per resource batch.
+           */
+          const scopeMetricsForScan: JSONArray =
+            (resourceMetric["scopeMetrics"] as JSONArray) || [];
+          const hostInfraStats: {
+            hasInfraSignal: boolean;
+            cpuCores?: number;
+            totalMemoryBytes?: number;
+            processCount?: number;
+          } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
+
+          await this.autoDiscoverHost({
+            projectId,
+            attributes: resourceAttributes_raw,
+            hasInfraSignal: hostInfraStats.hasInfraSignal,
+            dockerHostId,
+            kubernetesClusterId,
+            cpuCores: hostInfraStats.cpuCores,
+            totalMemoryBytes: hostInfraStats.totalMemoryBytes,
+            processCount: hostInfraStats.processCount,
+          });
+
           if (!serviceDictionary[serviceName]) {
             const service: {
               serviceId: ObjectID;

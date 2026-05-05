@@ -12,6 +12,7 @@ export * from "./ServiceBreadcrumbs";
 export * from "./CodeRepositoryBreadcrumbs";
 export * from "./KubernetesBreadcrumbs";
 export * from "./DockerBreadcrumbs";
+export * from "./HostBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";

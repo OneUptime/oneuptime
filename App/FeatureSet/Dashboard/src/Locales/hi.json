@@ -69,6 +69,8 @@
       "kubernetesDescription": "Kubernetes क्लस्टर्स की निगरानी करें।",
       "dockerTitle": "Docker",
       "dockerDescription": "Docker होस्ट और कंटेनर्स की निगरानी करें।",
+      "hostsTitle": "होस्ट्स",
+      "hostsDescription": "OTel टेलीमेट्री से स्वचालित रूप से खोजे गए होस्ट्स की निगरानी करें।",
       "dashboardsTitle": "डैशबोर्ड",
       "dashboardsDescription": "अपने सभी डेटा को विज़ुअलाइज़ करें।",
       "workflowsTitle": "वर्कफ़्लो",

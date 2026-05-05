@@ -69,6 +69,8 @@
       "kubernetesDescription": "Supervise clústeres de Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Supervise hosts y contenedores Docker.",
+      "hostsTitle": "Hosts",
+      "hostsDescription": "Supervise hosts detectados automáticamente desde la telemetría OTel.",
       "dashboardsTitle": "Paneles",
       "dashboardsDescription": "Visualice todos sus datos.",
       "workflowsTitle": "Flujos de trabajo",

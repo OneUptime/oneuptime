@@ -223,6 +223,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            */
           const isDockerInventoryEligible: boolean = Boolean(dockerHostId);
 
+          /*
+           * Generic Host auto-discovery. Logs don't carry infra metrics,
+           * so we rely on resource attribute signals (host.id, host.arch,
+           * os.type, container.runtime, k8s.cluster.name) to gate row
+           * creation.
+           */
+          await this.autoDiscoverHost({
+            projectId,
+            attributes: resourceAttributes_raw,
+            hasInfraSignal: false,
+            dockerHostId,
+            kubernetesClusterId,
+          });
+
           if (!serviceDictionary[serviceName]) {
             const service: {
               serviceId: ObjectID;

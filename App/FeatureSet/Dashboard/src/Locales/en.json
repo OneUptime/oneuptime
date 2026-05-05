@@ -69,6 +69,8 @@
       "kubernetesDescription": "Monitor Kubernetes clusters.",
       "dockerTitle": "Docker",
       "dockerDescription": "Monitor Docker hosts and containers.",
+      "hostsTitle": "Hosts",
+      "hostsDescription": "Monitor hosts auto-discovered from OTel telemetry.",
       "dashboardsTitle": "Dashboards",
       "dashboardsDescription": "Visualize all your data.",
       "workflowsTitle": "Workflows",

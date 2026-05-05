@@ -69,6 +69,8 @@
       "kubernetesDescription": "Overvåg Kubernetes-klynger.",
       "dockerTitle": "Docker",
       "dockerDescription": "Overvåg Docker-værter og -containere.",
+      "hostsTitle": "Værter",
+      "hostsDescription": "Overvåg værter automatisk opdaget fra OTel-telemetri.",
       "dashboardsTitle": "Dashboards",
       "dashboardsDescription": "Visualiser alle dine data.",
       "workflowsTitle": "Arbejdsgange",

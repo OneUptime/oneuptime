@@ -283,6 +283,15 @@ import DockerHostOwnerTeamService, {
 import DockerHostOwnerUserService, {
   Service as DockerHostOwnerUserServiceType,
 } from "Common/Server/Services/DockerHostOwnerUserService";
+import HostService, {
+  Service as HostServiceType,
+} from "Common/Server/Services/HostService";
+import HostOwnerTeamService, {
+  Service as HostOwnerTeamServiceType,
+} from "Common/Server/Services/HostOwnerTeamService";
+import HostOwnerUserService, {
+  Service as HostOwnerUserServiceType,
+} from "Common/Server/Services/HostOwnerUserService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
@@ -616,6 +625,9 @@ import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesC
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
+import Host from "Common/Models/DatabaseModels/Host";
+import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
+import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
@@ -2072,6 +2084,27 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerHostOwnerUser, DockerHostOwnerUserServiceType>(
         DockerHostOwnerUser,
         DockerHostOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<Host, HostServiceType>(Host, HostService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostOwnerTeam, HostOwnerTeamServiceType>(
+        HostOwnerTeam,
+        HostOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostOwnerUser, HostOwnerUserServiceType>(
+        HostOwnerUser,
+        HostOwnerUserService,
       ).getRouter(),
     );
 
