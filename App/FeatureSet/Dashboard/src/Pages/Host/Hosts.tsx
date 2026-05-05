@@ -22,6 +22,31 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import HostDocumentationCard from "../../Components/Host/DocumentationCard";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Red } from "Common/Types/BrandColors";
+import ProjectUtil from "Common/UI/Utils/Project";
+
+interface ResourceSummary {
+  cores: number | undefined;
+  memoryBytes: number | undefined;
+  processes: number | undefined;
+}
+
+const formatMemory: (bytes: number | undefined) => string = (
+  bytes: number | undefined,
+): string => {
+  if (bytes === undefined || bytes === null || !Number.isFinite(bytes)) {
+    return "—";
+  }
+  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let v: number = bytes;
+  let i: number = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+};
 
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hostCount, setHostCount] = useState<number | null>(null);
@@ -79,12 +104,21 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        showRefreshButton={true}
         bulkActions={{
           buttons: [...labelBulkActions],
         }}
         name="Hosts"
         isViewable={true}
-        filters={[]}
+        selectMoreFields={{
+          osType: true,
+          osVersion: true,
+          hostArch: true,
+          cpuCores: true,
+          totalMemoryBytes: true,
+          processCount: true,
+          containerRuntime: true,
+        }}
         cardProps={{
           title: "Hosts",
           description:
@@ -138,7 +172,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "Labels",
           },
         ]}
-        columns={[
+        filters={[
           {
             field: {
               name: true,
@@ -155,11 +189,180 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
+              otelCollectorStatus: true,
+            },
+            title: "Status",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: [
+              { value: "connected", label: "Connected" },
+              { value: "disconnected", label: "Disconnected" },
+            ],
+          },
+          {
+            field: {
               osType: true,
             },
             title: "OS",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: [
+              { value: "linux", label: "Linux" },
+              { value: "darwin", label: "macOS" },
+              { value: "windows", label: "Windows" },
+              { value: "freebsd", label: "FreeBSD" },
+            ],
+          },
+          {
+            field: {
+              hostArch: true,
+            },
+            title: "Architecture",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: [
+              { value: "amd64", label: "amd64" },
+              { value: "arm64", label: "arm64" },
+              { value: "x86", label: "x86" },
+              { value: "arm", label: "arm" },
+            ],
+          },
+          {
+            field: {
+              containerRuntime: true,
+            },
+            title: "Container Runtime",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              labels: true,
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            filterEntityType: Label,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.Date,
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Element,
+            getElement: (item: Host): ReactElement => {
+              const id: string = (item.hostIdentifier as string) || "";
+              const name: string = (item.name as string) || "";
+              const showId: boolean = id !== "" && id !== name;
+              return (
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {name || "—"}
+                  </div>
+                  {showId && (
+                    <div className="text-xs text-gray-500 font-mono truncate">
+                      {id}
+                    </div>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              osType: true,
+            },
+            title: "OS",
+            type: FieldType.Element,
             hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              const osType: string = (item.osType as string) || "";
+              const arch: string = (item.hostArch as string) || "";
+              if (!osType && !arch) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              return (
+                <div className="text-sm text-gray-700">
+                  <span className="capitalize">{osType || "unknown"}</span>
+                  {arch && (
+                    <span className="ml-1.5 text-xs font-mono text-gray-500">
+                      {arch}
+                    </span>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              cpuCores: true,
+            },
+            title: "Resources",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              const summary: ResourceSummary = {
+                cores: item.cpuCores ?? undefined,
+                memoryBytes: item.totalMemoryBytes ?? undefined,
+                processes: item.processCount ?? undefined,
+              };
+              if (
+                summary.cores === undefined &&
+                summary.memoryBytes === undefined &&
+                summary.processes === undefined
+              ) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              const parts: Array<string> = [];
+              if (summary.cores !== undefined) {
+                parts.push(
+                  `${summary.cores} core${summary.cores === 1 ? "" : "s"}`,
+                );
+              }
+              if (summary.memoryBytes !== undefined) {
+                parts.push(formatMemory(summary.memoryBytes));
+              }
+              return (
+                <div className="text-sm text-gray-700">
+                  <div>{parts.join(" · ") || "—"}</div>
+                  {summary.processes !== undefined && (
+                    <div className="text-xs text-gray-500">
+                      {summary.processes} processes
+                    </div>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              containerRuntime: true,
+            },
+            title: "Runtime",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              const runtime: string = (item.containerRuntime as string) || "";
+              if (!runtime) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+              return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+                  {runtime}
+                </span>
+              );
+            },
           },
           {
             field: {
@@ -171,20 +374,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               const isConnected: boolean =
                 item.otelCollectorStatus === "connected";
               return (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${
-                      isConnected ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm font-medium ${
-                      isConnected ? "text-emerald-700" : "text-red-700"
-                    }`}
-                  >
-                    {isConnected ? "Connected" : "Disconnected"}
-                  </span>
-                </div>
+                <Pill
+                  text={isConnected ? "Connected" : "Disconnected"}
+                  color={isConnected ? Green : Red}
+                />
               );
             },
           },

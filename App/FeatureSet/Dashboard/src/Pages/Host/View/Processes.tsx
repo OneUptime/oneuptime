@@ -233,45 +233,97 @@ const HostProcesses: FunctionComponent<
         title="Processes"
         description="Per-process CPU, memory, and ownership data from the OTel `process` scraper."
       >
-        <div className="px-4 py-8 text-center">
-          <p className="text-sm font-medium text-gray-900 mb-1">
-            No process metrics in the last 5 minutes
+        <div className="px-4 py-12 text-center">
+          <div className="mx-auto h-12 w-12 rounded-xl bg-slate-50 ring-1 ring-slate-200 flex items-center justify-center mb-4">
+            <svg
+              className="h-6 w-6 text-slate-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-gray-900 mb-1">
+            No process metrics yet
           </p>
-          <p className="text-xs text-gray-500">
-            Enable the <code>process</code> scraper in your OTel collector
-            <code> hostmetrics </code> receiver to populate this view. See the
-            Documentation tab for a config snippet.
+          <p className="text-xs text-gray-500 max-w-md mx-auto">
+            Enable the{" "}
+            <code className="text-[11px] bg-gray-100 px-1 py-0.5 rounded">
+              process
+            </code>{" "}
+            scraper in your OTel collector{" "}
+            <code className="text-[11px] bg-gray-100 px-1 py-0.5 rounded">
+              hostmetrics
+            </code>{" "}
+            receiver to see per-process CPU, memory, and ownership here. The{" "}
+            Documentation tab has a ready-to-paste config snippet.
           </p>
         </div>
       </Card>
     );
   }
 
+  const cpuClass: (value: number | null) => string = (
+    value: number | null,
+  ): string => {
+    if (value === null) {
+      return "text-gray-400";
+    }
+    if (value >= 80) {
+      return "text-red-600 font-semibold";
+    }
+    if (value >= 50) {
+      return "text-amber-600 font-medium";
+    }
+    return "text-gray-900";
+  };
+
+  const memClass: (value: number | null) => string = (
+    value: number | null,
+  ): string => {
+    if (value === null) {
+      return "text-gray-400";
+    }
+    if (value >= 20) {
+      return "text-red-600 font-semibold";
+    }
+    if (value >= 10) {
+      return "text-amber-600 font-medium";
+    }
+    return "text-gray-900";
+  };
+
   return (
     <Card
       title="Processes"
       description="Latest snapshot of processes on this host (last 5 minutes), sorted by CPU usage."
     >
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 PID
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 Executable
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 User
               </th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 CPU
               </th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 Memory
               </th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 Memory %
               </th>
             </tr>
@@ -279,28 +331,43 @@ const HostProcesses: FunctionComponent<
           <tbody className="bg-white divide-y divide-gray-100">
             {rows.map((row: ProcessRow): ReactElement => {
               return (
-                <tr key={row.key}>
-                  <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                <tr
+                  key={row.key}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-4 py-2.5 text-sm text-gray-700 font-mono whitespace-nowrap align-top">
                     {row.pid || "—"}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    <div className="font-medium">{row.executable}</div>
+                  <td className="px-4 py-2.5 text-sm align-top">
+                    <div className="font-medium text-gray-900 truncate max-w-xs">
+                      {row.executable}
+                    </div>
                     {row.command && (
-                      <div className="text-xs text-gray-500 truncate max-w-md">
+                      <div className="text-xs text-gray-500 font-mono truncate max-w-md">
                         {row.command}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {row.user || "—"}
+                  <td className="px-4 py-2.5 text-sm align-top">
+                    {row.user ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs font-medium text-gray-700">
+                        {row.user}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400">—</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-mono text-gray-900">
+                  <td
+                    className={`px-4 py-2.5 text-sm text-right font-mono whitespace-nowrap align-top ${cpuClass(row.cpuPercent)}`}
+                  >
                     {formatPercent(row.cpuPercent)}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-mono text-gray-900">
+                  <td className="px-4 py-2.5 text-sm text-right font-mono text-gray-900 whitespace-nowrap align-top">
                     {formatBytes(row.memoryBytes)}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-mono text-gray-900">
+                  <td
+                    className={`px-4 py-2.5 text-sm text-right font-mono whitespace-nowrap align-top ${memClass(row.memoryPercent)}`}
+                  >
                     {formatPercent(row.memoryPercent)}
                   </td>
                 </tr>
@@ -308,6 +375,10 @@ const HostProcesses: FunctionComponent<
             })}
           </tbody>
         </table>
+      </div>
+      <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-gray-100 bg-gray-50/50">
+        {rows.length} process{rows.length === 1 ? "" : "es"} · refreshes when
+        you reload the page
       </div>
     </Card>
   );

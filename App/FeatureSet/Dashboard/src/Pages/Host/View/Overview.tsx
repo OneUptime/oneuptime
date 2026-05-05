@@ -6,8 +6,9 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
@@ -71,6 +72,111 @@ const formatInt: (value: number | null) => string = (
   return Math.round(value).toString();
 };
 
+const formatMemoryBytes: (bytes: number | null | undefined) => string = (
+  bytes: number | null | undefined,
+): string => {
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
+    return "—";
+  }
+  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let v: number = bytes;
+  let i: number = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+};
+
+interface MetricTileProps {
+  title: string;
+  icon: IconProp;
+  iconColor: "blue" | "violet" | "amber" | "emerald" | "slate";
+  value: string;
+  sublabel?: string | undefined;
+  percent?: number | null | undefined;
+  thresholds?: { warn: number; danger: number } | undefined;
+}
+
+const colorClasses: Record<
+  MetricTileProps["iconColor"],
+  { bg: string; ring: string; text: string }
+> = {
+  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
+  violet: {
+    bg: "bg-violet-50",
+    ring: "ring-violet-200",
+    text: "text-violet-600",
+  },
+  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
+  emerald: {
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
+    text: "text-emerald-600",
+  },
+  slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
+};
+
+const MetricTile: FunctionComponent<MetricTileProps> = (
+  props: MetricTileProps,
+): ReactElement => {
+  const colors: { bg: string; ring: string; text: string } =
+    colorClasses[props.iconColor];
+
+  const barColor: string = (() => {
+    if (props.percent === null || props.percent === undefined) {
+      return "bg-gray-300";
+    }
+    const t: { warn: number; danger: number } = props.thresholds || {
+      warn: 70,
+      danger: 90,
+    };
+    if (props.percent >= t.danger) {
+      return "bg-red-500";
+    }
+    if (props.percent >= t.warn) {
+      return "bg-amber-500";
+    }
+    return "bg-emerald-500";
+  })();
+
+  const safePercent: number =
+    props.percent === null || props.percent === undefined
+      ? 0
+      : Math.min(100, Math.max(0, props.percent));
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {props.title}
+        </span>
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        >
+          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+        </div>
+      </div>
+      <div className="text-2xl font-semibold text-gray-900 leading-none">
+        {props.value}
+      </div>
+      {props.sublabel ? (
+        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
+      ) : (
+        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+      )}
+      {props.percent !== undefined && props.percent !== null && (
+        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+          <div
+            className={`${barColor} h-1.5 rounded-full transition-all`}
+            style={{ width: `${safePercent}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 const HostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -95,6 +201,10 @@ const HostOverview: FunctionComponent<
           dockerHostId: true,
           kubernetesClusterId: true,
           containerRuntime: true,
+          cpuCores: true,
+          totalMemoryBytes: true,
+          osType: true,
+          osVersion: true,
         },
       });
 
@@ -281,16 +391,66 @@ const HostOverview: FunctionComponent<
       return <Fragment />;
     }
 
+    const cores: number | undefined = host?.cpuCores ?? undefined;
+    const totalMem: number | undefined = host?.totalMemoryBytes ?? undefined;
+
+    const cpuSublabel: string | undefined =
+      cores !== undefined
+        ? `across ${cores} core${cores === 1 ? "" : "s"}`
+        : undefined;
+    const memSublabel: string | undefined =
+      totalMem !== undefined ? `of ${formatMemoryBytes(totalMem)}` : undefined;
+
+    const loadColor: number | null =
+      cores && cores > 0 && s.load1m !== null ? (s.load1m / cores) * 100 : null;
+
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <InfoCard title="CPU" value={formatPercent(s.cpuPercent)} />
-        <InfoCard title="Memory" value={formatPercent(s.memoryPercent)} />
-        <InfoCard
-          title="Filesystem"
-          value={formatPercent(s.filesystemPercent)}
+        <MetricTile
+          title="CPU"
+          icon={IconProp.ChartBar}
+          iconColor="blue"
+          value={formatPercent(s.cpuPercent)}
+          sublabel={cpuSublabel}
+          percent={s.cpuPercent}
         />
-        <InfoCard title="Load (1m)" value={formatNumber(s.load1m)} />
-        <InfoCard title="Processes" value={formatInt(s.processCount)} />
+        <MetricTile
+          title="Memory"
+          icon={IconProp.SquareStack}
+          iconColor="violet"
+          value={formatPercent(s.memoryPercent)}
+          sublabel={memSublabel}
+          percent={s.memoryPercent}
+        />
+        <MetricTile
+          title="Filesystem"
+          icon={IconProp.Cube}
+          iconColor="amber"
+          value={formatPercent(s.filesystemPercent)}
+          sublabel="largest mount"
+          percent={s.filesystemPercent}
+          thresholds={{ warn: 75, danger: 90 }}
+        />
+        <MetricTile
+          title="Load (1m)"
+          icon={IconProp.Heartbeat}
+          iconColor="emerald"
+          value={formatNumber(s.load1m)}
+          sublabel={
+            cores !== undefined
+              ? `across ${cores} core${cores === 1 ? "" : "s"}`
+              : undefined
+          }
+          percent={loadColor}
+          thresholds={{ warn: 70, danger: 100 }}
+        />
+        <MetricTile
+          title="Processes"
+          icon={IconProp.List}
+          iconColor="slate"
+          value={formatInt(s.processCount)}
+          sublabel={s.processCount !== null ? "running" : undefined}
+        />
       </div>
     );
   };
