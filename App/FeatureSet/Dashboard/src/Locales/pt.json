@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essenciais",
       "observability": "Observabilidade",
+      "infrastructure": "Infraestrutura",
       "analyticsAutomation": "Análise e automação",
       "settings": "Configurações"
     },
@@ -69,6 +70,8 @@
       "kubernetesDescription": "Monitore clusters Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Monitore hosts e containers Docker.",
+      "hostsTitle": "Hosts",
+      "hostsDescription": "Monitore hosts detectados automaticamente pela telemetria OTel.",
       "dashboardsTitle": "Painéis",
       "dashboardsDescription": "Visualize todos os seus dados.",
       "workflowsTitle": "Fluxos de trabalho",

@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基础",
       "observability": "可观测性",
+      "infrastructure": "基础设施",
       "analyticsAutomation": "分析与自动化",
       "settings": "设置"
     },
@@ -69,6 +70,8 @@
       "kubernetesDescription": "监控 Kubernetes 集群。",
       "dockerTitle": "Docker",
       "dockerDescription": "监控 Docker 主机和容器。",
+      "hostsTitle": "主机",
+      "hostsDescription": "监控通过 OTel 遥测自动发现的主机。",
       "dashboardsTitle": "仪表板",
       "dashboardsDescription": "可视化您的所有数据。",
       "workflowsTitle": "工作流",

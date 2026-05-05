@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "필수",
       "observability": "관측 가능성",
+      "infrastructure": "인프라",
       "analyticsAutomation": "분석 및 자동화",
       "settings": "설정"
     },
@@ -69,6 +70,8 @@
       "kubernetesDescription": "Kubernetes 클러스터를 모니터링하세요.",
       "dockerTitle": "Docker",
       "dockerDescription": "Docker 호스트와 컨테이너를 모니터링하세요.",
+      "hostsTitle": "호스트",
+      "hostsDescription": "OTel 텔레메트리에서 자동으로 검색된 호스트를 모니터링하세요.",
       "dashboardsTitle": "대시보드",
       "dashboardsDescription": "모든 데이터를 시각화하세요.",
       "workflowsTitle": "워크플로",

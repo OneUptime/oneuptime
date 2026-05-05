@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grunnleggende",
       "observability": "Observability",
+      "infrastructure": "Infrastruktur",
       "analyticsAutomation": "Analyse og automatisering",
       "settings": "Innstillinger"
     },
@@ -69,6 +70,8 @@
       "kubernetesDescription": "Overvåk Kubernetes-klynger.",
       "dockerTitle": "Docker",
       "dockerDescription": "Overvåk Docker-verter og -containere.",
+      "hostsTitle": "Verter",
+      "hostsDescription": "Overvåk verter som oppdages automatisk fra OTel-telemetri.",
       "dashboardsTitle": "Dashbord",
       "dashboardsDescription": "Visualiser alle dataene dine.",
       "workflowsTitle": "Arbeidsflyter",

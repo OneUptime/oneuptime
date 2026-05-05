@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundläggande",
       "observability": "Observability",
+      "infrastructure": "Infrastruktur",
       "analyticsAutomation": "Analys och automatisering",
       "settings": "Inställningar"
     },
@@ -69,6 +70,8 @@
       "kubernetesDescription": "Övervaka Kubernetes-kluster.",
       "dockerTitle": "Docker",
       "dockerDescription": "Övervaka Docker-värdar och -containrar.",
+      "hostsTitle": "Värdar",
+      "hostsDescription": "Övervaka värdar som upptäcks automatiskt från OTel-telemetri.",
       "dashboardsTitle": "Instrumentpaneler",
       "dashboardsDescription": "Visualisera all din data.",
       "workflowsTitle": "Arbetsflöden",

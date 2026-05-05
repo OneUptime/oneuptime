@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "基本",
       "observability": "オブザーバビリティ",
+      "infrastructure": "インフラストラクチャ",
       "analyticsAutomation": "分析と自動化",
       "settings": "設定"
     },

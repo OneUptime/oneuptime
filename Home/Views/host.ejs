@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Host Observability - Server Metrics, Processes & Logs</title>
+  <meta name="description"
+    content="Auto-discover hosts from any OpenTelemetry collector. Live CPU, memory, disk, filesystem, network, and per-process telemetry — plus logs and traces correlated to the same host. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="host-hero-section">
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div id="host-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(71, 85, 105, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(71, 85, 105, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <p class="text-sm font-medium text-slate-600 mb-4">OpenTelemetry Native Host Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Every host you monitor, auto-discovered
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Point any OpenTelemetry collector at OneUptime. Hosts appear automatically the moment they emit telemetry — with live CPU, memory, disk, network, processes, and correlated logs.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Auto-discovery</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>System metrics</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Per-process detail</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Correlated logs</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Host overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/host', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Host Overview</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        prod-app-01
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">CPU</div>
+                        <div class="text-xl font-bold text-gray-900">42%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-blue-400 h-1.5 rounded-full" style="width: 42%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Memory</div>
+                        <div class="text-xl font-bold text-gray-900">63%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-violet-400 h-1.5 rounded-full" style="width: 63%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Filesystem</div>
+                        <div class="text-xl font-bold text-gray-900">71%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-amber-400 h-1.5 rounded-full" style="width: 71%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Load (1m)</div>
+                        <div class="text-xl font-bold text-gray-900">2.14</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-1">8 cores</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Processes</div>
+                        <div class="text-xl font-bold text-gray-900">217</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-1">running</div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                      <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Host Resource Usage</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">CPU and Memory over time</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                              <span class="text-[10px] text-gray-500">CPU</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+                              <span class="text-[10px] text-gray-500">Memory</span>
+                            </div>
+                          </div>
+                        </div>
+                        <svg viewBox="0 0 400 100" class="w-full h-24">
+                          <defs>
+                            <linearGradient id="hostCpuGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0"/>
+                            </linearGradient>
+                            <linearGradient id="hostMemGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.15"/>
+                              <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <line x1="0" y1="25" x2="400" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="400" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="400" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <path d="M0,65 L25,62 L50,55 L75,58 L100,50 L125,53 L150,46 L175,49 L200,42 L225,46 L250,40 L275,44 L300,38 L325,42 L350,36 L375,40 L400,35 L400,100 L0,100 Z" fill="url(#hostCpuGrad)"/>
+                          <path d="M0,65 L25,62 L50,55 L75,58 L100,50 L125,53 L150,46 L175,49 L200,42 L225,46 L250,40 L275,44 L300,38 L325,42 L350,36 L375,40 L400,35" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+                          <path d="M0,40 L25,38 L50,35 L75,32 L100,30 L125,28 L150,26 L175,28 L200,24 L225,26 L250,22 L275,24 L300,21 L325,23 L350,20 L375,22 L400,19 L400,100 L0,100 Z" fill="url(#hostMemGrad)"/>
+                          <path d="M0,40 L25,38 L50,35 L75,32 L100,30 L125,28 L150,26 L175,28 L200,24 L225,26 L250,22 L275,24 L300,21 L325,23 L350,20 L375,22 L400,19" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+                          <text x="2" y="23" fill="#9ca3af" font-size="8">75%</text>
+                          <text x="2" y="48" fill="#9ca3af" font-size="8">50%</text>
+                          <text x="2" y="73" fill="#9ca3af" font-size="8">25%</text>
+                        </svg>
+                      </div>
+
+                      <!-- Filesystem usage by mount -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">Filesystems</div>
+                        <div class="text-[10px] text-gray-400 mb-4">Per mount point</div>
+                        <div class="space-y-3">
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">/</span>
+                              <span class="text-[10px] text-gray-500">71%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 h-1.5 rounded-full" style="width:71%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">/var</span>
+                              <span class="text-[10px] text-gray-500">42%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:42%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">/data</span>
+                              <span class="text-[10px] text-gray-500">88%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-red-400 h-1.5 rounded-full" style="width:88%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">/tmp</span>
+                              <span class="text-[10px] text-gray-500">12%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-emerald-400 h-1.5 rounded-full" style="width:12%"></div></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Top processes & Network IO -->
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Top Processes by CPU</span>
+                          <span class="text-[10px] text-gray-400">217 total</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">node</span>
+                              <span class="text-[10px] text-gray-400">pid 1842</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                              <span class="text-[10px] text-gray-400">CPU</span>
+                              <div class="w-14 bg-gray-100 rounded-full h-1.5"><div class="bg-blue-400 h-1.5 rounded-full" style="width:78%"></div></div>
+                              <span class="text-[10px] text-gray-500 w-7">78%</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">postgres</span>
+                              <span class="text-[10px] text-gray-400">pid 904</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                              <span class="text-[10px] text-gray-400">CPU</span>
+                              <div class="w-14 bg-gray-100 rounded-full h-1.5"><div class="bg-blue-400 h-1.5 rounded-full" style="width:54%"></div></div>
+                              <span class="text-[10px] text-gray-500 w-7">54%</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span class="text-xs font-mono text-gray-700">otelcol</span>
+                              <span class="text-[10px] text-gray-400">pid 312</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                              <span class="text-[10px] text-gray-400">CPU</span>
+                              <div class="w-14 bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 h-1.5 rounded-full" style="width:31%"></div></div>
+                              <span class="text-[10px] text-gray-500 w-7">31%</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">redis-server</span>
+                              <span class="text-[10px] text-gray-400">pid 1124</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                              <span class="text-[10px] text-gray-400">CPU</span>
+                              <div class="w-14 bg-gray-100 rounded-full h-1.5"><div class="bg-blue-400 h-1.5 rounded-full" style="width:18%"></div></div>
+                              <span class="text-[10px] text-gray-500 w-7">18%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Network I/O -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Network I/O</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Throughput per interface</div>
+                          </div>
+                        </div>
+                        <div class="space-y-3">
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">eth0 RX</span>
+                              <span class="text-[10px] text-gray-500">12.4 MB/s</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-cyan-400 h-1.5 rounded-full" style="width:62%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">eth0 TX</span>
+                              <span class="text-[10px] text-gray-500">8.1 MB/s</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-indigo-400 h-1.5 rounded-full" style="width:40%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">lo</span>
+                              <span class="text-[10px] text-gray-500">2.0 MB/s</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-gray-400 h-1.5 rounded-full" style="width:10%"></div></div>
+                          </div>
+                          <div class="pt-2 border-t border-gray-100">
+                            <div class="flex items-center justify-between">
+                              <span class="text-[11px] text-gray-500">Errors (1m)</span>
+                              <span class="text-[11px] font-semibold text-emerald-600">0</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="bg-gray-50 py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            One collector. Every host you run.
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Auto-discovery is keyed on the OTel <code class="px-1.5 py-0.5 bg-gray-200 rounded text-sm">host.name</code> resource attribute. Send any <code class="px-1.5 py-0.5 bg-gray-200 rounded text-sm">system.*</code> or <code class="px-1.5 py-0.5 bg-gray-200 rounded text-sm">process.*</code> metric and the host shows up in your project — no agent install, no manifest, no manual registration.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl p-8 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 mb-5">
+              <span class="text-sm font-semibold text-slate-700">1</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Drop in the OTel collector</h3>
+            <p class="text-sm text-gray-600">
+              Run any standard OpenTelemetry Collector with the <code class="text-xs">hostmetrics</code> and <code class="text-xs">process</code> receivers. Point its OTLP exporter at OneUptime.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 mb-5">
+              <span class="text-sm font-semibold text-slate-700">2</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Hosts appear automatically</h3>
+            <p class="text-sm text-gray-600">
+              The first metric batch carrying <code class="text-xs">host.name</code> registers the host. OS, architecture, CPU cores, and total memory are captured from resource attributes on the same call.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200 mb-5">
+              <span class="text-sm font-semibold text-slate-700">3</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Browse, alert, correlate</h3>
+            <p class="text-sm text-gray-600">
+              Charts, processes, and logs are all filtered by host. Run a Docker host or a Kubernetes node? It's auto-linked to the existing entity in those sections.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature grid -->
+    <div class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need on a host. Nothing you don't.
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Live system metrics</h3>
+            <p class="text-sm text-gray-600">
+              CPU utilization by state, memory usage and utilization, filesystem usage by mount, disk read/write, network I/O and errors, load average, paging, processes count.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Per-process detail</h3>
+            <p class="text-sm text-gray-600">
+              Latest CPU and memory per pid + executable, with command line and owner. Pulled straight from the OTel <code class="text-xs">process</code> scraper.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Correlated logs</h3>
+            <p class="text-sm text-gray-600">
+              The Logs tab on every host filters ClickHouse logs by <code class="text-xs">resource.host.name</code>. Anything your collector ships shows up where it belongs.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-linked Docker hosts</h3>
+            <p class="text-sm text-gray-600">
+              When a host also runs Docker, the Host record links to the matching Docker Host so you can jump to container-level metrics in one click.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Kubernetes-aware</h3>
+            <p class="text-sm text-gray-600">
+              Hosts that report <code class="text-xs">k8s.cluster.name</code> are linked to the cluster they belong to — the Host page acts as a per-node deep-link from your Kubernetes view.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Connection status</h3>
+            <p class="text-sm text-gray-600">
+              <code class="text-xs">otelCollectorStatus</code> flips to disconnected when telemetry stops arriving. <code class="text-xs">lastSeenAt</code> is throttled per host to avoid hammering the database.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Phantom-host gate</h3>
+            <p class="text-sm text-gray-600">
+              Backend services that happen to set <code class="text-xs">host.name</code> won't pollute your Hosts list. We require a real infra signal — <code class="text-xs">host.id</code>, <code class="text-xs">os.type</code>, or any <code class="text-xs">system.*</code> metric.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">OS &amp; hardware metadata</h3>
+            <p class="text-sm text-gray-600">
+              OS type, OS description, host architecture, instance type, CPU core count, and total physical memory captured from resource attributes and the <code class="text-xs">hostmetrics</code> stream.
+            </p>
+          </div>
+
+          <div class="bg-gray-50 rounded-2xl p-6 ring-1 ring-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Open source</h3>
+            <p class="text-sm text-gray-600">
+              No proprietary agent, no hidden lock-in. The collector is upstream OTel; the OneUptime backend ingest, schemas, and dashboards are open source. Self-host or use the cloud.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick collector snippet -->
+    <div class="bg-gray-50 py-20 sm:py-28">
+      <div class="mx-auto max-w-5xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center mb-12">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            One config. Every host visible.
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Drop this into your collector and the host appears in OneUptime within seconds.
+          </p>
+        </div>
+
+        <div class="bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
+          <div class="bg-gray-800 px-6 py-3 flex items-center justify-between border-b border-gray-700">
+            <div class="flex items-center gap-2">
+              <div class="flex gap-1.5">
+                <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                <div class="w-3 h-3 rounded-full bg-green-400"></div>
+              </div>
+              <span class="text-xs text-gray-400 font-mono ml-2">otel-collector-config.yaml</span>
+            </div>
+          </div>
+          <pre class="p-6 text-sm text-gray-100 font-mono overflow-x-auto leading-relaxed"><code>receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      load:
+      network:
+      processes:
+      process:
+        mute_process_name_error: true
+
+processors:
+  resourcedetection:
+    detectors: [system, env]
+  batch:
+
+exporters:
+  otlphttp/oneuptime:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: &lt;your-ingestion-key&gt;
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/oneuptime]</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+
+  <script>
+    (function() {
+      var hero = document.getElementById('host-hero-section');
+      var glow = document.getElementById('host-grid-glow');
+      if (!hero || !glow) return;
+      hero.addEventListener('mousemove', function(e) {
+        var rect = hero.getBoundingClientRect();
+        var x = ((e.clientX - rect.left) / rect.width) * 100;
+        var y = ((e.clientY - rect.top) / rect.height) * 100;
+        glow.style.setProperty('--mouse-x', x + '%');
+        glow.style.setProperty('--mouse-y', y + '%');
+        glow.style.opacity = '1';
+      });
+      hero.addEventListener('mouseleave', function() {
+        glow.style.opacity = '0';
+      });
+    })();
+  </script>
+</body>
+
+</html>

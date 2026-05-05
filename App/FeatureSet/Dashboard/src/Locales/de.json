@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundlagen",
       "observability": "Observability",
+      "infrastructure": "Infrastruktur",
       "analyticsAutomation": "Analytik & Automatisierung",
       "settings": "Einstellungen"
     },
