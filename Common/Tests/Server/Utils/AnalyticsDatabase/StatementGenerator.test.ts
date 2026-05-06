@@ -179,6 +179,67 @@ describe("StatementGenerator", () => {
         p3: OneUptimeDate.toClickhouseDateTime(date),
       });
     });
+
+    describe("MapStringString columns", () => {
+      class MapModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<map-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributes",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: {},
+                type: TableColumnType.MapStringString,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      let mapGenerator: StatementGenerator<MapModel>;
+      beforeEach(() => {
+        mapGenerator = new StatementGenerator<MapModel>({
+          modelType: MapModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      test("uses case-insensitive lookup for bare-value equality", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestid: "uuid-123" },
+        } as any);
+        /*
+         * Match both the user-supplied key and the stored key with lowerUTF8
+         * so `requestid` finds rows whose attribute is stored as `requestId`.
+         */
+        expect(statement.query).toBe(
+          "AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8({p0:String}) AND v = {p1:String}, mapKeys({p2:Identifier}), mapValues({p3:Identifier}))",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "requestid",
+          p1: "uuid-123",
+          p2: "attributes",
+          p3: "attributes",
+        });
+      });
+    });
   });
 
   describe("toSelectStatement", () => {

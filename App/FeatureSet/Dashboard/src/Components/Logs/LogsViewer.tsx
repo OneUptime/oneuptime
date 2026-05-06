@@ -1093,7 +1093,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const handleFieldValueSelect: (fieldKey: string, value: string) => void =
     useCallback(
       (fieldKey: string, value: string): void => {
-        // Map user-facing field names to internal keys
+        // Map user-facing field names to internal keys (case-insensitive)
         const fieldAliases: Record<string, string> = {
           severity: "severityText",
           level: "severityText",
@@ -1103,11 +1103,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         };
         /*
          * Unknown keys are telemetry attributes (e.g. `http.method`,
-         * `fullDomain`). Prefix them with `attributes.` so the rebuild step
+         * `requestId`). Prefix them with `attributes.` so the rebuild step
          * routes them into `query.attributes[<key>]` instead of treating them
-         * as top-level columns. The chip displays without the prefix.
+         * as top-level columns. We preserve the original case of the key
+         * because attribute keys can be camelCase (`requestId`); the backend
+         * matches them case-insensitively. The chip displays without the
+         * `attributes.` prefix.
          */
-        const aliased: string | undefined = fieldAliases[fieldKey];
+        const aliased: string | undefined =
+          fieldAliases[fieldKey.toLowerCase()];
         const resolvedKey: string = aliased
           ? aliased
           : `attributes.${fieldKey}`;

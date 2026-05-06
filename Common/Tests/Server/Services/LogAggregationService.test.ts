@@ -80,4 +80,27 @@ describe("LogAggregationService", () => {
       });
     }).toThrow("Invalid facetKey");
   });
+
+  test("histogram attribute filter matches attribute keys case-insensitively", () => {
+    /*
+     * Users typing `requestid` should still match data stored with the key
+     * `requestId` (camelCase). The histogram filter shares the same WHERE
+     * clause builder (`appendCommonFilters`) with the list/facet queries, so
+     * verifying it on histogram covers all three.
+     */
+    const statement: Statement = (
+      LogAggregationService as any
+    ).buildHistogramStatement({
+      ...defaultRequest,
+      facetKey: undefined,
+      attributes: { requestid: "uuid-123" },
+    });
+
+    expect(statement.query).toContain(
+      "arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(",
+    );
+    expect(statement.query).toContain(", mapKeys(attributes), mapValues(attributes))");
+    expect(Object.values(statement.query_params)).toContain("requestid");
+    expect(Object.values(statement.query_params)).toContain("uuid-123");
+  });
 });

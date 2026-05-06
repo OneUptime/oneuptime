@@ -67,8 +67,14 @@ const LogSearchBar: React.ForwardRefExoticComponent<
     // Determine if we're in "field:value" mode or "field name" mode
     const colonIndex: number = normalizedWord.indexOf(":");
     const isValueMode: boolean = colonIndex > 0;
+    /*
+     * Preserve the user's casing — telemetry attribute keys like `requestId`
+     * are case-sensitive in the data, so lowercasing here would silently
+     * break searches against camelCase keys. Alias lookups (severity →
+     * severityText) handle their own case normalisation.
+     */
     const fieldPrefix: string = isValueMode
-      ? normalizedWord.substring(0, colonIndex).toLowerCase()
+      ? normalizedWord.substring(0, colonIndex)
       : "";
     const partialValue: string = isValueMode
       ? normalizedWord.substring(colonIndex + 1)
@@ -156,7 +162,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
                * value as-is so users aren't blocked when no suggestion exists.
                */
               const resolvedField: string =
-                FIELD_ALIAS_MAP[fieldPrefix] || fieldPrefix;
+                FIELD_ALIAS_MAP[fieldPrefix.toLowerCase()] || fieldPrefix;
               const availableValues: Array<string> =
                 (props.valueSuggestions || {})[resolvedField] || [];
               const lowerPartial: string = partialValue.toLowerCase();
@@ -402,8 +408,9 @@ function getValueSuggestions(
   partialValue: string,
   valueSuggestions: Record<string, Array<string>>,
 ): Array<string> {
-  // Resolve field name alias
-  const resolvedField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
+  // Resolve field name alias (case-insensitive lookup, preserve original key as fallback)
+  const resolvedField: string =
+    FIELD_ALIAS_MAP[fieldName.toLowerCase()] || fieldName;
 
   const values: Array<string> | undefined = valueSuggestions[resolvedField];
 

@@ -1003,11 +1003,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
          * the UI. Known fields use their alias (e.g. "service" →
          * "serviceId"); unknown keys are telemetry attributes and get an
          * `attributes.` prefix so they're routed into `query.attributes`
-         * during query construction.
+         * during query construction. Known-field detection is
+         * case-insensitive so users can type `Service:api`; attribute keys
+         * keep their original case because the data is case-sensitive (the
+         * backend matches them case-insensitively at query time).
          */
-        const isKnownField: boolean = KNOWN_FIELD_KEYS.has(fieldKey);
+        const lowerFieldKey: string = fieldKey.toLowerCase();
+        const isKnownField: boolean = KNOWN_FIELD_KEYS.has(lowerFieldKey);
         const facetKey: string = isKnownField
-          ? FIELD_ALIAS_MAP[fieldKey] || fieldKey
+          ? FIELD_ALIAS_MAP[lowerFieldKey] || lowerFieldKey
           : `attributes.${fieldKey}`;
         handleFacetInclude(facetKey, value);
       }}

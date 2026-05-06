@@ -463,46 +463,43 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           /*
-           * ClickHouse Map columns return the value type's default for
-           * missing keys (empty string for String values), so to express
-           * "is empty" we have to cover both the missing-key and the
-           * empty-string case explicitly.
+           * Telemetry attribute keys come from many sources (OTEL conventions
+           * use dot.lowercase, app code often uses camelCase like `requestId`).
+           * Users typing in the search bar shouldn't have to remember the exact
+           * casing, so we match the map key case-insensitively via lowerUTF8.
+           * ClickHouse Map columns also return the value type's default for
+           * missing keys (empty string for String values), which we keep
+           * mirroring in the IsNull / NotNull cases below.
            */
           if (mapEntry instanceof IsNull) {
             whereStatement.append(
-              SQL`AND ((NOT mapContains(${key}, ${{
+              SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }})) OR ${key}[${{
-                value: mapKey,
-                type: TableColumnType.Text,
-              }}] = '')`,
+              }}) AND v != '', mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof NotNull) {
             whereStatement.append(
-              SQL`AND mapContains(${key}, ${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND ${key}[${{
-                value: mapKey,
-                type: TableColumnType.Text,
-              }}] != ''`,
+              }}) AND v != '', mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof Search) {
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}] ILIKE ${{
+              }}) AND v ILIKE ${{
                 value: mapEntry as Search<string>,
                 type: TableColumnType.Text,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
@@ -510,13 +507,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           if (mapEntry instanceof NotContains) {
             const literalValue: string = `%${(mapEntry.value as string) || ""}%`;
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}] NOT ILIKE ${{
+              }}) AND v ILIKE ${{
                 value: literalValue,
                 type: TableColumnType.Text,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
@@ -524,13 +521,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           if (mapEntry instanceof StartsWith) {
             const literalValue: string = `${(mapEntry.value as string) || ""}%`;
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}] ILIKE ${{
+              }}) AND v ILIKE ${{
                 value: literalValue,
                 type: TableColumnType.Text,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
@@ -538,39 +535,45 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           if (mapEntry instanceof EndsWith) {
             const literalValue: string = `%${(mapEntry.value as string) || ""}`;
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}] ILIKE ${{
+              }}) AND v ILIKE ${{
                 value: literalValue,
                 type: TableColumnType.Text,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof NotEqual) {
+            /*
+             * Mirrors the previous `attributes['k'] != 'v'` semantics: rows
+             * where the key is absent (default empty string for missing keys)
+             * still match, since no entry has both the matching key and the
+             * given value.
+             */
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}] != ${{
+              }}) AND v = ${{
                 value: String((mapEntry as NotEqual<string>).value ?? ""),
                 type: TableColumnType.Text,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof EqualTo) {
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}] = ${{
+              }}) AND v = ${{
                 value: String((mapEntry as EqualTo<any>).value ?? ""),
                 type: TableColumnType.Text,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
@@ -581,65 +584,65 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
            */
           if (mapEntry instanceof GreaterThan) {
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}]) > ${{
+              }}) AND toFloat64OrNull(v) > ${{
                 value: Number((mapEntry as GreaterThan<any>).value),
                 type: TableColumnType.Number,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof GreaterThanOrEqual) {
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}]) >= ${{
+              }}) AND toFloat64OrNull(v) >= ${{
                 value: Number((mapEntry as GreaterThanOrEqual<any>).value),
                 type: TableColumnType.Number,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof LessThan) {
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}]) < ${{
+              }}) AND toFloat64OrNull(v) < ${{
                 value: Number((mapEntry as LessThan<any>).value),
                 type: TableColumnType.Number,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof LessThanOrEqual) {
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}]) <= ${{
+              }}) AND toFloat64OrNull(v) <= ${{
                 value: Number((mapEntry as LessThanOrEqual<any>).value),
                 type: TableColumnType.Number,
-              }}`,
+              }}, mapKeys(${key}), mapValues(${key}))`,
             );
             continue;
           }
 
           // Bare string/number/boolean — back-compat with existing data.
           whereStatement.append(
-            SQL`AND ${key}[${{
+            SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
               value: mapKey,
               type: TableColumnType.Text,
-            }}] = ${{
+            }}) AND v = ${{
               value: String(mapEntry),
               type: TableColumnType.Text,
-            }}`,
+            }}, mapKeys(${key}), mapValues(${key}))`,
           );
         }
       } else if (

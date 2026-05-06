@@ -503,14 +503,19 @@ export class TraceAggregationService {
       for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
         TraceAggregationService.validateFacetKey(attrKey);
 
+        /*
+         * Match attribute keys case-insensitively — see the matching note in
+         * LogAggregationService.appendCommonFilters. Casings vary across
+         * OTEL conventions and app-emitted attributes.
+         */
         statement.append(
-          SQL` AND attributes[${{
+          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,
             value: attrKey,
-          }}] = ${{
+          }}) AND v = ${{
             type: TableColumnType.Text,
             value: attrValue,
-          }}`,
+          }}, mapKeys(attributes), mapValues(attributes))`,
         );
       }
     }

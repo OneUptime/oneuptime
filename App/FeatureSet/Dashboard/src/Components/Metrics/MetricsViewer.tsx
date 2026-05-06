@@ -750,9 +750,13 @@ const MetricsViewer: FunctionComponent<Props> = (
          * string. Unknown keys are telemetry attributes — turn them into
          * chips with the `attributes.` prefix so they live in
          * `activeFilters` and are routed through the analytics query.
+         * Known-field detection is case-insensitive; attribute keys keep
+         * their original case (the backend matches map keys case-
+         * insensitively at query time).
          */
-        if (KNOWN_FIELD_KEYS.has(fieldKey)) {
-          const newSearch: string = `${fieldKey}:${value}`;
+        const lowerFieldKey: string = fieldKey.toLowerCase();
+        if (KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
+          const newSearch: string = `${lowerFieldKey}:${value}`;
           setSearchValue(newSearch);
           setSubmittedSearch(newSearch);
           setPage(1);

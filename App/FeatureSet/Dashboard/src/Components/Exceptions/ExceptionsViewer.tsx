@@ -780,9 +780,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
          * correctly. The TelemetryException model has no JSON attributes
          * column, so unknown keys go back through the search string path
          * — preserving the previous behavior rather than silently breaking
-         * the filter.
+         * the filter. Alias detection is case-insensitive so users can type
+         * `Type:` or `SERVICE:`; attribute keys keep their original case.
          */
-        const aliased: string | undefined = FIELD_ALIAS_MAP[fieldKey];
+        const aliased: string | undefined =
+          FIELD_ALIAS_MAP[fieldKey.toLowerCase()];
         if (aliased) {
           handleFacetInclude(aliased, value);
           return;

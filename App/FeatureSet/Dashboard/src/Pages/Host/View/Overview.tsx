@@ -321,21 +321,6 @@ const HostOverview: FunctionComponent<
     });
   }, []);
 
-  const metricsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.HOST_VIEW_METRICS] as Route,
-    { modelId: modelId },
-  );
-
-  const processesRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.HOST_VIEW_PROCESSES] as Route,
-    { modelId: modelId },
-  );
-
-  const logsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.HOST_VIEW_LOGS] as Route,
-    { modelId: modelId },
-  );
-
   const renderAgentBanner: () => ReactElement | null =
     (): ReactElement | null => {
       if (!host) {
@@ -522,39 +507,51 @@ const HostOverview: FunctionComponent<
     );
   };
 
-  const renderQuickLinks: () => ReactElement = (): ReactElement => {
+  const sectionTitle: (icon: IconProp, label: string) => ReactElement = (
+    icon: IconProp,
+    label: string,
+  ): ReactElement => {
     return (
-      <Card title="Quick Links" description="Jump to key views for this host.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Link
-            to={metricsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">Metrics</div>
-            <div className="text-xs text-gray-500">
-              CPU, memory, disk, filesystem, network charts.
-            </div>
-          </Link>
-          <Link
-            to={processesRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">Processes</div>
-            <div className="text-xs text-gray-500">
-              Per-process CPU, memory, and ownership details.
-            </div>
-          </Link>
-          <Link
-            to={logsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">Logs</div>
-            <div className="text-xs text-gray-500">
-              OpenTelemetry logs tagged with this host.
-            </div>
-          </Link>
-        </div>
-      </Card>
+      <span className="flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-50 ring-1 ring-inset ring-indigo-200">
+          <Icon icon={icon} className="h-3.5 w-3.5 text-indigo-600" />
+        </span>
+        <span>{label}</span>
+      </span>
+    );
+  };
+
+  const renderIpAddresses: (item: Host) => ReactElement = (
+    item: Host,
+  ): ReactElement => {
+    const ipString: string = (item.hostIpAddresses as string) || "";
+    if (!ipString) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+    const ips: Array<string> = ipString
+      .split(",")
+      .map((s: string) => {
+        return s.trim();
+      })
+      .filter((s: string) => {
+        return s.length > 0;
+      });
+    if (ips.length === 0) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {ips.map((ip: string) => {
+          return (
+            <span
+              key={ip}
+              className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs font-mono text-gray-700"
+            >
+              {ip}
+            </span>
+          );
+        })}
+      </div>
     );
   };
 
@@ -563,32 +560,26 @@ const HostOverview: FunctionComponent<
       {renderAgentBanner()}
       {renderSummaryCards()}
       <div className="mb-6">{renderCrossLinks()}</div>
-      <div className="mb-6">{renderQuickLinks()}</div>
+
       <CardModelDetail<Host>
-        name="Host Details"
+        name="Identification"
         cardProps={{
-          title: "Host Details",
-          description: "Overview of this host.",
+          title: sectionTitle(IconProp.Info, "Identification"),
+          description: "How this host is named and classified.",
         }}
         isEditable={true}
         editButtonText="Edit Host"
         modelDetailProps={{
           modelType: Host,
-          id: "host-details",
+          id: "host-identification",
           modelId: modelId,
+          showDetailsInNumberOfColumns: 2,
           fields: [
             {
               field: {
                 name: true,
               },
               title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
               fieldType: FieldType.Text,
             },
             {
@@ -600,18 +591,34 @@ const HostOverview: FunctionComponent<
             },
             {
               field: {
-                otelCollectorStatus: true,
+                description: true,
               },
-              title: "Collector Status",
+              title: "Description",
               fieldType: FieldType.Text,
             },
             {
               field: {
-                lastSeenAt: true,
+                hostType: true,
               },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
+              title: "Host Type",
+              fieldType: FieldType.Text,
             },
+          ],
+        }}
+      />
+
+      <CardModelDetail<Host>
+        name="Operating System"
+        cardProps={{
+          title: sectionTitle(IconProp.Cog, "Operating System"),
+          description: "Operating system details reported by the agent.",
+        }}
+        modelDetailProps={{
+          modelType: Host,
+          id: "host-os",
+          modelId: modelId,
+          showDetailsInNumberOfColumns: 3,
+          fields: [
             {
               field: {
                 osType: true,
@@ -633,64 +640,56 @@ const HostOverview: FunctionComponent<
               title: "Architecture",
               fieldType: FieldType.Text,
             },
-            {
-              field: {
-                hostType: true,
-              },
-              title: "Host Type",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostIpAddresses: true,
-              },
-              title: "IP Addresses",
-              fieldType: FieldType.Element,
-              getElement: (item: Host): ReactElement => {
-                const ipString: string = (item.hostIpAddresses as string) || "";
-                if (!ipString) {
-                  return <span className="text-sm text-gray-400">—</span>;
-                }
-                const ips: Array<string> = ipString
-                  .split(",")
-                  .map((s: string) => {
-                    return s.trim();
-                  })
-                  .filter((s: string) => {
-                    return s.length > 0;
-                  });
-                if (ips.length === 0) {
-                  return <span className="text-sm text-gray-400">—</span>;
-                }
-                return (
-                  <div className="flex flex-wrap gap-1.5">
-                    {ips.map((ip: string) => {
-                      return (
-                        <span
-                          key={ip}
-                          className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs font-mono text-gray-700"
-                        >
-                          {ip}
-                        </span>
-                      );
-                    })}
-                  </div>
-                );
-              },
-            },
+          ],
+        }}
+      />
+
+      <CardModelDetail<Host>
+        name="Hardware & Runtime"
+        cardProps={{
+          title: sectionTitle(IconProp.ServerStack, "Hardware & Runtime"),
+          description: "CPU, memory, processes, and container runtime.",
+        }}
+        modelDetailProps={{
+          modelType: Host,
+          id: "host-hardware",
+          modelId: modelId,
+          showDetailsInNumberOfColumns: 2,
+          fields: [
             {
               field: {
                 cpuCores: true,
               },
               title: "CPU Cores",
-              fieldType: FieldType.Number,
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                const cores: number | undefined =
+                  (item.cpuCores as number | undefined) ?? undefined;
+                if (cores === undefined || cores === null) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                return (
+                  <span className="text-sm text-gray-900">
+                    {cores} core{cores === 1 ? "" : "s"}
+                  </span>
+                );
+              },
             },
             {
               field: {
                 totalMemoryBytes: true,
               },
-              title: "Total Memory (Bytes)",
-              fieldType: FieldType.Number,
+              title: "Total Memory",
+              fieldType: FieldType.Element,
+              getElement: (item: Host): ReactElement => {
+                const bytes: number | undefined =
+                  (item.totalMemoryBytes as number | undefined) ?? undefined;
+                return (
+                  <span className="text-sm text-gray-900">
+                    {formatMemoryBytes(bytes)}
+                  </span>
+                );
+              },
             },
             {
               field: {
@@ -706,6 +705,44 @@ const HostOverview: FunctionComponent<
               title: "Container Runtime",
               fieldType: FieldType.Text,
             },
+          ],
+        }}
+      />
+
+      <CardModelDetail<Host>
+        name="Network"
+        cardProps={{
+          title: sectionTitle(IconProp.Wifi, "Network"),
+          description: "IP addresses observed on this host.",
+        }}
+        modelDetailProps={{
+          modelType: Host,
+          id: "host-network",
+          modelId: modelId,
+          fields: [
+            {
+              field: {
+                hostIpAddresses: true,
+              },
+              title: "IP Addresses",
+              fieldType: FieldType.Element,
+              getElement: renderIpAddresses,
+            },
+          ],
+        }}
+      />
+
+      <CardModelDetail<Host>
+        name="Labels"
+        cardProps={{
+          title: sectionTitle(IconProp.Tag, "Labels"),
+          description: "Tags assigned to this host for grouping and filtering.",
+        }}
+        modelDetailProps={{
+          modelType: Host,
+          id: "host-labels",
+          modelId: modelId,
+          fields: [
             {
               field: {
                 labels: {
