@@ -34,10 +34,18 @@ interface ProcessRow {
   user: string | null;
 }
 
-const PROCESS_PID_ATTR: string = "process.pid";
-const PROCESS_NAME_ATTR: string = "process.executable.name";
-const PROCESS_COMMAND_ATTR: string = "process.command";
-const PROCESS_OWNER_ATTR: string = "process.owner";
+/*
+ * The OTel hostmetrics `process` scraper attaches per-process identity
+ * (pid, executable name, command, owner) to the *resource*, not the
+ * datapoint. OneUptime's metric ingest prefixes resource attributes with
+ * `resource.`, so they land in ClickHouse as `resource.process.*` —
+ * matching the convention Docker container pages already use for their
+ * resource attributes (`resource.container.name`, etc).
+ */
+const PROCESS_PID_ATTR: string = "resource.process.pid";
+const PROCESS_NAME_ATTR: string = "resource.process.executable.name";
+const PROCESS_COMMAND_ATTR: string = "resource.process.command";
+const PROCESS_OWNER_ATTR: string = "resource.process.owner";
 
 const formatPercent: (value: number | null) => string = (
   value: number | null,
