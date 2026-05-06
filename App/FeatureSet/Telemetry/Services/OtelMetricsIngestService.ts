@@ -45,6 +45,8 @@ import KubernetesContainerService, {
 import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
+import HostService from "Common/Server/Services/HostService";
+import Host from "Common/Models/DatabaseModels/Host";
 
 type MetricTimestamp = {
   nano: string;
@@ -176,6 +178,170 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     await this.processMetricsAsync(req);
   }
 
+  /*
+   * Walk an entire metrics batch once and apply Host metadata + cached
+   * stats per unique host.name in a single UPDATE per host. The per-
+   * resource enrichment in the main for-loop only sees one scraper's
+   * data at a time, so cpuCores / totalMemoryBytes / processCount
+   * couldn't be merged with osType / hostArch (which live on every
+   * resource). On macOS-sized batches with 600+ process resources,
+   * the per-resource path also doesn't reliably reach the cpu / memory
+   * / processes scraper resources, leaving those columns null. This
+   * batch-level pass collapses every resourceMetric for the same host
+   * into one merged write.
+   */
+  @CaptureSpan()
+  private static async runBatchHostEnrichment(data: {
+    projectId: ObjectID;
+    resourceMetrics: JSONArray;
+  }): Promise<void> {
+    interface HostEnrichmentEntry {
+      osType: string | null;
+      osVersion: string | null;
+      hostId: string | null;
+      hostArch: string | null;
+      hostType: string | null;
+      hostIpAddresses: string | null;
+      cpuCores: number | null;
+      totalMemoryBytes: number | null;
+      processCount: number | null;
+      containerRuntime: string | null;
+      hasInfraSignal: boolean;
+    }
+
+    const aggregator: Map<string, HostEnrichmentEntry> = new Map();
+
+    for (const resourceMetric of data.resourceMetrics) {
+      const rm: JSONObject = resourceMetric as JSONObject;
+      const ras: JSONArray =
+        ((rm["resource"] as JSONObject)?.["attributes"] as JSONArray) || [];
+      const hostName: string | null =
+        OtelIngestBaseService.getHostNameFromAttributes(ras);
+      if (!hostName) {
+        continue;
+      }
+
+      let entry: HostEnrichmentEntry | undefined = aggregator.get(hostName);
+      if (!entry) {
+        entry = {
+          osType: null,
+          osVersion: null,
+          hostId: null,
+          hostArch: null,
+          hostType: null,
+          hostIpAddresses: null,
+          cpuCores: null,
+          totalMemoryBytes: null,
+          processCount: null,
+          containerRuntime: null,
+          hasInfraSignal: false,
+        };
+        aggregator.set(hostName, entry);
+      }
+
+      if (!entry.osType) {
+        entry.osType = OtelIngestBaseService.getStringAttribute(ras, "os.type");
+      }
+      if (!entry.osVersion) {
+        entry.osVersion =
+          OtelIngestBaseService.getStringAttribute(ras, "os.description") ||
+          OtelIngestBaseService.getStringAttribute(ras, "os.version");
+      }
+      if (!entry.hostId) {
+        entry.hostId = OtelIngestBaseService.getStringAttribute(ras, "host.id");
+      }
+      if (!entry.hostArch) {
+        entry.hostArch = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "host.arch",
+        );
+      }
+      if (!entry.hostType) {
+        entry.hostType = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "host.type",
+        );
+      }
+      if (!entry.hostIpAddresses) {
+        const ips: Array<string> =
+          OtelIngestBaseService.getStringArrayAttribute(ras, "host.ip");
+        entry.hostIpAddresses = ips.length > 0 ? ips.join(", ") : null;
+      }
+      if (!entry.containerRuntime) {
+        entry.containerRuntime = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "container.runtime",
+        );
+      }
+
+      const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
+      const stats: {
+        hasInfraSignal: boolean;
+        cpuCores?: number;
+        totalMemoryBytes?: number;
+        processCount?: number;
+      } = OtelIngestBaseService.scanHostInfraStatsFromMetrics(sms);
+
+      if (stats.hasInfraSignal) {
+        entry.hasInfraSignal = true;
+      }
+      if (stats.cpuCores !== undefined && entry.cpuCores === null) {
+        entry.cpuCores = stats.cpuCores;
+      }
+      if (
+        stats.totalMemoryBytes !== undefined &&
+        entry.totalMemoryBytes === null
+      ) {
+        entry.totalMemoryBytes = stats.totalMemoryBytes;
+      }
+      if (stats.processCount !== undefined && entry.processCount === null) {
+        entry.processCount = stats.processCount;
+      }
+    }
+
+    for (const [hostName, entry] of aggregator) {
+      /*
+       * Phantom-host gate: only touch the row if we have at least one
+       * real host signal (an OS, a container runtime, or any system./
+       * process. metric in this batch).
+       */
+      const hasResourceSignal: boolean = Boolean(
+        entry.osType || entry.containerRuntime,
+      );
+      if (!hasResourceSignal && !entry.hasInfraSignal) {
+        continue;
+      }
+
+      try {
+        const host: Host = await HostService.findOrCreateByHostIdentifier({
+          projectId: data.projectId,
+          hostIdentifier: hostName,
+        });
+
+        if (!host._id) {
+          continue;
+        }
+
+        await HostService.updateLastSeen(new ObjectID(host._id.toString()), {
+          osType: entry.osType ?? undefined,
+          osVersion: entry.osVersion ?? undefined,
+          hostId: entry.hostId ?? undefined,
+          hostArch: entry.hostArch ?? undefined,
+          hostType: entry.hostType ?? undefined,
+          hostIpAddresses: entry.hostIpAddresses ?? undefined,
+          cpuCores: entry.cpuCores ?? undefined,
+          totalMemoryBytes: entry.totalMemoryBytes ?? undefined,
+          processCount: entry.processCount ?? undefined,
+          containerRuntime: entry.containerRuntime ?? undefined,
+        });
+      } catch (hostError) {
+        logger.warn(
+          `Batch host enrichment write for "${hostName}" failed: ${hostError instanceof Error ? hostError.message : String(hostError)}`,
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     try {
@@ -190,7 +356,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
         throw new BadRequestException("Invalid resourceMetrics format");
       }
-
 
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
@@ -228,6 +393,35 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           }`,
         );
         pipelineRules = null;
+      }
+
+      /*
+       * Single-pass host enrichment across the entire batch.
+       *
+       * The OTel hostmetrics receiver emits one ResourceMetrics per scraper
+       * (cpu, memory, processes, ...) plus one ResourceMetrics per process.
+       * The per-resource enrichment that runs inside the main for-loop only
+       * sees one scraper's metrics at a time, so memory/process counts can't
+       * be combined with osType/hostArch (which live on every resource) into
+       * a single coherent UPDATE — and on macOS-sized batches (600+ process
+       * resources) we observed the per-resource enrichment failing to reach
+       * the cpu/memory/processes scrapers' resources at all.
+       *
+       * Walk the entire batch once up-front: collect resource attributes
+       * from any resource carrying host.name, and collect cached metric
+       * stats (cpuCores, totalMemoryBytes, processCount) from whichever
+       * scraper's resource exposes them. Then upsert the Host row + write
+       * the merged stats in a single DB UPDATE per host.
+       */
+      try {
+        await this.runBatchHostEnrichment({
+          projectId,
+          resourceMetrics,
+        });
+      } catch (enrichmentError) {
+        logger.warn(
+          `Batch host enrichment failed (best-effort): ${enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError)}`,
+        );
       }
 
       let resourceMetricCounter: number = 0;

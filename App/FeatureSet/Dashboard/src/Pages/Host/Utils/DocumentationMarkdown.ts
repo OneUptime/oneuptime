@@ -84,6 +84,11 @@ receivers:
         metrics:
           system.cpu.utilization:
             enabled: true
+          # Lets OneUptime cache CPU core count on the host record
+          # so the Hosts list and host detail page can show it
+          # without re-aggregating metrics on every page load.
+          system.cpu.logical.count:
+            enabled: true
       memory:
         metrics:
           system.memory.utilization:
