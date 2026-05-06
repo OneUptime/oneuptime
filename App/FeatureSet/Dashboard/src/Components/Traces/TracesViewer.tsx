@@ -199,8 +199,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     range: TimeRange.PAST_ONE_HOUR,
   });
 
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [submittedSearch, setSubmittedSearch] = useState<string>("");
+  /*
+   * Seed the search from the URL on first mount. SpanViewer's "filter by"
+   * action navigates here with `?search=<encoded @key:value>` so users land
+   * on the listing with the filter already applied. Both states use the
+   * same lazy initialiser so refresh + back-button keep the URL as the
+   * source of truth.
+   */
+  const readInitialSearchFromUrl: () => string = (): string => {
+    const raw: string | null = Navigation.getQueryStringByName("search");
+    if (!raw) {
+      return "";
+    }
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  };
+
+  const [searchValue, setSearchValue] = useState<string>(
+    readInitialSearchFromUrl,
+  );
+  const [submittedSearch, setSubmittedSearch] = useState<string>(
+    readInitialSearchFromUrl,
+  );
 
   const [activeFilters, setActiveFilters] = useState<Array<ActiveFilter>>([]);
 

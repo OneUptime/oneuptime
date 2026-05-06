@@ -99,7 +99,9 @@ describe("LogAggregationService", () => {
     expect(statement.query).toContain(
       "arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(",
     );
-    expect(statement.query).toContain(", mapKeys(attributes), mapValues(attributes))");
+    expect(statement.query).toContain(
+      ", mapKeys(attributes), mapValues(attributes))",
+    );
     expect(Object.values(statement.query_params)).toContain("requestid");
     expect(Object.values(statement.query_params)).toContain("uuid-123");
   });

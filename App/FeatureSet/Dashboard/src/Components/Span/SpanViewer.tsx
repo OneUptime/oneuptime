@@ -39,6 +39,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
+import Navigation from "Common/UI/Utils/Navigation";
 import CriticalPathUtil, {
   SpanData,
   SpanSelfTime,
@@ -203,6 +204,23 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     return selfTimes.get(span.spanId!) || null;
   }, [span, props.allTraceSpans]);
 
+  /*
+   * Filter-by-attribute from a span/event/exception attribute row. Navigates
+   * to the traces listing with the search prefilled (`@key:value`). The
+   * SpanViewer itself lives inside a single trace's view, so applying a
+   * filter only makes sense at the listing level — we bounce the user back
+   * with the filter applied via URL.
+   */
+  const handleFilterByAttribute: (key: string, value: string) => void = (
+    key: string,
+    value: string,
+  ): void => {
+    const searchString: string = `@${key}:${value}`;
+    const tracesRoute: Route = new Route(RouteMap[PageMap.TRACES]!.toString());
+    tracesRoute.addQueryParams({ search: encodeURIComponent(searchString) });
+    Navigation.navigate(tracesRoute);
+  };
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -274,6 +292,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                       (span.attributes as any) || {},
                     )}
                     title="Attributes"
+                    onFilterByAttribute={handleFilterByAttribute}
                   />
                 );
               },
@@ -355,6 +374,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                 <JSONTable
                   json={JSONFunctions.nestJson((event.attributes as any) || {})}
                   title="Attributes"
+                  onFilterByAttribute={handleFilterByAttribute}
                 />
               );
             },
@@ -558,6 +578,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                     (exception.attributes as any) || {},
                   )}
                   title="Attributes"
+                  onFilterByAttribute={handleFilterByAttribute}
                 />
               );
             },
@@ -632,6 +653,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                       (link.attributes as any) || {},
                     )}
                     title="Link Attributes"
+                    onFilterByAttribute={handleFilterByAttribute}
                   />
                 </div>
               ) : (

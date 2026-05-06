@@ -1,11 +1,19 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import CopyableButton from "../CopyableButton/CopyableButton";
+import Icon from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 import JSONFunctions from "../../../Types/JSONFunctions";
 
 export interface JSONTableProps {
   json: { [key: string]: any } | null | undefined;
   title?: string | undefined;
   className?: string | undefined;
+  /*
+   * Optional. When provided, each row gets a "filter by" button that calls
+   * this with the flat dot-notation key and the (possibly normalised) value.
+   * Wired by callers to add the pair as a search filter on the parent listing.
+   */
+  onFilterByAttribute?: ((key: string, value: string) => void) | undefined;
   // Always flattened (dot notation) for consistency.
 }
 
@@ -144,6 +152,9 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
           </thead>
           <tbody className="divide-y divide-gray-100">
             {flatItems.map((item: FlatItem) => {
+              const canFilter: boolean = Boolean(
+                props.onFilterByAttribute && item.value && item.value !== "-",
+              );
               return (
                 <tr key={item.key} className="group hover:bg-gray-50 text-sm">
                   <td className="font-mono px-3 py-2 align-top text-gray-700 break-all whitespace-pre-wrap">
@@ -165,7 +176,22 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
                           <span>{item.value}</span>
                         )}
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
+                        {canFilter && (
+                          <button
+                            type="button"
+                            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
+                            title={`Filter by ${item.key}: ${item.value}`}
+                            onClick={() => {
+                              props.onFilterByAttribute!(item.key, item.value);
+                            }}
+                          >
+                            <Icon
+                              icon={IconProp.Filter}
+                              className="h-3.5 w-3.5"
+                            />
+                          </button>
+                        )}
                         <CopyableButton textToBeCopied={item.value} />
                       </div>
                     </div>

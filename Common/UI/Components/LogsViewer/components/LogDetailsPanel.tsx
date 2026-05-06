@@ -16,7 +16,6 @@ import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import OneUptimeDate from "../../../../Types/Date";
-import JSONFunctions from "../../../../Types/JSONFunctions";
 import SeverityBadge from "./SeverityBadge";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../Utils/API/API";
@@ -40,6 +39,18 @@ export interface LogDetailsPanelProps {
     | undefined;
   variant?: "floating" | "embedded";
   projectId?: ObjectID | undefined;
+  /*
+   * Called when the user clicks "filter by" on an attribute row. The key is
+   * the flat attribute key as stored in the data (e.g. `requestId`,
+   * `oneuptime.service.id`); the value is the raw value. Wires into the
+   * same path as picking a value from the search bar autocomplete.
+   */
+  onFilterByAttribute?: ((key: string, value: string) => void) | undefined;
+}
+
+interface AttributeEntry {
+  key: string;
+  value: string;
 }
 
 interface PreparedBody {
@@ -120,20 +131,42 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
     return prepareBody(props.log.body?.toString());
   }, [props.log.body]);
 
-  const prettyAttributes: string | null = useMemo(() => {
-    if (!props.log.attributes) {
+  const attributeEntries: Array<AttributeEntry> = useMemo(() => {
+    const raw: Record<string, unknown> | undefined = props.log.attributes as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!raw) {
+      return [];
+    }
+
+    return Object.keys(raw)
+      .sort((left: string, right: string): number => {
+        return left.localeCompare(right);
+      })
+      .map((key: string): AttributeEntry => {
+        const rawValue: unknown = raw[key];
+        const value: string =
+          rawValue === null || rawValue === undefined
+            ? ""
+            : typeof rawValue === "string"
+              ? rawValue
+              : JSON.stringify(rawValue);
+        return { key, value };
+      });
+  }, [props.log.attributes]);
+
+  const attributesAsJson: string | null = useMemo(() => {
+    if (attributeEntries.length === 0) {
       return null;
     }
 
-    try {
-      const normalized: Record<string, unknown> = JSONFunctions.unflattenObject(
-        props.log.attributes || {},
-      );
-      return JSON.stringify(normalized, null, 2);
-    } catch {
-      return null;
+    const flat: Record<string, string> = {};
+    for (const entry of attributeEntries) {
+      flat[entry.key] = entry.value;
     }
-  }, [props.log.attributes]);
+    return JSON.stringify(flat, null, 2);
+  }, [attributeEntries]);
 
   const traceId: string = props.log.traceId?.toString() || "";
   const spanId: string = props.log.spanId?.toString() || "";
@@ -486,22 +519,75 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             </section>
           )}
 
-          {prettyAttributes && (
+          {attributeEntries.length > 0 && (
             <section className="space-y-3">
               <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
                 <span>Attributes</span>
-                <CopyTextButton
-                  textToBeCopied={prettyAttributes}
-                  size="xs"
-                  variant="ghost"
-                  iconOnly={false}
-                  title="Copy attributes"
-                />
+                {attributesAsJson && (
+                  <CopyTextButton
+                    textToBeCopied={attributesAsJson}
+                    size="xs"
+                    variant="ghost"
+                    iconOnly={false}
+                    title="Copy attributes as JSON"
+                  />
+                )}
               </header>
-              <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-                <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-800">
-                  {prettyAttributes}
-                </pre>
+              <div
+                className={`max-h-80 overflow-auto rounded-lg border ${surfaceCardClass}`}
+              >
+                <ul className="divide-y divide-gray-200">
+                  {attributeEntries.map((entry: AttributeEntry) => {
+                    return (
+                      <li
+                        key={entry.key}
+                        className="group flex items-start gap-3 px-3 py-2 hover:bg-white"
+                      >
+                        <span
+                          className="w-56 flex-none truncate font-mono text-[12px] text-gray-500"
+                          title={entry.key}
+                        >
+                          {entry.key}
+                        </span>
+                        <span
+                          className="min-w-0 flex-1 break-all font-mono text-[12px] text-gray-800"
+                          title={entry.value}
+                        >
+                          {entry.value || (
+                            <span className="italic text-gray-400">empty</span>
+                          )}
+                        </span>
+                        <div className="flex flex-none items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                          {props.onFilterByAttribute && entry.value && (
+                            <button
+                              type="button"
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
+                              title={`Filter by ${entry.key}: ${entry.value}`}
+                              onClick={() => {
+                                props.onFilterByAttribute!(
+                                  entry.key,
+                                  entry.value,
+                                );
+                              }}
+                            >
+                              <Icon
+                                icon={IconProp.Filter}
+                                className="h-3.5 w-3.5"
+                              />
+                            </button>
+                          )}
+                          <CopyTextButton
+                            textToBeCopied={entry.value}
+                            size="xs"
+                            variant="ghost"
+                            iconOnly={true}
+                            title={`Copy ${entry.key}`}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </section>
           )}

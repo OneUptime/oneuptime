@@ -9,9 +9,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import AlertBanner, {
-  AlertBannerType,
-} from "Common/UI/Components/AlertBanner/AlertBanner";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
@@ -195,6 +192,7 @@ const HostOverview: FunctionComponent<
         modelType: Host,
         id: modelId,
         select: {
+          name: true,
           hostIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
@@ -205,6 +203,13 @@ const HostOverview: FunctionComponent<
           totalMemoryBytes: true,
           osType: true,
           osVersion: true,
+          hostArch: true,
+          hostType: true,
+          hostIpAddresses: true,
+          labels: {
+            name: true,
+            color: true,
+          },
         },
       });
 
@@ -321,38 +326,161 @@ const HostOverview: FunctionComponent<
     });
   }, []);
 
-  const renderAgentBanner: () => ReactElement | null =
-    (): ReactElement | null => {
-      if (!host) {
-        return null;
-      }
+  const renderHero: () => ReactElement | null = (): ReactElement | null => {
+    if (!host) {
+      return null;
+    }
 
-      const status: string = (host.otelCollectorStatus as string) || "";
-      const lastSeenAt: Date | undefined = host.lastSeenAt;
-      const lastSeenText: string = lastSeenAt
-        ? OneUptimeDate.getDateAsLocalFormattedString(lastSeenAt)
-        : "never";
+    const status: string = (host.otelCollectorStatus as string) || "";
+    const lastSeenAt: Date | undefined = host.lastSeenAt;
+    const lastSeenText: string = lastSeenAt
+      ? OneUptimeDate.fromNow(lastSeenAt)
+      : "never";
 
-      const isConnected: boolean =
-        status.toLowerCase() === "connected" ||
-        status.toLowerCase() === "active";
+    const isConnected: boolean =
+      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
 
-      if (isConnected) {
-        return (
-          <AlertBanner
-            title={`OTel Collector connected — last seen ${lastSeenText}`}
-            type={AlertBannerType.Success}
+    const displayName: string =
+      (host.name as string | undefined) ||
+      (host.hostIdentifier as string | undefined) ||
+      "Untitled host";
+
+    const hostIdentifier: string =
+      (host.hostIdentifier as string | undefined) || "";
+
+    const labelList: Array<Label> = (host["labels"] as Array<Label>) || [];
+
+    const specChips: Array<{
+      icon: IconProp;
+      label: string;
+    }> = [];
+
+    if (host.osType) {
+      specChips.push({
+        icon: IconProp.Cog,
+        label: String(host.osType),
+      });
+    }
+    if (host.osVersion) {
+      specChips.push({
+        icon: IconProp.Info,
+        label: String(host.osVersion),
+      });
+    }
+    if (host.hostArch) {
+      specChips.push({
+        icon: IconProp.Cube,
+        label: String(host.hostArch),
+      });
+    }
+    if (host.cpuCores !== undefined && host.cpuCores !== null) {
+      const cores: number = Number(host.cpuCores);
+      specChips.push({
+        icon: IconProp.ChartBar,
+        label: `${cores} core${cores === 1 ? "" : "s"}`,
+      });
+    }
+    if (host.totalMemoryBytes !== undefined && host.totalMemoryBytes !== null) {
+      specChips.push({
+        icon: IconProp.SquareStack,
+        label: formatMemoryBytes(Number(host.totalMemoryBytes)),
+      });
+    }
+    if (host.containerRuntime) {
+      specChips.push({
+        icon: IconProp.ServerStack,
+        label: String(host.containerRuntime),
+      });
+    }
+
+    const statusBadgeClass: string = isConnected
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+      : "bg-amber-50 text-amber-700 ring-amber-200";
+    const statusDotClass: string = isConnected
+      ? "bg-emerald-500"
+      : "bg-amber-500";
+    const statusLabel: string = isConnected
+      ? "Connected"
+      : status
+        ? status.charAt(0).toUpperCase() + status.slice(1)
+        : "Disconnected";
+
+    return (
+      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="relative">
+          <div
+            className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-indigo-50 via-white to-white"
+            aria-hidden="true"
           />
-        );
-      }
+          <div className="relative px-6 py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
+                  <Icon
+                    icon={IconProp.Server}
+                    className="h-6 w-6 text-indigo-600"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl font-semibold text-gray-900 truncate">
+                      {displayName}
+                    </h1>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
+                      />
+                      {statusLabel}
+                    </span>
+                  </div>
+                  {hostIdentifier && (
+                    <div className="mt-1 truncate font-mono text-sm text-gray-500">
+                      {hostIdentifier}
+                    </div>
+                  )}
+                  <div className="mt-1 text-xs text-gray-400">
+                    Last seen {lastSeenText}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      return (
-        <AlertBanner
-          title={`OTel Collector is ${status || "disconnected"} — last seen ${lastSeenText}`}
-          type={AlertBannerType.Warning}
-        />
-      );
-    };
+            {specChips.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {specChips.map(
+                  (
+                    chip: { icon: IconProp; label: string },
+                    idx: number,
+                  ): ReactElement => {
+                    return (
+                      <span
+                        key={`spec-${idx}`}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      >
+                        <Icon
+                          icon={chip.icon}
+                          className="h-3 w-3 text-gray-500"
+                        />
+                        <span className="font-medium">{chip.label}</span>
+                      </span>
+                    );
+                  },
+                )}
+              </div>
+            )}
+
+            {labelList.length > 0 && (
+              <div className="mt-3 border-t border-gray-100 pt-3">
+                <LabelsElement labels={labelList} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderSummaryCards: () => ReactElement = (): ReactElement => {
     if (isStatsLoading) {
@@ -557,210 +685,180 @@ const HostOverview: FunctionComponent<
 
   return (
     <Fragment>
-      {renderAgentBanner()}
+      {renderHero()}
       {renderSummaryCards()}
       <div className="mb-6">{renderCrossLinks()}</div>
 
-      <CardModelDetail<Host>
-        name="Identification"
-        cardProps={{
-          title: sectionTitle(IconProp.Info, "Identification"),
-          description: "How this host is named and classified.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Host"
-        modelDetailProps={{
-          modelType: Host,
-          id: "host-identification",
-          modelId: modelId,
-          showDetailsInNumberOfColumns: 2,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostIdentifier: true,
-              },
-              title: "Host Identifier",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostType: true,
-              },
-              title: "Host Type",
-              fieldType: FieldType.Text,
-            },
-          ],
-        }}
-      />
-
-      <CardModelDetail<Host>
-        name="Operating System"
-        cardProps={{
-          title: sectionTitle(IconProp.Cog, "Operating System"),
-          description: "Operating system details reported by the agent.",
-        }}
-        modelDetailProps={{
-          modelType: Host,
-          id: "host-os",
-          modelId: modelId,
-          showDetailsInNumberOfColumns: 3,
-          fields: [
-            {
-              field: {
-                osType: true,
-              },
-              title: "OS Type",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                osVersion: true,
-              },
-              title: "OS Version",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostArch: true,
-              },
-              title: "Architecture",
-              fieldType: FieldType.Text,
-            },
-          ],
-        }}
-      />
-
-      <CardModelDetail<Host>
-        name="Hardware & Runtime"
-        cardProps={{
-          title: sectionTitle(IconProp.ServerStack, "Hardware & Runtime"),
-          description: "CPU, memory, processes, and container runtime.",
-        }}
-        modelDetailProps={{
-          modelType: Host,
-          id: "host-hardware",
-          modelId: modelId,
-          showDetailsInNumberOfColumns: 2,
-          fields: [
-            {
-              field: {
-                cpuCores: true,
-              },
-              title: "CPU Cores",
-              fieldType: FieldType.Element,
-              getElement: (item: Host): ReactElement => {
-                const cores: number | undefined =
-                  (item.cpuCores as number | undefined) ?? undefined;
-                if (cores === undefined || cores === null) {
-                  return <span className="text-sm text-gray-400">—</span>;
-                }
-                return (
-                  <span className="text-sm text-gray-900">
-                    {cores} core{cores === 1 ? "" : "s"}
-                  </span>
-                );
-              },
-            },
-            {
-              field: {
-                totalMemoryBytes: true,
-              },
-              title: "Total Memory",
-              fieldType: FieldType.Element,
-              getElement: (item: Host): ReactElement => {
-                const bytes: number | undefined =
-                  (item.totalMemoryBytes as number | undefined) ?? undefined;
-                return (
-                  <span className="text-sm text-gray-900">
-                    {formatMemoryBytes(bytes)}
-                  </span>
-                );
-              },
-            },
-            {
-              field: {
-                processCount: true,
-              },
-              title: "Process Count (cached)",
-              fieldType: FieldType.Number,
-            },
-            {
-              field: {
-                containerRuntime: true,
-              },
-              title: "Container Runtime",
-              fieldType: FieldType.Text,
-            },
-          ],
-        }}
-      />
-
-      <CardModelDetail<Host>
-        name="Network"
-        cardProps={{
-          title: sectionTitle(IconProp.Wifi, "Network"),
-          description: "IP addresses observed on this host.",
-        }}
-        modelDetailProps={{
-          modelType: Host,
-          id: "host-network",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                hostIpAddresses: true,
-              },
-              title: "IP Addresses",
-              fieldType: FieldType.Element,
-              getElement: renderIpAddresses,
-            },
-          ],
-        }}
-      />
-
-      <CardModelDetail<Host>
-        name="Labels"
-        cardProps={{
-          title: sectionTitle(IconProp.Tag, "Labels"),
-          description: "Tags assigned to this host for grouping and filtering.",
-        }}
-        modelDetailProps={{
-          modelType: Host,
-          id: "host-labels",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                labels: {
+      <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+        <CardModelDetail<Host>
+          name="Identification"
+          cardProps={{
+            title: sectionTitle(IconProp.Info, "Identification"),
+            description: "How this host is named and classified.",
+          }}
+          isEditable={true}
+          editButtonText="Edit Host"
+          modelDetailProps={{
+            modelType: Host,
+            id: "host-identification",
+            modelId: modelId,
+            fields: [
+              {
+                field: {
                   name: true,
-                  color: true,
+                },
+                title: "Name",
+                fieldType: FieldType.Text,
+              },
+              {
+                field: {
+                  hostIdentifier: true,
+                },
+                title: "Host Identifier",
+                fieldType: FieldType.Text,
+              },
+              {
+                field: {
+                  description: true,
+                },
+                title: "Description",
+                fieldType: FieldType.Text,
+              },
+              {
+                field: {
+                  hostType: true,
+                },
+                title: "Host Type",
+                fieldType: FieldType.Text,
+              },
+            ],
+          }}
+        />
+
+        <CardModelDetail<Host>
+          name="Operating System"
+          cardProps={{
+            title: sectionTitle(IconProp.Cog, "Operating System"),
+            description: "Operating system details reported by the agent.",
+          }}
+          modelDetailProps={{
+            modelType: Host,
+            id: "host-os",
+            modelId: modelId,
+            fields: [
+              {
+                field: {
+                  osType: true,
+                },
+                title: "OS Type",
+                fieldType: FieldType.Text,
+              },
+              {
+                field: {
+                  osVersion: true,
+                },
+                title: "OS Version",
+                fieldType: FieldType.Text,
+              },
+              {
+                field: {
+                  hostArch: true,
+                },
+                title: "Architecture",
+                fieldType: FieldType.Text,
+              },
+            ],
+          }}
+        />
+
+        <CardModelDetail<Host>
+          name="Hardware & Runtime"
+          cardProps={{
+            title: sectionTitle(IconProp.ServerStack, "Hardware & Runtime"),
+            description: "CPU, memory, processes, and container runtime.",
+          }}
+          modelDetailProps={{
+            modelType: Host,
+            id: "host-hardware",
+            modelId: modelId,
+            showDetailsInNumberOfColumns: 2,
+            fields: [
+              {
+                field: {
+                  cpuCores: true,
+                },
+                title: "CPU Cores",
+                fieldType: FieldType.Element,
+                getElement: (item: Host): ReactElement => {
+                  const cores: number | undefined =
+                    (item.cpuCores as number | undefined) ?? undefined;
+                  if (cores === undefined || cores === null) {
+                    return <span className="text-sm text-gray-400">—</span>;
+                  }
+                  return (
+                    <span className="text-sm text-gray-900">
+                      {cores} core{cores === 1 ? "" : "s"}
+                    </span>
+                  );
                 },
               },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: Host): ReactElement => {
-                return (
-                  <LabelsElement labels={item["labels"] as Array<Label>} />
-                );
+              {
+                field: {
+                  totalMemoryBytes: true,
+                },
+                title: "Total Memory",
+                fieldType: FieldType.Element,
+                getElement: (item: Host): ReactElement => {
+                  const bytes: number | undefined =
+                    (item.totalMemoryBytes as number | undefined) ?? undefined;
+                  return (
+                    <span className="text-sm text-gray-900">
+                      {formatMemoryBytes(bytes)}
+                    </span>
+                  );
+                },
               },
-            },
-          ],
-        }}
-      />
+              {
+                field: {
+                  processCount: true,
+                },
+                title: "Process Count (cached)",
+                fieldType: FieldType.Number,
+              },
+              {
+                field: {
+                  containerRuntime: true,
+                },
+                title: "Container Runtime",
+                fieldType: FieldType.Text,
+              },
+            ],
+          }}
+        />
+
+        <CardModelDetail<Host>
+          name="Network"
+          cardProps={{
+            title: sectionTitle(IconProp.Wifi, "Network"),
+            description: "IP addresses observed on this host.",
+          }}
+          modelDetailProps={{
+            modelType: Host,
+            id: "host-network",
+            modelId: modelId,
+            fields: [
+              {
+                field: {
+                  hostIpAddresses: true,
+                },
+                title: "IP Addresses",
+                fieldType: FieldType.Element,
+                getElement: renderIpAddresses,
+              },
+            ],
+          }}
+        />
+      </div>
     </Fragment>
   );
 };

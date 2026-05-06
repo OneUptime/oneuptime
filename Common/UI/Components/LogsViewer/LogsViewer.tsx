@@ -993,6 +993,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       getSpanRoute={props.getSpanRoute}
                       variant="embedded"
                       projectId={props.projectId}
+                      onFilterByAttribute={
+                        handleFieldValueSelectWithServiceResolve
+                      }
                     />
                   );
                 }}
