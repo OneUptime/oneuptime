@@ -256,7 +256,8 @@ export default class ValueFormatter {
      * value itself is the count. Render the bare number so chart y-axis
      * labels stay short and don't wrap into the plot area.
      */
-    if ((/^\{[^{}]*\}$/).test(trimmedUnit)) {
+    const annotationOnlyUnitPattern: RegExp = /^\{[^{}]*\}$/;
+    if (annotationOnlyUnitPattern.test(trimmedUnit)) {
       return formatNumber(value);
     }
 
