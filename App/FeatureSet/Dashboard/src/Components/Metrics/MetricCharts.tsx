@@ -163,9 +163,23 @@ function renderSeriesControls(input: {
           return s.seriesName.toLowerCase().includes(searchQuery);
         });
 
-  const visibleForChips: Array<SeriesPoint> = controls.showAllSeries
-    ? seriesForChips
-    : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES);
+  /*
+   * Top-N is picked from the peak-sorted list, but display ordering
+   * is alphabetical (natural-sort) so cpu0…cpu10 appear in sequence
+   * instead of scrambled by activity.
+   */
+  const visibleForChips: Array<SeriesPoint> = (
+    controls.showAllSeries
+      ? seriesForChips
+      : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES)
+  )
+    .slice()
+    .sort((a: SeriesPoint, b: SeriesPoint) => {
+      return a.seriesName.localeCompare(b.seriesName, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
 
   const toggleSeries: (seriesName: string) => void = (
     seriesName: string,
@@ -749,6 +763,21 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       if (needsTopN && !controls.showAllSeries) {
         displayableSeries = displayableSeries.slice(0, DEFAULT_TOP_N_SERIES);
       }
+
+      /*
+       * Top-N selection used peak-value ranking; once the cut is made,
+       * sort the series shown on the chart and in the legend/tooltip
+       * by name (natural sort) so cpu0…cpu10 render in order rather
+       * than scrambled by activity.
+       */
+      displayableSeries = displayableSeries
+        .slice()
+        .sort((a: SeriesPoint, b: SeriesPoint) => {
+          return a.seriesName.localeCompare(b.seriesName, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+        });
 
       const hiddenFromTopN: number =
         needsTopN && !controls.showAllSeries

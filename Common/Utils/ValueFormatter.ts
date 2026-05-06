@@ -235,12 +235,17 @@ export default class ValueFormatter {
    * Format a value with a unit into a human-friendly string.
    * e.g. formatValue(1048576, "bytes") → "1 MB"
    * e.g. formatValue(3661, "seconds") → "1.02 hr"
-   * e.g. formatValue(42, "%") → "42 %"  (passthrough for unknown units)
+   * e.g. formatValue(42, "%") → "42%"
    */
   public static formatValue(value: number, unit: string): string {
     // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
     if (!unit || unit.trim() === "" || unit.trim() === "1") {
       return formatNumber(value);
+    }
+
+    // "%" follows the conventional inline format with no separating space.
+    if (unit.trim() === "%") {
+      return `${formatNumber(value)}%`;
     }
 
     const normalizedUnit: string = normalizeUnit(unit);
