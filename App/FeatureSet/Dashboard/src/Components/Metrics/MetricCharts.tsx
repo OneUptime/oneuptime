@@ -628,29 +628,17 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       if (queryConfig.transformAsRate) {
         for (const series of chartSeries) {
           const sortedPoints: typeof series.data = [...series.data].sort(
-            (
-              a: { x: Date; y: number | null },
-              b: { x: Date; y: number | null },
-            ) => {
+            (a: { x: Date; y: number }, b: { x: Date; y: number }) => {
               return a.x.getTime() - b.x.getTime();
             },
           );
           const ratePoints: typeof series.data = [];
-          for (let i: number = 0; i < sortedPoints.length; i++) {
-            const current: { x: Date; y: number | null } = sortedPoints[i]!;
-            if (i === 0) {
-              ratePoints.push({ x: current.x, y: null });
-              continue;
-            }
-            const prev: { x: Date; y: number | null } = sortedPoints[i - 1]!;
+          for (let i: number = 1; i < sortedPoints.length; i++) {
+            const current: { x: Date; y: number } = sortedPoints[i]!;
+            const prev: { x: Date; y: number } = sortedPoints[i - 1]!;
             const dtSeconds: number =
               (current.x.getTime() - prev.x.getTime()) / 1000;
-            if (
-              dtSeconds <= 0 ||
-              typeof current.y !== "number" ||
-              typeof prev.y !== "number"
-            ) {
-              ratePoints.push({ x: current.x, y: null });
+            if (dtSeconds <= 0) {
               continue;
             }
             const delta: number = current.y - prev.y;
