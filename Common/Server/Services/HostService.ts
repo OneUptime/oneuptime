@@ -6,6 +6,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -98,41 +99,29 @@ export class Service extends DatabaseService<Model> {
     },
   ): Promise<void> {
     /*
-     * Throttle the lightweight "lastSeenAt + status" pings — those
-     * arrive at every metric / log / trace batch and don't carry new
-     * information. Pings that bring richer state (host metadata,
-     * cached infra stats, runtime detection, FK links) bypass the
-     * cache so the values land promptly.
+     * Throttle: the same telemetry batch repeats every metric/log/trace
+     * push and re-sends identical host metadata. Skip the DB write when
+     * we recently wrote the exact same values; only refresh `lastSeenAt`
+     * once per throttle window. If any extra value changed (e.g. cpuCores
+     * updated, IP address changed), bust the cache and write immediately.
      */
-    const hasRichExtras: boolean = Boolean(
-      extra &&
-        (extra.hostId ||
-          extra.hostArch ||
-          extra.hostType ||
-          extra.hostIpAddresses ||
-          extra.cpuCores !== undefined ||
-          extra.totalMemoryBytes !== undefined ||
-          extra.processCount !== undefined ||
-          extra.containerRuntime ||
-          extra.dockerHostId ||
-          extra.kubernetesClusterId),
+    const cacheKey: string = hostId.toString();
+    const extrasFingerprint: string = this.fingerprintExtras(extra);
+    const cached: string | null = await GlobalCache.getString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
     );
 
-    if (!hasRichExtras) {
-      const cacheKey: string = hostId.toString();
-      const cached: string | null = await GlobalCache.getString(
-        LAST_SEEN_CACHE_NAMESPACE,
-        cacheKey,
-      );
-
-      if (cached) {
-        return; // another pod already updated recently
-      }
-
-      await GlobalCache.setString(LAST_SEEN_CACHE_NAMESPACE, cacheKey, "1", {
-        expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
-      });
+    if (cached === extrasFingerprint) {
+      return; // same data was written recently
     }
+
+    await GlobalCache.setString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+      extrasFingerprint,
+      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {
@@ -184,6 +173,41 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  private fingerprintExtras(extra?: {
+    osType?: string | undefined;
+    osVersion?: string | undefined;
+    hostId?: string | undefined;
+    hostArch?: string | undefined;
+    hostType?: string | undefined;
+    hostIpAddresses?: string | undefined;
+    cpuCores?: number | undefined;
+    totalMemoryBytes?: number | undefined;
+    processCount?: number | undefined;
+    containerRuntime?: string | undefined;
+    dockerHostId?: ObjectID | undefined;
+    kubernetesClusterId?: ObjectID | undefined;
+  }): string {
+    const normalized: Record<string, string | number | null> = {
+      osType: extra?.osType ?? null,
+      osVersion: extra?.osVersion ?? null,
+      hostId: extra?.hostId ?? null,
+      hostArch: extra?.hostArch ?? null,
+      hostType: extra?.hostType ?? null,
+      hostIpAddresses: extra?.hostIpAddresses ?? null,
+      cpuCores: extra?.cpuCores ?? null,
+      totalMemoryBytes: extra?.totalMemoryBytes ?? null,
+      processCount: extra?.processCount ?? null,
+      containerRuntime: extra?.containerRuntime ?? null,
+      dockerHostId: extra?.dockerHostId?.toString() ?? null,
+      kubernetesClusterId: extra?.kubernetesClusterId?.toString() ?? null,
+    };
+
+    return crypto
+      .createHash("sha1")
+      .update(JSON.stringify(normalized))
+      .digest("hex");
   }
 
   @CaptureSpan()
