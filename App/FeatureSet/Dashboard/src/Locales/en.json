@@ -71,7 +71,7 @@
       "dockerTitle": "Docker",
       "dockerDescription": "Monitor Docker hosts and containers.",
       "hostsTitle": "Hosts",
-      "hostsDescription": "Monitor hosts auto-discovered from OTel telemetry.",
+      "hostsDescription": "Monitor server and VM health across your fleet.",
       "dashboardsTitle": "Dashboards",
       "dashboardsDescription": "Visualize all your data.",
       "workflowsTitle": "Workflows",

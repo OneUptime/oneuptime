@@ -115,7 +115,7 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         connectNulls={true}
         curve={props.curve || ChartCurve.MONOTONE}
         syncid={props.sync ? props.syncid : undefined}
-        yAxisWidth={60}
+        yAxisWidth={64}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
         formattedExemplarPoints={

@@ -114,7 +114,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         connectNulls={true}
         curve={props.curve}
         syncid={props.sync ? props.syncid : undefined}
-        yAxisWidth={60}
+        yAxisWidth={64}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
         formattedExemplarPoints={

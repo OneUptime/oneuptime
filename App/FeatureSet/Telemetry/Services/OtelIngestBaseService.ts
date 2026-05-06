@@ -599,6 +599,8 @@ export default abstract class OtelIngestBaseService {
       return result;
     }
 
+    const seenNames: Array<string> = [];
+
     for (const scopeMetric of scopeMetrics) {
       const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
         "metrics"
@@ -610,6 +612,7 @@ export default abstract class OtelIngestBaseService {
       for (const metric of metrics) {
         const m: JSONObject = metric as JSONObject;
         const name: string = ((m["name"] as string) || "").toLowerCase();
+        seenNames.push(name);
 
         if (name.startsWith("system.") || name.startsWith("process.")) {
           result.hasInfraSignal = true;
@@ -625,6 +628,9 @@ export default abstract class OtelIngestBaseService {
 
         if (name === "system.memory.usage") {
           const v: number | null = this.sumDatapointNumbers(m);
+          logger.warn(
+            `[scan-debug] system.memory.usage rawKeys=${JSON.stringify(Object.keys(m))} sumKeys=${JSON.stringify(Object.keys((m["sum"] as JSONObject) || {}))} dpCount=${(((m["sum"] as JSONObject) || {})["dataPoints"] as JSONArray | undefined)?.length} sumValue=${v}`,
+          );
           if (v !== null) {
             result.totalMemoryBytes = Math.round(v);
           }
@@ -633,6 +639,9 @@ export default abstract class OtelIngestBaseService {
 
         if (name === "system.processes.count") {
           const v: number | null = this.firstDatapointNumber(m);
+          logger.warn(
+            `[scan-debug] system.processes.count rawKeys=${JSON.stringify(Object.keys(m))} sumKeys=${JSON.stringify(Object.keys((m["sum"] as JSONObject) || {}))} firstValue=${v}`,
+          );
           if (v !== null) {
             result.processCount = Math.round(v);
           }

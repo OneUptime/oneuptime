@@ -794,9 +794,9 @@ const BarChart: React.ForwardRefExoticComponent<
                 }
               : {})}
             margin={{
-              bottom: xAxisLabel ? 30 : 0,
+              bottom: xAxisLabel ? 30 : 8,
               left: yAxisLabel ? 20 : 0,
-              right: yAxisLabel ? 5 : 0,
+              right: yAxisLabel ? 5 : 8,
               top: 5,
             }}
             stackOffset={type === "percent" ? "expand" : "none"}
@@ -805,7 +805,8 @@ const BarChart: React.ForwardRefExoticComponent<
           >
             {showGridLines ? (
               <CartesianGrid
-                className={cx("stroke-gray-200 stroke-1")}
+                className={cx("stroke-gray-100")}
+                strokeDasharray="3 3"
                 horizontal={layout !== "vertical"}
                 vertical={layout === "vertical"}
               />
@@ -814,15 +815,16 @@ const BarChart: React.ForwardRefExoticComponent<
               hide={!showXAxis}
               tick={{
                 transform:
-                  layout !== "vertical" ? "translate(0, 6)" : undefined,
+                  layout !== "vertical" ? "translate(0, 8)" : undefined,
+                fontWeight: 500,
               }}
               fill=""
               stroke=""
               className={cx(
                 // base
-                "text-xs",
+                "text-xs tabular-nums",
                 // text fill
-                "fill-gray-500",
+                "fill-gray-600",
                 { "mt-4": layout !== "vertical" },
               )}
               tickLine={false}
@@ -872,15 +874,16 @@ const BarChart: React.ForwardRefExoticComponent<
               stroke=""
               className={cx(
                 // base
-                "text-xs",
+                "text-xs tabular-nums",
                 // text fill
-                "fill-gray-500",
+                "fill-gray-600",
               )}
               tick={{
                 transform:
                   layout !== "vertical"
-                    ? "translate(-3, 0)"
+                    ? "translate(-4, 0)"
                     : "translate(0, 0)",
+                fontWeight: 500,
               }}
               {...(layout !== "vertical"
                 ? {

@@ -513,7 +513,7 @@ export default class DockerHost extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "OS Version",
     description: "Operating system version of the Docker host",
@@ -521,8 +521,8 @@ export default class DockerHost extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public osVersion?: string = undefined;
 
