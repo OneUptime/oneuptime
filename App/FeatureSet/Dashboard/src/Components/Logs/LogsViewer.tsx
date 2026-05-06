@@ -323,6 +323,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [props.serviceIds]);
 
+  /*
+   * Extract trace/span IDs for API calls (histogram + facets must respect these
+   * base filters so they reflect the same scope as the logs list)
+   */
+  const traceIdStrings: Array<string> | undefined = useMemo(() => {
+    if (!props.traceIds || props.traceIds.length === 0) {
+      return undefined;
+    }
+
+    return [...props.traceIds];
+  }, [props.traceIds]);
+
+  const spanIdStrings: Array<string> | undefined = useMemo(() => {
+    if (!props.spanIds || props.spanIds.length === 0) {
+      return undefined;
+    }
+
+    return [...props.spanIds];
+  }, [props.spanIds]);
+
   // Extract attribute filters from logQuery for histogram/facets API calls
   const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
     if (!props.logQuery) {
@@ -523,6 +543,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["serviceIds"] = serviceIdStrings;
         }
 
+        /*
+         * Base trace/span filters from props — must be applied so the chart
+         * matches the logs list when the viewer is scoped to a trace/span.
+         */
+        if (traceIdStrings) {
+          (requestData as any)["traceIds"] = traceIdStrings;
+        }
+
+        if (spanIdStrings) {
+          (requestData as any)["spanIds"] = spanIdStrings;
+        }
+
         // Pass active facet filters to the histogram so it reflects the current view
         const severityValues: Set<string> | undefined =
           appliedFacetFilters.get("severityText");
@@ -572,7 +604,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setHistogramLoading(false);
       }
-    }, [serviceIdStrings, appliedFacetFilters, timeRange, logQueryAttributes]);
+    }, [
+      serviceIdStrings,
+      traceIdStrings,
+      spanIdStrings,
+      appliedFacetFilters,
+      timeRange,
+      logQueryAttributes,
+    ]);
 
   // --- Fetch facets ---
 
@@ -595,6 +634,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["serviceIds"] = serviceIdStrings;
         }
 
+        /*
+         * Base trace/span filters from props — facet counts must match the
+         * logs list scope (e.g. when viewing a single trace).
+         */
+        if (traceIdStrings) {
+          (requestData as any)["traceIds"] = traceIdStrings;
+        }
+
+        if (spanIdStrings) {
+          (requestData as any)["spanIds"] = spanIdStrings;
+        }
+
         if (logQueryAttributes) {
           (requestData as any)["attributes"] = logQueryAttributes;
         }
@@ -614,7 +665,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setFacetLoading(false);
       }
-    }, [serviceIdStrings, timeRange, logQueryAttributes]);
+    }, [
+      serviceIdStrings,
+      traceIdStrings,
+      spanIdStrings,
+      timeRange,
+      logQueryAttributes,
+    ]);
 
   // --- Handlers (defined before effects that reference them) ---
 

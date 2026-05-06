@@ -40,6 +40,7 @@ import { JSONObject } from "Common/Types/JSON";
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
+import OneUptimeDate from "Common/Types/Date";
 import StackedProgressBar, {
   type StackedProgressBarSegment,
 } from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
@@ -361,6 +362,10 @@ const KubernetesClusterOverview: FunctionComponent<
           clusterIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
+          labels: {
+            name: true,
+            color: true,
+          },
         },
       });
       setCluster(item);

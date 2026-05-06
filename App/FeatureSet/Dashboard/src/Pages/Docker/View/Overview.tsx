@@ -8,9 +8,8 @@ import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
-import AlertBanner, {
-  AlertBannerType,
-} from "Common/UI/Components/AlertBanner/AlertBanner";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
@@ -82,9 +81,16 @@ const DockerHostOverview: FunctionComponent<
         modelType: DockerHost,
         id: modelId,
         select: {
+          name: true,
           hostIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
+          osType: true,
+          osVersion: true,
+          labels: {
+            name: true,
+            color: true,
+          },
         },
       });
 
@@ -251,38 +257,143 @@ const DockerHostOverview: FunctionComponent<
     { modelId: modelId },
   );
 
-  const renderAgentBanner: () => ReactElement | null =
-    (): ReactElement | null => {
-      if (!host) {
-        return null;
-      }
+  const renderHero: () => ReactElement | null = (): ReactElement | null => {
+    if (!host) {
+      return null;
+    }
 
-      const status: string = (host.otelCollectorStatus as string) || "";
-      const lastSeenAt: Date | undefined = host.lastSeenAt;
-      const lastSeenText: string = lastSeenAt
-        ? OneUptimeDate.getDateAsLocalFormattedString(lastSeenAt)
-        : "never";
+    const status: string = (host.otelCollectorStatus as string) || "";
+    const lastSeenAt: Date | undefined = host.lastSeenAt;
+    const lastSeenText: string = lastSeenAt
+      ? OneUptimeDate.fromNow(lastSeenAt)
+      : "never";
 
-      const isConnected: boolean =
-        status.toLowerCase() === "connected" ||
-        status.toLowerCase() === "active";
+    const isConnected: boolean =
+      status.toLowerCase() === "connected" ||
+      status.toLowerCase() === "active";
 
-      if (isConnected) {
-        return (
-          <AlertBanner
-            title={`Docker agent connected — last seen ${lastSeenText}`}
-            type={AlertBannerType.Success}
+    const displayName: string =
+      (host.name as string | undefined) ||
+      (host.hostIdentifier as string | undefined) ||
+      "Untitled Docker host";
+
+    const hostIdentifier: string =
+      (host.hostIdentifier as string | undefined) || "";
+
+    const labelList: Array<Label> = (host["labels"] as Array<Label>) || [];
+
+    const specChips: Array<{
+      icon: IconProp;
+      label: string;
+    }> = [];
+
+    if (stats && stats.containerCount > 0) {
+      specChips.push({
+        icon: IconProp.Cube,
+        label: `${stats.containerCount} container${stats.containerCount === 1 ? "" : "s"}`,
+      });
+    }
+    if (host.osType) {
+      specChips.push({
+        icon: IconProp.Cog,
+        label: String(host.osType),
+      });
+    }
+    if (host.osVersion) {
+      specChips.push({
+        icon: IconProp.Info,
+        label: String(host.osVersion),
+      });
+    }
+
+    const statusBadgeClass: string = isConnected
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+      : "bg-amber-50 text-amber-700 ring-amber-200";
+    const statusDotClass: string = isConnected
+      ? "bg-emerald-500"
+      : "bg-amber-500";
+    const statusLabel: string = isConnected
+      ? "Connected"
+      : status
+        ? status.charAt(0).toUpperCase() + status.slice(1)
+        : "Disconnected";
+
+    return (
+      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="relative">
+          <div
+            className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-sky-50 via-white to-white"
+            aria-hidden="true"
           />
-        );
-      }
+          <div className="relative px-6 py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
+                  <Icon
+                    icon={IconProp.Cube}
+                    className="h-6 w-6 text-sky-600"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl font-semibold text-gray-900 truncate">
+                      {displayName}
+                    </h1>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
+                      />
+                      {statusLabel}
+                    </span>
+                  </div>
+                  {hostIdentifier && (
+                    <div className="mt-1 truncate font-mono text-sm text-gray-500">
+                      {hostIdentifier}
+                    </div>
+                  )}
+                  <div className="mt-1 text-xs text-gray-400">
+                    Last seen {lastSeenText}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      return (
-        <AlertBanner
-          title={`Docker agent is ${status || "disconnected"} — last seen ${lastSeenText}`}
-          type={AlertBannerType.Warning}
-        />
-      );
-    };
+            {specChips.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {specChips.map(
+                  (
+                    chip: { icon: IconProp; label: string },
+                    idx: number,
+                  ): ReactElement => {
+                    return (
+                      <span
+                        key={`spec-${idx}`}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      >
+                        <Icon
+                          icon={chip.icon}
+                          className="h-3 w-3 text-gray-500"
+                        />
+                        <span className="font-medium">{chip.label}</span>
+                      </span>
+                    );
+                  },
+                )}
+              </div>
+            )}
+
+            {labelList.length > 0 && (
+              <div className="mt-3 border-t border-gray-100 pt-3">
+                <LabelsElement labels={labelList} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderSummaryCards: () => ReactElement = (): ReactElement => {
     if (isStatsLoading) {
@@ -434,7 +545,7 @@ const DockerHostOverview: FunctionComponent<
 
   return (
     <Fragment>
-      {renderAgentBanner()}
+      {renderHero()}
       {renderSummaryCards()}
       {renderTopContainers()}
       <div className="mb-6">{renderQuickLinks()}</div>
