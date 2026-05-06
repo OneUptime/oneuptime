@@ -137,8 +137,22 @@ const MetricsViewer: FunctionComponent<Props> = (
   >({});
   const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
 
+  const isScoped: boolean = useMemo(() => {
+    const hasServiceIds: boolean = Boolean(
+      props.serviceIds && props.serviceIds.length > 0,
+    );
+    const hasAttributeFilters: boolean = Boolean(
+      props.attributeFilters && Object.keys(props.attributeFilters).length > 0,
+    );
+    return hasServiceIds || hasAttributeFilters;
+  }, [props.serviceIds, props.attributeFilters]);
+
   // Load services and telemetry attributes once
   useEffect(() => {
+    if (isScoped) {
+      // No service facet in scoped views, so skip the fetch.
+      return;
+    }
     const loadServices: () => Promise<void> = async () => {
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -153,13 +167,18 @@ const MetricsViewer: FunctionComponent<Props> = (
           select: { name: true, serviceColor: true },
           sort: { name: SortOrder.Ascending },
         });
-        setServices(result.data || []);
+        const named: Array<Service> = (result.data || []).filter(
+          (s: Service): boolean => {
+            return Boolean(s.name && s.name.toString().trim());
+          },
+        );
+        setServices(named);
       } catch {
         // non-critical
       }
     };
     void loadServices();
-  }, []);
+  }, [isScoped]);
 
   // Load telemetry attributes for autocomplete
   useEffect(() => {
@@ -585,11 +604,14 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
+    if (isScoped) {
+      return [];
+    }
     const serviceNameMap: Record<string, string> = {};
     const serviceColorMap: Record<string, string> = {};
     for (const service of services) {
-      if (service.id) {
-        serviceNameMap[service.id.toString()] = service.name || "Unknown";
+      if (service.id && service.name) {
+        serviceNameMap[service.id.toString()] = service.name.toString();
         if (service.serviceColor) {
           serviceColorMap[service.id.toString()] =
             service.serviceColor.toString();
@@ -605,22 +627,25 @@ const MetricsViewer: FunctionComponent<Props> = (
         priority: 1,
       },
     ];
-  }, [services]);
+  }, [services, isScoped]);
 
   /*
    * Compute facets from loaded services (and distribution isn't known without
    * a backend aggregation, so show equal weights for v1)
    */
   const facetData: FacetData = useMemo(() => {
+    if (isScoped) {
+      return {};
+    }
     const values: Array<FacetValue> = services
       .filter((s: Service): boolean => {
-        return Boolean(s.id);
+        return Boolean(s.id && s.name);
       })
       .map((s: Service): FacetValue => {
         return { value: s.id!.toString(), count: 0 };
       });
     return { serviceId: values };
-  }, [services]);
+  }, [services, isScoped]);
 
   // Facet interaction
   const handleFacetInclude: (facetKey: string, value: string) => void =
@@ -815,7 +840,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         setTimeRange(value);
       }}
       // Facets
-      showFacetSidebar={true}
+      showFacetSidebar={!isScoped}
       facetData={facetData}
       facetConfigs={facetConfigs}
       facetLoading={false}
