@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -551,8 +552,6 @@ const DockerHostOverview: FunctionComponent<
           title: "Docker Host Details",
           description: "Overview of this Docker host.",
         }}
-        isEditable={true}
-        editButtonText="Edit Host"
         modelDetailProps={{
           modelType: DockerHost,
           id: "docker-host-details",
@@ -564,6 +563,9 @@ const DockerHostOverview: FunctionComponent<
               },
               title: "Name",
               fieldType: FieldType.Text,
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.name);
+              },
             },
             {
               field: {
@@ -571,6 +573,9 @@ const DockerHostOverview: FunctionComponent<
               },
               title: "Description",
               fieldType: FieldType.Text,
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.description);
+              },
             },
             {
               field: {
@@ -578,6 +583,9 @@ const DockerHostOverview: FunctionComponent<
               },
               title: "Host Identifier",
               fieldType: FieldType.Text,
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.hostIdentifier);
+              },
             },
             {
               field: {
@@ -585,6 +593,9 @@ const DockerHostOverview: FunctionComponent<
               },
               title: "Collector Status",
               fieldType: FieldType.Text,
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.otelCollectorStatus);
+              },
             },
             {
               field: {
@@ -592,20 +603,55 @@ const DockerHostOverview: FunctionComponent<
               },
               title: "Last Seen",
               fieldType: FieldType.DateTime,
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.lastSeenAt);
+              },
             },
             {
               field: {
                 osType: true,
               },
               title: "OS Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: DockerHost): ReactElement => {
+                const osType: string | undefined =
+                  (item.osType as string | undefined) ?? undefined;
+                if (!osType) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                return (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
+                    {osType}
+                  </span>
+                );
+              },
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.osType);
+              },
             },
             {
               field: {
                 osVersion: true,
               },
               title: "OS Version",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: DockerHost): ReactElement => {
+                const osVersion: string | undefined =
+                  (item.osVersion as string | undefined) ?? undefined;
+                if (!osVersion) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                return (
+                  <ExpandableText
+                    text={osVersion}
+                    maxLength={48}
+                    className="text-sm text-gray-900"
+                  />
+                );
+              },
+              showIf: (item: DockerHost): boolean => {
+                return Boolean(item.osVersion);
+              },
             },
             {
               field: {
@@ -620,6 +666,11 @@ const DockerHostOverview: FunctionComponent<
                 return (
                   <LabelsElement labels={item["labels"] as Array<Label>} />
                 );
+              },
+              showIf: (item: DockerHost): boolean => {
+                const labels: Array<Label> | undefined =
+                  (item.labels as Array<Label> | undefined) ?? undefined;
+                return Array.isArray(labels) && labels.length > 0;
               },
             },
           ],

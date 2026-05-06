@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -635,16 +636,32 @@ const HostOverview: FunctionComponent<
     );
   };
 
-  const sectionTitle: (icon: IconProp, label: string) => ReactElement = (
-    icon: IconProp,
-    label: string,
+  const renderOsTypeChip: (item: Host) => ReactElement = (
+    item: Host,
   ): ReactElement => {
+    const osType: string | undefined =
+      (item.osType as string | undefined) ?? undefined;
+    if (!osType) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
     return (
-      <span className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-50 ring-1 ring-inset ring-indigo-200">
-          <Icon icon={icon} className="h-3.5 w-3.5 text-indigo-600" />
-        </span>
-        <span>{label}</span>
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
+        {osType}
+      </span>
+    );
+  };
+
+  const renderArchChip: (item: Host) => ReactElement = (
+    item: Host,
+  ): ReactElement => {
+    const arch: string | undefined =
+      (item.hostArch as string | undefined) ?? undefined;
+    if (!arch) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 text-xs font-mono ring-1 ring-inset ring-gray-200">
+        {arch}
       </span>
     );
   };
@@ -693,11 +710,9 @@ const HostOverview: FunctionComponent<
         <CardModelDetail<Host>
           name="Identification"
           cardProps={{
-            title: sectionTitle(IconProp.Info, "Identification"),
+            title: "Identification",
             description: "How this host is named and classified.",
           }}
-          isEditable={true}
-          editButtonText="Edit Host"
           modelDetailProps={{
             modelType: Host,
             id: "host-identification",
@@ -709,6 +724,9 @@ const HostOverview: FunctionComponent<
                 },
                 title: "Name",
                 fieldType: FieldType.Text,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.name);
+                },
               },
               {
                 field: {
@@ -716,6 +734,9 @@ const HostOverview: FunctionComponent<
                 },
                 title: "Host Identifier",
                 fieldType: FieldType.Text,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.hostIdentifier);
+                },
               },
               {
                 field: {
@@ -723,6 +744,9 @@ const HostOverview: FunctionComponent<
                 },
                 title: "Description",
                 fieldType: FieldType.Text,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.description);
+                },
               },
               {
                 field: {
@@ -730,6 +754,9 @@ const HostOverview: FunctionComponent<
                 },
                 title: "Host Type",
                 fieldType: FieldType.Text,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.hostType);
+                },
               },
             ],
           }}
@@ -738,7 +765,7 @@ const HostOverview: FunctionComponent<
         <CardModelDetail<Host>
           name="Operating System"
           cardProps={{
-            title: sectionTitle(IconProp.Cog, "Operating System"),
+            title: "Operating System",
             description: "Operating system details reported by the agent.",
           }}
           modelDetailProps={{
@@ -751,21 +778,46 @@ const HostOverview: FunctionComponent<
                   osType: true,
                 },
                 title: "OS Type",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.Element,
+                getElement: renderOsTypeChip,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.osType);
+                },
               },
               {
                 field: {
                   osVersion: true,
                 },
                 title: "OS Version",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.Element,
+                getElement: (item: Host): ReactElement => {
+                  const osVersion: string | undefined =
+                    (item.osVersion as string | undefined) ?? undefined;
+                  if (!osVersion) {
+                    return <span className="text-sm text-gray-400">—</span>;
+                  }
+                  return (
+                    <ExpandableText
+                      text={osVersion}
+                      maxLength={48}
+                      className="text-sm text-gray-900"
+                    />
+                  );
+                },
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.osVersion);
+                },
               },
               {
                 field: {
                   hostArch: true,
                 },
                 title: "Architecture",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.Element,
+                getElement: renderArchChip,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.hostArch);
+                },
               },
             ],
           }}
@@ -774,7 +826,7 @@ const HostOverview: FunctionComponent<
         <CardModelDetail<Host>
           name="Hardware & Runtime"
           cardProps={{
-            title: sectionTitle(IconProp.ServerStack, "Hardware & Runtime"),
+            title: "Hardware & Runtime",
             description: "CPU, memory, processes, and container runtime.",
           }}
           modelDetailProps={{
@@ -801,6 +853,9 @@ const HostOverview: FunctionComponent<
                     </span>
                   );
                 },
+                showIf: (item: Host): boolean => {
+                  return item.cpuCores !== undefined && item.cpuCores !== null;
+                },
               },
               {
                 field: {
@@ -817,6 +872,12 @@ const HostOverview: FunctionComponent<
                     </span>
                   );
                 },
+                showIf: (item: Host): boolean => {
+                  return (
+                    item.totalMemoryBytes !== undefined &&
+                    item.totalMemoryBytes !== null
+                  );
+                },
               },
               {
                 field: {
@@ -824,6 +885,12 @@ const HostOverview: FunctionComponent<
                 },
                 title: "Process Count (cached)",
                 fieldType: FieldType.Number,
+                showIf: (item: Host): boolean => {
+                  return (
+                    item.processCount !== undefined &&
+                    item.processCount !== null
+                  );
+                },
               },
               {
                 field: {
@@ -831,6 +898,9 @@ const HostOverview: FunctionComponent<
                 },
                 title: "Container Runtime",
                 fieldType: FieldType.Text,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.containerRuntime);
+                },
               },
             ],
           }}
@@ -839,7 +909,7 @@ const HostOverview: FunctionComponent<
         <CardModelDetail<Host>
           name="Network"
           cardProps={{
-            title: sectionTitle(IconProp.Wifi, "Network"),
+            title: "Network",
             description: "IP addresses observed on this host.",
           }}
           modelDetailProps={{
@@ -854,6 +924,9 @@ const HostOverview: FunctionComponent<
                 title: "IP Addresses",
                 fieldType: FieldType.Element,
                 getElement: renderIpAddresses,
+                showIf: (item: Host): boolean => {
+                  return Boolean(item.hostIpAddresses);
+                },
               },
             ],
           }}
