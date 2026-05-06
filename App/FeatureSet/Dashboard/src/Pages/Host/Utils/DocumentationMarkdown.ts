@@ -1,4 +1,57 @@
-export function getHostInstallationMarkdown(data: {
+export type HostInstallMethod =
+  | "docker"
+  | "linux-deb"
+  | "linux-rpm"
+  | "linux-tarball"
+  | "macos"
+  | "windows"
+  | "kubernetes";
+
+export interface HostInstallMethodOption {
+  key: HostInstallMethod;
+  label: string;
+  description: string;
+}
+
+export const HOST_INSTALL_METHODS: Array<HostInstallMethodOption> = [
+  {
+    key: "docker",
+    label: "Docker",
+    description: "Single command. Works on any OS with Docker installed.",
+  },
+  {
+    key: "linux-deb",
+    label: "Debian / Ubuntu",
+    description: ".deb package installed as a systemd service.",
+  },
+  {
+    key: "linux-rpm",
+    label: "RHEL / Fedora",
+    description: ".rpm for RHEL, CentOS, Fedora, Amazon Linux.",
+  },
+  {
+    key: "linux-tarball",
+    label: "Linux Tarball",
+    description: "Static binary + systemd unit. No package manager needed.",
+  },
+  {
+    key: "macos",
+    label: "macOS",
+    description: "Homebrew formula, managed by brew services.",
+  },
+  {
+    key: "windows",
+    label: "Windows",
+    description: "MSI installer, registered as a Windows service.",
+  },
+  {
+    key: "kubernetes",
+    label: "Kubernetes",
+    description: "Helm DaemonSet — one collector pod per node.",
+  },
+];
+
+export function getHostIntroMarkdown(data: {
   oneuptimeUrl: string;
   apiKey: string;
 }): string {
@@ -20,7 +73,7 @@ Hosts are auto-discovered from the OTel \`host.name\` resource attribute. Once y
 
 ## Step 1 — Save the collector config
 
-Drop this into \`config.yaml\` next to wherever you'll run the collector:
+Drop this into \`config.yaml\` next to wherever you'll run the collector. The same file is used for every install method below — only the way the collector is started differs.
 
 \`\`\`yaml
 receivers:
@@ -85,26 +138,22 @@ service:
       processors: [resourcedetection, batch]
       exporters: [otlphttp/oneuptime]
 \`\`\`
+`;
+}
 
-The same \`config.yaml\` is used for every install option below — only the way the collector is started differs.
+export function getHostMethodMarkdown(
+  data: {
+    oneuptimeUrl: string;
+    apiKey: string;
+  },
+  method: HostInstallMethod,
+): string {
+  switch (method) {
+    case "docker":
+      return `
+## Step 2 — Run the collector with Docker
 
-## Step 2 — Install and run the collector
-
-Pick the option that matches your host.
-
-| If you're running on… | Use option | Why |
-| --- | --- | --- |
-| Anything (fastest start) | **A. Docker** | One command, works everywhere |
-| A long-lived Debian/Ubuntu server | **B. .deb package** | Installs as a systemd service, auto-restarts, picks up package updates |
-| RHEL / CentOS / Fedora / Amazon Linux | **C. .rpm package** | Same lifecycle benefits as B, for RPM-based distros |
-| A Linux box where you can't install packages | **D. Tarball + systemd** | Drops a single binary into \`/opt\`, no package manager required |
-| macOS (developer laptop or Mac mini fleet) | **E. Homebrew** | Native install, managed by \`brew services\` |
-| Windows Server | **F. MSI installer** | Installs as a Windows service |
-| A Kubernetes cluster | **G. Helm DaemonSet** | One pod per node, monitors every node in the cluster |
-
-> Releases are published at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases>. Replace \`<VERSION>\` (e.g. \`0.115.0\`) with the latest tag in the commands below.
-
-### Option A — Docker (works on Linux, macOS, Windows, WSL)
+Works on Linux, macOS, Windows, and WSL — anywhere Docker is installed.
 
 \`\`\`bash
 docker run -d \\
@@ -126,7 +175,12 @@ docker run -d \\
 
 \`--network host\`, \`--pid host\`, and the \`/hostfs\` bind mount let the \`hostmetrics\` and \`process\` scrapers read CPU, memory, disk, and per-process information from the host kernel rather than the container. Without these, you'd only see metrics for the collector container itself.
 
-### Option B — Debian / Ubuntu (.deb package)
+Logs: \`docker logs -f otel-collector\`.
+`;
+
+    case "linux-deb":
+      return `
+## Step 2 — Install the .deb package (Debian / Ubuntu)
 
 \`\`\`bash
 VERSION=0.115.0
@@ -144,7 +198,14 @@ sudo systemctl status otelcol-contrib
 
 Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 
-### Option C — RHEL / CentOS / Fedora / Amazon Linux (.rpm package)
+Releases are published at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases>. Replace the \`VERSION\` value with the latest tag.
+
+> **Note for native installs:** Unlike Docker, the package install reads \`/proc\` and \`/sys\` directly — no \`HOST_PROC\` env vars or \`/hostfs\` mount required. The systemd unit shipped with the package runs as root, so the \`process\` scraper can see processes owned by other users.
+`;
+
+    case "linux-rpm":
+      return `
+## Step 2 — Install the .rpm package (RHEL / Fedora / CentOS / Amazon Linux)
 
 \`\`\`bash
 VERSION=0.115.0
@@ -154,13 +215,22 @@ curl -L -o /tmp/otelcol-contrib.rpm \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.rpm
 sudo rpm -Uvh /tmp/otelcol-contrib.rpm
 
+# Install the config and (re)start the service
 sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
 sudo systemctl enable --now otelcol-contrib
+sudo systemctl status otelcol-contrib
 \`\`\`
 
-### Option D — Linux tarball + systemd (any distro)
+Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 
-Use this when packages aren't available (Alpine, NixOS, locked-down hosts, container base images, etc.).
+> **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` bind mount needed — the collector reads \`/proc\` and \`/sys\` directly. The packaged systemd unit runs as root, so the \`process\` scraper sees every user's processes.
+`;
+
+    case "linux-tarball":
+      return `
+## Step 2 — Install from a tarball (any Linux distro)
+
+Use this when packages aren't available — Alpine, NixOS, locked-down servers, or container base images you want to instrument from outside.
 
 \`\`\`bash
 VERSION=0.115.0
@@ -191,14 +261,20 @@ User=root
 WantedBy=multi-user.target
 \`\`\`
 
-Then enable it:
+Then enable and start it:
 
 \`\`\`bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now otelcol-contrib
+sudo systemctl status otelcol-contrib
 \`\`\`
 
-### Option E — macOS (Homebrew)
+> **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` mount — the collector reads kernel state directly. Run as root (or grant \`CAP_SYS_PTRACE\`) so the \`process\` scraper can see processes owned by other users.
+`;
+
+    case "macos":
+      return `
+## Step 2 — Install on macOS (Homebrew)
 
 \`\`\`bash
 brew install opentelemetry-collector
@@ -212,9 +288,14 @@ brew services restart opentelemetry-collector
 brew services info opentelemetry-collector
 \`\`\`
 
-> The Homebrew formula ships the **core** distribution. If you need scrapers that only exist in the **contrib** distribution, install the binary directly from GitHub releases (use Option D's commands with \`darwin\` instead of \`linux\` in the URL) or run via Docker.
+Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path varies by formula version).
 
-### Option F — Windows (MSI installer)
+> **Heads up:** The Homebrew formula ships the **core** distribution. If you need scrapers that only exist in the **contrib** distribution, install the binary directly from <https://github.com/open-telemetry/opentelemetry-collector-releases/releases> (use the \`darwin\` archive matching your CPU) or run via Docker.
+`;
+
+    case "windows":
+      return `
+## Step 2 — Install on Windows (MSI)
 
 Run from an elevated PowerShell prompt:
 
@@ -236,9 +317,20 @@ Restart-Service otelcol-contrib
 Get-Service otelcol-contrib
 \`\`\`
 
-### Option G — Kubernetes (Helm DaemonSet)
+Logs are written to the Windows Application event log under source \`otelcol-contrib\`. Tail with:
 
-Deploy one collector pod per node. This is the most common production setup for clusters.
+\`\`\`powershell
+Get-WinEvent -ProviderName otelcol-contrib -MaxEvents 50 | Format-Table -AutoSize -Wrap
+\`\`\`
+
+> **Note:** The MSI registers \`otelcol-contrib\` as a Windows service that starts automatically on boot. The \`load\` scraper isn't supported on Windows — the rest of the \`hostmetrics\` config above runs unchanged.
+`;
+
+    case "kubernetes":
+      return `
+## Step 2 — Deploy to Kubernetes (Helm DaemonSet)
+
+This deploys one collector pod per node — the standard production setup for monitoring every node in a cluster.
 
 \`\`\`bash
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
@@ -283,25 +375,19 @@ helm upgrade --install otel-collector \\
 
 Each node will appear as a separate host in OneUptime, linked to its Kubernetes cluster.
 
-## Notes for native (non-Docker) installs
+Logs: \`kubectl -n otel logs -l app.kubernetes.io/name=opentelemetry-collector -f\`.
 
-- Native installs read \`/proc\` and \`/sys\` directly — you do **not** need \`HOST_PROC\` / \`HOST_SYS\` env vars or any \`/hostfs\` mount.
-- The \`process\` scraper needs to run as root (or have \`CAP_SYS_PTRACE\`) to see processes owned by other users.
-- For the Linux package and tarball options, the systemd unit shipped with the .deb/.rpm already runs as root.
+> **Note:** When using the Helm chart, the \`config.yaml\` from Step 1 is merged into the chart's \`values.yaml\` under the \`config:\` key. The chart's \`hostMetrics\` preset enables the receiver and mounts \`/proc\` and \`/sys\` from the host into each pod for you, so you don't need to repeat the receiver config above — only the exporter that points to OneUptime.
+`;
+  }
+}
 
-## Which install method should I pick?
-
-- **Trying it out / single host?** Start with **Docker** (Option A). It's the fastest path to a working collector and works on every OS.
-- **Production Linux fleet?** Use the **.deb / .rpm package** (Option B or C). systemd handles restarts, log rotation, and version upgrades.
-- **No package manager available?** Use the **tarball + systemd** path (Option D).
-- **Mixed macOS dev fleet?** **Homebrew** (Option E) is the standard.
-- **Windows Server?** Use the **MSI** (Option F) — it registers the collector as a Windows service automatically.
-- **Kubernetes cluster?** Use the **Helm DaemonSet** (Option G) so every node is monitored without per-node provisioning.
-
+export function getHostFooterMarkdown(): string {
+  return `
 ## What you can do next
 
-- Open the Hosts list in OneUptime — your host appears automatically once the first metric batch lands.
-- The **Metrics** tab visualizes \`system.*\` series time-series.
+- Open the **Hosts** list in OneUptime — your host appears automatically once the first metric batch lands (usually within 30 seconds).
+- The **Metrics** tab visualizes \`system.*\` time-series.
 - The **Processes** tab lists processes ordered by CPU once the \`process\` scraper is enabled.
 - The **Logs** tab streams any logs whose resource attributes include \`host.name\`.
 `;

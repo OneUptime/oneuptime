@@ -22,7 +22,14 @@ import Dropdown, {
 import Protocol from "Common/Types/API/Protocol";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import { getHostInstallationMarkdown } from "../../Pages/Host/Utils/DocumentationMarkdown";
+import {
+  getHostIntroMarkdown,
+  getHostMethodMarkdown,
+  getHostFooterMarkdown,
+  HOST_INSTALL_METHODS,
+  HostInstallMethod,
+  HostInstallMethodOption,
+} from "../../Pages/Host/Utils/DocumentationMarkdown";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 
@@ -41,6 +48,8 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
   const [isLoadingKeys, setIsLoadingKeys] = useState<boolean>(true);
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [keyError, setKeyError] = useState<string>("");
+  const [selectedMethod, setSelectedMethod] =
+    useState<HostInstallMethod>("docker");
 
   const httpProtocol: string =
     HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
@@ -216,10 +225,58 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const installationMarkdown: string = getHostInstallationMarkdown({
+  const introMarkdown: string = getHostIntroMarkdown({
     oneuptimeUrl: oneuptimeUrl,
     apiKey: apiKeyValue,
   });
+
+  const methodMarkdown: string = getHostMethodMarkdown(
+    {
+      oneuptimeUrl: oneuptimeUrl,
+      apiKey: apiKeyValue,
+    },
+    selectedMethod,
+  );
+
+  const footerMarkdown: string = getHostFooterMarkdown();
+
+  const renderMethodSelector: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mb-6">
+        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          Choose Your Install Method
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {HOST_INSTALL_METHODS.map((method: HostInstallMethodOption) => {
+            const isSelected: boolean = selectedMethod === method.key;
+            return (
+              <button
+                key={method.key}
+                type="button"
+                onClick={() => {
+                  setSelectedMethod(method.key);
+                }}
+                className={`text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                  isSelected
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div
+                  className={`text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
+                >
+                  {method.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  {method.description}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -232,7 +289,13 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
             {renderKeySelector()}
           </div>
 
-          <MarkdownViewer text={installationMarkdown} />
+          <MarkdownViewer text={introMarkdown} />
+
+          {renderMethodSelector()}
+
+          <MarkdownViewer text={methodMarkdown} />
+
+          <MarkdownViewer text={footerMarkdown} />
         </div>
       </Card>
 
