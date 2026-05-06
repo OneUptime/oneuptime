@@ -25,6 +25,14 @@ export class ResourceGenerator {
     parser.setSpec(this.spec);
     const resources: TerraformResource[] = parser.getResources();
 
+    // Emit shared helpers used across all resources (JSON subset semantic
+    // equality for complex JSON string fields).
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "jsonsubset.go",
+      this.generateJSONSubsetFile(),
+    );
+
     // Generate each resource
     for (const resource of resources) {
       await this.generateResource(resource);
@@ -32,6 +40,173 @@ export class ResourceGenerator {
 
     // Update provider.go to include resources
     await this.updateProviderWithResources(resources);
+  }
+
+  // Emits internal/provider/jsonsubset.go — a custom string type whose
+  // semantic-equality treats two JSON values as equal when every leaf in the
+  // planned value is present (with the same value) in the actual value. This
+  // is what we use for every complex-JSON string field, so server-added
+  // defaults (e.g. MonitorCriteriaInstance.isEnabled = true) round-trip
+  // cleanly without the framework reporting "Provider produced inconsistent
+  // result after apply" or perpetual plan drift.
+  private generateJSONSubsetFile(): string {
+    return `package provider
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "reflect"
+
+    "github.com/hashicorp/terraform-plugin-framework/attr"
+    "github.com/hashicorp/terraform-plugin-framework/diag"
+    "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+    "github.com/hashicorp/terraform-plugin-go/tftypes"
+)
+
+// JSONSubsetType is a Plugin Framework string type for complex-JSON fields.
+// Its semantic-equality returns true when the planned JSON is a structural
+// subset of the actual JSON: same shape, same scalars at every leaf, but the
+// actual side may have additional keys filled in by the server (e.g. defaults).
+// This prevents "Provider produced inconsistent result after apply" without
+// having to teach the provider about every server-side default.
+type JSONSubsetType struct {
+    basetypes.StringType
+}
+
+var _ basetypes.StringTypable = JSONSubsetType{}
+
+func (t JSONSubsetType) Equal(o attr.Type) bool {
+    other, ok := o.(JSONSubsetType)
+    if !ok {
+        return false
+    }
+    return t.StringType.Equal(other.StringType)
+}
+
+func (t JSONSubsetType) String() string {
+    return "JSONSubsetType"
+}
+
+func (t JSONSubsetType) ValueType(_ context.Context) attr.Value {
+    return JSONSubsetValue{}
+}
+
+func (t JSONSubsetType) ValueFromString(_ context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
+    return JSONSubsetValue{StringValue: in}, nil
+}
+
+func (t JSONSubsetType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+    val, err := t.StringType.ValueFromTerraform(ctx, in)
+    if err != nil {
+        return nil, err
+    }
+    sv, ok := val.(basetypes.StringValue)
+    if !ok {
+        return nil, fmt.Errorf("unexpected base value type: %T", val)
+    }
+    return JSONSubsetValue{StringValue: sv}, nil
+}
+
+// JSONSubsetValue is the value half of JSONSubsetType. It embeds the standard
+// StringValue, so all the usual accessors (ValueString, IsNull, IsUnknown)
+// keep working without change at call sites.
+type JSONSubsetValue struct {
+    basetypes.StringValue
+}
+
+var _ basetypes.StringValuableWithSemanticEquals = JSONSubsetValue{}
+
+func (v JSONSubsetValue) Type(_ context.Context) attr.Type {
+    return JSONSubsetType{}
+}
+
+func (v JSONSubsetValue) Equal(o attr.Value) bool {
+    other, ok := o.(JSONSubsetValue)
+    if !ok {
+        return false
+    }
+    return v.StringValue.Equal(other.StringValue)
+}
+
+// StringSemanticEquals reports v (the planned/prior value) and newV (the
+// post-apply or refreshed value) as equal when the planned JSON is a subset
+// of the actual JSON. Falls back to byte equality for null/unknown values
+// or when either side is not valid JSON (e.g. plain strings, base64).
+func (v JSONSubsetValue) StringSemanticEquals(_ context.Context, newV basetypes.StringValuable) (bool, diag.Diagnostics) {
+    var diags diag.Diagnostics
+    other, ok := newV.(JSONSubsetValue)
+    if !ok {
+        return false, diags
+    }
+    if v.IsNull() || v.IsUnknown() || other.IsNull() || other.IsUnknown() {
+        return v.StringValue.Equal(other.StringValue), diags
+    }
+    var planned, actual interface{}
+    if err := json.Unmarshal([]byte(v.ValueString()), &planned); err != nil {
+        return v.StringValue.Equal(other.StringValue), diags
+    }
+    if err := json.Unmarshal([]byte(other.ValueString()), &actual); err != nil {
+        return v.StringValue.Equal(other.StringValue), diags
+    }
+    return jsonIsSubset(planned, actual), diags
+}
+
+// NewJSONSubsetNull returns a typed null value.
+func NewJSONSubsetNull() JSONSubsetValue {
+    return JSONSubsetValue{StringValue: basetypes.NewStringNull()}
+}
+
+// NewJSONSubsetUnknown returns a typed unknown value.
+func NewJSONSubsetUnknown() JSONSubsetValue {
+    return JSONSubsetValue{StringValue: basetypes.NewStringUnknown()}
+}
+
+// NewJSONSubsetValue wraps a concrete string.
+func NewJSONSubsetValue(s string) JSONSubsetValue {
+    return JSONSubsetValue{StringValue: basetypes.NewStringValue(s)}
+}
+
+// jsonIsSubset returns true when every leaf in plan exists with the same
+// value in actual. Maps: every key in plan must exist in actual (with a
+// subset value); actual may have extra keys. Slices: same length, positional
+// subset comparison. Scalars: reflect.DeepEqual.
+func jsonIsSubset(plan, actual interface{}) bool {
+    switch p := plan.(type) {
+    case map[string]interface{}:
+        a, ok := actual.(map[string]interface{})
+        if !ok {
+            return false
+        }
+        for key, pv := range p {
+            av, exists := a[key]
+            if !exists {
+                return false
+            }
+            if !jsonIsSubset(pv, av) {
+                return false
+            }
+        }
+        return true
+    case []interface{}:
+        a, ok := actual.([]interface{})
+        if !ok {
+            return false
+        }
+        if len(p) != len(a) {
+            return false
+        }
+        for i := range p {
+            if !jsonIsSubset(p[i], a[i]) {
+                return false
+            }
+        }
+        return true
+    default:
+        return reflect.DeepEqual(plan, actual)
+    }
+}
+`;
   }
 
   private async generateResource(resource: TerraformResource): Promise<void> {
@@ -56,6 +231,10 @@ export class ResourceGenerator {
       "github.com/hashicorp/terraform-plugin-framework/resource",
       "github.com/hashicorp/terraform-plugin-framework/resource/schema",
       "github.com/hashicorp/terraform-plugin-framework/types",
+      // basetypes is always pulled in because parseJSONField accepts the
+      // generic StringValuable interface (so it works for both types.String
+      // and the JSONSubsetValue used on complex-JSON fields).
+      "github.com/hashicorp/terraform-plugin-framework/types/basetypes",
       "github.com/hashicorp/terraform-plugin-log/tflog",
     ];
 
@@ -425,15 +604,16 @@ func (r *${resourceTypeName}Resource) convertTerraformSetToInterface(terraformSe
 }
 
 // Helper method to parse JSON field for complex objects
-func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.String) interface{} {
-    if terraformString.IsNull() || terraformString.IsUnknown() || terraformString.ValueString() == "" {
+func (r *${resourceTypeName}Resource) parseJSONField(terraformString basetypes.StringValuable) interface{} {
+    sv, _ := terraformString.ToStringValue(context.Background())
+    if sv.IsNull() || sv.IsUnknown() || sv.ValueString() == "" {
         return nil
     }
 
     var result interface{}
-    if err := json.Unmarshal([]byte(terraformString.ValueString()), &result); err != nil {
+    if err := json.Unmarshal([]byte(sv.ValueString()), &result); err != nil {
         // If JSON parsing fails, return the raw string
-        return terraformString.ValueString()
+        return sv.ValueString()
     }
 
     return result
@@ -500,7 +680,12 @@ ${this.generateValidObjectTypesMap()}
     for (const [name, attr] of Object.entries(resource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-      const goType: string = this.mapTerraformTypeToGo(attr.type);
+      // Complex JSON string fields use a custom type whose semantic-equality
+      // tolerates server-side defaults (see jsonsubset.go).
+      const goType: string =
+        attr.type === "string" && attr.isComplexObject
+          ? "JSONSubsetValue"
+          : this.mapTerraformTypeToGo(attr.type);
       fields.push(`    ${fieldName} ${goType} \`tfsdk:"${sanitizedName}"\``);
     }
 
@@ -554,6 +739,12 @@ ${this.generateValidObjectTypesMap()}
       options.push(
         `MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`,
       );
+    }
+
+    // Complex JSON string fields use JSONSubsetType so the framework treats
+    // server-supplied defaults as semantically equal to the planned value.
+    if (attr.type === "string" && attr.isComplexObject) {
+      options.push("CustomType: JSONSubsetType{}");
     }
 
     // Check if this field is in the create or update schema (for fields with defaults)
@@ -1293,7 +1484,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     ) {
       /*
        * Try to parse as JSON first, but if it fails (e.g., for simple strings like "#FF0000"),
-       * fall back to sending the raw string value
+       * fall back to sending the raw string value. Server-side defaults
+       * filled in on the response are absorbed by JSONSubsetType's semantic
+       * equality, so we do not pre-normalize here.
        */
       return `var ${fieldName.toLowerCase()}Data interface{}
         if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {
@@ -1370,7 +1563,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           `        "${apiFieldName}": r.convertTerraformSetToInterface(data.${fieldName}),`,
         );
       } else if (attr.type === "string" && attr.isComplexObject) {
-        // For complex object strings, parse JSON and convert to interface{}
+        // For complex object strings, parse JSON and convert to interface{}.
+        // Server-side defaults (e.g. MonitorCriteriaInstance.isEnabled) are
+        // absorbed by JSONSubsetType's semantic equality on the model field,
+        // so no per-field normalization is needed here.
         fields.push(
           `        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`,
         );
@@ -1513,44 +1709,45 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
            * (e.g., {"_type":"Version","value":"1.0.0"} or {"_type":"DateTime","value":"..."})
            * If so, extract the value for simple types; preserve full structure for complex typed objects
            * This path uses the same robust unwrapping logic as the default string handler
-           * to ensure consistent behavior between CREATE and READ operations
+           * to ensure consistent behavior between CREATE and READ operations.
+           * Uses NewJSONSubset* constructors to keep the field's JSONSubsetType.
            */
           return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
         // Handle ObjectID type responses and wrapper objects (e.g., Version, DateTime, Name types)
         if val, ok := obj["_id"].(string); ok && val != "" {
-            ${fieldName} = types.StringValue(val)
+            ${fieldName} = NewJSONSubsetValue(val)
         } else if val, ok := obj["value"].(string); ok {
             // Unwrap wrapper objects - extract the inner value regardless of whether it's empty
-            ${fieldName} = types.StringValue(val)
+            ${fieldName} = NewJSONSubsetValue(val)
         } else if val, ok := obj["value"].(float64); ok {
             // Handle numeric values that might be returned as float64
-            ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
+            ${fieldName} = NewJSONSubsetValue(fmt.Sprintf("%v", val))
         } else if typeStr, typeOk := obj["_type"].(string); typeOk && r.isValidOneUptimeObjectType(typeStr) && obj["value"] != nil {
             // For typed wrapper objects (only valid OneUptime ObjectTypes), preserve the full structure including _type
             normalizedObj := r.normalizeURLWrappers(obj)
             if jsonBytes, err := json.Marshal(normalizedObj); err == nil {
-                ${fieldName} = types.StringValue(string(jsonBytes))
+                ${fieldName} = NewJSONSubsetValue(string(jsonBytes))
             } else {
-                ${fieldName} = types.StringValue(fmt.Sprintf("%v", normalizedObj))
+                ${fieldName} = NewJSONSubsetValue(fmt.Sprintf("%v", normalizedObj))
             }
         } else if obj["value"] != nil {
             // Handle complex value types (maps, arrays) by marshaling to JSON
             normalizedValue := r.normalizeURLWrappers(obj["value"])
             if jsonBytes, err := json.Marshal(normalizedValue); err == nil {
-                ${fieldName} = types.StringValue(string(jsonBytes))
+                ${fieldName} = NewJSONSubsetValue(string(jsonBytes))
             } else {
-                ${fieldName} = types.StringValue(fmt.Sprintf("%v", normalizedValue))
+                ${fieldName} = NewJSONSubsetValue(fmt.Sprintf("%v", normalizedValue))
             }
         } else if jsonBytes, err := json.Marshal(obj); err == nil {
             // Fallback to JSON marshaling for other complex objects
-            ${fieldName} = types.StringValue(string(jsonBytes))
+            ${fieldName} = NewJSONSubsetValue(string(jsonBytes))
         } else {
-            ${fieldName} = types.StringNull()
+            ${fieldName} = NewJSONSubsetNull()
         }
     } else if val, ok := ${responseValue}.(string); ok && val != "" {
-        ${fieldName} = types.StringValue(val)
+        ${fieldName} = NewJSONSubsetValue(val)
     } else {
-        ${fieldName} = types.StringNull()
+        ${fieldName} = NewJSONSubsetNull()
     }`;
         }
         /*
