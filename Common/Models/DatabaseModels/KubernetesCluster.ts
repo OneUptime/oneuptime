@@ -10,7 +10,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -64,12 +63,6 @@ import {
     Permission.SettingsManager,
     Permission.EditKubernetesCluster,
   ],
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
 })
 @CrudApiEndpoint(new Route("/kubernetes-cluster"))
 @SlugifyColumn("name", "slug")
