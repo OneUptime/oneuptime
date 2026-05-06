@@ -13,6 +13,8 @@ import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostProcesses from "../Pages/Host/View/Processes";
 import HostLogs from "../Pages/Host/View/Logs";
+import HostIncidents from "../Pages/Host/View/Incidents";
+import HostAlerts from "../Pages/Host/View/Alerts";
 import HostOwners from "../Pages/Host/View/Owners";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
@@ -81,6 +83,26 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostLogs
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_INCIDENTS)}
+          element={
+            <HostIncidents
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_INCIDENTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_ALERTS)}
+          element={
+            <HostAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_ALERTS] as Route}
             />
           }
         />

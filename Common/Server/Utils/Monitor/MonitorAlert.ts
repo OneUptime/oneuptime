@@ -1,6 +1,7 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -17,6 +18,7 @@ import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
+import HostService from "../../Services/HostService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -268,6 +270,35 @@ export default class MonitorAlert {
         }
         if (seriesLabels && Object.keys(seriesLabels).length > 0) {
           alert.seriesLabels = seriesLabels;
+
+          /*
+           * Link the alert to the Host that emitted this series, if
+           * the metric carried a `host.name` resource attribute. The
+           * Host record was auto-discovered during OTel ingestion.
+           */
+          const hostName: string | undefined =
+            typeof seriesLabels["host.name"] === "string"
+              ? (seriesLabels["host.name"] as string)
+              : undefined;
+
+          if (hostName) {
+            const host: Host | null = await HostService.findOneBy({
+              query: {
+                projectId: input.monitor.projectId!,
+                hostIdentifier: hostName,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (host) {
+              alert.hosts = [host];
+            }
+          }
         }
 
         alert.onCallDutyPolicies =

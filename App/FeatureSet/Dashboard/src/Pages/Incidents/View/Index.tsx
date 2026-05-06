@@ -1,4 +1,5 @@
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
+import HostsElement from "../../../Components/Host/Hosts";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
@@ -540,6 +541,19 @@ const IncidentView: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
                 return <MonitorsElement monitors={item["monitors"] || []} />;
+              },
+            },
+            {
+              field: {
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+              },
+              title: "Hosts Affected",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return <HostsElement hosts={item["hosts"] || []} />;
               },
             },
             {

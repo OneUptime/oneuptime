@@ -1,3 +1,4 @@
+import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -15,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
+import HostService from "../../Services/HostService";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
@@ -313,6 +315,35 @@ export default class MonitorIncident {
         }
         if (seriesLabels && Object.keys(seriesLabels).length > 0) {
           incident.seriesLabels = seriesLabels;
+
+          /*
+           * Link the incident to the Host that emitted this series, if
+           * the metric carried a `host.name` resource attribute. The
+           * Host record was auto-discovered during OTel ingestion.
+           */
+          const hostName: string | undefined =
+            typeof seriesLabels["host.name"] === "string"
+              ? (seriesLabels["host.name"] as string)
+              : undefined;
+
+          if (hostName) {
+            const host: Host | null = await HostService.findOneBy({
+              query: {
+                projectId: input.monitor.projectId!,
+                hostIdentifier: hostName,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (host) {
+              incident.hosts = [host];
+            }
+          }
         }
 
         incident.onCallDutyPolicies =

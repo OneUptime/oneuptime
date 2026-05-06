@@ -40,6 +40,7 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import MonitorElement from "../../../Components/Monitor/Monitor";
+import HostsElement from "../../../Components/Host/Hosts";
 import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
@@ -464,6 +465,19 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Element,
               getElement: (item: Alert): ReactElement => {
                 return <MonitorElement monitor={item["monitor"]!} />;
+              },
+            },
+            {
+              field: {
+                hosts: {
+                  name: true,
+                  _id: true,
+                },
+              },
+              title: "Hosts Affected",
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                return <HostsElement hosts={item["hosts"] || []} />;
               },
             },
             {

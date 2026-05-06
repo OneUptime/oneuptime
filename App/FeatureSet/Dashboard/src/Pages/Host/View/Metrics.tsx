@@ -118,6 +118,52 @@ const HostMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
     };
 
+    const cpuPerCoreUser: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "host_cpu_utilization_user_per_core",
+        title: "CPU Utilization (User) by Core",
+        description:
+          "User-space CPU utilization broken out per logical core. One line per `cpu` attribute (cpu0, cpu1, …).",
+        legend: "User CPU %",
+        legendUnit: "%",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "system.cpu.utilization",
+          attributes: {
+            ...baseAttributes,
+            state: "user",
+          },
+          aggegationType: MetricsAggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupByAttributeKeys: ["cpu"],
+      },
+    };
+
+    const cpuPerCoreSystem: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "host_cpu_utilization_system_per_core",
+        title: "CPU Utilization (System) by Core",
+        description:
+          "Kernel/system CPU utilization broken out per logical core. One line per `cpu` attribute (cpu0, cpu1, …).",
+        legend: "System CPU %",
+        legendUnit: "%",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "system.cpu.utilization",
+          attributes: {
+            ...baseAttributes,
+            state: "system",
+          },
+          aggegationType: MetricsAggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupByAttributeKeys: ["cpu"],
+      },
+    };
+
     const load1m: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "host_load_1m",
@@ -187,6 +233,29 @@ const HostMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
           aggegationType: MetricsAggregationType.Avg,
           aggregateBy: {},
         },
+      },
+    };
+
+    const fsUtilPerMount: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "host_fs_utilization_used_per_mount",
+        title: "Filesystem Utilization by Mount",
+        description:
+          "Used-space fraction broken out per mount point. One line per `mountpoint` attribute (e.g. /, /var, /home).",
+        legend: "Used %",
+        legendUnit: "%",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "system.filesystem.utilization",
+          attributes: {
+            ...baseAttributes,
+            state: "used",
+          },
+          aggegationType: MetricsAggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupByAttributeKeys: ["mountpoint"],
       },
     };
 
@@ -264,10 +333,13 @@ const HostMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     return [
       cpu,
+      cpuPerCoreUser,
+      cpuPerCoreSystem,
       load1m,
       memUtil,
       memUsageBytes,
       fsUtil,
+      fsUtilPerMount,
       diskIo,
       netIo,
       netErrors,

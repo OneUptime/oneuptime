@@ -191,6 +191,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceMetrics format");
       }
 
+
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
@@ -269,6 +270,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            */
           const scopeMetricsForScan: JSONArray =
             (resourceMetric["scopeMetrics"] as JSONArray) || [];
+
           const hostInfraStats: {
             hasInfraSignal: boolean;
             cpuCores?: number;

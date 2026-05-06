@@ -1,3 +1,4 @@
+import Host from "./Host";
 import IncidentEpisode from "./IncidentEpisode";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
@@ -505,6 +506,57 @@ export default class Incident extends BaseModel {
     },
   })
   public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentManager,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadProjectIncident,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentManager,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Host,
+    title: "Hosts",
+    description: "List of hosts affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return Host;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentHost",
+    inverseJoinColumn: {
+      name: "hostId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public hosts?: Array<Host> = undefined; // hosts affected by this incident.
 
   @ColumnAccessControl({
     create: [

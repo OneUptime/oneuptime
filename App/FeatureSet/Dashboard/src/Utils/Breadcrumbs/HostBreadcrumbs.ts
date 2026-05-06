@@ -29,6 +29,18 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_INCIDENTS, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_ALERTS, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Alerts",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_OWNERS, [
       "Project",
       "Hosts",
