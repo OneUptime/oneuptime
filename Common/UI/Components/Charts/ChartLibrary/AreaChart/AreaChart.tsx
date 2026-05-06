@@ -736,7 +736,8 @@ const AreaChart: React.ForwardRefExoticComponent<
               dataKey={index}
               interval={startEndOnly ? "preserveStartEnd" : intervalType}
               tick={{
-                transform: "translate(0, 8)",
+                transform: "translate(0, 6)",
+                fontSize: 10,
                 fontWeight: 500,
               }}
               ticks={
@@ -752,7 +753,7 @@ const AreaChart: React.ForwardRefExoticComponent<
               }
               fill=""
               stroke=""
-              className={cx("text-xs tabular-nums", "fill-gray-600")}
+              className={cx("tabular-nums", "fill-gray-500")}
               tickLine={false}
               axisLine={false}
               minTickGap={tickGap}
@@ -776,11 +777,12 @@ const AreaChart: React.ForwardRefExoticComponent<
               domain={yAxisDomain as AxisDomain}
               tick={{
                 transform: "translate(-4, 0)",
+                fontSize: 10,
                 fontWeight: 500,
               }}
               fill=""
               stroke=""
-              className={cx("text-xs tabular-nums", "fill-gray-600")}
+              className={cx("tabular-nums", "fill-gray-500")}
               tickFormatter={valueFormatter}
               allowDecimals={allowDecimals}
             >

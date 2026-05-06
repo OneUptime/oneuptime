@@ -730,7 +730,8 @@ const LineChart: React.ForwardRefExoticComponent<
               dataKey={index}
               interval={startEndOnly ? "preserveStartEnd" : intervalType}
               tick={{
-                transform: "translate(0, 8)",
+                transform: "translate(0, 6)",
+                fontSize: 10,
                 fontWeight: 500,
               }}
               ticks={
@@ -745,9 +746,9 @@ const LineChart: React.ForwardRefExoticComponent<
               stroke=""
               className={cx(
                 // base
-                "text-xs tabular-nums",
+                "tabular-nums",
                 // text fill
-                "fill-gray-600",
+                "fill-gray-500",
               )}
               tickLine={false}
               axisLine={false}
@@ -772,15 +773,16 @@ const LineChart: React.ForwardRefExoticComponent<
               domain={yAxisDomain as AxisDomain}
               tick={{
                 transform: "translate(-4, 0)",
+                fontSize: 10,
                 fontWeight: 500,
               }}
               fill=""
               stroke=""
               className={cx(
                 // base
-                "text-xs tabular-nums",
+                "tabular-nums",
                 // text fill
-                "fill-gray-600",
+                "fill-gray-500",
               )}
               tickFormatter={valueFormatter}
               allowDecimals={allowDecimals}

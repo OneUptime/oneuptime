@@ -815,16 +815,17 @@ const BarChart: React.ForwardRefExoticComponent<
               hide={!showXAxis}
               tick={{
                 transform:
-                  layout !== "vertical" ? "translate(0, 8)" : undefined,
+                  layout !== "vertical" ? "translate(0, 6)" : undefined,
+                fontSize: 10,
                 fontWeight: 500,
               }}
               fill=""
               stroke=""
               className={cx(
                 // base
-                "text-xs tabular-nums",
+                "tabular-nums",
                 // text fill
-                "fill-gray-600",
+                "fill-gray-500",
                 { "mt-4": layout !== "vertical" },
               )}
               tickLine={false}
@@ -874,15 +875,16 @@ const BarChart: React.ForwardRefExoticComponent<
               stroke=""
               className={cx(
                 // base
-                "text-xs tabular-nums",
+                "tabular-nums",
                 // text fill
-                "fill-gray-600",
+                "fill-gray-500",
               )}
               tick={{
                 transform:
                   layout !== "vertical"
                     ? "translate(-4, 0)"
                     : "translate(0, 0)",
+                fontSize: 10,
                 fontWeight: 500,
               }}
               {...(layout !== "vertical"

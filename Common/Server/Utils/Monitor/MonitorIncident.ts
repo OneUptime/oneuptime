@@ -320,11 +320,17 @@ export default class MonitorIncident {
            * Link the incident to the Host that emitted this series, if
            * the metric carried a `host.name` resource attribute. The
            * Host record was auto-discovered during OTel ingestion.
+           * Metric attributes are stored with the `resource.` prefix in
+           * ClickHouse, so the group-by dropdown surfaces
+           * `resource.host.name` — but accept the bare `host.name` too
+           * for any non-OTel ingest paths.
            */
           const hostName: string | undefined =
-            typeof seriesLabels["host.name"] === "string"
-              ? (seriesLabels["host.name"] as string)
-              : undefined;
+            typeof seriesLabels["resource.host.name"] === "string"
+              ? (seriesLabels["resource.host.name"] as string)
+              : typeof seriesLabels["host.name"] === "string"
+                ? (seriesLabels["host.name"] as string)
+                : undefined;
 
           if (hostName) {
             const host: Host | null = await HostService.findOneBy({

@@ -78,6 +78,8 @@ const KNOWN_FIELD_KEYS: Set<string> = new Set(["name", "service"]);
 
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
+  attributeFilters?: Record<string, string> | undefined;
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -284,8 +286,15 @@ const MetricsViewer: FunctionComponent<Props> = (
         attrs[attrKey] = filter.value;
       }
     }
+    if (props.attributeFilters) {
+      for (const [key, value] of Object.entries(props.attributeFilters)) {
+        if (value) {
+          attrs[key] = value;
+        }
+      }
+    }
     return attrs;
-  }, [parsedSearch.attributes, activeFilters]);
+  }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
 
   // When attribute filters change, query the Metric analytics model for matching metric names
   useEffect(() => {
@@ -672,8 +681,29 @@ const MetricsViewer: FunctionComponent<Props> = (
         });
       }
     }
+    if (props.attributeFilters) {
+      for (const [key, value] of Object.entries(props.attributeFilters)) {
+        if (!value) {
+          continue;
+        }
+        const displayKey: string =
+          props.attributeFilterDisplayKeys?.[key] || key;
+        base.push({
+          facetKey: `attributes.${key}`,
+          value,
+          displayKey,
+          displayValue: value,
+          readOnly: true,
+        });
+      }
+    }
     return [...base, ...activeFilters];
-  }, [props.serviceIds, activeFilters]);
+  }, [
+    props.serviceIds,
+    props.attributeFilters,
+    props.attributeFilterDisplayKeys,
+    activeFilters,
+  ]);
 
   // Row click → navigate to metric viewer
   const handleRowClick: (metric: MetricType) => void = useCallback(
@@ -687,11 +717,23 @@ const MetricsViewer: FunctionComponent<Props> = (
         currentUrl.hostname,
         route,
       );
+      const presetAttributes: Record<string, string> = {};
+      if (props.attributeFilters) {
+        for (const [key, value] of Object.entries(props.attributeFilters)) {
+          if (value) {
+            presetAttributes[key] = value;
+          }
+        }
+      }
+      const queryPayload: Record<string, unknown> = {
+        metricName: metric.name || "",
+        aggregationType: MetricsAggregationType.Avg,
+      };
+      if (Object.keys(presetAttributes).length > 0) {
+        queryPayload["attributes"] = presetAttributes;
+      }
       const metricQueriesPayload: Array<Record<string, unknown>> = [
-        {
-          metricName: metric.name || "",
-          aggregationType: MetricsAggregationType.Avg,
-        },
+        queryPayload,
       ];
       metricUrl.addQueryParam(
         "metricQueries",
@@ -700,7 +742,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       );
       Navigation.navigate(metricUrl);
     },
-    [],
+    [props.attributeFilters],
   );
 
   return (
