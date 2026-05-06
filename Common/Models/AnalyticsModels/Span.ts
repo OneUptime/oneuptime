@@ -356,6 +356,12 @@ export default class Span extends AnalyticsBaseModel {
       required: true,
       defaultValue: [],
       type: TableColumnType.ArrayText,
+      skipIndex: {
+        name: "idx_attribute_keys",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,

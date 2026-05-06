@@ -64,6 +64,8 @@ import AddExponentialHistogramAndSummaryColumnsToMetric from "./AddExponentialHi
 import ChangeExplicitBoundsToFloat64 from "./ChangeExplicitBoundsToFloat64";
 import AddMetricMinuteAggregateMaterializedView from "./AddMetricMinuteAggregateMaterializedView";
 import RebuildMetricMinuteAggregateMaterializedView from "./RebuildMetricMinuteAggregateMaterializedView";
+import AddAttributeKeysSkipIndexToTelemetryTables from "./AddAttributeKeysSkipIndexToTelemetryTables";
+import AddMetricMinuteAggregateByHostMaterializedView from "./AddMetricMinuteAggregateByHostMaterializedView";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -132,6 +134,8 @@ const DataMigrations: Array<DataMigrationBase> = [
   new ChangeExplicitBoundsToFloat64(),
   new AddMetricMinuteAggregateMaterializedView(),
   new RebuildMetricMinuteAggregateMaterializedView(),
+  new AddAttributeKeysSkipIndexToTelemetryTables(),
+  new AddMetricMinuteAggregateByHostMaterializedView(),
 ];
 
 export default DataMigrations;

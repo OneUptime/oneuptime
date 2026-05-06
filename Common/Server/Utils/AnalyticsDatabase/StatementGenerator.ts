@@ -463,30 +463,58 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           /*
-           * Telemetry attribute keys come from many sources (OTEL conventions
-           * use dot.lowercase, app code often uses camelCase like `requestId`).
-           * Users typing in the search bar shouldn't have to remember the exact
-           * casing, so we match the map key case-insensitively via lowerUTF8.
-           * ClickHouse Map columns also return the value type's default for
-           * missing keys (empty string for String values), which we keep
-           * mirroring in the IsNull / NotNull cases below.
+           * Map filters split into two paths:
+           *
+           * 1. Programmatic equality / null / numeric comparisons —
+           *    EqualTo, NotEqual, IsNull, NotNull, GreaterThan, etc.,
+           *    or bare string/number values. Callers are dashboard
+           *    pages and services that pass canonical keys already
+           *    matching the stored casing, so we use ClickHouse's
+           *    direct Map subscript `attributes['k']`. That's an O(1)
+           *    hash lookup per row and lets the query planner push the
+           *    predicate into PREWHERE, instead of paying the
+           *    `arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(...))`
+           *    cost which materializes mapKeys/mapValues per row and
+           *    lowercases every stored key on every query. Restoring
+           *    this fast path is the single biggest performance fix
+           *    for Host / Logs / Traces detail pages.
+           *
+           * 2. User-typed substring/wildcard operators — Search,
+           *    StartsWith, EndsWith, NotContains. These come from the
+           *    search bar where users shouldn't have to remember
+           *    whether the attribute key is `requestId` or `requestid`,
+           *    so we keep the case-insensitive `arrayExists` form. The
+           *    cost is acceptable because a search-bar query is
+           *    bounded (one user, one click) and these operators
+           *    already imply a row scan.
+           *
+           * ClickHouse Map subscripts return the value type's default
+           * for missing keys (empty string for String values), which
+           * is what the IsNull / NotNull / NotEqual branches below
+           * mirror to preserve the previous semantics.
            */
           if (mapEntry instanceof IsNull) {
             whereStatement.append(
-              SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND ((NOT mapContains(${key}, ${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND v != '', mapKeys(${key}), mapValues(${key}))`,
+              }})) OR ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] = '')`,
             );
             continue;
           }
 
           if (mapEntry instanceof NotNull) {
             whereStatement.append(
-              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND mapContains(${key}, ${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND v != '', mapKeys(${key}), mapValues(${key}))`,
+              }}) AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] != ''`,
             );
             continue;
           }
@@ -547,102 +575,99 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof NotEqual) {
-            /*
-             * Mirrors the previous `attributes['k'] != 'v'` semantics: rows
-             * where the key is absent (default empty string for missing keys)
-             * still match, since no entry has both the matching key and the
-             * given value.
-             */
             whereStatement.append(
-              SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND ${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND v = ${{
+              }}] != ${{
                 value: String((mapEntry as NotEqual<string>).value ?? ""),
                 type: TableColumnType.Text,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}`,
             );
             continue;
           }
 
           if (mapEntry instanceof EqualTo) {
             whereStatement.append(
-              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND ${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND v = ${{
+              }}] = ${{
                 value: String((mapEntry as EqualTo<any>).value ?? ""),
                 type: TableColumnType.Text,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}`,
             );
             continue;
           }
 
           /*
            * Map values are stored as text; cast to Float64 for numeric
-           * comparisons and skip rows where the cast fails (non-numeric).
+           * comparisons. toFloat64OrNull yields NULL for non-numeric
+           * values (including the empty-string default for missing
+           * keys), which compares to false against any numeric
+           * threshold and naturally drops those rows.
            */
           if (mapEntry instanceof GreaterThan) {
             whereStatement.append(
-              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND toFloat64OrNull(v) > ${{
+              }}]) > ${{
                 value: Number((mapEntry as GreaterThan<any>).value),
                 type: TableColumnType.Number,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}`,
             );
             continue;
           }
 
           if (mapEntry instanceof GreaterThanOrEqual) {
             whereStatement.append(
-              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND toFloat64OrNull(v) >= ${{
+              }}]) >= ${{
                 value: Number((mapEntry as GreaterThanOrEqual<any>).value),
                 type: TableColumnType.Number,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}`,
             );
             continue;
           }
 
           if (mapEntry instanceof LessThan) {
             whereStatement.append(
-              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND toFloat64OrNull(v) < ${{
+              }}]) < ${{
                 value: Number((mapEntry as LessThan<any>).value),
                 type: TableColumnType.Number,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}`,
             );
             continue;
           }
 
           if (mapEntry instanceof LessThanOrEqual) {
             whereStatement.append(
-              SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              SQL`AND toFloat64OrNull(${key}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND toFloat64OrNull(v) <= ${{
+              }}]) <= ${{
                 value: Number((mapEntry as LessThanOrEqual<any>).value),
                 type: TableColumnType.Number,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}`,
             );
             continue;
           }
 
-          // Bare string/number/boolean — back-compat with existing data.
+          // Bare string/number/boolean — direct Map subscript.
           whereStatement.append(
-            SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+            SQL`AND ${key}[${{
               value: mapKey,
               type: TableColumnType.Text,
-            }}) AND v = ${{
+            }}] = ${{
               value: String(mapEntry),
               type: TableColumnType.Text,
-            }}, mapKeys(${key}), mapValues(${key}))`,
+            }}`,
           );
         }
       } else if (

@@ -18,14 +18,17 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
@@ -226,69 +229,119 @@ const HostOverview: FunctionComponent<
       const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);
       const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const buildQuery: (metricName: string) => any = (metricName: string) => {
+      /*
+       * Use the per-host materialized view via the aggregate
+       * endpoint instead of pulling raw metric rows. The previous
+       * `getList(... limit: 200)` path scanned and shipped up to
+       * 200 raw points per metric just to compute one mean — and
+       * because the host filter sits in `attributes`, every
+       * scan re-parsed the Map column row by row. The aggregate
+       * call below routes through MetricService's per-host MV
+       * (MetricItemAggMV1mByHost), which collapses the same
+       * 5-minute window down to a handful of pre-aggregated
+       * rows and yields the average directly from the merged
+       * Sum/Count states.
+       */
+      const buildAggregateBy: (
+        metricName: string,
+        aggType: AggregationType,
+      ) => AggregateBy<Metric> = (
+        metricName: string,
+        aggType: AggregationType,
+      ): AggregateBy<Metric> => {
         return {
-          modelType: Metric,
           query: {
             projectId: projectId,
-            name: metricName,
             time: new InBetween<Date>(startDate, endDate),
+            name: metricName,
             attributes: {
-              "resource.host.name": item.hostIdentifier,
+              "resource.host.name": item.hostIdentifier as string,
             },
-          },
-          limit: 200,
+          } as AggregateBy<Metric>["query"],
+          aggregationType: aggType,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: {
-            time: true,
-            value: true,
-            attributes: true,
-          },
           sort: {
             time: SortOrder.Descending,
           },
-          requestOptions: {},
         };
       };
 
       const [cpuResult, memResult, fsResult, loadResult, procResult]: [
-        ListResult<Metric>,
-        ListResult<Metric>,
-        ListResult<Metric>,
-        ListResult<Metric>,
-        ListResult<Metric>,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
       ] = await Promise.all([
-        AnalyticsModelAPI.getList<Metric>(buildQuery("system.cpu.utilization")),
-        AnalyticsModelAPI.getList<Metric>(
-          buildQuery("system.memory.utilization"),
-        ),
-        AnalyticsModelAPI.getList<Metric>(
-          buildQuery("system.filesystem.utilization"),
-        ),
-        AnalyticsModelAPI.getList<Metric>(
-          buildQuery("system.cpu.load_average.1m"),
-        ),
-        AnalyticsModelAPI.getList<Metric>(buildQuery("system.processes.count")),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.cpu.utilization",
+            AggregationType.Avg,
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.memory.utilization",
+            AggregationType.Avg,
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.filesystem.utilization",
+            AggregationType.Avg,
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.cpu.load_average.1m",
+            AggregationType.Avg,
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.processes.count",
+            AggregationType.Avg,
+          ),
+        }),
       ]);
 
-      const avg: (
-        result: ListResult<Metric>,
+      const meanFromBuckets: (
+        result: AggregatedResult,
         scale: number,
       ) => number | null = (
-        result: ListResult<Metric>,
+        result: AggregatedResult,
         scale: number,
       ): number | null => {
-        if (result.data.length === 0) {
+        const points: Array<AggregatedModel> = result.data || [];
+        if (points.length === 0) {
           return null;
         }
         let sum: number = 0;
         let count: number = 0;
-        for (const m of result.data) {
-          if (m.value === undefined || m.value === null) {
+        for (const p of points) {
+          /*
+           * Each bucket already holds an Avg over its 1-minute
+           * window. Averaging those with equal weight is a
+           * reasonable approximation of the 5-minute mean for
+           * the dashboard tile (the windows are uniform). For
+           * exact weighted means we'd need bucket sample counts;
+           * the tile UX doesn't justify that precision.
+           */
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(v)) {
             continue;
           }
-          sum += Number(m.value);
+          sum += v;
           count++;
         }
         if (count === 0) {
@@ -297,23 +350,35 @@ const HostOverview: FunctionComponent<
         return (sum / count) * scale;
       };
 
-      const latest: (result: ListResult<Metric>) => number | null = (
-        result: ListResult<Metric>,
+      const latestFromBuckets: (result: AggregatedResult) => number | null = (
+        result: AggregatedResult,
       ): number | null => {
-        for (const m of result.data) {
-          if (m.value !== undefined && m.value !== null) {
-            return Number(m.value);
+        const points: Array<AggregatedModel> = result.data || [];
+        let latestTime: number = -Infinity;
+        let latestVal: number | null = null;
+        for (const p of points) {
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(v)) {
+            continue;
+          }
+          const t: number =
+            p["time"] instanceof Date
+              ? p["time"].getTime()
+              : new Date(p["time"] as string).getTime();
+          if (Number.isFinite(t) && t > latestTime) {
+            latestTime = t;
+            latestVal = v;
           }
         }
-        return null;
+        return latestVal;
       };
 
       setStats({
-        cpuPercent: avg(cpuResult, 100),
-        memoryPercent: avg(memResult, 100),
-        filesystemPercent: avg(fsResult, 100),
-        load1m: latest(loadResult),
-        processCount: latest(procResult),
+        cpuPercent: meanFromBuckets(cpuResult, 100),
+        memoryPercent: meanFromBuckets(memResult, 100),
+        filesystemPercent: meanFromBuckets(fsResult, 100),
+        load1m: latestFromBuckets(loadResult),
+        processCount: latestFromBuckets(procResult),
       });
     } catch (err) {
       setStatsError(API.getFriendlyMessage(err));
