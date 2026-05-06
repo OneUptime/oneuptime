@@ -124,6 +124,10 @@ processors:
           enabled: true
         host.arch:
           enabled: true
+        # host.ip is opt-in in the system detector. OneUptime
+        # surfaces it on the Host Network card, so enable it here.
+        host.ip:
+          enabled: true
         os.type:
           enabled: true
         os.description:
