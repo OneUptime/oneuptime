@@ -238,14 +238,26 @@ export default class ValueFormatter {
    * e.g. formatValue(42, "%") → "42%"
    */
   public static formatValue(value: number, unit: string): string {
+    const trimmedUnit: string = (unit || "").trim();
+
     // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
-    if (!unit || unit.trim() === "" || unit.trim() === "1") {
+    if (trimmedUnit === "" || trimmedUnit === "1") {
       return formatNumber(value);
     }
 
     // "%" follows the conventional inline format with no separating space.
-    if (unit.trim() === "%") {
+    if (trimmedUnit === "%") {
       return `${formatNumber(value)}%`;
+    }
+
+    /*
+     * UCUM annotation-only units (e.g. "{thread}", "{packets}", "{errors}")
+     * are dimensionless — the brace contents are descriptive only and the
+     * value itself is the count. Render the bare number so chart y-axis
+     * labels stay short and don't wrap into the plot area.
+     */
+    if (/^\{[^{}]*\}$/.test(trimmedUnit)) {
+      return formatNumber(value);
     }
 
     const normalizedUnit: string = normalizeUnit(unit);
@@ -274,8 +286,22 @@ export default class ValueFormatter {
    * "1" → "" (dimensionless). Falls back to the original string when unknown.
    */
   public static getReadableUnit(unit: string): string {
-    if (!unit || unit.trim() === "" || unit.trim() === "1") {
+    const trimmed: string = (unit || "").trim();
+    if (trimmed === "" || trimmed === "1") {
       return "";
+    }
+
+    /*
+     * UCUM annotation-only units (e.g. "{thread}", "{packets}") are
+     * dimensionless. Render the inner word with a capital first letter
+     * so badges read "Threads" / "Packets" instead of "{thread}".
+     */
+    const annotationMatch: RegExpMatchArray | null = trimmed.match(
+      /^\{([^{}]+)\}$/,
+    );
+    if (annotationMatch) {
+      const inner: string = annotationMatch[1] as string;
+      return inner.charAt(0).toUpperCase() + inner.slice(1);
     }
 
     // Handle compound rate units like "By/s" → "Bytes per Second"

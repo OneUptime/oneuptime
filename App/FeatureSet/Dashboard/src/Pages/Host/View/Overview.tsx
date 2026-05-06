@@ -230,24 +230,26 @@ const HostOverview: FunctionComponent<
       const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
       /*
-       * Use the per-host materialized view via the aggregate
-       * endpoint instead of pulling raw metric rows. The previous
-       * `getList(... limit: 200)` path scanned and shipped up to
-       * 200 raw points per metric just to compute one mean — and
-       * because the host filter sits in `attributes`, every
-       * scan re-parsed the Map column row by row. The aggregate
-       * call below routes through MetricService's per-host MV
-       * (MetricItemAggMV1mByHost), which collapses the same
-       * 5-minute window down to a handful of pre-aggregated
-       * rows and yields the average directly from the merged
-       * Sum/Count states.
+       * Aggregate via the metrics API instead of pulling raw rows.
+       * load_average and processes.count carry only the
+       * `resource.host.name` filter and route through the per-host
+       * MV (MetricItemAggMV1mByHost) for the 5-min window, yielding
+       * the average from merged Sum/Count states. CPU / memory /
+       * filesystem add a `state` or `mountpoint` filter so those
+       * fall through to the base MetricItemV2 — necessary because
+       * the per-host MV does not preserve those attributes, and
+       * averaging across them produces a number that doesn't match
+       * what `top`/`df` show. Direct map subscript on the base table
+       * keeps that path fast.
        */
       const buildAggregateBy: (
         metricName: string,
         aggType: AggregationType,
+        extraAttributes?: Record<string, string>,
       ) => AggregateBy<Metric> = (
         metricName: string,
         aggType: AggregationType,
+        extraAttributes?: Record<string, string>,
       ): AggregateBy<Metric> => {
         return {
           query: {
@@ -256,6 +258,7 @@ const HostOverview: FunctionComponent<
             name: metricName,
             attributes: {
               "resource.host.name": item.hostIdentifier as string,
+              ...(extraAttributes || {}),
             },
           } as AggregateBy<Metric>["query"],
           aggregationType: aggType,
@@ -271,7 +274,34 @@ const HostOverview: FunctionComponent<
         };
       };
 
-      const [cpuResult, memResult, fsResult, loadResult, procResult]: [
+      /*
+       * `system.cpu.utilization` is per-(cpu, state). Averaging every
+       * datapoint across all states gives a number that depends on the
+       * mix of states the OS exposes (idle, user, system, …) rather
+       * than the actual busy-CPU fraction. Pulling only `state=user` +
+       * `state=system` and summing — handled below — yields the same
+       * "fraction of CPU time spent doing work" that everyone reads
+       * from `top`.
+       *
+       * `system.memory.utilization` is also per-state — `used`, `free`,
+       * `inactive`. The three states sum to 1, so a naive avg lands at
+       * ~33 % regardless of how busy memory is. Filter to `used`.
+       *
+       * `system.filesystem.utilization` is per-mountpoint. The Mac
+       * `devfs` and other system mounts sit at 100 % by design, so a
+       * naive Max gives 100 % every time. Filter to the root
+       * mountpoint, which is what the "largest mount" sublabel and
+       * every infra dashboard cares about by default.
+       */
+      const [
+        cpuUserResult,
+        cpuSystemResult,
+        memResult,
+        fsResult,
+        loadResult,
+        procResult,
+      ]: [
+        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -283,6 +313,15 @@ const HostOverview: FunctionComponent<
           aggregateBy: buildAggregateBy(
             "system.cpu.utilization",
             AggregationType.Avg,
+            { state: "user" },
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.cpu.utilization",
+            AggregationType.Avg,
+            { state: "system" },
           ),
         }),
         AnalyticsModelAPI.aggregate<Metric>({
@@ -290,6 +329,7 @@ const HostOverview: FunctionComponent<
           aggregateBy: buildAggregateBy(
             "system.memory.utilization",
             AggregationType.Avg,
+            { state: "used" },
           ),
         }),
         AnalyticsModelAPI.aggregate<Metric>({
@@ -297,6 +337,7 @@ const HostOverview: FunctionComponent<
           aggregateBy: buildAggregateBy(
             "system.filesystem.utilization",
             AggregationType.Avg,
+            { mountpoint: "/" },
           ),
         }),
         AnalyticsModelAPI.aggregate<Metric>({
@@ -361,10 +402,19 @@ const HostOverview: FunctionComponent<
           if (!Number.isFinite(v)) {
             continue;
           }
+          /*
+           * AggregatedModel exposes the bucket timestamp on
+           * `timestamp`. The MV statement aliases its time column to
+           * `time`, so depending on the path either field may be
+           * populated — read whichever is present rather than locking
+           * to one and silently dropping every row.
+           */
+          const tRaw: unknown =
+            p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
           const t: number =
-            p["time"] instanceof Date
-              ? p["time"].getTime()
-              : new Date(p["time"] as string).getTime();
+            tRaw instanceof Date
+              ? tRaw.getTime()
+              : new Date(tRaw as string).getTime();
           if (Number.isFinite(t) && t > latestTime) {
             latestTime = t;
             latestVal = v;
@@ -373,8 +423,25 @@ const HostOverview: FunctionComponent<
         return latestVal;
       };
 
+      /*
+       * CPU busy fraction = user + system. Each piece is itself an
+       * average of per-cpu/per-state datapoints over the 5-min
+       * window, so summing two means is fine; the alternative
+       * (`1 - idle`) would also work but breaks if `idle` ever
+       * stops being emitted.
+       */
+      const cpuUserPct: number | null = meanFromBuckets(cpuUserResult, 100);
+      const cpuSystemPct: number | null = meanFromBuckets(
+        cpuSystemResult,
+        100,
+      );
+      const cpuPct: number | null =
+        cpuUserPct === null && cpuSystemPct === null
+          ? null
+          : (cpuUserPct ?? 0) + (cpuSystemPct ?? 0);
+
       setStats({
-        cpuPercent: meanFromBuckets(cpuResult, 100),
+        cpuPercent: cpuPct,
         memoryPercent: meanFromBuckets(memResult, 100),
         filesystemPercent: meanFromBuckets(fsResult, 100),
         load1m: latestFromBuckets(loadResult),
