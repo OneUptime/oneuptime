@@ -414,13 +414,6 @@ const KubernetesClusterOverview: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const healthBannerType: AlertBannerType =
-    clusterHealth === "Healthy"
-      ? AlertBannerType.Success
-      : clusterHealth === "Degraded"
-        ? AlertBannerType.Warning
-        : AlertBannerType.Danger;
-
   const workloadLinks: Array<ResourceLink> = [
     {
       title: "Namespaces",
@@ -618,52 +611,239 @@ const KubernetesClusterOverview: FunctionComponent<
     );
   };
 
+  const renderHero: () => ReactElement | null = (): ReactElement | null => {
+    if (!cluster) {
+      return null;
+    }
+
+    const status: string = (cluster.otelCollectorStatus as string) || "";
+    const lastSeenAt: Date | undefined = cluster.lastSeenAt;
+    const lastSeenText: string = lastSeenAt
+      ? OneUptimeDate.fromNow(lastSeenAt)
+      : "never";
+
+    const isConnected: boolean =
+      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
+
+    const displayName: string =
+      (cluster.name as string | undefined) ||
+      (cluster.clusterIdentifier as string | undefined) ||
+      "Untitled cluster";
+
+    const clusterIdentifier: string =
+      (cluster.clusterIdentifier as string | undefined) || "";
+
+    const labelList: Array<Label> = (cluster["labels"] as Array<Label>) || [];
+
+    const connectionBadgeClass: string = isConnected
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+      : "bg-amber-50 text-amber-700 ring-amber-200";
+    const connectionDotClass: string = isConnected
+      ? "bg-emerald-500"
+      : "bg-amber-500";
+    const connectionLabel: string = isConnected
+      ? "Connected"
+      : status
+        ? status.charAt(0).toUpperCase() + status.slice(1)
+        : "Disconnected";
+
+    const healthBadgeClass: string =
+      clusterHealth === "Healthy"
+        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+        : clusterHealth === "Degraded"
+          ? "bg-amber-50 text-amber-700 ring-amber-200"
+          : "bg-red-50 text-red-700 ring-red-200";
+    const healthDotClass: string =
+      clusterHealth === "Healthy"
+        ? "bg-emerald-500"
+        : clusterHealth === "Degraded"
+          ? "bg-amber-500"
+          : "bg-red-500";
+
+    const specChips: Array<{
+      icon: IconProp;
+      label: string;
+    }> = [];
+    if (nodeCount > 0) {
+      specChips.push({
+        icon: IconProp.Server,
+        label: `${nodeCount} node${nodeCount === 1 ? "" : "s"}`,
+      });
+    }
+    if (podCount > 0) {
+      specChips.push({
+        icon: IconProp.Circle,
+        label: `${podCount} pod${podCount === 1 ? "" : "s"}`,
+      });
+    }
+    if (namespaceCount > 0) {
+      specChips.push({
+        icon: IconProp.Folder,
+        label: `${namespaceCount} namespace${namespaceCount === 1 ? "" : "s"}`,
+      });
+    }
+    if (deploymentCount > 0) {
+      specChips.push({
+        icon: IconProp.Layers,
+        label: `${deploymentCount} deployment${deploymentCount === 1 ? "" : "s"}`,
+      });
+    }
+    if (containerCount > 0) {
+      specChips.push({
+        icon: IconProp.Cube,
+        label: `${containerCount} container${containerCount === 1 ? "" : "s"}`,
+      });
+    }
+
+    const podStatusChips: Array<{
+      label: string;
+      value: number;
+      colorClass: string;
+    }> = [];
+    if (podHealthSummary.running > 0) {
+      podStatusChips.push({
+        label: "Running",
+        value: podHealthSummary.running,
+        colorClass: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+      });
+    }
+    if (podHealthSummary.pending > 0) {
+      podStatusChips.push({
+        label: "Pending",
+        value: podHealthSummary.pending,
+        colorClass: "bg-amber-50 text-amber-700 ring-amber-200",
+      });
+    }
+    if (podHealthSummary.failed > 0) {
+      podStatusChips.push({
+        label: "Failed",
+        value: podHealthSummary.failed,
+        colorClass: "bg-red-50 text-red-700 ring-red-200",
+      });
+    }
+    if (nodeHealthSummary.notReady > 0) {
+      podStatusChips.push({
+        label: "Nodes Not Ready",
+        value: nodeHealthSummary.notReady,
+        colorClass: "bg-red-50 text-red-700 ring-red-200",
+      });
+    }
+
+    return (
+      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="relative">
+          <div
+            className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-violet-50 via-white to-white"
+            aria-hidden="true"
+          />
+          <div className="relative px-6 py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-violet-200 shadow-sm">
+                  <Icon
+                    icon={IconProp.ServerStack}
+                    className="h-6 w-6 text-violet-600"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl font-semibold text-gray-900 truncate">
+                      {displayName}
+                    </h1>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
+                      />
+                      {connectionLabel}
+                    </span>
+                    {!isSummaryLoading && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                        />
+                        {clusterHealth}
+                      </span>
+                    )}
+                  </div>
+                  {clusterIdentifier && (
+                    <div className="mt-1 truncate font-mono text-sm text-gray-500">
+                      {clusterIdentifier}
+                    </div>
+                  )}
+                  <div className="mt-1 text-xs text-gray-400">
+                    Last seen {lastSeenText}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {specChips.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {specChips.map(
+                  (
+                    chip: { icon: IconProp; label: string },
+                    idx: number,
+                  ): ReactElement => {
+                    return (
+                      <span
+                        key={`spec-${idx}`}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      >
+                        <Icon
+                          icon={chip.icon}
+                          className="h-3 w-3 text-gray-500"
+                        />
+                        <span className="font-medium">{chip.label}</span>
+                      </span>
+                    );
+                  },
+                )}
+              </div>
+            )}
+
+            {podStatusChips.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {podStatusChips.map(
+                  (
+                    chip: {
+                      label: string;
+                      value: number;
+                      colorClass: string;
+                    },
+                    idx: number,
+                  ): ReactElement => {
+                    return (
+                      <span
+                        key={`pod-${idx}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
+                      >
+                        <span className="font-semibold">{chip.value}</span>
+                        {chip.label}
+                      </span>
+                    );
+                  },
+                )}
+              </div>
+            )}
+
+            {labelList.length > 0 && (
+              <div className="mt-3 border-t border-gray-100 pt-3">
+                <LabelsElement labels={labelList} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Fragment>
-      {/* Cluster Health Banner — only render once summary data has loaded,
-          otherwise the banner flashes "Healthy" with zero counts before
-          the real data arrives. */}
-      {!isSummaryLoading && (
-        <AlertBanner
-          title={`Cluster ${clusterHealth}`}
-          type={healthBannerType}
-          className="mb-5"
-          rightElement={
-            <div className="flex gap-4 text-sm">
-              <span className="text-gray-600">
-                <span className="font-medium text-emerald-700">
-                  {podHealthSummary.running}
-                </span>{" "}
-                Running
-              </span>
-              {podHealthSummary.pending > 0 && (
-                <span className="text-gray-600">
-                  <span className="font-medium text-amber-700">
-                    {podHealthSummary.pending}
-                  </span>{" "}
-                  Pending
-                </span>
-              )}
-              {podHealthSummary.failed > 0 && (
-                <span className="text-gray-600">
-                  <span className="font-medium text-red-700">
-                    {podHealthSummary.failed}
-                  </span>{" "}
-                  Failed
-                </span>
-              )}
-              {nodeHealthSummary.notReady > 0 && (
-                <span className="text-gray-600">
-                  <span className="font-medium text-red-700">
-                    {nodeHealthSummary.notReady}
-                  </span>{" "}
-                  Nodes Not Ready
-                </span>
-              )}
-            </div>
-          }
-        />
-      )}
+      {renderHero()}
 
       {/* Why is this cluster degraded? */}
       {clusterHealth !== "Healthy" &&
