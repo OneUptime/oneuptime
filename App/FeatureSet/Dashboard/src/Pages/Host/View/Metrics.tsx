@@ -363,31 +363,29 @@ const HostMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Card
       title="Host Metrics"
       description="Live system.* metrics from the OpenTelemetry hostmetrics receiver. Use the time range selector to zoom in or out."
-    >
-      <div>
-        <div className="flex items-center justify-end mb-4">
-          <RangeStartAndEndDateView
-            dashboardStartAndEndDate={timeRange}
-            onChange={handleTimeRangeChange}
-          />
-        </div>
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: queryConfigs,
-          }}
-          hideQueryElements={true}
-          hideStartAndEndDate={true}
-          hideCardInCharts={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: queryConfigs,
-              formulaConfigs: [],
-            });
-          }}
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={timeRange}
+          onChange={handleTimeRangeChange}
         />
-      </div>
+      }
+    >
+      <MetricView
+        data={{
+          ...metricViewData,
+          queryConfigs: queryConfigs,
+        }}
+        hideQueryElements={true}
+        hideStartAndEndDate={true}
+        hideCardInCharts={true}
+        onChange={(data: MetricViewData) => {
+          setMetricViewData({
+            ...data,
+            queryConfigs: queryConfigs,
+            formulaConfigs: [],
+          });
+        }}
+      />
     </Card>
   );
 };
