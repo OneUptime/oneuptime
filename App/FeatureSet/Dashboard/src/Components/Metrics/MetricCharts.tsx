@@ -615,6 +615,52 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
+      /*
+       * Cumulative-counter rate transform. OTel hostmetrics emits metrics
+       * like `system.disk.io` and `system.network.io` as cumulative counters
+       * (bytes since process start). Plotting the raw value gives a
+       * monotonically-growing line that's hard to read. With
+       * `transformAsRate`, each series is converted to a per-second rate
+       * of change: `(yi - y(i-1)) / Δt`. Negative deltas — which happen
+       * when the agent restarts and the counter resets to 0 — clamp to 0
+       * so the chart doesn't show a spurious dive.
+       */
+      if (queryConfig.transformAsRate) {
+        for (const series of chartSeries) {
+          const sortedPoints: typeof series.data = [...series.data].sort(
+            (
+              a: { x: Date; y: number | null },
+              b: { x: Date; y: number | null },
+            ) => {
+              return a.x.getTime() - b.x.getTime();
+            },
+          );
+          const ratePoints: typeof series.data = [];
+          for (let i: number = 0; i < sortedPoints.length; i++) {
+            const current: { x: Date; y: number | null } = sortedPoints[i]!;
+            if (i === 0) {
+              ratePoints.push({ x: current.x, y: null });
+              continue;
+            }
+            const prev: { x: Date; y: number | null } = sortedPoints[i - 1]!;
+            const dtSeconds: number =
+              (current.x.getTime() - prev.x.getTime()) / 1000;
+            if (
+              dtSeconds <= 0 ||
+              typeof current.y !== "number" ||
+              typeof prev.y !== "number"
+            ) {
+              ratePoints.push({ x: current.x, y: null });
+              continue;
+            }
+            const delta: number = current.y - prev.y;
+            const rate: number = delta < 0 ? 0 : delta / dtSeconds;
+            ratePoints.push({ x: current.x, y: rate });
+          }
+          series.data = ratePoints;
+        }
+      }
+
       let chartType: ChartType;
       if (queryConfig.chartType === MetricChartType.BAR) {
         chartType = ChartType.BAR;

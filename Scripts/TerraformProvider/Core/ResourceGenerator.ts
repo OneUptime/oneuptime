@@ -25,8 +25,10 @@ export class ResourceGenerator {
     parser.setSpec(this.spec);
     const resources: TerraformResource[] = parser.getResources();
 
-    // Emit shared helpers used across all resources (JSON subset semantic
-    // equality for complex JSON string fields).
+    /*
+     * Emit shared helpers used across all resources (JSON subset semantic
+     * equality for complex JSON string fields).
+     */
     await this.fileGenerator.writeFileInDir(
       "internal/provider",
       "jsonsubset.go",
@@ -42,13 +44,15 @@ export class ResourceGenerator {
     await this.updateProviderWithResources(resources);
   }
 
-  // Emits internal/provider/jsonsubset.go — a custom string type whose
-  // semantic-equality treats two JSON values as equal when every leaf in the
-  // planned value is present (with the same value) in the actual value. This
-  // is what we use for every complex-JSON string field, so server-added
-  // defaults (e.g. MonitorCriteriaInstance.isEnabled = true) round-trip
-  // cleanly without the framework reporting "Provider produced inconsistent
-  // result after apply" or perpetual plan drift.
+  /*
+   * Emits internal/provider/jsonsubset.go — a custom string type whose
+   * semantic-equality treats two JSON values as equal when every leaf in the
+   * planned value is present (with the same value) in the actual value. This
+   * is what we use for every complex-JSON string field, so server-added
+   * defaults (e.g. MonitorCriteriaInstance.isEnabled = true) round-trip
+   * cleanly without the framework reporting "Provider produced inconsistent
+   * result after apply" or perpetual plan drift.
+   */
   private generateJSONSubsetFile(): string {
     return `package provider
 
@@ -231,9 +235,11 @@ func jsonIsSubset(plan, actual interface{}) bool {
       "github.com/hashicorp/terraform-plugin-framework/resource",
       "github.com/hashicorp/terraform-plugin-framework/resource/schema",
       "github.com/hashicorp/terraform-plugin-framework/types",
-      // basetypes is always pulled in because parseJSONField accepts the
-      // generic StringValuable interface (so it works for both types.String
-      // and the JSONSubsetValue used on complex-JSON fields).
+      /*
+       * basetypes is always pulled in because parseJSONField accepts the
+       * generic StringValuable interface (so it works for both types.String
+       * and the JSONSubsetValue used on complex-JSON fields).
+       */
       "github.com/hashicorp/terraform-plugin-framework/types/basetypes",
       "github.com/hashicorp/terraform-plugin-log/tflog",
     ];
@@ -680,8 +686,10 @@ ${this.generateValidObjectTypesMap()}
     for (const [name, attr] of Object.entries(resource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-      // Complex JSON string fields use a custom type whose semantic-equality
-      // tolerates server-side defaults (see jsonsubset.go).
+      /*
+       * Complex JSON string fields use a custom type whose semantic-equality
+       * tolerates server-side defaults (see jsonsubset.go).
+       */
       const goType: string =
         attr.type === "string" && attr.isComplexObject
           ? "JSONSubsetValue"
@@ -741,8 +749,10 @@ ${this.generateValidObjectTypesMap()}
       );
     }
 
-    // Complex JSON string fields use JSONSubsetType so the framework treats
-    // server-supplied defaults as semantically equal to the planned value.
+    /*
+     * Complex JSON string fields use JSONSubsetType so the framework treats
+     * server-supplied defaults as semantically equal to the planned value.
+     */
     if (attr.type === "string" && attr.isComplexObject) {
       options.push("CustomType: JSONSubsetType{}");
     }
@@ -1563,10 +1573,12 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           `        "${apiFieldName}": r.convertTerraformSetToInterface(data.${fieldName}),`,
         );
       } else if (attr.type === "string" && attr.isComplexObject) {
-        // For complex object strings, parse JSON and convert to interface{}.
-        // Server-side defaults (e.g. MonitorCriteriaInstance.isEnabled) are
-        // absorbed by JSONSubsetType's semantic equality on the model field,
-        // so no per-field normalization is needed here.
+        /*
+         * For complex object strings, parse JSON and convert to interface{}.
+         * Server-side defaults (e.g. MonitorCriteriaInstance.isEnabled) are
+         * absorbed by JSONSubsetType's semantic equality on the model field,
+         * so no per-field normalization is needed here.
+         */
         fields.push(
           `        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`,
         );

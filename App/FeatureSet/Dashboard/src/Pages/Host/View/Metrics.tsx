@@ -263,36 +263,40 @@ const HostMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
       metricAliasData: {
         metricVariable: "host_disk_io",
         title: "Disk I/O",
-        description: "Disk read + write throughput across all devices.",
+        description:
+          "Disk read + write throughput across all devices, expressed as a per-second rate.",
         legend: "Disk I/O",
-        legendUnit: "bytes",
+        legendUnit: "By/s",
       },
       metricQueryData: {
         filterData: {
           metricName: "system.disk.io",
           attributes: baseAttributes,
-          aggegationType: MetricsAggregationType.Sum,
+          aggegationType: MetricsAggregationType.Max,
           aggregateBy: {},
         },
       },
+      transformAsRate: true,
     };
 
     const netIo: MetricQueryConfigData = {
       metricAliasData: {
         metricVariable: "host_net_io",
         title: "Network I/O",
-        description: "Network bytes sent + received across all interfaces.",
+        description:
+          "Network bytes sent + received across all interfaces, expressed as a per-second rate.",
         legend: "Net I/O",
-        legendUnit: "bytes",
+        legendUnit: "By/s",
       },
       metricQueryData: {
         filterData: {
           metricName: "system.network.io",
           attributes: baseAttributes,
-          aggegationType: MetricsAggregationType.Sum,
+          aggegationType: MetricsAggregationType.Max,
           aggregateBy: {},
         },
       },
+      transformAsRate: true,
     };
 
     const netErrors: MetricQueryConfigData = {

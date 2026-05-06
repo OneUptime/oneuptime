@@ -256,7 +256,7 @@ export default class ValueFormatter {
      * value itself is the count. Render the bare number so chart y-axis
      * labels stay short and don't wrap into the plot area.
      */
-    if (/^\{[^{}]*\}$/.test(trimmedUnit)) {
+    if ((/^\{[^{}]*\}$/).test(trimmedUnit)) {
       return formatNumber(value);
     }
 
@@ -266,6 +266,29 @@ export default class ValueFormatter {
 
     if (thresholds) {
       return formatWithThresholds(value, thresholds).formatted;
+    }
+
+    /*
+     * Compound rate units like "By/s" or "ms/s". Scale the numerator with
+     * its threshold table when we know one (so 1500000 By/s renders as
+     * "1.5 MB/s" rather than "1500000 Bytes per Second"), and keep a
+     * compact denominator. Falls back to the verbose readable form for
+     * unrecognized compound units.
+     */
+    if (trimmedUnit.includes("/")) {
+      const [numeratorRaw, ...denominatorParts] = trimmedUnit.split("/");
+      const denominator: string = denominatorParts.join("/").trim();
+      if (numeratorRaw && denominator) {
+        const numeratorThresholds: Array<UnitThreshold> | undefined =
+          unitTableMap[normalizeUnit(numeratorRaw)];
+        if (numeratorThresholds) {
+          const scaled: FormattedValue = formatWithThresholds(
+            value,
+            numeratorThresholds,
+          );
+          return `${scaled.value} ${scaled.unit}/${denominator}`;
+        }
+      }
     }
 
     // Unknown unit — format number and show the readable unit name when we have one.
@@ -296,9 +319,8 @@ export default class ValueFormatter {
      * dimensionless. Render the inner word with a capital first letter
      * so badges read "Threads" / "Packets" instead of "{thread}".
      */
-    const annotationMatch: RegExpMatchArray | null = trimmed.match(
-      /^\{([^{}]+)\}$/,
-    );
+    const annotationMatch: RegExpMatchArray | null =
+      trimmed.match(/^\{([^{}]+)\}$/);
     if (annotationMatch) {
       const inner: string = annotationMatch[1] as string;
       return inner.charAt(0).toUpperCase() + inner.slice(1);

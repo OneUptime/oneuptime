@@ -431,10 +431,7 @@ const HostOverview: FunctionComponent<
        * stops being emitted.
        */
       const cpuUserPct: number | null = meanFromBuckets(cpuUserResult, 100);
-      const cpuSystemPct: number | null = meanFromBuckets(
-        cpuSystemResult,
-        100,
-      );
+      const cpuSystemPct: number | null = meanFromBuckets(cpuSystemResult, 100);
       const cpuPct: number | null =
         cpuUserPct === null && cpuSystemPct === null
           ? null
