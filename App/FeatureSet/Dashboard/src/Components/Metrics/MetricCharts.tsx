@@ -673,14 +673,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const formatterOptions: { metricName: string } = {
         metricName: queryMetricName,
       };
-      // Show "%" on the y-axis legend for OTel ratio metrics
-      // (`.utilization`, `.ratio`, `.fraction`, `.percent`, `.percentage`),
-      // otherwise keep the raw unit code so existing axes (e.g. "By", "ms")
-      // look unchanged.
-      const yAxisLegend: string =
-        unit === "1" && ValueFormatter.isFractionMetric(queryMetricName)
-          ? "%"
-          : unit;
+      // Show "%" on the y-axis legend for any percent-like metric — both
+      // OTel ratio names (`.utilization`, `.ratio`, …) reported with unit "1"
+      // and explicit percent units like "%", "percent", "percentage", "pct".
+      // Otherwise keep the raw unit code so other axes (e.g. "By", "ms") look
+      // unchanged.
+      const yAxisLegend: string = (() => {
+        if (
+          unit === "1" &&
+          ValueFormatter.isFractionMetric(queryMetricName)
+        ) {
+          return "%";
+        }
+        if (ValueFormatter.isPercentUnit(unit)) {
+          return "%";
+        }
+        return unit;
+      })();
 
       // Build reference lines from thresholds
       const referenceLines: Array<ChartReferenceLineProps> = [];

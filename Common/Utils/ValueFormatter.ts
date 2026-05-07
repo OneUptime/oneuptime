@@ -256,8 +256,9 @@ export default class ValueFormatter {
       return formatNumber(value);
     }
 
-    // "%" follows the conventional inline format with no separating space.
-    if (trimmedUnit === "%") {
+    // "%" and its spelled-out / casual variants all render inline with no
+    // separating space — `25%`, never `25 Percent`.
+    if (ValueFormatter.isPercentUnit(trimmedUnit)) {
       return `${formatNumber(value)}%`;
     }
 
@@ -305,6 +306,25 @@ export default class ValueFormatter {
 
     // Unknown unit — format number and show the readable unit name when we have one.
     return `${formatNumber(value)} ${ValueFormatter.getReadableUnit(unit)}`;
+  }
+
+  /*
+   * UCUM canonical is "%" but exporters (especially custom ones) often
+   * write "percent", "percentage", or "pct". Treat them all the same so a
+   * user adding a percent metric never sees the value rendered as
+   * "25 Percent" with a stray space.
+   */
+  public static isPercentUnit(unit: string | undefined): boolean {
+    if (!unit) {
+      return false;
+    }
+    const normalized: string = unit.trim().toLowerCase();
+    return (
+      normalized === "%" ||
+      normalized === "percent" ||
+      normalized === "percentage" ||
+      normalized === "pct"
+    );
   }
 
   /*
@@ -356,6 +376,9 @@ export default class ValueFormatter {
     }
     if (trimmed === "" || trimmed === "1") {
       return "";
+    }
+    if (ValueFormatter.isPercentUnit(trimmed)) {
+      return "Percent";
     }
 
     /*
