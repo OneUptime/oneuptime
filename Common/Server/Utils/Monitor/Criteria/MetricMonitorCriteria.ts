@@ -5,6 +5,7 @@ import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigDa
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricCriteriaContext, {
+  MetricAnomalyBaseline,
   MetricComponent,
   MetricComponentValue,
 } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
@@ -14,8 +15,10 @@ import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -23,6 +26,10 @@ import {
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
 import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvaluator";
+import MetricBaselineService, {
+  BaselineSummary,
+  MetricBaselineService as MetricBaselineServiceClass,
+} from "../../../Services/MetricBaselineService";
 
 /**
  * Result of evaluating a single criteria filter against a single metric
@@ -46,7 +53,7 @@ export default class MetricMonitorCriteria {
     monitorStep: MonitorStep;
   }): Promise<string | null> {
     const evaluations: Array<MetricSeriesEvaluationResult> =
-      MetricMonitorCriteria.evaluateAllSeries(input);
+      await MetricMonitorCriteria.evaluateAllSeries(input);
 
     /*
      * Backwards-compat: the scalar entrypoint collapses per-series
@@ -84,11 +91,11 @@ export default class MetricMonitorCriteria {
    * and labels. The caller fans this out into one incident per
    * breaching series.
    */
-  public static evaluateAllSeries(input: {
+  public static async evaluateAllSeries(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
-  }): Array<MetricSeriesEvaluationResult> {
+  }): Promise<Array<MetricSeriesEvaluationResult>> {
     if (
       input.criteriaFilter.metricMonitorOptions &&
       !input.criteriaFilter.metricMonitorOptions.metricAggregationType
@@ -120,27 +127,31 @@ export default class MetricMonitorCriteria {
      */
     if (!seriesBreakdown || seriesBreakdown.length === 0) {
       const result: MetricSeriesEvaluationResult =
-        MetricMonitorCriteria.evaluateOneSeries({
+        await MetricMonitorCriteria.evaluateOneSeries({
           criteriaFilter: input.criteriaFilter,
           aggregatedResults: metricResponse.metricResult || [],
           queryConfigs,
           formulaConfigs,
           seriesFingerprint: undefined,
           seriesLabels: {},
+          projectId: metricResponse.projectId,
         });
       return [result];
     }
 
-    return seriesBreakdown.map((series: MetricSeriesResult) => {
-      return MetricMonitorCriteria.evaluateOneSeries({
-        criteriaFilter: input.criteriaFilter,
-        aggregatedResults: series.aggregatedResults,
-        queryConfigs,
-        formulaConfigs,
-        seriesFingerprint: series.fingerprint,
-        seriesLabels: series.labels,
-      });
-    });
+    return await Promise.all(
+      seriesBreakdown.map((series: MetricSeriesResult) => {
+        return MetricMonitorCriteria.evaluateOneSeries({
+          criteriaFilter: input.criteriaFilter,
+          aggregatedResults: series.aggregatedResults,
+          queryConfigs,
+          formulaConfigs,
+          seriesFingerprint: series.fingerprint,
+          seriesLabels: series.labels,
+          projectId: metricResponse.projectId,
+        });
+      }),
+    );
   }
 
   /**
@@ -150,14 +161,15 @@ export default class MetricMonitorCriteria {
    * root-cause message. Factored out so `evaluateAllSeries` can invoke
    * it once per series without duplicating logic.
    */
-  private static evaluateOneSeries(input: {
+  private static async evaluateOneSeries(input: {
     criteriaFilter: CriteriaFilter;
     aggregatedResults: Array<AggregatedResult>;
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
     seriesFingerprint: string | undefined;
     seriesLabels: JSONObject;
-  }): MetricSeriesEvaluationResult {
+    projectId: { toString(): string } | undefined;
+  }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null = CompareCriteria.convertToNumber(
       input.criteriaFilter.value,
     );
@@ -233,6 +245,26 @@ export default class MetricMonitorCriteria {
     }
     if (input.seriesLabels && Object.keys(input.seriesLabels).length > 0) {
       metricContext.seriesLabels = input.seriesLabels;
+    }
+
+    /*
+     * Anomaly-detection branch. Skips the static threshold path entirely
+     * and instead compares each sample to the rolling baseline for its
+     * hour-of-week. Returns Learning state (no breach) when the baseline
+     * is missing or unreliable — never raises an alert from a thin
+     * baseline.
+     */
+    if (
+      CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
+    ) {
+      return await MetricMonitorCriteria.evaluateAnomaly({
+        criteriaFilter: input.criteriaFilter,
+        metricContext,
+        aggregatedResult,
+        seriesFingerprint: input.seriesFingerprint,
+        seriesLabels: input.seriesLabels,
+        projectId: input.projectId,
+      });
     }
 
     if (rawThreshold === null) {
@@ -679,5 +711,291 @@ export default class MetricMonitorCriteria {
     }
 
     return components;
+  }
+
+  /**
+   * Evaluate one series against an anomaly criterion. For each sample
+   * in the eval window we look up the baseline for its hour-of-week,
+   * compute σ from the baseline (mean+stddev or median+MAD path), and
+   * mark the sample as breaching when it falls outside the configured
+   * direction.
+   *
+   * Returns no breach when:
+   *   - The criterion has no metric name (formulas are not supported in
+   *     v1 — we'd need to baseline the formula's output series too).
+   *   - The projectId is missing (defensive — should never happen for
+   *     metric monitors).
+   *   - The baseline is missing or unreliable (cold-start). The
+   *     metricContext.anomalyBaseline.state surfaces "Learning" so the
+   *     UI can explain why nothing fired.
+   */
+  private static async evaluateAnomaly(input: {
+    criteriaFilter: CriteriaFilter;
+    metricContext: MetricCriteriaContext;
+    aggregatedResult: AggregatedResult | undefined;
+    seriesFingerprint: string | undefined;
+    seriesLabels: JSONObject;
+    projectId: { toString(): string } | undefined;
+  }): Promise<MetricSeriesEvaluationResult> {
+    const { criteriaFilter, metricContext } = input;
+
+    const noBreach: () => MetricSeriesEvaluationResult = () => {
+      return {
+        fingerprint: input.seriesFingerprint,
+        labels: input.seriesLabels,
+        rootCause: null,
+        context: metricContext,
+      };
+    };
+
+    /*
+     * Formulas don't carry a baselined metric name (the formula itself
+     * is the "metric") — skip rather than misattribute. A future phase
+     * can baseline formula output series.
+     */
+    if (metricContext.isFormula) {
+      metricContext.anomalyBaseline = {
+        state: "Learning",
+        mean: 0,
+        stddev: 0,
+        expectedHigh: 0,
+        expectedLow: 0,
+        sigmaCount: 0,
+        sampleCount: 0,
+        hourOfWeek: -1,
+        windowDays: 0,
+      };
+      return noBreach();
+    }
+
+    if (!input.projectId) {
+      return noBreach();
+    }
+
+    const samples: Array<AggregateModel> =
+      (input.aggregatedResult && input.aggregatedResult.data) || [];
+    if (samples.length === 0) {
+      const policy: NoDataPolicy =
+        criteriaFilter.metricMonitorOptions?.onNoDataPolicy ||
+        NoDataPolicy.Ignore;
+      if (policy === NoDataPolicy.Trigger) {
+        return {
+          fingerprint: input.seriesFingerprint,
+          labels: input.seriesLabels,
+          rootCause: `No data received for ${metricContext.metricName} in the evaluation window — triggering per no-data policy.`,
+          context: metricContext,
+        };
+      }
+      return noBreach();
+    }
+
+    const sensitivity: AnomalyDetectionSensitivity =
+      (criteriaFilter.metricMonitorOptions?.anomalyDetection?.sensitivity as
+        | AnomalyDetectionSensitivity
+        | undefined) || AnomalyDetectionSensitivity.Medium;
+    const sigmaCount: number =
+      MetricBaselineServiceClass.sigmaForSensitivity(sensitivity);
+    const windowDays: number | undefined =
+      criteriaFilter.metricMonitorOptions?.anomalyDetection?.windowDays;
+    const minSamples: number | undefined =
+      criteriaFilter.metricMonitorOptions?.anomalyDetection?.minSamples;
+
+    /*
+     * Look up baselines per distinct hour-of-week present in the eval
+     * window. A 5-min window almost always covers a single hour, but
+     * windows that straddle the hour boundary need both baselines.
+     */
+    const hoursInWindow: Set<number> = new Set<number>();
+    for (const sample of samples) {
+      const ts: Date =
+        sample.timestamp instanceof Date
+          ? sample.timestamp
+          : new Date(sample.timestamp);
+      if (!isNaN(ts.getTime())) {
+        hoursInWindow.add(MetricBaselineServiceClass.computeHourOfWeek(ts));
+      }
+    }
+
+    if (hoursInWindow.size === 0) {
+      return noBreach();
+    }
+
+    const baselineByHour: Map<number, BaselineSummary> = new Map();
+    for (const hour of hoursInWindow) {
+      const baseline: BaselineSummary | null =
+        await MetricBaselineService.getBaseline({
+          projectId: input.projectId.toString(),
+          metricName: metricContext.metricName,
+          hourOfWeek: hour,
+          windowDays,
+          minSamples,
+        });
+      if (baseline && baseline.isReliable) {
+        baselineByHour.set(hour, baseline);
+      }
+    }
+
+    if (baselineByHour.size === 0) {
+      // Cold-start: surface state but don't fire.
+      const firstHour: number = Array.from(hoursInWindow)[0]!;
+      metricContext.anomalyBaseline = {
+        state: "Learning",
+        mean: 0,
+        stddev: 0,
+        expectedHigh: 0,
+        expectedLow: 0,
+        sigmaCount,
+        sampleCount: 0,
+        hourOfWeek: firstHour,
+        windowDays:
+          windowDays || MetricBaselineServiceClass.DEFAULT_WINDOW_DAYS,
+      };
+      return noBreach();
+    }
+
+    /*
+     * Walk every sample, compare to its hour's baseline. The first
+     * breaching sample produces the root-cause string and seeds
+     * metricContext.anomalyBaseline; remaining breaches accumulate
+     * into breachingSamples for the incident render.
+     */
+    const breachingSamples: Array<{
+      value: number;
+      timestamp: Date;
+      attributes: JSONObject;
+    }> = [];
+
+    let firstBreach: {
+      sample: AggregateModel;
+      baseline: BaselineSummary;
+      sigma: number;
+    } | null = null;
+
+    for (const sample of samples) {
+      const ts: Date =
+        sample.timestamp instanceof Date
+          ? sample.timestamp
+          : new Date(sample.timestamp);
+      if (isNaN(ts.getTime())) {
+        continue;
+      }
+      const hour: number = MetricBaselineServiceClass.computeHourOfWeek(ts);
+      const baseline: BaselineSummary | undefined = baselineByHour.get(hour);
+      if (!baseline) {
+        continue;
+      }
+
+      const stddevForSigma: number = baseline.stddev;
+      if (!Number.isFinite(stddevForSigma) || stddevForSigma === 0) {
+        // Zero-variance baseline → we'd alert on every sample. Skip.
+        continue;
+      }
+
+      const expectedHigh: number = baseline.mean + sigmaCount * stddevForSigma;
+      const expectedLow: number = baseline.mean - sigmaCount * stddevForSigma;
+      const observedSigma: number =
+        (sample.value - baseline.mean) / stddevForSigma;
+
+      const breaches: boolean = MetricMonitorCriteria.anomalyBreaches(
+        sample.value,
+        expectedHigh,
+        expectedLow,
+        criteriaFilter.filterType,
+      );
+
+      if (breaches) {
+        breachingSamples.push({
+          value: sample.value,
+          timestamp: ts,
+          attributes: MetricMonitorCriteria.extractLabelAttributes(sample),
+        });
+        if (!firstBreach) {
+          firstBreach = { sample, baseline, sigma: observedSigma };
+        }
+      }
+    }
+
+    metricContext.totalSamplesInWindow = samples.length;
+
+    if (!firstBreach) {
+      // No breach. Mark Normal so the UI can show "baseline ready".
+      const firstHour: number = Array.from(baselineByHour.keys())[0]!;
+      const firstBaseline: BaselineSummary = baselineByHour.get(firstHour)!;
+      metricContext.anomalyBaseline = {
+        state: "Normal",
+        mean: firstBaseline.mean,
+        stddev: firstBaseline.stddev,
+        expectedHigh: firstBaseline.mean + sigmaCount * firstBaseline.stddev,
+        expectedLow: firstBaseline.mean - sigmaCount * firstBaseline.stddev,
+        sigmaCount,
+        sampleCount: firstBaseline.sampleCount,
+        hourOfWeek: firstHour,
+        windowDays: firstBaseline.windowDays,
+      };
+      return noBreach();
+    }
+
+    const baseline: BaselineSummary = firstBreach.baseline;
+    const anomaly: MetricAnomalyBaseline = {
+      state: "Anomalous",
+      mean: baseline.mean,
+      stddev: baseline.stddev,
+      expectedHigh: baseline.mean + sigmaCount * baseline.stddev,
+      expectedLow: baseline.mean - sigmaCount * baseline.stddev,
+      sigmaCount,
+      sampleCount: baseline.sampleCount,
+      hourOfWeek: baseline.hourOfWeek,
+      windowDays: baseline.windowDays,
+      observedValue: firstBreach.sample.value,
+      observedSigma: firstBreach.sigma,
+    };
+    metricContext.anomalyBaseline = anomaly;
+
+    metricContext.breachingSample = breachingSamples[0];
+    metricContext.breachingSamples = breachingSamples;
+
+    const direction: string =
+      criteriaFilter.filterType === FilterType.AnomalouslyHigh
+        ? "above"
+        : criteriaFilter.filterType === FilterType.AnomalouslyLow
+          ? "below"
+          : firstBreach.sigma >= 0
+            ? "above"
+            : "below";
+
+    const sigmaAbs: number = Math.abs(firstBreach.sigma);
+    const unitSuffix: string = metricContext.unit
+      ? ` ${metricContext.unit}`
+      : "";
+    const rootCause: string =
+      `${metricContext.metricName} value ${firstBreach.sample.value.toFixed(3)}${unitSuffix} ` +
+      `is ${sigmaAbs.toFixed(2)}σ ${direction} the same-hour baseline ` +
+      `(mean ${baseline.mean.toFixed(3)}${unitSuffix}, σ ${baseline.stddev.toFixed(3)}${unitSuffix}, ` +
+      `${baseline.sampleCount} samples over ${baseline.windowDays} days, sensitivity ${sensitivity}).`;
+
+    return {
+      fingerprint: input.seriesFingerprint,
+      labels: input.seriesLabels,
+      rootCause,
+      context: metricContext,
+    };
+  }
+
+  private static anomalyBreaches(
+    value: number,
+    expectedHigh: number,
+    expectedLow: number,
+    filterType: FilterType | undefined,
+  ): boolean {
+    switch (filterType) {
+      case FilterType.AnomalouslyHigh:
+        return value > expectedHigh;
+      case FilterType.AnomalouslyLow:
+        return value < expectedLow;
+      case FilterType.Anomalous:
+        return value > expectedHigh || value < expectedLow;
+      default:
+        return false;
+    }
   }
 }

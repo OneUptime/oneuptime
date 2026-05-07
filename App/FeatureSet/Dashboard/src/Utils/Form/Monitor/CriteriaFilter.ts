@@ -1,7 +1,9 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeMinutes,
   EvaluateOverTimeType,
   FilterType,
@@ -82,6 +84,33 @@ export default class CriteriaFilterUtil {
       ) {
         text += `sum of all ${isPercentage ? "percentage " : ""}values `;
       }
+    }
+
+    /*
+     * Anomaly criteria don't use the static threshold value field.
+     * Render them as plain English so the rule list reads cleanly.
+     */
+    if (
+      CommonCriteriaFilterUtil.isAnomalyFilterType(criteriaFilter?.filterType)
+    ) {
+      const sensitivity: AnomalyDetectionSensitivity =
+        (criteriaFilter?.metricMonitorOptions?.anomalyDetection?.sensitivity as
+          | AnomalyDetectionSensitivity
+          | undefined) || AnomalyDetectionSensitivity.Medium;
+      const direction: string =
+        criteriaFilter?.filterType === FilterType.AnomalouslyHigh
+          ? "anomalously high"
+          : criteriaFilter?.filterType === FilterType.AnomalouslyLow
+            ? "anomalously low"
+            : "anomalous (either direction)";
+      text += `"${criteriaFilter?.checkOn.toString()}" is ${direction} (sensitivity: ${sensitivity})`;
+      if (filterCondition === FilterCondition.All) {
+        text += " and,";
+      }
+      if (filterCondition === FilterCondition.Any) {
+        text += " or,";
+      }
+      return text;
     }
 
     if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
@@ -364,14 +393,20 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.SpanCount ||
       checkOn === CheckOn.MetricValue
     ) {
+      const allowAnomaly: boolean = checkOn === CheckOn.MetricValue;
       options = options.filter((i: DropdownOption) => {
-        return (
+        const baseStatic: boolean =
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo ||
-          i.value === FilterType.EqualTo
-        );
+          i.value === FilterType.EqualTo;
+        const baseAnomaly: boolean =
+          allowAnomaly &&
+          (i.value === FilterType.AnomalouslyHigh ||
+            i.value === FilterType.AnomalouslyLow ||
+            i.value === FilterType.Anomalous);
+        return baseStatic || baseAnomaly;
       });
     }
 

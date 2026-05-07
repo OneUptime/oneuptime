@@ -37,6 +37,43 @@ export interface MetricComponent {
   isFormula: boolean;
 }
 
+/**
+ * State of an anomaly-detection evaluation. Populated only for
+ * anomaly filter types (AnomalouslyHigh / AnomalouslyLow / Anomalous);
+ * absent for static-threshold criteria.
+ *
+ *   - "Learning" — no baseline available yet (cold start) or the
+ *     baseline cell did not meet the minimum sample threshold. The
+ *     evaluator returns no breach for this state.
+ *   - "Normal"   — baseline is reliable and the observed value sits
+ *     inside the expected range.
+ *   - "Anomalous" — observed value sits outside the expected range
+ *     for the configured direction; evaluator returns a breach.
+ */
+export type MetricAnomalyState = "Learning" | "Normal" | "Anomalous";
+
+export interface MetricAnomalyBaseline {
+  state: MetricAnomalyState;
+  /** Baseline mean for the matching hour-of-week, rolling window. */
+  mean: number;
+  stddev: number;
+  /** Baseline ± sigmaCount × stddev. */
+  expectedHigh: number;
+  expectedLow: number;
+  sigmaCount: number;
+  sampleCount: number;
+  hourOfWeek: number;
+  windowDays: number;
+  /** The observed aggregate value compared against the band. */
+  observedValue?: number | undefined;
+  /**
+   * Number of standard deviations the observed value sat from the
+   * baseline mean. Reported in the root cause string; sign indicates
+   * direction (positive = above, negative = below).
+   */
+  observedSigma?: number | undefined;
+}
+
 export default interface MetricCriteriaContext {
   metricName: string;
   alias: string;
@@ -47,6 +84,11 @@ export default interface MetricCriteriaContext {
   filterAttributes: JSONObject;
   groupBy: Array<string>;
   timeWindowMinutes?: number | undefined;
+  /**
+   * Result of the anomaly check, when the criterion's filterType is
+   * one of the anomaly types. Absent for static-threshold criteria.
+   */
+  anomalyBaseline?: MetricAnomalyBaseline | undefined;
   /**
    * Fingerprint of the specific series this context represents when the
    * monitor is configured for per-series alerting. Undefined for

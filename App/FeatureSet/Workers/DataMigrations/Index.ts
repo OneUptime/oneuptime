@@ -66,6 +66,7 @@ import AddMetricMinuteAggregateMaterializedView from "./AddMetricMinuteAggregate
 import RebuildMetricMinuteAggregateMaterializedView from "./RebuildMetricMinuteAggregateMaterializedView";
 import AddAttributeKeysSkipIndexToTelemetryTables from "./AddAttributeKeysSkipIndexToTelemetryTables";
 import AddMetricMinuteAggregateByHostMaterializedView from "./AddMetricMinuteAggregateByHostMaterializedView";
+import AddMetricBaselineHourlyMV from "./AddMetricBaselineHourlyMV";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -136,6 +137,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new RebuildMetricMinuteAggregateMaterializedView(),
   new AddAttributeKeysSkipIndexToTelemetryTables(),
   new AddMetricMinuteAggregateByHostMaterializedView(),
+  new AddMetricBaselineHourlyMV(),
 ];
 
 export default DataMigrations;

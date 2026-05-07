@@ -6,6 +6,7 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil, { UnitOption } from "Common/Utils/MetricUnitUtil";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   CriteriaFilterUtil,
@@ -583,6 +584,71 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
             ))}
+
+        {criteriaFilter?.checkOn === CheckOn.MetricValue &&
+          CriteriaFilterUtil.isAnomalyFilterType(
+            criteriaFilter?.filterType,
+          ) && (
+            <div className="mt-1">
+              <FieldLabelElement
+                title="Sensitivity"
+                description="Lower sensitivity = larger expected range, fewer alerts. Compares each sample to the same-hour-of-week baseline over the last 14 days."
+              />
+              <Dropdown
+                value={(() => {
+                  const v: AnomalyDetectionSensitivity =
+                    (criteriaFilter?.metricMonitorOptions?.anomalyDetection
+                      ?.sensitivity as
+                      | AnomalyDetectionSensitivity
+                      | undefined) || AnomalyDetectionSensitivity.Medium;
+                  return {
+                    value: v,
+                    label:
+                      v === AnomalyDetectionSensitivity.Low
+                        ? "Low (4σ — egregious deviations only)"
+                        : v === AnomalyDetectionSensitivity.High
+                          ? "High (2σ — noisier, very stable services)"
+                          : "Medium (3σ — recommended)",
+                  };
+                })()}
+                options={[
+                  {
+                    value: AnomalyDetectionSensitivity.Low,
+                    label: "Low (4σ — egregious deviations only)",
+                  },
+                  {
+                    value: AnomalyDetectionSensitivity.Medium,
+                    label: "Medium (3σ — recommended)",
+                  },
+                  {
+                    value: AnomalyDetectionSensitivity.High,
+                    label: "High (2σ — noisier, very stable services)",
+                  },
+                ]}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  props.onChange?.({
+                    ...criteriaFilter,
+                    metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
+                      anomalyDetection: {
+                        ...criteriaFilter?.metricMonitorOptions
+                          ?.anomalyDetection,
+                        sensitivity:
+                          value?.toString() as AnomalyDetectionSensitivity,
+                      },
+                    },
+                  });
+                }}
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Anomaly detection requires at least 14 days of metric history —
+                rules will not fire (&quot;Learning&quot; state) until that
+                threshold is met.
+              </p>
+            </div>
+          )}
 
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (

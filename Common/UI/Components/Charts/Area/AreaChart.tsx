@@ -42,6 +42,15 @@ export interface ComponentProps {
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   showLegend?: boolean | undefined;
+  /**
+   * Render a shaded "expected range" band underneath the plotted lines.
+   * The caller passes two series in `data` carrying the lower and upper
+   * bounds; both must share the same x-axis as the data series. Their
+   * seriesNames are passed here so the renderer can promote them to a
+   * band fill and exclude them from the regular line categories.
+   */
+  anomalyBandLowerSeriesName?: string | undefined;
+  anomalyBandUpperSeriesName?: string | undefined;
 }
 
 export interface AreaInternalProps extends ComponentProps {
@@ -53,9 +62,21 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
 
-  const categories: Array<string> = props.data.map((item: SeriesPoint) => {
-    return item.seriesName;
-  });
+  const bandLower: string | undefined = props.anomalyBandLowerSeriesName;
+  const bandUpper: string | undefined = props.anomalyBandUpperSeriesName;
+
+  /*
+   * The band's lower/upper series share the data array but should not
+   * be drawn as standalone lines in the legend — recharts renders them
+   * as the shaded fill instead.
+   */
+  const categories: Array<string> = props.data
+    .map((item: SeriesPoint) => {
+      return item.seriesName;
+    })
+    .filter((name: string) => {
+      return name !== bandLower && name !== bandUpper;
+    });
 
   useEffect(() => {
     const records: Array<ChartDataPoint> = DataPointUtil.getChartDataPoints({
@@ -107,9 +128,9 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
   const yAxisMinOption: number | "auto" = props.yAxis.options.min;
   const yAxisMaxOption: number | "auto" = props.yAxis.options.max;
   const autoMinValue: boolean = yAxisMinOption === "auto";
-  const minValueProp: { minValue: number } | object =
+  const minValueProp: { minValue: number } | Record<string, never> =
     typeof yAxisMinOption === "number" ? { minValue: yAxisMinOption } : {};
-  const maxValueProp: { maxValue: number } | object =
+  const maxValueProp: { maxValue: number } | Record<string, never> =
     typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
 
   return (
@@ -138,6 +159,8 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
           formattedExemplars.length > 0 ? formattedExemplars : undefined
         }
         onExemplarClick={props.onExemplarClick}
+        anomalyBandLowerKey={bandLower}
+        anomalyBandUpperKey={bandUpper}
       />
       {hasNoData && <NoDataMessage />}
     </div>
