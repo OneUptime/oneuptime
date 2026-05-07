@@ -632,7 +632,14 @@ export default abstract class OtelIngestBaseService {
         }
 
         if (name === "system.processes.count") {
-          const v: number | null = this.firstDatapointNumber(m);
+          /*
+           * `system.processes.count` is partitioned by
+           * `process.status` (running, sleeping, idle, …), so each
+           * datapoint is one status's count. Summing across statuses
+           * gives the canonical total — what `top` / `ps -e` show.
+           * `firstDatapointNumber` would only return one status.
+           */
+          const v: number | null = this.sumDatapointNumbers(m);
           if (v !== null) {
             result.processCount = Math.round(v);
           }

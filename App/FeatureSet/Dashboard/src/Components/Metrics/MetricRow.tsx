@@ -23,7 +23,13 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     },
   );
   const rawUnit: string = metric.unit || "";
-  const readableUnit: string = ValueFormatter.getReadableUnit(rawUnit);
+  const formatterOptions: { metricName: string } = {
+    metricName: metric.name || "",
+  };
+  const readableUnit: string = ValueFormatter.getReadableUnit(
+    rawUnit,
+    formatterOptions,
+  );
 
   return (
     <button
@@ -84,7 +90,11 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
           {props.lastValue !== undefined && (
             <div className="text-right">
               <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-                {ValueFormatter.formatValue(props.lastValue, rawUnit)}
+                {ValueFormatter.formatValue(
+                  props.lastValue,
+                  rawUnit,
+                  formatterOptions,
+                )}
               </span>
             </div>
           )}

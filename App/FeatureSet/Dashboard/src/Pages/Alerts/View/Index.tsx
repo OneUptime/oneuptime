@@ -476,6 +476,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Hosts Affected",
               fieldType: FieldType.Element,
+              showIf: (item: Alert): boolean => {
+                return Boolean(item["hosts"] && item["hosts"].length > 0);
+              },
               getElement: (item: Alert): ReactElement => {
                 return <HostsElement hosts={item["hosts"] || []} />;
               },

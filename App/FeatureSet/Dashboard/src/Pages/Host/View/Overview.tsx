@@ -2,8 +2,12 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
+import Detail from "Common/UI/Components/Detail/Detail";
+import DetailField from "Common/UI/Components/Detail/Field";
+import OsVersionDisplay, {
+  getOsVersionPrimary,
+} from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
+import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -43,7 +47,7 @@ interface OverviewStats {
   memoryPercent: number | null;
   filesystemPercent: number | null;
   load1m: number | null;
-  processCount: number | null;
+  runningProcessCount: number | null;
 }
 
 const formatPercent: (value: number | null) => string = (
@@ -197,6 +201,7 @@ const HostOverview: FunctionComponent<
         id: modelId,
         select: {
           name: true,
+          description: true,
           hostIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
@@ -205,6 +210,7 @@ const HostOverview: FunctionComponent<
           containerRuntime: true,
           cpuCores: true,
           totalMemoryBytes: true,
+          processCount: true,
           osType: true,
           osVersion: true,
           hostArch: true,
@@ -293,13 +299,22 @@ const HostOverview: FunctionComponent<
        * mountpoint, which is what the "largest mount" sublabel and
        * every infra dashboard cares about by default.
        */
+      /*
+       * `system.processes.count` is partitioned by the `status`
+       * attribute (running / sleeping / blocked / idle / …). The
+       * tile shows only `running` because that's what tells you
+       * how much work is contending for CPU right now — the
+       * sleeping count dwarfs running and obscures that signal.
+       * The total (sum of all statuses) lives on
+       * `host.processCount`, surfaced as a sublabel for context.
+       */
       const [
         cpuUserResult,
         cpuSystemResult,
         memResult,
         fsResult,
         loadResult,
-        procResult,
+        runningProcResult,
       ]: [
         AggregatedResult,
         AggregatedResult,
@@ -352,6 +367,7 @@ const HostOverview: FunctionComponent<
           aggregateBy: buildAggregateBy(
             "system.processes.count",
             AggregationType.Avg,
+            { status: "running" },
           ),
         }),
       ]);
@@ -442,7 +458,7 @@ const HostOverview: FunctionComponent<
         memoryPercent: meanFromBuckets(memResult, 100),
         filesystemPercent: meanFromBuckets(fsResult, 100),
         load1m: latestFromBuckets(loadResult),
-        processCount: latestFromBuckets(procResult),
+        runningProcessCount: latestFromBuckets(runningProcResult),
       });
     } catch (err) {
       setStatsError(API.getFriendlyMessage(err));
@@ -492,10 +508,15 @@ const HostOverview: FunctionComponent<
       });
     }
     if (host.osVersion) {
-      specChips.push({
-        icon: IconProp.Info,
-        label: String(host.osVersion),
-      });
+      const osVersionLabel: string = getOsVersionPrimary(
+        String(host.osVersion),
+      );
+      if (osVersionLabel) {
+        specChips.push({
+          icon: IconProp.Info,
+          label: osVersionLabel,
+        });
+      }
     }
     if (host.hostArch) {
       specChips.push({
@@ -636,6 +657,11 @@ const HostOverview: FunctionComponent<
 
     const cores: number | undefined = host?.cpuCores ?? undefined;
     const totalMem: number | undefined = host?.totalMemoryBytes ?? undefined;
+    const totalProcessCount: number | null =
+      host?.processCount !== undefined && host?.processCount !== null
+        ? Number(host.processCount)
+        : null;
+    const runningProcessCount: number | null = s.runningProcessCount;
 
     const cpuSublabel: string | undefined =
       cores !== undefined
@@ -644,8 +670,26 @@ const HostOverview: FunctionComponent<
     const memSublabel: string | undefined =
       totalMem !== undefined ? `of ${formatMemoryBytes(totalMem)}` : undefined;
 
-    const loadColor: number | null =
+    /*
+     * Load average isn't a percent — it's the average number of
+     * runnable + IO-waiting processes. To make the bar meaningful
+     * we normalize by core count: load / cores * 100. >100 % means
+     * the system has more demand than CPU capacity.
+     */
+    const loadSaturationPct: number | null =
       cores && cores > 0 && s.load1m !== null ? (s.load1m / cores) * 100 : null;
+
+    const loadSublabel: string | undefined = (() => {
+      if (loadSaturationPct !== null && cores !== undefined) {
+        return `${Math.round(loadSaturationPct)}% of ${cores} core${
+          cores === 1 ? "" : "s"
+        }`;
+      }
+      if (cores !== undefined) {
+        return `across ${cores} core${cores === 1 ? "" : "s"}`;
+      }
+      return undefined;
+    })();
 
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -675,24 +719,28 @@ const HostOverview: FunctionComponent<
           thresholds={{ warn: 75, danger: 90 }}
         />
         <MetricTile
-          title="Load (1m)"
+          title="Load avg (1m)"
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={formatNumber(s.load1m)}
-          sublabel={
-            cores !== undefined
-              ? `across ${cores} core${cores === 1 ? "" : "s"}`
-              : undefined
-          }
-          percent={loadColor}
+          sublabel={loadSublabel}
+          percent={loadSaturationPct}
           thresholds={{ warn: 70, danger: 100 }}
         />
         <MetricTile
           title="Processes"
           icon={IconProp.List}
           iconColor="slate"
-          value={formatInt(s.processCount)}
-          sublabel={s.processCount !== null ? "running" : undefined}
+          value={formatInt(runningProcessCount)}
+          sublabel={(() => {
+            if (runningProcessCount === null) {
+              return undefined;
+            }
+            if (totalProcessCount !== null) {
+              return `running · ${totalProcessCount} total`;
+            }
+            return "running";
+          })()}
         />
       </div>
     );
@@ -798,35 +846,7 @@ const HostOverview: FunctionComponent<
   const renderIpAddresses: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
-    const ipString: string = (item.hostIpAddresses as string) || "";
-    if (!ipString) {
-      return <span className="text-sm text-gray-400">—</span>;
-    }
-    const ips: Array<string> = ipString
-      .split(",")
-      .map((s: string) => {
-        return s.trim();
-      })
-      .filter((s: string) => {
-        return s.length > 0;
-      });
-    if (ips.length === 0) {
-      return <span className="text-sm text-gray-400">—</span>;
-    }
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        {ips.map((ip: string) => {
-          return (
-            <span
-              key={ip}
-              className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs font-mono text-gray-700"
-            >
-              {ip}
-            </span>
-          );
-        })}
-      </div>
-    );
+    return <IpAddressList text={(item.hostIpAddresses as string) || ""} />;
   };
 
   return (
@@ -835,232 +855,219 @@ const HostOverview: FunctionComponent<
       {renderSummaryCards()}
       <div className="mb-6">{renderCrossLinks()}</div>
 
-      <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-        <CardModelDetail<Host>
-          name="Identification"
-          cardProps={{
-            title: "Identification",
-            description: "How this host is named and classified.",
-          }}
-          modelDetailProps={{
-            modelType: Host,
-            id: "host-identification",
-            modelId: modelId,
-            fields: [
-              {
-                field: {
-                  name: true,
-                },
-                title: "Name",
-                fieldType: FieldType.Text,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.name);
-                },
-              },
-              {
-                field: {
-                  hostIdentifier: true,
-                },
-                title: "Host Identifier",
-                fieldType: FieldType.Text,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.hostIdentifier);
-                },
-              },
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                fieldType: FieldType.Text,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.description);
-                },
-              },
-              {
-                field: {
-                  hostType: true,
-                },
-                title: "Host Type",
-                fieldType: FieldType.Text,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.hostType);
-                },
-              },
-            ],
-          }}
-        />
-
-        <CardModelDetail<Host>
-          name="Operating System"
-          cardProps={{
-            title: "Operating System",
-            description: "Operating system details reported by the agent.",
-          }}
-          modelDetailProps={{
-            modelType: Host,
-            id: "host-os",
-            modelId: modelId,
-            fields: [
-              {
-                field: {
-                  osType: true,
-                },
-                title: "OS Type",
-                fieldType: FieldType.Element,
-                getElement: renderOsTypeChip,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.osType);
-                },
-              },
-              {
-                field: {
-                  osVersion: true,
-                },
-                title: "OS Version",
-                fieldType: FieldType.Element,
-                getElement: (item: Host): ReactElement => {
-                  const osVersion: string | undefined =
-                    (item.osVersion as string | undefined) ?? undefined;
-                  if (!osVersion) {
-                    return <span className="text-sm text-gray-400">—</span>;
+      {host && (
+        <div className="flex flex-col gap-x-6 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1">
+            <Card
+              title="Identification"
+              description="How this host is named and classified."
+            >
+              <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+                <Detail<Host>
+                  id="host-identification"
+                  item={host}
+                  fields={
+                    [
+                      {
+                        key: "name",
+                        title: "Name",
+                        fieldType: FieldType.Text,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.name);
+                        },
+                      },
+                      {
+                        key: "hostIdentifier",
+                        title: "Host Identifier",
+                        fieldType: FieldType.Text,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.hostIdentifier);
+                        },
+                      },
+                      {
+                        key: "description",
+                        title: "Description",
+                        fieldType: FieldType.Text,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.description);
+                        },
+                      },
+                      {
+                        key: "hostType",
+                        title: "Host Type",
+                        fieldType: FieldType.Text,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.hostType);
+                        },
+                      },
+                    ] as Array<DetailField<Host>>
                   }
-                  return (
-                    <ExpandableText
-                      text={osVersion}
-                      maxLength={48}
-                      className="text-sm text-gray-900"
-                    />
-                  );
-                },
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.osVersion);
-                },
-              },
-              {
-                field: {
-                  hostArch: true,
-                },
-                title: "Architecture",
-                fieldType: FieldType.Element,
-                getElement: renderArchChip,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.hostArch);
-                },
-              },
-            ],
-          }}
-        />
+                />
+              </div>
+            </Card>
 
-        <CardModelDetail<Host>
-          name="Hardware & Runtime"
-          cardProps={{
-            title: "Hardware & Runtime",
-            description: "CPU, memory, processes, and container runtime.",
-          }}
-          modelDetailProps={{
-            modelType: Host,
-            id: "host-hardware",
-            modelId: modelId,
-            showDetailsInNumberOfColumns: 2,
-            fields: [
-              {
-                field: {
-                  cpuCores: true,
-                },
-                title: "CPU Cores",
-                fieldType: FieldType.Element,
-                getElement: (item: Host): ReactElement => {
-                  const cores: number | undefined =
-                    (item.cpuCores as number | undefined) ?? undefined;
-                  if (cores === undefined || cores === null) {
-                    return <span className="text-sm text-gray-400">—</span>;
+            <Card
+              title="Hardware & Runtime"
+              description="CPU, memory, processes, and container runtime."
+            >
+              <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+                <Detail<Host>
+                  id="host-hardware"
+                  item={host}
+                  showDetailsInNumberOfColumns={2}
+                  fields={
+                    [
+                      {
+                        key: "cpuCores",
+                        title: "CPU Cores",
+                        fieldType: FieldType.Element,
+                        getElement: (item: Host): ReactElement => {
+                          const cores: number | undefined =
+                            (item.cpuCores as number | undefined) ?? undefined;
+                          if (cores === undefined || cores === null) {
+                            return (
+                              <span className="text-sm text-gray-400">—</span>
+                            );
+                          }
+                          return (
+                            <span className="text-sm text-gray-900">
+                              {cores} core{cores === 1 ? "" : "s"}
+                            </span>
+                          );
+                        },
+                        showIf: (item: Host): boolean => {
+                          return (
+                            item.cpuCores !== undefined &&
+                            item.cpuCores !== null
+                          );
+                        },
+                      },
+                      {
+                        key: "totalMemoryBytes",
+                        title: "Total Memory",
+                        fieldType: FieldType.Element,
+                        getElement: (item: Host): ReactElement => {
+                          const bytes: number | undefined =
+                            (item.totalMemoryBytes as number | undefined) ??
+                            undefined;
+                          return (
+                            <span className="text-sm text-gray-900">
+                              {formatMemoryBytes(bytes)}
+                            </span>
+                          );
+                        },
+                        showIf: (item: Host): boolean => {
+                          return (
+                            item.totalMemoryBytes !== undefined &&
+                            item.totalMemoryBytes !== null
+                          );
+                        },
+                      },
+                      {
+                        key: "processCount",
+                        title: "Process Count (cached)",
+                        fieldType: FieldType.Number,
+                        showIf: (item: Host): boolean => {
+                          return (
+                            item.processCount !== undefined &&
+                            item.processCount !== null
+                          );
+                        },
+                      },
+                      {
+                        key: "containerRuntime",
+                        title: "Container Runtime",
+                        fieldType: FieldType.Text,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.containerRuntime);
+                        },
+                      },
+                    ] as Array<DetailField<Host>>
                   }
-                  return (
-                    <span className="text-sm text-gray-900">
-                      {cores} core{cores === 1 ? "" : "s"}
-                    </span>
-                  );
-                },
-                showIf: (item: Host): boolean => {
-                  return item.cpuCores !== undefined && item.cpuCores !== null;
-                },
-              },
-              {
-                field: {
-                  totalMemoryBytes: true,
-                },
-                title: "Total Memory",
-                fieldType: FieldType.Element,
-                getElement: (item: Host): ReactElement => {
-                  const bytes: number | undefined =
-                    (item.totalMemoryBytes as number | undefined) ?? undefined;
-                  return (
-                    <span className="text-sm text-gray-900">
-                      {formatMemoryBytes(bytes)}
-                    </span>
-                  );
-                },
-                showIf: (item: Host): boolean => {
-                  return (
-                    item.totalMemoryBytes !== undefined &&
-                    item.totalMemoryBytes !== null
-                  );
-                },
-              },
-              {
-                field: {
-                  processCount: true,
-                },
-                title: "Process Count (cached)",
-                fieldType: FieldType.Number,
-                showIf: (item: Host): boolean => {
-                  return (
-                    item.processCount !== undefined &&
-                    item.processCount !== null
-                  );
-                },
-              },
-              {
-                field: {
-                  containerRuntime: true,
-                },
-                title: "Container Runtime",
-                fieldType: FieldType.Text,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.containerRuntime);
-                },
-              },
-            ],
-          }}
-        />
+                />
+              </div>
+            </Card>
+          </div>
 
-        <CardModelDetail<Host>
-          name="Network"
-          cardProps={{
-            title: "Network",
-            description: "IP addresses observed on this host.",
-          }}
-          modelDetailProps={{
-            modelType: Host,
-            id: "host-network",
-            modelId: modelId,
-            fields: [
-              {
-                field: {
-                  hostIpAddresses: true,
-                },
-                title: "IP Addresses",
-                fieldType: FieldType.Element,
-                getElement: renderIpAddresses,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.hostIpAddresses);
-                },
-              },
-            ],
-          }}
-        />
-      </div>
+          <div className="min-w-0 flex-1">
+            <Card
+              title="Operating System"
+              description="Operating system details reported by the agent."
+            >
+              <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+                <Detail<Host>
+                  id="host-os"
+                  item={host}
+                  fields={
+                    [
+                      {
+                        key: "osType",
+                        title: "OS Type",
+                        fieldType: FieldType.Element,
+                        getElement: renderOsTypeChip,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.osType);
+                        },
+                      },
+                      {
+                        key: "osVersion",
+                        title: "OS Version",
+                        fieldType: FieldType.Element,
+                        getElement: (item: Host): ReactElement => {
+                          const osVersion: string | undefined =
+                            (item.osVersion as string | undefined) ?? undefined;
+                          if (!osVersion) {
+                            return (
+                              <span className="text-sm text-gray-400">—</span>
+                            );
+                          }
+                          return <OsVersionDisplay text={osVersion} />;
+                        },
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.osVersion);
+                        },
+                      },
+                      {
+                        key: "hostArch",
+                        title: "Architecture",
+                        fieldType: FieldType.Element,
+                        getElement: renderArchChip,
+                        showIf: (item: Host): boolean => {
+                          return Boolean(item.hostArch);
+                        },
+                      },
+                    ] as Array<DetailField<Host>>
+                  }
+                />
+              </div>
+            </Card>
+
+            {host.hostIpAddresses ? (
+              <Card
+                title="Network"
+                description="IP addresses observed on this host."
+              >
+                <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+                  <Detail<Host>
+                    id="host-network"
+                    item={host}
+                    fields={
+                      [
+                        {
+                          key: "hostIpAddresses",
+                          title: "IP Addresses",
+                          fieldType: FieldType.Element,
+                          getElement: renderIpAddresses,
+                        },
+                      ] as Array<DetailField<Host>>
+                    }
+                  />
+                </div>
+              </Card>
+            ) : null}
+          </div>
+        </div>
+      )}
     </Fragment>
   );
 };
