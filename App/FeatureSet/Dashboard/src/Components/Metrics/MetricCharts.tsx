@@ -668,6 +668,19 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       );
       const unit: string =
         queryConfig.metricAliasData?.legendUnit || metricType?.unit || "";
+      const queryMetricName: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      const formatterOptions: { metricName: string } = {
+        metricName: queryMetricName,
+      };
+      // Show "%" on the y-axis legend for OTel ratio metrics
+      // (`.utilization`, `.ratio`, `.fraction`, `.percent`, `.percentage`),
+      // otherwise keep the raw unit code so existing axes (e.g. "By", "ms")
+      // look unchanged.
+      const yAxisLegend: string =
+        unit === "1" && ValueFormatter.isFractionMetric(queryMetricName)
+          ? "%"
+          : unit;
 
       // Build reference lines from thresholds
       const referenceLines: Array<ChartReferenceLineProps> = [];
@@ -678,7 +691,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ) {
         referenceLines.push({
           value: queryConfig.warningThreshold,
-          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit)}`,
+          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit, formatterOptions)}`,
           color: "#f59e0b", // amber
         });
       }
@@ -689,7 +702,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ) {
         referenceLines.push({
           value: queryConfig.criticalThreshold,
-          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit)}`,
+          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit, formatterOptions)}`,
           color: "#ef4444", // red
         });
       }
@@ -862,7 +875,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             },
           },
           yAxis: {
-            legend: unit,
+            legend: yAxisLegend,
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
@@ -870,7 +883,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   return queryConfig.yAxisValueFormatter(value);
                 }
 
-                return ValueFormatter.formatValue(value, unit);
+                return ValueFormatter.formatValue(value, unit, formatterOptions);
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",

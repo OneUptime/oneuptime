@@ -236,9 +236,20 @@ export default class ValueFormatter {
    * e.g. formatValue(1048576, "bytes") → "1 MB"
    * e.g. formatValue(3661, "seconds") → "1.02 hr"
    * e.g. formatValue(42, "%") → "42%"
+   * e.g. formatValue(0.25, "1", { metricName: "system.cpu.utilization" }) → "25%"
    */
-  public static formatValue(value: number, unit: string): string {
+  public static formatValue(
+    value: number,
+    unit: string,
+    options?: { metricName?: string },
+  ): string {
     const trimmedUnit: string = (unit || "").trim();
+
+    // OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
+    // them as a percentage so chart axes / thresholds read 25% instead of 0.25.
+    if (trimmedUnit === "1" && ValueFormatter.isFractionMetric(options?.metricName)) {
+      return `${formatNumber(value * 100)}%`;
+    }
 
     // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
     if (trimmedUnit === "" || trimmedUnit === "1") {
@@ -296,6 +307,27 @@ export default class ValueFormatter {
     return `${formatNumber(value)} ${ValueFormatter.getReadableUnit(unit)}`;
   }
 
+  /*
+   * Returns true when the metric name follows a convention that signals a
+   * [0, 1] ratio. Pair with unit "1" to render values as percentages.
+   *
+   * Conventions covered:
+   *   - OTel `.utilization` (system.cpu.utilization, k8s.node.cpu.utilization, …)
+   *   - OTel `.ratio` and `.fraction` (db.client.connection.usage_ratio, …)
+   *   - Prometheus-style `_utilization` / `_ratio` / `_fraction` suffixes
+   *   - Plain `_percent` / `.percent` / `_percentage` / `.percentage` names
+   *
+   * Adding a new suffix is one regex edit — no per-metric allowlist.
+   */
+  public static isFractionMetric(metricName: string | undefined): boolean {
+    if (!metricName) {
+      return false;
+    }
+    return /[._](utilization|ratio|fraction|percent|percentage)$/i.test(
+      metricName,
+    );
+  }
+
   // Check if a unit is one we can auto-scale (bytes, seconds, etc.)
   public static isScalableUnit(unit: string): boolean {
     if (!unit || unit.trim() === "") {
@@ -308,9 +340,20 @@ export default class ValueFormatter {
    * Convert a UCUM / OpenTelemetry unit code into a human-readable name.
    * e.g. "By" → "Bytes", "s" → "Seconds", "By/s" → "Bytes per Second",
    * "1" → "" (dimensionless). Falls back to the original string when unknown.
+   * When `metricName` ends in `.utilization` and the unit is "1", returns
+   * "Percent" so axis legends and badges match the formatted values.
    */
-  public static getReadableUnit(unit: string): string {
+  public static getReadableUnit(
+    unit: string,
+    options?: { metricName?: string },
+  ): string {
     const trimmed: string = (unit || "").trim();
+    if (
+      trimmed === "1" &&
+      ValueFormatter.isFractionMetric(options?.metricName)
+    ) {
+      return "Percent";
+    }
     if (trimmed === "" || trimmed === "1") {
       return "";
     }
