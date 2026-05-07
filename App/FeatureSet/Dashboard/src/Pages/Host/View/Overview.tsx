@@ -1035,31 +1035,30 @@ const HostOverview: FunctionComponent<
           }}
         />
 
-        <CardModelDetail<Host>
-          name="Network"
-          cardProps={{
-            title: "Network",
-            description: "IP addresses observed on this host.",
-          }}
-          modelDetailProps={{
-            modelType: Host,
-            id: "host-network",
-            modelId: modelId,
-            fields: [
-              {
-                field: {
-                  hostIpAddresses: true,
+        {host?.hostIpAddresses ? (
+          <CardModelDetail<Host>
+            name="Network"
+            cardProps={{
+              title: "Network",
+              description: "IP addresses observed on this host.",
+            }}
+            modelDetailProps={{
+              modelType: Host,
+              id: "host-network",
+              modelId: modelId,
+              fields: [
+                {
+                  field: {
+                    hostIpAddresses: true,
+                  },
+                  title: "IP Addresses",
+                  fieldType: FieldType.Element,
+                  getElement: renderIpAddresses,
                 },
-                title: "IP Addresses",
-                fieldType: FieldType.Element,
-                getElement: renderIpAddresses,
-                showIf: (item: Host): boolean => {
-                  return Boolean(item.hostIpAddresses);
-                },
-              },
-            ],
-          }}
-        />
+              ],
+            }}
+          />
+        ) : null}
       </div>
     </Fragment>
   );
