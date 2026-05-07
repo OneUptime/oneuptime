@@ -47,6 +47,7 @@ interface OverviewStats {
   memoryPercent: number | null;
   filesystemPercent: number | null;
   load1m: number | null;
+  runningProcessCount: number | null;
 }
 
 const formatPercent: (value: number | null) => string = (
