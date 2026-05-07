@@ -1269,7 +1269,7 @@ export class BillingService extends BaseService {
     };
   }
 
-    public getMeteredPlanPriceId(productType: ProductType): string {
+  public getMeteredPlanPriceId(productType: ProductType): string {
     let envVarName: string = "";
 
     if (productType === ProductType.ActiveMonitoring) {

@@ -31,7 +31,6 @@ const ensureMeteredPlanPriceIdsInTestEnv: () => void = (): void => {
     "test_price_profiles";
 };
 
-
 type MockIsBillingEnabledFunction = (value: boolean) => Promise<BillingService>;
 
 const mockIsBillingEnabled: MockIsBillingEnabledFunction = async (
@@ -81,7 +80,7 @@ type GetStripeSubscriptionFunction = () => Stripe.Subscription;
 const getStripeSubscription: GetStripeSubscriptionFunction =
   (): Stripe.Subscription => {
     ensureMeteredPlanPriceIdsInTestEnv();
-    
+
     return {
       id: Faker.generateRandomObjectID().toString(),
       items: {
