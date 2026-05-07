@@ -61,6 +61,25 @@ export default abstract class OtelIngestBaseService {
       }
     }
 
+    /*
+     * Host-aware fallback: when telemetry arrives from a host (OTel
+     * hostmetrics receiver, infrastructure agent over OTLP, or a k8s
+     * node) without an explicit service.name, synthesize a per-host
+     * service name so each host's metrics, logs and traces show up as
+     * their own service in the Telemetry Services list instead of
+     * every host collapsing into "Unknown Service".
+     *
+     * Phantom-service gate: only synthesize when the resource carries
+     * a strong host signal (os.type from the system resourcedetector,
+     * a container runtime, or a k8s cluster name). host.name alone is
+     * not enough — application SDKs auto-detect hostname inside pods,
+     * and trusting that would create a phantom service per pod.
+     */
+    const hostName: string | null = this.getHostNameFromAttributes(attributes);
+    if (hostName && this.hasHostResourceSignal(attributes)) {
+      return `host/${hostName}`;
+    }
+
     return "Unknown Service";
   }
 
@@ -363,6 +382,24 @@ export default abstract class OtelIngestBaseService {
       }
     }
     return false;
+  }
+
+  /*
+   * True when resource attributes carry a strong "this is a real host"
+   * signal — os.type (set by the OTel system resourcedetector via
+   * native OS calls, which app SDKs typically don't include), a
+   * container runtime, or a k8s cluster name. Used to gate the
+   * synthesized "host/{hostName}" service name so application SDKs
+   * auto-detecting hostname inside a pod don't create phantom
+   * per-pod services.
+   */
+  @CaptureSpan()
+  protected static hasHostResourceSignal(attributes: JSONArray): boolean {
+    return Boolean(
+      this.getStringAttribute(attributes, "os.type") ||
+        this.getStringAttribute(attributes, "container.runtime") ||
+        this.getClusterNameFromAttributes(attributes),
+    );
   }
 
   private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =

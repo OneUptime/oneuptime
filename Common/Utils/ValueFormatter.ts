@@ -212,12 +212,54 @@ function formatWithThresholds(
   };
 }
 
+// Abbreviates large numbers (>= 1000) with K/M/B/T/P suffixes so chart
+// axis labels stay narrow. Counter-style metrics frequently reach into
+// the billions and the raw digit string overflows the y-axis tick width.
+function formatLargeNumber(value: number): string {
+  const absValue: number = Math.abs(value);
+  let scaled: number;
+  let suffix: string;
+
+  if (absValue >= 1e15) {
+    scaled = value / 1e15;
+    suffix = "P";
+  } else if (absValue >= 1e12) {
+    scaled = value / 1e12;
+    suffix = "T";
+  } else if (absValue >= 1e9) {
+    scaled = value / 1e9;
+    suffix = "B";
+  } else if (absValue >= 1e6) {
+    scaled = value / 1e6;
+    suffix = "M";
+  } else {
+    scaled = value / 1e3;
+    suffix = "K";
+  }
+
+  const absScaled: number = Math.abs(scaled);
+  let formatted: string;
+  if (absScaled >= 100) {
+    formatted = Math.round(scaled).toString();
+  } else if (absScaled >= 10) {
+    formatted = (Math.round(scaled * 10) / 10).toString();
+  } else {
+    formatted = (Math.round(scaled * 100) / 100).toString();
+  }
+
+  return `${formatted}${suffix}`;
+}
+
 function formatNumber(value: number): string {
   if (value === 0) {
     return "0";
   }
 
   const absValue: number = Math.abs(value);
+
+  if (absValue >= 1e3) {
+    return formatLargeNumber(value);
+  }
 
   if (absValue >= 100) {
     return Math.round(value).toString();

@@ -99,6 +99,21 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
       return series.data.length === 0;
     });
 
+  /*
+   * Translate yAxis.options.min/max into recharts inputs. "auto" maps to
+   * autoMinValue=true (or maxValue undefined) so recharts zooms to the
+   * data range instead of pinning the floor at 0.
+   */
+  const yAxisMinOption: number | "auto" | undefined =
+    props.yAxis?.options?.min;
+  const yAxisMaxOption: number | "auto" | undefined =
+    props.yAxis?.options?.max;
+  const minValue: number | undefined =
+    typeof yAxisMinOption === "number" ? yAxisMinOption : undefined;
+  const maxValue: number | undefined =
+    typeof yAxisMaxOption === "number" ? yAxisMaxOption : undefined;
+  const autoMinValue: boolean = yAxisMinOption === "auto";
+
   return (
     <div className="relative">
       <AreaChart
@@ -116,6 +131,9 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         curve={props.curve || ChartCurve.MONOTONE}
         syncid={props.sync ? props.syncid : undefined}
         yAxisWidth={64}
+        autoMinValue={autoMinValue}
+        minValue={minValue}
+        maxValue={maxValue}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
         formattedExemplarPoints={
