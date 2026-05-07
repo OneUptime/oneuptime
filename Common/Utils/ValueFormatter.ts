@@ -245,9 +245,14 @@ export default class ValueFormatter {
   ): string {
     const trimmedUnit: string = (unit || "").trim();
 
-    // OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
-    // them as a percentage so chart axes / thresholds read 25% instead of 0.25.
-    if (trimmedUnit === "1" && ValueFormatter.isFractionMetric(options?.metricName)) {
+    /*
+     * OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
+     * them as a percentage so chart axes / thresholds read 25% instead of 0.25.
+     */
+    if (
+      trimmedUnit === "1" &&
+      ValueFormatter.isFractionMetric(options?.metricName)
+    ) {
       return `${formatNumber(value * 100)}%`;
     }
 
@@ -256,8 +261,10 @@ export default class ValueFormatter {
       return formatNumber(value);
     }
 
-    // "%" and its spelled-out / casual variants all render inline with no
-    // separating space — `25%`, never `25 Percent`.
+    /*
+     * "%" and its spelled-out / casual variants all render inline with no
+     * separating space — `25%`, never `25 Percent`.
+     */
     if (ValueFormatter.isPercentUnit(trimmedUnit)) {
       return `${formatNumber(value)}%`;
     }
@@ -343,9 +350,9 @@ export default class ValueFormatter {
     if (!metricName) {
       return false;
     }
-    return /[._](utilization|ratio|fraction|percent|percentage)$/i.test(
-      metricName,
-    );
+    const fractionMetricSuffixRegex: RegExp =
+      /[._](utilization|ratio|fraction|percent|percentage)$/i;
+    return fractionMetricSuffixRegex.test(metricName);
   }
 
   // Check if a unit is one we can auto-scale (bytes, seconds, etc.)

@@ -90,7 +90,11 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
           {props.lastValue !== undefined && (
             <div className="text-right">
               <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-                {ValueFormatter.formatValue(props.lastValue, rawUnit, formatterOptions)}
+                {ValueFormatter.formatValue(
+                  props.lastValue,
+                  rawUnit,
+                  formatterOptions,
+                )}
               </span>
             </div>
           )}

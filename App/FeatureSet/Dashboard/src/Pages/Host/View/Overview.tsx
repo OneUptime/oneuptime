@@ -300,17 +300,23 @@ const HostOverview: FunctionComponent<
        * every infra dashboard cares about by default.
        */
       /*
-       * Process count is read from `host.processCount` (already
-       * loaded above) rather than queried as a metric here. The
-       * raw `system.processes.count` series is partitioned by
-       * `process.status`, so an Avg without a state filter
-       * returns the mean of (running, sleeping, idle, …) — a
-       * meaningless number that disagrees with `top`. The cached
-       * field on Host is set by the ingest path from the same
-       * datapoints, summed across statuses, which matches what
-       * users expect.
+       * `system.processes.count` is partitioned by the `status`
+       * attribute (running / sleeping / blocked / idle / …). The
+       * tile shows only `running` because that's what tells you
+       * how much work is contending for CPU right now — the
+       * sleeping count dwarfs running and obscures that signal.
+       * The total (sum of all statuses) lives on
+       * `host.processCount`, surfaced as a sublabel for context.
        */
-      const [cpuUserResult, cpuSystemResult, memResult, fsResult, loadResult]: [
+      const [
+        cpuUserResult,
+        cpuSystemResult,
+        memResult,
+        fsResult,
+        loadResult,
+        runningProcResult,
+      ]: [
+        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -354,6 +360,14 @@ const HostOverview: FunctionComponent<
           aggregateBy: buildAggregateBy(
             "system.cpu.load_average.1m",
             AggregationType.Avg,
+          ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: buildAggregateBy(
+            "system.processes.count",
+            AggregationType.Avg,
+            { status: "running" },
           ),
         }),
       ]);
@@ -444,6 +458,7 @@ const HostOverview: FunctionComponent<
         memoryPercent: meanFromBuckets(memResult, 100),
         filesystemPercent: meanFromBuckets(fsResult, 100),
         load1m: latestFromBuckets(loadResult),
+        runningProcessCount: latestFromBuckets(runningProcResult),
       });
     } catch (err) {
       setStatsError(API.getFriendlyMessage(err));
@@ -642,10 +657,11 @@ const HostOverview: FunctionComponent<
 
     const cores: number | undefined = host?.cpuCores ?? undefined;
     const totalMem: number | undefined = host?.totalMemoryBytes ?? undefined;
-    const processCount: number | null =
+    const totalProcessCount: number | null =
       host?.processCount !== undefined && host?.processCount !== null
         ? Number(host.processCount)
         : null;
+    const runningProcessCount: number | null = s.runningProcessCount;
 
     const cpuSublabel: string | undefined =
       cores !== undefined
@@ -715,8 +731,16 @@ const HostOverview: FunctionComponent<
           title="Processes"
           icon={IconProp.List}
           iconColor="slate"
-          value={formatInt(processCount)}
-          sublabel={processCount !== null ? "total" : undefined}
+          value={formatInt(runningProcessCount)}
+          sublabel={(() => {
+            if (runningProcessCount === null) {
+              return undefined;
+            }
+            if (totalProcessCount !== null) {
+              return `running · ${totalProcessCount} total`;
+            }
+            return "running";
+          })()}
         />
       </div>
     );

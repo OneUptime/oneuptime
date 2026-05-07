@@ -674,22 +674,26 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const formatterOptions: { metricName: string } = {
         metricName: queryMetricName,
       };
-      // Show "%" on the y-axis legend for any percent-like metric — both
-      // OTel ratio names (`.utilization`, `.ratio`, …) reported with unit "1"
-      // and explicit percent units like "%", "percent", "percentage", "pct".
-      // Otherwise keep the raw unit code so other axes (e.g. "By", "ms") look
-      // unchanged.
+      /*
+       * Show "%" on the y-axis legend for any percent-like metric — both
+       * OTel ratio names (`.utilization`, `.ratio`, …) reported with unit "1"
+       * and explicit percent units like "%", "percent", "percentage", "pct".
+       * Otherwise keep the raw unit code so other axes (e.g. "By", "ms") look
+       * unchanged.
+       */
       const isFractionScale: boolean =
         unit === "1" && ValueFormatter.isFractionMetric(queryMetricName);
       const isPercentChart: boolean =
         isFractionScale || ValueFormatter.isPercentUnit(unit);
       const yAxisLegend: string = isPercentChart ? "%" : unit;
-      // Soft 0–100% range. Always show the full percent scale (so 25% looks
-      // like 25% of the axis, not a peak), but if a series exceeds 100%
-      // — e.g. summed-across-cores or mis-tagged data — expand to fit so
-      // nothing clips. Negative values likewise pull the floor below 0.
-      // The baseline differs by data scale: utilization metrics live in
-      // [0, 1], explicit percent units live in [0, 100].
+      /*
+       * Soft 0–100% range. Always show the full percent scale (so 25% looks
+       * like 25% of the axis, not a peak), but if a series exceeds 100%
+       * — e.g. summed-across-cores or mis-tagged data — expand to fit so
+       * nothing clips. Negative values likewise pull the floor below 0.
+       * The baseline differs by data scale: utilization metrics live in
+       * [0, 1], explicit percent units live in [0, 100].
+       */
       let yAxisMin: YScaleMaxMin = "auto";
       let yAxisMax: YScaleMaxMin = "auto";
       if (isPercentChart) {
@@ -913,7 +917,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   return queryConfig.yAxisValueFormatter(value);
                 }
 
-                return ValueFormatter.formatValue(value, unit, formatterOptions);
+                return ValueFormatter.formatValue(
+                  value,
+                  unit,
+                  formatterOptions,
+                );
               },
               precision: YAxisPrecision.NoDecimals,
               max: yAxisMax,
