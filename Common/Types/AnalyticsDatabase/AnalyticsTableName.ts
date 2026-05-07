@@ -7,6 +7,14 @@ enum AnalyticsTableName {
   Profile = "ProfileItemV2",
   ProfileSample = "ProfileSampleItemV2",
   AuditLog = "AuditLogV1",
+  /*
+   * Materialized-view target tables. These hold AggregateFunction
+   * states populated by attached MVs on the source `Metric` table.
+   * The `_mv` triggers themselves live in DataMigrations and are not
+   * named here (they aren't queried directly).
+   */
+  MetricItemAggMV1m = "MetricItemAggMV1m",
+  MetricBaselineHourly = "MetricBaselineHourly",
 }
 
 export default AnalyticsTableName;

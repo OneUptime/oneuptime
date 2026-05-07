@@ -905,15 +905,21 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
        */
       const keyStatement: string = column.key;
 
+      /*
+       * ClickHouse rejects `Nullable(AggregateFunction(...))`, so
+       * AggregateFunction columns always emit unwrapped — the engine
+       * already handles "no state yet" cases via the empty initial
+       * state of each aggregate function.
+       */
+      const isAggregateFunction: boolean =
+        column.type === TableColumnType.AggregateFunction;
       columns
         .append(keyStatement)
         .append(SQL` `)
         .append(
-          column.required
-            ? this.toColumnType(column.type)
-            : SQL`Nullable(`
-                .append(this.toColumnType(column.type))
-                .append(SQL`)`),
+          column.required || isAggregateFunction
+            ? this.toColumnType(column)
+            : SQL`Nullable(`.append(this.toColumnType(column)).append(SQL`)`),
         );
 
       // Append CODEC if specified
@@ -985,7 +991,23 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }[clickhouseType];
   }
 
-  public toColumnType(type: TableColumnType): Statement {
+  /**
+   * ClickHouse type fragment for a column. The full column object is
+   * passed in (not just the type) because parameterized types like
+   * `AggregateFunction(...)` need to read additional fields off the
+   * column. Scalar types ignore the rest of the column.
+   */
+  public toColumnType(column: AnalyticsTableColumn): Statement {
+    if (column.type === TableColumnType.AggregateFunction) {
+      const def: string | undefined = column.aggregateFunctionDefinition;
+      if (!def) {
+        throw new BadDataException(
+          `Column ${column.key} is AggregateFunction but missing aggregateFunctionDefinition.`,
+        );
+      }
+      return SQL`AggregateFunction(`.append(def).append(SQL`)`);
+    }
+
     const statement: Statement | undefined = {
       [TableColumnType.Text]: SQL`String`,
       [TableColumnType.ObjectID]: SQL`String`,
@@ -1005,11 +1027,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.LongNumber]: SQL`Int128`,
       [TableColumnType.BigNumber]: SQL`Int64`,
       [TableColumnType.MapStringString]: SQL`Map(String, String)`,
-    }[type];
+      [TableColumnType.UInt8]: SQL`UInt8`,
+    }[column.type];
 
     if (!statement) {
       throw new BadDataException(
-        `Unknown column type: ${type}. Please add support for this column type.`,
+        `Unknown column type: ${column.type}. Please add support for this column type.`,
       );
     }
 
@@ -1032,15 +1055,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // Build column definition without skip index (indexes must be added separately via ADD INDEX)
     const columnDef: Statement = new Statement();
 
+    const isAggregateFunction: boolean =
+      column.type === TableColumnType.AggregateFunction;
     columnDef
       .append(column.key)
       .append(SQL` `)
       .append(
-        column.required
-          ? this.toColumnType(column.type)
-          : SQL`Nullable(`
-              .append(this.toColumnType(column.type))
-              .append(SQL`)`),
+        column.required || isAggregateFunction
+          ? this.toColumnType(column)
+          : SQL`Nullable(`.append(this.toColumnType(column)).append(SQL`)`),
       );
 
     if (column.codec) {

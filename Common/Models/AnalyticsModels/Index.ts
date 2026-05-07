@@ -1,6 +1,8 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "./Log";
 import Metric from "./Metric";
+import MetricItemAggMV1m from "./MetricItemAggMV1m";
+import MetricBaselineHourly from "./MetricBaselineHourly";
 import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
 import MonitorLog from "./MonitorLog";
@@ -11,6 +13,12 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Log,
   Span,
   Metric,
+  /*
+   * Materialized-view target tables. AggregatingMergeTree engine; rows
+   * are populated by attached MVs on `Metric` insert. Read-only.
+   */
+  MetricItemAggMV1m,
+  MetricBaselineHourly,
   ExceptionInstance,
   MonitorLog,
   Profile,

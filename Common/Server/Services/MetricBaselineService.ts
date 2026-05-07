@@ -1,4 +1,6 @@
-import MetricService from "./MetricService";
+import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
+import MetricBaselineHourly from "../../Models/AnalyticsModels/MetricBaselineHourly";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ObjectID from "../../Types/ObjectID";
 
@@ -42,7 +44,27 @@ export interface BandPoint {
   expectedLow: number;
 }
 
-export class MetricBaselineService {
+/**
+ * Read-side service for the `MetricBaselineHourly` MV target table.
+ *
+ * The table itself is declared by the {@link MetricBaselineHourly}
+ * model and created either by app startup auto-create or by the
+ * `AddMetricBaselineHourlyMV` data migration (whichever runs first —
+ * both are idempotent). Rows are populated by the attached MV; this
+ * service only reads.
+ *
+ * Callers use this service through:
+ *   - `getBaseline(...)`     — single (metric, hour-of-week) cell.
+ *   - `getCoverage(...)`     — total samples & oldest day for a metric.
+ *   - `getBandSeries(...)`   — chart band data over a time window.
+ *   - `computeHourOfWeek()`  — pure helper kept here so the eval-time
+ *                              and MV-write-time formulas stay aligned.
+ */
+export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaselineHourly> {
+  public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
+    super({ modelType: MetricBaselineHourly, database: clickhouseDatabase });
+  }
+
   /**
    * Default minimum samples per (hour-of-week) cell to call a baseline
    * reliable. Below this, callers treat the baseline as cold-start.
@@ -124,7 +146,7 @@ export class MetricBaselineService {
           maxObserved: number | string;
         }>;
       }>;
-    } = (await MetricService.executeQuery(sql)) as unknown as {
+    } = (await this.executeQuery(sql)) as unknown as {
       json: () => Promise<{
         data: Array<{
           sampleCount: number | string;
@@ -215,7 +237,7 @@ export class MetricBaselineService {
       json: () => Promise<{
         data: Array<{ totalSamples: number | string; oldestDay: string }>;
       }>;
-    } = (await MetricService.executeQuery(sql)) as unknown as {
+    } = (await this.executeQuery(sql)) as unknown as {
       json: () => Promise<{
         data: Array<{ totalSamples: number | string; oldestDay: string }>;
       }>;
@@ -302,7 +324,7 @@ export class MetricBaselineService {
           stddev: number | string;
         }>;
       }>;
-    } = (await MetricService.executeQuery(sql)) as unknown as {
+    } = (await this.executeQuery(sql)) as unknown as {
       json: () => Promise<{
         data: Array<{
           hourOfWeek: number | string;

@@ -40,6 +40,8 @@ import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
+import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
+import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
 import MonitorGroupOwnerUserService from "./MonitorGroupOwnerUserService";
@@ -444,6 +446,13 @@ export const AnalyticsServices: Array<
   LogService,
   SpanService,
   MetricService,
+  /*
+   * Materialized-view target tables. The auto-create flow runs
+   * `CREATE TABLE IF NOT EXISTS` for these, idempotent with the legacy
+   * DataMigrations that also create them. Both kept for backward compat.
+   */
+  MetricItemAggMV1mService,
+  MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,
   ProfileService,

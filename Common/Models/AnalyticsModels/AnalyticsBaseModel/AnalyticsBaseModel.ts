@@ -33,7 +33,13 @@ export default class AnalyticsBaseModel extends CommonModel {
     pluralName: string;
     tableEngine?: AnalyticsTableEngine | undefined;
     tableColumns: Array<AnalyticsTableColumn>;
-    crudApiPath: Route;
+    /*
+     * REST CRUD API base path. Optional — internal-only tables (e.g.
+     * MV target tables that no UI ever queries directly) may omit it.
+     * Models without a `crudApiPath` are skipped by the API and MCP
+     * tool generators.
+     */
+    crudApiPath?: Route | undefined;
     allowAccessIfSubscriptionIsUnpaid?: boolean | undefined;
     tableBillingAccessControl?: TableBillingAccessControl | undefined;
     accessControl?: TableAccessControl | undefined;
@@ -252,11 +258,11 @@ export default class AnalyticsBaseModel extends CommonModel {
     this._tableName = v;
   }
 
-  private _crudApiPath!: Route;
-  public get crudApiPath(): Route {
+  private _crudApiPath: Route | undefined;
+  public get crudApiPath(): Route | undefined {
     return this._crudApiPath;
   }
-  public set crudApiPath(v: Route) {
+  public set crudApiPath(v: Route | undefined) {
     this._crudApiPath = v;
   }
 
