@@ -192,10 +192,10 @@ Logs: \`docker logs -f otel-collector\`.
 ## Step 2 — Install the .deb package (Debian / Ubuntu)
 
 \`\`\`bash
-VERSION=0.115.0
+VERSION=0.151.0
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
-curl -L -o /tmp/otelcol-contrib.deb \\
+curl -fL -o /tmp/otelcol-contrib.deb \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.deb
 sudo dpkg -i /tmp/otelcol-contrib.deb
 
@@ -217,10 +217,10 @@ Releases are published at <https://github.com/open-telemetry/opentelemetry-colle
 ## Step 2 — Install the .rpm package (RHEL / Fedora / CentOS / Amazon Linux)
 
 \`\`\`bash
-VERSION=0.115.0
+VERSION=0.151.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
-curl -L -o /tmp/otelcol-contrib.rpm \\
+curl -fL -o /tmp/otelcol-contrib.rpm \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.rpm
 sudo rpm -Uvh /tmp/otelcol-contrib.rpm
 
@@ -242,10 +242,10 @@ Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 Use this when packages aren't available — Alpine, NixOS, locked-down servers, or container base images you want to instrument from outside.
 
 \`\`\`bash
-VERSION=0.115.0
+VERSION=0.151.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
-curl -L -o /tmp/otelcol.tar.gz \\
+curl -fL -o /tmp/otelcol.tar.gz \\
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.tar.gz
 
 sudo mkdir -p /opt/otelcol-contrib
@@ -309,11 +309,11 @@ Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path var
 Run from an elevated PowerShell prompt:
 
 \`\`\`powershell
-$VERSION = "0.115.0"
+$VERSION = "0.151.0"
 $msi = "$env:TEMP\\otelcol-contrib.msi"
 
 Invoke-WebRequest \`
-  -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_\${VERSION}_windows_amd64.msi" \`
+  -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_\${VERSION}_windows_x64.msi" \`
   -OutFile $msi
 
 Start-Process msiexec.exe -ArgumentList "/i", "$msi", "/quiet" -Wait
