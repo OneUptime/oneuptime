@@ -480,8 +480,20 @@ const MetricsViewer: FunctionComponent<Props> = (
   }, [metricQuery, page, pageSize]);
 
   useEffect(() => {
+    /*
+     * When attribute filters are active, defer the metric list fetch until the
+     * attribute → name match has resolved. Otherwise the first pass would query
+     * with no name restriction and briefly render the unfiltered list before
+     * snapping to the filtered one.
+     */
+    const hasEffectiveAttributes: boolean =
+      Object.keys(effectiveAttributes).length > 0;
+    if (hasEffectiveAttributes && attributeMatchedNames === null) {
+      setIsLoading(true);
+      return;
+    }
     void fetchMetrics();
-  }, [fetchMetrics]);
+  }, [fetchMetrics, effectiveAttributes, attributeMatchedNames]);
 
   // Batch-fetch sparklines for visible metric names
   const visibleNames: Array<string> = useMemo(() => {
@@ -514,8 +526,8 @@ const MetricsViewer: FunctionComponent<Props> = (
           projectId,
           name: new Includes(visibleNames),
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          ...(Object.keys(parsedSearch.attributes).length > 0
-            ? { attributes: parsedSearch.attributes }
+          ...(Object.keys(effectiveAttributes).length > 0
+            ? { attributes: effectiveAttributes }
             : {}),
         } as Query<Metric>;
 
@@ -600,7 +612,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchSparklines();
-  }, [visibleNames, timeRange, parsedSearch.attributes]);
+  }, [visibleNames, timeRange, effectiveAttributes]);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
