@@ -14,6 +14,7 @@ enum AnalyticsTableName {
    * named here (they aren't queried directly).
    */
   MetricItemAggMV1m = "MetricItemAggMV1m",
+  MetricItemAggMV1mByHost = "MetricItemAggMV1mByHost",
   MetricBaselineHourly = "MetricBaselineHourly",
 }
 
