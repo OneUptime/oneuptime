@@ -302,6 +302,7 @@ import { AddHostTables1778006035712 } from "./1778006035712-AddHostTables";
 import { AddHostIpAddresses1778013317872 } from "./1778013317872-AddHostIpAddresses";
 import { WidenHostOsVersionToLongText1778066346303 } from "./1778066346303-WidenHostOsVersionToLongText";
 import { MigrationName1778070278986 } from "./1778070278986-MigrationName";
+import { DedupeServicesAndAddUniqueIndex1778100000000 } from "./1778100000000-DedupeServicesAndAddUniqueIndex";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -607,4 +608,5 @@ export default [
   AddHostIpAddresses1778013317872,
   WidenHostOsVersionToLongText1778066346303,
   MigrationName1778070278986,
+  DedupeServicesAndAddUniqueIndex1778100000000,
 ];

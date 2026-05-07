@@ -22,6 +22,8 @@ enum DashboardComponentType {
   DockerImageList = `DockerImageList`,
   DockerNetworkList = `DockerNetworkList`,
   DockerVolumeList = `DockerVolumeList`,
+  HostList = `HostList`,
+  HostMetricChart = `HostMetricChart`,
 }
 
 export default DashboardComponentType;

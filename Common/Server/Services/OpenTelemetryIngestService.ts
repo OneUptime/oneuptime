@@ -11,6 +11,7 @@ import ServiceService from "../../Server/Services/ServiceService";
 import { DEFAULT_RETENTION_IN_DAYS } from "../../Models/DatabaseModels/TelemetryUsageBilling";
 import TelemetryUtil from "../../Server/Utils/Telemetry/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -51,6 +52,15 @@ export default class OTelIngestService {
     serviceId: ObjectID;
     dataRententionInDays: number;
   }> {
+    /*
+     * Sort by createdAt ASC for deterministic resolution if the
+     * DB ever ends up with duplicates (defense in depth — the
+     * unique index on (projectId, name) added in
+     * DedupeServicesAndAddUniqueIndex1778100000000 prevents new
+     * ones from forming, and converts concurrent first-contact
+     * inserts into unique-violation errors that the catch block
+     * below resolves to the winning row).
+     */
     const service: Service | null = await ServiceService.findOneBy({
       query: {
         projectId: data.projectId,
@@ -59,6 +69,9 @@ export default class OTelIngestService {
       select: {
         _id: true,
         retainTelemetryDataForDays: true,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
       },
       props: {
         isRoot: true,
@@ -89,7 +102,7 @@ export default class OTelIngestService {
       } catch {
         /*
          * Race condition: another request created the service concurrently.
-         * Re-fetch the existing service.
+         * Re-fetch the existing service (oldest wins, see sort above).
          */
         const existingService: Service | null = await ServiceService.findOneBy({
           query: {
@@ -99,6 +112,9 @@ export default class OTelIngestService {
           select: {
             _id: true,
             retainTelemetryDataForDays: true,
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
           },
           props: {
             isRoot: true,

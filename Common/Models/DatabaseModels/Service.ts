@@ -80,6 +80,17 @@ import {
 })
 @CrudApiEndpoint(new Route("/service"))
 @SlugifyColumn("name", "slug")
+/*
+ * Enforce one Service row per (projectId, name) at the DB level.
+ * Without this, parallel OTel scope batches arriving from a brand-new
+ * source within the same project all miss telemetryServiceFromName's
+ * findOneBy on first contact and each create their own row, producing
+ * duplicate "host/<hostname>" (or other auto-synthesized) services.
+ * The DB constraint converts the race into a unique-violation error
+ * that the service layer's catch-and-refetch path resolves to the
+ * winning row.
+ */
+@Index(["projectId", "name"], { unique: true })
 @TableMetadata({
   tableName: "Service",
   singularName: "Service",

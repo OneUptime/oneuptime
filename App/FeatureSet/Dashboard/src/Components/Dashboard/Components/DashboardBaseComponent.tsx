@@ -28,6 +28,8 @@ import DashboardDockerContainerListComponentType from "Common/Types/Dashboard/Da
 import DashboardDockerImageListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerImageListComponent";
 import DashboardDockerNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerVolumeListComponent";
+import DashboardHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHostListComponent";
+import DashboardHostMetricChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHostMetricChartComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -52,6 +54,8 @@ import DashboardDockerContainerListComponent from "./DashboardDockerContainerLis
 import DashboardDockerImageListComponent from "./DashboardDockerImageListComponent";
 import DashboardDockerNetworkListComponent from "./DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponent from "./DashboardDockerVolumeListComponent";
+import DashboardHostListComponent from "./DashboardHostListComponent";
+import DashboardHostMetricChartComponent from "./DashboardHostMetricChartComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -800,6 +804,22 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardDockerVolumeListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.HostList && (
+          <DashboardHostListComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardHostListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.HostMetricChart && (
+          <DashboardHostMetricChartComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardHostMetricChartComponentType}
           />
         )}
       </div>

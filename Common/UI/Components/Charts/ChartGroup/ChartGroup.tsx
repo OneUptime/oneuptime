@@ -211,7 +211,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                               <span className="inline-flex items-center rounded bg-gray-200 px-2 py-0.5 text-xs font-mono text-gray-700">
                                 {key}
                               </span>
-                              <span className="text-gray-400">=</span>
                               <span className="text-xs text-gray-900 font-mono">
                                 {attributes[key]}
                               </span>
