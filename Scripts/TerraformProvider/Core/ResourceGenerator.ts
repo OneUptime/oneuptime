@@ -9,6 +9,15 @@ import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
 import { ObjectType } from "Common/Types/JSON";
+import path from "path";
+
+/*
+ * StaticFiles holds Go source we copy verbatim into the generated provider
+ * tree. Editing these as real .go files (rather than embedded TS template
+ * literals) gives full Go tooling — syntax highlighting, gofmt, go test —
+ * and avoids backtick-escaping the JSON fixtures inside the test file.
+ */
+const STATIC_FILES_DIR: string = path.join(__dirname, "..", "StaticFiles");
 
 export class ResourceGenerator {
   private spec: OpenAPISpec;
@@ -28,18 +37,11 @@ export class ResourceGenerator {
     /*
      * Emit shared helpers used across all resources (JSON subset semantic
      * equality for complex JSON string fields), plus the unit tests that
-     * pin its behavior to the framework's actual call convention.
+     * pin its behavior to the framework's actual call convention. Both come
+     * straight from StaticFiles/ — they're plain Go, not generated.
      */
-    await this.fileGenerator.writeFileInDir(
-      "internal/provider",
-      "jsonsubset.go",
-      this.generateJSONSubsetFile(),
-    );
-    await this.fileGenerator.writeFileInDir(
-      "internal/provider",
-      "jsonsubset_test.go",
-      this.generateJSONSubsetTestFile(),
-    );
+    await this.copyStaticFile("jsonsubset.go", "internal/provider");
+    await this.copyStaticFile("jsonsubset_test.go", "internal/provider");
 
     // Generate each resource
     for (const resource of resources) {
@@ -51,288 +53,18 @@ export class ResourceGenerator {
   }
 
   /*
-   * Emits internal/provider/jsonsubset.go — a custom string type whose
-   * semantic-equality treats two JSON values as equal when every leaf in the
-   * planned value is present (with the same value) in the actual value. This
-   * is what we use for every complex-JSON string field, so server-added
-   * defaults (e.g. MonitorCriteriaInstance.isEnabled = true) round-trip
-   * cleanly without the framework reporting "Provider produced inconsistent
-   * result after apply" or perpetual plan drift.
+   * Copies a Go file from StaticFiles/ verbatim into the generated provider
+   * tree. Used for `jsonsubset.go` and `jsonsubset_test.go` — these are real
+   * Go files (not generated), so we keep gofmt/IDE support and don't have to
+   * embed multi-line Go inside TypeScript template literals.
    */
-  private generateJSONSubsetFile(): string {
-    return `package provider
-
-import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "reflect"
-
-    "github.com/hashicorp/terraform-plugin-framework/attr"
-    "github.com/hashicorp/terraform-plugin-framework/diag"
-    "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-    "github.com/hashicorp/terraform-plugin-go/tftypes"
-)
-
-// JSONSubsetType is a Plugin Framework string type for complex-JSON fields.
-// Its semantic-equality returns true when the planned JSON is a structural
-// subset of the actual JSON: same shape, same scalars at every leaf, but the
-// actual side may have additional keys filled in by the server (e.g. defaults).
-// This prevents "Provider produced inconsistent result after apply" without
-// having to teach the provider about every server-side default.
-type JSONSubsetType struct {
-    basetypes.StringType
-}
-
-var _ basetypes.StringTypable = JSONSubsetType{}
-
-func (t JSONSubsetType) Equal(o attr.Type) bool {
-    other, ok := o.(JSONSubsetType)
-    if !ok {
-        return false
-    }
-    return t.StringType.Equal(other.StringType)
-}
-
-func (t JSONSubsetType) String() string {
-    return "JSONSubsetType"
-}
-
-func (t JSONSubsetType) ValueType(_ context.Context) attr.Value {
-    return JSONSubsetValue{}
-}
-
-func (t JSONSubsetType) ValueFromString(_ context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
-    return JSONSubsetValue{StringValue: in}, nil
-}
-
-func (t JSONSubsetType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-    val, err := t.StringType.ValueFromTerraform(ctx, in)
-    if err != nil {
-        return nil, err
-    }
-    sv, ok := val.(basetypes.StringValue)
-    if !ok {
-        return nil, fmt.Errorf("unexpected base value type: %T", val)
-    }
-    return JSONSubsetValue{StringValue: sv}, nil
-}
-
-// JSONSubsetValue is the value half of JSONSubsetType. It embeds the standard
-// StringValue, so all the usual accessors (ValueString, IsNull, IsUnknown)
-// keep working without change at call sites.
-type JSONSubsetValue struct {
-    basetypes.StringValue
-}
-
-var _ basetypes.StringValuableWithSemanticEquals = JSONSubsetValue{}
-
-func (v JSONSubsetValue) Type(_ context.Context) attr.Type {
-    return JSONSubsetType{}
-}
-
-func (v JSONSubsetValue) Equal(o attr.Value) bool {
-    other, ok := o.(JSONSubsetValue)
-    if !ok {
-        return false
-    }
-    return v.StringValue.Equal(other.StringValue)
-}
-
-// StringSemanticEquals reports the new state and the prior planned value as
-// equal when the planned JSON is a structural subset of the new-state JSON.
-//
-// The Plugin Framework invokes this as
-// proposedNewValuable.StringSemanticEquals(ctx, priorValuable), so the
-// receiver (newState below) is the post-apply / refreshed value and the
-// argument (plan) is the prior planned value. We treat them as equal iff
-// plan ⊆ newState — i.e. the only difference is keys the server filled in
-// as defaults.
-func (v JSONSubsetValue) StringSemanticEquals(_ context.Context, priorValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
-    var diags diag.Diagnostics
-    newState := v
-    plan, ok := priorValuable.(JSONSubsetValue)
-    if !ok {
-        return false, diags
-    }
-    // Null/unknown is a byte-level concept; subset semantics don't apply.
-    if newState.IsNull() || newState.IsUnknown() || plan.IsNull() || plan.IsUnknown() {
-        return newState.StringValue.Equal(plan.StringValue), diags
-    }
-    // Identical strings are trivially equal — skip the JSON parse.
-    if newState.StringValue.Equal(plan.StringValue) {
-        return true, diags
-    }
-    // For values that aren't JSON (color codes, base64, etc.) byte equality
-    // is the only meaningful comparison, and it already failed above.
-    var planJSON, stateJSON interface{}
-    if json.Unmarshal([]byte(plan.ValueString()), &planJSON) != nil {
-        return false, diags
-    }
-    if json.Unmarshal([]byte(newState.ValueString()), &stateJSON) != nil {
-        return false, diags
-    }
-    return jsonIsSubset(planJSON, stateJSON), diags
-}
-
-// NewJSONSubsetNull returns a typed null value.
-func NewJSONSubsetNull() JSONSubsetValue {
-    return JSONSubsetValue{StringValue: basetypes.NewStringNull()}
-}
-
-// NewJSONSubsetUnknown returns a typed unknown value.
-func NewJSONSubsetUnknown() JSONSubsetValue {
-    return JSONSubsetValue{StringValue: basetypes.NewStringUnknown()}
-}
-
-// NewJSONSubsetValue wraps a concrete string.
-func NewJSONSubsetValue(s string) JSONSubsetValue {
-    return JSONSubsetValue{StringValue: basetypes.NewStringValue(s)}
-}
-
-// jsonIsSubset returns true when every leaf in plan exists with the same
-// value in actual. Maps: every key in plan must exist in actual (with a
-// subset value); actual may have extra keys. Slices: same length, positional
-// subset comparison. Scalars: reflect.DeepEqual.
-func jsonIsSubset(plan, actual interface{}) bool {
-    switch p := plan.(type) {
-    case map[string]interface{}:
-        a, ok := actual.(map[string]interface{})
-        if !ok {
-            return false
-        }
-        for key, pv := range p {
-            av, exists := a[key]
-            if !exists {
-                return false
-            }
-            if !jsonIsSubset(pv, av) {
-                return false
-            }
-        }
-        return true
-    case []interface{}:
-        a, ok := actual.([]interface{})
-        if !ok {
-            return false
-        }
-        if len(p) != len(a) {
-            return false
-        }
-        for i := range p {
-            if !jsonIsSubset(p[i], a[i]) {
-                return false
-            }
-        }
-        return true
-    default:
-        return reflect.DeepEqual(plan, actual)
-    }
-}
-`;
-  }
-
-  /*
-   * Emits internal/provider/jsonsubset_test.go — pins JSONSubsetValue's
-   * semantic equality to the Plugin Framework's actual call convention
-   * (proposedNewValuable.StringSemanticEquals(ctx, priorValuable)). The
-   * generated provider tree is gitignored, so the only way these tests reach
-   * CI is by being regenerated alongside jsonsubset.go.
-   */
-  private generateJSONSubsetTestFile(): string {
-    return `package provider
-
-import (
-    "context"
-    "testing"
-)
-
-// The Plugin Framework calls StringSemanticEquals as
-// proposedNewValuable.StringSemanticEquals(ctx, priorValuable) — receiver is
-// the post-apply server value, argument is the prior planned value. All tests
-// below mirror that convention.
-
-// Replays a "was" / "now" payload pattern from real CI failures (the server
-// adds MonitorCriteriaInstance.isEnabled = true on create) and confirms
-// JSONSubsetValue.StringSemanticEquals reports them equal so the framework
-// absorbs the server default instead of raising "Provider produced
-// inconsistent result after apply".
-func TestStringSemanticEquals_AbsorbsServerIsEnabledDefault(t *testing.T) {
-    planned := \`{"_type":"MonitorSteps","value":{"monitorStepsInstanceArray":[{"_type":"MonitorStep","value":{"id":"step-ping-1","monitorCriteria":{"_type":"MonitorCriteria","value":{"monitorCriteriaInstanceArray":[{"_type":"MonitorCriteriaInstance","value":{"alerts":[],"changeMonitorStatus":true,"createAlerts":false,"createIncidents":false,"description":"Host responds to ping","filterCondition":"All","filters":[{"_type":"CriteriaFilter","value":{"checkOn":"Is Online","filterType":"True"}}],"id":"criteria-ping-online","incidents":[],"monitorStatusId":"5944e59e-1ce5-4122-95e0-53f102d76920","name":"Ping Success"}}]}},"monitorDestination":{"_type":"Hostname","value":"google.com"},"requestType":"GET"}}]}}\`
-    actual := \`{"_type":"MonitorSteps","value":{"monitorStepsInstanceArray":[{"_type":"MonitorStep","value":{"id":"step-ping-1","monitorCriteria":{"_type":"MonitorCriteria","value":{"monitorCriteriaInstanceArray":[{"_type":"MonitorCriteriaInstance","value":{"alerts":[],"changeMonitorStatus":true,"createAlerts":false,"createIncidents":false,"description":"Host responds to ping","filterCondition":"All","filters":[{"_type":"CriteriaFilter","value":{"checkOn":"Is Online","filterType":"True"}}],"id":"criteria-ping-online","incidents":[],"isEnabled":true,"monitorStatusId":"5944e59e-1ce5-4122-95e0-53f102d76920","name":"Ping Success"}}]}},"monitorDestination":{"_type":"Hostname","value":"google.com"},"requestType":"GET"}}]}}\`
-
-    plannedV := NewJSONSubsetValue(planned)
-    actualV := NewJSONSubsetValue(actual)
-    eq, diags := actualV.StringSemanticEquals(context.Background(), plannedV)
-    if diags.HasError() {
-        t.Fatalf("unexpected diagnostics: %v", diags)
-    }
-    if !eq {
-        t.Fatal("expected actual (with isEnabled:true) ≡ planned (no isEnabled) under subset semantics")
-    }
-}
-
-func TestStringSemanticEquals_DetectsRealDiffs(t *testing.T) {
-    plan := NewJSONSubsetValue(\`{"_type":"MonitorCriteriaInstance","value":{"isEnabled":true,"name":"x"}}\`)
-    actual := NewJSONSubsetValue(\`{"_type":"MonitorCriteriaInstance","value":{"isEnabled":false,"name":"x"}}\`)
-    eq, _ := actual.StringSemanticEquals(context.Background(), plan)
-    if eq {
-        t.Fatal("expected differing scalar leaves to be unequal")
-    }
-}
-
-func TestStringSemanticEquals_PlanDroppedKeyIsEqualWhenServerKeepsIt(t *testing.T) {
-    // User removes a key from HCL; server still has it. With subset semantics
-    // the planned value (a subset of state) is treated as equal — the server
-    // would re-default it anyway, so no destructive plan churn.
-    plan := NewJSONSubsetValue(\`{"a":1}\`)
-    actual := NewJSONSubsetValue(\`{"a":1,"b":2}\`)
-    eq, _ := actual.StringSemanticEquals(context.Background(), plan)
-    if !eq {
-        t.Fatal("expected actual (superset) ≡ plan (subset)")
-    }
-}
-
-func TestStringSemanticEquals_NewKeyInPlanDifferentFromState(t *testing.T) {
-    // User adds a key the server hasn't seen yet — this MUST diff so apply runs.
-    plan := NewJSONSubsetValue(\`{"a":1,"b":2}\`)
-    actual := NewJSONSubsetValue(\`{"a":1}\`)
-    eq, _ := actual.StringSemanticEquals(context.Background(), plan)
-    if eq {
-        t.Fatal("expected new key in plan to be unequal to state without it")
-    }
-}
-
-func TestStringSemanticEquals_NullEquality(t *testing.T) {
-    a := NewJSONSubsetNull()
-    b := NewJSONSubsetNull()
-    eq, _ := a.StringSemanticEquals(context.Background(), b)
-    if !eq {
-        t.Fatal("two null values must be equal")
-    }
-    c := NewJSONSubsetValue(\`{"a":1}\`)
-    eq, _ = a.StringSemanticEquals(context.Background(), c)
-    if eq {
-        t.Fatal("null and concrete value must be unequal")
-    }
-}
-
-func TestStringSemanticEquals_NonJSONFallsBackToByteEquality(t *testing.T) {
-    // Some \`string + isComplexObject\` fields can carry non-JSON values
-    // (color codes, base64). For those the type degrades to plain equality.
-    a := NewJSONSubsetValue(\`#FF0000\`)
-    b := NewJSONSubsetValue(\`#FF0000\`)
-    eq, _ := a.StringSemanticEquals(context.Background(), b)
-    if !eq {
-        t.Fatal("identical non-JSON strings must be equal")
-    }
-    c := NewJSONSubsetValue(\`#00FF00\`)
-    eq, _ = a.StringSemanticEquals(context.Background(), c)
-    if eq {
-        t.Fatal("differing non-JSON strings must be unequal")
-    }
-}
-`;
+  private async copyStaticFile(
+    fileName: string,
+    targetDir: string,
+  ): Promise<void> {
+    const sourcePath: string = path.join(STATIC_FILES_DIR, fileName);
+    const content: string = this.fileGenerator.readTemplateFile(sourcePath);
+    await this.fileGenerator.writeFileInDir(targetDir, fileName, content);
   }
 
   private async generateResource(resource: TerraformResource): Promise<void> {
