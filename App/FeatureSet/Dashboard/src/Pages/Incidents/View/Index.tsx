@@ -552,6 +552,9 @@ const IncidentView: FunctionComponent<
               },
               title: "Hosts Affected",
               fieldType: FieldType.Element,
+              showIf: (item: Incident): boolean => {
+                return Boolean(item["hosts"] && item["hosts"].length > 0);
+              },
               getElement: (item: Incident): ReactElement => {
                 return <HostsElement hosts={item["hosts"] || []} />;
               },
