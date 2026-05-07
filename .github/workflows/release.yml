@@ -1416,13 +1416,17 @@ jobs:
         with:
           configuration: "./Scripts/Release/ChangelogConfig.json"
       - run: echo "Changelog:"
-      - run: echo "${{steps.build_changelog.outputs.changelog}}"
+      - name: Print changelog
+        env:
+          CHANGELOG_CONTENT: ${{steps.build_changelog.outputs.changelog}}
+        run: printf '%s\n' "$CHANGELOG_CONTENT"
       - name: Fallback to commit messages if changelog empty
         id: fallback_changelog
         shell: bash
+        env:
+          CHANGELOG_CONTENT: ${{steps.build_changelog.outputs.changelog}}
         run: |
           set -euo pipefail
-          CHANGELOG_CONTENT="${{steps.build_changelog.outputs.changelog}}"
           OLD_PLACEHOLDER="No significant changes were made. We have just fixed minor bugs for this release. You can find the detailed information in the commit history."
           NEW_PLACEHOLDER="(auto) No categorized pull requests. Fallback will list raw commit messages."
           if echo "$CHANGELOG_CONTENT" | grep -Fq "$OLD_PLACEHOLDER" || echo "$CHANGELOG_CONTENT" | grep -Fq "$NEW_PLACEHOLDER"; then
