@@ -3,7 +3,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import OsVersionDisplay from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
+import OsVersionDisplay, {
+  getOsVersionPrimary,
+} from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -300,10 +302,15 @@ const DockerHostOverview: FunctionComponent<
       });
     }
     if (host.osVersion) {
-      specChips.push({
-        icon: IconProp.Info,
-        label: String(host.osVersion),
-      });
+      const osVersionLabel: string = getOsVersionPrimary(
+        String(host.osVersion),
+      );
+      if (osVersionLabel) {
+        specChips.push({
+          icon: IconProp.Info,
+          label: osVersionLabel,
+        });
+      }
     }
 
     const statusBadgeClass: string = isConnected

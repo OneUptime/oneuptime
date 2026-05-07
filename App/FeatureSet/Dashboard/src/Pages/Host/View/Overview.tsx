@@ -2,8 +2,11 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import OsVersionDisplay from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
+import Detail from "Common/UI/Components/Detail/Detail";
+import DetailField from "Common/UI/Components/Detail/Field";
+import OsVersionDisplay, {
+  getOsVersionPrimary,
+} from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -197,6 +200,7 @@ const HostOverview: FunctionComponent<
         id: modelId,
         select: {
           name: true,
+          description: true,
           hostIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
@@ -205,6 +209,7 @@ const HostOverview: FunctionComponent<
           containerRuntime: true,
           cpuCores: true,
           totalMemoryBytes: true,
+          processCount: true,
           osType: true,
           osVersion: true,
           hostArch: true,
@@ -492,10 +497,15 @@ const HostOverview: FunctionComponent<
       });
     }
     if (host.osVersion) {
-      specChips.push({
-        icon: IconProp.Info,
-        label: String(host.osVersion),
-      });
+      const osVersionLabel: string = getOsVersionPrimary(
+        String(host.osVersion),
+      );
+      if (osVersionLabel) {
+        specChips.push({
+          icon: IconProp.Info,
+          label: osVersionLabel,
+        });
+      }
     }
     if (host.hostArch) {
       specChips.push({

@@ -103,6 +103,15 @@ const parseOsVersion: (raw: string) => OsVersionParts = (
   return { primary: text };
 };
 
+export const getOsVersionPrimary: (raw: string) => string = (
+  raw: string,
+): string => {
+  if (!raw || raw.trim() === "") {
+    return "";
+  }
+  return parseOsVersion(raw).primary;
+};
+
 const OsVersionDisplay: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
