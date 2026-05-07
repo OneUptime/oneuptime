@@ -592,7 +592,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title="Sensitivity"
-                description="Lower sensitivity = larger expected range, fewer alerts. Compares each sample to the same-hour-of-week baseline over the last 14 days."
+                description="Lower sensitivity = larger expected range, fewer alerts. Compares each sample to the same-hour-of-week baseline computed from the configured Baseline Window below."
               />
               <Dropdown
                 value={(() => {
@@ -642,10 +642,58 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   });
                 }}
               />
+              <div className="mt-3">
+                <FieldLabelElement
+                  title="Baseline Window"
+                  description="How many days of history to compare against. Longer windows capture monthly seasonality (billing/payroll cycles); shorter windows respond faster to genuine drift in the underlying metric."
+                />
+                <Dropdown
+                  value={(() => {
+                    const days: number =
+                      criteriaFilter?.metricMonitorOptions?.anomalyDetection
+                        ?.windowDays || 14;
+                    return {
+                      value: days,
+                      label:
+                        days === 14
+                          ? "14 days (default)"
+                          : days === 28
+                            ? "28 days (longer warm-up, smoother)"
+                            : days === 60
+                              ? "60 days (monthly seasonality)"
+                              : days === 90
+                                ? "90 days (quarterly cycles)"
+                                : `${days} days`,
+                    };
+                  })()}
+                  options={[
+                    { value: 14, label: "14 days (default)" },
+                    { value: 28, label: "28 days (longer warm-up, smoother)" },
+                    { value: 60, label: "60 days (monthly seasonality)" },
+                    { value: 90, label: "90 days (quarterly cycles)" },
+                  ]}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    const parsed: number = Number(value?.toString() || "14");
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      metricMonitorOptions: {
+                        ...criteriaFilter?.metricMonitorOptions,
+                        anomalyDetection: {
+                          ...criteriaFilter?.metricMonitorOptions
+                            ?.anomalyDetection,
+                          windowDays: Number.isFinite(parsed) ? parsed : 14,
+                        },
+                      },
+                    });
+                  }}
+                />
+              </div>
               <p className="mt-2 text-xs text-gray-500">
-                Anomaly detection requires at least 14 days of metric history —
-                rules will not fire (&quot;Learning&quot; state) until that
-                threshold is met.
+                Anomaly detection requires at least the chosen window of metric
+                history before firing — until then the rule sits in
+                &quot;Learning&quot; state and produces no alerts.
               </p>
             </div>
           )}

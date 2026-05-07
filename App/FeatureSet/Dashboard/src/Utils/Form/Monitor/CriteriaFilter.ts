@@ -97,13 +97,16 @@ export default class CriteriaFilterUtil {
         (criteriaFilter?.metricMonitorOptions?.anomalyDetection?.sensitivity as
           | AnomalyDetectionSensitivity
           | undefined) || AnomalyDetectionSensitivity.Medium;
+      const windowDays: number =
+        criteriaFilter?.metricMonitorOptions?.anomalyDetection?.windowDays ||
+        14;
       const direction: string =
         criteriaFilter?.filterType === FilterType.AnomalouslyHigh
           ? "anomalously high"
           : criteriaFilter?.filterType === FilterType.AnomalouslyLow
             ? "anomalously low"
             : "anomalous (either direction)";
-      text += `"${criteriaFilter?.checkOn.toString()}" is ${direction} (sensitivity: ${sensitivity})`;
+      text += `"${criteriaFilter?.checkOn.toString()}" is ${direction} (sensitivity: ${sensitivity}, baseline window: ${windowDays} days)`;
       if (filterCondition === FilterCondition.All) {
         text += " and,";
       }

@@ -16,8 +16,8 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * time via the matching `*Merge()`.
  *
  * Read access goes through `MetricBaselineService`, which folds across
- * a configurable rolling window (default 14 days, max 28 — capped by
- * the table's `day + INTERVAL 28 DAY` TTL) and per `hourOfWeek`. The
+ * a configurable rolling window (default 14 days, max 90 — capped by
+ * the table's `day + INTERVAL 90 DAY` TTL) and per `hourOfWeek`. The
  * 168 hour-of-week buckets capture both daily and weekly seasonality
  * (Mon 09:00 → 8, Sun 23:00 → 167) using ISO week numbering.
  *
@@ -179,7 +179,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       sortKeys: ["projectId", "name", "serviceId", "hourOfWeek", "day"],
       primaryKeys: ["projectId", "name", "serviceId", "hourOfWeek", "day"],
       partitionKey: "sipHash64(projectId) % 16",
-      ttlExpression: "day + INTERVAL 28 DAY",
+      ttlExpression: "day + INTERVAL 90 DAY",
     });
   }
 }

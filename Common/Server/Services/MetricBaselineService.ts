@@ -70,8 +70,32 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * reliable. Below this, callers treat the baseline as cold-start.
    */
   public static readonly DEFAULT_MIN_SAMPLES: number = 5;
+  /**
+   * Default rolling-window length in days when the criterion does not
+   * specify one. 14 days is the smallest window that gives ≥ 2 samples
+   * per (hour-of-week) bucket for typical projects, which combined with
+   * the `min_samples` reliability gate yields baselines that don't fire
+   * on every weekly traffic cycle.
+   */
   public static readonly DEFAULT_WINDOW_DAYS: number = 14;
-  public static readonly MAX_WINDOW_DAYS: number = 28;
+  /**
+   * Hard upper bound on the rolling window. Locked to the MV target
+   * table's TTL — querying further back would just hit empty space
+   * because the rows are already gone. Bump this in lockstep with the
+   * `MetricBaselineHourly` model's `ttlExpression` and any matching
+   * ALTER-TTL migration; otherwise the read-side will silently truncate
+   * caller intent.
+   */
+  public static readonly MAX_WINDOW_DAYS: number = 90;
+  /**
+   * Window options exposed by the criterion form. Constrained to a
+   * small set so the UI stays a dropdown and so we don't have to TTL
+   * the table for every conceivable value. Adding a longer option
+   * requires bumping `MAX_WINDOW_DAYS` and the table TTL together.
+   */
+  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> = [
+    14, 28, 60, 90,
+  ];
 
   /**
    * Fetch the rolling-window baseline for one (metric, [service],
