@@ -192,7 +192,9 @@ Logs: \`docker logs -f otel-collector\`.
 ## Step 2 — Install the .deb package (Debian / Ubuntu)
 
 \`\`\`bash
-VERSION=0.151.0
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \\
@@ -207,7 +209,7 @@ sudo systemctl status otelcol-contrib
 
 Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 
-Releases are published at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases>. Replace the \`VERSION\` value with the latest tag.
+All releases are listed at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases> if you need to pin a specific version.
 
 > **Note for native installs:** Unlike Docker, the package install reads \`/proc\` and \`/sys\` directly — no \`HOST_PROC\` env vars or \`/hostfs\` mount required. The systemd unit shipped with the package runs as root, so the \`process\` scraper can see processes owned by other users.
 `;
@@ -217,7 +219,9 @@ Releases are published at <https://github.com/open-telemetry/opentelemetry-colle
 ## Step 2 — Install the .rpm package (RHEL / Fedora / CentOS / Amazon Linux)
 
 \`\`\`bash
-VERSION=0.151.0
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \\
@@ -242,7 +246,9 @@ Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 Use this when packages aren't available — Alpine, NixOS, locked-down servers, or container base images you want to instrument from outside.
 
 \`\`\`bash
-VERSION=0.151.0
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \\
@@ -309,7 +315,8 @@ Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path var
 Run from an elevated PowerShell prompt:
 
 \`\`\`powershell
-$VERSION = "0.151.0"
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. $VERSION = "0.151.0")
+$VERSION = (Invoke-RestMethod "https://api.github.com/repos/open-telemetry/opentelemetry-collector-releases/releases/latest").tag_name.TrimStart('v')
 $msi = "$env:TEMP\\otelcol-contrib.msi"
 
 Invoke-WebRequest \`
