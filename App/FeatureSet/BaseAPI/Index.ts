@@ -176,6 +176,38 @@ import IncidentGroupingRuleService, {
   Service as IncidentGroupingRuleServiceType,
 } from "Common/Server/Services/IncidentGroupingRuleService";
 
+import AlertOnCallRuleService, {
+  Service as AlertOnCallRuleServiceType,
+} from "Common/Server/Services/AlertOnCallRuleService";
+
+import AlertOwnerRuleService, {
+  Service as AlertOwnerRuleServiceType,
+} from "Common/Server/Services/AlertOwnerRuleService";
+
+import AlertEpisodeOnCallRuleService, {
+  Service as AlertEpisodeOnCallRuleServiceType,
+} from "Common/Server/Services/AlertEpisodeOnCallRuleService";
+
+import AlertEpisodeOwnerRuleService, {
+  Service as AlertEpisodeOwnerRuleServiceType,
+} from "Common/Server/Services/AlertEpisodeOwnerRuleService";
+
+import IncidentOnCallRuleService, {
+  Service as IncidentOnCallRuleServiceType,
+} from "Common/Server/Services/IncidentOnCallRuleService";
+
+import IncidentOwnerRuleService, {
+  Service as IncidentOwnerRuleServiceType,
+} from "Common/Server/Services/IncidentOwnerRuleService";
+
+import IncidentEpisodeOnCallRuleService, {
+  Service as IncidentEpisodeOnCallRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodeOnCallRuleService";
+
+import IncidentEpisodeOwnerRuleService, {
+  Service as IncidentEpisodeOwnerRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodeOwnerRuleService";
+
 import IncidentSlaService, {
   Service as IncidentSlaServiceType,
 } from "Common/Server/Services/IncidentSlaService";
@@ -592,7 +624,15 @@ import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
+import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
+import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
+import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
+import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 
@@ -1257,6 +1297,73 @@ const BaseAPIFeatureSet: FeatureSet = {
         IncidentGroupingRule,
         IncidentGroupingRuleService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertOnCallRule, AlertOnCallRuleServiceType>(
+        AlertOnCallRule,
+        AlertOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentOnCallRule, IncidentOnCallRuleServiceType>(
+        IncidentOnCallRule,
+        IncidentOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertOwnerRule, AlertOwnerRuleServiceType>(
+        AlertOwnerRule,
+        AlertOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentOwnerRule, IncidentOwnerRuleServiceType>(
+        IncidentOwnerRule,
+        IncidentOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeOnCallRule, AlertEpisodeOnCallRuleServiceType>(
+        AlertEpisodeOnCallRule,
+        AlertEpisodeOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOnCallRule,
+        IncidentEpisodeOnCallRuleServiceType
+      >(
+        IncidentEpisodeOnCallRule,
+        IncidentEpisodeOnCallRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeOwnerRule, AlertEpisodeOwnerRuleServiceType>(
+        AlertEpisodeOwnerRule,
+        AlertEpisodeOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOwnerRule,
+        IncidentEpisodeOwnerRuleServiceType
+      >(IncidentEpisodeOwnerRule, IncidentEpisodeOwnerRuleService).getRouter(),
     );
 
     // IncidentSla

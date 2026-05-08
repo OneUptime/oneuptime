@@ -42,6 +42,8 @@ import UserNotificationEventType from "../../Types/UserNotification/UserNotifica
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import ProjectService from "./ProjectService";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
+import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
+import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -192,6 +194,41 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create episode feed failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the episode.
+        try {
+          await IncidentEpisodeOwnerRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident episode owner rules failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: merge matched policies into the episode's
+         * onCallDutyPolicies before the fan-out below picks them up.
+         */
+        try {
+          await IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident episode on-call rules failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentEpisodeId: createdItem.id?.toString(),

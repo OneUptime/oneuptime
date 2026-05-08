@@ -52,6 +52,14 @@ import AlertSettingsCustomFields from "../Pages/Alerts/Settings/AlertCustomField
 
 import AlertSettingsGroupingRules from "../Pages/Alerts/Settings/AlertGroupingRules";
 
+import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules";
+
+import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
+
+import AlertSettingsEpisodeOnCallRules from "../Pages/Alerts/Settings/AlertEpisodeOnCallRules";
+
+import AlertSettingsEpisodeOwnerRules from "../Pages/Alerts/Settings/AlertEpisodeOwnerRules";
+
 import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
 
 // Episode Pages
@@ -224,6 +232,56 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES] || ""}
+          element={
+            <AlertSettingsOnCallRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <AlertSettingsOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES] || ""
+          }
+          element={
+            <AlertSettingsEpisodeOnCallRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULES] || ""
+          }
+          element={
+            <AlertSettingsEpisodeOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULES] as Route
               }
             />
           }

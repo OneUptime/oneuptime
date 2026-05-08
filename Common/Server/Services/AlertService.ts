@@ -57,6 +57,8 @@ import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertGroupingEngineService from "./AlertGroupingEngineService";
+import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
+import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import ProjectService from "./ProjectService";
 
 export class Service extends DatabaseService<Model> {
@@ -329,6 +331,38 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the alert.
+        try {
+          await AlertOwnerRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert owner rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: match alert against AlertOnCallRule rows and
+         * merge their on-call policies into createdItem.onCallDutyPolicies
+         * before the fan-out below picks up the merged list.
+         */
+        try {
+          await AlertOnCallRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert on-call rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .then(async () => {

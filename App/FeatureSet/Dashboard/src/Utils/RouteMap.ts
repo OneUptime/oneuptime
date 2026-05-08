@@ -298,6 +298,12 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
+  [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.INCIDENTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES]:
+    "settings/episode-on-call-rules",
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES]:
+    "settings/episode-owner-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
@@ -351,6 +357,11 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
+  [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES]:
+    "settings/episode-on-call-rules",
+  [PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULES]: "settings/episode-owner-rules",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -853,6 +864,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULES]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_MORE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE]
@@ -1269,6 +1304,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES]
     }`,
   ),
 

@@ -50,6 +50,8 @@ import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
+import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
+import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -799,6 +801,42 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the incident.
+        try {
+          await IncidentOwnerRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: match incident against IncidentOnCallRule rows
+         * and merge their on-call policies into createdItem.onCallDutyPolicies
+         * before the fan-out below picks up the merged list.
+         */
+        try {
+          await IncidentOnCallRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .then(async () => {

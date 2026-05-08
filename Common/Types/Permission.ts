@@ -911,6 +911,30 @@ enum Permission {
   EditAlertGroupingRule = "EditAlertGroupingRule",
   ReadAlertGroupingRule = "ReadAlertGroupingRule",
 
+  // Alert On-Call Rule Permissions
+  CreateAlertOnCallRule = "CreateAlertOnCallRule",
+  DeleteAlertOnCallRule = "DeleteAlertOnCallRule",
+  EditAlertOnCallRule = "EditAlertOnCallRule",
+  ReadAlertOnCallRule = "ReadAlertOnCallRule",
+
+  // Alert Owner Rule Permissions
+  CreateAlertOwnerRule = "CreateAlertOwnerRule",
+  DeleteAlertOwnerRule = "DeleteAlertOwnerRule",
+  EditAlertOwnerRule = "EditAlertOwnerRule",
+  ReadAlertOwnerRule = "ReadAlertOwnerRule",
+
+  // Alert Episode On-Call Rule Permissions
+  CreateAlertEpisodeOnCallRule = "CreateAlertEpisodeOnCallRule",
+  DeleteAlertEpisodeOnCallRule = "DeleteAlertEpisodeOnCallRule",
+  EditAlertEpisodeOnCallRule = "EditAlertEpisodeOnCallRule",
+  ReadAlertEpisodeOnCallRule = "ReadAlertEpisodeOnCallRule",
+
+  // Alert Episode Owner Rule Permissions
+  CreateAlertEpisodeOwnerRule = "CreateAlertEpisodeOwnerRule",
+  DeleteAlertEpisodeOwnerRule = "DeleteAlertEpisodeOwnerRule",
+  EditAlertEpisodeOwnerRule = "EditAlertEpisodeOwnerRule",
+  ReadAlertEpisodeOwnerRule = "ReadAlertEpisodeOwnerRule",
+
   // Alert Episode State Timeline Permissions
   CreateAlertEpisodeStateTimeline = "CreateAlertEpisodeStateTimeline",
   DeleteAlertEpisodeStateTimeline = "DeleteAlertEpisodeStateTimeline",
@@ -992,6 +1016,30 @@ enum Permission {
   DeleteIncidentGroupingRule = "DeleteIncidentGroupingRule",
   EditIncidentGroupingRule = "EditIncidentGroupingRule",
   ReadIncidentGroupingRule = "ReadIncidentGroupingRule",
+
+  // Incident On-Call Rule Permissions
+  CreateIncidentOnCallRule = "CreateIncidentOnCallRule",
+  DeleteIncidentOnCallRule = "DeleteIncidentOnCallRule",
+  EditIncidentOnCallRule = "EditIncidentOnCallRule",
+  ReadIncidentOnCallRule = "ReadIncidentOnCallRule",
+
+  // Incident Owner Rule Permissions
+  CreateIncidentOwnerRule = "CreateIncidentOwnerRule",
+  DeleteIncidentOwnerRule = "DeleteIncidentOwnerRule",
+  EditIncidentOwnerRule = "EditIncidentOwnerRule",
+  ReadIncidentOwnerRule = "ReadIncidentOwnerRule",
+
+  // Incident Episode On-Call Rule Permissions
+  CreateIncidentEpisodeOnCallRule = "CreateIncidentEpisodeOnCallRule",
+  DeleteIncidentEpisodeOnCallRule = "DeleteIncidentEpisodeOnCallRule",
+  EditIncidentEpisodeOnCallRule = "EditIncidentEpisodeOnCallRule",
+  ReadIncidentEpisodeOnCallRule = "ReadIncidentEpisodeOnCallRule",
+
+  // Incident Episode Owner Rule Permissions
+  CreateIncidentEpisodeOwnerRule = "CreateIncidentEpisodeOwnerRule",
+  DeleteIncidentEpisodeOwnerRule = "DeleteIncidentEpisodeOwnerRule",
+  EditIncidentEpisodeOwnerRule = "EditIncidentEpisodeOwnerRule",
+  ReadIncidentEpisodeOwnerRule = "ReadIncidentEpisodeOwnerRule",
 
   // Incident SLA Rule Permissions
   CreateIncidentSlaRule = "CreateIncidentSlaRule",
@@ -7776,6 +7824,174 @@ export class PermissionHelper {
         group: PermissionGroup.Alert,
       },
 
+      // Alert On-Call Rule Permissions
+      {
+        permission: Permission.CreateAlertOnCallRule,
+        title: "Create Alert On-Call Rule",
+        description:
+          "This permission can create Alert On-Call Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertOnCallRule,
+        title: "Delete Alert On-Call Rule",
+        description:
+          "This permission can delete Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertOnCallRule,
+        title: "Edit Alert On-Call Rule",
+        description:
+          "This permission can edit Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertOnCallRule,
+        title: "Read Alert On-Call Rule",
+        description:
+          "This permission can read Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Owner Rule Permissions
+      {
+        permission: Permission.CreateAlertOwnerRule,
+        title: "Create Alert Owner Rule",
+        description:
+          "This permission can create Alert Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertOwnerRule,
+        title: "Delete Alert Owner Rule",
+        description:
+          "This permission can delete Alert Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertOwnerRule,
+        title: "Edit Alert Owner Rule",
+        description:
+          "This permission can edit Alert Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertOwnerRule,
+        title: "Read Alert Owner Rule",
+        description:
+          "This permission can read Alert Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Episode On-Call Rule Permissions
+      {
+        permission: Permission.CreateAlertEpisodeOnCallRule,
+        title: "Create Alert Episode On-Call Rule",
+        description:
+          "This permission can create Alert Episode On-Call Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeOnCallRule,
+        title: "Delete Alert Episode On-Call Rule",
+        description:
+          "This permission can delete Alert Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertEpisodeOnCallRule,
+        title: "Edit Alert Episode On-Call Rule",
+        description:
+          "This permission can edit Alert Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeOnCallRule,
+        title: "Read Alert Episode On-Call Rule",
+        description:
+          "This permission can read Alert Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Episode Owner Rule Permissions
+      {
+        permission: Permission.CreateAlertEpisodeOwnerRule,
+        title: "Create Alert Episode Owner Rule",
+        description:
+          "This permission can create Alert Episode Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeOwnerRule,
+        title: "Delete Alert Episode Owner Rule",
+        description:
+          "This permission can delete Alert Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertEpisodeOwnerRule,
+        title: "Edit Alert Episode Owner Rule",
+        description:
+          "This permission can edit Alert Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeOwnerRule,
+        title: "Read Alert Episode Owner Rule",
+        description:
+          "This permission can read Alert Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
       // Alert Episode State Timeline Permissions
       {
         permission: Permission.CreateAlertEpisodeStateTimeline,
@@ -8338,6 +8554,174 @@ export class PermissionHelper {
         title: "Read Incident Grouping Rule",
         description:
           "This permission can read Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident On-Call Rule Permissions
+      {
+        permission: Permission.CreateIncidentOnCallRule,
+        title: "Create Incident On-Call Rule",
+        description:
+          "This permission can create Incident On-Call Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentOnCallRule,
+        title: "Delete Incident On-Call Rule",
+        description:
+          "This permission can delete Incident On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentOnCallRule,
+        title: "Edit Incident On-Call Rule",
+        description:
+          "This permission can edit Incident On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentOnCallRule,
+        title: "Read Incident On-Call Rule",
+        description:
+          "This permission can read Incident On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Owner Rule Permissions
+      {
+        permission: Permission.CreateIncidentOwnerRule,
+        title: "Create Incident Owner Rule",
+        description:
+          "This permission can create Incident Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentOwnerRule,
+        title: "Delete Incident Owner Rule",
+        description:
+          "This permission can delete Incident Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentOwnerRule,
+        title: "Edit Incident Owner Rule",
+        description:
+          "This permission can edit Incident Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentOwnerRule,
+        title: "Read Incident Owner Rule",
+        description:
+          "This permission can read Incident Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Episode On-Call Rule Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeOnCallRule,
+        title: "Create Incident Episode On-Call Rule",
+        description:
+          "This permission can create Incident Episode On-Call Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeOnCallRule,
+        title: "Delete Incident Episode On-Call Rule",
+        description:
+          "This permission can delete Incident Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeOnCallRule,
+        title: "Edit Incident Episode On-Call Rule",
+        description:
+          "This permission can edit Incident Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeOnCallRule,
+        title: "Read Incident Episode On-Call Rule",
+        description:
+          "This permission can read Incident Episode On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Episode Owner Rule Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeOwnerRule,
+        title: "Create Incident Episode Owner Rule",
+        description:
+          "This permission can create Incident Episode Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeOwnerRule,
+        title: "Delete Incident Episode Owner Rule",
+        description:
+          "This permission can delete Incident Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeOwnerRule,
+        title: "Edit Incident Episode Owner Rule",
+        description:
+          "This permission can edit Incident Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeOwnerRule,
+        title: "Read Incident Episode Owner Rule",
+        description:
+          "This permission can read Incident Episode Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

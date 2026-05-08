@@ -43,6 +43,8 @@ import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService
 import Typeof from "../../Types/Typeof";
 import AlertService from "./AlertService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import AlertEpisodeOnCallRuleEngineService from "./AlertEpisodeOnCallRuleEngineService";
+import AlertEpisodeOwnerRuleEngineService from "./AlertEpisodeOwnerRuleEngineService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import ProjectService from "./ProjectService";
@@ -169,6 +171,41 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Create episode feed failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the episode.
+        try {
+          await AlertEpisodeOwnerRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply alert episode owner rules failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: merge matched policies into the episode's
+         * onCallDutyPolicies before the fan-out below picks them up.
+         */
+        try {
+          await AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply alert episode on-call rules failed in AlertEpisodeService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertEpisodeId: createdItem.id?.toString(),

@@ -72,6 +72,14 @@ import IncidentSettingsCustomFields from "../Pages/Incidents/Settings/IncidentCu
 
 import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentGroupingRules";
 
+import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnCallRules";
+
+import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
+
+import IncidentSettingsEpisodeOnCallRules from "../Pages/Incidents/Settings/IncidentEpisodeOnCallRules";
+
+import IncidentSettingsEpisodeOwnerRules from "../Pages/Incidents/Settings/IncidentEpisodeOwnerRules";
+
 import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
 
 import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
@@ -335,6 +343,70 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] || ""
+          }
+          element={
+            <IncidentSettingsOnCallRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <IncidentSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES
+            ] || ""
+          }
+          element={
+            <IncidentSettingsEpisodeOnCallRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES
+            ] || ""
+          }
+          element={
+            <IncidentSettingsEpisodeOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES
+                ] as Route
               }
             />
           }
