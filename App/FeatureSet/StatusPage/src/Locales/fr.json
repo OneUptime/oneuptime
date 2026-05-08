@@ -163,6 +163,7 @@
       "title": "Mettre à jour l'abonnement",
       "description": "Vous pouvez mettre à jour vos préférences d'abonnement ou vous désabonner ici.",
       "saved": "Vos modifications ont été enregistrées.",
+      "submit": "Mettre à jour l'abonnement",
       "unsubscribe": "Se désabonner",
       "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources."
     },
@@ -229,5 +230,20 @@
   },
   "footer": {
     "poweredBy": "Propulsé par OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identifié",
+    "acknowledged": "Pris en compte",
+    "resolved": "Résolu",
+    "criticalIncident": "Incident critique",
+    "majorIncident": "Incident majeur",
+    "minorIncident": "Incident mineur",
+    "operational": "Opérationnel",
+    "degraded": "Dégradé",
+    "offline": "Hors ligne",
+    "scheduled": "Planifié",
+    "ongoing": "En cours",
+    "ended": "Terminé",
+    "completed": "Achevé"
   }
 }

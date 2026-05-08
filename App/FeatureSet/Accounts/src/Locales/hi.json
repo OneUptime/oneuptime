@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "submit": "जमा करें",
+    "close": "बंद करें",
+    "loading": "लोड हो रहा है...",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "fullName": "पूरा नाम",
+    "companyName": "कंपनी का नाम",
+    "phoneNumber": "फोन नंबर",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "newPassword": "नया पासवर्ड",
+    "code": "कोड",
+    "yourCompany": "आपकी कंपनी"
+  },
+  "language": {
+    "label": "भाषा",
+    "switchLanguage": "भाषा बदलें"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "संपर्क",
+    "privacyAndTerms": "गोपनीयता और शर्तें"
+  },
+  "captcha": {
+    "title": "मानव सत्यापन",
+    "description": "कैप्चा चुनौती पूरी करें ताकि हम जान सकें कि आप बॉट नहीं हैं।",
+    "errorOnSignIn": "साइन इन करने से पहले कृपया कैप्चा चुनौती पूरी करें।",
+    "errorOnSignUp": "साइन अप करने से पहले कृपया कैप्चा चुनौती पूरी करें।"
+  },
+  "login": {
+    "title": "अपने खाते में साइन इन करें",
+    "subtitle": "हजारों व्यवसायों से जुड़ें जो हमेशा ऑनलाइन रहने के लिए OneUptime का उपयोग करते हैं।",
+    "submitButton": "लॉगिन",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "useSso": "इसके बजाय एकल साइन-ऑन (SSO) का उपयोग करें",
+    "noAccountPrompt": "खाता नहीं है?",
+    "registerLink": "पंजीकरण करें।",
+    "twoFactor": {
+      "title": "दो-कारक प्रमाणीकरण",
+      "subtitle": "दो-कारक प्रमाणीकरण विधि चुनें। आपको चयनित विधि से एक कोड दर्ज करने के लिए कहा जाएगा।",
+      "authenticatorApp": "प्रमाणीकरण ऐप",
+      "securityKey": "सुरक्षा कुंजी",
+      "authenticatingWithSecurityKey": "सुरक्षा कुंजी से प्रमाणीकरण",
+      "securityKeyInstructions": "कृपया अपने सुरक्षा कुंजी डिवाइस पर निर्देशों का पालन करें।",
+      "codeFieldDescription": "अपने प्रमाणीकरण ऐप से कोड दर्ज करें",
+      "selectDifferentMethod": "एक अलग दो-कारक प्रमाणीकरण विधि चुनें"
+    }
+  },
+  "register": {
+    "title": "अपना OneUptime खाता बनाएं",
+    "subtitle": "हजारों व्यवसायों से जुड़ें जो हमेशा ऑनलाइन रहने के लिए OneUptime का उपयोग करते हैं।",
+    "noCreditCard": "क्रेडिट कार्ड की आवश्यकता नहीं।",
+    "submitButton": "साइन अप करें",
+    "haveAccountPrompt": "क्या आपके पास पहले से ही खाता है?",
+    "loginLink": "लॉग इन करें।",
+    "notifySelfHosted": "मुझे सुरक्षा पैच और नई रिलीज के बारे में सूचित करें"
+  },
+  "forgotPassword": {
+    "title": "पासवर्ड भूल गए",
+    "subtitle": "कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेजा जाएगा।",
+    "successMessage": "हमने आपको पासवर्ड रीसेट लिंक ईमेल किया है। स्पैम जांचना न भूलें।",
+    "submitButton": "पासवर्ड रीसेट लिंक भेजें",
+    "returnToSignIn": "साइन इन पर वापस जाएं।",
+    "rememberPasswordPrompt": "अपना पासवर्ड याद है?",
+    "loginLink": "लॉग इन करें।"
+  },
+  "resetPassword": {
+    "title": "अपना पासवर्ड रीसेट करें",
+    "subtitle": "कृपया अपना नया पासवर्ड दर्ज करें और हम इसे अपडेट कर देंगे।",
+    "successMessage": "आपका पासवर्ड अपडेट कर दिया गया है। कृपया लॉग इन करें।",
+    "submitButton": "पासवर्ड रीसेट करें",
+    "knowPasswordPrompt": "अपना पासवर्ड जानते हैं?",
+    "loginLink": "लॉग इन करें।"
+  },
+  "sso": {
+    "title": "SSO से लॉगिन",
+    "subtitle": "अपने खाते तक पहुंचने के लिए अपने SSO प्रदाता से लॉगिन करें।",
+    "submitButton": "SSO से लॉगिन",
+    "useUsernameInstead": "इसके बजाय उपयोगकर्ता नाम और पासवर्ड का उपयोग करें।",
+    "noAccountPrompt": "खाता नहीं है?",
+    "registerLink": "पंजीकरण करें।",
+    "selectProjectTitle": "प्रोजेक्ट चुनें",
+    "selectProjectSubtitle": "उस प्रोजेक्ट का चयन करें जिसमें आप लॉगिन करना चाहते हैं।",
+    "noConfigForEmail": "ईमेल के लिए कोई SSO कॉन्फ़िगरेशन नहीं मिला: {{email}}",
+    "emailRequired": "इस क्रिया को करने के लिए ईमेल आवश्यक है",
+    "defaultProjectName": "प्रोजेक्ट"
+  },
+  "verifyEmail": {
+    "successTitle": "आपका ईमेल सत्यापित हो गया है।",
+    "successDescription": "अपना ईमेल सत्यापित करने के लिए धन्यवाद। अब आप OneUptime में लॉग इन कर सकते हैं।",
+    "errorTitle": "क्षमा करें, कुछ गलत हो गया!",
+    "returnToSignIn": "साइन इन पर वापस जाएं?",
+    "loginLink": "लॉग इन करें।"
+  },
+  "errors": {
+    "forbidden": {
+      "title": "निषिद्ध",
+      "description": "आपके पास इस पृष्ठ तक पहुंचने की अनुमति नहीं है।"
+    },
+    "notFound": {
+      "title": "पृष्ठ नहीं मिला",
+      "description": "आप जो पृष्ठ ढूंढ रहे हैं वह मौजूद नहीं है।"
+    }
+  }
+}

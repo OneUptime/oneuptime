@@ -111,13 +111,21 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
             props.filterData[filter.key] !== undefined &&
             props.filterData[filter.key] !== null;
 
+          const isMultiRowFilter: boolean = filter.type === FieldType.JSON;
+
           return (
             <div
               key={i}
-              className="grid grid-cols-[140px_1fr_auto] items-center gap-3"
+              className={`grid grid-cols-[140px_1fr_auto] gap-3 ${
+                isMultiRowFilter ? "items-start" : "items-center"
+              }`}
             >
               {/* Label column */}
-              <div className="flex items-center min-w-0">
+              <div
+                className={`flex items-center min-w-0 ${
+                  isMultiRowFilter ? "pt-7" : ""
+                }`}
+              >
                 <label className="text-sm font-medium text-gray-700 truncate">
                   {filter.title}
                 </label>
@@ -169,11 +177,18 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                   jsonKeys={filter.jsonKeys}
                   jsonValueSuggestions={filter.jsonValueSuggestions}
                   onJsonKeySelected={filter.onJsonKeySelected}
+                  isLoadingJsonKeys={filter.isLoadingJsonKeys}
+                  loadingJsonValueKeys={filter.loadingJsonValueKeys}
+                  enableOperators={filter.jsonEnableOperators}
                 />
               </div>
 
               {/* Clear column */}
-              <div className="flex items-center">
+              <div
+                className={`flex items-center ${
+                  isMultiRowFilter ? "pt-7" : ""
+                }`}
+              >
                 {hasValue && filter.key ? (
                   <button
                     type="button"

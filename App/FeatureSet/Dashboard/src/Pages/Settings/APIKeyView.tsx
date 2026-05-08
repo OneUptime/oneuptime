@@ -105,7 +105,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
           title: tableTitle,
           description: tableDescription,
         }}
-        noItemsMessage={"No permisisons created for this API Key so far."}
+        noItemsMessage={"No permissions created for this API Key so far."}
         createEditFromRef={formRef}
         formFields={[
           {

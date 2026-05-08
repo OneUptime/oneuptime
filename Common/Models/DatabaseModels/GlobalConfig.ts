@@ -763,6 +763,57 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Number,
+    title: "Enterprise License User Limit",
+    description:
+      "Maximum number of users permitted under the validated enterprise license.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public enterpriseLicenseUserLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Enterprise License Current User Count",
+    description:
+      "User count last reported to OneUptime for the validated enterprise license.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public enterpriseLicenseCurrentUserCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Enterprise License User Count Updated At",
+    description:
+      "Timestamp of the most recent user count report sent to OneUptime for the validated enterprise license.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public enterpriseLicenseUserCountUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
     title: "Monitor Log Retention Days",
     description:
       "Number of days to retain monitor logs. Monitor logs older than this will be automatically deleted. Default is 1 day.",

@@ -79,7 +79,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
         showLegend={props.showLegend !== false}
-        yAxisWidth={60}
+        yAxisWidth={64}
         syncid={props.sync ? props.syncid : undefined}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}

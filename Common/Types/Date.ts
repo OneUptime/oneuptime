@@ -1385,13 +1385,18 @@ export default class OneUptimeDate {
       formatstring = "MMM DD, YYYY";
     }
 
-    // convert this date into GMT, EST, PST, IST, ACT with moment
     const timezoneDates: Array<string> = [];
 
     if (!timezones || timezones.length === 0) {
+      /*
+       * Use IANA region zones (not fixed-offset zones like "EST") so the
+       * abbreviation reflects DST at the event's date — e.g. EST/EDT for
+       * America/New_York and GMT/BST for Europe/London.
+       */
       timezones = [
         Timezone.UTC,
-        Timezone.EST,
+        Timezone.EuropeLondon,
+        Timezone.AmericaNew_York,
         Timezone.AmericaLos_Angeles,
         Timezone.AsiaKolkata,
         Timezone.AustraliaSydney,
@@ -1416,7 +1421,7 @@ export default class OneUptimeDate {
   public static getDateAsFormattedHTMLInMultipleTimezones(data: {
     date: string | Date;
     onlyShowDate?: boolean;
-    timezones?: Array<Timezone> | undefined; // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+    timezones?: Array<Timezone> | undefined; // if skipped, defaults to UTC, Europe/London, America/New_York, America/Los_Angeles, Asia/Kolkata, Australia/Sydney (DST-aware)
     use12HourFormat?: boolean | undefined;
   }): string {
     const date: string | Date = data.date;
@@ -1435,7 +1440,7 @@ export default class OneUptimeDate {
   public static getDateAsFormattedStringInMultipleTimezones(data: {
     date: string | Date;
     onlyShowDate?: boolean | undefined;
-    timezones?: Array<Timezone> | undefined; // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+    timezones?: Array<Timezone> | undefined; // if skipped, defaults to UTC, Europe/London, America/New_York, America/Los_Angeles, Asia/Kolkata, Australia/Sydney (DST-aware)
     use12HourFormat?: boolean | undefined;
   }): string {
     const date: string | Date = data.date;

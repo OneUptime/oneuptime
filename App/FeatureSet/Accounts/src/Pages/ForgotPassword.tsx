@@ -7,8 +7,10 @@ import Link from "Common/UI/Components/Link/Link";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const ForgotPassword: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -19,23 +21,21 @@ const ForgotPassword: () => JSX.Element = () => {
         <img
           className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
-          alt="Your Company"
+          alt={t("common.yourCompany")}
         />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-          Forgot your password
+          {t("forgotPassword.title")}
         </h2>
 
         {!isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-            Please enter your email and the password reset link will be sent to
-            you.
+            {t("forgotPassword.subtitle")}
           </p>
         )}
 
         {isSuccess && (
           <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-            We have emailed you the password reset link. Please do not forget to
-            check spam.
+            {t("forgotPassword.successMessage")}
           </p>
         )}
       </div>
@@ -53,7 +53,7 @@ const ForgotPassword: () => JSX.Element = () => {
                   field: {
                     email: true,
                   },
-                  title: "Email",
+                  title: t("common.email"),
                   fieldType: FormFieldSchemaType.Email,
                   required: true,
                   disableSpellCheck: true,
@@ -62,7 +62,7 @@ const ForgotPassword: () => JSX.Element = () => {
               onSuccess={() => {
                 setIsSuccess(true);
               }}
-              submitButtonText={"Send Password Reset Link"}
+              submitButtonText={t("forgotPassword.submitButton")}
               formType={FormType.Create}
               maxPrimaryButtonWidth={true}
               footer={
@@ -72,7 +72,7 @@ const ForgotPassword: () => JSX.Element = () => {
                       to={new Route("/accounts/login")}
                       className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                     >
-                      Return to Sign in.
+                      {t("forgotPassword.returnToSignIn")}
                     </Link>
                   </p>
                 </div>
@@ -83,12 +83,12 @@ const ForgotPassword: () => JSX.Element = () => {
 
         <div className="mt-4 sm:mt-5 text-center">
           <p className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-            Remember your password?{" "}
+            {t("forgotPassword.rememberPasswordPrompt")}{" "}
             <Link
               to={new Route("/accounts/login")}
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Login.
+              {t("forgotPassword.loginLink")}
             </Link>
           </p>
         </div>

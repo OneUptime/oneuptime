@@ -37,6 +37,7 @@ export interface ComponentProps {
   isAttributesLoading?: boolean | undefined;
   attributesError?: string | undefined;
   onAttributesRetry?: (() => void) | undefined;
+  loadingAttributeValueKeys?: Array<string> | undefined;
 }
 
 const MetricFilter: FunctionComponent<ComponentProps> = (
@@ -83,9 +84,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           }}
           showAdvancedFilters={showAdvancedFilters}
           hideAdvancedFilterToggle={true}
-          isFilterLoading={
-            showAdvancedFilters ? props.isAttributesLoading : false
-          }
+          isFilterLoading={false}
           filterError={showAdvancedFilters ? props.attributesError : undefined}
           onFilterRefreshClick={
             showAdvancedFilters ? props.onAttributesRetry : undefined
@@ -116,6 +115,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               jsonKeys: props.telemetryAttributes,
               jsonValueSuggestions: props.telemetryAttributeValueSuggestions,
               onJsonKeySelected: props.onAttributeKeySelected,
+              isLoadingJsonKeys: props.isAttributesLoading,
+              loadingJsonValueKeys: props.loadingAttributeValueKeys,
+              jsonEnableOperators: true,
               isAdvancedFilter: true,
             },
           ]}

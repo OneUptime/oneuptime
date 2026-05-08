@@ -12,6 +12,7 @@ import {
   ComponentArgument,
   ComponentArgumentSection,
   ComponentInputType,
+  EntityFilterModelType,
 } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentsUtil from "Common/Utils/Dashboard/Components/Index";
 import ComponentInputTypeToFormFieldType from "./ComponentInputTypeToFormFieldType";
@@ -29,6 +30,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import EntityFilterDropdown from "./EntityFilterDropdown";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
@@ -74,13 +76,28 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     }
   }, [hasFormValidationErrors]);
 
-  useEffect(() => {
-    props.onFormChange(component);
-  }, [component]);
-
+  /*
+   * Sync local state when the parent swaps the component being edited
+   * (e.g. user picks a different widget). We intentionally do NOT propagate
+   * local changes back up via a useEffect — that would create a feedback
+   * loop with the parent re-rendering and handing us a fresh component
+   * reference on every keystroke, which causes the form input to flicker.
+   * User-initiated edits call props.onFormChange directly below.
+   */
   useEffect(() => {
     setComponent(props.component);
   }, [props.component]);
+
+  type CommitComponentFunction = (
+    updatedComponent: DashboardBaseComponent,
+  ) => void;
+
+  const commitComponent: CommitComponentFunction = (
+    updatedComponent: DashboardBaseComponent,
+  ): void => {
+    setComponent(updatedComponent);
+    props.onFormChange(updatedComponent);
+  };
 
   const componentType: DashboardComponentType = component.componentType;
   const componentArguments: Array<ComponentArgument<DashboardBaseComponent>> =
@@ -174,6 +191,57 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     };
   };
 
+  type GetEntityDropdownFormFunction = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+    isMultiSelect: boolean,
+  ) => (
+    value: FormValues<JSONObject>,
+    componentProps: CustomElementProps,
+  ) => ReactElement;
+
+  const getEntityDropdownForm: GetEntityDropdownFormFunction = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+    isMultiSelect: boolean,
+  ): ((
+    value: FormValues<JSONObject>,
+    componentProps: CustomElementProps,
+  ) => ReactElement) => {
+    // eslint-disable-next-line react/display-name
+    return (
+      value: FormValues<JSONObject>,
+      componentProps: CustomElementProps,
+    ) => {
+      const entityFilterModelType: EntityFilterModelType | undefined =
+        arg.entityFilterModelType;
+
+      if (!entityFilterModelType) {
+        return (
+          <ErrorMessage
+            message={`No entity filter model type configured for "${arg.name}".`}
+          />
+        );
+      }
+
+      const currentValue: string | Array<string> | undefined = value[
+        arg.id as string
+      ] as string | Array<string> | undefined;
+
+      return (
+        <EntityFilterDropdown
+          entityFilterModelType={entityFilterModelType}
+          isMultiSelect={isMultiSelect}
+          value={currentValue}
+          placeholder={arg.placeholder}
+          onChange={(newValue: string | Array<string> | null) => {
+            if (componentProps.onChange) {
+              componentProps.onChange(newValue);
+            }
+          }}
+        />
+      );
+    };
+  };
+
   type GetCustomElementFunction = (
     arg: ComponentArgument<DashboardBaseComponent>,
   ) =>
@@ -194,6 +262,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     if (arg.type === ComponentInputType.MetricsQueryConfig) {
       return getMetricsQueryConfigForm(arg);
     }
+    if (arg.type === ComponentInputType.EntityDropdown) {
+      return getEntityDropdownForm(arg, false);
+    }
+    if (arg.type === ComponentInputType.EntityMultiSelectDropdown) {
+      return getEntityDropdownForm(arg, true);
+    }
     return undefined;
   };
 
@@ -204,15 +278,24 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
     return (
       <BasicForm
+        /*
+         * Remount the form when the user picks a different widget so
+         * initialValues seed the form state again. BasicForm only reads
+         * initialValues at mount, so without this key its internal state
+         * would stick to whichever widget was selected first and the new
+         * widget's defaults (e.g. Text widget's "Hello, World!") would
+         * never appear in the inputs.
+         */
+        key={`${component.componentId.toString()}-${sectionKey}`}
         hideSubmitButton={true}
         ref={(ref: FormProps<FormValues<JSONObject>> | null) => {
           formRefs.current[sectionKey] = ref;
         }}
-        values={{
+        initialValues={{
           ...(component?.arguments || {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {
-          setComponent({
+          commitComponent({
             ...component,
             arguments: {
               ...((component.arguments as JSONObject) || {}),
@@ -294,7 +377,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                         ];
                         updated.splice(index, 1);
                         setMultiQueryConfigs(updated);
-                        setComponent({
+                        commitComponent({
                           ...component,
                           arguments: {
                             ...((component.arguments as JSONObject) || {}),
@@ -315,7 +398,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       ];
                       updated[index] = data;
                       setMultiQueryConfigs(updated);
-                      setComponent({
+                      commitComponent({
                         ...component,
                         arguments: {
                           ...((component.arguments as JSONObject) || {}),
@@ -357,7 +440,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 newQuery,
               ];
               setMultiQueryConfigs(updated);
-              setComponent({
+              commitComponent({
                 ...component,
                 arguments: {
                   ...((component.arguments as JSONObject) || {}),

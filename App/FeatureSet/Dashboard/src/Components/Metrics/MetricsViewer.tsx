@@ -78,6 +78,8 @@ const KNOWN_FIELD_KEYS: Set<string> = new Set(["name", "service"]);
 
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
+  attributeFilters?: Record<string, string> | undefined;
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -105,11 +107,14 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],
   );
+  const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
 
   // Attribute value suggestions: attributeKey -> Array<value>
   const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
     Record<string, Array<string>>
   >({});
+  const [attributeValuesLoading, setAttributeValuesLoading] =
+    useState<boolean>(false);
   const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
     useRef<string>("");
 
@@ -132,8 +137,22 @@ const MetricsViewer: FunctionComponent<Props> = (
   >({});
   const [sparklineLoading, setSparklineLoading] = useState<boolean>(false);
 
+  const isScoped: boolean = useMemo(() => {
+    const hasServiceIds: boolean = Boolean(
+      props.serviceIds && props.serviceIds.length > 0,
+    );
+    const hasAttributeFilters: boolean = Boolean(
+      props.attributeFilters && Object.keys(props.attributeFilters).length > 0,
+    );
+    return hasServiceIds || hasAttributeFilters;
+  }, [props.serviceIds, props.attributeFilters]);
+
   // Load services and telemetry attributes once
   useEffect(() => {
+    if (isScoped) {
+      // No service facet in scoped views, so skip the fetch.
+      return;
+    }
     const loadServices: () => Promise<void> = async () => {
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -148,22 +167,30 @@ const MetricsViewer: FunctionComponent<Props> = (
           select: { name: true, serviceColor: true },
           sort: { name: SortOrder.Ascending },
         });
-        setServices(result.data || []);
+        const named: Array<Service> = (result.data || []).filter(
+          (s: Service): boolean => {
+            return Boolean(s.name && s.name.toString().trim());
+          },
+        );
+        setServices(named);
       } catch {
         // non-critical
       }
     };
     void loadServices();
-  }, []);
+  }, [isScoped]);
 
   // Load telemetry attributes for autocomplete
   useEffect(() => {
     const loadAttributes: () => Promise<void> = async () => {
       try {
+        setAttributesLoading(true);
         const attrs: Array<string> = await MetricUtil.getTelemetryAttributes();
         setTelemetryAttributes(attrs);
       } catch {
         // non-critical
+      } finally {
+        setAttributesLoading(false);
       }
     };
     void loadAttributes();
@@ -189,6 +216,7 @@ const MetricsViewer: FunctionComponent<Props> = (
 
     const loadValues: () => Promise<void> = async () => {
       try {
+        setAttributeValuesLoading(true);
         const values: Array<string> =
           await MetricUtil.getTelemetryAttributeValues({
             attributeKey: attrKey,
@@ -202,6 +230,8 @@ const MetricsViewer: FunctionComponent<Props> = (
         );
       } catch {
         // non-critical
+      } finally {
+        setAttributeValuesLoading(false);
       }
     };
     void loadValues();
@@ -261,10 +291,34 @@ const MetricsViewer: FunctionComponent<Props> = (
     return parseSearch(submittedSearch);
   }, [submittedSearch, parseSearch]);
 
+  /*
+   * Merge attribute filters from two sources:
+   *   1. Tokens parsed from the typed search string (`@key:value`).
+   *   2. Chips in `activeFilters` whose key starts with `attributes.`
+   *      (added when the user picks a value from the dropdown / hits Enter).
+   */
+  const effectiveAttributes: Record<string, string> = useMemo(() => {
+    const attrs: Record<string, string> = { ...parsedSearch.attributes };
+    for (const filter of activeFilters) {
+      if (filter.facetKey.startsWith("attributes.")) {
+        const attrKey: string = filter.facetKey.substring("attributes.".length);
+        attrs[attrKey] = filter.value;
+      }
+    }
+    if (props.attributeFilters) {
+      for (const [key, value] of Object.entries(props.attributeFilters)) {
+        if (value) {
+          attrs[key] = value;
+        }
+      }
+    }
+    return attrs;
+  }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
+
   // When attribute filters change, query the Metric analytics model for matching metric names
   useEffect(() => {
-    const attributeKeys: Array<string> = Object.keys(parsedSearch.attributes);
-    const filterKey: string = JSON.stringify(parsedSearch.attributes);
+    const attributeKeys: Array<string> = Object.keys(effectiveAttributes);
+    const filterKey: string = JSON.stringify(effectiveAttributes);
 
     if (attributeKeys.length === 0) {
       setAttributeMatchedNames(null);
@@ -293,7 +347,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         const analyticsQuery: Query<Metric> = {
           projectId,
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          attributes: parsedSearch.attributes,
+          attributes: effectiveAttributes,
         } as Query<Metric>;
 
         const result: AnalyticsListResult<Metric> =
@@ -324,7 +378,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchMatchingNames();
-  }, [parsedSearch.attributes, timeRange]);
+  }, [effectiveAttributes, timeRange]);
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -426,8 +480,20 @@ const MetricsViewer: FunctionComponent<Props> = (
   }, [metricQuery, page, pageSize]);
 
   useEffect(() => {
+    /*
+     * When attribute filters are active, defer the metric list fetch until the
+     * attribute → name match has resolved. Otherwise the first pass would query
+     * with no name restriction and briefly render the unfiltered list before
+     * snapping to the filtered one.
+     */
+    const hasEffectiveAttributes: boolean =
+      Object.keys(effectiveAttributes).length > 0;
+    if (hasEffectiveAttributes && attributeMatchedNames === null) {
+      setIsLoading(true);
+      return;
+    }
     void fetchMetrics();
-  }, [fetchMetrics]);
+  }, [fetchMetrics, effectiveAttributes, attributeMatchedNames]);
 
   // Batch-fetch sparklines for visible metric names
   const visibleNames: Array<string> = useMemo(() => {
@@ -460,8 +526,8 @@ const MetricsViewer: FunctionComponent<Props> = (
           projectId,
           name: new Includes(visibleNames),
           time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          ...(Object.keys(parsedSearch.attributes).length > 0
-            ? { attributes: parsedSearch.attributes }
+          ...(Object.keys(effectiveAttributes).length > 0
+            ? { attributes: effectiveAttributes }
             : {}),
         } as Query<Metric>;
 
@@ -546,15 +612,18 @@ const MetricsViewer: FunctionComponent<Props> = (
       }
     };
     void fetchSparklines();
-  }, [visibleNames, timeRange, parsedSearch.attributes]);
+  }, [visibleNames, timeRange, effectiveAttributes]);
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
+    if (isScoped) {
+      return [];
+    }
     const serviceNameMap: Record<string, string> = {};
     const serviceColorMap: Record<string, string> = {};
     for (const service of services) {
-      if (service.id) {
-        serviceNameMap[service.id.toString()] = service.name || "Unknown";
+      if (service.id && service.name) {
+        serviceNameMap[service.id.toString()] = service.name.toString();
         if (service.serviceColor) {
           serviceColorMap[service.id.toString()] =
             service.serviceColor.toString();
@@ -570,22 +639,25 @@ const MetricsViewer: FunctionComponent<Props> = (
         priority: 1,
       },
     ];
-  }, [services]);
+  }, [services, isScoped]);
 
   /*
    * Compute facets from loaded services (and distribution isn't known without
    * a backend aggregation, so show equal weights for v1)
    */
   const facetData: FacetData = useMemo(() => {
+    if (isScoped) {
+      return {};
+    }
     const values: Array<FacetValue> = services
       .filter((s: Service): boolean => {
-        return Boolean(s.id);
+        return Boolean(s.id && s.name);
       })
       .map((s: Service): FacetValue => {
         return { value: s.id!.toString(), count: 0 };
       });
     return { serviceId: values };
-  }, [services]);
+  }, [services, isScoped]);
 
   // Facet interaction
   const handleFacetInclude: (facetKey: string, value: string) => void =
@@ -604,7 +676,10 @@ const MetricsViewer: FunctionComponent<Props> = (
               return c.key === facetKey;
             },
           );
-          const displayKey: string = config?.title || facetKey;
+          // Attribute chips (`attributes.<key>`) display as just `<key>`.
+          const displayKey: string = facetKey.startsWith("attributes.")
+            ? facetKey.substring("attributes.".length)
+            : config?.title || facetKey;
           const displayValue: string =
             config?.valueDisplayMap?.[value] || value;
           return [...prev, { facetKey, value, displayKey, displayValue }];
@@ -643,8 +718,29 @@ const MetricsViewer: FunctionComponent<Props> = (
         });
       }
     }
+    if (props.attributeFilters) {
+      for (const [key, value] of Object.entries(props.attributeFilters)) {
+        if (!value) {
+          continue;
+        }
+        const displayKey: string =
+          props.attributeFilterDisplayKeys?.[key] || key;
+        base.push({
+          facetKey: `attributes.${key}`,
+          value,
+          displayKey,
+          displayValue: value,
+          readOnly: true,
+        });
+      }
+    }
     return [...base, ...activeFilters];
-  }, [props.serviceIds, activeFilters]);
+  }, [
+    props.serviceIds,
+    props.attributeFilters,
+    props.attributeFilterDisplayKeys,
+    activeFilters,
+  ]);
 
   // Row click → navigate to metric viewer
   const handleRowClick: (metric: MetricType) => void = useCallback(
@@ -658,11 +754,23 @@ const MetricsViewer: FunctionComponent<Props> = (
         currentUrl.hostname,
         route,
       );
+      const presetAttributes: Record<string, string> = {};
+      if (props.attributeFilters) {
+        for (const [key, value] of Object.entries(props.attributeFilters)) {
+          if (value) {
+            presetAttributes[key] = value;
+          }
+        }
+      }
+      const queryPayload: Record<string, unknown> = {
+        metricName: metric.name || "",
+        aggregationType: MetricsAggregationType.Avg,
+      };
+      if (Object.keys(presetAttributes).length > 0) {
+        queryPayload["attributes"] = presetAttributes;
+      }
       const metricQueriesPayload: Array<Record<string, unknown>> = [
-        {
-          metricName: metric.name || "",
-          aggregationType: MetricsAggregationType.Avg,
-        },
+        queryPayload,
       ];
       metricUrl.addQueryParam(
         "metricQueries",
@@ -671,7 +779,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       );
       Navigation.navigate(metricUrl);
     },
-    [],
+    [props.attributeFilters],
   );
 
   return (
@@ -709,22 +817,31 @@ const MetricsViewer: FunctionComponent<Props> = (
         setPage(1);
       }}
       searchPlaceholder="Search metrics — e.g. name:http service:api @container.name:postgres"
-      searchSuggestions={[
-        "name",
-        "service",
-        ...telemetryAttributes.map((attr: string): string => {
-          return `@${attr}`;
-        }),
-      ]}
+      searchSuggestions={["name", "service"]}
+      searchAttributeSuggestions={telemetryAttributes}
       searchValueSuggestions={attributeValueSuggestions}
+      searchAttributesLoading={attributesLoading}
+      searchValuesLoading={attributeValuesLoading}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
-        const isKnownField: boolean = KNOWN_FIELD_KEYS.has(fieldKey);
-        const newSearch: string = isKnownField
-          ? `${fieldKey}:${value}`
-          : `@${fieldKey}:${value}`;
-        setSearchValue(newSearch);
-        setSubmittedSearch(newSearch);
-        setPage(1);
+        /*
+         * `name` and `service` are handled via the typed search path
+         * (substring + service facet), so promote those to the search
+         * string. Unknown keys are telemetry attributes — turn them into
+         * chips with the `attributes.` prefix so they live in
+         * `activeFilters` and are routed through the analytics query.
+         * Known-field detection is case-insensitive; attribute keys keep
+         * their original case (the backend matches map keys case-
+         * insensitively at query time).
+         */
+        const lowerFieldKey: string = fieldKey.toLowerCase();
+        if (KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
+          const newSearch: string = `${lowerFieldKey}:${value}`;
+          setSearchValue(newSearch);
+          setSubmittedSearch(newSearch);
+          setPage(1);
+          return;
+        }
+        handleFacetInclude(`attributes.${fieldKey}`, value);
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
@@ -735,7 +852,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         setTimeRange(value);
       }}
       // Facets
-      showFacetSidebar={true}
+      showFacetSidebar={!isScoped}
       facetData={facetData}
       facetConfigs={facetConfigs}
       facetLoading={false}

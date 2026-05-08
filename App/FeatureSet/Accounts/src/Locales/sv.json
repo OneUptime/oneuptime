@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "submit": "Skicka",
+    "close": "Stäng",
+    "loading": "Laddar...",
+    "email": "E-post",
+    "password": "Lösenord",
+    "fullName": "Fullständigt namn",
+    "companyName": "Företagsnamn",
+    "phoneNumber": "Telefonnummer",
+    "confirmPassword": "Bekräfta lösenord",
+    "newPassword": "Nytt lösenord",
+    "code": "Kod",
+    "yourCompany": "Ditt företag"
+  },
+  "language": {
+    "label": "Språk",
+    "switchLanguage": "Byt språk"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Kontakt",
+    "privacyAndTerms": "Sekretess och villkor"
+  },
+  "captcha": {
+    "title": "Mänsklig verifiering",
+    "description": "Slutför captcha-utmaningen så vi vet att du inte är en bot.",
+    "errorOnSignIn": "Slutför captcha-utmaningen innan du loggar in.",
+    "errorOnSignUp": "Slutför captcha-utmaningen innan du registrerar dig."
+  },
+  "login": {
+    "title": "Logga in på ditt konto",
+    "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
+    "submitButton": "Logga in",
+    "forgotPassword": "Glömt lösenord?",
+    "useSso": "Använd istället enkel inloggning (SSO)",
+    "noAccountPrompt": "Har du inget konto?",
+    "registerLink": "Registrera dig.",
+    "twoFactor": {
+      "title": "Tvåfaktorsautentisering",
+      "subtitle": "Välj metod för tvåfaktorsautentisering. Du kommer att uppmanas att ange en kod från den valda metoden.",
+      "authenticatorApp": "Autentiseringsapp",
+      "securityKey": "Säkerhetsnyckel",
+      "authenticatingWithSecurityKey": "Autentiserar med säkerhetsnyckel",
+      "securityKeyInstructions": "Följ instruktionerna på din säkerhetsnyckelenhet.",
+      "codeFieldDescription": "Ange koden från din autentiseringsapp",
+      "selectDifferentMethod": "Välj en annan metod för tvåfaktorsautentisering"
+    }
+  },
+  "register": {
+    "title": "Skapa ditt OneUptime-konto",
+    "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
+    "noCreditCard": "Inget kreditkort krävs.",
+    "submitButton": "Registrera dig",
+    "haveAccountPrompt": "Har du redan ett konto?",
+    "loginLink": "Logga in.",
+    "notifySelfHosted": "Meddela mig om säkerhetsuppdateringar och nya versioner"
+  },
+  "forgotPassword": {
+    "title": "Glömt lösenord",
+    "subtitle": "Ange din e-post så skickas länken för återställning av lösenord till dig.",
+    "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
+    "submitButton": "Skicka länk för återställning",
+    "returnToSignIn": "Tillbaka till inloggning.",
+    "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
+    "loginLink": "Logga in."
+  },
+  "resetPassword": {
+    "title": "Återställ ditt lösenord",
+    "subtitle": "Ange ditt nya lösenord så uppdaterar vi det.",
+    "successMessage": "Ditt lösenord har uppdaterats. Vänligen logga in.",
+    "submitButton": "Återställ lösenord",
+    "knowPasswordPrompt": "Kommer du ihåg ditt lösenord?",
+    "loginLink": "Logga in."
+  },
+  "sso": {
+    "title": "Logga in med SSO",
+    "subtitle": "Logga in med din SSO-leverantör för att komma åt ditt konto.",
+    "submitButton": "Logga in med SSO",
+    "useUsernameInstead": "Använd användarnamn och lösenord istället.",
+    "noAccountPrompt": "Har du inget konto?",
+    "registerLink": "Registrera dig.",
+    "selectProjectTitle": "Välj projekt",
+    "selectProjectSubtitle": "Välj projektet du vill logga in på.",
+    "noConfigForEmail": "Ingen SSO-konfiguration hittades för e-posten: {{email}}",
+    "emailRequired": "E-post krävs för att utföra denna åtgärd",
+    "defaultProjectName": "Projekt"
+  },
+  "verifyEmail": {
+    "successTitle": "Din e-post är verifierad.",
+    "successDescription": "Tack för att du verifierade din e-post. Du kan nu logga in på OneUptime.",
+    "errorTitle": "Förlåt, något gick fel!",
+    "returnToSignIn": "Tillbaka till inloggning?",
+    "loginLink": "Logga in."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Förbjuden",
+      "description": "Du har inte behörighet att komma åt den här sidan."
+    },
+    "notFound": {
+      "title": "Sidan hittades inte",
+      "description": "Sidan du letar efter finns inte."
+    }
+  }
+}

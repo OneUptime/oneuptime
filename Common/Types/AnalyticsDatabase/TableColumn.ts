@@ -142,6 +142,22 @@ export default class AnalyticsTableColumn {
     this._codec = v;
   }
 
+  /*
+   * For columns of type `AggregateFunction`, the parameterization that
+   * goes inside the parentheses, e.g. "stddevPop, Float64" or
+   * "quantile(0.95), Float64". The schema generator emits
+   * `AggregateFunction(<aggregateFunctionDefinition>)` literally, so
+   * include arg types but NOT the surrounding parens. Required when
+   * `type === AggregateFunction`; ignored otherwise.
+   */
+  private _aggregateFunctionDefinition: string | undefined;
+  public get aggregateFunctionDefinition(): string | undefined {
+    return this._aggregateFunctionDefinition;
+  }
+  public set aggregateFunctionDefinition(v: string | undefined) {
+    this._aggregateFunctionDefinition = v;
+  }
+
   public constructor(data: {
     key: string;
     title: string;
@@ -158,6 +174,7 @@ export default class AnalyticsTableColumn {
       | undefined;
     skipIndex?: SkipIndex | undefined;
     codec?: ColumnCodecConfig | undefined;
+    aggregateFunctionDefinition?: string | undefined;
   }) {
     this.accessControl = data.accessControl;
     this.key = data.key;
@@ -173,5 +190,6 @@ export default class AnalyticsTableColumn {
       data.allowAccessIfSubscriptionIsUnpaid || false;
     this.skipIndex = data.skipIndex;
     this.codec = data.codec;
+    this.aggregateFunctionDefinition = data.aggregateFunctionDefinition;
   }
 }

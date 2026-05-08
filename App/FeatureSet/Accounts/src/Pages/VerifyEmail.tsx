@@ -12,8 +12,10 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const VerifyEmail: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const apiUrl: URL = VERIFY_EMAIL_API_URL;
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -73,11 +75,10 @@ const VerifyEmail: () => JSX.Element = () => {
             <div className="text-center">
               <div className="text-5xl sm:text-6xl mb-4">✅</div>
               <h2 className="text-xl sm:text-2xl tracking-tight text-gray-900">
-                Your email is verified.
+                {t("verifyEmail.successTitle")}
               </h2>
               <p className="text-gray-600 mt-3 text-sm sm:text-base px-2 sm:px-0">
-                Thank you for verifying your email. You can now log in to
-                OneUptime.
+                {t("verifyEmail.successDescription")}
               </p>
             </div>
           )}
@@ -86,7 +87,7 @@ const VerifyEmail: () => JSX.Element = () => {
             <div className="text-center">
               <div className="text-5xl sm:text-6xl mb-4">❌</div>
               <h2 className="text-xl sm:text-2xl tracking-tight text-gray-900">
-                Sorry, something went wrong!
+                {t("verifyEmail.errorTitle")}
               </h2>
               <p className="text-gray-600 mt-3 text-sm sm:text-base px-2 sm:px-0">
                 {error}
@@ -97,12 +98,12 @@ const VerifyEmail: () => JSX.Element = () => {
 
         <div className="mt-6 sm:mt-8 text-center">
           <p className="text-gray-500 text-sm sm:text-base">
-            Return to sign in?{" "}
+            {t("verifyEmail.returnToSignIn")}{" "}
             <Link
               to={new Route("/accounts/login")}
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Login.
+              {t("verifyEmail.loginLink")}
             </Link>
           </p>
         </div>

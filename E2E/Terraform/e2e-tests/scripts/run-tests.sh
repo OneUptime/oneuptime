@@ -25,22 +25,14 @@ INSTALL_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/oneuptim
 mkdir -p "$INSTALL_DIR"
 cp terraform-provider-oneuptime "$INSTALL_DIR/"
 
-# Create Terraform CLI override config
-cat > "$HOME/.terraformrc" << EOF
-provider_installation {
-  dev_overrides {
-    "oneuptime/oneuptime" = "$INSTALL_DIR"
-  }
-  direct {}
-}
-EOF
-
-echo "Provider installed to: $INSTALL_DIR"
-
-# Pre-download the random provider (needed by some tests)
+# Pre-download the random provider before setting up dev_overrides — running
+# `terraform init` after dev_overrides is configured can silently no-op
+# (Terraform prints "Skip terraform init when using provider development
+# overrides"), leaving the lock file empty and breaking subsequent tests.
 echo ""
 echo "=== Downloading Random Provider ==="
 RANDOM_PROVIDER_DIR="/tmp/tf-random-provider"
+rm -rf "$RANDOM_PROVIDER_DIR"
 mkdir -p "$RANDOM_PROVIDER_DIR"
 cat > "$RANDOM_PROVIDER_DIR/main.tf" << 'TFEOF'
 terraform {
@@ -52,8 +44,28 @@ terraform {
   }
 }
 TFEOF
-(cd "$RANDOM_PROVIDER_DIR" && terraform init -upgrade > /dev/null 2>&1) || true
+# Use an empty CLI config so the user's dev_overrides cannot interfere.
+(cd "$RANDOM_PROVIDER_DIR" && TF_CLI_CONFIG_FILE=/dev/null terraform init -input=false -upgrade)
+
+if [ ! -s "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ] || \
+   ! grep -q "hashicorp/random" "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl"; then
+    echo "ERROR: Failed to pre-download random provider — lock file missing or empty"
+    exit 1
+fi
 echo "Random provider downloaded"
+
+# Create Terraform CLI override config (after the pre-download so the
+# dev_override doesn't interfere with registry resolution above).
+cat > "$HOME/.terraformrc" << EOF
+provider_installation {
+  dev_overrides {
+    "oneuptime/oneuptime" = "$INSTALL_DIR"
+  }
+  direct {}
+}
+EOF
+
+echo "Provider installed to: $INSTALL_DIR"
 
 #######################################
 # API Helper Functions (for verify.sh scripts)
@@ -163,7 +175,9 @@ for test_name in "${TEST_DIRS[@]}"; do
     echo "=========================================="
 
     cd "$test_path"
-    rm -f tfplan terraform.tfstate terraform.tfstate.backup
+    # Wipe any state left over from a previous attempt of this test (the
+    # workflow uses nick-fields/retry, so the same checkout can be reused).
+    rm -rf tfplan terraform.tfstate terraform.tfstate.backup .terraform .terraform.lock.hcl
 
     # All tests get the same treatment:
     # 1. Plan
@@ -172,16 +186,16 @@ for test_name in "${TEST_DIRS[@]}"; do
     # 4. Destroy
     # 5. Verify Deletion via API
 
-    # Step 0: Initialize (copy pre-downloaded providers)
+    # Step 0: Initialize. We can't run `terraform init` here because the
+    # oneuptime provider isn't published to the public registry — even with
+    # dev_overrides, init still queries the registry for available versions
+    # and fails. So we plant the pre-downloaded random provider and lock
+    # file directly into the test's .terraform directory.
     echo "  [0/5] Initializing..."
-    # Copy pre-downloaded random provider if the test uses it
     if grep -q "hashicorp/random" "$test_path/main.tf" 2>/dev/null; then
         mkdir -p "$test_path/.terraform/providers/registry.terraform.io"
-        cp -r "$RANDOM_PROVIDER_DIR/.terraform/providers/registry.terraform.io/hashicorp" "$test_path/.terraform/providers/registry.terraform.io/" 2>/dev/null || true
-        # Only copy lock file if the test doesn't already have one
-        if [ ! -f "$test_path/.terraform.lock.hcl" ] && [ -f "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ]; then
-            cp "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" "$test_path/.terraform.lock.hcl" 2>/dev/null || true
-        fi
+        cp -r "$RANDOM_PROVIDER_DIR/.terraform/providers/registry.terraform.io/hashicorp" "$test_path/.terraform/providers/registry.terraform.io/"
+        cp "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" "$test_path/.terraform.lock.hcl"
     fi
 
     # Step 1: Plan
@@ -189,7 +203,7 @@ for test_name in "${TEST_DIRS[@]}"; do
     if ! terraform plan -out=tfplan 2>&1; then
         echo "  ✗ FAILED: Plan failed"
         FAILED+=("$test_name")
-        rm -f tfplan terraform.tfstate terraform.tfstate.backup
+        rm -rf tfplan terraform.tfstate terraform.tfstate.backup .terraform .terraform.lock.hcl
         continue
     fi
 
@@ -200,7 +214,7 @@ for test_name in "${TEST_DIRS[@]}"; do
         FAILED+=("$test_name")
         # Try to cleanup anyway
         terraform destroy -auto-approve 2>&1 || true
-        rm -f tfplan terraform.tfstate terraform.tfstate.backup
+        rm -rf tfplan terraform.tfstate terraform.tfstate.backup .terraform .terraform.lock.hcl
         continue
     fi
 
@@ -249,7 +263,7 @@ for test_name in "${TEST_DIRS[@]}"; do
     fi
 
     # Cleanup state files
-    rm -f tfplan terraform.tfstate terraform.tfstate.backup
+    rm -rf tfplan terraform.tfstate terraform.tfstate.backup .terraform .terraform.lock.hcl
 
     # Mark test result
     if [ $test_failed -eq 0 ]; then

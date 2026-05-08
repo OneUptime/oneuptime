@@ -457,6 +457,11 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Dictionary && (
             <DictionaryForm
               keys={props.field.jsonKeysForDictionary}
+              valueSuggestions={props.field.dictionaryValueSuggestions}
+              onKeySelected={props.field.onDictionaryKeySelected}
+              isLoadingKeys={props.field.isLoadingDictionaryKeys}
+              loadingValueKeys={props.field.loadingDictionaryValueKeys}
+              enableOperators={props.field.dictionaryEnableOperators}
               addButtonSuffix={props.field.title}
               keyPlaceholder={"Key"}
               valuePlaceholder={"Value"}
@@ -467,7 +472,7 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : props.field.defaultValue || {}
               }
-              onChange={(value: Dictionary<string | number | boolean>) => {
+              onChange={(value: Dictionary<any>) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}

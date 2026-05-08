@@ -149,10 +149,10 @@ export default class AccessControlPermission {
       model.getAccessControlColumn();
 
     if (modelAccessControlColumnName) {
-      const accessControlIdsWhcihUserHasAccessTo: Array<ObjectID> =
+      const accessControlIdsWhichUserHasAccessTo: Array<ObjectID> =
         this.getAccessControlIdsForModel(modelType, props, type);
 
-      if (accessControlIdsWhcihUserHasAccessTo.length === 0) {
+      if (accessControlIdsWhichUserHasAccessTo.length === 0) {
         return; // The user has access to all resources, if no labels are specified.
       }
 
@@ -164,7 +164,7 @@ export default class AccessControlPermission {
       }
 
       const accessControlIdsWhichUserHasAccessToAsStrings: Array<string> =
-        accessControlIdsWhcihUserHasAccessTo.map((id: ObjectID) => {
+        accessControlIdsWhichUserHasAccessTo.map((id: ObjectID) => {
           return id.toString();
         }) || [];
 

@@ -1,10 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
 import KubernetesResourceUtils, {
   KubernetesResource,
+  PodMetricAggregate,
 } from "../Utils/KubernetesResourceUtils";
 import React, {
   FunctionComponent,
@@ -12,7 +12,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -34,24 +33,14 @@ const KubernetesClusterJobs: FunctionComponent<
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const cluster: KubernetesCluster | null = await ModelAPI.getItem({
-        modelType: KubernetesCluster,
-        id: modelId,
-        select: {
-          clusterIdentifier: true,
-        },
-      });
-
-      if (!cluster?.clusterIdentifier) {
-        setError("Cluster not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      const jobList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchInventoryResources({
+      const [jobList, aggregates]: [
+        Array<KubernetesResource>,
+        Map<string, PodMetricAggregate>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "Job",
+          selectFullSpec: true,
           transform: (
             resource: KubernetesResource,
             row: KubernetesResourceModel,
@@ -72,14 +61,13 @@ const KubernetesClusterJobs: FunctionComponent<
               resource.status = "Pending";
             }
           },
-        });
+        }),
+        KubernetesResourceUtils.fetchPodMetricsByOwner(modelId, "Job"),
+      ]);
 
-      await KubernetesResourceUtils.enrichWithMetrics({
+      KubernetesResourceUtils.applyAggregateMetrics({
         resources: jobList,
-        clusterIdentifier: cluster.clusterIdentifier,
-        cpuMetricName: "k8s.pod.cpu.utilization",
-        memoryMetricName: "k8s.pod.memory.usage",
-        resourceNameAttribute: "resource.k8s.job.name",
+        aggregates,
       });
 
       setResources(jobList);

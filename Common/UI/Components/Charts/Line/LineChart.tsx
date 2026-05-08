@@ -98,6 +98,21 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       return series.data.length === 0;
     });
 
+  /*
+   * Translate yAxis.options.min/max into recharts inputs. "auto" maps to
+   * autoMinValue=true (or maxValue omitted) so recharts zooms to the
+   * data range — important for cumulative counters where the absolute
+   * value dwarfs per-bucket variation and a 0-anchored axis flattens
+   * the line.
+   */
+  const yAxisMinOption: number | "auto" = props.yAxis.options.min;
+  const yAxisMaxOption: number | "auto" = props.yAxis.options.max;
+  const autoMinValue: boolean = yAxisMinOption === "auto";
+  const minValueProp: { minValue: number } | Record<string, unknown> =
+    typeof yAxisMinOption === "number" ? { minValue: yAxisMinOption } : {};
+  const maxValueProp: { maxValue: number } | Record<string, unknown> =
+    typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
+
   return (
     <div className="relative">
       <LineChart
@@ -114,7 +129,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         connectNulls={true}
         curve={props.curve}
         syncid={props.sync ? props.syncid : undefined}
-        yAxisWidth={60}
+        yAxisWidth={64}
+        autoMinValue={autoMinValue}
+        {...minValueProp}
+        {...maxValueProp}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
         formattedExemplarPoints={

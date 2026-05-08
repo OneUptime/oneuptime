@@ -710,15 +710,16 @@ const LineChart: React.ForwardRefExoticComponent<
                 : () => {} // do nothing
             }
             margin={{
-              bottom: (xAxisLabel ? 30 : undefined) as unknown as number,
-              left: (yAxisLabel ? 20 : undefined) as unknown as number,
-              right: (yAxisLabel ? 5 : undefined) as unknown as number,
+              bottom: (xAxisLabel ? 30 : 8) as unknown as number,
+              left: (yAxisLabel ? 20 : 0) as unknown as number,
+              right: (yAxisLabel ? 5 : 8) as unknown as number,
               top: 5,
             }}
           >
             {showGridLines ? (
               <CartesianGrid
-                className={cx("stroke-gray-200 stroke-1")}
+                className={cx("stroke-gray-100")}
+                strokeDasharray="3 3"
                 horizontal={true}
                 vertical={false}
               />
@@ -728,7 +729,11 @@ const LineChart: React.ForwardRefExoticComponent<
               hide={!showXAxis}
               dataKey={index}
               interval={startEndOnly ? "preserveStartEnd" : intervalType}
-              tick={{ transform: "translate(0, 6)" }}
+              tick={{
+                transform: "translate(0, 6)",
+                fontSize: 10,
+                fontWeight: 500,
+              }}
               ticks={
                 startEndOnly
                   ? ([
@@ -741,7 +746,7 @@ const LineChart: React.ForwardRefExoticComponent<
               stroke=""
               className={cx(
                 // base
-                "text-xs",
+                "tabular-nums",
                 // text fill
                 "fill-gray-500",
               )}
@@ -766,12 +771,16 @@ const LineChart: React.ForwardRefExoticComponent<
               tickLine={false}
               type="number"
               domain={yAxisDomain as AxisDomain}
-              tick={{ transform: "translate(-3, 0)" }}
+              tick={{
+                transform: "translate(-4, 0)",
+                fontSize: 10,
+                fontWeight: 500,
+              }}
               fill=""
               stroke=""
               className={cx(
                 // base
-                "text-xs",
+                "tabular-nums",
                 // text fill
                 "fill-gray-500",
               )}

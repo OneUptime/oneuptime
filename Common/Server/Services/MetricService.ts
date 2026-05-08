@@ -5,10 +5,11 @@ import AggregateBy, {
   AggregateUtil,
 } from "../Types/AnalyticsDatabase/AggregateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import {
+import AggregationType, {
   getPercentileLevel,
   isPercentileAggregation,
 } from "../../Types/BaseDatabase/AggregationType";
+import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -56,6 +57,27 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     columns: Array<string>;
   } {
     if (!isPercentileAggregation(aggregateBy.aggregationType)) {
+      /*
+       * Try the per-host MV first — host detail pages are the
+       * dominant attribute-filtered path and the per-host MV is
+       * the only one that can serve them. If it doesn't apply
+       * (no host filter, or extra attrs/groupBy), fall through
+       * to the project/serviceId MV, then to the base table.
+       */
+      const hostMvStatement: {
+        statement: Statement;
+        columns: Array<string>;
+      } | null = this.tryBuildHostAggregateMVStatement(aggregateBy);
+      if (hostMvStatement) {
+        return hostMvStatement;
+      }
+      const mvStatement: {
+        statement: Statement;
+        columns: Array<string>;
+      } | null = this.tryBuildMinuteAggregateMVStatement(aggregateBy);
+      if (mvStatement) {
+        return mvStatement;
+      }
       return super.toAggregateStatement(aggregateBy);
     }
 
@@ -216,6 +238,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }} `,
     );
 
+    /*
+     * Match the read-path settings the base aggregator now appends (see
+     * AnalyticsDatabaseService.toAggregateStatement). The percentile
+     * path bypasses the base method, so we mirror them here to keep
+     * cluster behavior consistent across aggregation kinds.
+     */
+    statement.append(
+      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+    );
+
     const columns: Array<string> = [
       aggregationColumn,
       aggregationTimestampColumn,
@@ -230,6 +262,366 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     } as LogAttributes);
 
     return { statement, columns };
+  }
+
+  /*
+   * Materialized-view fast path for scalar aggregations.
+   *
+   * Returns a statement that reads from MetricItemAggMV1m (the
+   * 1-minute pre-aggregate created by
+   * AddMetricMinuteAggregateMaterializedView) when:
+   *
+   *   - The aggregation is Sum/Avg/Min/Max/Count over `value`.
+   *   - The dashboard's effective bucket interval is >= 1 minute (the
+   *     MV stores 1-minute states; sub-minute requests need raw rows).
+   *   - The query carries no per-attribute filter or group-by, since
+   *     the MV is keyed by (projectId, name, serviceId, bucketTime)
+   *     only — it does not preserve attribute breakdowns.
+   *   - The query carries no group-by other than the time bucket.
+   *
+   * Returns `null` if any condition fails so the caller falls back to
+   * the base table. The result row shape (columns: aggregateColumn,
+   * timestampColumn) matches the base statement so downstream code
+   * needs no changes.
+   */
+  private tryBuildMinuteAggregateMVStatement(
+    aggregateBy: AggregateBy<Metric>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    const aggType: AggregationType = aggregateBy.aggregationType;
+    const supported: ReadonlyArray<AggregationType> = [
+      AggregationType.Sum,
+      AggregationType.Avg,
+      AggregationType.Min,
+      AggregationType.Max,
+      AggregationType.Count,
+    ];
+    if (!supported.includes(aggType)) {
+      return null;
+    }
+
+    if (
+      aggregateBy.aggregateColumnName.toString() !== "value" ||
+      aggregateBy.aggregationTimestampColumnName.toString() !== "time"
+    ) {
+      return null;
+    }
+
+    const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    });
+    /*
+     * The MV is bucketed at 1 minute, so all values of AggregationInterval
+     * (Minute / Hour / Day / Week / Month / Year) are >= MV resolution
+     * and acceptable. Kept as a no-op read so the dependency on
+     * AggregateUtil makes the intent obvious.
+     */
+    void interval;
+
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+    const attrs: unknown = queryRecord["attributes"];
+    if (
+      attrs !== undefined &&
+      attrs !== null &&
+      !(
+        typeof attrs === "object" &&
+        Object.keys(attrs as Record<string, unknown>).length === 0
+      )
+    ) {
+      return null;
+    }
+
+    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      return null;
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const intervalLower: string = interval.toLowerCase();
+
+    let mergedExpr: string;
+    if (aggType === AggregationType.Sum) {
+      mergedExpr = `sumMerge(valueSumState)`;
+    } else if (aggType === AggregationType.Count) {
+      mergedExpr = `countMerge(valueCountState)`;
+    } else if (aggType === AggregationType.Min) {
+      mergedExpr = `minMerge(valueMinState)`;
+    } else if (aggType === AggregationType.Max) {
+      mergedExpr = `maxMerge(valueMaxState)`;
+    } else {
+      // Avg = sum / count, derived from the two stored states.
+      mergedExpr = `if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))`;
+    }
+
+    /*
+     * Build the WHERE on a copy of the query with `time` removed so
+     * the generator never references a column that doesn't exist on
+     * the MV. We then add an explicit `bucketTime` range from
+     * startTimestamp/endTimestamp.
+     */
+    const nonTimeWhere: Statement = this.statementGenerator.toWhereStatement(
+      this.stripTimeFromQuery(aggregateBy.query) as typeof aggregateBy.query,
+    );
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const statement: Statement = SQL``;
+
+    statement.append(
+      `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
+    );
+    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
+    statement.append(
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
+    );
+    statement.append(SQL` `).append(nonTimeWhere);
+
+    statement.append(SQL` GROUP BY `).append(`time`);
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }} `,
+    );
+    statement.append(
+      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+    );
+
+    logger.debug(`${this.model.tableName} MV Aggregate Statement`, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+    logger.debug(statement, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+
+    return {
+      statement,
+      columns: [
+        aggregateBy.aggregateColumnName.toString(),
+        aggregateBy.aggregationTimestampColumnName.toString(),
+      ],
+    };
+  }
+
+  /*
+   * Per-host materialized-view fast path.
+   *
+   * Returns a statement that reads from MetricItemAggMV1mByHost
+   * (created by AddMetricMinuteAggregateByHostMaterializedView)
+   * when:
+   *
+   *   - The aggregation is Sum/Avg/Min/Max/Count over `value`.
+   *   - The only attribute filter is `resource.host.name` as a
+   *     bare-string equality (the dashboard's host detail page
+   *     pattern).
+   *   - The query carries no group-by other than the time
+   *     bucket — the MV is keyed by hostIdentifier and does not
+   *     preserve other attribute breakdowns.
+   *
+   * Returns `null` if any condition fails so the caller falls
+   * through to the next fast path / base table. The result row
+   * shape (columns: aggregateColumn, timestampColumn) matches
+   * the base statement so downstream code needs no changes.
+   */
+  private tryBuildHostAggregateMVStatement(
+    aggregateBy: AggregateBy<Metric>,
+  ): { statement: Statement; columns: Array<string> } | null {
+    const aggType: AggregationType = aggregateBy.aggregationType;
+    const supported: ReadonlyArray<AggregationType> = [
+      AggregationType.Sum,
+      AggregationType.Avg,
+      AggregationType.Min,
+      AggregationType.Max,
+      AggregationType.Count,
+    ];
+    if (!supported.includes(aggType)) {
+      return null;
+    }
+
+    if (
+      aggregateBy.aggregateColumnName.toString() !== "value" ||
+      aggregateBy.aggregationTimestampColumnName.toString() !== "time"
+    ) {
+      return null;
+    }
+
+    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      return null;
+    }
+
+    /*
+     * Inspect the attribute filter. This MV is only safe when
+     * the user is filtering by exactly one attribute,
+     * `resource.host.name`, with a bare-string value (the
+     * canonical Overview/Metrics-page pattern). Anything else —
+     * extra attribute filters, NotEqual, Search, etc. — has to
+     * fall back so the result stays correct.
+     */
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+    const attrs: unknown = queryRecord["attributes"];
+    if (!attrs || typeof attrs !== "object") {
+      return null;
+    }
+    const attrEntries: Array<[string, unknown]> = Object.entries(
+      attrs as Record<string, unknown>,
+    );
+    if (attrEntries.length !== 1) {
+      return null;
+    }
+    const [attrKey, attrValue] = attrEntries[0]!;
+    if (attrKey !== "resource.host.name") {
+      return null;
+    }
+    if (attrValue === undefined || attrValue === null) {
+      return null;
+    }
+    const hostIdentifier: string =
+      typeof attrValue === "string" ? attrValue : "";
+    if (!hostIdentifier) {
+      return null;
+    }
+
+    const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    });
+    void interval;
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const intervalLower: string = interval.toLowerCase();
+
+    let mergedExpr: string;
+    if (aggType === AggregationType.Sum) {
+      mergedExpr = `sumMerge(valueSumState)`;
+    } else if (aggType === AggregationType.Count) {
+      mergedExpr = `countMerge(valueCountState)`;
+    } else if (aggType === AggregationType.Min) {
+      mergedExpr = `minMerge(valueMinState)`;
+    } else if (aggType === AggregationType.Max) {
+      mergedExpr = `maxMerge(valueMaxState)`;
+    } else {
+      mergedExpr = `if(countMerge(valueCountState) = 0, 0, sumMerge(valueSumState) / countMerge(valueCountState))`;
+    }
+
+    /*
+     * Strip both `time` (column doesn't exist on the MV; we
+     * inject an explicit bucketTime range below) and
+     * `attributes` (the attribute filter is now an explicit
+     * `hostIdentifier =` predicate against an MV column).
+     */
+    const filteredQuery: typeof aggregateBy.query =
+      this.stripAttributesAndTimeFromQuery(
+        aggregateBy.query,
+      ) as typeof aggregateBy.query;
+    const nonTimeWhere: Statement =
+      this.statementGenerator.toWhereStatement(filteredQuery);
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const statement: Statement = SQL``;
+
+    statement.append(
+      `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
+    );
+    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHost`);
+    statement.append(
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')`,
+    );
+    statement.append(
+      SQL` AND hostIdentifier = ${{
+        value: hostIdentifier,
+        type: TableColumnType.Text,
+      }}`,
+    );
+    statement.append(SQL` `).append(nonTimeWhere);
+
+    statement.append(SQL` GROUP BY `).append(`time`);
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }} `,
+    );
+    statement.append(
+      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+    );
+
+    logger.debug(`${this.model.tableName} Host MV Aggregate Statement`, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+    logger.debug(statement, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+
+    return {
+      statement,
+      columns: [
+        aggregateBy.aggregateColumnName.toString(),
+        aggregateBy.aggregationTimestampColumnName.toString(),
+      ],
+    };
+  }
+
+  private stripAttributesAndTimeFromQuery(query: unknown): typeof query {
+    if (!query || typeof query !== "object") {
+      return query;
+    }
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(query as Record<string, unknown>)) {
+      if (k === "time" || k === "attributes") {
+        continue;
+      }
+      out[k] = v;
+    }
+    return out as typeof query;
+  }
+
+  private stripTimeFromQuery(query: unknown): typeof query {
+    if (!query || typeof query !== "object") {
+      return query;
+    }
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(query as Record<string, unknown>)) {
+      if (k === "time") {
+        continue;
+      }
+      out[k] = v;
+    }
+    return out as typeof query;
+  }
+
+  private formatDateTime(d: Date): string {
+    /*
+     * ClickHouse's DateTime parser accepts 'YYYY-MM-DD HH:MM:SS'.
+     * toISOString gives 'YYYY-MM-DDTHH:MM:SS.sssZ'; trim the milliseconds
+     * and the trailing 'Z' and replace 'T' with a space.
+     */
+    return new Date(d).toISOString().replace("T", " ").substring(0, 19);
   }
 }
 

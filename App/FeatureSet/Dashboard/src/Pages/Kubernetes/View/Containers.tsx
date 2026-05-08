@@ -1,18 +1,16 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
-import KubernetesResourceUtils, {
-  KubernetesResource,
-} from "../Utils/KubernetesResourceUtils";
+import { KubernetesResource } from "../Utils/KubernetesResourceUtils";
+import KubernetesContainerModel from "Common/Models/DatabaseModels/KubernetesContainer";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -20,7 +18,28 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+
+const METRIC_STALE_MS: number = 15 * 60 * 1000;
+
+function deriveDisplayStatus(row: KubernetesContainerModel): string {
+  const reason: string = row.reason || "";
+  const state: string = row.state || "";
+  if (state === "running") {
+    return row.isReady ? "Running" : "NotReady";
+  }
+  if (state === "waiting") {
+    return reason || "Waiting";
+  }
+  if (state === "terminated") {
+    return reason || "Terminated";
+  }
+  if (state) {
+    return state.charAt(0).toUpperCase() + state.slice(1);
+  }
+  return "Unknown";
+}
 
 const KubernetesClusterContainers: FunctionComponent<
   PageComponentProps
@@ -34,109 +53,78 @@ const KubernetesClusterContainers: FunctionComponent<
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const cluster: KubernetesCluster | null = await ModelAPI.getItem({
-        modelType: KubernetesCluster,
-        id: modelId,
-        select: {
-          clusterIdentifier: true,
-        },
-      });
+      const result: ListResult<KubernetesContainerModel> =
+        await ModelAPI.getList<KubernetesContainerModel>({
+          modelType: KubernetesContainerModel,
+          query: {
+            kubernetesClusterId: modelId,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          select: {
+            name: true,
+            podName: true,
+            podNamespaceKey: true,
+            state: true,
+            reason: true,
+            isReady: true,
+            restartCount: true,
+            memoryLimitBytes: true,
+            latestCpuPercent: true,
+            latestMemoryBytes: true,
+            metricsUpdatedAt: true,
+            lastSeenAt: true,
+          },
+          sort: {
+            podNamespaceKey: SortOrder.Ascending,
+            podName: SortOrder.Ascending,
+            name: SortOrder.Ascending,
+          },
+        });
 
-      if (!cluster?.clusterIdentifier) {
-        setError("Cluster not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      /*
-       * Containers aren't tracked as a top-level kind in the inventory
-       * — they're part of a Pod's spec. Expand each Pod row into one
-       * row per container so the page and the sidebar badge (which
-       * counts pods as a proxy) agree.
-       */
-      const pods: Array<KubernetesResource> = [];
-      const podRows: Map<string, KubernetesResourceModel> = new Map();
-
-      await KubernetesResourceUtils.fetchInventoryResources({
-        kubernetesClusterId: modelId,
-        kind: "Pod",
-        transform: (
-          resource: KubernetesResource,
-          row: KubernetesResourceModel,
-        ) => {
-          pods.push(resource);
-          podRows.set(`${resource.namespace}/${resource.name}`, row);
-        },
-      });
-
-      const containerList: Array<KubernetesResource> = [];
-
-      for (const pod of pods) {
-        const row: KubernetesResourceModel | undefined = podRows.get(
-          `${pod.namespace}/${pod.name}`,
-        );
-        if (!row) {
-          continue;
-        }
-        const spec: Record<string, unknown> =
-          (row.spec as unknown as Record<string, unknown>) || {};
-        const status: Record<string, unknown> =
-          (row.status as unknown as Record<string, unknown>) || {};
-        const containers: Array<Record<string, unknown>> =
-          (spec["containers"] as Array<Record<string, unknown>>) || [];
-        const containerStatuses: Array<Record<string, unknown>> =
-          (status["containerStatuses"] as Array<Record<string, unknown>>) || [];
-
-        for (const c of containers) {
-          const name: string = (c["name"] as string) || "";
-          if (!name) {
-            continue;
-          }
-
-          const cs: Record<string, unknown> | undefined =
-            containerStatuses.find((s: Record<string, unknown>) => {
-              return s["name"] === name;
-            });
-
-          let displayStatus: string = "Unknown";
-          let restarts: string = "0";
-          if (cs) {
-            const state: unknown = cs["state"];
-            if (state === "running") {
-              displayStatus = cs["ready"] ? "Running" : "NotReady";
-            } else if (state === "waiting") {
-              displayStatus = "Waiting";
-            } else if (state === "terminated") {
-              displayStatus = "Terminated";
-            } else if (typeof state === "string") {
-              displayStatus = state;
+      const now: number = Date.now();
+      const containerList: Array<KubernetesResource> = result.data.map(
+        (row: KubernetesContainerModel): KubernetesResource => {
+          let cpu: number | null = null;
+          let mem: number | null = null;
+          if (row.metricsUpdatedAt) {
+            const ageMs: number =
+              now - new Date(row.metricsUpdatedAt as Date).getTime();
+            if (ageMs <= METRIC_STALE_MS) {
+              if (
+                row.latestCpuPercent !== null &&
+                row.latestCpuPercent !== undefined
+              ) {
+                cpu = Number(row.latestCpuPercent);
+              }
+              if (
+                row.latestMemoryBytes !== null &&
+                row.latestMemoryBytes !== undefined
+              ) {
+                mem = Number(row.latestMemoryBytes);
+              }
             }
-            restarts = `${(cs["restartCount"] as number) || 0}`;
           }
 
-          containerList.push({
-            name,
-            namespace: pod.namespace,
-            cpuUtilization: null,
-            memoryUsageBytes: null,
-            memoryLimitBytes: null,
-            status: displayStatus,
-            age: pod.age,
+          return {
+            name: row.name || "",
+            namespace: row.podNamespaceKey || "",
+            cpuUtilization: cpu,
+            memoryUsageBytes: mem,
+            memoryLimitBytes:
+              row.memoryLimitBytes !== null &&
+              row.memoryLimitBytes !== undefined
+                ? Number(row.memoryLimitBytes)
+                : null,
+            status: deriveDisplayStatus(row),
+            age: "",
             additionalAttributes: {
-              "resource.k8s.pod.name": pod.name,
-              restarts,
+              "resource.k8s.pod.name": row.podName || "",
+              restarts: `${row.restartCount ?? 0}`,
             },
-          });
-        }
-      }
-
-      await KubernetesResourceUtils.enrichWithMetrics({
-        resources: containerList,
-        clusterIdentifier: cluster.clusterIdentifier,
-        cpuMetricName: "container.cpu.utilization",
-        memoryMetricName: "container.memory.usage",
-        resourceNameAttribute: "resource.k8s.container.name",
-      });
+          };
+        },
+      );
 
       setResources(containerList);
     } catch (err) {

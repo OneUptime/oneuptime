@@ -1,10 +1,17 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import DashboardTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
@@ -22,95 +29,88 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [metricResults, setMetricResults] = React.useState<
-    Array<AggregatedResult>
-  >([]);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
+    [],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [props.component.arguments.metricQueryConfig]
-      : [],
-    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+  const metricQueryConfig: MetricQueryConfigData | undefined =
+    props.component.arguments.metricQueryConfig;
+
+  const startAndEndDate: ReturnType<
+    typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
+  > = useMemo(() => {
+    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
-    ),
-    formulaConfigs: [],
-  };
+    );
+  }, [props.dashboardStartAndEndDate]);
 
-  const fetchAggregatedResults: PromiseVoidFunction =
-    async (): Promise<void> => {
-      setIsLoading(true);
-
-      if (
-        !metricViewData.startAndEndDate?.startValue ||
-        !metricViewData.startAndEndDate?.endValue
-      ) {
-        setIsLoading(false);
-        setError("Please select a valid start and end date.");
-        return;
-      }
-
-      if (
-        !metricViewData.queryConfigs ||
-        metricViewData.queryConfigs.length === 0 ||
-        !metricViewData.queryConfigs[0] ||
-        !metricViewData.queryConfigs[0].metricQueryData ||
-        !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        Object.keys(metricViewData.queryConfigs[0].metricQueryData.filterData)
-          .length === 0
-      ) {
-        setIsLoading(false);
-        setError("Please select a metric. Click here to add a metric.");
-        return;
-      }
-
-      if (
-        !metricViewData.queryConfigs[0] ||
-        !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        !metricViewData.queryConfigs[0].metricQueryData.filterData
-          ?.aggegationType
-      ) {
-        setIsLoading(false);
-        setError(
-          "Please select an aggregation. Click here to add an aggregation.",
-        );
-        return;
-      }
-
-      try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
-        });
-
-        setMetricResults(results);
-        setError("");
-      } catch (err: unknown) {
-        setError(API.getFriendlyErrorMessage(err as Error));
-      }
-
-      setIsLoading(false);
+  const metricViewData: MetricViewData = useMemo(() => {
+    return {
+      queryConfigs: metricQueryConfig ? [metricQueryConfig] : [],
+      startAndEndDate: startAndEndDate,
+      formulaConfigs: [],
     };
+  }, [metricQueryConfig, startAndEndDate]);
+
+  const metricViewDataRef: React.MutableRefObject<MetricViewData> =
+    useRef<MetricViewData>(metricViewData);
+  metricViewDataRef.current = metricViewData;
+
+  const fetchAggregatedResults: () => Promise<void> = useCallback(async () => {
+    const data: MetricViewData = metricViewDataRef.current;
+    setIsLoading(true);
+
+    if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
+      setIsLoading(false);
+      setError("Please select a valid start and end date.");
+      return;
+    }
+
+    if (
+      !data.queryConfigs ||
+      data.queryConfigs.length === 0 ||
+      !data.queryConfigs[0] ||
+      !data.queryConfigs[0].metricQueryData ||
+      !data.queryConfigs[0].metricQueryData.filterData ||
+      Object.keys(data.queryConfigs[0].metricQueryData.filterData).length === 0
+    ) {
+      setIsLoading(false);
+      setError("Please select a metric. Click here to add a metric.");
+      return;
+    }
+
+    if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
+      setIsLoading(false);
+      setError(
+        "Please select an aggregation. Click here to add an aggregation.",
+      );
+      return;
+    }
+
+    try {
+      const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
+        metricViewData: data,
+      });
+
+      setMetricResults(results);
+      setError("");
+    } catch (err: unknown) {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
-
-  const [metricQueryConfig, setMetricQueryConfig] = React.useState<
-    MetricQueryConfigData | undefined
-  >(props.component.arguments.metricQueryConfig);
-
-  useEffect(() => {
-    if (
-      JSONFunctions.isJSONObjectDifferent(
-        metricQueryConfig || {},
-        props.component.arguments.metricQueryConfig || {},
-      )
-    ) {
-      setMetricQueryConfig(props.component.arguments.metricQueryConfig);
-      fetchAggregatedResults();
-    }
-  }, [props.component.arguments.metricQueryConfig]);
+  }, [
+    startAndEndDate,
+    metricQueryConfig,
+    props.refreshTick,
+    fetchAggregatedResults,
+  ]);
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for table - only on initial load
@@ -266,4 +266,31 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardTableComponentElement;
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(
+    prev.component.arguments,
+    next.component.arguments,
+  );
+}
+
+export default React.memo(DashboardTableComponentElement, arePropsEqual);

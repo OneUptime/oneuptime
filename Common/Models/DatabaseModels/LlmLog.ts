@@ -217,7 +217,8 @@ export default class LlmLog extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "LLM Type",
-    description: "Type of LLM (OpenAI, Anthropic, Ollama)",
+    description:
+      "Type of LLM (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama)",
     canReadOnRelationQuery: false,
   })
   @Column({

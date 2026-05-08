@@ -9,6 +9,8 @@ export interface LogsFilterCardProps {
   onSearchSubmit: () => void;
   valueSuggestions?: Record<string, Array<string>> | undefined;
   onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
+  isAttributesLoading?: boolean | undefined;
+  isValuesLoading?: boolean | undefined;
 }
 
 const LogsFilterCard: React.ForwardRefExoticComponent<
@@ -18,14 +20,11 @@ const LogsFilterCard: React.ForwardRefExoticComponent<
     props: LogsFilterCardProps,
     ref: React.Ref<LogSearchBarRef>,
   ): ReactElement => {
-    const searchBarSuggestions: Array<string> = [
+    const fieldSuggestions: Array<string> = [
       "severity",
       "service",
       "trace",
       "span",
-      ...props.logAttributes.map((attr: string) => {
-        return `@${attr}`;
-      }),
     ];
 
     return (
@@ -36,9 +35,12 @@ const LogsFilterCard: React.ForwardRefExoticComponent<
             value={props.searchQuery}
             onChange={props.onSearchQueryChange}
             onSubmit={props.onSearchSubmit}
-            suggestions={searchBarSuggestions}
+            suggestions={fieldSuggestions}
+            attributeSuggestions={props.logAttributes}
             valueSuggestions={props.valueSuggestions}
             onFieldValueSelect={props.onFieldValueSelect}
+            isAttributesLoading={props.isAttributesLoading}
+            isValuesLoading={props.isValuesLoading}
           />
         </div>
         <div>{props.toolbar}</div>

@@ -37,6 +37,10 @@
                 "provision": {
                     "type": "boolean",
                     "description": "Automatically provision a Let's Encrypt certificate for the primary host"
+                },
+                "skipVerification": {
+                    "type": "boolean",
+                    "description": "Skip TLS certificate verification for outbound HTTPS requests. Not safe for production."
                 }
             },
             "additionalProperties": false
@@ -318,6 +322,9 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "hostAliases": {
+                    "type": ["array", "null"]
                 }
             },
             "additionalProperties": false
@@ -989,6 +996,21 @@
             },
             "additionalProperties": false
         },
+        "queueDashboard": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "secret": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "statusPage": {
             "type": "object",
             "properties": {
@@ -1130,6 +1152,9 @@
                         "containerSecurityContext": {
                             "type": "object"
                         },
+                        "hostAliases": {
+                            "type": ["array", "null"]
+                        },
                         "additionalContainers": {
                             "type": "array"
                         },
@@ -1232,6 +1257,12 @@
         "nodeSelector": {
             "type": [
                 "object",
+                "null"
+            ]
+        },
+        "hostAliases": {
+            "type": [
+                "array",
                 "null"
             ]
         },
@@ -1716,6 +1747,9 @@
                 "podSecurityContext": {
                     "type": "object"
                 },
+                "hostAliases": {
+                    "type": ["array", "null"]
+                },
                 "containerSecurityContext": {
                     "type": "object"
                 },
@@ -1812,6 +1846,9 @@
                 },
                 "podSecurityContext": {
                     "type": "object"
+                },
+                "hostAliases": {
+                    "type": ["array", "null"]
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -2061,6 +2098,9 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "hostAliases": {
+                    "type": ["array", "null"]
                 },
                 "keda": {
                     "type": "object",

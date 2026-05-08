@@ -41,7 +41,11 @@
     "apiKey": "API 키",
     "more": "더 보기",
     "sendEmail": "이메일 보내기",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "projectUsers": "Users",
+    "projectUser": "User",
+    "projectTeams": "Teams",
+    "projectTeam": "Team"
   },
   "topAlert": {
     "title": "OneUptime 관리자 대시보드",
@@ -98,7 +102,10 @@
     "settingsApiIntegrations": "API 및 통합",
     "settingsApiKey": "API 키",
     "moreCommunication": "커뮤니케이션",
-    "moreSendEmail": "이메일 보내기"
+    "moreSendEmail": "이메일 보내기",
+    "members": "Members",
+    "users": "Users",
+    "teams": "Teams"
   },
   "pages": {
     "users": {
@@ -282,6 +289,40 @@
         "stepProviderSettings": "공급자 설정",
         "stepCostSettings": "비용 설정"
       }
+    },
+    "projectUsers": {
+      "title": "Project Users",
+      "cardTitle": "Users",
+      "cardDescription": "Here is a list of all the users in this project.",
+      "noItems": "No users found in this project.",
+      "noItemsFiltered": "No users matched the filter.",
+      "inviteUser": "Invite User",
+      "inviteUserTitle": "Invite New User",
+      "inviteUserDescription": "Invite a new user to this project.",
+      "inviteUserSubmit": "Invite"
+    },
+    "projectUserView": {
+      "title": "Project User",
+      "cardTitle": "User",
+      "cardDescription": "User details and team memberships in this project.",
+      "teamsCardTitle": "Teams",
+      "teamsCardDescription": "Teams this user belongs to in this project.",
+      "teamsNoItems": "This user is not a member of any team in this project."
+    },
+    "projectTeams": {
+      "title": "Project Teams",
+      "cardTitle": "Teams",
+      "cardDescription": "Here is a list of all the teams in this project.",
+      "noItems": "No teams found in this project."
+    },
+    "projectTeamView": {
+      "title": "Project Team",
+      "cardTitle": "Team Details",
+      "cardDescription": "Details about this team.",
+      "editButton": "Edit Team",
+      "membersCardTitle": "Team Members",
+      "membersCardDescription": "Manage members of this team. Invite new users by email.",
+      "membersNoItems": "No members in this team yet."
     }
   },
   "Basic": "기본",

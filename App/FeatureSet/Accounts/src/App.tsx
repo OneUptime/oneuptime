@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Footer from "./Components/Footer/Footer";
 
 // Lazy load page components
 const ForbiddenPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
@@ -45,29 +46,32 @@ function App(): ReactElement {
   Navigation.setParams(useParams());
 
   return (
-    <div className="m-auto h-screen">
+    <div className="m-auto flex min-h-screen flex-col">
       <Suspense fallback={<PageLoader isVisible={true} />}>
-        <Routes>
-          <Route path="/accounts" element={<LoginPage />} />
-          <Route path="/accounts/login" element={<LoginPage />} />
-          <Route path="/accounts/forbidden" element={<ForbiddenPage />} />
-          <Route path="/accounts/sso" element={<LoginWithSSO />} />
-          <Route
-            path="/accounts/forgot-password"
-            element={<ForgotPasswordPage />}
-          />
-          <Route
-            path="/accounts/reset-password/:token"
-            element={<ResetPasswordPage />}
-          />
-          <Route path="/accounts/register" element={<RegisterPage />} />
-          <Route
-            path="/accounts/verify-email/:token"
-            element={<VerifyEmail />}
-          />
-          {/* 👇️ only match this when no other routes match */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="flex-grow">
+          <Routes>
+            <Route path="/accounts" element={<LoginPage />} />
+            <Route path="/accounts/login" element={<LoginPage />} />
+            <Route path="/accounts/forbidden" element={<ForbiddenPage />} />
+            <Route path="/accounts/sso" element={<LoginWithSSO />} />
+            <Route
+              path="/accounts/forgot-password"
+              element={<ForgotPasswordPage />}
+            />
+            <Route
+              path="/accounts/reset-password/:token"
+              element={<ResetPasswordPage />}
+            />
+            <Route path="/accounts/register" element={<RegisterPage />} />
+            <Route
+              path="/accounts/verify-email/:token"
+              element={<VerifyEmail />}
+            />
+            {/* 👇️ only match this when no other routes match */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <Footer />
       </Suspense>
     </div>
   );

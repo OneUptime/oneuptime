@@ -447,6 +447,136 @@ export default class KubernetesResource extends BaseModel {
     update: [],
   })
   @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Controller Deployment Name",
+    description:
+      "For Pod kinds: the Deployment that ultimately owns this Pod (one hop above the ReplicaSet). Populated from `resource.k8s.deployment.name` on the metric stream so the Deployments list view can SUM by this column without inventorying ReplicaSets. Null for non-Pod kinds and for Pods not owned by a Deployment.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public controllerDeploymentName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Controller CronJob Name",
+    description:
+      "For Pod kinds: the CronJob that ultimately owns this Pod (one hop above the Job). Populated from `resource.k8s.cronjob.name` on the metric stream. Null for non-Pod kinds and Pods not owned by a CronJob.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public controllerCronJobName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Latest CPU Percent",
+    description:
+      "Most recent CPU utilization percent for this resource (Pod or Node). Stored as decimal so sub-percent precision survives the round trip. Can exceed 100 when the resource consumes more than one core. Null until the first metric arrives.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestCpuPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Latest Memory Bytes",
+    description:
+      "Most recent memory usage (bytes) for this resource (Pod or Node). Stored as bigint so values past 2 GiB don't overflow. Same lifecycle as latestCpuPercent.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: {
+      to: (value: number | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return Math.trunc(value).toString();
+      },
+      from: (value: string | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const parsed: number = parseInt(value, 10);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public latestMemoryBytes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Metrics Updated At",
+    description:
+      "Observed timestamp of the latest CPU/memory point. Acts as the monotonic guard for metric updates and the cutoff for staleness rendering.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public metricsUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
     required: true,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,

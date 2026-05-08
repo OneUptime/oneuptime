@@ -117,7 +117,7 @@ spec:
         {{- if .Values.postgresql.primary.terminationGracePeriodSeconds }}
         terminationGracePeriodSeconds: {{ .Values.postgresql.primary.terminationGracePeriodSeconds }}
         {{- end }}
-        {{- with .Values.postgresql.resources }}
+        {{- with .Values.postgresql.primary.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}

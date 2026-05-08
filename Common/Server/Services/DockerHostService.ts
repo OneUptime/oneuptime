@@ -6,6 +6,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "docker-host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -96,19 +97,31 @@ export class Service extends DatabaseService<Model> {
     },
   ): Promise<void> {
     const cacheKey: string = hostId.toString();
+    const extrasFingerprint: string = crypto
+      .createHash("sha1")
+      .update(
+        JSON.stringify({
+          osType: extra?.osType ?? null,
+          osVersion: extra?.osVersion ?? null,
+        }),
+      )
+      .digest("hex");
 
     const cached: string | null = await GlobalCache.getString(
       LAST_SEEN_CACHE_NAMESPACE,
       cacheKey,
     );
 
-    if (cached) {
-      return; // another pod already updated recently
+    if (cached === extrasFingerprint) {
+      return; // same data was written recently
     }
 
-    await GlobalCache.setString(LAST_SEEN_CACHE_NAMESPACE, cacheKey, "1", {
-      expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
-    });
+    await GlobalCache.setString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+      extrasFingerprint,
+      { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {

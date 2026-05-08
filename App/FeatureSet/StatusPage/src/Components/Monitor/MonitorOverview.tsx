@@ -15,6 +15,7 @@ import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { translateStatusName } from "../../Utils/StatusTranslation";
 
 export interface ComponentProps {
   monitorName: string;
@@ -91,7 +92,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             color: props.currentStatus?.color?.toString() || Green.toString(),
           }}
         >
-          {props.currentStatus?.name || t("overview.operational")}
+          {translateStatusName(props.currentStatus?.name) ||
+            t("overview.operational")}
         </div>
       );
     }

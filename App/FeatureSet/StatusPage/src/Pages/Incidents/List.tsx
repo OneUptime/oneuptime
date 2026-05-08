@@ -55,7 +55,7 @@ interface EventWithDate {
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n: i18nInstance } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [statusPageResources, setStatusPageResources] = useState<
@@ -361,7 +361,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     setParsedResolvedEventsData(
       getEventHistoryListComponentProps(resolvedEvents),
     );
-  }, [isLoading]);
+  }, [isLoading, i18nInstance.resolvedLanguage]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

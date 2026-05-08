@@ -139,8 +139,20 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
 
         <Dictionary
           initialValue={channelCache}
-          onChange={(value: { [key: string]: string | boolean | number }) => {
-            setChannelCache(value as { [channelName: string]: string });
+          onChange={(value: { [key: string]: unknown }) => {
+            /*
+             * Slack channel cache is a flat string→string map; flatten
+             * any incoming entries (operators are not enabled here).
+             */
+            const flattened: { [channelName: string]: string } = {};
+            for (const key of Object.keys(value)) {
+              const entry: unknown = value[key];
+              if (entry === undefined || entry === null) {
+                continue;
+              }
+              flattened[key] = String(entry);
+            }
+            setChannelCache(flattened);
           }}
           keyPlaceholder="incident-updates"
           valuePlaceholder="C0123456789"

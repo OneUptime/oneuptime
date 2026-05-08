@@ -162,6 +162,12 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
 
+export const EnableQueueDashboard: boolean =
+  process.env["ENABLE_QUEUE_DASHBOARD"] === "true";
+
+export const QueueDashboardSecret: string =
+  process.env["QUEUE_DASHBOARD_SECRET"] || "";
+
 export const RegisterProbeKey: ObjectID = new ObjectID(
   process.env["REGISTER_PROBE_KEY"] || "secret",
 );
@@ -511,6 +517,10 @@ export const PushNotificationRelayUrl: string =
 
 export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
   "https://oneuptime.com/api/enterprise-license/validate",
+);
+
+export const EnterpriseLicenseUserCountReportUrl: URL = URL.fromString(
+  "https://oneuptime.com/api/enterprise-license/report-user-count",
 );
 
 // Inbound Email Configuration for Incoming Email Monitor

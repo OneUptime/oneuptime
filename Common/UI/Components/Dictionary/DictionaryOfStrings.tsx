@@ -1,4 +1,5 @@
 import DictionaryForm, { ValueType } from "./Dictionary";
+import { DictionaryEntryValue } from "./DictionaryFilterOperator";
 import Dictionary from "../../../Types/Dictionary";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -18,15 +19,19 @@ const DictionaryOfStrings: FunctionComponent<ComponentProps> = (
     <DictionaryForm
       {...props}
       valueTypes={[ValueType.Text]}
-      onChange={(value: Dictionary<string | number | boolean>) => {
-        const stringDict: Dictionary<string> = value as Dictionary<string>;
+      onChange={(value: Dictionary<DictionaryEntryValue>) => {
+        /*
+         * Operators are not enabled here, so values come back as bare
+         * strings/numbers/booleans only.
+         */
+        const stringDict: Dictionary<string> = {};
 
-        // convert all values to strings
-
-        for (const key in stringDict) {
-          if (stringDict[key]) {
-            stringDict[key] = stringDict[key]?.toString() || "";
+        for (const key of Object.keys(value)) {
+          const entry: DictionaryEntryValue | undefined = value[key];
+          if (entry === undefined || entry === null) {
+            continue;
           }
+          stringDict[key] = entry.toString();
         }
 
         if (props.onChange) {

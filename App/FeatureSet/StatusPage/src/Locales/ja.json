@@ -163,6 +163,7 @@
       "title": "購読を更新",
       "description": "ここで購読設定を更新または解除できます。",
       "saved": "変更が保存されました。",
+      "submit": "購読を更新",
       "unsubscribe": "購読解除",
       "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。"
     },
@@ -229,5 +230,20 @@
   },
   "footer": {
     "poweredBy": "Powered by OneUptime"
+  },
+  "statusNames": {
+    "identified": "確認済み",
+    "acknowledged": "承認済み",
+    "resolved": "解決済み",
+    "criticalIncident": "重大インシデント",
+    "majorIncident": "主要インシデント",
+    "minorIncident": "軽微なインシデント",
+    "operational": "稼働中",
+    "degraded": "性能低下",
+    "offline": "オフライン",
+    "scheduled": "予定",
+    "ongoing": "進行中",
+    "ended": "終了",
+    "completed": "完了"
   }
 }

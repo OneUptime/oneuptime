@@ -207,6 +207,14 @@ const DockerRoutes: React.LazyExoticComponent<AllRoutesModule["DockerRoutes"]> =
       };
     });
   });
+const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.HostRoutes,
+      };
+    });
+  });
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   AllRoutesModule["CodeRepositoryRoutes"]
 > = lazy(() => {
@@ -570,6 +578,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.DOCKER_ROOT]?.toString() || ""}
             element={<DockerRoutes {...commonPageProps} />}
+          />
+
+          {/* Hosts */}
+          <PageRoute
+            path={RouteMap[PageMap.HOST_ROOT]?.toString() || ""}
+            element={<HostRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}

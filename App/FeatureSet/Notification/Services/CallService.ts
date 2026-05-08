@@ -22,6 +22,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
+import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
@@ -62,6 +63,49 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
 
 export default class CallService {
   public static async makeCall(
+    callRequest: CallRequest,
+    options: {
+      projectId?: ObjectID | undefined; // project id for sms log
+      isSensitive?: boolean; // if true, message will not be logged
+      userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
+      customTwilioConfig?: TwilioConfig | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
+    },
+  ): Promise<void> {
+    const startNs: bigint = process.hrtime.bigint();
+    let outcome: "success" | "failure" = "success";
+
+    try {
+      await this.makeCallInternal(callRequest, options);
+    } catch (err) {
+      outcome = "failure";
+      throw err;
+    } finally {
+      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+      const durationMs: number = Number(elapsedNs) / 1e6;
+      const attributes: Record<string, string> = {
+        "notification.channel": "call",
+        outcome,
+      };
+
+      AppMetrics.getNotificationCounter().add(1, attributes);
+      AppMetrics.getNotificationDuration().record(durationMs, attributes);
+    }
+  }
+
+  private static async makeCallInternal(
     callRequest: CallRequest,
     options: {
       projectId?: ObjectID | undefined; // project id for sms log

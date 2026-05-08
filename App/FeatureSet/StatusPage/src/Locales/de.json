@@ -163,6 +163,7 @@
       "title": "Abonnement aktualisieren",
       "description": "Sie können Ihre Abonnementeinstellungen hier aktualisieren oder sich abmelden.",
       "saved": "Ihre Änderungen wurden gespeichert.",
+      "submit": "Abonnement aktualisieren",
       "unsubscribe": "Abbestellen",
       "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten."
     },
@@ -229,5 +230,20 @@
   },
   "footer": {
     "poweredBy": "Bereitgestellt von OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identifiziert",
+    "acknowledged": "Bestätigt",
+    "resolved": "Behoben",
+    "criticalIncident": "Kritischer Vorfall",
+    "majorIncident": "Schwerwiegender Vorfall",
+    "minorIncident": "Geringfügiger Vorfall",
+    "operational": "Betriebsbereit",
+    "degraded": "Beeinträchtigt",
+    "offline": "Offline",
+    "scheduled": "Geplant",
+    "ongoing": "Laufend",
+    "ended": "Beendet",
+    "completed": "Abgeschlossen"
   }
 }

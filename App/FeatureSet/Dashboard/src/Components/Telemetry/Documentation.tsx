@@ -705,6 +705,26 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"`;
 }
 
+function getOneuptimeServiceLabelsSnippet(): string {
+  return `# Pattern: any resource attribute prefixed "oneuptime.label." is promoted to a project label
+#   oneuptime.label.<dimension>=<value>  →  becomes a project label named "<dimension>:<value>"
+# The label is attached to this telemetry service automatically (and to the host, if the
+# same collector emits host metrics). Manual labels added via the OneUptime UI are never
+# removed by ingest. Existing labels are matched case-insensitively, so "production"
+# reuses an existing "Production" label rather than spawning a duplicate.
+
+# Universal — set via the standard OpenTelemetry resource-attribute env var:
+export OTEL_RESOURCE_ATTRIBUTES="oneuptime.label.team=payments,oneuptime.label.env=production,oneuptime.label.region=us-east-1"
+
+# Or pass the same attributes inline on your SDK's Resource:
+#   Node.js:  new Resource({ "oneuptime.label.team": "payments", "oneuptime.label.env": "production" })
+#   Python:   Resource.create({"oneuptime.label.team": "payments", "oneuptime.label.env": "production"})
+#   Go:       resource.NewWithAttributes(semconv.SchemaURL,
+#                 attribute.String("oneuptime.label.team", "payments"),
+#                 attribute.String("oneuptime.label.env", "production"))
+#   Java:     -Dotel.resource.attributes=oneuptime.label.team=payments,oneuptime.label.env=production`;
+}
+
 // --- Profile-specific snippets ---
 
 const profileLanguages: Array<Language> = [
@@ -1578,6 +1598,23 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               <CodeBlock
                 code={replacePlaceholders(
                   getEnvVarSnippet(),
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                  pyroscopeUrl,
+                )}
+                language="bash"
+              />,
+            )}
+
+          {!isProfiles &&
+            renderStep(
+              5,
+              "Optional — Auto-tag this service with project labels",
+              "Promote any resource attribute prefixed `oneuptime.label.` into a project label and attach it to this service. Use it to tag services with team, environment, region, or any other dimension you organize by.",
+              <CodeBlock
+                code={replacePlaceholders(
+                  getOneuptimeServiceLabelsSnippet(),
                   otlpUrlValue,
                   otlpHostValue,
                   tokenValue,

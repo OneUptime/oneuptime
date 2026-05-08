@@ -163,6 +163,7 @@
       "title": "Aggiorna iscrizione",
       "description": "Puoi aggiornare le tue preferenze di iscrizione o annullarla qui.",
       "saved": "Le tue modifiche sono state salvate.",
+      "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
       "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
     },
@@ -229,5 +230,20 @@
   },
   "footer": {
     "poweredBy": "Offerto da OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identificato",
+    "acknowledged": "Riconosciuto",
+    "resolved": "Risolto",
+    "criticalIncident": "Incidente critico",
+    "majorIncident": "Incidente grave",
+    "minorIncident": "Incidente minore",
+    "operational": "Operativo",
+    "degraded": "Degradato",
+    "offline": "Offline",
+    "scheduled": "Programmato",
+    "ongoing": "In corso",
+    "ended": "Terminato",
+    "completed": "Completato"
   }
 }

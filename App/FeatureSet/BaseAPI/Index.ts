@@ -26,6 +26,7 @@ import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import EnterpriseLicenseAPI from "Common/Server/API/EnterpriseLicenseAPI";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
+import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
@@ -90,6 +91,10 @@ import AlertCustomFieldService, {
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
+import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
+import KubernetesContainerService, {
+  Service as KubernetesContainerServiceType,
+} from "Common/Server/Services/KubernetesContainerService";
 import AlertNoteTemplateService, {
   Service as AlertNoteTemplateServiceType,
 } from "Common/Server/Services/AlertNoteTemplateService";
@@ -260,9 +265,6 @@ import IncidentTemplateOwnerUserService, {
 import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "Common/Server/Services/IncidentTemplateService";
-import MonitorTemplateService, {
-  Service as MonitorTemplateServiceType,
-} from "Common/Server/Services/MonitorTemplateService";
 import KubernetesClusterService, {
   Service as KubernetesClusterServiceType,
 } from "Common/Server/Services/KubernetesClusterService";
@@ -281,6 +283,15 @@ import DockerHostOwnerTeamService, {
 import DockerHostOwnerUserService, {
   Service as DockerHostOwnerUserServiceType,
 } from "Common/Server/Services/DockerHostOwnerUserService";
+import HostService, {
+  Service as HostServiceType,
+} from "Common/Server/Services/HostService";
+import HostOwnerTeamService, {
+  Service as HostOwnerTeamServiceType,
+} from "Common/Server/Services/HostOwnerTeamService";
+import HostOwnerUserService, {
+  Service as HostOwnerUserServiceType,
+} from "Common/Server/Services/HostOwnerUserService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
@@ -291,9 +302,8 @@ import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
 
-import MetricService, {
-  MetricService as MetricServiceType,
-} from "Common/Server/Services/MetricService";
+import MetricService from "Common/Server/Services/MetricService";
+import MetricAPI from "Common/Server/API/MetricAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -481,9 +491,7 @@ import StatusPageResourceService, {
 import StatusPageSSOService, {
   Service as StatusPageSSOServiceType,
 } from "Common/Server/Services/StatusPageSsoService";
-import TeamMemberService, {
-  TeamMemberService as TeamMemberServiceType,
-} from "Common/Server/Services/TeamMemberService";
+import TeamMemberAPI from "Common/Server/API/TeamMemberAPI";
 import TeamMemberCustomFieldService, {
   Service as TeamMemberCustomFieldServiceType,
 } from "Common/Server/Services/TeamMemberCustomFieldService";
@@ -552,7 +560,6 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
-import Metric from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
@@ -611,7 +618,6 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
-import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
@@ -619,6 +625,9 @@ import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesC
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
+import Host from "Common/Models/DatabaseModels/Host";
+import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
+import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
@@ -676,7 +685,6 @@ import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivat
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
@@ -1287,6 +1295,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new KubernetesResourceAPI().getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<KubernetesContainer, KubernetesContainerServiceType>(
+        KubernetesContainer,
+        KubernetesContainerService,
+      ).getRouter(),
+    );
+
     // scheduled maintenance template
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1344,10 +1360,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<Metric, MetricServiceType>(
-        Metric,
-        MetricService,
-      ).getRouter(),
+      new MetricAPI(MetricService).getRouter(),
     );
 
     app.use(
@@ -1571,10 +1584,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamMember, TeamMemberServiceType>(
-        TeamMember,
-        TeamMemberService,
-      ).getRouter(),
+      new TeamMemberAPI().getRouter(),
     );
 
     app.use(
@@ -1909,10 +1919,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorTemplate, MonitorTemplateServiceType>(
-        MonitorTemplate,
-        MonitorTemplateService,
-      ).getRouter(),
+      new MonitorTemplateAPI().getRouter(),
     );
 
     app.use(
@@ -2077,6 +2084,27 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DockerHostOwnerUser, DockerHostOwnerUserServiceType>(
         DockerHostOwnerUser,
         DockerHostOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<Host, HostServiceType>(Host, HostService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostOwnerTeam, HostOwnerTeamServiceType>(
+        HostOwnerTeam,
+        HostOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostOwnerUser, HostOwnerUserServiceType>(
+        HostOwnerUser,
+        HostOwnerUserService,
       ).getRouter(),
     );
 

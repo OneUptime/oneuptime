@@ -198,6 +198,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
   >({});
   const loadedAttributeValuesRef: React.MutableRefObject<Set<string>> =
     React.useRef<Set<string>>(new Set());
+  const [loadingAttributeValues, setLoadingAttributeValues] = useState<
+    Record<string, Set<string>>
+  >({});
 
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
@@ -375,6 +378,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
     loadedAttributeValuesRef.current.add(cacheKey);
 
+    setLoadingAttributeValues(
+      (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+        const next: Set<string> = new Set(prev[metricName] || []);
+        next.add(attributeKey);
+        return { ...prev, [metricName]: next };
+      },
+    );
+
     try {
       const values: Array<string> =
         await MetricUtil.getTelemetryAttributeValues({
@@ -396,6 +407,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
     } catch {
       // Silently fail — value suggestions are best-effort
       loadedAttributeValuesRef.current.delete(cacheKey);
+    } finally {
+      setLoadingAttributeValues(
+        (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+          const next: Set<string> = new Set(prev[metricName] || []);
+          next.delete(attributeKey);
+          return { ...prev, [metricName]: next };
+        },
+      );
     }
   };
 
@@ -515,6 +534,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                           ""
                       ] || {}
                     }
+                    loadingAttributeValueKeys={Array.from(
+                      loadingAttributeValues[
+                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                          ""
+                      ] || [],
+                    )}
                     onAttributeKeySelected={(attributeKey: string) => {
                       const metricName: string =
                         queryConfig.metricQueryData?.filterData?.metricName?.toString() ||

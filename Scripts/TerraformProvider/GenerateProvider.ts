@@ -126,61 +126,21 @@ async function main(): Promise<void> {
       );
     }
 
-    // Step 13: Build the provider for multiple platforms using GoReleaser
+    /*
+     * Step 13: Compile-check the generated provider for the current platform.
+     * Multi-platform cross-compilation is handled by `goreleaser release` in
+     * publish-terraform-provider.sh, which runs with --clean and rebuilds dist/
+     * from scratch. Doing a 23-target cross-compile here too doubled the work
+     * and OOM-killed CI runners.
+     */
     Logger.info(
-      "🔨 Step 12: Building the provider for multiple platforms with GoReleaser...",
+      "🔨 Step 12: Verifying provider compiles (current platform)...",
     );
     try {
       const originalCwd: string = process.cwd();
       process.chdir(providerDir);
-
-      // Use GoReleaser for parallel cross-compilation (build only, no publish)
-      try {
-        await execAsync("which goreleaser");
-        await execAsync("goreleaser build --snapshot --clean");
-        Logger.info(
-          "✅ GoReleaser multi-platform build completed successfully",
-        );
-
-        /*
-         * Move GoReleaser output to builds/ directory for compatibility
-         * GoReleaser puts binaries in dist/<target>/
-         */
-        await execAsync("mkdir -p ./builds");
-        const { stdout: distDirs } = await execAsync(
-          "find dist -name 'terraform-provider-oneuptime*' -type f",
-        );
-        for (const binaryPath of distDirs.trim().split("\n")) {
-          if (binaryPath) {
-            // Extract os_arch from the dist directory name
-            const dirName: string =
-              binaryPath.split("/").slice(-2, -1)[0] || "";
-            const binaryName: string = binaryPath.split("/").pop() || "";
-            // GoReleaser dirs are like: terraform-provider-oneuptime_linux_amd64
-            const ext: string = binaryName.endsWith(".exe") ? ".exe" : "";
-            const destName: string = `terraform-provider-oneuptime_${dirName.replace("terraform-provider-oneuptime_", "")}${ext ? "" : ""}`;
-            await execAsync(`cp "${binaryPath}" "./builds/${destName}"`);
-          }
-        }
-        Logger.info("✅ Binaries copied to builds/ directory");
-      } catch {
-        Logger.warn(
-          "⚠️  GoReleaser not available, falling back to make release...",
-        );
-        // Fallback to Makefile-based sequential build
-        try {
-          await execAsync("which make");
-          await execAsync("make release");
-          Logger.info("✅ Makefile multi-platform build completed");
-        } catch {
-          Logger.warn(
-            "⚠️  make not available, building for current platform only...",
-          );
-          await execAsync("go build");
-          Logger.info("✅ Single-platform build completed");
-        }
-      }
-
+      await execAsync("go build -o terraform-provider-oneuptime");
+      Logger.info("✅ Provider compiled successfully");
       process.chdir(originalCwd);
     } catch (error) {
       Logger.warn(

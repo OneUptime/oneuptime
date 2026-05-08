@@ -17,6 +17,10 @@ export interface ComponentProps {
   ) => void;
   attributeKeys: Array<string>;
   telemetryServices: Array<Service>;
+  isLoadingAttributeKeys?: boolean | undefined;
+  attributeValueSuggestions?: Record<string, Array<string>> | undefined;
+  loadingAttributeValueKeys?: Array<string> | undefined;
+  onAttributeKeySelected?: ((key: string) => void) | undefined;
 }
 
 const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -158,6 +162,11 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dictionary,
             title: "Filter by Attributes",
             jsonKeysForDictionary: props.attributeKeys,
+            isLoadingDictionaryKeys: props.isLoadingAttributeKeys,
+            dictionaryValueSuggestions: props.attributeValueSuggestions,
+            loadingDictionaryValueKeys: props.loadingAttributeValueKeys,
+            onDictionaryKeySelected: props.onAttributeKeySelected,
+            dictionaryEnableOperators: true,
             description:
               "You can filter the logs based on the attributes that are attached to the logs.",
             hideOptionalLabel: true,

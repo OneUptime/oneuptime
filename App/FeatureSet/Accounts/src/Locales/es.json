@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "fullName": "Nombre completo",
+    "companyName": "Nombre de la empresa",
+    "phoneNumber": "Número de teléfono",
+    "confirmPassword": "Confirmar contraseña",
+    "newPassword": "Nueva contraseña",
+    "code": "Código",
+    "yourCompany": "Su empresa"
+  },
+  "language": {
+    "label": "Idioma",
+    "switchLanguage": "Cambiar idioma"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Contacto",
+    "privacyAndTerms": "Privacidad y Términos"
+  },
+  "captcha": {
+    "title": "Verificación humana",
+    "description": "Complete el desafío captcha para que sepamos que no es un bot.",
+    "errorOnSignIn": "Complete el desafío captcha antes de iniciar sesión.",
+    "errorOnSignUp": "Complete el desafío captcha antes de registrarse."
+  },
+  "login": {
+    "title": "Inicie sesión en su cuenta",
+    "subtitle": "Únase a miles de empresas que utilizan OneUptime para mantenerse en línea todo el tiempo.",
+    "submitButton": "Iniciar sesión",
+    "forgotPassword": "¿Olvidó su contraseña?",
+    "useSso": "Usar inicio de sesión único (SSO) en su lugar",
+    "noAccountPrompt": "¿No tiene una cuenta?",
+    "registerLink": "Registrarse.",
+    "twoFactor": {
+      "title": "Autenticación de dos factores",
+      "subtitle": "Seleccione el método de autenticación de dos factores. Se le pedirá que ingrese un código del método seleccionado.",
+      "authenticatorApp": "Aplicación de autenticación",
+      "securityKey": "Llave de seguridad",
+      "authenticatingWithSecurityKey": "Autenticando con llave de seguridad",
+      "securityKeyInstructions": "Por favor, siga las instrucciones en su dispositivo de llave de seguridad.",
+      "codeFieldDescription": "Ingrese el código de su aplicación de autenticación",
+      "selectDifferentMethod": "Seleccione un método de autenticación de dos factores diferente"
+    }
+  },
+  "register": {
+    "title": "Cree su cuenta de OneUptime",
+    "subtitle": "Únase a miles de empresas que utilizan OneUptime para mantenerse en línea todo el tiempo.",
+    "noCreditCard": "No se requiere tarjeta de crédito.",
+    "submitButton": "Registrarse",
+    "haveAccountPrompt": "¿Ya tiene una cuenta?",
+    "loginLink": "Iniciar sesión.",
+    "notifySelfHosted": "Notificarme sobre parches de seguridad y nuevas versiones"
+  },
+  "forgotPassword": {
+    "title": "Olvidó su contraseña",
+    "subtitle": "Ingrese su correo electrónico y se le enviará el enlace de restablecimiento de contraseña.",
+    "successMessage": "Le hemos enviado el enlace de restablecimiento de contraseña por correo electrónico. No olvide revisar la carpeta de spam.",
+    "submitButton": "Enviar enlace de restablecimiento",
+    "returnToSignIn": "Volver al inicio de sesión.",
+    "rememberPasswordPrompt": "¿Recuerda su contraseña?",
+    "loginLink": "Iniciar sesión."
+  },
+  "resetPassword": {
+    "title": "Restablezca su contraseña",
+    "subtitle": "Ingrese su nueva contraseña y la actualizaremos.",
+    "successMessage": "Su contraseña ha sido actualizada. Por favor, inicie sesión.",
+    "submitButton": "Restablecer contraseña",
+    "knowPasswordPrompt": "¿Conoce su contraseña?",
+    "loginLink": "Iniciar sesión."
+  },
+  "sso": {
+    "title": "Iniciar sesión con SSO",
+    "subtitle": "Inicie sesión con su proveedor SSO para acceder a su cuenta.",
+    "submitButton": "Iniciar sesión con SSO",
+    "useUsernameInstead": "Usar nombre de usuario y contraseña en su lugar.",
+    "noAccountPrompt": "¿No tiene una cuenta?",
+    "registerLink": "Registrarse.",
+    "selectProjectTitle": "Seleccionar proyecto",
+    "selectProjectSubtitle": "Seleccione el proyecto al que desea iniciar sesión.",
+    "noConfigForEmail": "No se encontró configuración SSO para el correo electrónico: {{email}}",
+    "emailRequired": "Se requiere correo electrónico para realizar esta acción",
+    "defaultProjectName": "Proyecto"
+  },
+  "verifyEmail": {
+    "successTitle": "Su correo electrónico está verificado.",
+    "successDescription": "Gracias por verificar su correo electrónico. Ahora puede iniciar sesión en OneUptime.",
+    "errorTitle": "Lo sentimos, algo salió mal.",
+    "returnToSignIn": "¿Volver al inicio de sesión?",
+    "loginLink": "Iniciar sesión."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Prohibido",
+      "description": "No tiene permiso para acceder a esta página."
+    },
+    "notFound": {
+      "title": "Página no encontrada",
+      "description": "La página que está buscando no existe."
+    }
+  }
+}

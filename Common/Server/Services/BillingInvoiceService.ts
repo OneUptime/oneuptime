@@ -56,7 +56,7 @@ export class Service extends DatabaseService<Model> {
       } as LogAttributes);
     }
 
-    let project: Project | null = await ProjectService.findOneById({
+    const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       props: {
         isRoot: true,
@@ -82,12 +82,12 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Payment provider customer id not found.");
     }
 
-    let subscriptionState: SubscriptionStatus =
+    const subscriptionState: SubscriptionStatus =
       await BillingService.getSubscriptionStatus(
         project.paymentProviderSubscriptionId as string,
       );
 
-    let meteredSubscriptionState: SubscriptionStatus =
+    const meteredSubscriptionState: SubscriptionStatus =
       await BillingService.getSubscriptionStatus(
         project.paymentProviderMeteredSubscriptionId as string,
       );
@@ -129,37 +129,26 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (allInvoicesPaid) {
-        await ProjectService.reactiveSubscription(project.id!);
-        project = await ProjectService.findOneById({
-          id: data.projectId,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            paymentProviderCustomerId: true,
-            paymentProviderSubscriptionId: true,
-            paymentProviderMeteredSubscriptionId: true,
-          },
-        });
-
-        if (!project) {
-          throw new BadDataException("Project not found");
+        try {
+          await ProjectService.reactiveSubscription(project.id!);
+        } catch (err) {
+          logger.error(err, {
+            projectId: data.projectId?.toString(),
+          } as LogAttributes);
         }
 
-        subscriptionState = await BillingService.getSubscriptionStatus(
-          project.paymentProviderSubscriptionId as string,
-        );
-
-        meteredSubscriptionState = await BillingService.getSubscriptionStatus(
-          project.paymentProviderMeteredSubscriptionId as string,
-        );
-
+        /*
+         * No Open/Uncollectible invoices means the project has no outstanding
+         * payment obligations, so we mark the subscription as Active. Stripe may
+         * still report the (re)created subscription as "incomplete" until the
+         * first payment confirms, which would otherwise surface a misleading
+         * "invoices are unpaid" banner.
+         */
         await ProjectService.updateOneById({
           id: project.id!,
           data: {
-            paymentProviderSubscriptionStatus: subscriptionState,
-            paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+            paymentProviderSubscriptionStatus: SubscriptionStatus.Active,
+            paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Active,
           },
           props: {
             isRoot: true,

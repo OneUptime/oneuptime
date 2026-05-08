@@ -1,15 +1,18 @@
 import RunCron from "../../Utils/Cron";
-import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import SubscriptionStatus, {
+  SubscriptionStatusUtil,
+} from "Common/Types/Billing/SubscriptionStatus";
 import Sleep from "Common/Types/Sleep";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {
   IsBillingEnabled,
   IsDevelopment,
 } from "Common/Server/EnvironmentConfig";
-import BillingService from "Common/Server/Services/BillingService";
+import BillingService, { Invoice } from "Common/Server/Services/BillingService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
+import { InvoiceStatus } from "Common/Models/DatabaseModels/BillingInvoice";
 
 RunCron(
   "PaymentProvider:CheckSubscriptionStatus",
@@ -36,12 +39,48 @@ RunCron(
 
     for (const project of projects) {
       try {
+        let cachedHasUnpaidInvoices: boolean | null = null;
+
+        const hasUnpaidInvoices: () => Promise<boolean> =
+          async (): Promise<boolean> => {
+            if (cachedHasUnpaidInvoices !== null) {
+              return cachedHasUnpaidInvoices;
+            }
+            if (!project.paymentProviderCustomerId) {
+              cachedHasUnpaidInvoices = false;
+              return cachedHasUnpaidInvoices;
+            }
+            const invoices: Array<Invoice> = await BillingService.getInvoices(
+              project.paymentProviderCustomerId,
+            );
+            cachedHasUnpaidInvoices = invoices.some((invoice: Invoice) => {
+              return (
+                invoice.status === InvoiceStatus.Open ||
+                invoice.status === InvoiceStatus.Uncollectible
+              );
+            });
+            return cachedHasUnpaidInvoices;
+          };
+
         if (project.paymentProviderSubscriptionId) {
           // get subscription detail.
-          const subscriptionState: SubscriptionStatus =
+          let subscriptionState: SubscriptionStatus =
             await BillingService.getSubscriptionStatus(
               project.paymentProviderSubscriptionId as string,
             );
+
+          /*
+           * If Stripe reports an inactive state but no Open/Uncollectible
+           * invoices exist, the project has no outstanding payment obligations.
+           * Treat as Active to avoid misleading "invoices unpaid" banners when
+           * invoices are still in transient states (draft, etc.).
+           */
+          if (
+            SubscriptionStatusUtil.isSubscriptionInactive(subscriptionState) &&
+            !(await hasUnpaidInvoices())
+          ) {
+            subscriptionState = SubscriptionStatus.Active;
+          }
 
           await ProjectService.updateOneById({
             id: project.id!,
@@ -60,10 +99,17 @@ RunCron(
 
         if (project.paymentProviderMeteredSubscriptionId) {
           // get subscription detail.
-          const subscriptionState: SubscriptionStatus =
+          let subscriptionState: SubscriptionStatus =
             await BillingService.getSubscriptionStatus(
               project.paymentProviderMeteredSubscriptionId as string,
             );
+
+          if (
+            SubscriptionStatusUtil.isSubscriptionInactive(subscriptionState) &&
+            !(await hasUnpaidInvoices())
+          ) {
+            subscriptionState = SubscriptionStatus.Active;
+          }
 
           await ProjectService.updateOneById({
             id: project.id!,

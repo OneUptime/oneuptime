@@ -21,6 +21,9 @@ export interface ComponentProps {
   onBlur?: (() => void) | undefined;
   outerDivClassName?: string | undefined;
   disableSpellCheck?: boolean | undefined;
+  isLoadingSuggestions?: boolean | undefined;
+  loadingMessage?: string | undefined;
+  noSuggestionsMessage?: string | undefined;
 }
 
 const BASE_INPUT_CLASS: string =
@@ -90,7 +93,9 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
       .slice(0, MAX_SUGGESTIONS);
   }, [inputValue, props.suggestions]);
 
-  const showMenu: boolean = isMenuVisible && suggestions.length > 0;
+  const isLoadingSuggestions: boolean = Boolean(props.isLoadingSuggestions);
+  const showMenu: boolean =
+    isMenuVisible && (suggestions.length > 0 || isLoadingSuggestions);
 
   const getInputClassName: () => string = (): string => {
     let className: string = props.className || BASE_INPUT_CLASS;
@@ -145,7 +150,7 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   const handleKeyDown: (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => void = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showMenu) {
+    if (!showMenu || suggestions.length === 0) {
       return;
     }
 
@@ -221,26 +226,60 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
           id={listboxIdRef.current}
           role="listbox"
         >
-          {suggestions.map((suggestion: string, index: number) => {
-            const isActive: boolean = index === highlightedIndex;
-            return (
-              <button
-                key={`${suggestion}-${index}`}
-                type="button"
-                role="option"
-                aria-selected={isActive}
-                className={`flex w-full items-center px-3 py-2 text-left hover:bg-indigo-50 ${isActive ? "bg-indigo-600 text-white hover:bg-indigo-500" : "text-gray-700"}`}
-                onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
-                  event.preventDefault();
-                }}
-                onClick={() => {
-                  handleSuggestionSelect(suggestion);
-                }}
+          {isLoadingSuggestions && (
+            <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+              <svg
+                className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-                {suggestion}
-              </button>
-            );
-          })}
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+              <span>{props.loadingMessage || "Loading..."}</span>
+            </div>
+          )}
+          {!isLoadingSuggestions &&
+            suggestions.length === 0 &&
+            props.noSuggestionsMessage && (
+              <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+                {props.noSuggestionsMessage}
+              </div>
+            )}
+          {!isLoadingSuggestions &&
+            suggestions.map((suggestion: string, index: number) => {
+              const isActive: boolean = index === highlightedIndex;
+              return (
+                <button
+                  key={`${suggestion}-${index}`}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  className={`flex w-full items-center px-3 py-2 text-left hover:bg-indigo-50 ${isActive ? "bg-indigo-600 text-white hover:bg-indigo-500" : "text-gray-700"}`}
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    event.preventDefault();
+                  }}
+                  onClick={() => {
+                    handleSuggestionSelect(suggestion);
+                  }}
+                >
+                  {suggestion}
+                </button>
+              );
+            })}
         </div>
       )}
     </div>

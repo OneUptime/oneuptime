@@ -163,6 +163,7 @@
       "title": "Abonnement bijwerken",
       "description": "U kunt hier uw abonnementsvoorkeuren bijwerken of zich afmelden.",
       "saved": "Uw wijzigingen zijn opgeslagen.",
+      "submit": "Abonnement bijwerken",
       "unsubscribe": "Afmelden",
       "unsubscribeDescription": "Selecteer dit als u zich wilt afmelden van alle bronnen."
     },
@@ -229,5 +230,20 @@
   },
   "footer": {
     "poweredBy": "Mogelijk gemaakt door OneUptime"
+  },
+  "statusNames": {
+    "identified": "Geïdentificeerd",
+    "acknowledged": "Bevestigd",
+    "resolved": "Opgelost",
+    "criticalIncident": "Kritiek incident",
+    "majorIncident": "Belangrijk incident",
+    "minorIncident": "Klein incident",
+    "operational": "Operationeel",
+    "degraded": "Verminderd",
+    "offline": "Offline",
+    "scheduled": "Gepland",
+    "ongoing": "Lopend",
+    "ended": "Beëindigd",
+    "completed": "Voltooid"
   }
 }

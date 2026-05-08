@@ -1,7 +1,12 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import DashboardLogStreamComponent from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -14,6 +19,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import {
   queryStringToFilter,
   LogFilter,
@@ -65,13 +71,19 @@ const getSeverityColor: (severity: string) => SeverityColor = (
 const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [logs, setLogs] = React.useState<Array<Log>>([]);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [logs, setLogs] = useState<Array<Log>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const maxRows: number = props.component.arguments.maxRows || 50;
+  const severityFilter: string | undefined =
+    props.component.arguments.severityFilter;
+  const bodyContains: string | undefined =
+    props.component.arguments.bodyContains;
+  const attributeFilterQuery: string | undefined =
+    props.component.arguments.attributeFilterQuery;
 
-  const fetchLogs: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchLogs: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
 
     const startAndEndDate: InBetween<Date> =
@@ -93,31 +105,17 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         ),
       } as Query<Log>;
 
-      // Add severity filter if set
-      if (
-        props.component.arguments.severityFilter &&
-        props.component.arguments.severityFilter !== ""
-      ) {
-        (query as Record<string, unknown>)["severityText"] =
-          props.component.arguments.severityFilter;
+      if (severityFilter && severityFilter !== "") {
+        (query as Record<string, unknown>)["severityText"] = severityFilter;
       }
 
-      // Add body contains filter if set
-      if (
-        props.component.arguments.bodyContains &&
-        props.component.arguments.bodyContains.trim() !== ""
-      ) {
-        (query as Record<string, unknown>)["body"] =
-          props.component.arguments.bodyContains.trim();
+      if (bodyContains && bodyContains.trim() !== "") {
+        (query as Record<string, unknown>)["body"] = bodyContains.trim();
       }
 
-      // Add attribute filters if set
-      if (
-        props.component.arguments.attributeFilterQuery &&
-        props.component.arguments.attributeFilterQuery.trim() !== ""
-      ) {
+      if (attributeFilterQuery && attributeFilterQuery.trim() !== "") {
         const parsedFilter: LogFilter = queryStringToFilter(
-          props.component.arguments.attributeFilterQuery.trim(),
+          attributeFilterQuery.trim(),
         );
 
         if (parsedFilter.attributes) {
@@ -153,20 +151,17 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchLogs();
-  }, [props.dashboardStartAndEndDate, props.refreshTick]);
-
-  useEffect(() => {
-    fetchLogs();
   }, [
-    props.component.arguments.severityFilter,
-    props.component.arguments.bodyContains,
-    props.component.arguments.attributeFilterQuery,
-    props.component.arguments.maxRows,
+    props.dashboardStartAndEndDate,
+    severityFilter,
+    bodyContains,
+    attributeFilterQuery,
+    maxRows,
   ]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs, props.refreshTick]);
 
   if (isLoading && logs.length === 0) {
     return (
@@ -280,4 +275,31 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardLogStreamComponentElement;
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(
+    prev.component.arguments,
+    next.component.arguments,
+  );
+}
+
+export default React.memo(DashboardLogStreamComponentElement, arePropsEqual);

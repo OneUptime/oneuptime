@@ -304,6 +304,7 @@
                 <option value="/legal/code-of-conduct" <%= section === 'code-of-conduct' ? 'selected' : '' %>>Code of Conduct</option>
                 <option value="/legal/sla" <%= section === 'sla' ? 'selected' : '' %>>Service Level Agreement</option>
                 <option value="/legal/security" <%= section === 'security' ? 'selected' : '' %>>Security</option>
+                <option value="/legal/deprecation-policy" <%= section === 'deprecation-policy' ? 'selected' : '' %>>Deprecation Policy</option>
               </optgroup>
               <optgroup label="Privacy & Data">
                 <option value="/legal/gdpr" <%= section === 'gdpr' ? 'selected' : '' %>>GDPR</option>
@@ -371,6 +372,11 @@
                 <li>
                   <a href="/legal/security" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'security' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
                     Security
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/deprecation-policy" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'deprecation-policy' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Deprecation Policy
                   </a>
                 </li>
               </ul>
@@ -665,6 +671,10 @@
 
           <% if(section === "security") { %>
           <%- include('security') -%>
+          <% } %>
+
+          <% if(section === "deprecation-policy") { %>
+          <%- include('deprecation-policy') -%>
           <% } %>
 
           <!-- Document Footer -->

@@ -6,6 +6,8 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import HostService from "Common/Server/Services/HostService";
+import Host from "Common/Models/DatabaseModels/Host";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
@@ -57,6 +59,25 @@ export default abstract class OtelIngestBaseService {
       if (dockerServiceName) {
         return dockerServiceName;
       }
+    }
+
+    /*
+     * Host-aware fallback: when telemetry arrives from a host (OTel
+     * hostmetrics receiver, infrastructure agent over OTLP, or a k8s
+     * node) without an explicit service.name, synthesize a per-host
+     * service name so each host's metrics, logs and traces show up as
+     * their own service in the Telemetry Services list instead of
+     * every host collapsing into "Unknown Service".
+     *
+     * Phantom-service gate: only synthesize when the resource carries
+     * a strong host signal (os.type from the system resourcedetector,
+     * a container runtime, or a k8s cluster name). host.name alone is
+     * not enough — application SDKs auto-detect hostname inside pods,
+     * and trusting that would create a phantom service per pod.
+     */
+    const hostName: string | null = this.getHostNameFromAttributes(attributes);
+    if (hostName && this.hasHostResourceSignal(attributes)) {
+      return `host/${hostName}`;
     }
 
     return "Unknown Service";
@@ -307,6 +328,48 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
+  /**
+   * Read an OTel attribute that may be either a single string or an
+   * array of strings, returning the values as a list. Used for
+   * attributes like host.ip whose schema is "array of IP addresses".
+   * Falls back to a single stringValue if the attribute uses that
+   * shape (some SDKs flatten single-element arrays to a string).
+   */
+  @CaptureSpan()
+  protected static getStringArrayAttribute(
+    attributes: JSONArray,
+    key: string,
+  ): Array<string> {
+    for (const attribute of attributes) {
+      if (attribute["key"] !== key || !attribute["value"]) {
+        continue;
+      }
+      const value: JSONObject = attribute["value"] as JSONObject;
+
+      const arrayValue: JSONObject | undefined = value["arrayValue"] as
+        | JSONObject
+        | undefined;
+      if (arrayValue && Array.isArray(arrayValue["values"])) {
+        const out: Array<string> = [];
+        for (const v of arrayValue["values"] as JSONArray) {
+          const sv: JSONValue = (v as JSONObject)["stringValue"];
+          if (typeof sv === "string" && sv.trim()) {
+            out.push(sv.trim());
+          }
+        }
+        if (out.length > 0) {
+          return out;
+        }
+      }
+
+      const stringValue: JSONValue = value["stringValue"];
+      if (typeof stringValue === "string" && stringValue.trim()) {
+        return [stringValue.trim()];
+      }
+    }
+    return [];
+  }
+
   @CaptureSpan()
   protected static isDockerRuntime(attributes: JSONArray): boolean {
     for (const attribute of attributes) {
@@ -321,6 +384,24 @@ export default abstract class OtelIngestBaseService {
     return false;
   }
 
+  /*
+   * True when resource attributes carry a strong "this is a real host"
+   * signal — os.type (set by the OTel system resourcedetector via
+   * native OS calls, which app SDKs typically don't include), a
+   * container runtime, or a k8s cluster name. Used to gate the
+   * synthesized "host/{hostName}" service name so application SDKs
+   * auto-detecting hostname inside a pod don't create phantom
+   * per-pod services.
+   */
+  @CaptureSpan()
+  protected static hasHostResourceSignal(attributes: JSONArray): boolean {
+    return Boolean(
+      this.getStringAttribute(attributes, "os.type") ||
+        this.getStringAttribute(attributes, "container.runtime") ||
+        this.getClusterNameFromAttributes(attributes),
+    );
+  }
+
   private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =
     "docker-host-id";
   private static readonly DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS: number =
@@ -330,10 +411,10 @@ export default abstract class OtelIngestBaseService {
   protected static async autoDiscoverDockerHost(data: {
     projectId: ObjectID;
     attributes: JSONArray;
-  }): Promise<void> {
+  }): Promise<ObjectID | null> {
     try {
       if (!this.isDockerRuntime(data.attributes)) {
-        return;
+        return null;
       }
 
       const hostName: string | null = this.getHostNameFromAttributes(
@@ -341,7 +422,7 @@ export default abstract class OtelIngestBaseService {
       );
 
       if (!hostName) {
-        return;
+        return null;
       }
 
       const osType: string | null = this.getStringAttribute(
@@ -381,12 +462,292 @@ export default abstract class OtelIngestBaseService {
           osType: osType || undefined,
           osVersion: osVersion || undefined,
         });
+        return new ObjectID(hostIdStr);
       }
+
+      return null;
     } catch (err) {
       logger.error(
         "Error auto-discovering Docker host: " + (err as Error).message,
       );
+      return null;
     }
+  }
+
+  private static readonly HOST_ID_CACHE_NAMESPACE: string = "host-id";
+  private static readonly HOST_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
+
+  /**
+   * Auto-discover a Host (generic OTel host) from resource attributes.
+   *
+   * Phantom-host gate: only register a row when the batch carries a
+   * strong signal that this is real host telemetry, not an application
+   * SDK auto-detecting hostname inside a pod. Any one of:
+   *   - os.type resource attribute (set by resourcedetection processor
+   *     with the system detector — needs native OS calls, app SDKs
+   *     typically don't include it)
+   *   - container.runtime resource attribute (Docker host)
+   *   - k8s.cluster.name resource attribute (k8s node — also a host)
+   *   - hasInfraSignal=true (caller saw system.* / process.* metrics)
+   *
+   * Notably we DO NOT accept host.id or host.arch alone — both are
+   * commonly auto-detected by application SDKs from inside a container,
+   * so trusting them would flood the Hosts list with pod-name rows.
+   * They are still captured into the Host record if present, just not
+   * sufficient to create a row by themselves.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    hasInfraSignal?: boolean;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+    cpuCores?: number | undefined;
+    totalMemoryBytes?: number | undefined;
+    processCount?: number | undefined;
+  }): Promise<ObjectID | null> {
+    try {
+      const hostName: string | null = this.getHostNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!hostName) {
+        return null;
+      }
+
+      const hostIdAttr: string | null = this.getStringAttribute(
+        data.attributes,
+        "host.id",
+      );
+      const hostArch: string | null = this.getStringAttribute(
+        data.attributes,
+        "host.arch",
+      );
+      const hostType: string | null = this.getStringAttribute(
+        data.attributes,
+        "host.type",
+      );
+      const ipAddresses: Array<string> = this.getStringArrayAttribute(
+        data.attributes,
+        "host.ip",
+      );
+      const hostIpJoined: string | null =
+        ipAddresses.length > 0 ? ipAddresses.join(", ") : null;
+      const osType: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.type",
+      );
+      const osVersion: string | null =
+        this.getStringAttribute(data.attributes, "os.description") ||
+        this.getStringAttribute(data.attributes, "os.version");
+      const containerRuntime: string | null = this.getStringAttribute(
+        data.attributes,
+        "container.runtime",
+      );
+      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      const hasResourceSignal: boolean = Boolean(
+        osType || containerRuntime || k8sClusterName,
+      );
+
+      if (!hasResourceSignal && !data.hasInfraSignal) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
+      let hostIdStr: string | null = await GlobalCache.getString(
+        this.HOST_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!hostIdStr) {
+        const host: Host = await HostService.findOrCreateByHostIdentifier({
+          projectId: data.projectId,
+          hostIdentifier: hostName,
+        });
+
+        if (host._id) {
+          hostIdStr = host._id.toString();
+          await GlobalCache.setString(
+            this.HOST_ID_CACHE_NAMESPACE,
+            cacheKey,
+            hostIdStr,
+            { expiresInSeconds: this.HOST_ID_CACHE_EXPIRY_SECONDS },
+          );
+        }
+      }
+
+      if (hostIdStr) {
+        await HostService.updateLastSeen(new ObjectID(hostIdStr), {
+          osType: osType || undefined,
+          osVersion: osVersion || undefined,
+          hostId: hostIdAttr || undefined,
+          hostArch: hostArch || undefined,
+          hostType: hostType || undefined,
+          hostIpAddresses: hostIpJoined || undefined,
+          cpuCores: data.cpuCores,
+          totalMemoryBytes: data.totalMemoryBytes,
+          processCount: data.processCount,
+          containerRuntime: containerRuntime || undefined,
+          dockerHostId: data.dockerHostId || undefined,
+          kubernetesClusterId: data.kubernetesClusterId || undefined,
+        });
+        return new ObjectID(hostIdStr);
+      }
+
+      return null;
+    } catch (err) {
+      logger.error("Error auto-discovering Host: " + (err as Error).message);
+      return null;
+    }
+  }
+
+  /**
+   * Pre-scan a resourceMetric's scopeMetrics to detect host-level
+   * infrastructure signals and capture stats that the Host row caches
+   * (cpuCores, totalMemoryBytes, processCount). Returning a single
+   * struct lets the caller pass everything through to autoDiscoverHost
+   * + HostService.updateLastSeen in one DB write per batch.
+   *
+   * O(metrics) per resource — same magnitude as the existing inner
+   * loops; no datapoint walk beyond the small set we care about.
+   */
+  protected static scanHostInfraStatsFromMetrics(
+    scopeMetrics: JSONArray | undefined,
+  ): {
+    hasInfraSignal: boolean;
+    cpuCores?: number;
+    totalMemoryBytes?: number;
+    processCount?: number;
+  } {
+    const result: {
+      hasInfraSignal: boolean;
+      cpuCores?: number;
+      totalMemoryBytes?: number;
+      processCount?: number;
+    } = {
+      hasInfraSignal: false,
+    };
+
+    if (!scopeMetrics || !Array.isArray(scopeMetrics)) {
+      return result;
+    }
+
+    for (const scopeMetric of scopeMetrics) {
+      const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
+        "metrics"
+      ] as JSONArray | undefined;
+      if (!metrics || !Array.isArray(metrics)) {
+        continue;
+      }
+
+      for (const metric of metrics) {
+        const m: JSONObject = metric as JSONObject;
+        const name: string = ((m["name"] as string) || "").toLowerCase();
+
+        if (name.startsWith("system.") || name.startsWith("process.")) {
+          result.hasInfraSignal = true;
+        }
+
+        if (name === "system.cpu.logical.count") {
+          const v: number | null = this.firstDatapointNumber(m);
+          if (v !== null) {
+            result.cpuCores = Math.round(v);
+          }
+          continue;
+        }
+
+        if (name === "system.memory.usage") {
+          const v: number | null = this.sumDatapointNumbers(m);
+          if (v !== null) {
+            result.totalMemoryBytes = Math.round(v);
+          }
+          continue;
+        }
+
+        if (name === "system.processes.count") {
+          /*
+           * `system.processes.count` is partitioned by
+           * `process.status` (running, sleeping, idle, …), so each
+           * datapoint is one status's count. Summing across statuses
+           * gives the canonical total — what `top` / `ps -e` show.
+           * `firstDatapointNumber` would only return one status.
+           */
+          const v: number | null = this.sumDatapointNumbers(m);
+          if (v !== null) {
+            result.processCount = Math.round(v);
+          }
+          continue;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private static datapointValue(dp: JSONObject): number | null {
+    const asInt: JSONValue = dp["asInt"];
+    if (typeof asInt === "string" || typeof asInt === "number") {
+      const n: number = Number(asInt);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    const asDouble: JSONValue = dp["asDouble"];
+    if (typeof asDouble === "string" || typeof asDouble === "number") {
+      const n: number = Number(asDouble);
+      if (Number.isFinite(n)) {
+        return n;
+      }
+    }
+    return null;
+  }
+
+  private static metricDataPoints(metric: JSONObject): JSONArray | null {
+    const wrapper: JSONObject | undefined =
+      (metric["sum"] as JSONObject | undefined) ||
+      (metric["gauge"] as JSONObject | undefined);
+    const points: JSONArray | undefined = wrapper?.["dataPoints"] as
+      | JSONArray
+      | undefined;
+    if (!points || !Array.isArray(points)) {
+      return null;
+    }
+    return points;
+  }
+
+  private static firstDatapointNumber(metric: JSONObject): number | null {
+    const points: JSONArray | null = this.metricDataPoints(metric);
+    if (!points) {
+      return null;
+    }
+    for (const dp of points) {
+      const v: number | null = this.datapointValue(dp as JSONObject);
+      if (v !== null) {
+        return v;
+      }
+    }
+    return null;
+  }
+
+  private static sumDatapointNumbers(metric: JSONObject): number | null {
+    const points: JSONArray | null = this.metricDataPoints(metric);
+    if (!points) {
+      return null;
+    }
+    let sum: number = 0;
+    let any: boolean = false;
+    for (const dp of points) {
+      const v: number | null = this.datapointValue(dp as JSONObject);
+      if (v !== null) {
+        sum += v;
+        any = true;
+      }
+    }
+    return any ? sum : null;
   }
 
   @CaptureSpan()

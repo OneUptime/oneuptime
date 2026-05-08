@@ -58,6 +58,13 @@ spec:
       securityContext:
         {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
+      {{- if $.Values.nginx.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.nginx.hostAliases | nindent 8 }}
+      {{- else if $.Values.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.hostAliases | nindent 8 }}
+      {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}

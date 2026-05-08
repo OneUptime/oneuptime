@@ -45,9 +45,22 @@ export default class BaseAnalyticsAPI<
   ) {
     this.entityType = type;
     const router: ExpressRouter = Express.getRouter();
+    /*
+     * BaseAnalyticsAPI only makes sense for models that expose CRUD over
+     * HTTP. Internal-only tables (e.g. MV target tables) are constructed
+     * with `crudApiPath: undefined` and must never be wired here — fail
+     * fast if a caller tries.
+     */
+    const crudApiPath: string | undefined =
+      new this.entityType().crudApiPath?.toString();
+    if (!crudApiPath) {
+      throw new Error(
+        `BaseAnalyticsAPI cannot be constructed for ${type.name}: model has no crudApiPath.`,
+      );
+    }
     // Create
     router.post(
-      `${new this.entityType().crudApiPath.toString()}`,
+      `${crudApiPath}`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {

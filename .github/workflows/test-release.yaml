@@ -122,7 +122,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -207,7 +207,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -291,7 +291,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -375,7 +375,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -459,7 +459,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -543,7 +543,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -627,7 +627,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -711,7 +711,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -803,7 +803,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
       - run: cd HelmChart && cd Tests && bash index.sh
 
   test-e2e-test-saas:
@@ -828,7 +828,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
       - name: Preinstall and enable billing
         run: |
           set -euo pipefail
@@ -907,7 +907,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: 24
       - name: Preinstall
         run: |
           set -euo pipefail

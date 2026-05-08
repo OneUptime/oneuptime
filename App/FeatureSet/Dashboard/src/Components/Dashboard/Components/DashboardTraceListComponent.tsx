@@ -1,7 +1,12 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import DashboardTraceListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -14,6 +19,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceListComponent;
@@ -70,13 +76,15 @@ const formatDuration: (durationNano: number) => string = (
 const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [spans, setSpans] = React.useState<Array<Span>>([]);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [spans, setSpans] = useState<Array<Span>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const maxRows: number = props.component.arguments.maxRows || 50;
+  const statusFilter: string | undefined =
+    props.component.arguments.statusFilter;
 
-  const fetchTraces: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchTraces: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
 
     const startAndEndDate: InBetween<Date> =
@@ -98,14 +106,9 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
         ),
       } as Query<Span>;
 
-      // Add status filter if set
-      if (
-        props.component.arguments.statusFilter &&
-        props.component.arguments.statusFilter !== ""
-      ) {
-        (query as Record<string, unknown>)["statusCode"] = parseInt(
-          props.component.arguments.statusFilter,
-        );
+      if (statusFilter && statusFilter !== "") {
+        (query as Record<string, unknown>)["statusCode"] =
+          parseInt(statusFilter);
       }
 
       const listResult: ListResult<Span> =
@@ -137,18 +140,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  };
+  }, [props.dashboardStartAndEndDate, statusFilter, maxRows]);
 
   useEffect(() => {
     fetchTraces();
-  }, [props.dashboardStartAndEndDate, props.refreshTick]);
-
-  useEffect(() => {
-    fetchTraces();
-  }, [
-    props.component.arguments.statusFilter,
-    props.component.arguments.maxRows,
-  ]);
+  }, [fetchTraces, props.refreshTick]);
 
   if (isLoading && spans.length === 0) {
     return (
@@ -297,4 +293,31 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardTraceListComponentElement;
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(
+    prev.component.arguments,
+    next.component.arguments,
+  );
+}
+
+export default React.memo(DashboardTraceListComponentElement, arePropsEqual);

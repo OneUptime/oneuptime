@@ -1233,6 +1233,17 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/product/host", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/host",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/host`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
     app.get(
       "/product/profiles",
       (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1960,6 +1971,37 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "security",
         requestDemoCta: false,
+      });
+    });
+
+    app.get(
+      "/legal/deprecation-policy",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "deprecation-policy",
+          requestDemoCta: false,
+        });
+      },
+    );
+
+    app.get("/trust", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/trust",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/trust.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+        seo,
       });
     });
 

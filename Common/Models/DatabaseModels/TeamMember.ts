@@ -42,9 +42,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-
     Permission.DeleteProjectTeam,
-    Permission.CurrentUser,
   ],
   update: [
     Permission.ProjectOwner,

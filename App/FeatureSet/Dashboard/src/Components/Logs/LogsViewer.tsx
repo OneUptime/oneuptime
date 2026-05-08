@@ -323,6 +323,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [props.serviceIds]);
 
+  /*
+   * Extract trace/span IDs for API calls (histogram + facets must respect these
+   * base filters so they reflect the same scope as the logs list)
+   */
+  const traceIdStrings: Array<string> | undefined = useMemo(() => {
+    if (!props.traceIds || props.traceIds.length === 0) {
+      return undefined;
+    }
+
+    return [...props.traceIds];
+  }, [props.traceIds]);
+
+  const spanIdStrings: Array<string> | undefined = useMemo(() => {
+    if (!props.spanIds || props.spanIds.length === 0) {
+      return undefined;
+    }
+
+    return [...props.spanIds];
+  }, [props.spanIds]);
+
   // Extract attribute filters from logQuery for histogram/facets API calls
   const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
     if (!props.logQuery) {
@@ -523,6 +543,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["serviceIds"] = serviceIdStrings;
         }
 
+        /*
+         * Base trace/span filters from props — must be applied so the chart
+         * matches the logs list when the viewer is scoped to a trace/span.
+         */
+        if (traceIdStrings) {
+          (requestData as any)["traceIds"] = traceIdStrings;
+        }
+
+        if (spanIdStrings) {
+          (requestData as any)["spanIds"] = spanIdStrings;
+        }
+
         // Pass active facet filters to the histogram so it reflects the current view
         const severityValues: Set<string> | undefined =
           appliedFacetFilters.get("severityText");
@@ -572,7 +604,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setHistogramLoading(false);
       }
-    }, [serviceIdStrings, appliedFacetFilters, timeRange, logQueryAttributes]);
+    }, [
+      serviceIdStrings,
+      traceIdStrings,
+      spanIdStrings,
+      appliedFacetFilters,
+      timeRange,
+      logQueryAttributes,
+    ]);
 
   // --- Fetch facets ---
 
@@ -595,6 +634,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["serviceIds"] = serviceIdStrings;
         }
 
+        /*
+         * Base trace/span filters from props — facet counts must match the
+         * logs list scope (e.g. when viewing a single trace).
+         */
+        if (traceIdStrings) {
+          (requestData as any)["traceIds"] = traceIdStrings;
+        }
+
+        if (spanIdStrings) {
+          (requestData as any)["spanIds"] = spanIdStrings;
+        }
+
         if (logQueryAttributes) {
           (requestData as any)["attributes"] = logQueryAttributes;
         }
@@ -614,7 +665,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setFacetLoading(false);
       }
-    }, [serviceIdStrings, timeRange, logQueryAttributes]);
+    }, [
+      serviceIdStrings,
+      traceIdStrings,
+      spanIdStrings,
+      timeRange,
+      logQueryAttributes,
+    ]);
 
   // --- Handlers (defined before effects that reference them) ---
 
@@ -908,6 +965,24 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           continue;
         }
 
+        /*
+         * Keys prefixed with `attributes.` are telemetry attribute filters,
+         * which live under `query.attributes[<suffix>]` rather than as
+         * top-level columns.
+         */
+        if (key.startsWith("attributes.")) {
+          const attrKey: string = key.substring("attributes.".length);
+          const existing: Record<string, unknown> =
+            ((updatedFilter as any).attributes as Record<string, unknown>) ||
+            {};
+          existing[attrKey] =
+            values.size === 1
+              ? Array.from(values)[0]!
+              : new Includes(Array.from(values));
+          (updatedFilter as any).attributes = existing;
+          continue;
+        }
+
         if (values.size === 1) {
           // Single value: use direct equality
           const singleValue: string = Array.from(values)[0]!;
@@ -1075,7 +1150,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const handleFieldValueSelect: (fieldKey: string, value: string) => void =
     useCallback(
       (fieldKey: string, value: string): void => {
-        // Map user-facing field names to internal keys
+        // Map user-facing field names to internal keys (case-insensitive)
         const fieldAliases: Record<string, string> = {
           severity: "severityText",
           level: "severityText",
@@ -1083,7 +1158,20 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           trace: "traceId",
           span: "spanId",
         };
-        const resolvedKey: string = fieldAliases[fieldKey] || fieldKey;
+        /*
+         * Unknown keys are telemetry attributes (e.g. `http.method`,
+         * `requestId`). Prefix them with `attributes.` so the rebuild step
+         * routes them into `query.attributes[<key>]` instead of treating them
+         * as top-level columns. We preserve the original case of the key
+         * because attribute keys can be camelCase (`requestId`); the backend
+         * matches them case-insensitively. The chip displays without the
+         * `attributes.` prefix.
+         */
+        const aliased: string | undefined =
+          fieldAliases[fieldKey.toLowerCase()];
+        const resolvedKey: string = aliased
+          ? aliased
+          : `attributes.${fieldKey}`;
 
         handleFacetInclude(resolvedKey, value);
       },
@@ -1164,7 +1252,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
 
     for (const [facetKey, values] of appliedFacetFilters.entries()) {
-      const displayKey: string = facetKeyDisplayNames[facetKey] || facetKey;
+      // Strip the `attributes.` prefix so the chip reads as `<key>: <value>`.
+      const displayKey: string = facetKey.startsWith("attributes.")
+        ? facetKey.substring("attributes.".length)
+        : facetKeyDisplayNames[facetKey] || facetKey;
 
       for (const value of values) {
         filters.push({

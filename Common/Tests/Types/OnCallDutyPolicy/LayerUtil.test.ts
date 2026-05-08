@@ -446,6 +446,228 @@ describe("LayerUtil getEvents - Rotation Handoff", () => {
   });
 });
 
+describe("LayerUtil getEvents - Rotation skips restricted days (issue #2413)", () => {
+  test("Daily rotation Mon-Fri 09-19 should advance to next user after weekend", () => {
+    const util: LayerUtil = new LayerUtil();
+    // Anchor on a Monday at 09:00. Use start of week then move to Monday 09:00.
+    const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(new Date());
+    // moment.startOf("week") is Sunday; add 1 day to get Monday.
+    const mondayStart: Date = OneUptimeDate.addRemoveDays(startOfWeek, 1);
+    const monday9AM: Date = OneUptimeDate.keepTimeButMoveDay(
+      OneUptimeDate.getDateWithCustomTime({
+        hours: 9,
+        minutes: 0,
+        seconds: 0,
+      }),
+      mondayStart,
+    );
+    const monday7PM: Date = OneUptimeDate.keepTimeButMoveDay(
+      OneUptimeDate.getDateWithCustomTime({
+        hours: 19,
+        minutes: 0,
+        seconds: 0,
+      }),
+      mondayStart,
+    );
+
+    const calendarEnd: Date = OneUptimeDate.addRemoveDays(monday9AM, 14); // two weeks
+
+    const layer: LayerProps = buildLayerProps({
+      users: ["A", "B", "C"],
+      start: monday9AM,
+      handoff: monday7PM, // first handoff 10 hours after start
+      weeklyRestrictions: [
+        {
+          startDay: DayOfWeek.Monday,
+          endDay: DayOfWeek.Monday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Tuesday,
+          endDay: DayOfWeek.Tuesday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Wednesday,
+          endDay: DayOfWeek.Wednesday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Thursday,
+          endDay: DayOfWeek.Thursday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Friday,
+          endDay: DayOfWeek.Friday,
+          start: "09:00",
+          end: "19:00",
+        },
+      ],
+      rotation: { intervalType: EventInterval.Day, intervalCount: 1 },
+    });
+
+    const events: Array<CalendarEvent> = util.getEvents({
+      ...layer,
+      calendarStartDate: monday9AM,
+      calendarEndDate: calendarEnd,
+    });
+
+    // Filter the events that begin at 09:00 (i.e. true workday slots).
+    const workdayEvents: Array<CalendarEvent> = events.filter(
+      (e: CalendarEvent) => {
+        return OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "09:00";
+      },
+    );
+
+    /*
+     * Expect 10 workdays across 2 weeks (Mon-Fri x 2).
+     * Sequence should be A, B, C, A, B, C, A, B, C, A — contiguous rotation
+     * skipping the weekend without burning rotations.
+     */
+    const sequence: Array<string> = workdayEvents.map((e: CalendarEvent) => {
+      return e.title;
+    });
+
+    // Specifically: friday week 1 user must NOT equal monday week 2 user.
+    const fridayWeek1: string | undefined = sequence[4];
+    const mondayWeek2: string | undefined = sequence[5];
+    expect(fridayWeek1).toBeDefined();
+    expect(mondayWeek2).toBeDefined();
+    expect(fridayWeek1).not.toBe(mondayWeek2);
+
+    /*
+     * And the user on Monday week 2 should be the rotation step after Friday week 1.
+     * With 3 users and 1-day rotation, after Fri (B) we expect Mon to be C.
+     */
+    expect(sequence.slice(0, 10)).toEqual([
+      "A",
+      "B",
+      "C",
+      "A",
+      "B",
+      "C",
+      "A",
+      "B",
+      "C",
+      "A",
+    ]);
+  });
+});
+
+describe("LayerUtil getEvents - Rotation continuous across calendar windows (issue #2413)", () => {
+  test("Week 2 preview should continue rotation from where week 1 ended", () => {
+    const util: LayerUtil = new LayerUtil();
+    // Anchor on a Monday at 09:00.
+    const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(new Date());
+    const mondayStart: Date = OneUptimeDate.addRemoveDays(startOfWeek, 1);
+    const monday9AM: Date = OneUptimeDate.keepTimeButMoveDay(
+      OneUptimeDate.getDateWithCustomTime({
+        hours: 9,
+        minutes: 0,
+        seconds: 0,
+      }),
+      mondayStart,
+    );
+    const monday7PM: Date = OneUptimeDate.keepTimeButMoveDay(
+      OneUptimeDate.getDateWithCustomTime({
+        hours: 19,
+        minutes: 0,
+        seconds: 0,
+      }),
+      mondayStart,
+    );
+
+    const layer: LayerProps = buildLayerProps({
+      users: ["A", "B", "C"],
+      start: monday9AM,
+      handoff: monday7PM,
+      weeklyRestrictions: [
+        {
+          startDay: DayOfWeek.Monday,
+          endDay: DayOfWeek.Monday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Tuesday,
+          endDay: DayOfWeek.Tuesday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Wednesday,
+          endDay: DayOfWeek.Wednesday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Thursday,
+          endDay: DayOfWeek.Thursday,
+          start: "09:00",
+          end: "19:00",
+        },
+        {
+          startDay: DayOfWeek.Friday,
+          endDay: DayOfWeek.Friday,
+          start: "09:00",
+          end: "19:00",
+        },
+      ],
+      rotation: { intervalType: EventInterval.Day, intervalCount: 1 },
+    });
+
+    // Simulate the dashboard preview: ask for week 1 then week 2 separately.
+    const week1Start: Date = monday9AM;
+    const week1End: Date = OneUptimeDate.addRemoveDays(monday9AM, 7);
+    const week2Start: Date = week1End;
+    const week2End: Date = OneUptimeDate.addRemoveDays(week1End, 7);
+
+    const week1: Array<CalendarEvent> = util.getEvents({
+      ...layer,
+      calendarStartDate: week1Start,
+      calendarEndDate: week1End,
+    });
+    const week2: Array<CalendarEvent> = util.getEvents({
+      ...layer,
+      calendarStartDate: week2Start,
+      calendarEndDate: week2End,
+    });
+
+    // Filter to the workday slots that begin at 09:00 in each week.
+    const workdayUsers: (events: Array<CalendarEvent>) => Array<string> = (
+      events: Array<CalendarEvent>,
+    ): Array<string> => {
+      return events
+        .filter((e: CalendarEvent) => {
+          return (
+            OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "09:00"
+          );
+        })
+        .map((e: CalendarEvent) => {
+          return e.title;
+        });
+    };
+
+    const week1Sequence: Array<string> = workdayUsers(week1);
+    const week2Sequence: Array<string> = workdayUsers(week2);
+
+    expect(week1Sequence).toEqual(["A", "B", "C", "A", "B"]);
+
+    /*
+     * The first user of week 2 must be the rotation step after the last user of week 1.
+     * Week 1 ends on Friday with B, so Monday week 2 must be C — not A or B.
+     */
+    expect(week2Sequence[0]).toBeDefined();
+    expect(week2Sequence[0]).toBe("C");
+    expect(week2Sequence).toEqual(["C", "A", "B", "C", "A"]);
+  });
+});
+
 describe("LayerUtil getMultiLayerEvents - Overlap Priority", () => {
   test("Higher priority (lower index) layer should trim overlapping lower priority events", () => {
     const util: LayerUtil = new LayerUtil();

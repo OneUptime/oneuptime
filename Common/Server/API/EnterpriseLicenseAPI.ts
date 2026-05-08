@@ -6,6 +6,7 @@ import EnterpriseLicenseService, {
 } from "../Services/EnterpriseLicenseService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
+import OneUptimeDate from "../../Types/Date";
 import Response from "../Utils/Response";
 import {
   ExpressRequest,
@@ -52,6 +53,9 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
                 companyName: true,
                 expiresAt: true,
                 licenseKey: true,
+                userLimit: true,
+                currentUserCount: true,
+                userCountUpdatedAt: true,
               },
               props: {
                 isRoot: true,
@@ -80,6 +84,8 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             companyName: license.companyName || "",
             expiresAt: license.expiresAt.toISOString(),
             licenseKey: license.licenseKey || "",
+            userLimit:
+              typeof license.userLimit === "number" ? license.userLimit : null,
           };
 
           const token: string = JSONWebToken.signJsonPayload(
@@ -91,7 +97,84 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             companyName: payload["companyName"] as string,
             expiresAt: payload["expiresAt"] as string,
             licenseKey: payload["licenseKey"] as string,
+            userLimit: payload["userLimit"],
+            currentUserCount:
+              typeof license.currentUserCount === "number"
+                ? license.currentUserCount
+                : null,
+            userCountUpdatedAt: license.userCountUpdatedAt
+              ? license.userCountUpdatedAt.toISOString()
+              : null,
             token,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/report-user-count`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const licenseKey: string | undefined = (
+            req.body["licenseKey"] as string | undefined
+          )?.trim();
+          const rawUserCount: unknown = req.body["userCount"];
+
+          if (!licenseKey) {
+            throw new BadDataException("License key is required");
+          }
+
+          const userCount: number = Number(rawUserCount);
+
+          if (
+            !Number.isFinite(userCount) ||
+            userCount < 0 ||
+            !Number.isInteger(userCount)
+          ) {
+            throw new BadDataException(
+              "userCount must be a non-negative integer",
+            );
+          }
+
+          const license: EnterpriseLicense | null =
+            await EnterpriseLicenseService.findOneBy({
+              query: {
+                licenseKey: licenseKey,
+              },
+              select: {
+                _id: true,
+                userLimit: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!license) {
+            throw new BadDataException("License key is invalid");
+          }
+
+          const reportedAt: Date = OneUptimeDate.getCurrentDate();
+
+          await EnterpriseLicenseService.updateOneById({
+            id: license.id!,
+            data: {
+              currentUserCount: userCount,
+              userCountUpdatedAt: reportedAt,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            currentUserCount: userCount,
+            userCountUpdatedAt: reportedAt.toISOString(),
+            userLimit:
+              typeof license.userLimit === "number" ? license.userLimit : null,
           });
         } catch (err) {
           next(err);

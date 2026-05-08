@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "close": "Close",
+    "loading": "Loading...",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "companyName": "Company Name",
+    "phoneNumber": "Phone Number",
+    "confirmPassword": "Confirm Password",
+    "newPassword": "New Password",
+    "code": "Code",
+    "yourCompany": "Your Company"
+  },
+  "language": {
+    "label": "Language",
+    "switchLanguage": "Switch language"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Contact",
+    "privacyAndTerms": "Privacy & Terms"
+  },
+  "captcha": {
+    "title": "Human Verification",
+    "description": "Complete the captcha challenge so we know you're not a bot.",
+    "errorOnSignIn": "Please complete the captcha challenge before signing in.",
+    "errorOnSignUp": "Please complete the captcha challenge before signing up."
+  },
+  "login": {
+    "title": "Sign in to your account",
+    "subtitle": "Join thousands of business that use OneUptime to help them stay online all the time.",
+    "submitButton": "Login",
+    "forgotPassword": "Forgot password?",
+    "useSso": "Use single sign-on (SSO) instead",
+    "noAccountPrompt": "Don't have an account?",
+    "registerLink": "Register.",
+    "twoFactor": {
+      "title": "Two Factor Authentication",
+      "subtitle": "Select two factor authentication method. You will be asked to enter a code from the selected method.",
+      "authenticatorApp": "Authenticator App",
+      "securityKey": "Security Key",
+      "authenticatingWithSecurityKey": "Authenticating with Security Key",
+      "securityKeyInstructions": "Please follow the instructions on your security key device.",
+      "codeFieldDescription": "Enter the code from your authenticator app",
+      "selectDifferentMethod": "Select a different two factor authentication method"
+    }
+  },
+  "register": {
+    "title": "Create your OneUptime account",
+    "subtitle": "Join thousands of business that use OneUptime to help them stay online all the time.",
+    "noCreditCard": "No credit card required.",
+    "submitButton": "Sign Up",
+    "haveAccountPrompt": "Already have an account?",
+    "loginLink": "Log in.",
+    "notifySelfHosted": "Notify me about security patches and new releases"
+  },
+  "forgotPassword": {
+    "title": "Forgot your password",
+    "subtitle": "Please enter your email and the password reset link will be sent to you.",
+    "successMessage": "We have emailed you the password reset link. Please do not forget to check spam.",
+    "submitButton": "Send Password Reset Link",
+    "returnToSignIn": "Return to Sign in.",
+    "rememberPasswordPrompt": "Remember your password?",
+    "loginLink": "Login."
+  },
+  "resetPassword": {
+    "title": "Reset your password",
+    "subtitle": "Please enter your new password and we will have it updated.",
+    "successMessage": "Your password has been updated. Please log in.",
+    "submitButton": "Reset Password",
+    "knowPasswordPrompt": "Know your password?",
+    "loginLink": "Log in."
+  },
+  "sso": {
+    "title": "Login with SSO",
+    "subtitle": "Login with your SSO provider to access your account.",
+    "submitButton": "Login with SSO",
+    "useUsernameInstead": "Use username and password instead.",
+    "noAccountPrompt": "Don't have an account?",
+    "registerLink": "Register.",
+    "selectProjectTitle": "Select Project",
+    "selectProjectSubtitle": "Select the project you want to login to.",
+    "noConfigForEmail": "No SSO configuration found for the email: {{email}}",
+    "emailRequired": "Email is required to perform this action",
+    "defaultProjectName": "Project"
+  },
+  "verifyEmail": {
+    "successTitle": "Your email is verified.",
+    "successDescription": "Thank you for verifying your email. You can now log in to OneUptime.",
+    "errorTitle": "Sorry, something went wrong!",
+    "returnToSignIn": "Return to sign in?",
+    "loginLink": "Login."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Forbidden",
+      "description": "You do not have permission to access this page."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "Page you are looking for does not exist."
+    }
+  }
+}

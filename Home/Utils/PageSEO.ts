@@ -473,6 +473,40 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/host": {
+    title: "Host Observability | Server Metrics, Processes & Logs | OneUptime",
+    description:
+      "Auto-discover hosts from any OpenTelemetry collector. Live CPU, memory, disk, filesystem, network, and per-process telemetry — plus logs and traces correlated to the same host. Open source.",
+    canonicalPath: "/product/host",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Hosts", url: "/product/host" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Host Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Auto-discover and monitor every host that emits OpenTelemetry telemetry. Real-time CPU, memory, disk, filesystem, and network metrics with per-process detail and correlated logs.",
+      features: [
+        "OTel-native auto-discovery",
+        "system.* metric visualization",
+        "Per-process CPU and memory",
+        "Filesystem and disk I/O",
+        "Network throughput and errors",
+        "Linked Docker host view",
+        "Linked Kubernetes node view",
+        "Correlated host logs",
+        "Last-seen + connection status",
+        "OS, architecture, host.id capture",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/profiles": {
     title:
       "Continuous Profiling | CPU, Memory & Allocation Profiling | OneUptime",

@@ -13,6 +13,13 @@ import AnalyticsTableEngine from "../../../../Types/AnalyticsDatabase/AnalyticsT
 import AnalyticsTableColumn from "../../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import OneUptimeDate from "../../../../Types/Date";
+import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
+import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import IsNull from "../../../../Types/BaseDatabase/IsNull";
+import NotNull from "../../../../Types/BaseDatabase/NotNull";
+import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
+import Search from "../../../../Types/BaseDatabase/Search";
+import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
 
 function expectStatement(actual: Statement, expected: Statement): void {
   expect(actual.query).toBe(expected.query);
@@ -177,6 +184,144 @@ describe("StatementGenerator", () => {
         p1: "<value>",
         p2: "updatedAt",
         p3: OneUptimeDate.toClickhouseDateTime(date),
+      });
+    });
+
+    describe("MapStringString columns", () => {
+      class MapModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<map-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributes",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: {},
+                type: TableColumnType.MapStringString,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      let mapGenerator: StatementGenerator<MapModel>;
+      beforeEach(() => {
+        mapGenerator = new StatementGenerator<MapModel>({
+          modelType: MapModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      test("uses direct map subscript for bare-value equality", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: "uuid-123" },
+        } as any);
+        /*
+         * Programmatic callers pass canonical keys, so bare-value
+         * equality compiles to `attributes['k'] = v` — an O(1) Map
+         * subscript that the planner can push into PREWHERE. The
+         * slower case-insensitive arrayExists form is reserved for
+         * the user-typed Search/StartsWith/EndsWith/NotContains
+         * operators below.
+         */
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] = {p2:String}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributes",
+          p1: "requestId",
+          p2: "uuid-123",
+        });
+      });
+
+      test("uses direct map subscript for EqualTo wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: new EqualTo("uuid-123") },
+        } as any);
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] = {p2:String}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributes",
+          p1: "requestId",
+          p2: "uuid-123",
+        });
+      });
+
+      test("uses direct map subscript for NotEqual wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: new NotEqual("uuid-123") },
+        } as any);
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] != {p2:String}",
+        );
+      });
+
+      test("uses mapContains+subscript for IsNull wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: new IsNull() },
+        } as any);
+        expect(statement.query).toBe(
+          "AND ((NOT mapContains({p0:Identifier}, {p1:String})) OR {p2:Identifier}[{p3:String}] = '')",
+        );
+      });
+
+      test("uses mapContains+subscript for NotNull wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: new NotNull() },
+        } as any);
+        expect(statement.query).toBe(
+          "AND mapContains({p0:Identifier}, {p1:String}) AND {p2:Identifier}[{p3:String}] != ''",
+        );
+      });
+
+      test("uses direct map subscript for numeric GreaterThan wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { httpStatus: new GreaterThan(500) },
+        } as any);
+        expect(statement.query).toBe(
+          "AND toFloat64OrNull({p0:Identifier}[{p1:String}]) > {p2:Int32}",
+        );
+      });
+
+      test("keeps case-insensitive arrayExists for Search wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: new Search("uuid") },
+        } as any);
+        /*
+         * Search comes from the user-typed search bar — keep the
+         * case-insensitive ILIKE form so the user doesn't have to
+         * remember whether the stored key is `requestId` or
+         * `requestid`.
+         */
+        expect(statement.query).toContain("arrayExists");
+        expect(statement.query).toContain("lowerUTF8");
+        expect(statement.query).toContain("ILIKE");
+      });
+
+      test("keeps case-insensitive arrayExists for StartsWith wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: { requestId: new StartsWith("uuid") },
+        } as any);
+        expect(statement.query).toContain("arrayExists");
+        expect(statement.query).toContain("lowerUTF8");
+        expect(statement.query).toContain("ILIKE");
       });
     });
   });

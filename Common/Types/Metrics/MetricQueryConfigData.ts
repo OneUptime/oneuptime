@@ -20,4 +20,13 @@ export default interface MetricQueryConfigData {
   yAxisValueFormatter?: ((value: number) => string) | undefined;
   warningThreshold?: number | undefined;
   criticalThreshold?: number | undefined;
+  /*
+   * When true, the post-aggregation series points are transformed into
+   * a per-second rate of change: `(value - previousValue) / Δt`. This is
+   * the right view for OTel cumulative counters (e.g. `system.disk.io`,
+   * `system.network.io`) — without it, the chart plots monotonically
+   * growing bytes-since-process-start. Negative deltas (counter resets
+   * on agent restart) are clamped to 0.
+   */
+  transformAsRate?: boolean | undefined;
 }

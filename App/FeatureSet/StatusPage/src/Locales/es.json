@@ -163,6 +163,7 @@
       "title": "Actualizar suscripción",
       "description": "Puede actualizar sus preferencias de suscripción o cancelar la suscripción aquí.",
       "saved": "Sus cambios se han guardado.",
+      "submit": "Actualizar suscripción",
       "unsubscribe": "Cancelar suscripción",
       "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos."
     },
@@ -229,5 +230,20 @@
   },
   "footer": {
     "poweredBy": "Desarrollado por OneUptime"
+  },
+  "statusNames": {
+    "identified": "Identificado",
+    "acknowledged": "Reconocido",
+    "resolved": "Resuelto",
+    "criticalIncident": "Incidente crítico",
+    "majorIncident": "Incidente mayor",
+    "minorIncident": "Incidente menor",
+    "operational": "Operativo",
+    "degraded": "Degradado",
+    "offline": "Sin conexión",
+    "scheduled": "Programado",
+    "ongoing": "En curso",
+    "ended": "Finalizado",
+    "completed": "Completado"
   }
 }

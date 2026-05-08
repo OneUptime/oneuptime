@@ -27,6 +27,7 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger from "Common/Server/Utils/Logger";
+import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import fsp from "fs/promises";
@@ -514,6 +515,51 @@ export default class MailService {
   }
 
   public static async send(
+    mail: EmailMessage,
+    options?:
+      | {
+          projectId?: ObjectID | undefined;
+          emailServer?: EmailServer | undefined;
+          userOnCallLogTimelineId?: ObjectID | undefined;
+          timeout?: number | undefined;
+          incidentId?: ObjectID | undefined;
+          alertId?: ObjectID | undefined;
+          monitorId?: ObjectID | undefined;
+          scheduledMaintenanceId?: ObjectID | undefined;
+          statusPageId?: ObjectID | undefined;
+          statusPageAnnouncementId?: ObjectID | undefined;
+          userId?: ObjectID | undefined;
+          // On-call policy related fields
+          onCallPolicyId?: ObjectID | undefined;
+          onCallPolicyEscalationRuleId?: ObjectID | undefined;
+          onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+          onCallScheduleId?: ObjectID | undefined;
+          teamId?: ObjectID | undefined;
+        }
+      | undefined,
+  ): Promise<void> {
+    const startNs: bigint = process.hrtime.bigint();
+    let outcome: "success" | "failure" = "success";
+
+    try {
+      await this.sendInternal(mail, options);
+    } catch (err) {
+      outcome = "failure";
+      throw err;
+    } finally {
+      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+      const durationMs: number = Number(elapsedNs) / 1e6;
+      const attributes: Record<string, string> = {
+        "notification.channel": "email",
+        outcome,
+      };
+
+      AppMetrics.getNotificationCounter().add(1, attributes);
+      AppMetrics.getNotificationDuration().record(durationMs, attributes);
+    }
+  }
+
+  private static async sendInternal(
     mail: EmailMessage,
     options?:
       | {

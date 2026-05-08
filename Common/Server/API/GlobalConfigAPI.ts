@@ -67,6 +67,9 @@ export default class GlobalConfigAPI extends BaseAPI<
                 enterpriseLicenseExpiresAt: true,
                 enterpriseLicenseKey: true,
                 enterpriseLicenseToken: true,
+                enterpriseLicenseUserLimit: true,
+                enterpriseLicenseCurrentUserCount: true,
+                enterpriseLicenseUserCountUpdatedAt: true,
               },
               props: {
                 isRoot: true,
@@ -80,6 +83,17 @@ export default class GlobalConfigAPI extends BaseAPI<
               : null,
             licenseKey: config?.enterpriseLicenseKey || null,
             token: config?.enterpriseLicenseToken || null,
+            userLimit:
+              typeof config?.enterpriseLicenseUserLimit === "number"
+                ? config.enterpriseLicenseUserLimit
+                : null,
+            currentUserCount:
+              typeof config?.enterpriseLicenseCurrentUserCount === "number"
+                ? config.enterpriseLicenseCurrentUserCount
+                : null,
+            userCountUpdatedAt: config?.enterpriseLicenseUserCountUpdatedAt
+              ? config.enterpriseLicenseUserCountUpdatedAt.toISOString()
+              : null,
           };
 
           return Response.sendJsonObjectResponse(req, res, responseBody);
@@ -143,11 +157,38 @@ export default class GlobalConfigAPI extends BaseAPI<
             licenseExpiry = parsedDate;
           }
 
+          const userLimitRaw: unknown = payload["userLimit"];
+          const userLimit: number | null =
+            typeof userLimitRaw === "number" && Number.isFinite(userLimitRaw)
+              ? userLimitRaw
+              : null;
+
+          const currentUserCountRaw: unknown = payload["currentUserCount"];
+          const currentUserCount: number | null =
+            typeof currentUserCountRaw === "number" &&
+            Number.isFinite(currentUserCountRaw)
+              ? currentUserCountRaw
+              : null;
+
+          const userCountUpdatedAtRaw: string | undefined = payload[
+            "userCountUpdatedAt"
+          ] as string | undefined;
+          let userCountUpdatedAt: Date | null = null;
+          if (userCountUpdatedAtRaw) {
+            const parsedReportedAt: Date = new Date(userCountUpdatedAtRaw);
+            if (!Number.isNaN(parsedReportedAt.getTime())) {
+              userCountUpdatedAt = parsedReportedAt;
+            }
+          }
+
           const updatePayload: PartialEntity<GlobalConfig> = {
             enterpriseCompanyName: companyNameRaw || null,
             enterpriseLicenseKey: licenseKeyRaw || null,
             enterpriseLicenseExpiresAt: licenseExpiry || null,
             enterpriseLicenseToken: licenseToken || null,
+            enterpriseLicenseUserLimit: userLimit,
+            enterpriseLicenseCurrentUserCount: currentUserCount,
+            enterpriseLicenseUserCountUpdatedAt: userCountUpdatedAt,
           };
 
           const globalConfigId: ObjectID = ObjectID.getZeroObjectID();
@@ -193,6 +234,19 @@ export default class GlobalConfigAPI extends BaseAPI<
               newConfig.enterpriseLicenseExpiresAt = licenseExpiry;
             }
 
+            if (userLimit !== null) {
+              newConfig.enterpriseLicenseUserLimit = userLimit;
+            }
+
+            if (currentUserCount !== null) {
+              newConfig.enterpriseLicenseCurrentUserCount = currentUserCount;
+            }
+
+            if (userCountUpdatedAt) {
+              newConfig.enterpriseLicenseUserCountUpdatedAt =
+                userCountUpdatedAt;
+            }
+
             await GlobalConfigService.create({
               data: newConfig,
               props: {
@@ -207,6 +261,11 @@ export default class GlobalConfigAPI extends BaseAPI<
             expiresAt: licenseExpiry ? licenseExpiry.toISOString() : null,
             licenseKey: licenseKeyRaw || null,
             token: licenseToken || null,
+            userLimit: userLimit,
+            currentUserCount: currentUserCount,
+            userCountUpdatedAt: userCountUpdatedAt
+              ? userCountUpdatedAt.toISOString()
+              : null,
           });
         } catch (err) {
           next(err);

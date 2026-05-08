@@ -27,6 +27,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import Icon from "Common/UI/Components/Icon/Icon";
+import AddWidgetModal from "./AddWidgetModal";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -266,6 +267,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
+  const [showAddWidgetModal, setShowAddWidgetModal] = useState<boolean>(false);
 
   const isSaving: boolean = props.isSaving;
 
@@ -405,68 +407,15 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             {/* Edit mode actions */}
             {!isSaving && isEditMode && (
               <div className="flex items-center gap-1">
-                <MoreMenu menuIcon={IconProp.Add} text="Add Widget">
-                  <MoreMenuItem
-                    text={"Chart"}
-                    icon={IconProp.ChartBar}
-                    key={"add-chart"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Chart);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Value"}
-                    icon={IconProp.Hashtag}
-                    key={"add-value"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Value);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Text"}
-                    icon={IconProp.Text}
-                    key={"add-text"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Text);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Table"}
-                    icon={IconProp.TableCells}
-                    key={"add-table"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Table);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Gauge"}
-                    icon={IconProp.Gauge}
-                    key={"add-gauge"}
-                    onClick={() => {
-                      props.onAddComponentClick(DashboardComponentType.Gauge);
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Log Stream"}
-                    icon={IconProp.Logs}
-                    key={"add-log-stream"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.LogStream,
-                      );
-                    }}
-                  />
-                  <MoreMenuItem
-                    text={"Trace List"}
-                    icon={IconProp.Waterfall}
-                    key={"add-trace-list"}
-                    onClick={() => {
-                      props.onAddComponentClick(
-                        DashboardComponentType.TraceList,
-                      );
-                    }}
-                  />
-                </MoreMenu>
+                <Button
+                  icon={IconProp.Add}
+                  title="Add Widget"
+                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    setShowAddWidgetModal(true);
+                  }}
+                />
 
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 
@@ -514,6 +463,19 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setShowCancelModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showAddWidgetModal ? (
+        <AddWidgetModal
+          onAddComponentClick={(type: DashboardComponentType) => {
+            props.onAddComponentClick(type);
+          }}
+          onClose={() => {
+            setShowAddWidgetModal(false);
           }}
         />
       ) : (

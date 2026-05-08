@@ -3,6 +3,7 @@ import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import LogDatabaseService from "./LogService";
 import MetricDatabaseService from "./MetricService";
 import SpanDatabaseService from "./SpanService";
+import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -18,7 +19,12 @@ type TelemetrySource = {
   service: AnalyticsDatabaseService<any>;
   tableName: string;
   attributesColumn: string;
-  attributeKeysColumn: string;
+  /*
+   * Some tables (e.g. ExceptionInstance) don't have a separate
+   * attributeKeys array column — only the attributes map. Leave this
+   * undefined for those; the SQL falls back to mapKeys(attributes).
+   */
+  attributeKeysColumn?: string | undefined;
   timeColumn: string;
 };
 
@@ -61,6 +67,14 @@ export class TelemetryAttributeService {
           attributesColumn: "attributes",
           attributeKeysColumn: "attributeKeys",
           timeColumn: "startTime",
+        };
+      case TelemetryType.Exception:
+        return {
+          service: ExceptionInstanceService,
+          tableName: ExceptionInstanceService.model.tableName,
+          attributesColumn: "attributes",
+          // ExceptionInstance has no attributeKeys column.
+          timeColumn: "time",
         };
       default:
         return null;
@@ -225,14 +239,21 @@ export class TelemetryAttributeService {
     projectId: ObjectID;
     tableName: string;
     attributesColumn: string;
-    attributeKeysColumn: string;
+    attributeKeysColumn?: string | undefined;
     timeColumn: string;
     metricName?: string | undefined;
   }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
 
-    const statement: Statement = SQL`
+    /*
+     * If the source has a denormalized attributeKeys array column, prefer it
+     * (avoids materializing every row's map). Otherwise fall back to
+     * mapKeys(attributes) — slower but works for tables that don't carry
+     * the precomputed array (e.g. ExceptionInstance).
+     */
+    const statement: Statement = data.attributeKeysColumn
+      ? SQL`
       WITH filtered AS (
         SELECT arrayJoin(
             if(
@@ -250,6 +271,19 @@ export class TelemetryAttributeService {
             NOT empty(${data.attributeKeysColumn}) OR
             NOT empty(${data.attributesColumn})
           )
+          AND ${data.timeColumn} >= ${{
+            type: TableColumnType.Date,
+            value: lookbackStartDate,
+          }}`
+      : SQL`
+      WITH filtered AS (
+        SELECT arrayJoin(mapKeys(${data.attributesColumn})) AS attribute
+        FROM ${data.tableName}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }}
+          AND NOT empty(${data.attributesColumn})
           AND ${data.timeColumn} >= ${{
             type: TableColumnType.Date,
             value: lookbackStartDate,

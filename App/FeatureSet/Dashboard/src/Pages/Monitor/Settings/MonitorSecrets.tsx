@@ -121,7 +121,7 @@ const MonitorSecrets: FunctionComponent<
               valueField: "_id",
             },
             required: true,
-            description: "Whcih monitors should have access to this secret?",
+            description: "Which monitors should have access to this secret?",
             placeholder: "Select monitors",
           },
         ]}

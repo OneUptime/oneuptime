@@ -12,6 +12,9 @@ ssl:
   # Automatically provision a Let's Encrypt certificate for the primary host when set to true.
   # If you enable this, please make sure that the host is publicly accessible via port 80 and 443.
   provision: false
+  # Skip TLS certificate verification for outbound HTTPS requests (self-signed certs / internal endpoints).
+  # Not safe for production — risk of MITM attacks.
+  skipVerification: false
 
 image:
   registry: docker.io
@@ -99,6 +102,7 @@ nginx:
   resources: {}
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: []
   containerSecurityContext: {}
 
 postgresql:
@@ -433,6 +437,7 @@ probes:
     resources: {}
     nodeSelector: {}
     podSecurityContext: {}
+    hostAliases: []
     containerSecurityContext: {}
 #   additionalContainers:
 # two:
@@ -493,6 +498,7 @@ podSecurityContext:
 affinity:
 tolerations:
 nodeSelector:
+hostAliases:
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR, OFF
 # Please do not set this to DEBUG in production. This is only for development / debugging purposes.
@@ -647,6 +653,7 @@ home:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: []
   containerSecurityContext: {}
 
 
@@ -665,6 +672,7 @@ app:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: []
   containerSecurityContext: {}
   # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry)
   keda:
@@ -702,6 +710,7 @@ aiAgent:
   resources:
   nodeSelector: {}
   podSecurityContext: {}
+  hostAliases: []
   containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
@@ -762,6 +771,13 @@ inboundEmail:
   domain:
   # Optional webhook secret for validating incoming webhooks from the email provider
   webhookSecret:
+
+# BullMQ Queue Dashboard (Bull Board)
+# When enabled, exposes the queue inspector UI at /worker/inspect/queue/<secret>.
+# Both `enabled` and a non-empty `secret` are required to mount the dashboard.
+queueDashboard:
+  enabled: false
+  secret:
 
 keda:
   enabled: true

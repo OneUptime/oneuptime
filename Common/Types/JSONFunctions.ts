@@ -20,7 +20,67 @@ export default class JSONFunctions {
     obj1: GenericObject,
     obj2: GenericObject,
   ): boolean {
-    return JSON.stringify(obj1) !== JSON.stringify(obj2);
+    return !JSONFunctions.deepEqual(obj1, obj2);
+  }
+
+  /*
+   * Structural deep-equal that short-circuits at the first mismatch. The
+   * dashboard widget hot path was previously running JSON.stringify on
+   * both sides of nested metricQueryConfig objects every render, which
+   * dominated CPU when many widgets were on screen. This visits the
+   * tree once and bails on the first divergence.
+   */
+  public static deepEqual(a: unknown, b: unknown): boolean {
+    if (a === b) {
+      return true;
+    }
+
+    if (
+      a === null ||
+      b === null ||
+      typeof a !== "object" ||
+      typeof b !== "object"
+    ) {
+      return false;
+    }
+
+    if (a instanceof Date || b instanceof Date) {
+      return (
+        a instanceof Date && b instanceof Date && a.getTime() === b.getTime()
+      );
+    }
+
+    if (Array.isArray(a) || Array.isArray(b)) {
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+        return false;
+      }
+      for (let i: number = 0; i < a.length; i++) {
+        if (!JSONFunctions.deepEqual(a[i], b[i])) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    const keysA: Array<string> = Object.keys(a as Record<string, unknown>);
+    const keysB: Array<string> = Object.keys(b as Record<string, unknown>);
+    if (keysA.length !== keysB.length) {
+      return false;
+    }
+    for (const key of keysA) {
+      if (!Object.prototype.hasOwnProperty.call(b, key)) {
+        return false;
+      }
+      if (
+        !JSONFunctions.deepEqual(
+          (a as Record<string, unknown>)[key],
+          (b as Record<string, unknown>)[key],
+        )
+      ) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static nestJson(obj: JSONObject): JSONObject {

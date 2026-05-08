@@ -197,6 +197,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [attributesLoaded, setAttributesLoaded] = useState<boolean>(false);
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
 
+  // Per-attribute value suggestions, populated lazily as the user types `@key:`.
+  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
+    Record<string, Array<string>>
+  >({});
+  const [attributeValuesLoading, setAttributeValuesLoading] =
+    useState<boolean>(false);
+  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
+    useRef<string>("");
+
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [pageError, setPageError] = useState<string>("");
 
@@ -441,6 +450,58 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [attributesLoaded, attributesLoading, loadAttributes]);
 
+  /*
+   * Lazily fetch values for the attribute the user is currently typing.
+   * Triggered by `@key:` patterns in the search bar — the same approach
+   * used by Traces/Metrics so the value dropdown can populate.
+   */
+  useEffect(() => {
+    const currentWord: string = (searchQuery.split(/\s+/).pop() || "").trim();
+    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
+      return;
+    }
+    const colonIdx: number = currentWord.indexOf(":");
+    const attrKey: string = currentWord.substring(1, colonIdx);
+
+    if (!attrKey || attrKey === lastValueSuggestionKeyRef.current) {
+      return;
+    }
+    lastValueSuggestionKeyRef.current = attrKey;
+
+    const loadValues: () => Promise<void> = async (): Promise<void> => {
+      try {
+        setAttributeValuesLoading(true);
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/logs/get-attribute-values",
+            ),
+            data: { attributeKey: attrKey },
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+        const values: Array<string> = (response.data["values"] ||
+          []) as Array<string>;
+        setAttributeValueSuggestions(
+          (
+            prev: Record<string, Array<string>>,
+          ): Record<string, Array<string>> => {
+            return { ...prev, [attrKey]: values };
+          },
+        );
+      } catch {
+        // non-critical — leave the dropdown empty so users can still free-type
+      } finally {
+        setAttributeValuesLoading(false);
+      }
+    };
+    void loadValues();
+  }, [searchQuery]);
+
   // Reset focused row when displayed logs change
   useEffect(() => {
     setFocusedRowIndex(-1);
@@ -669,17 +730,23 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.activeFilters, serviceMap]);
 
   /*
-   * Replace serviceId UUIDs with human-readable names in value suggestions
+   * Replace serviceId UUIDs with human-readable names in value suggestions,
+   * and merge in the lazily-fetched attribute value suggestions.
    * Must be before early returns to maintain consistent hook call order.
    */
   const resolvedValueSuggestions: Record<string, Array<string>> | undefined =
     useMemo(() => {
-      if (!props.valueSuggestions) {
+      const hasParentSuggestions: boolean = Boolean(props.valueSuggestions);
+      const hasAttributeSuggestions: boolean =
+        Object.keys(attributeValueSuggestions).length > 0;
+
+      if (!hasParentSuggestions && !hasAttributeSuggestions) {
         return undefined;
       }
 
       const suggestions: Record<string, Array<string>> = {
-        ...props.valueSuggestions,
+        ...(props.valueSuggestions || {}),
+        ...attributeValueSuggestions,
       };
 
       if (suggestions["serviceId"] && Object.keys(serviceMap).length > 0) {
@@ -692,7 +759,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       return suggestions;
-    }, [props.valueSuggestions, serviceMap]);
+    }, [props.valueSuggestions, serviceMap, attributeValueSuggestions]);
 
   /*
    * Wrap onFieldValueSelect to resolve service names back to UUIDs
@@ -828,6 +895,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             onSearchSubmit={handleSearchSubmit}
             valueSuggestions={resolvedValueSuggestions}
             onFieldValueSelect={handleFieldValueSelectWithServiceResolve}
+            isAttributesLoading={attributesLoading}
+            isValuesLoading={attributeValuesLoading}
             toolbar={<LogsViewerToolbar {...toolbarProps} />}
           />
         </div>
@@ -924,6 +993,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       getSpanRoute={props.getSpanRoute}
                       variant="embedded"
                       projectId={props.projectId}
+                      onFilterByAttribute={
+                        handleFieldValueSelectWithServiceResolve
+                      }
                     />
                   );
                 }}

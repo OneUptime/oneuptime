@@ -18,8 +18,17 @@ export interface TelemetrySearchBarProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
-  // Field-name suggestions shown when user types "@".
+  /*
+   * Top-level field names like "service", "name" — used as `field:value`
+   * (no @). Shown when the user types regular text.
+   */
   suggestions?: Array<string> | undefined;
+  /*
+   * Telemetry attribute keys like "host.name", "container.id" — used as
+   * `@attr:value`. Shown when the user types `@`. Pass plain keys, not
+   * pre-prefixed with `@` — the bar adds it on submit.
+   */
+  attributeSuggestions?: Array<string> | undefined;
   // field → allowed value completions (resolved field keys).
   valueSuggestions?: Record<string, Array<string>> | undefined;
   // Called when the user picks a concrete field:value chip from the dropdown.
@@ -30,6 +39,10 @@ export interface TelemetrySearchBarProps {
   // Rows rendered in the help popover when the bar is empty + focused.
   helpRows?: Array<SearchHelpRow> | undefined;
   helpCombinedExample?: string | undefined;
+  // Loading state for `@attribute` autocomplete (initial fetch of keys).
+  isAttributesLoading?: boolean | undefined;
+  // Loading state for `@attribute:value` autocomplete (per-key value fetch).
+  isValuesLoading?: boolean | undefined;
 }
 
 export interface TelemetrySearchBarRef {
@@ -72,12 +85,29 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
 
     const colonIndex: number = normalizedWord.indexOf(":");
     const isValueMode: boolean = colonIndex > 0;
+    /*
+     * Preserve user casing — telemetry attribute keys (e.g. `requestId`,
+     * `http.method`) are case-sensitive in the data, so lowercasing here
+     * would silently break searches against camelCase keys. Alias lookups
+     * via `fieldAliasMap` handle their own case normalisation.
+     */
     const fieldPrefix: string = isValueMode
-      ? normalizedWord.substring(0, colonIndex).toLowerCase()
+      ? normalizedWord.substring(0, colonIndex)
       : "";
     const partialValue: string = isValueMode
       ? normalizedWord.substring(colonIndex + 1)
       : "";
+
+    /*
+     * Pick the suggestion list based on whether the user typed `@`.
+     * `@` is the explicit trigger for attribute mode — only show attribute
+     * keys there. Without `@`, only show top-level field names. Mixing the
+     * two led to confusing dropdowns that rendered field names like "name"
+     * as if they were attributes.
+     */
+    const activeSuggestions: Array<string> = hasAtPrefix
+      ? props.attributeSuggestions || []
+      : props.suggestions || [];
 
     const filteredSuggestions: Array<string> = isValueMode
       ? getValueSuggestions(
@@ -86,23 +116,32 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
           props.valueSuggestions || {},
           fieldAliasMap,
         )
-      : (props.suggestions || []).filter((s: string): boolean => {
+      : activeSuggestions.filter((s: string): boolean => {
           if (!normalizedWord && !hasAtPrefix) {
             return false;
           }
           if (hasAtPrefix && normalizedWord.length === 0) {
             return true;
           }
-          const normalizedSuggestion: string = s.startsWith("@")
-            ? s.substring(1).toLowerCase()
-            : s.toLowerCase();
-          return normalizedSuggestion.startsWith(normalizedWord.toLowerCase());
+          return s.toLowerCase().startsWith(normalizedWord.toLowerCase());
         });
+
+    /*
+     * Show a loader inside the dropdown while the parent is fetching:
+     *   - attribute keys: `@` was just typed but the keys haven't arrived
+     *   - attribute values: `@key:` was typed but values for that key
+     *     haven't arrived yet
+     */
+    const isLoadingForCurrentMode: boolean = isValueMode
+      ? Boolean(props.isValuesLoading)
+      : hasAtPrefix
+        ? Boolean(props.isAttributesLoading)
+        : false;
 
     const shouldShowSuggestions: boolean =
       showSuggestions &&
       isFocused &&
-      filteredSuggestions.length > 0 &&
+      (filteredSuggestions.length > 0 || isLoadingForCurrentMode) &&
       (isValueMode ? true : currentWord.length > 0);
 
     const shouldShowHelp: boolean =
@@ -123,6 +162,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
           if (e.key === "Enter") {
             if (
               shouldShowSuggestions &&
+              !isLoadingForCurrentMode &&
               selectedSuggestionIndex >= 0 &&
               selectedSuggestionIndex < filteredSuggestions.length
             ) {
@@ -136,8 +176,13 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
               partialValue.length > 0 &&
               props.onFieldValueSelect
             ) {
+              /*
+               * Prefer a match from the suggestion list (so casing matches
+               * what's actually in the data); otherwise accept the typed
+               * value as-is so users aren't blocked when no suggestion exists.
+               */
               const resolvedField: string =
-                fieldAliasMap[fieldPrefix] || fieldPrefix;
+                fieldAliasMap[fieldPrefix.toLowerCase()] || fieldPrefix;
               const availableValues: Array<string> =
                 (props.valueSuggestions || {})[resolvedField] || [];
               const lowerPartial: string = partialValue.toLowerCase();
@@ -147,23 +192,21 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
                 },
               );
 
-              const resolvedMatch: string | undefined =
+              const resolvedMatch: string =
                 exactMatch ||
                 (filteredSuggestions.length === 1
-                  ? filteredSuggestions[0]
-                  : undefined);
+                  ? filteredSuggestions[0]!
+                  : partialValue);
 
-              if (resolvedMatch) {
-                props.onFieldValueSelect(fieldPrefix, resolvedMatch);
-                const parts: Array<string> = props.value.split(/\s+/);
-                parts.pop();
-                const remaining: string = parts.join(" ");
-                props.onChange(remaining ? remaining + " " : "");
-                setShowSuggestions(false);
-                setShowHelp(false);
-                e.preventDefault();
-                return;
-              }
+              props.onFieldValueSelect(fieldPrefix, resolvedMatch);
+              const parts: Array<string> = props.value.split(/\s+/);
+              parts.pop();
+              const remaining: string = parts.join(" ");
+              props.onChange(remaining ? remaining + " " : "");
+              setShowSuggestions(false);
+              setShowHelp(false);
+              e.preventDefault();
+              return;
             }
 
             props.onSubmit();
@@ -178,7 +221,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
             return;
           }
 
-          if (!shouldShowSuggestions) {
+          if (!shouldShowSuggestions || isLoadingForCurrentMode) {
             return;
           }
 
@@ -206,6 +249,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
           partialValue,
           props,
           fieldAliasMap,
+          isLoadingForCurrentMode,
         ],
       );
 
@@ -229,7 +273,13 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
         const parts: Array<string> = props.value.split(/\s+/);
 
         if (parts.length > 0) {
-          parts[parts.length - 1] = suggestion + ":";
+          /*
+           * Attribute suggestions are stored without `@`; add it back
+           * when filling the bar so the parser recognizes it as an attribute.
+           */
+          parts[parts.length - 1] = hasAtPrefix
+            ? "@" + suggestion + ":"
+            : suggestion + ":";
         }
 
         props.onChange(parts.join(" "));
@@ -237,7 +287,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
         setShowHelp(false);
         inputRef.current?.focus();
       },
-      [props, isValueMode, fieldPrefix],
+      [props, isValueMode, fieldPrefix, hasAtPrefix],
     );
 
     const handleExampleClick: (example: string) => void = useCallback(
@@ -267,6 +317,17 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
         document.removeEventListener("mousedown", handleClickOutside);
       };
     }, []);
+
+    const loadingMessage: string = isValueMode
+      ? `Loading values for ${fieldPrefix}...`
+      : "Loading attributes...";
+
+    const emptyMessage: string | undefined =
+      isValueMode &&
+      !isLoadingForCurrentMode &&
+      filteredSuggestions.length === 0
+        ? `No matching values — press Enter to filter by "${partialValue}"`
+        : undefined;
 
     return (
       <div ref={containerRef} className="relative">
@@ -329,6 +390,10 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
             selectedIndex={selectedSuggestionIndex}
             onSelect={applySuggestion}
             fieldContext={isValueMode ? fieldPrefix : undefined}
+            isAttributeMode={hasAtPrefix}
+            isLoading={isLoadingForCurrentMode}
+            loadingMessage={loadingMessage}
+            emptyMessage={emptyMessage}
           />
         )}
 
@@ -355,7 +420,8 @@ function getValueSuggestions(
   valueSuggestions: Record<string, Array<string>>,
   aliasMap: Record<string, string>,
 ): Array<string> {
-  const resolvedField: string = aliasMap[fieldName] || fieldName;
+  // Case-insensitive alias lookup, preserve original case as fallback for attributes
+  const resolvedField: string = aliasMap[fieldName.toLowerCase()] || fieldName;
 
   const values: Array<string> | undefined = valueSuggestions[resolvedField];
 

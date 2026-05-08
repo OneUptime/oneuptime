@@ -293,6 +293,16 @@ import { MigrationName1776940714709 } from "./1776940714709-MigrationName";
 import { AddStatusPageLanguageSettings1776971364783 } from "./1776971364783-AddStatusPageLanguageSettings";
 import { AddTelemetryRetentionSettings1777018175127 } from "./1777018175127-AddTelemetryRetentionSettings";
 import { AddMonitorTemplate1777201966799 } from "./1777201966799-AddMonitorTemplate";
+import { MigrationName1777550162848 } from "./1777550162848-MigrationName";
+import { MigrationName1777571961028 } from "./1777571961028-MigrationName";
+import { MigrationName1777629313843 } from "./1777629313843-MigrationName";
+import { MigrationName1777933061000 } from "./1777933061000-MigrationName";
+import { MigrationName1777972687018 } from "./1777972687018-MigrationName";
+import { AddHostTables1778006035712 } from "./1778006035712-AddHostTables";
+import { AddHostIpAddresses1778013317872 } from "./1778013317872-AddHostIpAddresses";
+import { WidenHostOsVersionToLongText1778066346303 } from "./1778066346303-WidenHostOsVersionToLongText";
+import { MigrationName1778070278986 } from "./1778070278986-MigrationName";
+import { DedupeServicesAndAddUniqueIndex1778100000000 } from "./1778100000000-DedupeServicesAndAddUniqueIndex";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -589,4 +599,14 @@ export default [
   AddStatusPageLanguageSettings1776971364783,
   AddTelemetryRetentionSettings1777018175127,
   AddMonitorTemplate1777201966799,
+  MigrationName1777550162848,
+  MigrationName1777571961028,
+  MigrationName1777629313843,
+  MigrationName1777933061000,
+  MigrationName1777972687018,
+  AddHostTables1778006035712,
+  AddHostIpAddresses1778013317872,
+  WidenHostOsVersionToLongText1778066346303,
+  MigrationName1778070278986,
+  DedupeServicesAndAddUniqueIndex1778100000000,
 ];

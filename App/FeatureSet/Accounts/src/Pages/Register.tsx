@@ -31,10 +31,12 @@ import UserUtil from "Common/UI/Utils/User";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const RegisterPage: () => JSX.Element = () => {
+  const { t } = useTranslation();
   const apiUrl: URL = SIGNUP_API_URL;
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
@@ -126,7 +128,7 @@ const RegisterPage: () => JSX.Element = () => {
       placeholder: "jeff@example.com",
       required: true,
       disabled: Boolean(initialValues && initialValues["email"]),
-      title: "Email",
+      title: t("common.email"),
       dataTestId: "email",
       disableSpellCheck: true,
     },
@@ -137,7 +139,7 @@ const RegisterPage: () => JSX.Element = () => {
       fieldType: FormFieldSchemaType.Text,
       placeholder: "Jeff Smith",
       required: true,
-      title: "Full Name",
+      title: t("common.fullName"),
       dataTestId: "name",
       disableSpellCheck: true,
     },
@@ -152,7 +154,7 @@ const RegisterPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Text,
         placeholder: "Acme, Inc.",
         required: true,
-        title: "Company Name",
+        title: t("common.companyName"),
         dataTestId: "companyName",
         disableSpellCheck: true,
       },
@@ -167,7 +169,7 @@ const RegisterPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Phone,
         required: true,
         placeholder: "+11234567890",
-        title: "Phone Number",
+        title: t("common.phoneNumber"),
         dataTestId: "companyPhoneNumber",
       });
     }
@@ -183,7 +185,7 @@ const RegisterPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Text,
         placeholder: "Acme, Inc.",
         required: false,
-        title: "Company Name",
+        title: t("common.companyName"),
         dataTestId: "selfHostedCompanyName",
         showEvenIfPermissionDoesNotExist: true,
         disableSpellCheck: true,
@@ -196,7 +198,7 @@ const RegisterPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Phone,
         required: false,
         placeholder: "+11234567890",
-        title: "Phone Number",
+        title: t("common.phoneNumber"),
         dataTestId: "selfHostedPhoneNumber",
         showEvenIfPermissionDoesNotExist: true,
       },
@@ -212,8 +214,8 @@ const RegisterPage: () => JSX.Element = () => {
       validation: {
         minLength: 6,
       },
-      placeholder: "Password",
-      title: "Password",
+      placeholder: t("common.password"),
+      title: t("common.password"),
       required: true,
       dataTestId: "password",
       disableSpellCheck: true,
@@ -227,8 +229,8 @@ const RegisterPage: () => JSX.Element = () => {
         toMatchField: "password",
       },
       fieldType: FormFieldSchemaType.Password,
-      placeholder: "Confirm Password",
-      title: "Confirm Password",
+      placeholder: t("common.confirmPassword"),
+      title: t("common.confirmPassword"),
       overrideFieldKey: "confirmPassword",
       required: true,
       showEvenIfPermissionDoesNotExist: true,
@@ -248,7 +250,7 @@ const RegisterPage: () => JSX.Element = () => {
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
         defaultValue: true,
-        title: "Notify me about security patches and new releases",
+        title: t("register.notifySelfHosted"),
         dataTestId: "notifySelfHosted",
         showEvenIfPermissionDoesNotExist: true,
         spanFullRow: true,
@@ -264,9 +266,8 @@ const RegisterPage: () => JSX.Element = () => {
         },
         overrideFieldKey: "captchaToken",
         fieldType: FormFieldSchemaType.CustomComponent,
-        title: "Human Verification",
-        description:
-          "Complete the captcha challenge so we know you're not a bot.",
+        title: t("captcha.title"),
+        description: t("captcha.description"),
         required: true,
         showEvenIfPermissionDoesNotExist: true,
         getCustomElement: (
@@ -306,14 +307,13 @@ const RegisterPage: () => JSX.Element = () => {
           alt="OneUptime"
         />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-          Create your OneUptime account
+          {t("register.title")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-          Join thousands of business that use OneUptime to help them stay online
-          all the time.
+          {t("register.subtitle")}
         </p>
         <p className="mt-2 text-center text-sm text-gray-600">
-          No credit card required.
+          {t("register.noCreditCard")}
         </p>
       </div>
 
@@ -340,9 +340,7 @@ const RegisterPage: () => JSX.Element = () => {
                   .trim();
 
                 if (!captchaToken) {
-                  throw new Error(
-                    "Please complete the captcha challenge before signing up.",
-                  );
+                  throw new Error(t("captcha.errorOnSignUp"));
                 }
 
                 miscDataProps["captchaToken"] = captchaToken;
@@ -365,7 +363,7 @@ const RegisterPage: () => JSX.Element = () => {
               return Promise.resolve(item);
             }}
             formType={FormType.Create}
-            submitButtonText={"Sign Up"}
+            submitButtonText={t("register.submitButton")}
             onLoadingChange={(loading: boolean) => {
               if (!isCaptchaEnabled) {
                 return;
@@ -392,12 +390,12 @@ const RegisterPage: () => JSX.Element = () => {
         </div>
         <div className="mt-4 sm:mt-5 text-center text-gray-500">
           <p className="text-muted mb-0 text-sm sm:text-base">
-            Already have an account?{" "}
+            {t("register.haveAccountPrompt")}{" "}
             <Link
               to={new Route("/accounts/login")}
               className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
             >
-              Log in.
+              {t("register.loginLink")}
             </Link>
           </p>
         </div>

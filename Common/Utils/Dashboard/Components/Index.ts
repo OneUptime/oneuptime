@@ -2,9 +2,27 @@ import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
+import DashboardDockerContainerListComponentUtil from "./DashboardDockerContainerListComponent";
+import DashboardDockerHostListComponentUtil from "./DashboardDockerHostListComponent";
+import DashboardDockerImageListComponentUtil from "./DashboardDockerImageListComponent";
+import DashboardDockerNetworkListComponentUtil from "./DashboardDockerNetworkListComponent";
+import DashboardDockerVolumeListComponentUtil from "./DashboardDockerVolumeListComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
+import DashboardHostListComponentUtil from "./DashboardHostListComponent";
+import DashboardHostMetricChartComponentUtil from "./DashboardHostMetricChartComponent";
+import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
+import DashboardKubernetesCronJobListComponentUtil from "./DashboardKubernetesCronJobListComponent";
+import DashboardKubernetesDaemonSetListComponentUtil from "./DashboardKubernetesDaemonSetListComponent";
+import DashboardKubernetesDeploymentListComponentUtil from "./DashboardKubernetesDeploymentListComponent";
+import DashboardKubernetesJobListComponentUtil from "./DashboardKubernetesJobListComponent";
+import DashboardKubernetesNamespaceListComponentUtil from "./DashboardKubernetesNamespaceListComponent";
+import DashboardKubernetesNodeListComponentUtil from "./DashboardKubernetesNodeListComponent";
+import DashboardKubernetesPodListComponentUtil from "./DashboardKubernetesPodListComponent";
+import DashboardKubernetesStatefulSetListComponentUtil from "./DashboardKubernetesStatefulSetListComponent";
 import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
+import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
 import DashboardTableComponentUtil from "./DashboardTableComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
@@ -52,6 +70,125 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.TraceList) {
       return DashboardTraceListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.IncidentList) {
+      return DashboardIncidentListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.AlertList) {
+      return DashboardAlertListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.MonitorList) {
+      return DashboardMonitorListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.KubernetesPodList) {
+      return DashboardKubernetesPodListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.KubernetesNodeList) {
+      return DashboardKubernetesNodeListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesNamespaceList
+    ) {
+      return DashboardKubernetesNamespaceListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesDeploymentList
+    ) {
+      return DashboardKubernetesDeploymentListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType ===
+      DashboardComponentType.KubernetesStatefulSetList
+    ) {
+      return DashboardKubernetesStatefulSetListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesDaemonSetList
+    ) {
+      return DashboardKubernetesDaemonSetListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.KubernetesJobList) {
+      return DashboardKubernetesJobListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.KubernetesCronJobList
+    ) {
+      return DashboardKubernetesCronJobListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerHostList) {
+      return DashboardDockerHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerContainerList) {
+      return DashboardDockerContainerListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerImageList) {
+      return DashboardDockerImageListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerNetworkList) {
+      return DashboardDockerNetworkListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DockerVolumeList) {
+      return DashboardDockerVolumeListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.HostList) {
+      return DashboardHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.HostMetricChart) {
+      return DashboardHostMetricChartComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

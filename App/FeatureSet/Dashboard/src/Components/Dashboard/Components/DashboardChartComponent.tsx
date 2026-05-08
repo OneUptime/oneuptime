@@ -1,9 +1,16 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
@@ -23,126 +30,170 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [metricResults, setMetricResults] = React.useState<
-    Array<AggregatedResult>
-  >([]);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
+    [],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Resolve query configs - combine primary query with additional queries
-  const resolveQueryConfigs: () => Array<MetricQueryConfigData> = () => {
+  const primaryQueryConfig: MetricQueryConfigData | undefined =
+    props.component.arguments.metricQueryConfig;
+  const additionalQueryConfigs: Array<MetricQueryConfigData> | undefined =
+    props.component.arguments.metricQueryConfigs;
+
+  /*
+   * Stabilize derived values so this component does not re-fetch (or
+   * cause MetricCharts to re-render) every time the parent re-renders
+   * with structurally-identical inputs. The dashboard parent emits new
+   * object references on most render passes (timer ticks, drag state,
+   * canvas resize), so without these memos every chart would refetch
+   * on each tick.
+   */
+  const queryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
     const configs: Array<MetricQueryConfigData> = [];
+    if (primaryQueryConfig) {
+      configs.push(primaryQueryConfig);
+    }
+    if (additionalQueryConfigs && additionalQueryConfigs.length > 0) {
+      configs.push(...additionalQueryConfigs);
+    }
+    return configs;
+  }, [primaryQueryConfig, additionalQueryConfigs]);
 
-    if (props.component.arguments.metricQueryConfig) {
-      configs.push(props.component.arguments.metricQueryConfig);
+  const startAndEndDate: ReturnType<
+    typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
+  > = useMemo(() => {
+    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+      props.dashboardStartAndEndDate,
+    );
+  }, [props.dashboardStartAndEndDate]);
+
+  const metricViewData: MetricViewData = useMemo(() => {
+    return {
+      queryConfigs: queryConfigs,
+      startAndEndDate: startAndEndDate,
+      formulaConfigs: [],
+    };
+  }, [queryConfigs, startAndEndDate]);
+
+  /*
+   * Latest props in a ref so fetchAggregatedResults can stay stable
+   * across renders without React warning about missing deps.
+   */
+  const metricViewDataRef: React.MutableRefObject<MetricViewData> =
+    useRef<MetricViewData>(metricViewData);
+  metricViewDataRef.current = metricViewData;
+
+  const fetchAggregatedResults: () => Promise<void> = useCallback(async () => {
+    const data: MetricViewData = metricViewDataRef.current;
+    setIsLoading(true);
+
+    if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
+      setIsLoading(false);
+      setError("Please select a valid start and end date.");
+      return;
     }
 
     if (
-      props.component.arguments.metricQueryConfigs &&
-      props.component.arguments.metricQueryConfigs.length > 0
+      !data.queryConfigs ||
+      data.queryConfigs.length === 0 ||
+      !data.queryConfigs[0] ||
+      !data.queryConfigs[0].metricQueryData ||
+      !data.queryConfigs[0].metricQueryData.filterData ||
+      Object.keys(data.queryConfigs[0].metricQueryData.filterData).length === 0
     ) {
-      configs.push(...props.component.arguments.metricQueryConfigs);
+      setIsLoading(false);
+      setError("Please select a metric. Click here to add a metric.");
+      return;
     }
 
-    return configs;
-  };
-
-  const queryConfigs: Array<MetricQueryConfigData> = resolveQueryConfigs();
-
-  const metricViewData: MetricViewData = {
-    queryConfigs: queryConfigs,
-    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
-      props.dashboardStartAndEndDate,
-    ),
-    formulaConfigs: [],
-  };
-
-  const fetchAggregatedResults: PromiseVoidFunction =
-    async (): Promise<void> => {
-      setIsLoading(true);
-
-      if (
-        !metricViewData.startAndEndDate?.startValue ||
-        !metricViewData.startAndEndDate?.endValue
-      ) {
-        setIsLoading(false);
-        setError("Please select a valid start and end date.");
-        return;
-      }
-
-      if (
-        !metricViewData.queryConfigs ||
-        metricViewData.queryConfigs.length === 0 ||
-        !metricViewData.queryConfigs[0] ||
-        !metricViewData.queryConfigs[0].metricQueryData ||
-        !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        Object.keys(metricViewData.queryConfigs[0].metricQueryData.filterData)
-          .length === 0
-      ) {
-        setIsLoading(false);
-        setError("Please select a metric. Click here to add a metric.");
-        return;
-      }
-
-      if (
-        !metricViewData.queryConfigs[0] ||
-        !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        !metricViewData.queryConfigs[0].metricQueryData.filterData
-          ?.aggegationType
-      ) {
-        setIsLoading(false);
-        setError(
-          "Please select a aggregation. Click here to add a aggregation.",
-        );
-        return;
-      }
-
-      try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
-        });
-
-        setMetricResults(results);
-        setError("");
-      } catch (err: unknown) {
-        setError(API.getFriendlyErrorMessage(err as Error));
-      }
-
+    if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
       setIsLoading(false);
-    };
+      setError("Please select a aggregation. Click here to add a aggregation.");
+      return;
+    }
 
+    try {
+      const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
+        metricViewData: data,
+      });
+
+      setMetricResults(results);
+      setError("");
+    } catch (err: unknown) {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    setIsLoading(false);
+  }, []);
+
+  /*
+   * Fetch when the bound time range, the query config shape, or the
+   * external refresh tick change. metricTypes is intentionally not in
+   * the dep list — it is only used downstream for unit display in
+   * MetricCharts and changing its array reference (which the parent
+   * does on every render) must not trigger another aggregate call.
+   */
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
-
-  const [prevQueryConfigs, setPrevQueryConfigs] = React.useState<
-    Array<MetricQueryConfigData> | MetricQueryConfigData | undefined
-  >(
-    props.component.arguments.metricQueryConfigs ||
-      props.component.arguments.metricQueryConfig,
-  );
-
-  useEffect(() => {
-    const currentConfigs:
-      | Array<MetricQueryConfigData>
-      | MetricQueryConfigData
-      | undefined =
-      props.component.arguments.metricQueryConfigs ||
-      props.component.arguments.metricQueryConfig;
-
-    if (
-      JSONFunctions.isJSONObjectDifferent(
-        prevQueryConfigs || {},
-        currentConfigs || {},
-      )
-    ) {
-      setPrevQueryConfigs(currentConfigs);
-      fetchAggregatedResults();
-    }
   }, [
-    props.component.arguments.metricQueryConfig,
-    props.component.arguments.metricQueryConfigs,
+    startAndEndDate,
+    queryConfigs,
+    props.refreshTick,
+    fetchAggregatedResults,
   ]);
+
+  const numberOfCharts: number = queryConfigs.length || 1;
+  // Account for widget-level header and per-chart overhead (title + legend + padding)
+  const hasWidgetHeader: boolean = Boolean(
+    props.component.arguments.chartTitle ||
+      props.component.arguments.chartDescription,
+  );
+  const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
+  // Each chart section: pt-5(20) + title(20) + legend(24) + pb-4(16) = ~80px overhead
+  const perChartOverhead: number = 80;
+  let heightOfChart: number | undefined =
+    ((props.dashboardComponentHeightInPx || 0) -
+      widgetHeaderHeight -
+      numberOfCharts * perChartOverhead) /
+    numberOfCharts;
+
+  if (heightOfChart < 50) {
+    heightOfChart = undefined;
+  }
+
+  const getMetricChartType: () => MetricChartType = useCallback(() => {
+    if (props.component.arguments.chartType === DashboardChartType.Bar) {
+      return MetricChartType.BAR;
+    }
+    if (
+      props.component.arguments.chartType === DashboardChartType.Area ||
+      props.component.arguments.chartType === DashboardChartType.StackedArea
+    ) {
+      return MetricChartType.AREA;
+    }
+    return MetricChartType.LINE;
+  }, [props.component.arguments.chartType]);
+
+  const chartMetricViewData: MetricViewData = useMemo(() => {
+    return {
+      queryConfigs: queryConfigs.map((config: MetricQueryConfigData) => {
+        return {
+          ...config,
+          metricAliasData: {
+            metricVariable: config.metricAliasData?.metricVariable || undefined,
+            title: config.metricAliasData?.title || undefined,
+            description: config.metricAliasData?.description || undefined,
+            legend: config.metricAliasData?.legend || undefined,
+            legendUnit: config.metricAliasData?.legendUnit || undefined,
+          },
+          chartType: config.chartType || getMetricChartType(),
+        };
+      }),
+      startAndEndDate: startAndEndDate,
+      formulaConfigs: [],
+    };
+  }, [queryConfigs, startAndEndDate, getMetricChartType]);
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
@@ -180,60 +231,6 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const numberOfCharts: number = queryConfigs.length || 1;
-  // Account for widget-level header and per-chart overhead (title + legend + padding)
-  const hasWidgetHeader: boolean = Boolean(
-    props.component.arguments.chartTitle ||
-      props.component.arguments.chartDescription,
-  );
-  const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
-  // Each chart section: pt-5(20) + title(20) + legend(24) + pb-4(16) = ~80px overhead
-  const perChartOverhead: number = 80;
-  let heightOfChart: number | undefined =
-    ((props.dashboardComponentHeightInPx || 0) -
-      widgetHeaderHeight -
-      numberOfCharts * perChartOverhead) /
-    numberOfCharts;
-
-  if (heightOfChart < 50) {
-    heightOfChart = undefined;
-  }
-
-  type GetMetricChartType = () => MetricChartType;
-
-  const getMetricChartType: GetMetricChartType = (): MetricChartType => {
-    if (props.component.arguments.chartType === DashboardChartType.Bar) {
-      return MetricChartType.BAR;
-    }
-    if (
-      props.component.arguments.chartType === DashboardChartType.Area ||
-      props.component.arguments.chartType === DashboardChartType.StackedArea
-    ) {
-      return MetricChartType.AREA;
-    }
-    return MetricChartType.LINE;
-  };
-
-  const chartMetricViewData: MetricViewData = {
-    queryConfigs: queryConfigs.map((config: MetricQueryConfigData) => {
-      return {
-        ...config,
-        metricAliasData: {
-          metricVariable: config.metricAliasData?.metricVariable || undefined,
-          title: config.metricAliasData?.title || undefined,
-          description: config.metricAliasData?.description || undefined,
-          legend: config.metricAliasData?.legend || undefined,
-          legendUnit: config.metricAliasData?.legendUnit || undefined,
-        },
-        chartType: config.chartType || getMetricChartType(),
-      };
-    }),
-    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
-      props.dashboardStartAndEndDate,
-    ),
-    formulaConfigs: [],
-  };
-
   return (
     <div
       className="w-full h-full overflow-hidden flex flex-col"
@@ -270,4 +267,60 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardChartComponentElement;
+/*
+ * Custom comparator: skip re-render unless something the chart actually
+ * cares about has changed. The parent passes new metrics/array references
+ * on every render — without this, every chart re-renders on every parent
+ * tick (auto-refresh, drag state, canvas resize) and the children
+ * recompute series/legends each time.
+ */
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  /*
+   * metricTypes drives unit display — compare by length + names rather
+   * than identity, since the parent rebuilds the array on each render.
+   */
+  const prevTypes: Array<{ name?: string }> = prev.metricTypes as Array<{
+    name?: string;
+  }>;
+  const nextTypes: Array<{ name?: string }> = next.metricTypes as Array<{
+    name?: string;
+  }>;
+  if (prevTypes.length !== nextTypes.length) {
+    return false;
+  }
+  for (let i: number = 0; i < prevTypes.length; i++) {
+    if (prevTypes[i]?.name !== nextTypes[i]?.name) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export default React.memo(DashboardChartComponentElement, arePropsEqual);

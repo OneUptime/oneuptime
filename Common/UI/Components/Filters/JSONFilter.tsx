@@ -1,5 +1,6 @@
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
+import { DictionaryEntryValue } from "../Dictionary/DictionaryFilterOperator";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -14,6 +15,9 @@ export interface ComponentProps<T extends GenericObject> {
   jsonKeys?: Array<string> | undefined;
   jsonValueSuggestions?: Record<string, Array<string>> | undefined;
   onJsonKeySelected?: ((key: string) => void) | undefined;
+  isLoadingJsonKeys?: boolean | undefined;
+  loadingJsonValueKeys?: Array<string> | undefined;
+  enableOperators?: boolean | undefined;
 }
 
 type JSONFilterFunction = <T extends GenericObject>(
@@ -32,12 +36,17 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
         keys={props.jsonKeys}
         valueSuggestions={props.jsonValueSuggestions}
         onKeySelected={props.onJsonKeySelected}
+        isLoadingKeys={props.isLoadingJsonKeys}
+        loadingValueKeys={props.loadingJsonValueKeys}
+        enableOperators={props.enableOperators}
         addButtonSuffix={filter.title}
         keyPlaceholder={"Key"}
         valuePlaceholder={"Value"}
         valueTypes={[ValueType.Text]}
-        initialValue={(filterData[filter.key] as Dictionary<string>) || {}}
-        onChange={(value: Dictionary<string | number | boolean>) => {
+        initialValue={
+          (filterData[filter.key] as Dictionary<DictionaryEntryValue>) || {}
+        }
+        onChange={(value: Dictionary<DictionaryEntryValue>) => {
           // if no keys in the dictionary, remove the filter
 
           if (Object.keys(value).length > 0) {

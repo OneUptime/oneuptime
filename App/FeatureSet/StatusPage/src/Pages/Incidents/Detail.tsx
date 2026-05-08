@@ -49,6 +49,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../Utils/i18n";
+import { translateStatusName } from "../../Utils/StatusTranslation";
 import useAsyncEffect from "use-async-effect";
 
 // Incident Event Item Helper
@@ -182,6 +183,9 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     ) {
       timeline.push({
         state: incidentStateTimeline.incidentState,
+        stateDisplayName: translateStatusName(
+          incidentStateTimeline.incidentState.name,
+        ),
         date:
           incidentStateTimeline?.startsAt ||
           (incidentStateTimeline?.createdAt as Date),
@@ -197,7 +201,9 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       });
 
       if (!currentStateStatus) {
-        currentStateStatus = incidentStateTimeline.incidentState?.name || "";
+        currentStateStatus = translateStatusName(
+          incidentStateTimeline.incidentState?.name,
+        );
         currentStatusColor =
           incidentStateTimeline.incidentState?.color || Green;
       }
@@ -336,7 +342,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     currentStatus: currentStateStatus,
     currentStatusColor: currentStatusColor,
     anotherStatusColor: incident.incidentSeverity?.color || undefined,
-    anotherStatus: incident.incidentSeverity?.name,
+    anotherStatus: translateStatusName(incident.incidentSeverity?.name),
     eventSecondDescription: incidentDeclaredAt
       ? i18n.t("incidents.declaredAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
@@ -534,6 +540,9 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     ) {
       timeline.push({
         state: episodeStateTimeline.incidentState,
+        stateDisplayName: translateStatusName(
+          episodeStateTimeline.incidentState.name,
+        ),
         date:
           episodeStateTimeline?.startsAt ||
           (episodeStateTimeline?.createdAt as Date),
@@ -549,7 +558,9 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
       });
 
       if (!currentStateStatus) {
-        currentStateStatus = episodeStateTimeline.incidentState?.name || "";
+        currentStateStatus = translateStatusName(
+          episodeStateTimeline.incidentState?.name,
+        );
         currentStatusColor = episodeStateTimeline.incidentState?.color || Green;
       }
 
@@ -589,7 +600,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     currentStatus: currentStateStatus,
     currentStatusColor: currentStatusColor,
     anotherStatusColor: episode.incidentSeverity?.color || undefined,
-    anotherStatus: episode.incidentSeverity?.name,
+    anotherStatus: translateStatusName(episode.incidentSeverity?.name),
     eventSecondDescription: episodeDeclaredAt
       ? i18n.t("incidents.declaredAt") +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
@@ -613,7 +624,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
 const Detail: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n: i18nInstance } = useTranslation();
   StatusPageUtil.checkIfUserHasLoggedIn();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -843,7 +854,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
         }),
       );
     }
-  }, [isLoading, incident, episode, isEpisode]);
+  }, [isLoading, incident, episode, isEpisode, i18nInstance.resolvedLanguage]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

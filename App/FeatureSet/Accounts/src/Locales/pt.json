@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "close": "Fechar",
+    "loading": "Carregando...",
+    "email": "E-mail",
+    "password": "Senha",
+    "fullName": "Nome completo",
+    "companyName": "Nome da empresa",
+    "phoneNumber": "Número de telefone",
+    "confirmPassword": "Confirmar senha",
+    "newPassword": "Nova senha",
+    "code": "Código",
+    "yourCompany": "Sua empresa"
+  },
+  "language": {
+    "label": "Idioma",
+    "switchLanguage": "Mudar idioma"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Contato",
+    "privacyAndTerms": "Privacidade e Termos"
+  },
+  "captcha": {
+    "title": "Verificação humana",
+    "description": "Complete o desafio captcha para sabermos que você não é um bot.",
+    "errorOnSignIn": "Complete o desafio captcha antes de fazer login.",
+    "errorOnSignUp": "Complete o desafio captcha antes de se cadastrar."
+  },
+  "login": {
+    "title": "Faça login na sua conta",
+    "subtitle": "Junte-se a milhares de empresas que usam o OneUptime para mantê-las online o tempo todo.",
+    "submitButton": "Entrar",
+    "forgotPassword": "Esqueceu a senha?",
+    "useSso": "Use o login único (SSO) em vez disso",
+    "noAccountPrompt": "Não tem uma conta?",
+    "registerLink": "Registrar-se.",
+    "twoFactor": {
+      "title": "Autenticação de dois fatores",
+      "subtitle": "Selecione o método de autenticação de dois fatores. Você precisará digitar um código do método selecionado.",
+      "authenticatorApp": "Aplicativo autenticador",
+      "securityKey": "Chave de segurança",
+      "authenticatingWithSecurityKey": "Autenticando com chave de segurança",
+      "securityKeyInstructions": "Siga as instruções no seu dispositivo de chave de segurança.",
+      "codeFieldDescription": "Digite o código do seu aplicativo autenticador",
+      "selectDifferentMethod": "Selecione um método diferente de autenticação de dois fatores"
+    }
+  },
+  "register": {
+    "title": "Crie sua conta OneUptime",
+    "subtitle": "Junte-se a milhares de empresas que usam o OneUptime para mantê-las online o tempo todo.",
+    "noCreditCard": "Não é necessário cartão de crédito.",
+    "submitButton": "Cadastrar",
+    "haveAccountPrompt": "Já tem uma conta?",
+    "loginLink": "Entrar.",
+    "notifySelfHosted": "Notifique-me sobre patches de segurança e novas versões"
+  },
+  "forgotPassword": {
+    "title": "Esqueceu a senha",
+    "subtitle": "Insira seu e-mail e o link de redefinição de senha será enviado para você.",
+    "successMessage": "Enviamos o link de redefinição de senha para o seu e-mail. Não esqueça de verificar a pasta de spam.",
+    "submitButton": "Enviar link de redefinição",
+    "returnToSignIn": "Voltar para o login.",
+    "rememberPasswordPrompt": "Lembra da sua senha?",
+    "loginLink": "Entrar."
+  },
+  "resetPassword": {
+    "title": "Redefina sua senha",
+    "subtitle": "Insira sua nova senha e a atualizaremos.",
+    "successMessage": "Sua senha foi atualizada. Por favor, faça login.",
+    "submitButton": "Redefinir senha",
+    "knowPasswordPrompt": "Sabe sua senha?",
+    "loginLink": "Entrar."
+  },
+  "sso": {
+    "title": "Login com SSO",
+    "subtitle": "Faça login com seu provedor SSO para acessar sua conta.",
+    "submitButton": "Login com SSO",
+    "useUsernameInstead": "Use nome de usuário e senha em vez disso.",
+    "noAccountPrompt": "Não tem uma conta?",
+    "registerLink": "Registrar-se.",
+    "selectProjectTitle": "Selecionar Projeto",
+    "selectProjectSubtitle": "Selecione o projeto no qual deseja fazer login.",
+    "noConfigForEmail": "Nenhuma configuração de SSO encontrada para o e-mail: {{email}}",
+    "emailRequired": "E-mail é obrigatório para realizar esta ação",
+    "defaultProjectName": "Projeto"
+  },
+  "verifyEmail": {
+    "successTitle": "Seu e-mail foi verificado.",
+    "successDescription": "Obrigado por verificar seu e-mail. Agora você pode fazer login no OneUptime.",
+    "errorTitle": "Desculpe, algo deu errado!",
+    "returnToSignIn": "Voltar para o login?",
+    "loginLink": "Entrar."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Proibido",
+      "description": "Você não tem permissão para acessar esta página."
+    },
+    "notFound": {
+      "title": "Página não encontrada",
+      "description": "A página que você está procurando não existe."
+    }
+  }
+}

@@ -34,6 +34,33 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title={t("sideMenu.members")}>
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.users"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROJECT_USERS] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.User}
+        />
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.teams"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PROJECT_TEAMS] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title={t("sideMenu.advanced")}>
         <SideMenuItem
           link={{

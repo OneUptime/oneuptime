@@ -669,14 +669,21 @@ export class LogAggregationService {
       for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
         LogAggregationService.validateFacetKey(attrKey);
 
+        /*
+         * Match attribute keys case-insensitively — keys in the data come
+         * from many sources (OTEL conventions are dot.lowercase, app code
+         * often uses camelCase like `requestId`), and forcing users to
+         * remember the exact casing is a poor experience. The user-supplied
+         * key is validated above.
+         */
         statement.append(
-          SQL` AND attributes[${{
+          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,
             value: attrKey,
-          }}] = ${{
+          }}) AND v = ${{
             type: TableColumnType.Text,
             value: attrValue,
-          }}`,
+          }}, mapKeys(attributes), mapValues(attributes))`,
         );
       }
     }

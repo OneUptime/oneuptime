@@ -194,7 +194,7 @@ ${contextBlock}
          * still see a usable response if perSeriesMatches is ignored.
          */
         const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
-          MonitorCriteriaEvaluator.collectPerSeriesMatches({
+          await MonitorCriteriaEvaluator.collectPerSeriesMatches({
             dataToProcess: input.dataToProcess,
             monitor: input.monitor,
             monitorStep: input.monitorStep,
@@ -220,12 +220,12 @@ ${contextBlock}
    * no series matched — the caller falls back to the single-incident
    * path in that case.
    */
-  private static collectPerSeriesMatches(input: {
+  private static async collectPerSeriesMatches(input: {
     dataToProcess: DataToProcess;
     monitor: Monitor;
     monitorStep: MonitorStep;
     criteriaInstance: MonitorCriteriaInstance;
-  }): Array<PerSeriesCriteriaMatch> {
+  }): Promise<Array<PerSeriesCriteriaMatch>> {
     if (
       input.monitor.monitorType !== MonitorType.Metrics &&
       input.monitor.monitorType !== MonitorType.Kubernetes &&
@@ -284,7 +284,7 @@ ${contextBlock}
 
     for (const criteriaFilter of metricFilters) {
       const evaluations: Array<MetricSeriesEvaluationResult> =
-        MetricMonitorCriteria.evaluateAllSeries({
+        await MetricMonitorCriteria.evaluateAllSeries({
           dataToProcess: input.dataToProcess,
           criteriaFilter,
           monitorStep: input.monitorStep,

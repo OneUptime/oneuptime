@@ -8,9 +8,13 @@ import Project from "../../Models/DatabaseModels/Project";
 import Service from "../../Models/DatabaseModels/Service";
 import ProjectService from "../../Server/Services/ProjectService";
 import ServiceService from "../../Server/Services/ServiceService";
+import LabelService from "../../Server/Services/LabelService";
 import { DEFAULT_RETENTION_IN_DAYS } from "../../Models/DatabaseModels/TelemetryUsageBilling";
 import TelemetryUtil from "../../Server/Utils/Telemetry/Telemetry";
+import { extractOneuptimeLabelNames } from "../Utils/Telemetry/OneuptimeLabel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import logger from "../Utils/Logger";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -47,10 +51,72 @@ export default class OTelIngestService {
   public static async telemetryServiceFromName(data: {
     serviceName: string;
     projectId: ObjectID;
+    resourceAttributes?: JSONArray | undefined;
   }): Promise<{
     serviceId: ObjectID;
     dataRententionInDays: number;
   }> {
+    const result: {
+      serviceId: ObjectID;
+      dataRententionInDays: number;
+    } = await this.findOrCreateTelemetryService({
+      serviceName: data.serviceName,
+      projectId: data.projectId,
+    });
+
+    /*
+     * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+     * project labels and attach them to the discovered service. The
+     * attach is throttled per-service so steady-state ingest with
+     * unchanged labels costs one in-memory cache lookup.
+     */
+    if (data.resourceAttributes) {
+      try {
+        const labelNames: Array<string> = extractOneuptimeLabelNames(
+          data.resourceAttributes,
+        );
+        if (labelNames.length > 0) {
+          const labelIds: Array<ObjectID> =
+            await LabelService.findOrCreateLabelsByNames({
+              projectId: data.projectId,
+              labelNames,
+            });
+          if (labelIds.length > 0) {
+            await ServiceService.attachLabels({
+              serviceId: result.serviceId,
+              labelIds,
+            });
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          `telemetryServiceFromName label promotion failed for "${data.serviceName}": ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  @CaptureSpan()
+  private static async findOrCreateTelemetryService(data: {
+    serviceName: string;
+    projectId: ObjectID;
+  }): Promise<{
+    serviceId: ObjectID;
+    dataRententionInDays: number;
+  }> {
+    /*
+     * Sort by createdAt ASC for deterministic resolution if the
+     * DB ever ends up with duplicates (defense in depth — the
+     * unique index on (projectId, name) added in
+     * DedupeServicesAndAddUniqueIndex1778100000000 prevents new
+     * ones from forming, and converts concurrent first-contact
+     * inserts into unique-violation errors that the catch block
+     * below resolves to the winning row).
+     */
     const service: Service | null = await ServiceService.findOneBy({
       query: {
         projectId: data.projectId,
@@ -59,6 +125,9 @@ export default class OTelIngestService {
       select: {
         _id: true,
         retainTelemetryDataForDays: true,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
       },
       props: {
         isRoot: true,
@@ -89,7 +158,7 @@ export default class OTelIngestService {
       } catch {
         /*
          * Race condition: another request created the service concurrently.
-         * Re-fetch the existing service.
+         * Re-fetch the existing service (oldest wins, see sort above).
          */
         const existingService: Service | null = await ServiceService.findOneBy({
           query: {
@@ -99,6 +168,9 @@ export default class OTelIngestService {
           select: {
             _id: true,
             retainTelemetryDataForDays: true,
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
           },
           props: {
             isRoot: true,

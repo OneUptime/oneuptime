@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import DashboardTextComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTextComponent;
@@ -40,4 +41,21 @@ const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardTextComponentElement;
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(
+    prev.component.arguments,
+    next.component.arguments,
+  );
+}
+
+export default React.memo(DashboardTextComponentElement, arePropsEqual);

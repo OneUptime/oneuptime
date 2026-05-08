@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Essentials",
       "observability": "Observability",
+      "infrastructure": "Infrastructure",
       "analyticsAutomation": "Analytics & Automation",
       "settings": "Settings"
     },
@@ -69,6 +70,8 @@
       "kubernetesDescription": "Monitor Kubernetes clusters.",
       "dockerTitle": "Docker",
       "dockerDescription": "Monitor Docker hosts and containers.",
+      "hostsTitle": "Hosts",
+      "hostsDescription": "Monitor server and VM health across your fleet.",
       "dashboardsTitle": "Dashboards",
       "dashboardsDescription": "Visualize all your data.",
       "workflowsTitle": "Workflows",

@@ -101,4 +101,58 @@ export default class EnterpriseLicense extends BaseModel {
     type: ColumnType.Number,
   })
   public annualContractValue?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "User Limit",
+    description:
+      "Maximum number of users allowed under this enterprise license.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public userLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Current User Count",
+    description:
+      "Most recent user count reported by the customer's self-hosted installation.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public currentUserCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "User Count Updated At",
+    description:
+      "Timestamp of the most recent user count report from the customer's self-hosted installation.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public userCountUpdatedAt?: Date = undefined;
 }

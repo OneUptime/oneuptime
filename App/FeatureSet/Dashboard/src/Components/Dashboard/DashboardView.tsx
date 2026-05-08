@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -23,6 +24,24 @@ import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/Dashb
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
+import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardIncidentListComponent";
+import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
+import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
+import DashboardKubernetesPodListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesPodListComponent";
+import DashboardKubernetesNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNodeListComponent";
+import DashboardKubernetesNamespaceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNamespaceListComponent";
+import DashboardKubernetesDeploymentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesDeploymentListComponent";
+import DashboardKubernetesStatefulSetListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesStatefulSetListComponent";
+import DashboardKubernetesDaemonSetListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesDaemonSetListComponent";
+import DashboardKubernetesJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesJobListComponent";
+import DashboardKubernetesCronJobListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesCronJobListComponent";
+import DashboardDockerHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerHostListComponent";
+import DashboardDockerContainerListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerContainerListComponent";
+import DashboardDockerImageListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerImageListComponent";
+import DashboardDockerNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerNetworkListComponent";
+import DashboardDockerVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerVolumeListComponent";
+import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
+import DashboardHostMetricChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostMetricChartComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -138,6 +157,17 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   }, []);
 
   const [selectedComponentId, setSelectedComponentId] =
+    useState<ObjectID | null>(null);
+
+  /*
+   * Component id we want to scroll into view. Set when a widget is added,
+   * cleared once the scroll has been performed. The scroll is driven by a
+   * useEffect rather than executed inline because adding a widget also
+   * opens the settings sidebar, which in turn triggers a resize and a
+   * canvas reflow — calling scrollIntoView before those settle scrolls
+   * to a stale Y coordinate.
+   */
+  const [pendingScrollComponentId, setPendingScrollComponentId] =
     useState<ObjectID | null>(null);
 
   const [dashboardViewConfig, setDashboardViewConfig] =
@@ -262,8 +292,79 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     handleResize();
   }, [dashboardMode, selectedComponentId]);
 
+  /*
+   * Scroll the most-recently added widget into view. Depends on
+   * dashboardTotalWidth so the scroll waits for the canvas to reflow
+   * after the settings sidebar opens (sidebar steals 650px from the
+   * canvas, which shrinks unitSize and shifts every widget's Y).
+   */
+  useEffect(() => {
+    if (!pendingScrollComponentId) {
+      return undefined;
+    }
+    const id: string = `dashboard-component-${pendingScrollComponentId.toString()}`;
+    /*
+     * Scroll the widget into view in two passes. The settings sidebar
+     * opens (sidebar steals 650px from the canvas, which shrinks unitSize
+     * and shifts every widget's Y) and chart/list children render
+     * asynchronously, so the layout keeps drifting for a few hundred
+     * milliseconds. The first pass lands us close; the second corrects
+     * any drift that happened between the two passes.
+     */
+    const firstPass: ReturnType<typeof setTimeout> = setTimeout(() => {
+      const el: HTMLElement | null = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "auto", block: "center" });
+      }
+    }, 100);
+    const secondPass: ReturnType<typeof setTimeout> = setTimeout(() => {
+      const el: HTMLElement | null = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setPendingScrollComponentId(null);
+    }, 500);
+    return () => {
+      clearTimeout(firstPass);
+      clearTimeout(secondPass);
+    };
+  }, [pendingScrollComponentId]);
+
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+
+  /*
+   * Stable references for the props handed to DashboardCanvas. Without
+   * memoization, every refresh tick / state change in this component
+   * (auto-refresh, drag, resize, save) emits a new `metrics` object and
+   * fresh callbacks, defeating React.memo on every widget downstream
+   * and causing all charts to re-render in lockstep.
+   */
+  const metricsBundle: {
+    telemetryAttributes: Array<string>;
+    metricTypes: Array<MetricType>;
+  } = useMemo(() => {
+    return {
+      telemetryAttributes,
+      metricTypes,
+    };
+  }, [telemetryAttributes, metricTypes]);
+
+  const handleConfigChange: (newConfig: DashboardViewConfig) => void =
+    useCallback((newConfig: DashboardViewConfig) => {
+      setDashboardViewConfig(newConfig);
+    }, []);
+
+  const handleComponentSelected: (componentId: ObjectID) => void = useCallback(
+    (componentId: ObjectID) => {
+      setSelectedComponentId(componentId);
+    },
+    [],
+  );
+
+  const handleComponentUnselected: () => void = useCallback(() => {
+    setSelectedComponentId(null);
+  }, []);
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -399,6 +500,103 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardTraceListComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.IncidentList) {
+            newComponent =
+              DashboardIncidentListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.AlertList) {
+            newComponent =
+              DashboardAlertListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.MonitorList) {
+            newComponent =
+              DashboardMonitorListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesPodList) {
+            newComponent =
+              DashboardKubernetesPodListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesNodeList) {
+            newComponent =
+              DashboardKubernetesNodeListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesNamespaceList
+          ) {
+            newComponent =
+              DashboardKubernetesNamespaceListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesDeploymentList
+          ) {
+            newComponent =
+              DashboardKubernetesDeploymentListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesStatefulSetList
+          ) {
+            newComponent =
+              DashboardKubernetesStatefulSetListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.KubernetesDaemonSetList
+          ) {
+            newComponent =
+              DashboardKubernetesDaemonSetListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesJobList) {
+            newComponent =
+              DashboardKubernetesJobListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.KubernetesCronJobList) {
+            newComponent =
+              DashboardKubernetesCronJobListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerHostList) {
+            newComponent =
+              DashboardDockerHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerContainerList) {
+            newComponent =
+              DashboardDockerContainerListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerImageList) {
+            newComponent =
+              DashboardDockerImageListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerNetworkList) {
+            newComponent =
+              DashboardDockerNetworkListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DockerVolumeList) {
+            newComponent =
+              DashboardDockerVolumeListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.HostList) {
+            newComponent = DashboardHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.HostMetricChart) {
+            newComponent =
+              DashboardHostMetricChartComponentUtil.getDefaultComponent();
+          }
+
           if (!newComponent) {
             throw new BadDataException(
               `Unknown component type: ${componentType}`,
@@ -414,6 +612,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             ) as DashboardViewConfig;
 
           setDashboardViewConfig(newDashboardConfig);
+          /*
+           * Open the settings panel for the freshly added component and
+           * queue a scroll-into-view. The scroll itself runs from a
+           * useEffect once dashboardTotalWidth has settled, so we scroll
+           * to the widget's final post-reflow position.
+           */
+          setSelectedComponentId(newComponent.componentId);
+          setPendingScrollComponentId(newComponent.componentId);
         }}
       />
       <div
@@ -427,24 +633,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       >
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
-          onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
-            setDashboardViewConfig(newConfig);
-          }}
-          onComponentSelected={(componentId: ObjectID) => {
-            // Do nothing
-            setSelectedComponentId(componentId);
-          }}
-          onComponentUnselected={() => {
-            setSelectedComponentId(null);
-          }}
+          onDashboardViewConfigChange={handleConfigChange}
+          onComponentSelected={handleComponentSelected}
+          onComponentUnselected={handleComponentUnselected}
           dashboardStartAndEndDate={startAndEndDate}
           selectedComponentId={selectedComponentId}
           isEditMode={isEditMode}
           currentTotalDashboardWidthInPx={dashboardTotalWidth}
-          metrics={{
-            telemetryAttributes,
-            metricTypes,
-          }}
+          metrics={metricsBundle}
           refreshTick={refreshTick}
         />
       </div>

@@ -10,6 +10,13 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
+import {
+  DictionaryEntryValue,
+  DictionaryFilterOperator,
+  DictionaryFilterOperatorOption,
+  detectOperatorFromValue,
+  getOperatorOption,
+} from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
@@ -33,6 +40,7 @@ export interface ComponentProps {
     | Record<string, Array<string>>
     | undefined;
   onAttributeKeySelected?: ((key: string) => void) | undefined;
+  loadingAttributeValueKeys?: Array<string> | undefined;
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
@@ -50,10 +58,45 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
     legendUnit: undefined,
   };
 
-  // Compute active attribute count for the header summary
-  const attributes: Dictionary<string | number | boolean> | undefined = (
+  /*
+   * Compute active attribute count for the header summary.
+   * Empty key or empty value entries are ignored — they aren't applied as
+   * filters and shouldn't appear in the "Filtered by:" chips either.
+   * Operator wrappers (NotEqual, IsNull, etc.) are kept; for value-less
+   * operators (IsEmpty, IsNotEmpty) the entry is valid even with an
+   * empty raw value.
+   */
+  const rawAttributes: Dictionary<DictionaryEntryValue> | undefined = (
     props.data?.metricQueryData?.filterData as Record<string, unknown>
-  )?.["attributes"] as Dictionary<string | number | boolean> | undefined;
+  )?.["attributes"] as Dictionary<DictionaryEntryValue> | undefined;
+
+  const attributes: Dictionary<DictionaryEntryValue> | undefined = (() => {
+    if (!rawAttributes) {
+      return undefined;
+    }
+    const filtered: Dictionary<DictionaryEntryValue> = {};
+    for (const [key, value] of Object.entries(rawAttributes)) {
+      if (key.trim() === "" || value === undefined || value === null) {
+        continue;
+      }
+      const detected: {
+        operator: DictionaryFilterOperator;
+        rawValue: string;
+      } = detectOperatorFromValue(value);
+      const option: DictionaryFilterOperatorOption = getOperatorOption(
+        detected.operator,
+      );
+      /*
+       * IsEmpty/IsNotEmpty are valid without a value; everything else
+       * must have a non-empty raw value to count.
+       */
+      if (!option.hidesValueInput && detected.rawValue.trim() === "") {
+        continue;
+      }
+      filtered[key] = value;
+    }
+    return filtered;
+  })();
 
   const activeAttributeCount: number = attributes
     ? Object.keys(attributes).length
@@ -89,7 +132,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const newAttributes: Dictionary<string | number | boolean> = {
+    const newAttributes: Dictionary<DictionaryEntryValue> = {
       ...attributes,
     };
     delete newAttributes[key];
@@ -218,21 +261,35 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             Filtered by:
           </span>
           {Object.entries(attributes).map(
-            ([key, value]: [string, string | number | boolean]) => {
+            ([key, value]: [string, DictionaryEntryValue]) => {
+              const detected: {
+                operator: DictionaryFilterOperator;
+                rawValue: string;
+              } = detectOperatorFromValue(value);
+              const option: DictionaryFilterOperatorOption = getOperatorOption(
+                detected.operator,
+              );
+              const valueSegment: string = option.hidesValueInput
+                ? ""
+                : detected.rawValue;
+              const chipText: string = option.hidesValueInput
+                ? `${key} ${option.symbol}`
+                : `${key} ${option.symbol} ${valueSegment}`;
               return (
                 <span
                   key={key}
                   className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
                 >
-                  <span className="font-medium text-indigo-500">{key}:</span>
-                  <span>{String(value)}</span>
+                  <span className="font-medium text-indigo-500">{key}</span>
+                  <span className="text-indigo-400">{option.symbol}</span>
+                  {!option.hidesValueInput && <span>{valueSegment}</span>}
                   <button
                     type="button"
                     className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
                     onClick={() => {
                       handleRemoveAttribute(key);
                     }}
-                    title={`Remove ${key}: ${String(value)}`}
+                    title={`Remove ${chipText}`}
                   >
                     <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
                   </button>
@@ -321,6 +378,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 isAttributesLoading={props.attributesLoading}
                 attributesError={props.attributesError}
                 onAttributesRetry={props.onAttributesRetry}
+                loadingAttributeValueKeys={props.loadingAttributeValueKeys}
               />
             )}
 

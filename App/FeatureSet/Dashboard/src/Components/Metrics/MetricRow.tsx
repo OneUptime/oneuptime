@@ -17,9 +17,19 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
 ): ReactElement => {
   const { metric } = props;
 
-  const services: Array<Service> = metric.services || [];
+  const services: Array<Service> = (metric.services || []).filter(
+    (service: Service): boolean => {
+      return Boolean(service.name && service.name.toString().trim());
+    },
+  );
   const rawUnit: string = metric.unit || "";
-  const readableUnit: string = ValueFormatter.getReadableUnit(rawUnit);
+  const formatterOptions: { metricName: string } = {
+    metricName: metric.name || "",
+  };
+  const readableUnit: string = ValueFormatter.getReadableUnit(
+    rawUnit,
+    formatterOptions,
+  );
 
   return (
     <button
@@ -62,9 +72,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
                       className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                       style={{ backgroundColor: color }}
                     />
-                    <span className="truncate">
-                      {service.name || "unknown"}
-                    </span>
+                    <span className="truncate">{service.name}</span>
                   </span>
                 );
               })}
@@ -82,7 +90,11 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
           {props.lastValue !== undefined && (
             <div className="text-right">
               <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-                {ValueFormatter.formatValue(props.lastValue, rawUnit)}
+                {ValueFormatter.formatValue(
+                  props.lastValue,
+                  rawUnit,
+                  formatterOptions,
+                )}
               </span>
             </div>
           )}

@@ -28,6 +28,7 @@ export interface TimelineItem {
   note?: string;
   type: TimelineItemType;
   state?: BaseModel;
+  stateDisplayName?: string;
   icon: IconProp;
   iconColor: Color;
   attachments?: Array<TimelineAttachment>;
@@ -229,7 +230,10 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               <span className="mr-1">
                                 <Pill
                                   text={
-                                    item.state?.getColumnValue("name") as string
+                                    item.stateDisplayName ||
+                                    (item.state?.getColumnValue(
+                                      "name",
+                                    ) as string)
                                   }
                                   color={
                                     item.state?.getColumnValue("color") as Color

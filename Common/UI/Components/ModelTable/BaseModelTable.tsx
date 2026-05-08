@@ -1021,6 +1021,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               setItemsOnPage(tableView.itemsOnPage || 10);
               setSortBy((sortBy as keyof TBaseModel) || null);
               setSortOrder(sortOrder);
+              setCurrentPageNumber(1);
 
               if (classicTableFilters.length === 0) {
                 await getFilterDropdownItems();
@@ -1030,6 +1031,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               setSortBy(null);
               setSortOrder(SortOrder.Descending);
               setItemsOnPage(10);
+              setCurrentPageNumber(1);
             }
           }}
         />
@@ -1486,6 +1488,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const newQuery: Query<TBaseModel> = {};
 
     setFilterData(filterData);
+    setCurrentPageNumber(1);
 
     for (const key in filterData) {
       if (filterData[key] && typeof filterData[key] === Typeof.String) {

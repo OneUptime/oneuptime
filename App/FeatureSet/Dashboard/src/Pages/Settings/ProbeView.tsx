@@ -185,7 +185,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Probe Status",
           description:
-            "Here is mroe details on the connection status for this probe.",
+            "Here is more details on the connection status for this probe.",
         }}
         isEditable={false}
         modelDetailProps={{

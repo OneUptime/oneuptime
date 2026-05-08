@@ -4,9 +4,14 @@ import KubernetesCluster from "./KubernetesCluster";
 import KubernetesClusterOwnerTeam from "./KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
+import KubernetesContainer from "./KubernetesContainer";
 import DockerHost from "./DockerHost";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
+import DockerResource from "./DockerResource";
+import Host from "./Host";
+import HostOwnerTeam from "./HostOwnerTeam";
+import HostOwnerUser from "./HostOwnerUser";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -535,9 +540,14 @@ const AllModelTypes: Array<{
   KubernetesClusterOwnerTeam,
   KubernetesClusterOwnerUser,
   KubernetesResource,
+  KubernetesContainer,
   DockerHost,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
+  DockerResource,
+  Host,
+  HostOwnerTeam,
+  HostOwnerUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

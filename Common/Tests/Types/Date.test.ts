@@ -250,4 +250,50 @@ describe("class OneUptimeDate", () => {
       expect(result[0]).not.toContain("EST");
     });
   });
+
+  describe("getDateAsFormattedArrayInMultipleTimezones default timezones", () => {
+    test("defaults include UTC, London, New York, LA, Kolkata, Sydney", () => {
+      const result: Array<string> =
+        OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+          date: new Date("2026-07-15T17:00:00Z"),
+          use12HourFormat: true,
+        });
+      expect(result).toHaveLength(6);
+      expect(result[0]).toContain("UTC");
+    });
+
+    test("summer (DST) event shows EDT and BST in defaults, not EST or GMT", () => {
+      /*
+       * Apr 27 2026 21:30 UTC — both US and UK are in DST. Use word
+       * boundaries so AEST/AEDT (Sydney) doesn't match EST/EDT.
+       */
+      const result: Array<string> =
+        OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+          date: new Date("2026-04-27T21:30:00Z"),
+          use12HourFormat: true,
+        });
+      const joined: string = result.join("\n");
+      expect(joined).toMatch(/\bEDT\b/);
+      expect(joined).toMatch(/\bBST\b/);
+      expect(joined).not.toMatch(/\bEST\b/);
+      expect(joined).not.toMatch(/\bGMT\b/);
+    });
+
+    test("winter (no DST) event shows EST and GMT in defaults, not EDT or BST", () => {
+      /*
+       * Jan 15 2026 17:00 UTC — both US and UK are on standard time. Use
+       * word boundaries so AEDT (Sydney) doesn't match EDT.
+       */
+      const result: Array<string> =
+        OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+          date: new Date("2026-01-15T17:00:00Z"),
+          use12HourFormat: true,
+        });
+      const joined: string = result.join("\n");
+      expect(joined).toMatch(/\bEST\b/);
+      expect(joined).toMatch(/\bGMT\b/);
+      expect(joined).not.toMatch(/\bEDT\b/);
+      expect(joined).not.toMatch(/\bBST\b/);
+    });
+  });
 });

@@ -1,0 +1,167 @@
+<header id="pagmt">
+  <h1>Deprecation Policy</h1>
+  <p>Last updated: May 4, 2026</p>
+</header>
+
+<section>
+
+  <h3>Plain-language summary</h3>
+  <p>This policy describes how we change, retire, and remove parts of the OneUptime platform — APIs, integrations, features, and supported runtimes — and the notice you can expect before a change affects you. In short:</p>
+  <ul>
+    <li><strong>Breaking API changes:</strong> at least <strong>12 months'</strong> notice, and only in a new major API version.</li>
+    <li><strong>Feature removals:</strong> at least <strong>6 months'</strong> notice.</li>
+    <li><strong>Integration changes:</strong> at least <strong>90 days'</strong> notice for breaking changes to a vendor-supported integration.</li>
+    <li><strong>Self-hosted versions:</strong> the latest 3 major versions are fully supported; older versions receive security fixes for an additional 12 months.</li>
+    <li><strong>Notice channels:</strong> email to account admins, in-product banner, audit-log entry, the public changelog, and (where applicable) the API <code>Sunset</code> header.</li>
+  </ul>
+
+  <p>This policy forms part of our <a href="/legal/terms">Terms of Use</a>. Capitalized terms not defined here have the meanings given in the Terms.</p>
+
+  <h3>1. What we mean by "deprecation"</h3>
+
+  <p>A <strong>deprecation</strong> is our notice that we intend to change or remove something on a future date. Deprecation is not removal. While a feature is deprecated, it continues to work as documented; we publish the planned removal date and a recommended migration path.</p>
+
+  <p>A <strong>breaking change</strong> is any change that may require you to modify your code, configuration, or workflows to keep working. Examples: removing or renaming an API field, tightening a validation rule, changing the default behavior of a setting, or removing an integration. Non-breaking changes (additive fields, new endpoints, new settings, performance improvements, security fixes) may ship at any time.</p>
+
+  <h3>2. Notice periods</h3>
+
+  <p>The minimum notice we provide before a deprecated item is removed or changed in a breaking way is shown below. We may give longer notice when appropriate; we will not give shorter notice except for the security-driven exceptions in Section 6.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Change type</th>
+        <th>Minimum notice</th>
+        <th>Where notice is published</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Breaking change to a stable public API (REST, GraphQL)</td>
+        <td>12 months</td>
+        <td>Email, changelog, in-product banner, <code>Sunset</code> header on affected endpoints</td>
+      </tr>
+      <tr>
+        <td>Removal of a generally available feature</td>
+        <td>6 months</td>
+        <td>Email, changelog, in-product banner</td>
+      </tr>
+      <tr>
+        <td>Breaking change to a vendor-supported integration (ServiceNow, BMC Helix, Slack, Microsoft Teams, etc.)</td>
+        <td>90 days</td>
+        <td>Email, changelog, integration-health dashboard</td>
+      </tr>
+      <tr>
+        <td>Change to default settings, payload defaults, or behavioral defaults</td>
+        <td>90 days</td>
+        <td>Email, changelog, in-product banner</td>
+      </tr>
+      <tr>
+        <td>Retirement of a self-hosted minor version</td>
+        <td>12 months from the next major release</td>
+        <td>Email, changelog, version-support page</td>
+      </tr>
+      <tr>
+        <td>Beta, preview, or labs features</td>
+        <td>30 days (not subject to the long-notice schedule above)</td>
+        <td>Email or in-product banner to enrolled customers</td>
+      </tr>
+      <tr>
+        <td>Subprocessor change</td>
+        <td>30 days</td>
+        <td>Email and the <a href="/legal/subprocessors">Subprocessors page</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3. API versioning and stability</h3>
+
+  <p>Our public APIs use URL-based major versioning (for example, <code>/v1</code>). Within a major version we follow these rules:</p>
+  <ul>
+    <li>We do not remove fields, endpoints, or required parameters within a major version.</li>
+    <li>We do not change the type or format of an existing field within a major version.</li>
+    <li>We may add new endpoints, new optional fields, new enum values, and new headers at any time. Clients should ignore unknown fields and unknown enum values.</li>
+    <li>Breaking changes ship only in the next major version.</li>
+  </ul>
+
+  <p>When we deprecate an endpoint or field, the response includes a <code>Deprecation: true</code> header and a <code>Sunset</code> header indicating the removal date, per <a href="https://datatracker.ietf.org/doc/html/rfc8594">RFC 8594</a>. We also surface the deprecation in the API error and audit logs.</p>
+
+  <p>Each major version is supported for a minimum of <strong>24 months</strong> after the next major version becomes generally available, so you always have at least a year to migrate after a successor exists.</p>
+
+  <h3>4. Self-hosted version support</h3>
+
+  <p>For customers running OneUptime self-hosted, our supported-version policy is:</p>
+  <ul>
+    <li>The current major version and the previous two major versions receive bug fixes and security patches.</li>
+    <li>The third-most-recent major version receives security patches only, for an additional 12 months.</li>
+    <li>Older versions are end-of-life. We may still answer questions on a best-effort basis, but no patches are provided.</li>
+  </ul>
+
+  <p>Upgrade paths are documented in the <a href="/docs/self-hosted/architecture">self-hosted documentation</a>. We aim to make every upgrade backwards-compatible at the database and configuration level, with an automated migration step where one is required.</p>
+
+  <h3>5. Integrations</h3>
+
+  <p>We classify integrations as either <strong>vendor-supported</strong> (built and maintained by OneUptime) or <strong>community-supported</strong> (contributed and maintained outside of OneUptime).</p>
+
+  <p>For vendor-supported integrations:</p>
+  <ul>
+    <li>We give at least 90 days' notice before a breaking change or removal.</li>
+    <li>If a third-party API change forces an unavoidable break, we adapt the integration without additional cost; if that is not feasible we will publish an advisory and a migration path.</li>
+    <li>We will not silently change field mappings, default behaviors, or auth methods on a customer's behalf.</li>
+  </ul>
+
+  <p>Community-supported integrations are not covered by this policy; their lifecycle is determined by their maintainers.</p>
+
+  <h3>6. Exceptions for security and legal compliance</h3>
+
+  <p>We may shorten or skip the notice periods above when a change is required to:</p>
+  <ul>
+    <li>Address a vulnerability that puts customer data, the platform, or third parties at risk.</li>
+    <li>Comply with a binding legal order, regulatory requirement, or court process.</li>
+    <li>Respond to a third-party platform change that we cannot reasonably negotiate (for example, an upstream API revoking access on short notice).</li>
+  </ul>
+
+  <p>When we use this exception, we tell you why, what changed, and what your options are, as soon as reasonably practical.</p>
+
+  <h3>7. How we communicate deprecations</h3>
+
+  <p>You will receive deprecation notices through one or more of the following channels, depending on the change:</p>
+  <ul>
+    <li><strong>Email</strong> to the billing and admin contacts on your account.</li>
+    <li><strong>In-product banner</strong> visible to administrators in the affected area.</li>
+    <li><strong>Audit-log entry</strong> when an account configuration is affected.</li>
+    <li><strong>Public changelog</strong> at <a href="/blog">oneuptime.com/blog</a> and the docs changelog.</li>
+    <li><strong>API headers</strong> (<code>Deprecation</code>, <code>Sunset</code>, <code>Link</code>) on affected endpoints.</li>
+    <li><strong>Status page</strong> at <a href="https://status.oneuptime.com">status.oneuptime.com</a> for any change that affects availability during transition.</li>
+  </ul>
+
+  <p>For self-hosted customers, the same notices are mirrored in the upgrade notes and release artifacts. Customers on enterprise contracts also receive a direct briefing from their TAM before a major deprecation lands.</p>
+
+  <h3>8. Migration support</h3>
+
+  <p>For every deprecation we publish:</p>
+  <ul>
+    <li>A clear description of what is changing and why.</li>
+    <li>The removal date and any intermediate milestones.</li>
+    <li>A recommended replacement (an alternative endpoint, feature, or integration).</li>
+    <li>A migration guide with example payloads, configuration, and code where applicable.</li>
+  </ul>
+
+  <p>Enterprise customers can request migration assistance through their account team, including review of usage, dual-running plans, and rollback procedures.</p>
+
+  <h3>9. Changes to this policy</h3>
+
+  <p>We may update this policy from time to time. For material changes that shorten any minimum notice period, we will give at least <strong>30 days'</strong> advance notice by email to the address on your account, and the change will take effect only at your next renewal. Non-material changes (typos, clarifications, or changes that lengthen notice periods) may take effect immediately upon posting.</p>
+
+  <h3>10. Questions</h3>
+
+  <p>Questions about a specific deprecation, or about how this policy applies to your deployment? Please reach out:</p>
+  <ul>
+    <li>API and integration deprecations: <a href="mailto:support@oneuptime.com">support@oneuptime.com</a></li>
+    <li>Contracts and enterprise migration plans: <a href="mailto:legal@oneuptime.com">legal@oneuptime.com</a></li>
+    <li>Live status and incident history: <a href="https://status.oneuptime.com">status.oneuptime.com</a></li>
+  </ul>
+
+  <p>HackerBay, Inc. (doing business as OneUptime), Delaware, USA.</p>
+
+</section>

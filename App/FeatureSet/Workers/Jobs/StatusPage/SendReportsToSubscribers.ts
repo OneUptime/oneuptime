@@ -40,7 +40,7 @@ RunCron(
         statusPageToSendReport.reportRecurringInterval!,
       );
 
-      // updte this date in the status page
+      // update this date in the status page
 
       await StatusPageService.updateOneById({
         id: statusPageToSendReport.id!,

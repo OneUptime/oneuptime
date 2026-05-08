@@ -26,6 +26,7 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import YScaleMaxMin from "Common/UI/Components/Charts/Types/YAxis/YAxisMaxMin";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
@@ -44,6 +45,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import {
+  DictionaryFilterOperator,
+  DictionaryFilterOperatorOption,
+  detectOperatorFromValue,
+  getOperatorOption,
+} from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -157,9 +164,23 @@ function renderSeriesControls(input: {
           return s.seriesName.toLowerCase().includes(searchQuery);
         });
 
-  const visibleForChips: Array<SeriesPoint> = controls.showAllSeries
-    ? seriesForChips
-    : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES);
+  /*
+   * Top-N is picked from the peak-sorted list, but display ordering
+   * is alphabetical (natural-sort) so cpu0…cpu10 appear in sequence
+   * instead of scrambled by activity.
+   */
+  const visibleForChips: Array<SeriesPoint> = (
+    controls.showAllSeries
+      ? seriesForChips
+      : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES)
+  )
+    .slice()
+    .sort((a: SeriesPoint, b: SeriesPoint) => {
+      return a.seriesName.localeCompare(b.seriesName, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
 
   const toggleSeries: (seriesName: string) => void = (
     seriesName: string,
@@ -345,27 +366,58 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     });
   };
 
-  // Fetch exemplars for all queried metrics
+  /*
+   * Build a stable dependency for the exemplar effect. Previously this
+   * depended on `props.metricViewData.queryConfigs` (a fresh array on
+   * every parent render) which kicked off N exemplar requests per
+   * widget per re-render. We now key off the start/end timestamps and
+   * the deduplicated set of metric names — re-runs only when the time
+   * window or metric set actually changes.
+   */
+  const startMs: number | undefined =
+    props.metricViewData.startAndEndDate?.startValue instanceof Date
+      ? (props.metricViewData.startAndEndDate.startValue as Date).getTime()
+      : undefined;
+  const endMs: number | undefined =
+    props.metricViewData.startAndEndDate?.endValue instanceof Date
+      ? (props.metricViewData.startAndEndDate.endValue as Date).getTime()
+      : undefined;
+
+  const uniqueMetricNamesKey: string = (() => {
+    const names: Set<string> = new Set<string>();
+    for (const queryConfig of props.metricViewData.queryConfigs) {
+      const name: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      if (name) {
+        names.add(name);
+      }
+    }
+    return Array.from(names).sort().join("|");
+  })();
+
   useEffect(() => {
-    if (
-      !props.metricViewData.startAndEndDate?.startValue ||
-      !props.metricViewData.startAndEndDate?.endValue
-    ) {
+    if (startMs === undefined || endMs === undefined) {
+      return;
+    }
+
+    const metricNames: Array<string> = uniqueMetricNamesKey
+      ? uniqueMetricNamesKey.split("|")
+      : [];
+
+    if (metricNames.length === 0) {
       return;
     }
 
     const startAndEndDate: InBetween<Date> = new InBetween<Date>(
-      props.metricViewData.startAndEndDate.startValue as Date,
-      props.metricViewData.startAndEndDate.endValue as Date,
+      new Date(startMs),
+      new Date(endMs),
     );
 
-    for (const queryConfig of props.metricViewData.queryConfigs) {
-      const metricName: string =
-        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
-      if (!metricName) {
-        continue;
-      }
-
+    /*
+     * Fetch exemplars per unique metric name (was: per queryConfig, which
+     * caused 5 charts of the same metric to issue 5 identical requests).
+     */
+    for (const metricName of metricNames) {
       MetricUtil.fetchExemplars({
         metricName,
         startAndEndDate,
@@ -382,7 +434,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           // Best-effort: don't break charts if exemplar fetch fails
         });
     }
-  }, [props.metricViewData.startAndEndDate, props.metricViewData.queryConfigs]);
+  }, [startMs, endMs, uniqueMetricNamesKey]);
 
   const handleExemplarClick: (exemplar: ExemplarPoint) => void = useCallback(
     (exemplar: ExemplarPoint): void => {
@@ -564,6 +616,40 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
+      /*
+       * Cumulative-counter rate transform. OTel hostmetrics emits metrics
+       * like `system.disk.io` and `system.network.io` as cumulative counters
+       * (bytes since process start). Plotting the raw value gives a
+       * monotonically-growing line that's hard to read. With
+       * `transformAsRate`, each series is converted to a per-second rate
+       * of change: `(yi - y(i-1)) / Δt`. Negative deltas — which happen
+       * when the agent restarts and the counter resets to 0 — clamp to 0
+       * so the chart doesn't show a spurious dive.
+       */
+      if (queryConfig.transformAsRate) {
+        for (const series of chartSeries) {
+          const sortedPoints: typeof series.data = [...series.data].sort(
+            (a: { x: Date; y: number }, b: { x: Date; y: number }) => {
+              return a.x.getTime() - b.x.getTime();
+            },
+          );
+          const ratePoints: typeof series.data = [];
+          for (let i: number = 1; i < sortedPoints.length; i++) {
+            const current: { x: Date; y: number } = sortedPoints[i]!;
+            const prev: { x: Date; y: number } = sortedPoints[i - 1]!;
+            const dtSeconds: number =
+              (current.x.getTime() - prev.x.getTime()) / 1000;
+            if (dtSeconds <= 0) {
+              continue;
+            }
+            const delta: number = current.y - prev.y;
+            const rate: number = delta < 0 ? 0 : delta / dtSeconds;
+            ratePoints.push({ x: current.x, y: rate });
+          }
+          series.data = ratePoints;
+        }
+      }
+
       let chartType: ChartType;
       if (queryConfig.chartType === MetricChartType.BAR) {
         chartType = ChartType.BAR;
@@ -583,6 +669,52 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       );
       const unit: string =
         queryConfig.metricAliasData?.legendUnit || metricType?.unit || "";
+      const queryMetricName: string =
+        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      const formatterOptions: { metricName: string } = {
+        metricName: queryMetricName,
+      };
+      /*
+       * Show "%" on the y-axis legend for any percent-like metric — both
+       * OTel ratio names (`.utilization`, `.ratio`, …) reported with unit "1"
+       * and explicit percent units like "%", "percent", "percentage", "pct".
+       * Otherwise keep the raw unit code so other axes (e.g. "By", "ms") look
+       * unchanged.
+       */
+      const isFractionScale: boolean =
+        unit === "1" && ValueFormatter.isFractionMetric(queryMetricName);
+      const isPercentChart: boolean =
+        isFractionScale || ValueFormatter.isPercentUnit(unit);
+      const yAxisLegend: string = isPercentChart ? "%" : unit;
+      /*
+       * Soft 0–100% range. Always show the full percent scale (so 25% looks
+       * like 25% of the axis, not a peak), but if a series exceeds 100%
+       * — e.g. summed-across-cores or mis-tagged data — expand to fit so
+       * nothing clips. Negative values likewise pull the floor below 0.
+       * The baseline differs by data scale: utilization metrics live in
+       * [0, 1], explicit percent units live in [0, 100].
+       */
+      let yAxisMin: YScaleMaxMin = "auto";
+      let yAxisMax: YScaleMaxMin = "auto";
+      if (isPercentChart) {
+        const baseline: number = isFractionScale ? 1 : 100;
+        let dataMax: number = baseline;
+        let dataMin: number = 0;
+        for (const series of chartSeries) {
+          for (const point of series.data) {
+            if (typeof point.y === "number" && Number.isFinite(point.y)) {
+              if (point.y > dataMax) {
+                dataMax = point.y;
+              }
+              if (point.y < dataMin) {
+                dataMin = point.y;
+              }
+            }
+          }
+        }
+        yAxisMax = dataMax;
+        yAxisMin = dataMin;
+      }
 
       // Build reference lines from thresholds
       const referenceLines: Array<ChartReferenceLineProps> = [];
@@ -593,7 +725,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ) {
         referenceLines.push({
           value: queryConfig.warningThreshold,
-          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit)}`,
+          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit, formatterOptions)}`,
           color: "#f59e0b", // amber
         });
       }
@@ -604,22 +736,41 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ) {
         referenceLines.push({
           value: queryConfig.criticalThreshold,
-          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit)}`,
+          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit, formatterOptions)}`,
           color: "#ef4444", // red
         });
       }
 
-      // Build metric info for the info icon modal
+      /*
+       * Build metric info for the info icon modal.
+       * Skip empty key/value entries and surface the operator alongside
+       * the value so users can see what's actually filtered.
+       */
       const metricAttributes: Dictionary<string> = {};
-      const filterAttributes:
-        | Dictionary<string | boolean | number>
-        | undefined = queryConfig.metricQueryData.filterData.attributes as
-        | Dictionary<string | boolean | number>
+      const filterAttributes: Dictionary<unknown> | undefined = queryConfig
+        .metricQueryData.filterData.attributes as
+        | Dictionary<unknown>
         | undefined;
 
       if (filterAttributes) {
         for (const key of Object.keys(filterAttributes)) {
-          metricAttributes[key] = String(filterAttributes[key]);
+          const value: unknown = filterAttributes[key];
+          if (key.trim() === "" || value === undefined || value === null) {
+            continue;
+          }
+          const detected: {
+            operator: DictionaryFilterOperator;
+            rawValue: string;
+          } = detectOperatorFromValue(value);
+          const option: DictionaryFilterOperatorOption = getOperatorOption(
+            detected.operator,
+          );
+          if (!option.hidesValueInput && detected.rawValue.trim() === "") {
+            continue;
+          }
+          metricAttributes[key] = option.hidesValueInput
+            ? option.symbol
+            : `${option.symbol} ${detected.rawValue}`;
         }
       }
 
@@ -694,6 +845,21 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         displayableSeries = displayableSeries.slice(0, DEFAULT_TOP_N_SERIES);
       }
 
+      /*
+       * Top-N selection used peak-value ranking; once the cut is made,
+       * sort the series shown on the chart and in the legend/tooltip
+       * by name (natural sort) so cpu0…cpu10 render in order rather
+       * than scrambled by activity.
+       */
+      displayableSeries = displayableSeries
+        .slice()
+        .sort((a: SeriesPoint, b: SeriesPoint) => {
+          return a.seriesName.localeCompare(b.seriesName, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+        });
+
       const hiddenFromTopN: number =
         needsTopN && !controls.showAllSeries
           ? Math.max(0, totalSeries - DEFAULT_TOP_N_SERIES)
@@ -743,7 +909,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             },
           },
           yAxis: {
-            legend: unit,
+            legend: yAxisLegend,
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
@@ -751,11 +917,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   return queryConfig.yAxisValueFormatter(value);
                 }
 
-                return ValueFormatter.formatValue(value, unit);
+                return ValueFormatter.formatValue(
+                  value,
+                  unit,
+                  formatterOptions,
+                );
               },
               precision: YAxisPrecision.NoDecimals,
-              max: "auto",
-              min: "auto",
+              max: yAxisMax,
+              min: yAxisMin,
             },
           },
           curve: ChartCurve.MONOTONE,

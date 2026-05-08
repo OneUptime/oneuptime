@@ -36,6 +36,19 @@ import MetricPipelineRuleService, {
 import OneUptimeDate from "Common/Types/Date";
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
+import KubernetesResourceService, {
+  ResourceLatestMetric,
+} from "Common/Server/Services/KubernetesResourceService";
+import KubernetesContainerService, {
+  ContainerLatestMetric,
+} from "Common/Server/Services/KubernetesContainerService";
+import DockerResourceService, {
+  ParsedDockerContainer,
+} from "Common/Server/Services/DockerResourceService";
+import HostService from "Common/Server/Services/HostService";
+import LabelService from "Common/Server/Services/LabelService";
+import Host from "Common/Models/DatabaseModels/Host";
+import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 
 type MetricTimestamp = {
   nano: string;
@@ -43,6 +56,74 @@ type MetricTimestamp = {
   db: string;
   date: Date;
 };
+
+/*
+ * ------------------------------------------------------------------
+ * Kubernetes snapshot metric write-back
+ * ------------------------------------------------------------------
+ *
+ * The Kubernetes list pages (Pods, Nodes, Namespaces, ...) need a
+ * "latest CPU + memory per resource" lookup that's fast and free of
+ * ClickHouse aggregation. We achieve that by mirroring the most
+ * recent point of a small allow-list of metrics into Postgres, on
+ * the row that already represents that resource (KubernetesResource
+ * for Pods/Nodes, KubernetesContainer for individual containers).
+ *
+ * Snapshot writes are best-effort: failures must never affect
+ * ClickHouse ingest.
+ *
+ * Allow-list (lowercased) of metric names whose latest point we
+ * mirror. Anything else is ignored entirely, so the cost on
+ * non-Kubernetes batches is one Set.has check per datapoint.
+ */
+const K8S_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "k8s.pod.cpu.utilization",
+  "k8s.pod.memory.usage",
+  "k8s.node.cpu.utilization",
+  "k8s.node.memory.usage",
+  "container.cpu.utilization",
+  "container.memory.usage",
+]);
+
+/*
+ * Docker snapshot metrics — emitted by the docker_stats receiver
+ * with container.id / container.name / container.image.name as
+ * resource attributes. Container row inventory is upserted from
+ * these in the same pass as the ClickHouse insert.
+ */
+const DOCKER_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "container.cpu.utilization",
+  "container.memory.usage.total",
+]);
+
+interface ResourceMetricBufferEntry {
+  kind: string;
+  namespaceKey: string;
+  name: string;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+  controllerDeploymentName: string | null;
+  controllerCronJobName: string | null;
+}
+
+interface ContainerMetricBufferEntry {
+  podNamespaceKey: string;
+  podName: string;
+  name: string;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
+
+interface DockerContainerMetricBufferEntry {
+  containerName: string;
+  containerId: string | null;
+  imageName: string | null;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+}
 
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static async flushMetricsBuffer(
@@ -99,6 +180,192 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     await this.processMetricsAsync(req);
   }
 
+  /*
+   * Walk an entire metrics batch once and apply Host metadata + cached
+   * stats per unique host.name in a single UPDATE per host. The per-
+   * resource enrichment in the main for-loop only sees one scraper's
+   * data at a time, so cpuCores / totalMemoryBytes / processCount
+   * couldn't be merged with osType / hostArch (which live on every
+   * resource). On macOS-sized batches with 600+ process resources,
+   * the per-resource path also doesn't reliably reach the cpu / memory
+   * / processes scraper resources, leaving those columns null. This
+   * batch-level pass collapses every resourceMetric for the same host
+   * into one merged write.
+   */
+  @CaptureSpan()
+  private static async runBatchHostEnrichment(data: {
+    projectId: ObjectID;
+    resourceMetrics: JSONArray;
+  }): Promise<void> {
+    interface HostEnrichmentEntry {
+      osType: string | null;
+      osVersion: string | null;
+      hostId: string | null;
+      hostArch: string | null;
+      hostType: string | null;
+      hostIpAddresses: string | null;
+      cpuCores: number | null;
+      totalMemoryBytes: number | null;
+      processCount: number | null;
+      containerRuntime: string | null;
+      hasInfraSignal: boolean;
+      labelNames: Set<string>;
+    }
+
+    const aggregator: Map<string, HostEnrichmentEntry> = new Map();
+
+    for (const resourceMetric of data.resourceMetrics) {
+      const rm: JSONObject = resourceMetric as JSONObject;
+      const ras: JSONArray =
+        ((rm["resource"] as JSONObject)?.["attributes"] as JSONArray) || [];
+      const hostName: string | null =
+        OtelIngestBaseService.getHostNameFromAttributes(ras);
+      if (!hostName) {
+        continue;
+      }
+
+      let entry: HostEnrichmentEntry | undefined = aggregator.get(hostName);
+      if (!entry) {
+        entry = {
+          osType: null,
+          osVersion: null,
+          hostId: null,
+          hostArch: null,
+          hostType: null,
+          hostIpAddresses: null,
+          cpuCores: null,
+          totalMemoryBytes: null,
+          processCount: null,
+          containerRuntime: null,
+          hasInfraSignal: false,
+          labelNames: new Set<string>(),
+        };
+        aggregator.set(hostName, entry);
+      }
+
+      const labelNamesForResource: Array<string> =
+        extractOneuptimeLabelNames(ras);
+      for (const labelName of labelNamesForResource) {
+        entry.labelNames.add(labelName);
+      }
+
+      if (!entry.osType) {
+        entry.osType = OtelIngestBaseService.getStringAttribute(ras, "os.type");
+      }
+      if (!entry.osVersion) {
+        entry.osVersion =
+          OtelIngestBaseService.getStringAttribute(ras, "os.description") ||
+          OtelIngestBaseService.getStringAttribute(ras, "os.version");
+      }
+      if (!entry.hostId) {
+        entry.hostId = OtelIngestBaseService.getStringAttribute(ras, "host.id");
+      }
+      if (!entry.hostArch) {
+        entry.hostArch = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "host.arch",
+        );
+      }
+      if (!entry.hostType) {
+        entry.hostType = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "host.type",
+        );
+      }
+      if (!entry.hostIpAddresses) {
+        const ips: Array<string> =
+          OtelIngestBaseService.getStringArrayAttribute(ras, "host.ip");
+        entry.hostIpAddresses = ips.length > 0 ? ips.join(", ") : null;
+      }
+      if (!entry.containerRuntime) {
+        entry.containerRuntime = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "container.runtime",
+        );
+      }
+
+      const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
+      const stats: {
+        hasInfraSignal: boolean;
+        cpuCores?: number;
+        totalMemoryBytes?: number;
+        processCount?: number;
+      } = OtelIngestBaseService.scanHostInfraStatsFromMetrics(sms);
+
+      if (stats.hasInfraSignal) {
+        entry.hasInfraSignal = true;
+      }
+      if (stats.cpuCores !== undefined && entry.cpuCores === null) {
+        entry.cpuCores = stats.cpuCores;
+      }
+      if (
+        stats.totalMemoryBytes !== undefined &&
+        entry.totalMemoryBytes === null
+      ) {
+        entry.totalMemoryBytes = stats.totalMemoryBytes;
+      }
+      if (stats.processCount !== undefined && entry.processCount === null) {
+        entry.processCount = stats.processCount;
+      }
+    }
+
+    for (const [hostName, entry] of aggregator) {
+      /*
+       * Phantom-host gate: only touch the row if we have at least one
+       * real host signal (an OS, a container runtime, or any system./
+       * process. metric in this batch).
+       */
+      const hasResourceSignal: boolean = Boolean(
+        entry.osType || entry.containerRuntime,
+      );
+      if (!hasResourceSignal && !entry.hasInfraSignal) {
+        continue;
+      }
+
+      try {
+        const host: Host = await HostService.findOrCreateByHostIdentifier({
+          projectId: data.projectId,
+          hostIdentifier: hostName,
+        });
+
+        if (!host._id) {
+          continue;
+        }
+
+        await HostService.updateLastSeen(new ObjectID(host._id.toString()), {
+          osType: entry.osType ?? undefined,
+          osVersion: entry.osVersion ?? undefined,
+          hostId: entry.hostId ?? undefined,
+          hostArch: entry.hostArch ?? undefined,
+          hostType: entry.hostType ?? undefined,
+          hostIpAddresses: entry.hostIpAddresses ?? undefined,
+          cpuCores: entry.cpuCores ?? undefined,
+          totalMemoryBytes: entry.totalMemoryBytes ?? undefined,
+          processCount: entry.processCount ?? undefined,
+          containerRuntime: entry.containerRuntime ?? undefined,
+        });
+
+        if (entry.labelNames.size > 0) {
+          const labelIds: Array<ObjectID> =
+            await LabelService.findOrCreateLabelsByNames({
+              projectId: data.projectId,
+              labelNames: Array.from(entry.labelNames),
+            });
+          if (labelIds.length > 0) {
+            await HostService.attachLabels({
+              hostId: new ObjectID(host._id.toString()),
+              labelIds,
+            });
+          }
+        }
+      } catch (hostError) {
+        logger.warn(
+          `Batch host enrichment write for "${hostName}" failed: ${hostError instanceof Error ? hostError.message : String(hostError)}`,
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     try {
@@ -121,6 +388,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
+      /*
+       * Snapshot buffers keyed by cluster ID. Inner maps key by the
+       * unique tuple of the resource being tracked so multiple
+       * datapoints across a batch collapse into a single UPDATE.
+       */
+      const k8sResourceMetricsBuffer: Map<
+        string,
+        Map<string, ResourceMetricBufferEntry>
+      > = new Map();
+      const k8sContainerMetricsBuffer: Map<
+        string,
+        Map<string, ContainerMetricBufferEntry>
+      > = new Map();
+      const dockerContainerMetricsBuffer: Map<
+        string,
+        Map<string, DockerContainerMetricBufferEntry>
+      > = new Map();
+
       // Load project + service-scoped pipeline rules once per batch (60s cached).
       let pipelineRules: MetricRulesForProject | null = null;
       try {
@@ -132,6 +417,35 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           }`,
         );
         pipelineRules = null;
+      }
+
+      /*
+       * Single-pass host enrichment across the entire batch.
+       *
+       * The OTel hostmetrics receiver emits one ResourceMetrics per scraper
+       * (cpu, memory, processes, ...) plus one ResourceMetrics per process.
+       * The per-resource enrichment that runs inside the main for-loop only
+       * sees one scraper's metrics at a time, so memory/process counts can't
+       * be combined with osType/hostArch (which live on every resource) into
+       * a single coherent UPDATE — and on macOS-sized batches (600+ process
+       * resources) we observed the per-resource enrichment failing to reach
+       * the cpu/memory/processes scrapers' resources at all.
+       *
+       * Walk the entire batch once up-front: collect resource attributes
+       * from any resource carrying host.name, and collect cached metric
+       * stats (cpuCores, totalMemoryBytes, processCount) from whichever
+       * scraper's resource exposes them. Then upsert the Host row + write
+       * the merged stats in a single DB UPDATE per host.
+       */
+      try {
+        await this.runBatchHostEnrichment({
+          projectId,
+          resourceMetrics,
+        });
+      } catch (enrichmentError) {
+        logger.warn(
+          `Batch host enrichment failed (best-effort): ${enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError)}`,
+        );
       }
 
       let resourceMetricCounter: number = 0;
@@ -152,15 +466,45 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
 
           // Auto-discover Kubernetes cluster from resource attributes
-          await this.autoDiscoverKubernetesCluster({
-            projectId,
-            attributes: resourceAttributes_raw,
-          });
+          const kubernetesClusterId: ObjectID | null =
+            await this.autoDiscoverKubernetesCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
 
           // Auto-discover Docker host from resource attributes
-          await this.autoDiscoverDockerHost({
+          const dockerHostId: ObjectID | null =
+            await this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          /*
+           * Generic Host auto-discovery. Pre-scan the resource's
+           * scopeMetrics to detect host-level signal (system.* /
+           * process.*) and capture cached stats (cpuCores,
+           * totalMemoryBytes, processCount) — collapses everything
+           * into a single Host upsert per resource batch.
+           */
+          const scopeMetricsForScan: JSONArray =
+            (resourceMetric["scopeMetrics"] as JSONArray) || [];
+
+          const hostInfraStats: {
+            hasInfraSignal: boolean;
+            cpuCores?: number;
+            totalMemoryBytes?: number;
+            processCount?: number;
+          } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
+
+          await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
+            hasInfraSignal: hostInfraStats.hasInfraSignal,
+            dockerHostId,
+            kubernetesClusterId,
+            cpuCores: hostInfraStats.cpuCores,
+            totalMemoryBytes: hostInfraStats.totalMemoryBytes,
+            processCount: hostInfraStats.processCount,
           });
 
           if (!serviceDictionary[serviceName]) {
@@ -170,6 +514,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             } = await OTelIngestService.telemetryServiceFromName({
               serviceName: serviceName,
               projectId: (req as TelemetryRequest).projectId,
+              resourceAttributes: resourceAttributes_raw,
             });
 
             serviceDictionary[serviceName] = {
@@ -327,6 +672,43 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                     for (const datapoint of dataPoints) {
                       try {
+                        /*
+                         * Mirror the latest CPU / memory point of a small
+                         * allow-list of metrics into the Postgres snapshot
+                         * table. Cheap fast-path: a Set.has check, then a
+                         * few attribute reads. Pipeline rules below don't
+                         * affect this — snapshots reflect actual cluster
+                         * state regardless of long-term storage choices.
+                         */
+                        if (
+                          kubernetesClusterId &&
+                          K8S_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferKubernetesSnapshotMetric({
+                            clusterIdStr: kubernetesClusterId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            resourceBuffer: k8sResourceMetricsBuffer,
+                            containerBuffer: k8sContainerMetricsBuffer,
+                          });
+                        }
+
+                        if (
+                          dockerHostId &&
+                          DOCKER_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          this.bufferDockerSnapshotMetric({
+                            hostIdStr: dockerHostId.toString(),
+                            metricName,
+                            metricUnit,
+                            datapoint: datapoint as JSONObject,
+                            metricAttributes,
+                            buffer: dockerContainerMetricsBuffer,
+                          });
+                        }
+
                         const metricRow: JSONObject = this.buildMetricRow({
                           datapoint: datapoint as JSONObject,
                           baseAttributes: metricAttributes,
@@ -403,6 +785,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       await this.flushMetricsBuffer(dbMetrics, true);
 
+      /*
+       * Drain the snapshot buffers. Failures are logged and swallowed —
+       * snapshots are best-effort and must not affect ClickHouse ingest.
+       */
+      await this.flushKubernetesSnapshotBuffers({
+        projectId,
+        resourceBuffer: k8sResourceMetricsBuffer,
+        containerBuffer: k8sContainerMetricsBuffer,
+      });
+
+      await this.flushDockerSnapshotBuffer({
+        projectId,
+        buffer: dockerContainerMetricsBuffer,
+      });
+
       if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");
         return;
@@ -437,6 +834,497 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       );
       logger.error(error, getLogAttributesFromRequest(req as RequestLike));
       throw error;
+    }
+  }
+
+  /*
+   * Read a string attribute from the merged metric attribute map.
+   * Returns "" when the attribute is missing or non-string so callers
+   * can rely on a string type.
+   */
+  private static readSnapshotAttr(
+    attrs: Dictionary<AttributeType | Array<AttributeType>>,
+    key: string,
+  ): string {
+    const v: AttributeType | Array<AttributeType> | undefined = attrs[key];
+    if (typeof v === "string") {
+      return v;
+    }
+    return "";
+  }
+
+  /*
+   * Convert a raw datapoint value to a percent. Most OTel Kubernetes
+   * CPU metrics emit a unit-less ratio (0.0-1.0+); a few emit a raw
+   * percent. We use the metric's `unit` field to decide:
+   *   - "%"          -> already a percent, take as-is
+   *   - "1" / "" / undefined / unknown -> ratio, multiply by 100
+   * Sub-percent precision is preserved end-to-end; values past 100
+   * are kept (200% means 2 fully utilized cores).
+   */
+  private static cpuValueToPercent(
+    rawValue: number,
+    metricUnit: string | undefined,
+  ): number {
+    const unit: string = (metricUnit || "").trim();
+    if (unit === "%") {
+      return rawValue;
+    }
+    return rawValue * 100;
+  }
+
+  /*
+   * Match an allow-listed Kubernetes metric to its target snapshot
+   * row, fold the latest CPU/memory point into the per-cluster
+   * buffer. Cheap: every check is a string compare against attrs.
+   */
+  private static bufferKubernetesSnapshotMetric(data: {
+    clusterIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
+    containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "k8s snapshot timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const ns: string = this.readSnapshotAttr(
+      attrs,
+      "resource.k8s.namespace.name",
+    );
+
+    const isCpu: boolean = data.metricName.endsWith(".cpu.utilization");
+    const isMem: boolean = data.metricName.endsWith(".memory.usage");
+
+    if (data.metricName.startsWith("container.")) {
+      const podName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.pod.name",
+      );
+      const containerName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.container.name",
+      );
+      if (!podName || !containerName) {
+        return;
+      }
+      this.foldContainerSnapshot({
+        buffer: data.containerBuffer,
+        clusterIdStr: data.clusterIdStr,
+        ns,
+        podName,
+        containerName,
+        cpuPercent: isCpu
+          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          : null,
+        memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        observedAt: ts.date,
+      });
+      return;
+    }
+
+    if (data.metricName.startsWith("k8s.pod.")) {
+      const podName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.pod.name",
+      );
+      if (!podName) {
+        return;
+      }
+      /*
+       * Pull the resolved Deployment / CronJob names off the metric
+       * attributes (the OTel collector walks the owner chain). These
+       * are denormalized onto the Pod row so the Deployments and
+       * CronJobs list views can SUM over them without inventorying
+       * ReplicaSets or doing a 2-hop SQL join.
+       */
+      const deployName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.deployment.name",
+      );
+      const cronName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.cronjob.name",
+      );
+      this.foldResourceSnapshot({
+        buffer: data.resourceBuffer,
+        clusterIdStr: data.clusterIdStr,
+        kind: "Pod",
+        ns,
+        name: podName,
+        cpuPercent: isCpu
+          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          : null,
+        memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        observedAt: ts.date,
+        controllerDeploymentName: deployName || null,
+        controllerCronJobName: cronName || null,
+      });
+      return;
+    }
+
+    if (data.metricName.startsWith("k8s.node.")) {
+      const nodeName: string = this.readSnapshotAttr(
+        attrs,
+        "resource.k8s.node.name",
+      );
+      if (!nodeName) {
+        return;
+      }
+      this.foldResourceSnapshot({
+        buffer: data.resourceBuffer,
+        clusterIdStr: data.clusterIdStr,
+        kind: "Node",
+        ns: "", // Nodes are cluster-scoped
+        name: nodeName,
+        cpuPercent: isCpu
+          ? this.cpuValueToPercent(rawValue, data.metricUnit)
+          : null,
+        memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+        observedAt: ts.date,
+        controllerDeploymentName: null,
+        controllerCronJobName: null,
+      });
+      return;
+    }
+  }
+
+  private static foldResourceSnapshot(data: {
+    buffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
+    clusterIdStr: string;
+    kind: string;
+    ns: string;
+    name: string;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+    controllerDeploymentName: string | null;
+    controllerCronJobName: string | null;
+  }): void {
+    let perCluster: Map<string, ResourceMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const key: string = `${data.kind}|${data.ns}|${data.name}`;
+    const existing: ResourceMetricBufferEntry | undefined = perCluster.get(key);
+    if (!existing) {
+      perCluster.set(key, {
+        kind: data.kind,
+        namespaceKey: data.ns,
+        name: data.name,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+        controllerDeploymentName: data.controllerDeploymentName,
+        controllerCronJobName: data.controllerCronJobName,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+    /*
+     * Controller names don't change for a Pod; first-non-null wins so
+     * later batches missing the attribute don't blank the row.
+     */
+    if (
+      data.controllerDeploymentName !== null &&
+      existing.controllerDeploymentName === null
+    ) {
+      existing.controllerDeploymentName = data.controllerDeploymentName;
+    }
+    if (
+      data.controllerCronJobName !== null &&
+      existing.controllerCronJobName === null
+    ) {
+      existing.controllerCronJobName = data.controllerCronJobName;
+    }
+  }
+
+  private static foldContainerSnapshot(data: {
+    buffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+    clusterIdStr: string;
+    ns: string;
+    podName: string;
+    containerName: string;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+  }): void {
+    let perCluster: Map<string, ContainerMetricBufferEntry> | undefined =
+      data.buffer.get(data.clusterIdStr);
+    if (!perCluster) {
+      perCluster = new Map();
+      data.buffer.set(data.clusterIdStr, perCluster);
+    }
+    const key: string = `${data.ns}|${data.podName}|${data.containerName}`;
+    const existing: ContainerMetricBufferEntry | undefined =
+      perCluster.get(key);
+    if (!existing) {
+      perCluster.set(key, {
+        podNamespaceKey: data.ns,
+        podName: data.podName,
+        name: data.containerName,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+  }
+
+  private static async flushKubernetesSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, ResourceMetricBufferEntry>>;
+    containerBuffer: Map<string, Map<string, ContainerMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.resourceBuffer.size > 0) {
+      for (const [clusterIdStr, byKey] of data.resourceBuffer.entries()) {
+        if (byKey.size === 0) {
+          continue;
+        }
+        try {
+          const metrics: Array<ResourceLatestMetric> = [];
+          for (const e of byKey.values()) {
+            metrics.push({
+              kind: e.kind,
+              namespaceKey: e.namespaceKey,
+              name: e.name,
+              cpuPercent: e.cpuPercent,
+              memoryBytes: e.memoryBytes,
+              observedAt: e.observedAt,
+              controllerDeploymentName: e.controllerDeploymentName,
+              controllerCronJobName: e.controllerCronJobName,
+            });
+          }
+          await KubernetesResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            kubernetesClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `K8s snapshot writeback (resource) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    if (data.containerBuffer.size > 0) {
+      for (const [clusterIdStr, byKey] of data.containerBuffer.entries()) {
+        if (byKey.size === 0) {
+          continue;
+        }
+        try {
+          const metrics: Array<ContainerLatestMetric> = [];
+          for (const e of byKey.values()) {
+            metrics.push({
+              podNamespaceKey: e.podNamespaceKey,
+              podName: e.podName,
+              name: e.name,
+              cpuPercent: e.cpuPercent,
+              memoryBytes: e.memoryBytes,
+              observedAt: e.observedAt,
+            });
+          }
+          await KubernetesContainerService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            kubernetesClusterId: new ObjectID(clusterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `K8s snapshot writeback (container) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+  }
+
+  /*
+   * Match a Docker container metric to its row, fold the latest CPU
+   * or memory point into the per-host buffer. Identical pattern to
+   * the K8s buffering, but Docker has no separate inventory snapshot
+   * stream — every metric flush both creates and updates rows in
+   * one ON-CONFLICT statement.
+   */
+  private static bufferDockerSnapshotMetric(data: {
+    hostIdStr: string;
+    metricName: string;
+    metricUnit: string | undefined;
+    datapoint: JSONObject;
+    metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    buffer: Map<string, Map<string, DockerContainerMetricBufferEntry>>;
+  }): void {
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const rawValue: number | null = valueFromDouble ?? valueFromInt;
+    if (rawValue === null) {
+      return;
+    }
+
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "docker snapshot timeUnixNano",
+    );
+
+    const attrs: Dictionary<AttributeType | Array<AttributeType>> =
+      data.metricAttributes;
+    const containerName: string = this.readSnapshotAttr(
+      attrs,
+      "resource.container.name",
+    );
+    if (!containerName) {
+      return;
+    }
+    const containerId: string =
+      this.readSnapshotAttr(attrs, "resource.container.id") ||
+      this.readSnapshotAttr(attrs, "container.id");
+    const imageName: string =
+      this.readSnapshotAttr(attrs, "resource.container.image.name") ||
+      this.readSnapshotAttr(attrs, "container.image.name");
+
+    const isCpu: boolean = data.metricName === "container.cpu.utilization";
+    const isMem: boolean = data.metricName === "container.memory.usage.total";
+
+    this.foldDockerContainerSnapshot({
+      buffer: data.buffer,
+      hostIdStr: data.hostIdStr,
+      containerName,
+      containerId: containerId || null,
+      imageName: imageName || null,
+      cpuPercent: isCpu
+        ? this.cpuValueToPercent(rawValue, data.metricUnit)
+        : null,
+      memoryBytes: isMem ? Math.max(0, Math.trunc(rawValue)) : null,
+      observedAt: ts.date,
+    });
+  }
+
+  private static foldDockerContainerSnapshot(data: {
+    buffer: Map<string, Map<string, DockerContainerMetricBufferEntry>>;
+    hostIdStr: string;
+    containerName: string;
+    containerId: string | null;
+    imageName: string | null;
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    observedAt: Date;
+  }): void {
+    let perHost: Map<string, DockerContainerMetricBufferEntry> | undefined =
+      data.buffer.get(data.hostIdStr);
+    if (!perHost) {
+      perHost = new Map();
+      data.buffer.set(data.hostIdStr, perHost);
+    }
+    const key: string = data.containerName;
+    const existing: DockerContainerMetricBufferEntry | undefined =
+      perHost.get(key);
+    if (!existing) {
+      perHost.set(key, {
+        containerName: data.containerName,
+        containerId: data.containerId,
+        imageName: data.imageName,
+        cpuPercent: data.cpuPercent,
+        memoryBytes: data.memoryBytes,
+        observedAt: data.observedAt,
+      });
+      return;
+    }
+    if (data.cpuPercent !== null && data.observedAt >= existing.observedAt) {
+      existing.cpuPercent = data.cpuPercent;
+    }
+    if (data.memoryBytes !== null && data.observedAt >= existing.observedAt) {
+      existing.memoryBytes = data.memoryBytes;
+    }
+    if (data.observedAt > existing.observedAt) {
+      existing.observedAt = data.observedAt;
+    }
+    /*
+     * Container ID and image name don't change for the lifetime of a
+     * container; first-non-null wins so later metrics missing the
+     * attribute don't blank the row.
+     */
+    if (data.containerId && !existing.containerId) {
+      existing.containerId = data.containerId;
+    }
+    if (data.imageName && !existing.imageName) {
+      existing.imageName = data.imageName;
+    }
+  }
+
+  private static async flushDockerSnapshotBuffer(data: {
+    projectId: ObjectID;
+    buffer: Map<string, Map<string, DockerContainerMetricBufferEntry>>;
+  }): Promise<void> {
+    if (data.buffer.size === 0) {
+      return;
+    }
+    for (const [hostIdStr, byKey] of data.buffer.entries()) {
+      if (byKey.size === 0) {
+        continue;
+      }
+      try {
+        const containers: Array<ParsedDockerContainer> = [];
+        for (const e of byKey.values()) {
+          containers.push({
+            containerName: e.containerName,
+            containerId: e.containerId,
+            imageName: e.imageName,
+            state: "running",
+            cpuPercent: e.cpuPercent,
+            memoryBytes: e.memoryBytes,
+            observedAt: e.observedAt,
+          });
+        }
+        await DockerResourceService.bulkUpsertContainers({
+          projectId: data.projectId,
+          dockerHostId: new ObjectID(hostIdStr),
+          containers,
+        });
+      } catch (err) {
+        logger.warn(
+          `Docker snapshot writeback failed for host ${hostIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
   }
 

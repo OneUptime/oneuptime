@@ -30,7 +30,7 @@ import React, {
 import { useTranslation } from "react-i18next";
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
-  props: SubscribePageProps,
+  _props: SubscribePageProps,
 ): ReactElement => {
   const { t } = useTranslation();
   const statusPageSubscriberId: string | undefined =
@@ -155,61 +155,59 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     },
   ];
 
-  if (props.allowSubscribersToChooseResources) {
-    fields.push({
-      field: {
-        isSubscribedToAllResources: true,
-      },
-      showEvenIfPermissionDoesNotExist: true,
-      title: t("subscribe.resources.all"),
-      description: t("subscribe.resources.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
+  fields.push({
+    field: {
+      isSubscribedToAllResources: true,
+    },
+    showEvenIfPermissionDoesNotExist: true,
+    title: t("subscribe.resources.all"),
+    description: t("subscribe.resources.allDescription"),
+    fieldType: FormFieldSchemaType.Checkbox,
+    required: false,
+    defaultValue: true,
+  });
 
-    fields.push({
-      field: {
-        statusPageResources: true,
-      },
-      showEvenIfPermissionDoesNotExist: true,
-      title: t("subscribe.resources.select"),
-      description: t("subscribe.resources.selectDescription"),
-      fieldType: FormFieldSchemaType.CategoryCheckbox,
-      required: false,
-      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllResources;
-      },
-    });
-  }
+  fields.push({
+    field: {
+      statusPageResources: true,
+    },
+    showEvenIfPermissionDoesNotExist: true,
+    title: t("subscribe.resources.select"),
+    description: t("subscribe.resources.selectDescription"),
+    fieldType: FormFieldSchemaType.CategoryCheckbox,
+    required: false,
+    categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+    showIf: (model: FormValues<StatusPageSubscriber>) => {
+      return !model || !model.isSubscribedToAllResources;
+    },
+  });
 
-  if (props.allowSubscribersToChooseEventTypes) {
-    fields.push({
-      field: {
-        isSubscribedToAllEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.all"),
-      description: t("subscribe.eventTypes.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
+  fields.push({
+    field: {
+      isSubscribedToAllEventTypes: true,
+    },
+    showEvenIfPermissionDoesNotExist: true,
+    title: t("subscribe.eventTypes.all"),
+    description: t("subscribe.eventTypes.allDescription"),
+    fieldType: FormFieldSchemaType.Checkbox,
+    required: false,
+    defaultValue: true,
+  });
 
-    fields.push({
-      field: {
-        statusPageEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.select"),
-      description: t("subscribe.eventTypes.selectDescription"),
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllEventTypes;
-      },
-    });
-  }
+  fields.push({
+    field: {
+      statusPageEventTypes: true,
+    },
+    showEvenIfPermissionDoesNotExist: true,
+    title: t("subscribe.eventTypes.select"),
+    description: t("subscribe.eventTypes.selectDescription"),
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    required: false,
+    dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+    showIf: (model: FormValues<StatusPageSubscriber>) => {
+      return !model || !model.isSubscribedToAllEventTypes;
+    },
+  });
 
   fields.push({
     field: {
@@ -254,7 +252,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     fetchItemApiUrl={getSubscriptionUrl}
                     formType={FormType.Update}
                     modelIdToEdit={new ObjectID(statusPageSubscriberId)}
-                    submitButtonText={t("subscribe.update.title")}
+                    submitButtonText={t("subscribe.update.submit")}
                     onSuccess={() => {
                       setIsSuccess(true);
                     }}

@@ -42,6 +42,7 @@ export interface TelemetryViewerProps<T> {
   onSearchSubmit: () => void;
   searchPlaceholder?: string | undefined;
   searchSuggestions?: Array<string> | undefined;
+  searchAttributeSuggestions?: Array<string> | undefined;
   searchValueSuggestions?: Record<string, Array<string>> | undefined;
   searchFieldAliasMap?: Record<string, string> | undefined;
   onSearchFieldValueSelect?:
@@ -50,6 +51,8 @@ export interface TelemetryViewerProps<T> {
   searchHelpRows?: Array<SearchHelpRow> | undefined;
   searchHelpCombinedExample?: string | undefined;
   searchBarRef?: React.Ref<TelemetrySearchBarRef> | undefined;
+  searchAttributesLoading?: boolean | undefined;
+  searchValuesLoading?: boolean | undefined;
 
   // -- Toolbar: time --
   timeRange: RangeStartAndEndDateTime;
@@ -118,11 +121,14 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             onSubmit={props.onSearchSubmit}
             placeholder={props.searchPlaceholder}
             suggestions={props.searchSuggestions}
+            attributeSuggestions={props.searchAttributeSuggestions}
             valueSuggestions={props.searchValueSuggestions}
             fieldAliasMap={props.searchFieldAliasMap}
             onFieldValueSelect={props.onSearchFieldValueSelect}
             helpRows={props.searchHelpRows}
             helpCombinedExample={props.searchHelpCombinedExample}
+            isAttributesLoading={props.searchAttributesLoading}
+            isValuesLoading={props.searchValuesLoading}
           />
         </div>
 

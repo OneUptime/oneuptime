@@ -18,6 +18,10 @@ export interface ComponentProps {
   ) => void;
   attributeKeys: Array<string>;
   telemetryServices: Array<Service>;
+  isLoadingAttributeKeys?: boolean | undefined;
+  attributeValueSuggestions?: Record<string, Array<string>> | undefined;
+  loadingAttributeValueKeys?: Array<string> | undefined;
+  onAttributeKeySelected?: ((key: string) => void) | undefined;
 }
 
 const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -157,6 +161,11 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dictionary,
             title: "Filter by Attributes",
             jsonKeysForDictionary: props.attributeKeys,
+            isLoadingDictionaryKeys: props.isLoadingAttributeKeys,
+            dictionaryValueSuggestions: props.attributeValueSuggestions,
+            loadingDictionaryValueKeys: props.loadingAttributeValueKeys,
+            onDictionaryKeySelected: props.onAttributeKeySelected,
+            dictionaryEnableOperators: true,
             description:
               "You can filter the Traces based on the attributes that are attached to the Traces.",
             hideOptionalLabel: true,

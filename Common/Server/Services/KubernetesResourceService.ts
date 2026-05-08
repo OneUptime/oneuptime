@@ -40,6 +40,23 @@ export interface DegradedNode {
   message: string;
 }
 
+export interface ResourceLatestMetric {
+  kind: string;
+  namespaceKey: string;
+  name: string;
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  observedAt: Date;
+  /*
+   * Optional Pod controller lineage. Read from
+   * resource.k8s.deployment.name / resource.k8s.cronjob.name on the
+   * metric stream. Persisted via COALESCE so once written they stick
+   * even if a later batch lacks the attribute.
+   */
+  controllerDeploymentName?: string | null;
+  controllerCronJobName?: string | null;
+}
+
 export interface InventorySummary {
   countsByKind: Record<string, number>;
   /*
@@ -396,6 +413,83 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * Update latestCpuPercent / latestMemoryBytes / metricsUpdatedAt for
+   * a batch of resources (typically Pods or Nodes). Plain UPDATE: if
+   * the snapshot row doesn't exist yet, the metric write is silently
+   * skipped — the next k8sobjects snapshot creates the row, and the
+   * next metric flush catches up.
+   *
+   * Guarded by metricsUpdatedAt so out-of-order points don't regress
+   * a newer observation.
+   */
+  @CaptureSpan()
+  public async bulkUpdateLatestMetrics(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    metrics: Array<ResourceLatestMetric>;
+  }): Promise<void> {
+    if (data.metrics.length === 0) {
+      return;
+    }
+
+    for (let i: number = 0; i < data.metrics.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ResourceLatestMetric> = data.metrics.slice(
+        i,
+        i + UPSERT_BATCH_SIZE,
+      );
+
+      const valueFragments: Array<string> = [];
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+      ];
+      let paramIndex: number = 3;
+
+      for (const m of chunk) {
+        valueFragments.push(
+          `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::timestamptz, $${paramIndex++}, $${paramIndex++})`,
+        );
+        params.push(
+          m.kind,
+          m.namespaceKey,
+          m.name,
+          m.cpuPercent !== null && m.cpuPercent !== undefined
+            ? m.cpuPercent
+            : null,
+          m.memoryBytes !== null && m.memoryBytes !== undefined
+            ? Math.trunc(m.memoryBytes).toString()
+            : null,
+          m.observedAt,
+          m.controllerDeploymentName ?? null,
+          m.controllerCronJobName ?? null,
+        );
+      }
+
+      const sql: string = `
+        UPDATE "KubernetesResource" AS k
+        SET
+          "latestCpuPercent" = COALESCE(v."cpu", k."latestCpuPercent"),
+          "latestMemoryBytes" = COALESCE(v."mem", k."latestMemoryBytes"),
+          "metricsUpdatedAt" = v."observedAt",
+          "controllerDeploymentName" = COALESCE(v."deployName", k."controllerDeploymentName"),
+          "controllerCronJobName" = COALESCE(v."cronName", k."controllerCronJobName"),
+          "updatedAt" = now()
+        FROM (VALUES ${valueFragments.join(", ")})
+          AS v("kind", "ns", "name", "cpu", "mem", "observedAt", "deployName", "cronName")
+        WHERE
+          k."projectId" = $1
+          AND k."kubernetesClusterId" = $2
+          AND k."kind" = v."kind"
+          AND k."namespaceKey" = v."ns"
+          AND k."name" = v."name"
+          AND (k."metricsUpdatedAt" IS NULL OR v."observedAt" >= k."metricsUpdatedAt")
+      `;
+
+      await this.getRepository().manager.query(sql, params);
+    }
+  }
+
+  /**
    * Hard-delete all resources in a cluster whose last snapshot is
    * older than olderThan. Returns the number of deleted rows.
    */
@@ -637,6 +731,145 @@ export class Service extends DatabaseService<Model> {
       degradedPods,
       degradedNodes,
     };
+  }
+
+  /**
+   * Aggregate the latest pod CPU/memory by namespace. Used by the
+   * Namespaces list view, replacing the prior ClickHouse groupBy
+   * scan. Only counts pods whose metricsUpdatedAt is within the
+   * staleness window so we don't surface stale numbers as current.
+   */
+  @CaptureSpan()
+  public async getLatestMetricsByNamespace(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    staleAfter: Date;
+  }): Promise<Map<string, { cpuPercent: number; memoryBytes: number }>> {
+    const rows: Array<{
+      namespaceKey: string;
+      cpu: string | null;
+      mem: string | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT "namespaceKey",
+              SUM("latestCpuPercent")::text AS cpu,
+              SUM("latestMemoryBytes")::text AS mem
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND "kind" = 'Pod'
+         AND "deletedAt" IS NULL
+         AND "metricsUpdatedAt" IS NOT NULL
+         AND "metricsUpdatedAt" >= $3
+       GROUP BY "namespaceKey"`,
+      [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+        data.staleAfter,
+      ],
+    );
+
+    const out: Map<string, { cpuPercent: number; memoryBytes: number }> =
+      new Map();
+    for (const row of rows) {
+      out.set(row.namespaceKey || "", {
+        cpuPercent: row.cpu ? parseFloat(row.cpu) || 0 : 0,
+        memoryBytes: row.mem ? parseInt(row.mem, 10) || 0 : 0,
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Aggregate the latest pod CPU/memory by owner (Deployment /
+   * StatefulSet / DaemonSet / Job / CronJob).
+   *
+   * Direct-owner kinds (StatefulSet, DaemonSet, Job) read from the
+   * Pod's ownerReferences JSONB. Indirect-owner kinds (Deployment,
+   * CronJob) read from the denormalized controllerDeploymentName /
+   * controllerCronJobName columns populated by the metric ingest
+   * path — Pods don't directly own to those kinds, so we can't walk
+   * ownerReferences for them.
+   *
+   * Returns a Map keyed by owner name. Pods without recent metrics
+   * (metricsUpdatedAt past the staleness cutoff) are excluded so the
+   * sum reflects "right now," not "ever observed."
+   */
+  @CaptureSpan()
+  public async getLatestMetricsByOwner(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    ownerKind: string;
+    staleAfter: Date;
+  }): Promise<Map<string, { cpuPercent: number; memoryBytes: number }>> {
+    let rows: Array<{
+      ownerName: string;
+      cpu: string | null;
+      mem: string | null;
+    }>;
+
+    if (data.ownerKind === "Deployment" || data.ownerKind === "CronJob") {
+      const column: string =
+        data.ownerKind === "Deployment"
+          ? "controllerDeploymentName"
+          : "controllerCronJobName";
+      rows = await this.getRepository().manager.query(
+        `SELECT
+           "${column}" AS "ownerName",
+           SUM("latestCpuPercent")::text AS cpu,
+           SUM("latestMemoryBytes")::text AS mem
+         FROM "KubernetesResource"
+         WHERE "projectId" = $1
+           AND "kubernetesClusterId" = $2
+           AND "kind" = 'Pod'
+           AND "deletedAt" IS NULL
+           AND "metricsUpdatedAt" IS NOT NULL
+           AND "metricsUpdatedAt" >= $3
+           AND "${column}" IS NOT NULL
+         GROUP BY "${column}"`,
+        [
+          data.projectId.toString(),
+          data.kubernetesClusterId.toString(),
+          data.staleAfter,
+        ],
+      );
+    } else {
+      rows = await this.getRepository().manager.query(
+        `SELECT
+           (owner->>'name') AS "ownerName",
+           SUM("latestCpuPercent")::text AS cpu,
+           SUM("latestMemoryBytes")::text AS mem
+         FROM "KubernetesResource",
+              jsonb_array_elements("ownerReferences"->'items') AS owner
+         WHERE "projectId" = $1
+           AND "kubernetesClusterId" = $2
+           AND "kind" = 'Pod'
+           AND "deletedAt" IS NULL
+           AND "metricsUpdatedAt" IS NOT NULL
+           AND "metricsUpdatedAt" >= $3
+           AND "ownerReferences" IS NOT NULL
+           AND owner->>'kind' = $4
+         GROUP BY (owner->>'name')`,
+        [
+          data.projectId.toString(),
+          data.kubernetesClusterId.toString(),
+          data.staleAfter,
+          data.ownerKind,
+        ],
+      );
+    }
+
+    const out: Map<string, { cpuPercent: number; memoryBytes: number }> =
+      new Map();
+    for (const row of rows) {
+      if (!row.ownerName) {
+        continue;
+      }
+      out.set(row.ownerName, {
+        cpuPercent: row.cpu ? parseFloat(row.cpu) || 0 : 0,
+        memoryBytes: row.mem ? parseInt(row.mem, 10) || 0 : 0,
+      });
+    }
+    return out;
   }
 
   /**

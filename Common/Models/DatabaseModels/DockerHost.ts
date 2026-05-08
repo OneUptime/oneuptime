@@ -10,7 +10,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -64,12 +63,6 @@ import {
     Permission.SettingsManager,
     Permission.EditDockerHost,
   ],
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
 })
 @CrudApiEndpoint(new Route("/docker-host"))
 @SlugifyColumn("name", "slug")
@@ -513,7 +506,7 @@ export default class DockerHost extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "OS Version",
     description: "Operating system version of the Docker host",
@@ -521,8 +514,8 @@ export default class DockerHost extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public osVersion?: string = undefined;
 

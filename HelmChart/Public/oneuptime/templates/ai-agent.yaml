@@ -44,6 +44,13 @@ spec:
       securityContext:
         {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
+      {{- if $.Values.aiAgent.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.aiAgent.hostAliases | nindent 8 }}
+      {{- else if $.Values.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.hostAliases | nindent 8 }}
+      {{- end }}
       {{- if $.Values.affinity }}
       affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
       {{- end }}

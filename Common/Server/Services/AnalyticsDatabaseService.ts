@@ -787,6 +787,27 @@ export default class AnalyticsDatabaseService<
     }}
         `);
 
+    /*
+     * Aggregation read-path settings.
+     *
+     * - optimize_aggregation_in_order: when GROUP BY is a prefix of the
+     *   sort key (we always group by a time bucket and the time column
+     *   is at the tail of every analytics primary key), ClickHouse can
+     *   stream rows in order and emit aggregates without an in-memory
+     *   sort, which is a large speedup on wide time ranges.
+     * - optimize_move_to_prewhere: PREWHERE is a default-on optimizer
+     *   pass; we set it explicitly so the behavior is independent of
+     *   server-side defaults.
+     * - max_threads=4: caps per-query parallelism so a single dashboard
+     *   load (which fans out to many aggregate calls) does not starve
+     *   other tenants on the cluster. Per-query latency is essentially
+     *   unchanged at 4 threads for the usual dashboard widget time
+     *   ranges, but cluster headroom is preserved under burst.
+     */
+    statement.append(
+      ` SETTINGS optimize_aggregation_in_order=1, optimize_move_to_prewhere=1, max_threads=4`,
+    );
+
     logger.debug(`${this.model.tableName} Aggregate Statement`, { tableName: this.model.tableName } as LogAttributes);
     logger.debug(statement, { tableName: this.model.tableName } as LogAttributes);
 

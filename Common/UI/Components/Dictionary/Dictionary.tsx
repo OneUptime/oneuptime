@@ -11,6 +11,15 @@ import React, {
 } from "react";
 import AutocompleteTextInput from "../AutocompleteTextInput/AutocompleteTextInput";
 import FieldLabelElement from "../Forms/Fields/FieldLabel";
+import {
+  DICTIONARY_FILTER_OPERATOR_OPTIONS,
+  DictionaryEntryValue,
+  DictionaryFilterOperator,
+  DictionaryFilterOperatorOption,
+  buildDictionaryValue,
+  detectOperatorFromValue,
+  getOperatorOption,
+} from "./DictionaryFilterOperator";
 
 export enum ValueType {
   Text = "Text",
@@ -19,10 +28,8 @@ export enum ValueType {
 }
 
 export interface ComponentProps {
-  onChange?:
-    | undefined
-    | ((value: Dictionary<string | boolean | number>) => void);
-  initialValue?: Dictionary<string | boolean | number>;
+  onChange?: undefined | ((value: Dictionary<DictionaryEntryValue>) => void);
+  initialValue?: Dictionary<DictionaryEntryValue>;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   addButtonSuffix?: string | undefined;
@@ -30,12 +37,21 @@ export interface ComponentProps {
   keys?: Array<string> | undefined;
   valueSuggestions?: Record<string, Array<string>> | undefined;
   onKeySelected?: ((key: string) => void) | undefined;
+  isLoadingKeys?: boolean | undefined;
+  loadingValueKeys?: Array<string> | undefined;
+  /*
+   * When true, render an operator dropdown (=, !=, contains, etc.)
+   * between the key and value inputs. Defaults to false for backwards
+   * compatibility with simple key/value forms.
+   */
+  enableOperators?: boolean | undefined;
 }
 
 interface Item {
   key: string;
   value: string | number | boolean;
   type: ValueType;
+  operator: DictionaryFilterOperator;
 }
 
 const DictionaryForm: FunctionComponent<ComponentProps> = (
@@ -57,12 +73,10 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   const [data, setData] = useState<Array<Item>>([]);
   const [isInitialValueSet, setIsInitialValueSet] = useState<boolean>(false);
 
-  type UpdateDataFunction = (
-    json: Dictionary<string | number | boolean>,
-  ) => void;
+  type UpdateDataFunction = (json: Dictionary<DictionaryEntryValue>) => void;
 
   const updateData: UpdateDataFunction = (
-    json: Dictionary<string | number | boolean>,
+    json: Dictionary<DictionaryEntryValue>,
   ): void => {
     const newData: Array<Item> = Object.keys(json).map((key: string) => {
       // check if the value type is in data
@@ -73,22 +87,46 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
 
       let valueType: ValueType = valueTypeInData || ValueType.Text;
 
+      const rawEntry: DictionaryEntryValue | undefined = json[key];
+
       if (!valueTypeInData) {
-        if (typeof json[key] === "number") {
+        if (typeof rawEntry === "number") {
           valueType = ValueType.Number;
         }
 
-        if (typeof json[key] === "boolean") {
+        if (typeof rawEntry === "boolean") {
           valueType = ValueType.Boolean;
         }
       }
 
-      const value: string | number | boolean | undefined = json[key];
+      const detected: {
+        operator: DictionaryFilterOperator;
+        rawValue: string;
+      } = detectOperatorFromValue(rawEntry);
+
+      /*
+       * Restore typed values (number/boolean) for the form input from
+       * the stringified raw representation when the column type allows.
+       */
+      let restoredValue: string | number | boolean = detected.rawValue;
+      if (valueType === ValueType.Number && detected.rawValue !== "") {
+        const parsed: number = Number(detected.rawValue);
+        restoredValue = isNaN(parsed) ? detected.rawValue : parsed;
+      } else if (valueType === ValueType.Boolean) {
+        if (typeof rawEntry === "boolean") {
+          restoredValue = rawEntry;
+        } else if (detected.rawValue.toLowerCase() === "true") {
+          restoredValue = true;
+        } else if (detected.rawValue.toLowerCase() === "false") {
+          restoredValue = false;
+        }
+      }
 
       return {
         key: key,
-        value: value === undefined || value === null ? "" : value,
+        value: restoredValue,
         type: valueType,
+        operator: detected.operator,
       };
     });
 
@@ -109,9 +147,35 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   type OnDataChangeFunction = (data: Array<Item>) => void;
 
   const onDataChange: OnDataChangeFunction = (data: Array<Item>): void => {
-    const result: Dictionary<string | number | boolean> = {};
+    const result: Dictionary<DictionaryEntryValue> = {};
     data.forEach((item: Item) => {
-      result[item.key] = item.value;
+      /*
+       * Non-text types skip the operator system — the existing
+       * numeric/boolean inputs always represent equality.
+       */
+      if (item.type === ValueType.Number) {
+        result[item.key] = item.value as number;
+        return;
+      }
+      if (item.type === ValueType.Boolean) {
+        result[item.key] = item.value as boolean;
+        return;
+      }
+
+      const operatorOption: DictionaryFilterOperatorOption = getOperatorOption(
+        item.operator,
+      );
+      if (operatorOption.hidesValueInput) {
+        result[item.key] = buildDictionaryValue({
+          operator: item.operator,
+          rawValue: "",
+        });
+        return;
+      }
+      result[item.key] = buildDictionaryValue({
+        operator: item.operator,
+        rawValue: String(item.value ?? ""),
+      });
     });
     if (props.onChange) {
       props.onChange(result);
@@ -138,13 +202,36 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     return "";
   };
 
+  const operatorDropdownOptions: Array<DropdownOption> =
+    DICTIONARY_FILTER_OPERATOR_OPTIONS.map(
+      (option: DictionaryFilterOperatorOption) => {
+        return {
+          label: option.symbol,
+          value: option.operator,
+        };
+      },
+    );
+
   return (
     <div>
       <div>
         {data.map((item: Item, index: number) => {
+          const operatorOption: DictionaryFilterOperatorOption =
+            getOperatorOption(item.operator);
+          const showOperatorSelector: boolean = Boolean(props.enableOperators);
+          const hideValueInput: boolean = Boolean(
+            showOperatorSelector && operatorOption.hidesValueInput,
+          );
+          const valueColumnClass: string = showOperatorSelector
+            ? "ml-1 w-2/5"
+            : "ml-1 w-1/2";
+          const keyColumnClass: string = showOperatorSelector
+            ? "mr-1 w-2/5"
+            : "mr-1 w-1/2";
+
           return (
             <div key={index} className="flex items-start mb-4 last:mb-0">
-              <div className="mr-1 w-1/2">
+              <div className={keyColumnClass}>
                 <div className="mb-1">
                   <FieldLabelElement
                     title="Key"
@@ -157,6 +244,8 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   value={item.key}
                   placeholder={props.keyPlaceholder}
                   suggestions={props.keys}
+                  isLoadingSuggestions={props.isLoadingKeys}
+                  loadingMessage="Loading attributes..."
                   onChange={(value: string) => {
                     const newData: Array<Item> = [...data];
                     newData[index]!.key = value;
@@ -171,9 +260,56 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
 
-              <div className="mr-1 ml-1 flex items-center justify-center pt-8">
-                <span className="text-slate-500 text-2xl leading-none">=</span>
-              </div>
+              {showOperatorSelector ? (
+                <div className="mr-1 ml-1 w-1/5 min-w-[120px]">
+                  <div className="mb-1">
+                    <FieldLabelElement
+                      title="Operator"
+                      required={true}
+                      hideOptionalLabel={true}
+                      className="block text-xs text-gray-500 font-normal flex justify-between"
+                    />
+                  </div>
+                  <Dropdown
+                    value={operatorDropdownOptions.find(
+                      (option: DropdownOption) => {
+                        return option.value === item.operator;
+                      },
+                    )}
+                    options={operatorDropdownOptions}
+                    isMultiSelect={false}
+                    onChange={(
+                      selectedOption:
+                        | DropdownValue
+                        | Array<DropdownValue>
+                        | null,
+                    ) => {
+                      const newOperator: DictionaryFilterOperator =
+                        (selectedOption as DictionaryFilterOperator) ||
+                        DictionaryFilterOperator.EqualTo;
+                      const newOperatorOption: DictionaryFilterOperatorOption =
+                        getOperatorOption(newOperator);
+                      const newData: Array<Item> = [...data];
+                      newData[index]!.operator = newOperator;
+                      /*
+                       * Reset the value when switching to a value-less
+                       * operator so we don't ship stale text downstream.
+                       */
+                      if (newOperatorOption.hidesValueInput) {
+                        newData[index]!.value = "";
+                      }
+                      setData(newData);
+                      onDataChange(newData);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="mr-1 ml-1 flex items-center justify-center pt-8">
+                  <span className="text-slate-500 text-2xl leading-none">
+                    =
+                  </span>
+                </div>
+              )}
               {valueTypes.length > 1 && (
                 <div className="ml-1 w-1/2">
                   <div className="mb-1">
@@ -209,7 +345,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               )}
-              <div className="ml-1 w-1/2">
+              <div className={valueColumnClass}>
                 <div className="mb-1">
                   <FieldLabelElement
                     title="Value"
@@ -218,15 +354,40 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     className="block text-xs text-gray-500 font-normal flex justify-between"
                   />
                 </div>
-                {item.type === ValueType.Text && (
+                {hideValueInput && (
+                  <Input
+                    value=""
+                    placeholder={operatorOption.label}
+                    disabled={true}
+                    onChange={() => {
+                      // no-op — IsEmpty/IsNotEmpty have no value
+                    }}
+                  />
+                )}
+                {!hideValueInput && item.type === ValueType.Text && (
                   <AutocompleteTextInput
                     value={item.value.toString()}
-                    placeholder={props.valuePlaceholder}
-                    suggestions={
-                      item.key && props.valueSuggestions?.[item.key]
-                        ? props.valueSuggestions[item.key]
-                        : undefined
+                    placeholder={
+                      operatorOption.expectsNumericValue
+                        ? "Number"
+                        : props.valuePlaceholder
                     }
+                    suggestions={
+                      operatorOption.expectsNumericValue
+                        ? undefined
+                        : item.key && props.valueSuggestions?.[item.key]
+                          ? props.valueSuggestions[item.key]
+                          : undefined
+                    }
+                    isLoadingSuggestions={
+                      operatorOption.expectsNumericValue
+                        ? false
+                        : Boolean(
+                            item.key &&
+                              props.loadingValueKeys?.includes(item.key),
+                          )
+                    }
+                    loadingMessage="Loading values..."
                     onChange={(value: string) => {
                       const newData: Array<Item> = [...data];
                       newData[index]!.value = value;
@@ -236,7 +397,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 )}
 
-                {item.type === ValueType.Number && (
+                {!hideValueInput && item.type === ValueType.Number && (
                   <Input
                     value={item.value.toString()}
                     placeholder={props.valuePlaceholder}
@@ -256,7 +417,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 )}
 
-                {item.type === ValueType.Boolean && (
+                {!hideValueInput && item.type === ValueType.Boolean && (
                   <Dropdown
                     value={
                       item.value === true
@@ -315,6 +476,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   key: "",
                   value: getDefaultValueForType(valueTypes[0] as ValueType),
                   type: valueTypes[0] as ValueType,
+                  operator: DictionaryFilterOperator.EqualTo,
                 },
               ]);
             }}

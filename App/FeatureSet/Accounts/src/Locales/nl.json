@@ -1,0 +1,108 @@
+{
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "submit": "Verzenden",
+    "close": "Sluiten",
+    "loading": "Laden...",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "fullName": "Volledige naam",
+    "companyName": "Bedrijfsnaam",
+    "phoneNumber": "Telefoonnummer",
+    "confirmPassword": "Wachtwoord bevestigen",
+    "newPassword": "Nieuw wachtwoord",
+    "code": "Code",
+    "yourCompany": "Uw bedrijf"
+  },
+  "language": {
+    "label": "Taal",
+    "switchLanguage": "Taal wijzigen"
+  },
+  "footer": {
+    "copyright": "OneUptime",
+    "contact": "Contact",
+    "privacyAndTerms": "Privacy & voorwaarden"
+  },
+  "captcha": {
+    "title": "Menselijke verificatie",
+    "description": "Voltooi de captcha-uitdaging zodat we weten dat u geen bot bent.",
+    "errorOnSignIn": "Voltooi de captcha-uitdaging voordat u zich aanmeldt.",
+    "errorOnSignUp": "Voltooi de captcha-uitdaging voordat u zich registreert."
+  },
+  "login": {
+    "title": "Meld u aan bij uw account",
+    "subtitle": "Sluit u aan bij duizenden bedrijven die OneUptime gebruiken om de hele tijd online te blijven.",
+    "submitButton": "Inloggen",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "useSso": "Gebruik in plaats daarvan single sign-on (SSO)",
+    "noAccountPrompt": "Hebt u geen account?",
+    "registerLink": "Registreren.",
+    "twoFactor": {
+      "title": "Tweefactorauthenticatie",
+      "subtitle": "Selecteer een tweefactorauthenticatiemethode. U wordt gevraagd een code in te voeren van de geselecteerde methode.",
+      "authenticatorApp": "Authenticator-app",
+      "securityKey": "Beveiligingssleutel",
+      "authenticatingWithSecurityKey": "Authenticeren met beveiligingssleutel",
+      "securityKeyInstructions": "Volg de instructies op uw beveiligingssleutelapparaat.",
+      "codeFieldDescription": "Voer de code in van uw authenticator-app",
+      "selectDifferentMethod": "Selecteer een andere tweefactorauthenticatiemethode"
+    }
+  },
+  "register": {
+    "title": "Maak uw OneUptime-account aan",
+    "subtitle": "Sluit u aan bij duizenden bedrijven die OneUptime gebruiken om de hele tijd online te blijven.",
+    "noCreditCard": "Geen creditcard vereist.",
+    "submitButton": "Aanmelden",
+    "haveAccountPrompt": "Hebt u al een account?",
+    "loginLink": "Inloggen.",
+    "notifySelfHosted": "Stel mij op de hoogte van beveiligingspatches en nieuwe versies"
+  },
+  "forgotPassword": {
+    "title": "Wachtwoord vergeten",
+    "subtitle": "Voer uw e-mailadres in en de wachtwoordresetlink wordt naar u verzonden.",
+    "successMessage": "We hebben u de wachtwoordresetlink gemaild. Vergeet niet de spammap te controleren.",
+    "submitButton": "Wachtwoordresetlink verzenden",
+    "returnToSignIn": "Terug naar aanmelden.",
+    "rememberPasswordPrompt": "Herinnert u uw wachtwoord?",
+    "loginLink": "Inloggen."
+  },
+  "resetPassword": {
+    "title": "Reset uw wachtwoord",
+    "subtitle": "Voer uw nieuwe wachtwoord in en we werken het bij.",
+    "successMessage": "Uw wachtwoord is bijgewerkt. Log in alstublieft.",
+    "submitButton": "Wachtwoord resetten",
+    "knowPasswordPrompt": "Kent u uw wachtwoord?",
+    "loginLink": "Inloggen."
+  },
+  "sso": {
+    "title": "Inloggen met SSO",
+    "subtitle": "Log in met uw SSO-provider om toegang te krijgen tot uw account.",
+    "submitButton": "Inloggen met SSO",
+    "useUsernameInstead": "Gebruik in plaats daarvan gebruikersnaam en wachtwoord.",
+    "noAccountPrompt": "Hebt u geen account?",
+    "registerLink": "Registreren.",
+    "selectProjectTitle": "Project selecteren",
+    "selectProjectSubtitle": "Selecteer het project waarop u wilt inloggen.",
+    "noConfigForEmail": "Geen SSO-configuratie gevonden voor e-mail: {{email}}",
+    "emailRequired": "E-mail is vereist om deze actie uit te voeren",
+    "defaultProjectName": "Project"
+  },
+  "verifyEmail": {
+    "successTitle": "Uw e-mail is geverifieerd.",
+    "successDescription": "Bedankt voor het verifiëren van uw e-mail. U kunt nu inloggen bij OneUptime.",
+    "errorTitle": "Sorry, er is iets misgegaan!",
+    "returnToSignIn": "Terug naar aanmelden?",
+    "loginLink": "Inloggen."
+  },
+  "errors": {
+    "forbidden": {
+      "title": "Verboden",
+      "description": "U hebt geen toestemming om deze pagina te openen."
+    },
+    "notFound": {
+      "title": "Pagina niet gevonden",
+      "description": "De pagina die u zoekt bestaat niet."
+    }
+  }
+}

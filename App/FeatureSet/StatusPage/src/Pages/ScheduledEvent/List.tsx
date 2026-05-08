@@ -44,7 +44,7 @@ import useAsyncEffect from "use-async-effect";
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n: i18nInstance } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [
@@ -294,7 +294,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     setOngoingEventsParsedData(ongoingEventProps);
     setScheduledEventsParsedData(scheduledEventProps);
     setEndedEventsParsedData(endedEventProps);
-  }, [isLoading]);
+  }, [isLoading, i18nInstance.resolvedLanguage]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
