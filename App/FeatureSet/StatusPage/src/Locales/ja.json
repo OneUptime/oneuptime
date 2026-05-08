@@ -163,6 +163,7 @@
       "title": "購読を更新",
       "description": "ここで購読設定を更新または解除できます。",
       "saved": "変更が保存されました。",
+      "submit": "購読を更新",
       "unsubscribe": "購読解除",
       "unsubscribeDescription": "すべてのリソースの購読を解除したい場合は、これを選択してください。"
     },

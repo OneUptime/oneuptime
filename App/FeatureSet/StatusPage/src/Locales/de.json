@@ -163,6 +163,7 @@
       "title": "Abonnement aktualisieren",
       "description": "Sie können Ihre Abonnementeinstellungen hier aktualisieren oder sich abmelden.",
       "saved": "Ihre Änderungen wurden gespeichert.",
+      "submit": "Abonnement aktualisieren",
       "unsubscribe": "Abbestellen",
       "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten."
     },

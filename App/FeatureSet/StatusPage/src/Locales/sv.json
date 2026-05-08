@@ -163,6 +163,7 @@
       "title": "Uppdatera prenumeration",
       "description": "Du kan uppdatera dina prenumerationsinställningar eller avsluta prenumerationen här.",
       "saved": "Dina ändringar har sparats.",
+      "submit": "Uppdatera prenumeration",
       "unsubscribe": "Avsluta prenumeration",
       "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser."
     },

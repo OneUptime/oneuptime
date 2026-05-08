@@ -4,6 +4,11 @@
  */
 
 enum StatusPageSubscriberNotificationEventType {
+  // Subscriber lifecycle events
+  SubscriberSubscriptionConfirmation = "Subscriber Subscription Confirmation",
+  SubscriberSubscribed = "Subscriber Subscribed",
+  SubscriberManageSubscription = "Subscriber Manage Subscription",
+
   // Incident related events
   SubscriberIncidentCreated = "Subscriber Incident Created",
   SubscriberIncidentStateChanged = "Subscriber Incident State Changed",

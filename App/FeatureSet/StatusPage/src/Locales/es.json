@@ -163,6 +163,7 @@
       "title": "Actualizar suscripción",
       "description": "Puede actualizar sus preferencias de suscripción o cancelar la suscripción aquí.",
       "saved": "Sus cambios se han guardado.",
+      "submit": "Actualizar suscripción",
       "unsubscribe": "Cancelar suscripción",
       "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos."
     },

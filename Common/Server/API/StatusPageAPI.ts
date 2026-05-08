@@ -104,6 +104,12 @@ import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "../Services/StatusPageSubscriberNotificationTemplateService";
 
 type ResolveStatusPageIdOrThrowFunction = (
   statusPageIdOrDomain: string,
@@ -3334,6 +3340,45 @@ export default class StatusPageAPI extends BaseAPI<
 
     for (const statusPage of statusPages) {
       // send email to subscriber or sms if phone is provided.
+      const statusPageNameStr: string = statusPage.name || "Status Page";
+
+      const [
+        manageEmailTemplate,
+        manageSmsTemplate,
+        manageSlackTemplate,
+      ]: Array<StatusPageSubscriberNotificationTemplate | null> =
+        await Promise.all([
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod: StatusPageSubscriberNotificationMethod.Email,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod: StatusPageSubscriberNotificationMethod.Slack,
+            },
+          ),
+        ]);
+
+      const manageTemplateVariables: Record<string, string> = {
+        statusPageName: statusPageNameStr,
+        statusPageUrl: statusPageURL,
+        manageSubscriptionUrl: manageUrlink,
+      };
 
       if (email) {
         const host: Hostname = await DatabaseConfig.getHost();
@@ -3341,46 +3386,89 @@ export default class StatusPageAPI extends BaseAPI<
         const statusPageIdString: string | null =
           statusPage.id?.toString() || statusPage._id?.toString() || null;
 
-        MailService.sendMail(
-          {
-            toEmail: email,
-            templateType:
-              EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
-            vars: {
-              statusPageName: statusPage.name || "Status Page",
-              statusPageUrl: statusPageURL,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
-              isPublicStatusPage: statusPage.isPublicStatusPage
-                ? "true"
-                : "false",
-              subscriberEmailNotificationFooterText:
-                StatusPageServiceType.getSubscriberEmailFooterText(statusPage),
+        if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
+          const compiledBody: string =
+            StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              manageEmailTemplate.templateBody,
+              manageTemplateVariables,
+            );
+          const compiledSubject: string = manageEmailTemplate.emailSubject
+            ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageEmailTemplate.emailSubject,
+                manageTemplateVariables,
+              )
+            : "Manage your Subscription for " + statusPageNameStr;
 
-              manageSubscriptionUrl: manageUrlink,
+          MailService.sendMail(
+            {
+              toEmail: email,
+              templateType: EmailTemplateType.BlankTemplate,
+              vars: {
+                body: compiledBody,
+              },
+              subject: compiledSubject,
             },
-            subject:
-              "Manage your Subscription for " +
-              (statusPage.name || "Status Page"),
-          },
-          {
-            mailServer: ProjectSmtpConfigService.toEmailServer(
-              statusPage.smtpConfig,
-            ),
-            projectId: statusPage.projectId!,
-            statusPageId: statusPage.id!,
-          },
-        );
+            {
+              mailServer: ProjectSmtpConfigService.toEmailServer(
+                statusPage.smtpConfig,
+              ),
+              projectId: statusPage.projectId!,
+              statusPageId: statusPage.id!,
+            },
+          );
+        } else {
+          MailService.sendMail(
+            {
+              toEmail: email,
+              templateType:
+                EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
+              vars: {
+                statusPageName: statusPageNameStr,
+                statusPageUrl: statusPageURL,
+                logoUrl:
+                  statusPage.logoFileId && statusPageIdString
+                    ? new URL(httpProtocol, host)
+                        .addRoute(StatusPageApiRoute)
+                        .addRoute(`/logo/${statusPageIdString}`)
+                        .toString()
+                    : "",
+                isPublicStatusPage: statusPage.isPublicStatusPage
+                  ? "true"
+                  : "false",
+                subscriberEmailNotificationFooterText:
+                  StatusPageServiceType.getSubscriberEmailFooterText(
+                    statusPage,
+                  ),
+
+                manageSubscriptionUrl: manageUrlink,
+              },
+              subject: "Manage your Subscription for " + statusPageNameStr,
+            },
+            {
+              mailServer: ProjectSmtpConfigService.toEmailServer(
+                statusPage.smtpConfig,
+              ),
+              projectId: statusPage.projectId!,
+              statusPageId: statusPage.id!,
+            },
+          );
+        }
       }
 
       if (phone) {
+        let smsMessage: string;
+        if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
+          smsMessage =
+            StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              manageSmsTemplate.templateBody,
+              manageTemplateVariables,
+            );
+        } else {
+          smsMessage = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
+        }
+
         const sms: SMS = {
-          message: `You have selected to manage your subscription for the status page: ${statusPage.name}. You can manage your subscription here: ${manageUrlink}`,
+          message: smsMessage,
           to: phone,
         };
         // send sms here.
@@ -3396,11 +3484,20 @@ export default class StatusPageAPI extends BaseAPI<
       }
 
       if (statusPageSubscriber.slackIncomingWebhookUrl) {
-        const slackMessage: string = `You have selected to manage your subscription for the status page: ${statusPage.name}. You can manage your subscription here: ${manageUrlink}`;
+        let slackMessage: string;
+        if (manageSlackTemplate?.templateBody) {
+          slackMessage =
+            StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              manageSlackTemplate.templateBody,
+              manageTemplateVariables,
+            );
+        } else {
+          slackMessage = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
+        }
 
         SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: statusPageSubscriber.slackIncomingWebhookUrl,
-          text: slackMessage,
+          text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
         }).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as any));
         });
@@ -3663,6 +3760,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
+      !isUpdate &&
       req.body.data["statusPageResources"] &&
       !statusPage.allowSubscribersToChooseResources
     ) {
@@ -3676,6 +3774,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
+      !isUpdate &&
       req.body.data["statusPageEventTypes"] &&
       !statusPage.allowSubscribersToChooseEventTypes
     ) {
@@ -3741,6 +3840,9 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageResources: statusPageSubscriber.statusPageResources!,
           isSubscribedToAllResources:
             statusPageSubscriber.isSubscribedToAllResources!,
+          statusPageEventTypes: statusPageSubscriber.statusPageEventTypes!,
+          isSubscribedToAllEventTypes:
+            statusPageSubscriber.isSubscribedToAllEventTypes!,
           isUnsubscribed: statusPageSubscriber.isUnsubscribed,
         } as any,
         props: {
@@ -3814,6 +3916,8 @@ export default class StatusPageAPI extends BaseAPI<
           statusPageId: true,
           statusPageResources: true,
           isSubscribedToAllResources: true,
+          statusPageEventTypes: true,
+          isSubscribedToAllEventTypes: true,
         },
         props: {
           isRoot: true,

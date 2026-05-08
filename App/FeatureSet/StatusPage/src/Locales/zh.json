@@ -163,6 +163,7 @@
       "title": "更新订阅",
       "description": "您可以在此更新订阅偏好或取消订阅。",
       "saved": "您的更改已保存。",
+      "submit": "更新订阅",
       "unsubscribe": "取消订阅",
       "unsubscribeDescription": "如果您想取消订阅所有资源，请选择此选项。"
     },

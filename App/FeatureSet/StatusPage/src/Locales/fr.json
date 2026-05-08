@@ -163,6 +163,7 @@
       "title": "Mettre à jour l'abonnement",
       "description": "Vous pouvez mettre à jour vos préférences d'abonnement ou vous désabonner ici.",
       "saved": "Vos modifications ont été enregistrées.",
+      "submit": "Mettre à jour l'abonnement",
       "unsubscribe": "Se désabonner",
       "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources."
     },

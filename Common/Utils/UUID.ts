@@ -6,10 +6,12 @@ export default class UUID {
       return cryptoObj.randomUUID();
     }
 
-    // crypto.randomUUID() is gated behind a secure context in browsers, so it is
-    // missing when the dashboard is served over plain HTTP from a non-localhost
-    // origin. crypto.getRandomValues() has no secure-context requirement, so use
-    // it to build an RFC 4122 §4.4 v4 UUID.
+    /*
+     * crypto.randomUUID() is gated behind a secure context in browsers, so it is
+     * missing when the dashboard is served over plain HTTP from a non-localhost
+     * origin. crypto.getRandomValues() has no secure-context requirement, so use
+     * it to build an RFC 4122 §4.4 v4 UUID.
+     */
     if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
       const bytes: Uint8Array = new Uint8Array(16);
       cryptoObj.getRandomValues(bytes);
@@ -31,9 +33,11 @@ export default class UUID {
       );
     }
 
-    // Last-resort fallback for environments without any Web Crypto API. Not
-    // cryptographically random, but produces a well-formed v4 UUID so callers
-    // that only need a unique key (e.g. form rows) keep working.
+    /*
+     * Last-resort fallback for environments without any Web Crypto API. Not
+     * cryptographically random, but produces a well-formed v4 UUID so callers
+     * that only need a unique key (e.g. form rows) keep working.
+     */
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
       /[xy]/g,
       (char: string) => {

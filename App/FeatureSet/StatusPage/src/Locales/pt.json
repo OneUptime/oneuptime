@@ -163,6 +163,7 @@
       "title": "Atualizar inscrição",
       "description": "Você pode atualizar suas preferências de inscrição ou cancelar a inscrição aqui.",
       "saved": "Suas alterações foram salvas.",
+      "submit": "Atualizar inscrição",
       "unsubscribe": "Cancelar inscrição",
       "unsubscribeDescription": "Selecione esta opção se desejar cancelar a inscrição em todos os recursos."
     },

@@ -202,7 +202,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           props.onIsLastFormStep(true);
         }
       }
-    }, [currentFormStepId, formSteps]);
+    }, [currentFormStepId, formSteps, props.submitButtonText]);
 
     const [currentValue, setCurrentValue] = useState<FormValues<T>>(
       props.initialValues || {},

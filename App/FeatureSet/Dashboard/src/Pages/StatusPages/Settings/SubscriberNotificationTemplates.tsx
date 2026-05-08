@@ -156,8 +156,10 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                 (currentFormValues.templateBody as string | undefined) || "";
               const currentSubject: string =
                 (currentFormValues.emailSubject as string | undefined) || "";
-              // Only seed empty fields so we never clobber edits the user has
-              // already made.
+              /*
+               * Only seed empty fields so we never clobber edits the user has
+               * already made.
+               */
               const updated: FormValues<StatusPageSubscriberNotificationTemplate> =
                 {
                   ...currentFormValues,

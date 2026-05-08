@@ -163,6 +163,7 @@
       "title": "Aggiorna iscrizione",
       "description": "Puoi aggiornare le tue preferenze di iscrizione o annullarla qui.",
       "saved": "Le tue modifiche sono state salvate.",
+      "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
       "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
     },

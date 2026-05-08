@@ -163,6 +163,7 @@
       "title": "Update Subscription",
       "description": "You can update your subscription preferences or unsubscribe here.",
       "saved": "Your changes have been saved.",
+      "submit": "Update Subscription",
       "unsubscribe": "Unsubscribe",
       "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources."
     },

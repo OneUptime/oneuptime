@@ -163,6 +163,7 @@
       "title": "Opdater abonnement",
       "description": "Du kan opdatere dine abonnementspræferencer eller afmelde dig her.",
       "saved": "Dine ændringer er blevet gemt.",
+      "submit": "Opdater abonnement",
       "unsubscribe": "Afmeld",
       "unsubscribeDescription": "Vælg dette, hvis du vil afmelde dig alle ressourcer."
     },

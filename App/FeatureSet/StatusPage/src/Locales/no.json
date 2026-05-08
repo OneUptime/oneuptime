@@ -163,6 +163,7 @@
       "title": "Oppdater abonnement",
       "description": "Du kan oppdatere abonnementsinnstillingene dine eller avslutte abonnementet her.",
       "saved": "Endringene dine er lagret.",
+      "submit": "Oppdater abonnement",
       "unsubscribe": "Avslutt abonnement",
       "unsubscribeDescription": "Velg dette hvis du vil avslutte abonnementet på alle ressurser."
     },

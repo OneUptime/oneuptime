@@ -28,11 +28,17 @@ import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "./StatusPageSubscriberNotificationTemplateService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -718,40 +724,98 @@ Stay informed about service availability! 🚀`;
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
 
-      MailService.sendMail(
-        {
-          toEmail: subscriber.subscriberEmail,
-          templateType: EmailTemplateType.ConfirmStatusPageSubscription,
-          vars: {
-            statusPageName: statusPageName,
-            logoUrl:
-              statusPage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
-            statusPageUrl: statusPageURL,
-            isPublicStatusPage: statusPage.isPublicStatusPage
-              ? "true"
-              : "false",
-            confirmationUrl: confirmSubscriptionLink,
-            unsubscribeUrl: unsubscribeUrl,
+      const customTemplate: StatusPageSubscriberNotificationTemplate | null =
+        await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+          {
+            statusPageId: statusPage.id!,
+            eventType:
+              StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation,
+            notificationMethod: StatusPageSubscriberNotificationMethod.Email,
           },
-          subject: "Confirm your subscription to " + statusPageName,
-        },
-        {
-          projectId: subscriber.projectId,
-          mailServer: ProjectSMTPConfigService.toEmailServer(
-            statusPage.smtpConfig,
-          ),
-          statusPageId: statusPage.id!,
-        },
-      ).catch((err: Error) => {
-        logger.error(err, {
-          projectId: subscriber.projectId?.toString(),
-        } as LogAttributes);
-      });
+        );
+
+      const templateVariables: Record<string, string> = {
+        statusPageName: statusPageName,
+        statusPageUrl: statusPageURL,
+        confirmationUrl: confirmSubscriptionLink,
+        unsubscribeUrl: unsubscribeUrl,
+      };
+
+      if (customTemplate?.templateBody && statusPage.smtpConfig) {
+        /*
+         * Use custom template only when custom SMTP is configured (matches the
+         * pattern used elsewhere — without custom SMTP we keep the styled
+         * OneUptime default so emails still look right out-of-the-box).
+         */
+        const compiledBody: string =
+          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+            customTemplate.templateBody,
+            templateVariables,
+          );
+        const compiledSubject: string = customTemplate.emailSubject
+          ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              customTemplate.emailSubject,
+              templateVariables,
+            )
+          : "Confirm your subscription to " + statusPageName;
+
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.BlankTemplate,
+            vars: {
+              body: compiledBody,
+            },
+            subject: compiledSubject,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      } else {
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.ConfirmStatusPageSubscription,
+            vars: {
+              statusPageName: statusPageName,
+              logoUrl:
+                statusPage.logoFileId && statusPageIdString
+                  ? new URL(httpProtocol, host)
+                      .addRoute(StatusPageApiRoute)
+                      .addRoute(`/logo/${statusPageIdString}`)
+                      .toString()
+                  : "",
+              statusPageUrl: statusPageURL,
+              isPublicStatusPage: statusPage.isPublicStatusPage
+                ? "true"
+                : "false",
+              confirmationUrl: confirmSubscriptionLink,
+              unsubscribeUrl: unsubscribeUrl,
+            },
+            subject: "Confirm your subscription to " + statusPageName,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      }
       logger.debug("Confirmation email sent.", {
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
@@ -885,42 +949,95 @@ Stay informed about service availability! 🚀`;
       logger.debug("Subscriber has an email and ID.", {
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
-      MailService.sendMail(
-        {
-          toEmail: subscriber.subscriberEmail,
-          templateType: EmailTemplateType.SubscribedToStatusPage,
-          vars: {
-            statusPageName: statusPageName,
-            logoUrl:
-              statusPage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
-            statusPageUrl: statusPageURL,
-            isPublicStatusPage: statusPage.isPublicStatusPage
-              ? "true"
-              : "false",
-            unsubscribeUrl: unsubscribeLink,
+
+      const customTemplate: StatusPageSubscriberNotificationTemplate | null =
+        await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+          {
+            statusPageId: statusPage.id!,
+            eventType:
+              StatusPageSubscriberNotificationEventType.SubscriberSubscribed,
+            notificationMethod: StatusPageSubscriberNotificationMethod.Email,
           },
-          subject: "You have been subscribed to " + statusPageName,
-        },
-        {
-          projectId: subscriber.projectId,
-          mailServer: ProjectSMTPConfigService.toEmailServer(
-            statusPage.smtpConfig,
-          ),
-          statusPageId: statusPage.id!,
-        },
-      ).catch((err: Error) => {
-        logger.error("Error sending subscription email:", {
-          projectId: subscriber.projectId?.toString(),
-        } as LogAttributes);
-        logger.error(err, {
-          projectId: subscriber.projectId?.toString(),
-        } as LogAttributes);
-      });
+        );
+
+      const templateVariables: Record<string, string> = {
+        statusPageName: statusPageName,
+        statusPageUrl: statusPageURL,
+        unsubscribeUrl: unsubscribeLink,
+      };
+
+      if (customTemplate?.templateBody && statusPage.smtpConfig) {
+        const compiledBody: string =
+          StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+            customTemplate.templateBody,
+            templateVariables,
+          );
+        const compiledSubject: string = customTemplate.emailSubject
+          ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+              customTemplate.emailSubject,
+              templateVariables,
+            )
+          : "You have been subscribed to " + statusPageName;
+
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.BlankTemplate,
+            vars: {
+              body: compiledBody,
+            },
+            subject: compiledSubject,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      } else {
+        MailService.sendMail(
+          {
+            toEmail: subscriber.subscriberEmail,
+            templateType: EmailTemplateType.SubscribedToStatusPage,
+            vars: {
+              statusPageName: statusPageName,
+              logoUrl:
+                statusPage.logoFileId && statusPageIdString
+                  ? new URL(httpProtocol, host)
+                      .addRoute(StatusPageApiRoute)
+                      .addRoute(`/logo/${statusPageIdString}`)
+                      .toString()
+                  : "",
+              statusPageUrl: statusPageURL,
+              isPublicStatusPage: statusPage.isPublicStatusPage
+                ? "true"
+                : "false",
+              unsubscribeUrl: unsubscribeLink,
+            },
+            subject: "You have been subscribed to " + statusPageName,
+          },
+          {
+            projectId: subscriber.projectId,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            statusPageId: statusPage.id!,
+          },
+        ).catch((err: Error) => {
+          logger.error("Error sending subscription email:", {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: subscriber.projectId?.toString(),
+          } as LogAttributes);
+        });
+      }
       logger.debug("Subscription email sent successfully.", {
         statusPageSubscriberId: data.subscriberId?.toString(),
       } as LogAttributes);
