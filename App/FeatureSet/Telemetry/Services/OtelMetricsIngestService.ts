@@ -46,7 +46,9 @@ import DockerResourceService, {
   ParsedDockerContainer,
 } from "Common/Server/Services/DockerResourceService";
 import HostService from "Common/Server/Services/HostService";
+import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
+import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 
 type MetricTimestamp = {
   nano: string;
@@ -207,6 +209,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       processCount: number | null;
       containerRuntime: string | null;
       hasInfraSignal: boolean;
+      labelNames: Set<string>;
     }
 
     const aggregator: Map<string, HostEnrichmentEntry> = new Map();
@@ -235,8 +238,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           processCount: null,
           containerRuntime: null,
           hasInfraSignal: false,
+          labelNames: new Set<string>(),
         };
         aggregator.set(hostName, entry);
+      }
+
+      const labelNamesForResource: Array<string> =
+        extractOneuptimeLabelNames(ras);
+      for (const labelName of labelNamesForResource) {
+        entry.labelNames.add(labelName);
       }
 
       if (!entry.osType) {
@@ -334,6 +344,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
         });
+
+        if (entry.labelNames.size > 0) {
+          const labelIds: Array<ObjectID> =
+            await LabelService.findOrCreateLabelsByNames({
+              projectId: data.projectId,
+              labelNames: Array.from(entry.labelNames),
+            });
+          if (labelIds.length > 0) {
+            await HostService.attachLabels({
+              hostId: new ObjectID(host._id.toString()),
+              labelIds,
+            });
+          }
+        }
       } catch (hostError) {
         logger.warn(
           `Batch host enrichment write for "${hostName}" failed: ${hostError instanceof Error ? hostError.message : String(hostError)}`,
@@ -490,6 +514,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             } = await OTelIngestService.telemetryServiceFromName({
               serviceName: serviceName,
               projectId: (req as TelemetryRequest).projectId,
+              resourceAttributes: resourceAttributes_raw,
             });
 
             serviceDictionary[serviceName] = {

@@ -268,6 +268,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             } = await OTelIngestService.telemetryServiceFromName({
               serviceName: serviceName,
               projectId: (req as TelemetryRequest).projectId,
+              resourceAttributes: resourceAttributes_raw,
             });
 
             serviceDictionary[serviceName] = {

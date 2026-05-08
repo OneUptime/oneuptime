@@ -147,6 +147,34 @@ service:
       processors: [resourcedetection, batch]
       exporters: [otlphttp/oneuptime]
 \`\`\`
+
+## Optional — Auto-tag this host with project labels
+
+Any resource attribute prefixed with \`oneuptime.label.\` is promoted to a project Label and attached to the host (and to the telemetry service emitted from this collector). Pattern: \`oneuptime.label.<dimension>=<value>\` becomes a label named \`<dimension>:<value>\`.
+
+Add a \`resource\` processor and reference it from the metrics pipeline:
+
+\`\`\`yaml
+processors:
+  resource/oneuptime-labels:
+    attributes:
+      - key: oneuptime.label.team
+        value: payments
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert
+      - key: oneuptime.label.region
+        value: us-east-1
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-labels, batch]
+\`\`\`
+
+The host above shows up tagged \`team:payments\`, \`env:production\`, and \`region:us-east-1\`. Labels are matched case-insensitively, so an existing manually-created \`Production\` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the collector.
 `;
 }
 

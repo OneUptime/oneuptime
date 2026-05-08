@@ -146,11 +146,14 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           }
           resourceProfileCounter++;
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
+          const resourceAttributes_raw: JSONArray =
             ((resourceProfile["resource"] as JSONObject)?.[
               "attributes"
-            ] as JSONArray) || [],
+            ] as JSONArray) || [];
+
+          const serviceName: string = await this.getServiceNameFromAttributes(
+            req,
+            resourceAttributes_raw,
           );
 
           if (!serviceDictionary[serviceName]) {
@@ -160,6 +163,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
             } = await OTelIngestService.telemetryServiceFromName({
               serviceName: serviceName,
               projectId: (req as TelemetryRequest).projectId,
+              resourceAttributes: resourceAttributes_raw,
             });
 
             serviceDictionary[serviceName] = {
@@ -177,10 +181,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
             }),
             ...TelemetryUtil.getAttributes({
-              items:
-                ((resourceProfile["resource"] as JSONObject)?.[
-                  "attributes"
-                ] as JSONArray) || [],
+              items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
             }),
           };
