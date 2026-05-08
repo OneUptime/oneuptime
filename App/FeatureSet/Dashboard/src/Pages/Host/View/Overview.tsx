@@ -50,6 +50,15 @@ interface OverviewStats {
   runningProcessCount: number | null;
 }
 
+interface MountInfo {
+  mountpoint: string;
+  device: string | null;
+  type: string | null;
+  totalBytes: number;
+  usedBytes: number;
+  utilizationPercent: number;
+}
+
 const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
@@ -189,6 +198,7 @@ const HostOverview: FunctionComponent<
 
   const [host, setHost] = useState<Host | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(null);
+  const [mounts, setMounts] = useState<Array<MountInfo> | null>(null);
   const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string>("");
 
@@ -308,6 +318,21 @@ const HostOverview: FunctionComponent<
        * The total (sum of all statuses) lives on
        * `host.processCount`, surfaced as a sublabel for context.
        */
+      /*
+       * `system.filesystem.usage` is per-(mountpoint, device, state)
+       * with state ∈ {used, free, reserved}. Pulling it grouped by
+       * attributes lets us list every mount the host reports, sum
+       * the per-state values to recover total capacity, and derive
+       * a utilization that matches the bytes the user sees in `df`.
+       */
+      const fsUsageAggregate: AggregateBy<Metric> = buildAggregateBy(
+        "system.filesystem.usage",
+        AggregationType.Avg,
+      );
+      fsUsageAggregate.groupBy = {
+        attributes: true,
+      };
+
       const [
         cpuUserResult,
         cpuSystemResult,
@@ -315,7 +340,9 @@ const HostOverview: FunctionComponent<
         fsResult,
         loadResult,
         runningProcResult,
+        fsUsageResult,
       ]: [
+        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -369,6 +396,10 @@ const HostOverview: FunctionComponent<
             AggregationType.Avg,
             { status: "running" },
           ),
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: fsUsageAggregate,
         }),
       ]);
 
@@ -460,6 +491,99 @@ const HostOverview: FunctionComponent<
         load1m: latestFromBuckets(loadResult),
         runningProcessCount: latestFromBuckets(runningProcResult),
       });
+
+      /*
+       * `system.filesystem.usage` rows come back as one entry per
+       * (time bucket × mountpoint × device × state). Average each
+       * (mountpoint, state) across buckets — a 5-min window of a
+       * gauge is essentially flat, so the avg matches what `df`
+       * reports right now. Total capacity is used + free + reserved;
+       * any mount missing both used and free is dropped (typically
+       * pseudo-fs the OS reports without size, e.g. `tmpfs` of 0 B).
+       */
+      type StateBucket = { sum: number; count: number };
+      const mountAggregation: Map<
+        string,
+        {
+          device: string | null;
+          type: string | null;
+          byState: Map<string, StateBucket>;
+        }
+      > = new Map();
+
+      for (const point of fsUsageResult.data || []) {
+        const attrs: Record<string, unknown> =
+          (point["attributes"] as Record<string, unknown>) || {};
+        const mountpoint: string = (attrs["mountpoint"] as string) || "";
+        const state: string = (attrs["state"] as string) || "";
+        const value: number = Number(point["value"]);
+
+        if (!mountpoint || !state || !Number.isFinite(value)) {
+          continue;
+        }
+
+        let entry:
+          | {
+              device: string | null;
+              type: string | null;
+              byState: Map<string, StateBucket>;
+            }
+          | undefined = mountAggregation.get(mountpoint);
+
+        if (!entry) {
+          entry = {
+            device: (attrs["device"] as string) || null,
+            type: (attrs["type"] as string) || null,
+            byState: new Map<string, StateBucket>(),
+          };
+          mountAggregation.set(mountpoint, entry);
+        }
+
+        let bucket: StateBucket | undefined = entry.byState.get(state);
+        if (!bucket) {
+          bucket = { sum: 0, count: 0 };
+          entry.byState.set(state, bucket);
+        }
+        bucket.sum += value;
+        bucket.count += 1;
+      }
+
+      const avgFor: (
+        byState: Map<string, StateBucket>,
+        state: string,
+      ) => number = (
+        byState: Map<string, StateBucket>,
+        state: string,
+      ): number => {
+        const acc: StateBucket | undefined = byState.get(state);
+        if (!acc || acc.count === 0) {
+          return 0;
+        }
+        return acc.sum / acc.count;
+      };
+
+      const mountList: Array<MountInfo> = [];
+      for (const [mountpoint, info] of mountAggregation.entries()) {
+        const used: number = avgFor(info.byState, "used");
+        const free: number = avgFor(info.byState, "free");
+        const reserved: number = avgFor(info.byState, "reserved");
+        const total: number = used + free + reserved;
+        if (total <= 0) {
+          continue;
+        }
+        mountList.push({
+          mountpoint: mountpoint,
+          device: info.device,
+          type: info.type,
+          totalBytes: total,
+          usedBytes: used,
+          utilizationPercent: (used / total) * 100,
+        });
+      }
+      mountList.sort((a: MountInfo, b: MountInfo): number => {
+        return b.totalBytes - a.totalBytes;
+      });
+      setMounts(mountList);
     } catch (err) {
       setStatsError(API.getFriendlyMessage(err));
     }
@@ -813,6 +937,124 @@ const HostOverview: FunctionComponent<
     );
   };
 
+  const renderMounts: () => ReactElement = (): ReactElement => {
+    if (isStatsLoading) {
+      return <Fragment />;
+    }
+
+    if (statsError) {
+      return <Fragment />;
+    }
+
+    const mountList: Array<MountInfo> = mounts || [];
+    if (mountList.length === 0) {
+      return <Fragment />;
+    }
+
+    return (
+      <div className="mb-6">
+        <Card
+          title="Filesystems"
+          description="Mount points reported by the host with capacity and utilization."
+        >
+          <div className="border-t border-gray-200 -m-6 -mt-2">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Mount
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Type
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Device
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      Used / Total
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
+                    >
+                      Utilization
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {mountList.map((m: MountInfo): ReactElement => {
+                    const pct: number = Math.min(
+                      100,
+                      Math.max(0, m.utilizationPercent),
+                    );
+                    const barColor: string =
+                      pct >= 90
+                        ? "bg-red-500"
+                        : pct >= 75
+                          ? "bg-amber-500"
+                          : "bg-emerald-500";
+                    return (
+                      <tr key={m.mountpoint}>
+                        <td className="px-4 py-3 text-sm font-mono text-gray-900 break-all">
+                          {m.mountpoint}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {m.type ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-xs font-medium ring-1 ring-inset ring-slate-200">
+                              {m.type}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-mono text-gray-700 break-all">
+                          {m.device || <span className="text-gray-400">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-gray-700 whitespace-nowrap tabular-nums">
+                          <span className="text-gray-900 font-medium">
+                            {formatMemoryBytes(m.usedBytes)}
+                          </span>
+                          <span className="text-gray-400 mx-1">/</span>
+                          <span>{formatMemoryBytes(m.totalBytes)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 bg-gray-100 rounded-full h-1.5 min-w-[60px]">
+                              <div
+                                className={`${barColor} h-1.5 rounded-full transition-all`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600 w-12 text-right tabular-nums">
+                              {pct.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   const renderOsTypeChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
@@ -854,6 +1096,7 @@ const HostOverview: FunctionComponent<
       {renderHero()}
       {renderSummaryCards()}
       <div className="mb-6">{renderCrossLinks()}</div>
+      {renderMounts()}
 
       {host && (
         <div className="flex flex-col gap-x-6 lg:flex-row lg:items-start">
