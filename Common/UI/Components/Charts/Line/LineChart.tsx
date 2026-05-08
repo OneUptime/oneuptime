@@ -108,9 +108,9 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   const yAxisMinOption: number | "auto" = props.yAxis.options.min;
   const yAxisMaxOption: number | "auto" = props.yAxis.options.max;
   const autoMinValue: boolean = yAxisMinOption === "auto";
-  const minValueProp: { minValue: number } | object =
+  const minValueProp: { minValue: number } | Record<string, unknown> =
     typeof yAxisMinOption === "number" ? { minValue: yAxisMinOption } : {};
-  const maxValueProp: { maxValue: number } | object =
+  const maxValueProp: { maxValue: number } | Record<string, unknown> =
     typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
 
   return (
