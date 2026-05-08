@@ -142,10 +142,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       return props.steps;
     };
 
-    const [submitButtonText, setSubmitButtonText] = useState<string>(
-      props.submitButtonText || "Submit",
-    );
-
     const [formSteps, setFormSteps] = useState<Array<FormStep<T>> | undefined>(
       getFormSteps(),
     );
@@ -160,6 +156,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       null,
     );
 
+    const isOnLastFormStep: boolean =
+      !currentFormStepId ||
+      !formSteps ||
+      formSteps.length === 0 ||
+      ((formSteps as Array<FormStep<T>>)[formSteps.length - 1] as FormStep<T>)
+        .id === currentFormStepId;
+
+    const submitButtonText: string = isOnLastFormStep
+      ? props.submitButtonText || "Submit"
+      : "Next";
+
     useEffect(() => {
       if (props.values) {
         refCurrentValue.current = props.values || {};
@@ -173,36 +180,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }, []);
 
     useEffect(() => {
-      // if last step,
-
-      if (
-        formSteps &&
-        formSteps.length > 0 &&
-        ((formSteps as Array<FormStep<T>>)[formSteps.length - 1] as FormStep<T>)
-          .id === currentFormStepId
-      ) {
-        setSubmitButtonText(props.submitButtonText || "Submit");
-        if (props.onIsLastFormStep) {
-          props.onIsLastFormStep(true);
-        }
-      } else {
-        setSubmitButtonText("Next");
-        if (props.onIsLastFormStep) {
-          props.onIsLastFormStep(false);
-        }
+      if (props.onIsLastFormStep) {
+        props.onIsLastFormStep(isOnLastFormStep);
       }
 
       if (props.onFormStepChange && currentFormStepId) {
         props.onFormStepChange(currentFormStepId);
       }
-
-      if (!currentFormStepId) {
-        setSubmitButtonText(props.submitButtonText || "Submit");
-        if (props.onIsLastFormStep) {
-          props.onIsLastFormStep(true);
-        }
-      }
-    }, [currentFormStepId, formSteps, props.submitButtonText]);
+    }, [currentFormStepId, formSteps, isOnLastFormStep]);
 
     const [currentValue, setCurrentValue] = useState<FormValues<T>>(
       props.initialValues || {},

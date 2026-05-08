@@ -32,6 +32,11 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_STATUS_PAGE_LANGUAGE;
 export const LANGUAGE_STORAGE_KEY: string = "statusPageLang";
+// Separate key tracks whether the user explicitly chose a language (vs.
+// the value being auto-detected from the browser). Without this we cannot
+// distinguish a stored auto-detection from a real user choice, so the
+// status page's configured default would be ignored after the first visit.
+export const LANGUAGE_USER_CHOICE_KEY: string = "statusPageLangUserChoice";
 
 i18n
   .use(LanguageDetector)
@@ -88,15 +93,16 @@ export const applyStatusPageLanguageSettings: (settings: {
       ? settings.defaultLanguage
       : DEFAULT_LANGUAGE;
 
-  const userStoredChoice: string | null =
+  const userExplicitlyChose: boolean =
     typeof window !== "undefined" && window.localStorage
-      ? window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
-      : null;
+      ? window.localStorage.getItem(LANGUAGE_USER_CHOICE_KEY) === "true"
+      : false;
 
   const current: string = i18n.resolvedLanguage || i18n.language || "";
 
-  // If the user has no stored choice, honor the status page's default.
-  if (!userStoredChoice && current !== configuredDefault) {
+  // If the user has not explicitly chosen a language, honor the status
+  // page's configured default (overriding any browser-detected value).
+  if (!userExplicitlyChose && current !== configuredDefault) {
     i18n.changeLanguage(configuredDefault);
     return;
   }
