@@ -211,35 +211,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Episode On-Call Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Call,
-        },
-        {
-          link: {
-            title: "Episode Owner Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Episode Label Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Tag,
-        },
-        {
-          link: {
             title: "SLA Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route,

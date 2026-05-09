@@ -30,6 +30,7 @@ import Typeof from "../../../Types/Typeof";
 import { FormikErrors, FormikProps } from "formik";
 import React, {
   ForwardRefExoticComponent,
+  Fragment,
   MutableRefObject,
   ReactElement,
   Ref,
@@ -636,83 +637,113 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 )}
 
                 <div>
-                  <div
-                    className={`grid md:grid-cols-${
-                      props.showAsColumns || 1
-                    } grid-cols-1 gap-4`}
-                  >
-                    {formFields &&
-                      formFields
-                        .filter((field: Field<T>) => {
-                          if (currentFormStepId) {
-                            return field.stepId === currentFormStepId;
-                          }
-
-                          return true;
-                        })
-                        .filter((field: Field<T>) => {
-                          const currentValues: FormValues<T> =
-                            refCurrentValue.current;
-                          if (field.showIf && !field.showIf(currentValues)) {
-                            return false;
-                          }
-
-                          return true;
-                        })
-                        .map((field: Field<T>, i: number) => {
-                          return (
-                            <div
-                              key={getFieldName(field)}
-                              className={
-                                field.spanFullRow
-                                  ? `md:col-span-${props.showAsColumns || 1}`
-                                  : undefined
+                  {(() => {
+                    const currentStep: FormStep<T> | undefined =
+                      formSteps?.find((step: FormStep<T>) => {
+                        return step.id === currentFormStepId;
+                      });
+                    const activeColumns: number =
+                      currentStep?.columns || props.showAsColumns || 1;
+                    const fullRowSpan: string = `md:col-span-${activeColumns}`;
+                    return (
+                      <div
+                        className={`grid md:grid-cols-${activeColumns} grid-cols-1 gap-x-4 gap-y-3`}
+                      >
+                        {formFields &&
+                          formFields
+                            .filter((field: Field<T>) => {
+                              if (currentFormStepId) {
+                                return field.stepId === currentFormStepId;
                               }
-                            >
-                              {
-                                <FormField<T>
-                                  field={field}
-                                  fieldName={getFieldName(field)}
-                                  index={i}
-                                  error={errors[getFieldName(field)] || ""}
-                                  touched={
-                                    touched[getFieldName(field)] || false
-                                  }
-                                  isDisabled={
-                                    isLoading ||
-                                    isDropdownOptionsLoading ||
-                                    false
-                                  }
-                                  currentValues={refCurrentValue.current}
-                                  setFieldValue={setFieldValue}
-                                  setFieldTouched={setFieldTouched}
-                                  submitForm={submitForm}
-                                  disableAutofocus={
-                                    props.disableAutofocus || false
-                                  }
-                                  setFormValues={(values: FormValues<T>) => {
-                                    refCurrentValue.current = values;
-                                    setCurrentValue(refCurrentValue.current);
-                                  }}
-                                />
+
+                              return true;
+                            })
+                            .filter((field: Field<T>) => {
+                              const currentValues: FormValues<T> =
+                                refCurrentValue.current;
+                              if (
+                                field.showIf &&
+                                !field.showIf(currentValues)
+                              ) {
+                                return false;
                               }
-                              {field.footerElement}
-                              {field.getFooterElement &&
-                                field.getFooterElement(refCurrentValue.current)}
-                            </div>
-                          );
-                        })}
 
-                    {/* If Summary, show Model detail  */}
+                              return true;
+                            })
+                            .map((field: Field<T>, i: number) => {
+                              const fieldName: string = getFieldName(field);
+                              return (
+                                <Fragment key={fieldName}>
+                                  {field.sectionTitle && (
+                                    <div
+                                      className={`${fullRowSpan} mt-3 first:mt-0`}
+                                    >
+                                      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        {field.sectionTitle}
+                                      </h3>
+                                      {field.sectionDescription && (
+                                        <p className="mt-1 text-sm text-gray-500">
+                                          {field.sectionDescription}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                  <div
+                                    className={
+                                      field.spanFullRow
+                                        ? fullRowSpan
+                                        : undefined
+                                    }
+                                  >
+                                    <FormField<T>
+                                      field={field}
+                                      fieldName={fieldName}
+                                      index={i}
+                                      error={errors[fieldName] || ""}
+                                      touched={touched[fieldName] || false}
+                                      isDisabled={
+                                        isLoading ||
+                                        isDropdownOptionsLoading ||
+                                        false
+                                      }
+                                      currentValues={refCurrentValue.current}
+                                      setFieldValue={setFieldValue}
+                                      setFieldTouched={setFieldTouched}
+                                      submitForm={submitForm}
+                                      disableAutofocus={
+                                        props.disableAutofocus || false
+                                      }
+                                      setFormValues={(
+                                        values: FormValues<T>,
+                                      ) => {
+                                        refCurrentValue.current = values;
+                                        setCurrentValue(
+                                          refCurrentValue.current,
+                                        );
+                                      }}
+                                    />
+                                    {field.footerElement}
+                                    {field.getFooterElement &&
+                                      field.getFooterElement(
+                                        refCurrentValue.current,
+                                      )}
+                                  </div>
+                                </Fragment>
+                              );
+                            })}
 
-                    {currentFormStepId === "summary" && (
-                      <FormSummary
-                        formValues={refCurrentValue.current}
-                        formFields={formFields}
-                        formSteps={formSteps || undefined}
-                      />
-                    )}
-                  </div>
+                        {/* If Summary, show Model detail  */}
+
+                        {currentFormStepId === "summary" && (
+                          <FormSummary
+                            formValues={refCurrentValue.current}
+                            formFields={formFields}
+                            formSteps={formSteps || undefined}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex w-full justify-end">

@@ -11,4 +11,9 @@ export interface FormStep<TEntity> {
   title: string;
   showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
   isSummaryStep?: boolean | undefined;
+  /*
+   * Grid column count for fields in this step. Overrides form-level
+   * showAsColumns. Defaults to 1 (single column).
+   */
+  columns?: number | undefined;
 }

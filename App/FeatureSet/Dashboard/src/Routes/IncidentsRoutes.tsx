@@ -78,12 +78,6 @@ import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwne
 
 import IncidentSettingsLabelRules from "../Pages/Incidents/Settings/IncidentLabelRules";
 
-import IncidentSettingsEpisodeOnCallRules from "../Pages/Incidents/Settings/IncidentEpisodeOnCallRules";
-
-import IncidentSettingsEpisodeOwnerRules from "../Pages/Incidents/Settings/IncidentEpisodeOwnerRules";
-
-import IncidentSettingsEpisodeLabelRules from "../Pages/Incidents/Settings/IncidentEpisodeLabelRules";
-
 import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
 
 import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
@@ -389,60 +383,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            IncidentsRoutePath[
-              PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES
-            ] || ""
-          }
-          element={
-            <IncidentSettingsEpisodeOnCallRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            IncidentsRoutePath[
-              PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES
-            ] || ""
-          }
-          element={
-            <IncidentSettingsEpisodeOwnerRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            IncidentsRoutePath[
-              PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULES
-            ] || ""
-          }
-          element={
-            <IncidentSettingsEpisodeLabelRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULES
-                ] as Route
               }
             />
           }
