@@ -182,6 +182,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+        {
+          link: {
             title: "Episode On-Call Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES] as Route,
@@ -197,6 +206,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Episode Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
         },
         {
           link: {

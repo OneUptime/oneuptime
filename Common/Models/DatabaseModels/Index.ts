@@ -231,8 +231,10 @@ import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
 import AlertOnCallRule from "./AlertOnCallRule";
 import AlertOwnerRule from "./AlertOwnerRule";
+import AlertLabelRule from "./AlertLabelRule";
 import AlertEpisodeOnCallRule from "./AlertEpisodeOnCallRule";
 import AlertEpisodeOwnerRule from "./AlertEpisodeOwnerRule";
+import AlertEpisodeLabelRule from "./AlertEpisodeLabelRule";
 
 import IncidentEpisode from "./IncidentEpisode";
 import IncidentEpisodeMember from "./IncidentEpisodeMember";
@@ -246,8 +248,10 @@ import IncidentEpisodePublicNote from "./IncidentEpisodePublicNote";
 import IncidentGroupingRule from "./IncidentGroupingRule";
 import IncidentOnCallRule from "./IncidentOnCallRule";
 import IncidentOwnerRule from "./IncidentOwnerRule";
+import IncidentLabelRule from "./IncidentLabelRule";
 import IncidentEpisodeOnCallRule from "./IncidentEpisodeOnCallRule";
 import IncidentEpisodeOwnerRule from "./IncidentEpisodeOwnerRule";
+import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
 
@@ -363,8 +367,10 @@ const AllModelTypes: Array<{
   AlertGroupingRule,
   AlertOnCallRule,
   AlertOwnerRule,
+  AlertLabelRule,
   AlertEpisodeOnCallRule,
   AlertEpisodeOwnerRule,
+  AlertEpisodeLabelRule,
 
   IncidentEpisode,
   IncidentEpisodeMember,
@@ -378,8 +384,10 @@ const AllModelTypes: Array<{
   IncidentGroupingRule,
   IncidentOnCallRule,
   IncidentOwnerRule,
+  IncidentLabelRule,
   IncidentEpisodeOnCallRule,
   IncidentEpisodeOwnerRule,
+  IncidentEpisodeLabelRule,
   IncidentSlaRule,
   IncidentSla,
 

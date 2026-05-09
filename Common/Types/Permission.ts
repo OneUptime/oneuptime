@@ -935,6 +935,18 @@ enum Permission {
   EditAlertEpisodeOwnerRule = "EditAlertEpisodeOwnerRule",
   ReadAlertEpisodeOwnerRule = "ReadAlertEpisodeOwnerRule",
 
+  // Alert Label Rule Permissions
+  CreateAlertLabelRule = "CreateAlertLabelRule",
+  DeleteAlertLabelRule = "DeleteAlertLabelRule",
+  EditAlertLabelRule = "EditAlertLabelRule",
+  ReadAlertLabelRule = "ReadAlertLabelRule",
+
+  // Alert Episode Label Rule Permissions
+  CreateAlertEpisodeLabelRule = "CreateAlertEpisodeLabelRule",
+  DeleteAlertEpisodeLabelRule = "DeleteAlertEpisodeLabelRule",
+  EditAlertEpisodeLabelRule = "EditAlertEpisodeLabelRule",
+  ReadAlertEpisodeLabelRule = "ReadAlertEpisodeLabelRule",
+
   // Alert Episode State Timeline Permissions
   CreateAlertEpisodeStateTimeline = "CreateAlertEpisodeStateTimeline",
   DeleteAlertEpisodeStateTimeline = "DeleteAlertEpisodeStateTimeline",
@@ -1040,6 +1052,18 @@ enum Permission {
   DeleteIncidentEpisodeOwnerRule = "DeleteIncidentEpisodeOwnerRule",
   EditIncidentEpisodeOwnerRule = "EditIncidentEpisodeOwnerRule",
   ReadIncidentEpisodeOwnerRule = "ReadIncidentEpisodeOwnerRule",
+
+  // Incident Label Rule Permissions
+  CreateIncidentLabelRule = "CreateIncidentLabelRule",
+  DeleteIncidentLabelRule = "DeleteIncidentLabelRule",
+  EditIncidentLabelRule = "EditIncidentLabelRule",
+  ReadIncidentLabelRule = "ReadIncidentLabelRule",
+
+  // Incident Episode Label Rule Permissions
+  CreateIncidentEpisodeLabelRule = "CreateIncidentEpisodeLabelRule",
+  DeleteIncidentEpisodeLabelRule = "DeleteIncidentEpisodeLabelRule",
+  EditIncidentEpisodeLabelRule = "EditIncidentEpisodeLabelRule",
+  ReadIncidentEpisodeLabelRule = "ReadIncidentEpisodeLabelRule",
 
   // Incident SLA Rule Permissions
   CreateIncidentSlaRule = "CreateIncidentSlaRule",
@@ -7992,6 +8016,90 @@ export class PermissionHelper {
         group: PermissionGroup.Alert,
       },
 
+      // Alert Label Rule Permissions
+      {
+        permission: Permission.CreateAlertLabelRule,
+        title: "Create Alert Label Rule",
+        description:
+          "This permission can create Alert Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertLabelRule,
+        title: "Delete Alert Label Rule",
+        description:
+          "This permission can delete Alert Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertLabelRule,
+        title: "Edit Alert Label Rule",
+        description:
+          "This permission can edit Alert Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertLabelRule,
+        title: "Read Alert Label Rule",
+        description:
+          "This permission can read Alert Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Episode Label Rule Permissions
+      {
+        permission: Permission.CreateAlertEpisodeLabelRule,
+        title: "Create Alert Episode Label Rule",
+        description:
+          "This permission can create Alert Episode Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeLabelRule,
+        title: "Delete Alert Episode Label Rule",
+        description:
+          "This permission can delete Alert Episode Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertEpisodeLabelRule,
+        title: "Edit Alert Episode Label Rule",
+        description:
+          "This permission can edit Alert Episode Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeLabelRule,
+        title: "Read Alert Episode Label Rule",
+        description:
+          "This permission can read Alert Episode Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
       // Alert Episode State Timeline Permissions
       {
         permission: Permission.CreateAlertEpisodeStateTimeline,
@@ -8722,6 +8830,90 @@ export class PermissionHelper {
         title: "Read Incident Episode Owner Rule",
         description:
           "This permission can read Incident Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Label Rule Permissions
+      {
+        permission: Permission.CreateIncidentLabelRule,
+        title: "Create Incident Label Rule",
+        description:
+          "This permission can create Incident Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentLabelRule,
+        title: "Delete Incident Label Rule",
+        description:
+          "This permission can delete Incident Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentLabelRule,
+        title: "Edit Incident Label Rule",
+        description:
+          "This permission can edit Incident Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentLabelRule,
+        title: "Read Incident Label Rule",
+        description:
+          "This permission can read Incident Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Episode Label Rule Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeLabelRule,
+        title: "Create Incident Episode Label Rule",
+        description:
+          "This permission can create Incident Episode Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeLabelRule,
+        title: "Delete Incident Episode Label Rule",
+        description:
+          "This permission can delete Incident Episode Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeLabelRule,
+        title: "Edit Incident Episode Label Rule",
+        description:
+          "This permission can edit Incident Episode Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeLabelRule,
+        title: "Read Incident Episode Label Rule",
+        description:
+          "This permission can read Incident Episode Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

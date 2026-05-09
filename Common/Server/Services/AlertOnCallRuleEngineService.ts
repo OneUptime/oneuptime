@@ -5,6 +5,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertService from "./AlertService";
 import MonitorService from "./MonitorService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -87,14 +88,40 @@ class AlertOnCallRuleEngineServiceClass {
       const merged: Array<OnCallDutyPolicy> = [
         ...(alert.onCallDutyPolicies || []),
       ];
+      const toAddIds: Array<string> = [];
 
       for (const [policyId, policy] of matchedPolicies) {
         if (!existingIds.has(policyId)) {
           merged.push(policy);
+          toAddIds.push(policyId);
         }
       }
 
+      /*
+       * Update in-memory list so the existing on-call fan-out runs the merged
+       * set in the next .then() step of onCreateSuccess.
+       */
       alert.onCallDutyPolicies = merged;
+
+      /*
+       * Persist the new join rows so the alert detail UI shows the
+       * rule-attached policies alongside any manually-attached ones.
+       */
+      if (toAddIds.length > 0) {
+        try {
+          await AlertService.getRepository()
+            .createQueryBuilder()
+            .relation(Alert, "onCallDutyPolicies")
+            .of(alert.id.toString())
+            .add(toAddIds);
+        } catch (err) {
+          logger.warn(
+            `AlertOnCallRuleEngine: failed to persist join rows for alert ${alert.id}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+      }
 
       logger.debug(
         `AlertOnCallRuleEngine merged ${matchedPolicies.size} matched policies into alert ${alert.id}`,

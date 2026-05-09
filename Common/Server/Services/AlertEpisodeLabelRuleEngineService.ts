@@ -1,18 +1,18 @@
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
-import AlertEpisodeOnCallRule from "../../Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertEpisodeLabelRule from "../../Models/DatabaseModels/AlertEpisodeLabelRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Label from "../../Models/DatabaseModels/Label";
-import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
-import AlertEpisodeOnCallRuleService from "./AlertEpisodeOnCallRuleService";
+import AlertEpisodeLabelRuleService from "./AlertEpisodeLabelRuleService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
-class AlertEpisodeOnCallRuleEngineServiceClass {
+class AlertEpisodeLabelRuleEngineServiceClass {
   /**
-   * Evaluates AlertEpisodeOnCallRule rows for the given episode and merges
-   * matched rules' on-call policies into the episode's onCallDutyPolicies
-   * array (deduped).
+   * Evaluates AlertEpisodeLabelRule rows for the given episode and attaches
+   * matched labels via the AlertEpisodeLabel join table. The union is
+   * deduped against the episode's existing labels first to avoid PK
+   * conflicts on insert.
    */
   @CaptureSpan()
   public async applyRulesToEpisode(episode: AlertEpisode): Promise<void> {
@@ -21,8 +21,8 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<AlertEpisodeOnCallRule> =
-        await AlertEpisodeOnCallRuleService.findBy({
+      const rules: Array<AlertEpisodeLabelRule> =
+        await AlertEpisodeLabelRuleService.findBy({
           query: {
             projectId: episode.projectId,
             isEnabled: true,
@@ -35,7 +35,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
             episodeLabels: { _id: true },
             episodeTitlePattern: true,
             episodeDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
+            labelsToAdd: { _id: true },
           },
           limit: 100,
           skip: 0,
@@ -45,70 +45,60 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
         return;
       }
 
-      const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
+      const labelIdsToAdd: Set<string> = new Set();
 
       for (const rule of rules) {
         if (!this.doesEpisodeMatchRule(episode, rule)) {
           continue;
         }
-        for (const policy of rule.onCallDutyPolicies || []) {
-          const policyId: string | undefined = policy.id?.toString();
-          if (policyId && !matchedPolicies.has(policyId)) {
-            matchedPolicies.set(policyId, policy);
+        for (const label of rule.labelsToAdd || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
           }
         }
       }
 
-      if (matchedPolicies.size === 0) {
+      if (labelIdsToAdd.size === 0) {
         return;
       }
 
-      const existingIds: Set<string> = new Set(
-        (episode.onCallDutyPolicies || [])
-          .map((p: OnCallDutyPolicy) => {
-            return p.id?.toString() || (p as { _id?: string })._id || "";
+      const episodeWithLabels: AlertEpisode | null =
+        await AlertEpisodeService.findOneById({
+          id: episode.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+      const existingLabelIds: Set<string> = new Set(
+        (episodeWithLabels?.labels || [])
+          .map((l: Label) => {
+            return l.id?.toString() || "";
           })
           .filter((id: string) => {
             return id !== "";
           }),
       );
 
-      const merged: Array<OnCallDutyPolicy> = [
-        ...(episode.onCallDutyPolicies || []),
-      ];
-      const toAddIds: Array<string> = [];
-      for (const [policyId, policy] of matchedPolicies) {
-        if (!existingIds.has(policyId)) {
-          merged.push(policy);
-          toAddIds.push(policyId);
-        }
+      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+        (id: string) => {
+          return !existingLabelIds.has(id);
+        },
+      );
+      if (newLabelIds.length === 0) {
+        return;
       }
-      // Update in-memory list so the existing fan-out runs the merged set.
-      episode.onCallDutyPolicies = merged;
 
-      // Persist new join rows so the episode detail UI shows them.
-      if (toAddIds.length > 0) {
-        try {
-          await AlertEpisodeService.getRepository()
-            .createQueryBuilder()
-            .relation(AlertEpisode, "onCallDutyPolicies")
-            .of(episode.id.toString())
-            .add(toAddIds);
-        } catch (err) {
-          logger.warn(
-            `AlertEpisodeOnCallRuleEngine: failed to persist join rows for episode ${episode.id}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
-        }
-      }
+      await AlertEpisodeService.getRepository()
+        .createQueryBuilder()
+        .relation(AlertEpisode, "labels")
+        .of(episode.id.toString())
+        .add(newLabelIds);
 
       logger.debug(
-        `AlertEpisodeOnCallRuleEngine merged ${matchedPolicies.size} matched policies into episode ${episode.id}`,
+        `AlertEpisodeLabelRuleEngine attached ${newLabelIds.length} labels to episode ${episode.id}`,
         { projectId: episode.projectId.toString() } as LogAttributes,
       );
     } catch (error) {
-      logger.error(`Error applying alert episode on-call rules: ${error}`, {
+      logger.error(`Error applying alert episode label rules: ${error}`, {
         projectId: episode.projectId?.toString(),
         alertEpisodeId: episode.id?.toString(),
       } as LogAttributes);
@@ -117,7 +107,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
 
   private doesEpisodeMatchRule(
     episode: AlertEpisode,
-    rule: AlertEpisodeOnCallRule,
+    rule: AlertEpisodeLabelRule,
   ): boolean {
     if (rule.alertSeverities && rule.alertSeverities.length > 0) {
       if (!episode.alertSeverityId) {
@@ -178,18 +168,18 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
   private testRegex(
     pattern: string,
     value: string,
-    rule: AlertEpisodeOnCallRule,
+    rule: AlertEpisodeLabelRule,
   ): boolean {
     try {
       const regex: RegExp = new RegExp(pattern, "i");
       return regex.test(value);
     } catch {
       logger.warn(
-        `Invalid regex in alert episode on-call rule ${rule.id}: ${pattern}`,
+        `Invalid regex in alert episode label rule ${rule.id}: ${pattern}`,
       );
       return false;
     }
   }
 }
 
-export default new AlertEpisodeOnCallRuleEngineServiceClass();
+export default new AlertEpisodeLabelRuleEngineServiceClass();

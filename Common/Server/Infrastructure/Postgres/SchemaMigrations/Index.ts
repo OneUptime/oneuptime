@@ -305,6 +305,7 @@ import { MigrationName1778070278986 } from "./1778070278986-MigrationName";
 import { DedupeServicesAndAddUniqueIndex1778100000000 } from "./1778100000000-DedupeServicesAndAddUniqueIndex";
 import { MigrationName1778269764550 } from "./1778269764550-MigrationName";
 import { MigrationName1778271406963 } from "./1778271406963-MigrationName";
+import { MigrationName1778274719786 } from "./1778274719786-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -613,4 +614,5 @@ export default [
   DedupeServicesAndAddUniqueIndex1778100000000,
   MigrationName1778269764550,
   MigrationName1778271406963,
+  MigrationName1778274719786,
 ];

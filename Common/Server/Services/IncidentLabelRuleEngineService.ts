@@ -1,21 +1,25 @@
+import Host from "../../Models/DatabaseModels/Host";
 import Incident from "../../Models/DatabaseModels/Incident";
-import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
+import IncidentLabelRule from "../../Models/DatabaseModels/IncidentLabelRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
-import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import HostService from "./HostService";
+import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentService from "./IncidentService";
 import MonitorService from "./MonitorService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
-class IncidentOnCallRuleEngineServiceClass {
+class IncidentLabelRuleEngineServiceClass {
   /**
-   * Evaluates IncidentOnCallRule rows for the given incident and merges any
-   * matching rules' on-call policies into the incident's onCallDutyPolicies
-   * array (deduped). The caller's existing on-call fan-out then runs the
-   * merged list, so each policy executes at most once per incident.
+   * Evaluates IncidentLabelRule rows for the given incident and attaches
+   * matched labels to the incident. Each matched rule contributes:
+   *   - labels listed on `labelsToAdd`
+   *   - all labels of the incident's monitors when `inheritLabelsFromMonitors`
+   *   - all labels of the incident's hosts when `inheritLabelsFromHosts`
+   * The union is deduped against labels already on the incident before insert
+   * to avoid PK conflicts on the IncidentLabel join table.
    */
   @CaptureSpan()
   public async applyRulesToIncident(incident: Incident): Promise<void> {
@@ -24,8 +28,8 @@ class IncidentOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<IncidentOnCallRule> =
-        await IncidentOnCallRuleService.findBy({
+      const rules: Array<IncidentLabelRule> =
+        await IncidentLabelRuleService.findBy({
           query: {
             projectId: incident.projectId,
             isEnabled: true,
@@ -42,7 +46,9 @@ class IncidentOnCallRuleEngineServiceClass {
             incidentDescriptionPattern: true,
             monitorNamePattern: true,
             monitorDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
+            labelsToAdd: { _id: true },
+            inheritLabelsFromMonitors: true,
+            inheritLabelsFromHosts: true,
           },
           limit: 100,
           skip: 0,
@@ -52,7 +58,9 @@ class IncidentOnCallRuleEngineServiceClass {
         return;
       }
 
-      const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
+      const labelIdsToAdd: Set<string> = new Set();
+      let inheritFromMonitors: boolean = false;
+      let inheritFromHosts: boolean = false;
 
       for (const rule of rules) {
         const matches: boolean = await this.doesIncidentMatchRule(
@@ -62,75 +70,96 @@ class IncidentOnCallRuleEngineServiceClass {
         if (!matches) {
           continue;
         }
+        for (const label of rule.labelsToAdd || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+        if (rule.inheritLabelsFromMonitors) {
+          inheritFromMonitors = true;
+        }
+        if (rule.inheritLabelsFromHosts) {
+          inheritFromHosts = true;
+        }
+      }
 
-        if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
-          for (const policy of rule.onCallDutyPolicies) {
-            const policyId: string | undefined = policy.id?.toString();
-            if (policyId && !matchedPolicies.has(policyId)) {
-              matchedPolicies.set(policyId, policy);
+      if (inheritFromMonitors && incident.monitors?.length) {
+        for (const incidentMonitor of incident.monitors) {
+          if (!incidentMonitor.id) {
+            continue;
+          }
+          const monitor: Monitor | null = await MonitorService.findOneById({
+            id: incidentMonitor.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+          for (const label of monitor?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
             }
           }
         }
       }
 
-      if (matchedPolicies.size === 0) {
+      if (inheritFromHosts && incident.hosts?.length) {
+        for (const incidentHost of incident.hosts) {
+          if (!incidentHost.id) {
+            continue;
+          }
+          const host: Host | null = await HostService.findOneById({
+            id: incidentHost.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+          for (const label of host?.labels || []) {
+            if (label.id) {
+              labelIdsToAdd.add(label.id.toString());
+            }
+          }
+        }
+      }
+
+      if (labelIdsToAdd.size === 0) {
         return;
       }
 
-      const existingIds: Set<string> = new Set(
-        (incident.onCallDutyPolicies || [])
-          .map((p: OnCallDutyPolicy) => {
-            return p.id?.toString() || (p as { _id?: string })._id || "";
+      const incidentWithLabels: Incident | null =
+        await IncidentService.findOneById({
+          id: incident.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+      const existingLabelIds: Set<string> = new Set(
+        (incidentWithLabels?.labels || [])
+          .map((l: Label) => {
+            return l.id?.toString() || "";
           })
           .filter((id: string) => {
             return id !== "";
           }),
       );
 
-      const merged: Array<OnCallDutyPolicy> = [
-        ...(incident.onCallDutyPolicies || []),
-      ];
-      const toAddIds: Array<string> = [];
-
-      for (const [policyId, policy] of matchedPolicies) {
-        if (!existingIds.has(policyId)) {
-          merged.push(policy);
-          toAddIds.push(policyId);
-        }
+      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+        (id: string) => {
+          return !existingLabelIds.has(id);
+        },
+      );
+      if (newLabelIds.length === 0) {
+        return;
       }
 
-      /*
-       * Update in-memory list so the existing on-call fan-out runs the merged
-       * set in the next .then() step of onCreateSuccess.
-       */
-      incident.onCallDutyPolicies = merged;
-
-      /*
-       * Persist the new join rows so the incident detail UI shows the
-       * rule-attached policies alongside any manually-attached ones.
-       */
-      if (toAddIds.length > 0) {
-        try {
-          await IncidentService.getRepository()
-            .createQueryBuilder()
-            .relation(Incident, "onCallDutyPolicies")
-            .of(incident.id.toString())
-            .add(toAddIds);
-        } catch (err) {
-          logger.warn(
-            `IncidentOnCallRuleEngine: failed to persist join rows for incident ${incident.id}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
-        }
-      }
+      await IncidentService.getRepository()
+        .createQueryBuilder()
+        .relation(Incident, "labels")
+        .of(incident.id.toString())
+        .add(newLabelIds);
 
       logger.debug(
-        `IncidentOnCallRuleEngine merged ${matchedPolicies.size} matched policies into incident ${incident.id}`,
+        `IncidentLabelRuleEngine attached ${newLabelIds.length} labels to incident ${incident.id}`,
         { projectId: incident.projectId.toString() } as LogAttributes,
       );
     } catch (error) {
-      logger.error(`Error applying incident on-call rules: ${error}`, {
+      logger.error(`Error applying incident label rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
@@ -140,9 +169,8 @@ class IncidentOnCallRuleEngineServiceClass {
   @CaptureSpan()
   private async doesIncidentMatchRule(
     incident: Incident,
-    rule: IncidentOnCallRule,
+    rule: IncidentLabelRule,
   ): Promise<boolean> {
-    // Monitors: incident must come from at least one of the rule's monitors
     if (rule.monitors && rule.monitors.length > 0) {
       if (!incident.monitors || incident.monitors.length === 0) {
         return false;
@@ -155,15 +183,15 @@ class IncidentOnCallRuleEngineServiceClass {
           return m.id?.toString() || "";
         },
       );
-      const hasMatch: boolean = ruleMonitorIds.some((id: string) => {
-        return incidentMonitorIds.includes(id);
-      });
-      if (!hasMatch) {
+      if (
+        !ruleMonitorIds.some((id: string) => {
+          return incidentMonitorIds.includes(id);
+        })
+      ) {
         return false;
       }
     }
 
-    // Severity
     if (rule.incidentSeverities && rule.incidentSeverities.length > 0) {
       if (!incident.incidentSeverityId) {
         return false;
@@ -178,7 +206,6 @@ class IncidentOnCallRuleEngineServiceClass {
       }
     }
 
-    // Incident labels
     if (rule.incidentLabels && rule.incidentLabels.length > 0) {
       if (!incident.labels || incident.labels.length === 0) {
         return false;
@@ -193,15 +220,15 @@ class IncidentOnCallRuleEngineServiceClass {
           return l.id?.toString() || "";
         },
       );
-      const hasMatch: boolean = ruleLabelIds.some((id: string) => {
-        return incidentLabelIds.includes(id);
-      });
-      if (!hasMatch) {
+      if (
+        !ruleLabelIds.some((id: string) => {
+          return incidentLabelIds.includes(id);
+        })
+      ) {
         return false;
       }
     }
 
-    // Monitor-derived criteria (labels, name, description)
     const hasMonitorCriteria: boolean = Boolean(
       (rule.monitorLabels && rule.monitorLabels.length > 0) ||
         rule.monitorNamePattern ||
@@ -214,12 +241,10 @@ class IncidentOnCallRuleEngineServiceClass {
       }
 
       let anyMonitorMatches: boolean = false;
-
       for (const incidentMonitor of incident.monitors) {
         if (!incidentMonitor.id) {
           continue;
         }
-
         const monitor: Monitor | null = await MonitorService.findOneById({
           id: incidentMonitor.id,
           select: {
@@ -229,7 +254,6 @@ class IncidentOnCallRuleEngineServiceClass {
           },
           props: { isRoot: true },
         });
-
         if (!monitor) {
           continue;
         }
@@ -250,35 +274,36 @@ class IncidentOnCallRuleEngineServiceClass {
                 return l.id?.toString() || "";
               },
             );
-            const hasMatch: boolean = ruleMonitorLabelIds.some((id: string) => {
-              return monitorLabelIds.includes(id);
-            });
-            if (!hasMatch) {
+            if (
+              !ruleMonitorLabelIds.some((id: string) => {
+                return monitorLabelIds.includes(id);
+              })
+            ) {
               monitorMatches = false;
             }
           }
         }
 
-        if (monitorMatches && rule.monitorNamePattern) {
-          if (
-            !monitor.name ||
-            !this.testRegex(rule.monitorNamePattern, monitor.name, rule)
-          ) {
-            monitorMatches = false;
-          }
+        if (
+          monitorMatches &&
+          rule.monitorNamePattern &&
+          (!monitor.name ||
+            !this.testRegex(rule.monitorNamePattern, monitor.name, rule))
+        ) {
+          monitorMatches = false;
         }
 
-        if (monitorMatches && rule.monitorDescriptionPattern) {
-          if (
-            !monitor.description ||
+        if (
+          monitorMatches &&
+          rule.monitorDescriptionPattern &&
+          (!monitor.description ||
             !this.testRegex(
               rule.monitorDescriptionPattern,
               monitor.description,
               rule,
-            )
-          ) {
-            monitorMatches = false;
-          }
+            ))
+        ) {
+          monitorMatches = false;
         }
 
         if (monitorMatches) {
@@ -292,26 +317,24 @@ class IncidentOnCallRuleEngineServiceClass {
       }
     }
 
-    if (rule.incidentTitlePattern) {
-      if (
-        !incident.title ||
-        !this.testRegex(rule.incidentTitlePattern, incident.title, rule)
-      ) {
-        return false;
-      }
+    if (
+      rule.incidentTitlePattern &&
+      (!incident.title ||
+        !this.testRegex(rule.incidentTitlePattern, incident.title, rule))
+    ) {
+      return false;
     }
 
-    if (rule.incidentDescriptionPattern) {
-      if (
-        !incident.description ||
+    if (
+      rule.incidentDescriptionPattern &&
+      (!incident.description ||
         !this.testRegex(
           rule.incidentDescriptionPattern,
           incident.description,
           rule,
-        )
-      ) {
-        return false;
-      }
+        ))
+    ) {
+      return false;
     }
 
     return true;
@@ -320,18 +343,18 @@ class IncidentOnCallRuleEngineServiceClass {
   private testRegex(
     pattern: string,
     value: string,
-    rule: IncidentOnCallRule,
+    rule: IncidentLabelRule,
   ): boolean {
     try {
       const regex: RegExp = new RegExp(pattern, "i");
       return regex.test(value);
     } catch {
       logger.warn(
-        `Invalid regex pattern in incident on-call rule ${rule.id}: ${pattern}`,
+        `Invalid regex in incident label rule ${rule.id}: ${pattern}`,
       );
       return false;
     }
   }
 }
 
-export default new IncidentOnCallRuleEngineServiceClass();
+export default new IncidentLabelRuleEngineServiceClass();

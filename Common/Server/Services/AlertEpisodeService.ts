@@ -43,6 +43,7 @@ import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService
 import Typeof from "../../Types/Typeof";
 import AlertService from "./AlertService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import AlertEpisodeLabelRuleEngineService from "./AlertEpisodeLabelRuleEngineService";
 import AlertEpisodeOnCallRuleEngineService from "./AlertEpisodeOnCallRuleEngineService";
 import AlertEpisodeOwnerRuleEngineService from "./AlertEpisodeOwnerRuleEngineService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -187,6 +188,22 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Apply alert episode owner rules failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply label rules: attach matched labels to the episode.
+        try {
+          await AlertEpisodeLabelRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply alert episode label rules failed in AlertEpisodeService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertEpisodeId: createdItem.id?.toString(),

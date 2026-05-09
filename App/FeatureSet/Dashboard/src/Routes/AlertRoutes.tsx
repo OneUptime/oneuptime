@@ -56,9 +56,13 @@ import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules"
 
 import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 
+import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
+
 import AlertSettingsEpisodeOnCallRules from "../Pages/Alerts/Settings/AlertEpisodeOnCallRules";
 
 import AlertSettingsEpisodeOwnerRules from "../Pages/Alerts/Settings/AlertEpisodeOwnerRules";
+
+import AlertSettingsEpisodeLabelRules from "../Pages/Alerts/Settings/AlertEpisodeLabelRules";
 
 import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
 
@@ -260,6 +264,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <AlertSettingsLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={
             AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_ON_CALL_RULES] || ""
           }
@@ -282,6 +296,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULES] || ""
+          }
+          element={
+            <AlertSettingsEpisodeLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULES] as Route
               }
             />
           }

@@ -76,9 +76,13 @@ import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnC
 
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 
+import IncidentSettingsLabelRules from "../Pages/Incidents/Settings/IncidentLabelRules";
+
 import IncidentSettingsEpisodeOnCallRules from "../Pages/Incidents/Settings/IncidentEpisodeOnCallRules";
 
 import IncidentSettingsEpisodeOwnerRules from "../Pages/Incidents/Settings/IncidentEpisodeOwnerRules";
+
+import IncidentSettingsEpisodeLabelRules from "../Pages/Incidents/Settings/IncidentEpisodeLabelRules";
 
 import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
 
@@ -378,6 +382,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <IncidentSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
             IncidentsRoutePath[
               PageMap.INCIDENTS_SETTINGS_EPISODE_ON_CALL_RULES
             ] || ""
@@ -406,6 +424,24 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.INCIDENTS_SETTINGS_EPISODE_OWNER_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULES
+            ] || ""
+          }
+          element={
+            <IncidentSettingsEpisodeLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULES
                 ] as Route
               }
             />

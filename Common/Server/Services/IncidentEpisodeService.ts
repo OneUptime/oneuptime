@@ -42,6 +42,7 @@ import UserNotificationEventType from "../../Types/UserNotification/UserNotifica
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import ProjectService from "./ProjectService";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
+import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEngineService";
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 
@@ -210,6 +211,22 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Apply incident episode owner rules failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply label rules: attach matched labels to the episode.
+        try {
+          await IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident episode label rules failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentEpisodeId: createdItem.id?.toString(),

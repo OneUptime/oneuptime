@@ -184,6 +184,10 @@ import AlertOwnerRuleService, {
   Service as AlertOwnerRuleServiceType,
 } from "Common/Server/Services/AlertOwnerRuleService";
 
+import AlertLabelRuleService, {
+  Service as AlertLabelRuleServiceType,
+} from "Common/Server/Services/AlertLabelRuleService";
+
 import AlertEpisodeOnCallRuleService, {
   Service as AlertEpisodeOnCallRuleServiceType,
 } from "Common/Server/Services/AlertEpisodeOnCallRuleService";
@@ -191,6 +195,10 @@ import AlertEpisodeOnCallRuleService, {
 import AlertEpisodeOwnerRuleService, {
   Service as AlertEpisodeOwnerRuleServiceType,
 } from "Common/Server/Services/AlertEpisodeOwnerRuleService";
+
+import AlertEpisodeLabelRuleService, {
+  Service as AlertEpisodeLabelRuleServiceType,
+} from "Common/Server/Services/AlertEpisodeLabelRuleService";
 
 import IncidentOnCallRuleService, {
   Service as IncidentOnCallRuleServiceType,
@@ -200,6 +208,10 @@ import IncidentOwnerRuleService, {
   Service as IncidentOwnerRuleServiceType,
 } from "Common/Server/Services/IncidentOwnerRuleService";
 
+import IncidentLabelRuleService, {
+  Service as IncidentLabelRuleServiceType,
+} from "Common/Server/Services/IncidentLabelRuleService";
+
 import IncidentEpisodeOnCallRuleService, {
   Service as IncidentEpisodeOnCallRuleServiceType,
 } from "Common/Server/Services/IncidentEpisodeOnCallRuleService";
@@ -207,6 +219,10 @@ import IncidentEpisodeOnCallRuleService, {
 import IncidentEpisodeOwnerRuleService, {
   Service as IncidentEpisodeOwnerRuleServiceType,
 } from "Common/Server/Services/IncidentEpisodeOwnerRuleService";
+
+import IncidentEpisodeLabelRuleService, {
+  Service as IncidentEpisodeLabelRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodeLabelRuleService";
 
 import IncidentSlaService, {
   Service as IncidentSlaServiceType,
@@ -626,13 +642,17 @@ import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisode
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
+import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
 import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
+import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
+import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
+import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 
@@ -1364,6 +1384,38 @@ const BaseAPIFeatureSet: FeatureSet = {
         IncidentEpisodeOwnerRule,
         IncidentEpisodeOwnerRuleServiceType
       >(IncidentEpisodeOwnerRule, IncidentEpisodeOwnerRuleService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertLabelRule, AlertLabelRuleServiceType>(
+        AlertLabelRule,
+        AlertLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentLabelRule, IncidentLabelRuleServiceType>(
+        IncidentLabelRule,
+        IncidentLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeLabelRule, AlertEpisodeLabelRuleServiceType>(
+        AlertEpisodeLabelRule,
+        AlertEpisodeLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeLabelRule,
+        IncidentEpisodeLabelRuleServiceType
+      >(IncidentEpisodeLabelRule, IncidentEpisodeLabelRuleService).getRouter(),
     );
 
     // IncidentSla
