@@ -202,6 +202,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Privacy Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
             title: "Label Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route,

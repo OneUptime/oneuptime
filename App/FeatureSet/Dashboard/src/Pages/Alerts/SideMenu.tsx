@@ -182,6 +182,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Privacy Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_PRIVACY_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
             title: "Label Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERTS_SETTINGS_LABEL_RULES] as Route,

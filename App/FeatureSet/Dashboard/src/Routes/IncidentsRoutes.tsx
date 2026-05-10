@@ -76,6 +76,8 @@ import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnC
 
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 
+import IncidentSettingsPrivacyRules from "../Pages/Incidents/Settings/IncidentPrivacyRules";
+
 import IncidentSettingsLabelRules from "../Pages/Incidents/Settings/IncidentLabelRules";
 
 import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
@@ -369,6 +371,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] || ""
+          }
+          element={
+            <IncidentSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route
               }
             />
           }

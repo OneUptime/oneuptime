@@ -44,6 +44,7 @@ export enum IncidentEpisodeFeedEventType {
   SubscriberNotificationSent = "SubscriberNotificationSent",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
+  PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 

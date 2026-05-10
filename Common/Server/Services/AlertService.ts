@@ -64,6 +64,7 @@ import AlertGroupingEngineService from "./AlertGroupingEngineService";
 import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
+import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 
 export class Service extends DatabaseService<Model> {
@@ -288,6 +289,24 @@ export class Service extends DatabaseService<Model> {
 
     // Execute operations sequentially with error handling
     Promise.resolve()
+      .then(async () => {
+        /*
+         * Apply privacy rules BEFORE workspace operations so the workspace
+         * channel is created with the correct privacy setting. This may set
+         * createdItem.isPrivate=true in memory.
+         */
+        try {
+          await AlertPrivacyRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert privacy rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
       .then(async () => {
         if (createdItem.projectId && createdItem.id) {
           try {

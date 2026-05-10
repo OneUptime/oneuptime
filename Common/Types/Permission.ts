@@ -940,6 +940,11 @@ enum Permission {
   EditAlertEpisodeOwnerRule = "EditAlertEpisodeOwnerRule",
   ReadAlertEpisodeOwnerRule = "ReadAlertEpisodeOwnerRule",
 
+  CreateAlertEpisodePrivacyRule = "CreateAlertEpisodePrivacyRule",
+  DeleteAlertEpisodePrivacyRule = "DeleteAlertEpisodePrivacyRule",
+  EditAlertEpisodePrivacyRule = "EditAlertEpisodePrivacyRule",
+  ReadAlertEpisodePrivacyRule = "ReadAlertEpisodePrivacyRule",
+
   // Alert Label Rule Permissions
   CreateAlertLabelRule = "CreateAlertLabelRule",
   DeleteAlertLabelRule = "DeleteAlertLabelRule",
@@ -1046,6 +1051,11 @@ enum Permission {
   EditIncidentOwnerRule = "EditIncidentOwnerRule",
   ReadIncidentOwnerRule = "ReadIncidentOwnerRule",
 
+  CreateIncidentPrivacyRule = "CreateIncidentPrivacyRule",
+  DeleteIncidentPrivacyRule = "DeleteIncidentPrivacyRule",
+  EditIncidentPrivacyRule = "EditIncidentPrivacyRule",
+  ReadIncidentPrivacyRule = "ReadIncidentPrivacyRule",
+
   // Incident Episode On-Call Rule Permissions
   CreateIncidentEpisodeOnCallRule = "CreateIncidentEpisodeOnCallRule",
   DeleteIncidentEpisodeOnCallRule = "DeleteIncidentEpisodeOnCallRule",
@@ -1057,6 +1067,11 @@ enum Permission {
   DeleteIncidentEpisodeOwnerRule = "DeleteIncidentEpisodeOwnerRule",
   EditIncidentEpisodeOwnerRule = "EditIncidentEpisodeOwnerRule",
   ReadIncidentEpisodeOwnerRule = "ReadIncidentEpisodeOwnerRule",
+
+  CreateIncidentEpisodePrivacyRule = "CreateIncidentEpisodePrivacyRule",
+  DeleteIncidentEpisodePrivacyRule = "DeleteIncidentEpisodePrivacyRule",
+  EditIncidentEpisodePrivacyRule = "EditIncidentEpisodePrivacyRule",
+  ReadIncidentEpisodePrivacyRule = "ReadIncidentEpisodePrivacyRule",
 
   // Incident Label Rule Permissions
   CreateIncidentLabelRule = "CreateIncidentLabelRule",
@@ -7937,6 +7952,48 @@ export class PermissionHelper {
         group: PermissionGroup.Alert,
       },
 
+      // Alert Privacy Rule Permissions
+      {
+        permission: Permission.CreateAlertPrivacyRule,
+        title: "Create Alert Privacy Rule",
+        description:
+          "This permission can create Alert Privacy Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertPrivacyRule,
+        title: "Delete Alert Privacy Rule",
+        description:
+          "This permission can delete Alert Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertPrivacyRule,
+        title: "Edit Alert Privacy Rule",
+        description:
+          "This permission can edit Alert Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertPrivacyRule,
+        title: "Read Alert Privacy Rule",
+        description:
+          "This permission can read Alert Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
       // Alert Episode On-Call Rule Permissions
       {
         permission: Permission.CreateAlertEpisodeOnCallRule,
@@ -8015,6 +8072,48 @@ export class PermissionHelper {
         title: "Read Alert Episode Owner Rule",
         description:
           "This permission can read Alert Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Episode Privacy Rule Permissions
+      {
+        permission: Permission.CreateAlertEpisodePrivacyRule,
+        title: "Create Alert Episode Privacy Rule",
+        description:
+          "This permission can create Alert Episode Privacy Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodePrivacyRule,
+        title: "Delete Alert Episode Privacy Rule",
+        description:
+          "This permission can delete Alert Episode Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertEpisodePrivacyRule,
+        title: "Edit Alert Episode Privacy Rule",
+        description:
+          "This permission can edit Alert Episode Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertEpisodePrivacyRule,
+        title: "Read Alert Episode Privacy Rule",
+        description:
+          "This permission can read Alert Episode Privacy Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8757,6 +8856,48 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
+      // Incident Privacy Rule Permissions
+      {
+        permission: Permission.CreateIncidentPrivacyRule,
+        title: "Create Incident Privacy Rule",
+        description:
+          "This permission can create Incident Privacy Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentPrivacyRule,
+        title: "Delete Incident Privacy Rule",
+        description:
+          "This permission can delete Incident Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentPrivacyRule,
+        title: "Edit Incident Privacy Rule",
+        description:
+          "This permission can edit Incident Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentPrivacyRule,
+        title: "Read Incident Privacy Rule",
+        description:
+          "This permission can read Incident Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
       // Incident Episode On-Call Rule Permissions
       {
         permission: Permission.CreateIncidentEpisodeOnCallRule,
@@ -8835,6 +8976,48 @@ export class PermissionHelper {
         title: "Read Incident Episode Owner Rule",
         description:
           "This permission can read Incident Episode Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Episode Privacy Rule Permissions
+      {
+        permission: Permission.CreateIncidentEpisodePrivacyRule,
+        title: "Create Incident Episode Privacy Rule",
+        description:
+          "This permission can create Incident Episode Privacy Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodePrivacyRule,
+        title: "Delete Incident Episode Privacy Rule",
+        description:
+          "This permission can delete Incident Episode Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentEpisodePrivacyRule,
+        title: "Edit Incident Episode Privacy Rule",
+        description:
+          "This permission can edit Incident Episode Privacy Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodePrivacyRule,
+        title: "Read Incident Episode Privacy Rule",
+        description:
+          "This permission can read Incident Episode Privacy Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

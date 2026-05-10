@@ -184,6 +184,10 @@ import AlertOwnerRuleService, {
   Service as AlertOwnerRuleServiceType,
 } from "Common/Server/Services/AlertOwnerRuleService";
 
+import AlertPrivacyRuleService, {
+  Service as AlertPrivacyRuleServiceType,
+} from "Common/Server/Services/AlertPrivacyRuleService";
+
 import AlertLabelRuleService, {
   Service as AlertLabelRuleServiceType,
 } from "Common/Server/Services/AlertLabelRuleService";
@@ -195,6 +199,10 @@ import AlertEpisodeOnCallRuleService, {
 import AlertEpisodeOwnerRuleService, {
   Service as AlertEpisodeOwnerRuleServiceType,
 } from "Common/Server/Services/AlertEpisodeOwnerRuleService";
+
+import AlertEpisodePrivacyRuleService, {
+  Service as AlertEpisodePrivacyRuleServiceType,
+} from "Common/Server/Services/AlertEpisodePrivacyRuleService";
 
 import AlertEpisodeLabelRuleService, {
   Service as AlertEpisodeLabelRuleServiceType,
@@ -208,6 +216,10 @@ import IncidentOwnerRuleService, {
   Service as IncidentOwnerRuleServiceType,
 } from "Common/Server/Services/IncidentOwnerRuleService";
 
+import IncidentPrivacyRuleService, {
+  Service as IncidentPrivacyRuleServiceType,
+} from "Common/Server/Services/IncidentPrivacyRuleService";
+
 import IncidentLabelRuleService, {
   Service as IncidentLabelRuleServiceType,
 } from "Common/Server/Services/IncidentLabelRuleService";
@@ -219,6 +231,10 @@ import IncidentEpisodeOnCallRuleService, {
 import IncidentEpisodeOwnerRuleService, {
   Service as IncidentEpisodeOwnerRuleServiceType,
 } from "Common/Server/Services/IncidentEpisodeOwnerRuleService";
+
+import IncidentEpisodePrivacyRuleService, {
+  Service as IncidentEpisodePrivacyRuleServiceType,
+} from "Common/Server/Services/IncidentEpisodePrivacyRuleService";
 
 import IncidentEpisodeLabelRuleService, {
   Service as IncidentEpisodeLabelRuleServiceType,
@@ -642,16 +658,20 @@ import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisode
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
+import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
 import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
 import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
+import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePrivacyRule";
 import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
+import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
+import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
@@ -1345,9 +1365,25 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertPrivacyRule, AlertPrivacyRuleServiceType>(
+        AlertPrivacyRule,
+        AlertPrivacyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IncidentOwnerRule, IncidentOwnerRuleServiceType>(
         IncidentOwnerRule,
         IncidentOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentPrivacyRule, IncidentPrivacyRuleServiceType>(
+        IncidentPrivacyRule,
+        IncidentPrivacyRuleService,
       ).getRouter(),
     );
 
@@ -1380,10 +1416,29 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodePrivacyRule, AlertEpisodePrivacyRuleServiceType>(
+        AlertEpisodePrivacyRule,
+        AlertEpisodePrivacyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         IncidentEpisodeOwnerRule,
         IncidentEpisodeOwnerRuleServiceType
       >(IncidentEpisodeOwnerRule, IncidentEpisodeOwnerRuleService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodePrivacyRule,
+        IncidentEpisodePrivacyRuleServiceType
+      >(
+        IncidentEpisodePrivacyRule,
+        IncidentEpisodePrivacyRuleService,
+      ).getRouter(),
     );
 
     app.use(

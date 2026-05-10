@@ -1400,4 +1400,45 @@ export default class AlertEpisode extends BaseModel {
   })
   public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
     undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertManager,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertManager,
+      Permission.ReadAlertEpisode,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertManager,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Private?",
+    description:
+      "If true, this alert episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+    nullable: true,
+  })
+  public isPrivate?: boolean = undefined;
 }

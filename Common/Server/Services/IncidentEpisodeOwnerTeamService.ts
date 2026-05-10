@@ -1,5 +1,9 @@
 import ObjectID from "../../Types/ObjectID";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import PositiveNumber from "../../Types/PositiveNumber";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -13,6 +17,7 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -22,9 +27,46 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    updateBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
     const itemsToDelete: Model[] = await this.findBy({
       query: deleteBy.query,
       limit: deleteBy.limit,

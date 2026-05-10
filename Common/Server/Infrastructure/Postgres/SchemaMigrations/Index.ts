@@ -310,6 +310,8 @@ import { AddIncidentIsPrivate1778359982682 } from "./1778359982682-AddIncidentIs
 import { AddFileImageAccessToken1778361904715 } from "./1778361904715-AddFileImageAccessToken";
 import { AddOwnerRuleInheritFlags1778413144103 } from "./1778413144103-AddOwnerRuleInheritFlags";
 import { AddAlertIsPrivate1778438949454 } from "./1778438949454-AddAlertIsPrivate";
+import { AddPrivacyRules1778440665575 } from "./1778440665575-AddPrivacyRules";
+import { AddEpisodePrivacyRules1778442385970 } from "./1778442385970-AddEpisodePrivacyRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -623,4 +625,6 @@ export default [
   AddFileImageAccessToken1778361904715,
   AddOwnerRuleInheritFlags1778413144103,
   AddAlertIsPrivate1778438949454,
+  AddPrivacyRules1778440665575,
+  AddEpisodePrivacyRules1778442385970,
 ];

@@ -1595,4 +1595,45 @@ export default class IncidentEpisode extends BaseModel {
     nullable: true,
   })
   public subscriberNotificationStatusMessage?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentManager,
+      Permission.CreateIncidentEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentManager,
+      Permission.EditIncidentEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Private?",
+    description:
+      "If true, this incident episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+    nullable: true,
+  })
+  public isPrivate?: boolean = undefined;
 }

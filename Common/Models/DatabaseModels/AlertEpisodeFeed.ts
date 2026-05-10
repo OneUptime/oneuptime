@@ -40,6 +40,7 @@ export enum AlertEpisodeFeedEventType {
   SeverityChanged = "SeverityChanged",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
+  PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 

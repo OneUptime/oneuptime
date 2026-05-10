@@ -57,6 +57,7 @@ import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
+import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -721,6 +722,26 @@ export class Service extends DatabaseService<Model> {
 
     // Execute operations sequentially with error handling
     Promise.resolve()
+      .then(async () => {
+        /*
+         * Apply privacy rules BEFORE workspace operations so the workspace
+         * channel is created with the correct privacy setting. This may set
+         * createdItem.isPrivate=true in memory.
+         */
+        try {
+          await IncidentPrivacyRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident privacy rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
       .then(async () => {
         try {
           if (createdItem.projectId && createdItem.id) {

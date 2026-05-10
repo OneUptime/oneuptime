@@ -42,6 +42,7 @@ export enum IncidentFeedEventType {
   IncidentMemberRemoved = "IncidentMemberRemoved",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
+  PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 

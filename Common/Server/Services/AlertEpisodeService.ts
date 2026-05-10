@@ -1,5 +1,10 @@
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import { applyAlertEpisodeSelfPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import DatabaseService from "./DatabaseService";
 import AlertStateService from "./AlertStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -46,6 +51,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import AlertEpisodeLabelRuleEngineService from "./AlertEpisodeLabelRuleEngineService";
 import AlertEpisodeOnCallRuleEngineService from "./AlertEpisodeOnCallRuleEngineService";
 import AlertEpisodeOwnerRuleEngineService from "./AlertEpisodeOwnerRuleEngineService";
+import AlertEpisodePrivacyRuleEngineService from "./AlertEpisodePrivacyRuleEngineService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import ProjectService from "./ProjectService";
@@ -56,6 +62,50 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyAlertEpisodeSelfPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyAlertEpisodeSelfPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    updateBy.query = applyAlertEpisodeSelfPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyAlertEpisodeSelfPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -129,6 +179,26 @@ export class Service extends DatabaseService<Model> {
 
     // Create initial state timeline entry
     Promise.resolve()
+      .then(async () => {
+        /*
+         * Apply privacy rules BEFORE workspace operations so the workspace
+         * channel is created with the correct privacy setting. This may set
+         * createdItem.isPrivate=true in memory.
+         */
+        try {
+          await AlertEpisodePrivacyRuleEngineService.applyRulesToEpisode(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply alert episode privacy rules failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
       .then(async () => {
         try {
           if (createdItem.projectId && createdItem.id) {
@@ -281,6 +351,7 @@ export class Service extends DatabaseService<Model> {
                   episodeNumberWithPrefix: createdItem.episodeNumberWithPrefix,
                 }
               : {}),
+            isPrivate: createdItem.isPrivate === true,
           },
         );
 
