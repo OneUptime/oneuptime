@@ -5,6 +5,7 @@ import IncidentElement from "./Incident";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -425,6 +426,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         ]}
         selectMoreFields={{
           incidentNumberWithPrefix: true,
+          isPrivate: true,
         }}
         columns={[
           {
@@ -438,10 +440,22 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
+              const numberLabel: string =
+                item.incidentNumberWithPrefix || `#${item.incidentNumber}`;
+
               return (
-                <>
-                  {item.incidentNumberWithPrefix || `#${item.incidentNumber}`}
-                </>
+                <span className="inline-flex items-center">
+                  <span>{numberLabel}</span>
+                  {item.isPrivate === true && (
+                    <span
+                      title="Private incident — visible only to its owners, project admins, and project owners"
+                      className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
+                    >
+                      <Icon icon={IconProp.Lock} className="w-3 h-3" />
+                      Private
+                    </span>
+                  )}
+                </span>
               );
             },
           },
