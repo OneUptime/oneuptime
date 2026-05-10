@@ -309,6 +309,7 @@ import { MigrationName1778274719786 } from "./1778274719786-MigrationName";
 import { AddIncidentIsPrivate1778359982682 } from "./1778359982682-AddIncidentIsPrivate";
 import { AddFileImageAccessToken1778361904715 } from "./1778361904715-AddFileImageAccessToken";
 import { AddOwnerRuleInheritFlags1778413144103 } from "./1778413144103-AddOwnerRuleInheritFlags";
+import { AddAlertIsPrivate1778438949454 } from "./1778438949454-AddAlertIsPrivate";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -621,4 +622,5 @@ export default [
   AddIncidentIsPrivate1778359982682,
   AddFileImageAccessToken1778361904715,
   AddOwnerRuleInheritFlags1778413144103,
+  AddAlertIsPrivate1778438949454,
 ];

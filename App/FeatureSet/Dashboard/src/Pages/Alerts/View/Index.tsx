@@ -3,7 +3,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black } from "Common/Types/BrandColors";
+import { Black, Red500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -313,10 +313,22 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             required: false,
             placeholder: "Labels",
           },
+          {
+            field: {
+              isPrivate: true,
+            },
+            title: "Private Alert",
+            stepId: "alert-details",
+            description:
+              "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         modelDetailProps={{
           selectMoreFields: {
             alertNumberWithPrefix: true,
+            isPrivate: true,
             createdByUser: {
               _id: true,
               name: true,
@@ -408,6 +420,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Alert Title",
               fieldType: FieldType.Text,
+            },
+
+            {
+              field: {
+                isPrivate: true,
+              },
+              title: "Visibility",
+              fieldType: FieldType.Element,
+              showIf: (item: Alert): boolean => {
+                return item.isPrivate === true;
+              },
+              getElement: (): ReactElement => {
+                return <Pill color={Red500} text="Private" />;
+              },
             },
 
             {

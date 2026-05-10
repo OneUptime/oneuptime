@@ -1,8 +1,14 @@
 import DatabaseConfig from "../DatabaseConfig";
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
+import {
+  applyAlertSelfPrivacyFilter,
+} from "../Utils/Alert/AlertPrivacyFilter";
 import DatabaseService from "./DatabaseService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
@@ -165,6 +171,33 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyAlertSelfPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyAlertSelfPrivacyFilter(countBy.query, countBy.props);
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    updateBy.query = applyAlertSelfPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -450,6 +483,7 @@ export class Service extends DatabaseService<Model> {
           ...(createdItem.alertNumberWithPrefix
             ? { alertNumberWithPrefix: createdItem.alertNumberWithPrefix }
             : {}),
+          isPrivate: createdItem.isPrivate === true,
         });
 
       logger.debug("Alert created. Workspace result:", {
@@ -1065,6 +1099,11 @@ ${alertSeverity.name}
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyAlertSelfPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+
     const alerts: Array<Model> = await this.findBy({
       query: deleteBy.query,
       limit: LIMIT_MAX,

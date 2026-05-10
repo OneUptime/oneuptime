@@ -375,8 +375,6 @@ export class Service extends DatabaseService<Model> {
 
     if (updateBy.data.isPrivate === true) {
       updateBy.data.isVisibleOnStatusPage = false;
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
-        false;
     }
 
     const carryForward: UpdateCarryForward = {};

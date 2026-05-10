@@ -38,6 +38,7 @@ import {
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
@@ -384,6 +385,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         ]}
         selectMoreFields={{
           alertNumberWithPrefix: true,
+          isPrivate: true,
         }}
         columns={[
           {
@@ -397,8 +399,22 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
+              const numberLabel: string =
+                item.alertNumberWithPrefix || `#${item.alertNumber}`;
+
               return (
-                <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
+                <span className="inline-flex items-center">
+                  <span>{numberLabel}</span>
+                  {item.isPrivate === true && (
+                    <span
+                      title="Private alert — visible only to its owners, project admins, and project owners"
+                      className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
+                    >
+                      <Icon icon={IconProp.Lock} className="w-3 h-3" />
+                      Private
+                    </span>
+                  )}
+                </span>
               );
             },
           },

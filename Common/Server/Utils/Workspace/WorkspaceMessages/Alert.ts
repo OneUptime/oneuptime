@@ -17,6 +17,7 @@ export default class AlertWorkspaceMessages {
     alertId: ObjectID;
     alertNumber: number;
     alertNumberWithPrefix?: string;
+    isPrivate?: boolean;
   }): Promise<{
     channelsCreated: NotificationRuleWorkspaceChannel[];
   } | null> {
@@ -31,6 +32,7 @@ export default class AlertWorkspaceMessages {
           notificationRuleEventType: NotificationRuleEventType.Alert,
           channelNameSiffix:
             data.alertNumberWithPrefix || data.alertNumber.toString(),
+          ...(data.isPrivate ? { isPrivate: true } : {}),
         },
       );
     } catch (err) {
