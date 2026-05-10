@@ -32,7 +32,13 @@ A rule matches an alert only when **all** specified criteria pass. Empty criteri
 
 ### Action
 
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
+When a rule matches:
+
+- Every user and team listed on the rule is added as an owner.
+- If \`Inherit Owners From Monitors\` is on, every owner of the alert's monitor is also added.
+- If \`Inherit Owners From Hosts\` is on, every owner of the alert's affected hosts is also added.
+
+Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
 `;
 
 const alertEpisodeOwnerDocumentation: string = `
@@ -250,6 +256,27 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           },
           required: false,
           placeholder: "Select Users",
+        },
+        {
+          field: { inheritOwnersFromMonitors: true },
+          title: "Inherit Owners From Monitors",
+          stepId: "owners",
+          sectionTitle: "Inherit Owners",
+          sectionDescription:
+            "Optionally assign owners from related entities to the alert.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the alert's monitor as an owner of the alert.",
+        },
+        {
+          field: { inheritOwnersFromHosts: true },
+          title: "Inherit Owners From Hosts",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the alert's affected hosts as an owner of the alert.",
         },
       ]}
       showRefreshButton={true}

@@ -738,6 +738,80 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.ReadIncidentOwnerRule,
       Permission.ReadAllProjectResources,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Inherit Owners From Monitors",
+    description:
+      "When this rule matches, also assign every owner of the incident's monitors to the incident.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public inheritOwnersFromMonitors?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadIncidentOwnerRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Inherit Owners From Hosts",
+    description:
+      "When this rule matches, also assign every owner of the incident's affected hosts to the incident.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public inheritOwnersFromHosts?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadIncidentOwnerRule,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({

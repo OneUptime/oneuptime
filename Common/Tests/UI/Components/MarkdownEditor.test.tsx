@@ -39,9 +39,11 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    // Default mode shows a toggle button labelled "Markdown" — the
-    // button-role query disambiguates from the help text which also
-    // mentions "Markdown".
+    /*
+     * Default mode shows a toggle button labelled "Markdown" — the
+     * button-role query disambiguates from the help text which also
+     * mentions "Markdown".
+     */
     const toggle: HTMLElement = screen.getByRole("button", {
       name: "Markdown",
     });
@@ -49,9 +51,7 @@ describe("MarkdownEditor", () => {
 
     // Switch to markdown source mode.
     fireEvent.click(toggle);
-    expect(
-      screen.getByRole("button", { name: "Visual" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Visual" })).toBeInTheDocument();
 
     // Switch back to WYSIWYG.
     fireEvent.click(screen.getByRole("button", { name: "Visual" }));

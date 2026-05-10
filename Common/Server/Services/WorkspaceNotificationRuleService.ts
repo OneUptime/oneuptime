@@ -890,6 +890,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
     channelNameSiffix: string;
+    isPrivate?: boolean;
   }): Promise<{
     channelsCreated: Array<NotificationRuleWorkspaceChannel>;
   } | null> {
@@ -965,6 +966,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               channelNameSiffix: data.channelNameSiffix,
               notificationEventType: data.notificationRuleEventType,
               notificationFor: data.notificationFor,
+              ...(data.isPrivate ? { isPrivate: true } : {}),
             });
 
           logger.debug("createdWorkspaceChannels", {
@@ -1620,6 +1622,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     channelNameSiffix: string;
     notificationEventType: NotificationRuleEventType;
     notificationFor?: NotificationFor;
+    isPrivate?: boolean;
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     logger.debug("createChannelsBasedOnRules called with data:", {
       projectId: data.projectId?.toString(),
@@ -1691,11 +1694,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         channelName: string;
         projectId: ObjectID;
         teamId?: string;
+        isPrivate?: boolean;
       } = {
         authToken: data.projectOrUserAuthTokenForWorkspace,
         channelName: notificationChannel.channelName,
         projectId: data.projectId,
       };
+
+      if (data.isPrivate) {
+        createChannelData.isPrivate = true;
+      }
 
       if (notificationChannel.teamId) {
         createChannelData.teamId = notificationChannel.teamId;

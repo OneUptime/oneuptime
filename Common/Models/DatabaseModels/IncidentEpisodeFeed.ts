@@ -42,6 +42,9 @@ export enum IncidentEpisodeFeedEventType {
   OnCallNotification = "OnCallNotification",
   SeverityChanged = "SeverityChanged",
   SubscriberNotificationSent = "SubscriberNotificationSent",
+  LabelRuleExecuted = "LabelRuleExecuted",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 
 @EnableDocumentation()

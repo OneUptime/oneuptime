@@ -999,6 +999,7 @@ export class Service extends DatabaseService<Model> {
                 incidentNumberWithPrefix: createdItem.incidentNumberWithPrefix,
               }
             : {}),
+          isPrivate: createdItem.isPrivate === true,
         });
 
       if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {

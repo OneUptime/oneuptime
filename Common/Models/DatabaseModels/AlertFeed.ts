@@ -40,6 +40,9 @@ export enum AlertFeedEventType {
   OnCallNotification = "OnCallNotification",
   AddedToEpisode = "AddedToEpisode",
   RemovedFromEpisode = "RemovedFromEpisode",
+  LabelRuleExecuted = "LabelRuleExecuted",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  OnCallRuleExecuted = "OnCallRuleExecuted",
 }
 
 @EnableDocumentation()

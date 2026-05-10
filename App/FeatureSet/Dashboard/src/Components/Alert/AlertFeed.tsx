@@ -129,6 +129,20 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       icon = IconProp.Call;
     }
 
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.LabelRuleExecuted) {
+      icon = IconProp.Tag;
+    }
+
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerRuleExecuted) {
+      icon = IconProp.User;
+    }
+
+    if (
+      alertFeed.alertFeedEventType === AlertFeedEventType.OnCallRuleExecuted
+    ) {
+      icon = IconProp.Call;
+    }
+
     return {
       key: alertFeed.id!.toString(),
       textInMarkdown: alertFeed.feedInfoInMarkdown || "",

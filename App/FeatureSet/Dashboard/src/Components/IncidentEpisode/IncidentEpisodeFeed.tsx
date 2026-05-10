@@ -176,6 +176,27 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       icon = IconProp.TextFile;
     }
 
+    if (
+      episodeFeed.incidentEpisodeFeedEventType ===
+      IncidentEpisodeFeedEventType.LabelRuleExecuted
+    ) {
+      icon = IconProp.Tag;
+    }
+
+    if (
+      episodeFeed.incidentEpisodeFeedEventType ===
+      IncidentEpisodeFeedEventType.OwnerRuleExecuted
+    ) {
+      icon = IconProp.User;
+    }
+
+    if (
+      episodeFeed.incidentEpisodeFeedEventType ===
+      IncidentEpisodeFeedEventType.OnCallRuleExecuted
+    ) {
+      icon = IconProp.Call;
+    }
+
     return {
       key: episodeFeed.id!.toString(),
       textInMarkdown: episodeFeed.feedInfoInMarkdown || "",

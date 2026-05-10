@@ -5,9 +5,16 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import HostService from "./HostService";
+import IncidentFeedService from "./IncidentFeedService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentService from "./IncidentService";
+import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
+import { Indigo500 } from "../../Types/BrandColors";
+import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -61,6 +68,7 @@ class IncidentLabelRuleEngineServiceClass {
       const labelIdsToAdd: Set<string> = new Set();
       let inheritFromMonitors: boolean = false;
       let inheritFromHosts: boolean = false;
+      const matchedRules: Array<IncidentLabelRule> = [];
 
       for (const rule of rules) {
         const matches: boolean = await this.doesIncidentMatchRule(
@@ -70,6 +78,7 @@ class IncidentLabelRuleEngineServiceClass {
         if (!matches) {
           continue;
         }
+        matchedRules.push(rule);
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
             labelIdsToAdd.add(label.id.toString());
@@ -158,11 +167,110 @@ class IncidentLabelRuleEngineServiceClass {
         `IncidentLabelRuleEngine attached ${newLabelIds.length} labels to incident ${incident.id}`,
         { projectId: incident.projectId.toString() } as LogAttributes,
       );
+
+      await this.createRuleExecutedFeedItem({
+        incident,
+        matchedRules,
+        addedLabelIds: newLabelIds,
+      });
     } catch (error) {
       logger.error(`Error applying incident label rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  @CaptureSpan()
+  private async createRuleExecutedFeedItem(data: {
+    incident: Incident;
+    matchedRules: Array<IncidentLabelRule>;
+    addedLabelIds: Array<string>;
+  }): Promise<void> {
+    const { incident, matchedRules, addedLabelIds } = data;
+    if (
+      !incident.id ||
+      !incident.projectId ||
+      matchedRules.length === 0 ||
+      addedLabelIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const labelObjectIds: Array<ObjectID> = addedLabelIds.map(
+        (id: string) => {
+          return new ObjectID(id);
+        },
+      );
+
+      const labels: Array<Label> = await LabelService.findBy({
+        query: {
+          _id: QueryHelper.any(labelObjectIds),
+        },
+        select: { name: true },
+        props: { isRoot: true },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      const labelNames: Array<string> = labels
+        .map((l: Label) => {
+          return l.name?.toString() || "";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const ruleNames: Array<string> = matchedRules
+        .map((r: IncidentLabelRule) => {
+          return r.name?.toString() || "Unnamed Rule";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const rulesPart: string =
+        ruleNames.length === 1
+          ? `**${ruleNames[0]}**`
+          : ruleNames
+              .map((n: string) => {
+                return `**${n}**`;
+              })
+              .join(", ");
+
+      const labelsPart: string =
+        labelNames.length > 0
+          ? labelNames
+              .map((n: string) => {
+                return `\n- ${n}`;
+              })
+              .join("")
+          : "\n- (no named labels)";
+
+      const feedInfoInMarkdown: string = `🏷️ **Incident Label Rule${
+        matchedRules.length > 1 ? "s" : ""
+      } executed:** ${rulesPart}\n\nAdded the following label${
+        labelNames.length === 1 ? "" : "s"
+      } to the incident:${labelsPart}`;
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: incident.id,
+        projectId: incident.projectId,
+        incidentFeedEventType: IncidentFeedEventType.LabelRuleExecuted,
+        displayColor: Indigo500,
+        feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `IncidentLabelRuleEngine: failed to create rule-executed feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

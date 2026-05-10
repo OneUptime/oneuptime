@@ -4,9 +4,16 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import AlertFeedService from "./AlertFeedService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
 import AlertService from "./AlertService";
 import MonitorService from "./MonitorService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import { Indigo500 } from "../../Types/BrandColors";
+import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -54,6 +61,7 @@ class AlertOnCallRuleEngineServiceClass {
       }
 
       const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
+      const matchedRules: Array<AlertOnCallRule> = [];
 
       for (const rule of rules) {
         const matches: boolean = await this.doesAlertMatchRule(alert, rule);
@@ -62,11 +70,16 @@ class AlertOnCallRuleEngineServiceClass {
         }
 
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
+          let ruleAddedAny: boolean = false;
           for (const policy of rule.onCallDutyPolicies) {
             const policyId: string | undefined = policy.id?.toString();
             if (policyId && !matchedPolicies.has(policyId)) {
               matchedPolicies.set(policyId, policy);
+              ruleAddedAny = true;
             }
+          }
+          if (ruleAddedAny) {
+            matchedRules.push(rule);
           }
         }
       }
@@ -127,11 +140,113 @@ class AlertOnCallRuleEngineServiceClass {
         `AlertOnCallRuleEngine merged ${matchedPolicies.size} matched policies into alert ${alert.id}`,
         { projectId: alert.projectId.toString() } as LogAttributes,
       );
+
+      if (toAddIds.length > 0) {
+        await this.createRuleExecutedFeedItem({
+          alert,
+          matchedRules,
+          addedPolicyIds: toAddIds,
+        });
+      }
     } catch (error) {
       logger.error(`Error applying alert on-call rules: ${error}`, {
         projectId: alert.projectId?.toString(),
         alertId: alert.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  @CaptureSpan()
+  private async createRuleExecutedFeedItem(data: {
+    alert: Alert;
+    matchedRules: Array<AlertOnCallRule>;
+    addedPolicyIds: Array<string>;
+  }): Promise<void> {
+    const { alert, matchedRules, addedPolicyIds } = data;
+    if (
+      !alert.id ||
+      !alert.projectId ||
+      matchedRules.length === 0 ||
+      addedPolicyIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const policyObjectIds: Array<ObjectID> = addedPolicyIds.map(
+        (id: string) => {
+          return new ObjectID(id);
+        },
+      );
+
+      const policies: Array<OnCallDutyPolicy> =
+        await OnCallDutyPolicyService.findBy({
+          query: {
+            _id: QueryHelper.any(policyObjectIds),
+          },
+          select: { name: true },
+          props: { isRoot: true },
+          limit: LIMIT_MAX,
+          skip: 0,
+        });
+
+      const policyNames: Array<string> = policies
+        .map((p: OnCallDutyPolicy) => {
+          return p.name?.toString() || "";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const ruleNames: Array<string> = matchedRules
+        .map((r: AlertOnCallRule) => {
+          return r.name?.toString() || "Unnamed Rule";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const rulesPart: string =
+        ruleNames.length === 1
+          ? `**${ruleNames[0]}**`
+          : ruleNames
+              .map((n: string) => {
+                return `**${n}**`;
+              })
+              .join(", ");
+
+      const policiesPart: string =
+        policyNames.length > 0
+          ? policyNames
+              .map((n: string) => {
+                return `\n- ${n}`;
+              })
+              .join("")
+          : "\n- (no named policies)";
+
+      const feedInfoInMarkdown: string = `📞 **Alert On-Call Rule${
+        matchedRules.length > 1 ? "s" : ""
+      } executed:** ${rulesPart}\n\nAttached the following on-call ${
+        policyNames.length === 1 ? "policy" : "policies"
+      } to the alert:${policiesPart}`;
+
+      await AlertFeedService.createAlertFeedItem({
+        alertId: alert.id,
+        projectId: alert.projectId,
+        alertFeedEventType: AlertFeedEventType.OnCallRuleExecuted,
+        displayColor: Indigo500,
+        feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `AlertOnCallRuleEngine: failed to create rule-executed feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

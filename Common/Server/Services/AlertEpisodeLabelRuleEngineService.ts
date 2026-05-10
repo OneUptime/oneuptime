@@ -2,8 +2,15 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeLabelRule from "../../Models/DatabaseModels/AlertEpisodeLabelRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Label from "../../Models/DatabaseModels/Label";
+import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import AlertEpisodeLabelRuleService from "./AlertEpisodeLabelRuleService";
 import AlertEpisodeService from "./AlertEpisodeService";
+import LabelService from "./LabelService";
+import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
+import { Indigo500 } from "../../Types/BrandColors";
+import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -46,11 +53,13 @@ class AlertEpisodeLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRules: Array<AlertEpisodeLabelRule> = [];
 
       for (const rule of rules) {
         if (!this.doesEpisodeMatchRule(episode, rule)) {
           continue;
         }
+        matchedRules.push(rule);
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
             labelIdsToAdd.add(label.id.toString());
@@ -97,11 +106,110 @@ class AlertEpisodeLabelRuleEngineServiceClass {
         `AlertEpisodeLabelRuleEngine attached ${newLabelIds.length} labels to episode ${episode.id}`,
         { projectId: episode.projectId.toString() } as LogAttributes,
       );
+
+      await this.createRuleExecutedFeedItem({
+        episode,
+        matchedRules,
+        addedLabelIds: newLabelIds,
+      });
     } catch (error) {
       logger.error(`Error applying alert episode label rules: ${error}`, {
         projectId: episode.projectId?.toString(),
         alertEpisodeId: episode.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  @CaptureSpan()
+  private async createRuleExecutedFeedItem(data: {
+    episode: AlertEpisode;
+    matchedRules: Array<AlertEpisodeLabelRule>;
+    addedLabelIds: Array<string>;
+  }): Promise<void> {
+    const { episode, matchedRules, addedLabelIds } = data;
+    if (
+      !episode.id ||
+      !episode.projectId ||
+      matchedRules.length === 0 ||
+      addedLabelIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const labelObjectIds: Array<ObjectID> = addedLabelIds.map(
+        (id: string) => {
+          return new ObjectID(id);
+        },
+      );
+
+      const labels: Array<Label> = await LabelService.findBy({
+        query: {
+          _id: QueryHelper.any(labelObjectIds),
+        },
+        select: { name: true },
+        props: { isRoot: true },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      const labelNames: Array<string> = labels
+        .map((l: Label) => {
+          return l.name?.toString() || "";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const ruleNames: Array<string> = matchedRules
+        .map((r: AlertEpisodeLabelRule) => {
+          return r.name?.toString() || "Unnamed Rule";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const rulesPart: string =
+        ruleNames.length === 1
+          ? `**${ruleNames[0]}**`
+          : ruleNames
+              .map((n: string) => {
+                return `**${n}**`;
+              })
+              .join(", ");
+
+      const labelsPart: string =
+        labelNames.length > 0
+          ? labelNames
+              .map((n: string) => {
+                return `\n- ${n}`;
+              })
+              .join("")
+          : "\n- (no named labels)";
+
+      const feedInfoInMarkdown: string = `🏷️ **Alert Episode Label Rule${
+        matchedRules.length > 1 ? "s" : ""
+      } executed:** ${rulesPart}\n\nAdded the following label${
+        labelNames.length === 1 ? "" : "s"
+      } to the episode:${labelsPart}`;
+
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId: episode.id,
+        projectId: episode.projectId,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.LabelRuleExecuted,
+        displayColor: Indigo500,
+        feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `AlertEpisodeLabelRuleEngine: failed to create rule-executed feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          projectId: episode.projectId?.toString(),
+          alertEpisodeId: episode.id?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

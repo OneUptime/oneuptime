@@ -169,6 +169,27 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       icon = IconProp.ExclaimationCircle;
     }
 
+    if (
+      episodeFeed.alertEpisodeFeedEventType ===
+      AlertEpisodeFeedEventType.LabelRuleExecuted
+    ) {
+      icon = IconProp.Tag;
+    }
+
+    if (
+      episodeFeed.alertEpisodeFeedEventType ===
+      AlertEpisodeFeedEventType.OwnerRuleExecuted
+    ) {
+      icon = IconProp.User;
+    }
+
+    if (
+      episodeFeed.alertEpisodeFeedEventType ===
+      AlertEpisodeFeedEventType.OnCallRuleExecuted
+    ) {
+      icon = IconProp.Call;
+    }
+
     return {
       key: episodeFeed.id!.toString(),
       textInMarkdown: episodeFeed.feedInfoInMarkdown || "",

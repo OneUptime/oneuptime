@@ -177,6 +177,27 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       icon = IconProp.Call;
     }
 
+    if (
+      incidentFeed.incidentFeedEventType ===
+      IncidentFeedEventType.LabelRuleExecuted
+    ) {
+      icon = IconProp.Tag;
+    }
+
+    if (
+      incidentFeed.incidentFeedEventType ===
+      IncidentFeedEventType.OwnerRuleExecuted
+    ) {
+      icon = IconProp.User;
+    }
+
+    if (
+      incidentFeed.incidentFeedEventType ===
+      IncidentFeedEventType.OnCallRuleExecuted
+    ) {
+      icon = IconProp.Call;
+    }
+
     return {
       key: incidentFeed.id!.toString(),
       textInMarkdown: incidentFeed.feedInfoInMarkdown || "",

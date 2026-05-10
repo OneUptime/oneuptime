@@ -4,9 +4,16 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import IncidentFeedService from "./IncidentFeedService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentService from "./IncidentService";
 import MonitorService from "./MonitorService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
+import { Indigo500 } from "../../Types/BrandColors";
+import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -53,6 +60,7 @@ class IncidentOnCallRuleEngineServiceClass {
       }
 
       const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
+      const matchedRules: Array<IncidentOnCallRule> = [];
 
       for (const rule of rules) {
         const matches: boolean = await this.doesIncidentMatchRule(
@@ -64,11 +72,16 @@ class IncidentOnCallRuleEngineServiceClass {
         }
 
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
+          let ruleAddedAny: boolean = false;
           for (const policy of rule.onCallDutyPolicies) {
             const policyId: string | undefined = policy.id?.toString();
             if (policyId && !matchedPolicies.has(policyId)) {
               matchedPolicies.set(policyId, policy);
+              ruleAddedAny = true;
             }
+          }
+          if (ruleAddedAny) {
+            matchedRules.push(rule);
           }
         }
       }
@@ -129,11 +142,113 @@ class IncidentOnCallRuleEngineServiceClass {
         `IncidentOnCallRuleEngine merged ${matchedPolicies.size} matched policies into incident ${incident.id}`,
         { projectId: incident.projectId.toString() } as LogAttributes,
       );
+
+      if (toAddIds.length > 0) {
+        await this.createRuleExecutedFeedItem({
+          incident,
+          matchedRules,
+          addedPolicyIds: toAddIds,
+        });
+      }
     } catch (error) {
       logger.error(`Error applying incident on-call rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  @CaptureSpan()
+  private async createRuleExecutedFeedItem(data: {
+    incident: Incident;
+    matchedRules: Array<IncidentOnCallRule>;
+    addedPolicyIds: Array<string>;
+  }): Promise<void> {
+    const { incident, matchedRules, addedPolicyIds } = data;
+    if (
+      !incident.id ||
+      !incident.projectId ||
+      matchedRules.length === 0 ||
+      addedPolicyIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const policyObjectIds: Array<ObjectID> = addedPolicyIds.map(
+        (id: string) => {
+          return new ObjectID(id);
+        },
+      );
+
+      const policies: Array<OnCallDutyPolicy> =
+        await OnCallDutyPolicyService.findBy({
+          query: {
+            _id: QueryHelper.any(policyObjectIds),
+          },
+          select: { name: true },
+          props: { isRoot: true },
+          limit: LIMIT_MAX,
+          skip: 0,
+        });
+
+      const policyNames: Array<string> = policies
+        .map((p: OnCallDutyPolicy) => {
+          return p.name?.toString() || "";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const ruleNames: Array<string> = matchedRules
+        .map((r: IncidentOnCallRule) => {
+          return r.name?.toString() || "Unnamed Rule";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const rulesPart: string =
+        ruleNames.length === 1
+          ? `**${ruleNames[0]}**`
+          : ruleNames
+              .map((n: string) => {
+                return `**${n}**`;
+              })
+              .join(", ");
+
+      const policiesPart: string =
+        policyNames.length > 0
+          ? policyNames
+              .map((n: string) => {
+                return `\n- ${n}`;
+              })
+              .join("")
+          : "\n- (no named policies)";
+
+      const feedInfoInMarkdown: string = `📞 **Incident On-Call Rule${
+        matchedRules.length > 1 ? "s" : ""
+      } executed:** ${rulesPart}\n\nAttached the following on-call ${
+        policyNames.length === 1 ? "policy" : "policies"
+      } to the incident:${policiesPart}`;
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: incident.id,
+        projectId: incident.projectId,
+        incidentFeedEventType: IncidentFeedEventType.OnCallRuleExecuted,
+        displayColor: Indigo500,
+        feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `IncidentOnCallRuleEngine: failed to create rule-executed feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

@@ -1,12 +1,30 @@
+import Host from "../../Models/DatabaseModels/Host";
+import HostOwnerTeam from "../../Models/DatabaseModels/HostOwnerTeam";
+import HostOwnerUser from "../../Models/DatabaseModels/HostOwnerUser";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
+import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
+import Team from "../../Models/DatabaseModels/Team";
+import User from "../../Models/DatabaseModels/User";
+import HostOwnerTeamService from "./HostOwnerTeamService";
+import HostOwnerUserService from "./HostOwnerUserService";
+import IncidentFeedService from "./IncidentFeedService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
 import IncidentService from "./IncidentService";
+import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
+import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorService from "./MonitorService";
+import TeamService from "./TeamService";
+import UserService from "./UserService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
+import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -44,6 +62,8 @@ class IncidentOwnerRuleEngineServiceClass {
             monitorDescriptionPattern: true,
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
+            inheritOwnersFromMonitors: true,
+            inheritOwnersFromHosts: true,
           },
           limit: 100,
           skip: 0,
@@ -66,7 +86,12 @@ class IncidentOwnerRuleEngineServiceClass {
         [false, new Set()],
       ]);
 
-      let matchedAny: boolean = false;
+      const matchedRules: Array<IncidentOwnerRule> = [];
+      const allUserIds: Set<string> = new Set();
+      const allTeamIds: Set<string> = new Set();
+      let inheritFromMonitors: boolean = false;
+      let inheritFromHosts: boolean = false;
+      const inheritNotifyMode: { value: boolean | null } = { value: null };
 
       for (const rule of rules) {
         const matches: boolean = await this.doesIncidentMatchRule(
@@ -76,21 +101,157 @@ class IncidentOwnerRuleEngineServiceClass {
         if (!matches) {
           continue;
         }
-        matchedAny = true;
+        let ruleAddedAny: boolean = false;
         const notify: boolean = rule.notifyOwners !== false;
         for (const user of rule.ownerUsers || []) {
           if (user.id) {
             usersByNotify.get(notify)!.add(user.id.toString());
+            allUserIds.add(user.id.toString());
+            ruleAddedAny = true;
           }
         }
         for (const team of rule.ownerTeams || []) {
           if (team.id) {
             teamsByNotify.get(notify)!.add(team.id.toString());
+            allTeamIds.add(team.id.toString());
+            ruleAddedAny = true;
+          }
+        }
+        if (rule.inheritOwnersFromMonitors) {
+          inheritFromMonitors = true;
+          ruleAddedAny = true;
+          /*
+           * If multiple matching rules ask to inherit, prefer notify=true so
+           * any rule that wants to notify wins. This matches the spirit of
+           * notifyOwners — once any rule has opted in, owners are notified.
+           */
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (rule.inheritOwnersFromHosts) {
+          inheritFromHosts = true;
+          ruleAddedAny = true;
+          inheritNotifyMode.value =
+            inheritNotifyMode.value === true ? true : notify;
+        }
+        if (ruleAddedAny) {
+          matchedRules.push(rule);
+        }
+      }
+
+      const inheritedFromMonitorUserIds: Set<string> = new Set();
+      const inheritedFromMonitorTeamIds: Set<string> = new Set();
+      const inheritedFromHostUserIds: Set<string> = new Set();
+      const inheritedFromHostTeamIds: Set<string> = new Set();
+
+      if (inheritFromMonitors && incident.monitors?.length) {
+        const monitorIds: Array<ObjectID> = incident.monitors
+          .map((m: Monitor) => {
+            return m.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (monitorIds.length > 0) {
+          const [monitorOwnerUsers, monitorOwnerTeams]: [
+            Array<MonitorOwnerUser>,
+            Array<MonitorOwnerTeam>,
+          ] = await Promise.all([
+            MonitorOwnerUserService.findBy({
+              query: { monitorId: QueryHelper.any(monitorIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            MonitorOwnerTeamService.findBy({
+              query: { monitorId: QueryHelper.any(monitorIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of monitorOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromMonitorUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of monitorOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromMonitorTeamIds.add(ownerTeam.teamId.toString());
+            }
           }
         }
       }
 
-      if (!matchedAny) {
+      if (inheritFromHosts && incident.hosts?.length) {
+        const hostIds: Array<ObjectID> = incident.hosts
+          .map((h: Host) => {
+            return h.id;
+          })
+          .filter((id: ObjectID | null | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+        if (hostIds.length > 0) {
+          const [hostOwnerUsers, hostOwnerTeams]: [
+            Array<HostOwnerUser>,
+            Array<HostOwnerTeam>,
+          ] = await Promise.all([
+            HostOwnerUserService.findBy({
+              query: { hostId: QueryHelper.any(hostIds) },
+              select: { userId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+            HostOwnerTeamService.findBy({
+              query: { hostId: QueryHelper.any(hostIds) },
+              select: { teamId: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            }),
+          ]);
+          for (const ownerUser of hostOwnerUsers) {
+            if (ownerUser.userId) {
+              inheritedFromHostUserIds.add(ownerUser.userId.toString());
+            }
+          }
+          for (const ownerTeam of hostOwnerTeams) {
+            if (ownerTeam.teamId) {
+              inheritedFromHostTeamIds.add(ownerTeam.teamId.toString());
+            }
+          }
+        }
+      }
+
+      const inheritedUserIds: Set<string> = new Set([
+        ...inheritedFromMonitorUserIds,
+        ...inheritedFromHostUserIds,
+      ]);
+      const inheritedTeamIds: Set<string> = new Set([
+        ...inheritedFromMonitorTeamIds,
+        ...inheritedFromHostTeamIds,
+      ]);
+
+      if (inheritedUserIds.size > 0 || inheritedTeamIds.size > 0) {
+        const inheritNotify: boolean = inheritNotifyMode.value === true;
+        for (const id of inheritedUserIds) {
+          usersByNotify.get(inheritNotify)!.add(id);
+          allUserIds.add(id);
+        }
+        for (const id of inheritedTeamIds) {
+          teamsByNotify.get(inheritNotify)!.add(id);
+          allTeamIds.add(id);
+        }
+      }
+
+      if (matchedRules.length === 0) {
+        return;
+      }
+
+      if (allUserIds.size === 0 && allTeamIds.size === 0) {
         return;
       }
 
@@ -124,11 +285,147 @@ class IncidentOwnerRuleEngineServiceClass {
         `IncidentOwnerRuleEngine added owners to incident ${incident.id}`,
         { projectId: incident.projectId.toString() } as LogAttributes,
       );
+
+      await this.createRuleExecutedFeedItem({
+        incident,
+        matchedRules,
+        userIds: Array.from(allUserIds),
+        teamIds: Array.from(allTeamIds),
+        inheritedFromMonitors:
+          inheritedFromMonitorUserIds.size + inheritedFromMonitorTeamIds.size >
+          0,
+        inheritedFromHosts:
+          inheritedFromHostUserIds.size + inheritedFromHostTeamIds.size > 0,
+      });
     } catch (error) {
       logger.error(`Error applying incident owner rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  @CaptureSpan()
+  private async createRuleExecutedFeedItem(data: {
+    incident: Incident;
+    matchedRules: Array<IncidentOwnerRule>;
+    userIds: Array<string>;
+    teamIds: Array<string>;
+    inheritedFromMonitors: boolean;
+    inheritedFromHosts: boolean;
+  }): Promise<void> {
+    const {
+      incident,
+      matchedRules,
+      userIds,
+      teamIds,
+      inheritedFromMonitors,
+      inheritedFromHosts,
+    } = data;
+    if (
+      !incident.id ||
+      !incident.projectId ||
+      matchedRules.length === 0 ||
+      (userIds.length === 0 && teamIds.length === 0)
+    ) {
+      return;
+    }
+
+    try {
+      const userObjectIds: Array<ObjectID> = userIds.map((id: string) => {
+        return new ObjectID(id);
+      });
+      const teamObjectIds: Array<ObjectID> = teamIds.map((id: string) => {
+        return new ObjectID(id);
+      });
+
+      const [users, teams]: [Array<User>, Array<Team>] = await Promise.all([
+        userObjectIds.length > 0
+          ? UserService.findBy({
+              query: { _id: QueryHelper.any(userObjectIds) },
+              select: { name: true, email: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            })
+          : Promise.resolve([] as Array<User>),
+        teamObjectIds.length > 0
+          ? TeamService.findBy({
+              query: { _id: QueryHelper.any(teamObjectIds) },
+              select: { name: true },
+              props: { isRoot: true },
+              limit: LIMIT_MAX,
+              skip: 0,
+            })
+          : Promise.resolve([] as Array<Team>),
+      ]);
+
+      const userLines: Array<string> = users.map((u: User) => {
+        const display: string =
+          u.name?.toString() || u.email?.toString() || "Unknown User";
+        return `\n- 👤 ${display}`;
+      });
+      const teamLines: Array<string> = teams.map((t: Team) => {
+        return `\n- 👥 ${t.name?.toString() || "Unnamed Team"}`;
+      });
+
+      const ruleNames: Array<string> = matchedRules
+        .map((r: IncidentOwnerRule) => {
+          return r.name?.toString() || "Unnamed Rule";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const rulesPart: string =
+        ruleNames.length === 1
+          ? `**${ruleNames[0]}**`
+          : ruleNames
+              .map((n: string) => {
+                return `**${n}**`;
+              })
+              .join(", ");
+
+      const ownersPart: string =
+        userLines.length + teamLines.length > 0
+          ? userLines.concat(teamLines).join("")
+          : "\n- (no named owners)";
+
+      const inheritedSources: Array<string> = [];
+      if (inheritedFromMonitors) {
+        inheritedSources.push("monitors");
+      }
+      if (inheritedFromHosts) {
+        inheritedSources.push("hosts");
+      }
+      const inheritedNote: string =
+        inheritedSources.length > 0
+          ? `\n\n_Some owners were inherited from the incident's ${inheritedSources.join(" and ")}._`
+          : "";
+
+      const feedInfoInMarkdown: string = `🛡️ **Incident Owner Rule${
+        matchedRules.length > 1 ? "s" : ""
+      } executed:** ${rulesPart}\n\nAssigned the following owner${
+        userLines.length + teamLines.length === 1 ? "" : "s"
+      } to the incident:${ownersPart}${inheritedNote}`;
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: incident.id,
+        projectId: incident.projectId,
+        incidentFeedEventType: IncidentFeedEventType.OwnerRuleExecuted,
+        displayColor: Indigo500,
+        feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `IncidentOwnerRuleEngine: failed to create rule-executed feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

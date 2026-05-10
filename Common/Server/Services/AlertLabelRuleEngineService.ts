@@ -3,9 +3,16 @@ import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import AlertFeedService from "./AlertFeedService";
 import AlertLabelRuleService from "./AlertLabelRuleService";
 import AlertService from "./AlertService";
+import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import { Indigo500 } from "../../Types/BrandColors";
+import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -55,12 +62,14 @@ class AlertLabelRuleEngineServiceClass {
 
       const labelIdsToAdd: Set<string> = new Set();
       let inheritFromMonitors: boolean = false;
+      const matchedRules: Array<AlertLabelRule> = [];
 
       for (const rule of rules) {
         const matches: boolean = await this.doesAlertMatchRule(alert, rule);
         if (!matches) {
           continue;
         }
+        matchedRules.push(rule);
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
             labelIdsToAdd.add(label.id.toString());
@@ -122,11 +131,110 @@ class AlertLabelRuleEngineServiceClass {
         `AlertLabelRuleEngine attached ${newLabelIds.length} labels to alert ${alert.id}`,
         { projectId: alert.projectId.toString() } as LogAttributes,
       );
+
+      await this.createRuleExecutedFeedItem({
+        alert,
+        matchedRules,
+        addedLabelIds: newLabelIds,
+      });
     } catch (error) {
       logger.error(`Error applying alert label rules: ${error}`, {
         projectId: alert.projectId?.toString(),
         alertId: alert.id?.toString(),
       } as LogAttributes);
+    }
+  }
+
+  @CaptureSpan()
+  private async createRuleExecutedFeedItem(data: {
+    alert: Alert;
+    matchedRules: Array<AlertLabelRule>;
+    addedLabelIds: Array<string>;
+  }): Promise<void> {
+    const { alert, matchedRules, addedLabelIds } = data;
+    if (
+      !alert.id ||
+      !alert.projectId ||
+      matchedRules.length === 0 ||
+      addedLabelIds.length === 0
+    ) {
+      return;
+    }
+
+    try {
+      const labelObjectIds: Array<ObjectID> = addedLabelIds.map(
+        (id: string) => {
+          return new ObjectID(id);
+        },
+      );
+
+      const labels: Array<Label> = await LabelService.findBy({
+        query: {
+          _id: QueryHelper.any(labelObjectIds),
+        },
+        select: { name: true },
+        props: { isRoot: true },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      const labelNames: Array<string> = labels
+        .map((l: Label) => {
+          return l.name?.toString() || "";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const ruleNames: Array<string> = matchedRules
+        .map((r: AlertLabelRule) => {
+          return r.name?.toString() || "Unnamed Rule";
+        })
+        .filter((n: string) => {
+          return n !== "";
+        });
+
+      const rulesPart: string =
+        ruleNames.length === 1
+          ? `**${ruleNames[0]}**`
+          : ruleNames
+              .map((n: string) => {
+                return `**${n}**`;
+              })
+              .join(", ");
+
+      const labelsPart: string =
+        labelNames.length > 0
+          ? labelNames
+              .map((n: string) => {
+                return `\n- ${n}`;
+              })
+              .join("")
+          : "\n- (no named labels)";
+
+      const feedInfoInMarkdown: string = `🏷️ **Alert Label Rule${
+        matchedRules.length > 1 ? "s" : ""
+      } executed:** ${rulesPart}\n\nAdded the following label${
+        labelNames.length === 1 ? "" : "s"
+      } to the alert:${labelsPart}`;
+
+      await AlertFeedService.createAlertFeedItem({
+        alertId: alert.id,
+        projectId: alert.projectId,
+        alertFeedEventType: AlertFeedEventType.LabelRuleExecuted,
+        displayColor: Indigo500,
+        feedInfoInMarkdown,
+      });
+    } catch (error) {
+      logger.error(
+        `AlertLabelRuleEngine: failed to create rule-executed feed item: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

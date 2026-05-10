@@ -32,9 +32,13 @@ A rule matches an incident only when **all** specified criteria pass. Empty crit
 
 ### Action
 
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
+When a rule matches:
 
-Multiple matching rules all fire — the union of their owners ends up assigned.
+- Every user and team listed on the rule is added as an owner.
+- If \`Inherit Owners From Monitors\` is on, every owner of the incident's monitors is also added.
+- If \`Inherit Owners From Hosts\` is on, every owner of the incident's affected hosts is also added.
+
+Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
 `;
 
 const incidentEpisodeOwnerDocumentation: string = `
@@ -257,6 +261,27 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           },
           required: false,
           placeholder: "Select Users",
+        },
+        {
+          field: { inheritOwnersFromMonitors: true },
+          title: "Inherit Owners From Monitors",
+          stepId: "owners",
+          sectionTitle: "Inherit Owners",
+          sectionDescription:
+            "Optionally assign owners from related entities to the incident.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the incident's monitors as an owner of the incident.",
+        },
+        {
+          field: { inheritOwnersFromHosts: true },
+          title: "Inherit Owners From Hosts",
+          stepId: "owners",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Assign every owner of the incident's affected hosts as an owner of the incident.",
         },
       ]}
       showRefreshButton={true}

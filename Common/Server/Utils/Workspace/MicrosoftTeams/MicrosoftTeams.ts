@@ -857,6 +857,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
     teamId: string; // Required team ID
+    isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     const teamId: string = data.teamId;
 
@@ -872,7 +873,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const channelPayload: JSONObject = {
       displayName: data.channelName,
       description: `OneUptime notifications for ${data.channelName}`,
-      membershipType: "standard",
+      membershipType: data.isPrivate ? "private" : "standard",
     };
 
     logger.debug("Creating Teams channel with payload:");

@@ -1556,6 +1556,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     /*
      * Sanitize channel name: Slack only allows lowercase letters, numbers,
@@ -1572,12 +1573,18 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Creating channel with data:", createChannelLogAttributes);
     logger.debug(data, createChannelLogAttributes);
 
+    const createChannelPayload: JSONObject = {
+      name: data.channelName,
+    };
+
+    if (data.isPrivate) {
+      createChannelPayload["is_private"] = true;
+    }
+
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
         url: URL.fromString("https://slack.com/api/conversations.create"),
-        data: {
-          name: data.channelName,
-        },
+        data: createChannelPayload,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
