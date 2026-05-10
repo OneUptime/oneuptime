@@ -70,7 +70,9 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
     criteriaAlert.onCallPolicyIds?.length,
   );
   const hasAdvancedOptions: boolean = Boolean(
-    criteriaAlert.autoResolveAlert || criteriaAlert.remediationNotes,
+    criteriaAlert.autoResolveAlert ||
+      criteriaAlert.remediationNotes ||
+      criteriaAlert.isPrivate === true,
   );
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
@@ -323,6 +325,17 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
               description="Automatically resolve this alert when this criteria is no longer met"
               onChange={(value: boolean) => {
                 updateField("autoResolveAlert", value);
+              }}
+            />
+          </div>
+
+          <div>
+            <Checkbox
+              value={criteriaAlert.isPrivate === true}
+              title="Private Alert"
+              description="When enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert."
+              onChange={(value: boolean) => {
+                updateField("isPrivate", value);
               }}
             />
           </div>

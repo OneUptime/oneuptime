@@ -923,6 +923,11 @@ enum Permission {
   EditAlertOwnerRule = "EditAlertOwnerRule",
   ReadAlertOwnerRule = "ReadAlertOwnerRule",
 
+  CreateAlertPrivacyRule = "CreateAlertPrivacyRule",
+  DeleteAlertPrivacyRule = "DeleteAlertPrivacyRule",
+  EditAlertPrivacyRule = "EditAlertPrivacyRule",
+  ReadAlertPrivacyRule = "ReadAlertPrivacyRule",
+
   // Alert Episode On-Call Rule Permissions
   CreateAlertEpisodeOnCallRule = "CreateAlertEpisodeOnCallRule",
   DeleteAlertEpisodeOnCallRule = "DeleteAlertEpisodeOnCallRule",
