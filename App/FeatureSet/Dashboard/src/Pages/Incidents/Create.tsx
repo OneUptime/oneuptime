@@ -624,6 +624,18 @@ const IncidentCreate: FunctionComponent<
                   defaultValue: true,
                   required: false,
                 },
+                {
+                  field: {
+                    isPrivate: true,
+                  },
+                  title: "Private Incident",
+                  stepId: "more",
+                  description:
+                    "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages.",
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  defaultValue: false,
+                  required: false,
+                },
               ]}
               steps={[
                 {

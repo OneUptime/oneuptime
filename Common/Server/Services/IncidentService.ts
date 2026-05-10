@@ -1,7 +1,9 @@
 import DatabaseConfig from "../DatabaseConfig";
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
@@ -23,6 +25,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
+import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Model from "../../Models/DatabaseModels/Incident";
@@ -48,6 +51,7 @@ import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
+import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
@@ -106,6 +110,25 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentSelfPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentSelfPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
   }
 
   @CaptureSpan()
@@ -345,6 +368,17 @@ export class Service extends DatabaseService<Model> {
      * then change all of the monitors in this incident to the changeMonitorStatusToId.
      */
 
+    updateBy.query = applyIncidentSelfPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+
+    if (updateBy.data.isPrivate === true) {
+      updateBy.data.isVisibleOnStatusPage = false;
+      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
+        false;
+    }
+
     const carryForward: UpdateCarryForward = {};
 
     if (
@@ -461,6 +495,12 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
+    }
+
+    if (createBy.data.isPrivate === true) {
+      createBy.data.isVisibleOnStatusPage = false;
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
+        false;
     }
 
     const projectId: ObjectID =
@@ -1570,6 +1610,54 @@ ${incident.remediationNotes || "No remediation notes provided."}
           }
         }
 
+        /*
+         * Sync isPublic on inline post-mortem images. The markdown
+         * editor uploads them as private; they must flip to public
+         * exactly when the post-mortem is shown on the status page so
+         * that anonymous status-page viewers can render the
+         * screenshots without exposing private artefacts.
+         */
+        const postmortemNoteChanged: boolean =
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemNote",
+          );
+        const postmortemVisibilityChanged: boolean =
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "showPostmortemOnStatusPage",
+          );
+
+        if (postmortemNoteChanged || postmortemVisibilityChanged) {
+          try {
+            const incidentForSync: Model | null = await this.findOneById({
+              id: incidentId,
+              select: {
+                postmortemNote: true,
+                showPostmortemOnStatusPage: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (incidentForSync) {
+              await setIsPublicForMarkdownImages(
+                incidentForSync.postmortemNote || "",
+                Boolean(incidentForSync.showPostmortemOnStatusPage),
+              );
+            }
+          } catch (syncError) {
+            logger.error(
+              `Failed to sync inline post-mortem image visibility: ${syncError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
@@ -2139,6 +2227,11 @@ ${incidentSeverity.name}
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyIncidentSelfPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+
     const incidents: Array<Model> = await this.findBy({
       query: deleteBy.query,
       limit: LIMIT_MAX,

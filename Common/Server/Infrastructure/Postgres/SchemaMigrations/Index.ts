@@ -306,6 +306,8 @@ import { DedupeServicesAndAddUniqueIndex1778100000000 } from "./1778100000000-De
 import { MigrationName1778269764550 } from "./1778269764550-MigrationName";
 import { MigrationName1778271406963 } from "./1778271406963-MigrationName";
 import { MigrationName1778274719786 } from "./1778274719786-MigrationName";
+import { AddIncidentIsPrivate1778359982682 } from "./1778359982682-AddIncidentIsPrivate";
+import { AddFileImageAccessToken1778361904715 } from "./1778361904715-AddFileImageAccessToken";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -615,4 +617,6 @@ export default [
   MigrationName1778269764550,
   MigrationName1778271406963,
   MigrationName1778274719786,
+  AddIncidentIsPrivate1778359982682,
+  AddFileImageAccessToken1778361904715,
 ];

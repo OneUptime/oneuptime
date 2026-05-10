@@ -6,7 +6,7 @@ import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolic
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black } from "Common/Types/BrandColors";
+import { Black, Red500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -528,6 +528,19 @@ const IncidentView: FunctionComponent<
                     text={item.incidentSeverity.name || "Unknown"}
                   />
                 );
+              },
+            },
+            {
+              field: {
+                isPrivate: true,
+              },
+              title: "Visibility",
+              fieldType: FieldType.Element,
+              showIf: (item: Incident): boolean => {
+                return item.isPrivate === true;
+              },
+              getElement: (): ReactElement => {
+                return <Pill color={Red500} text="Private" />;
               },
             },
             {

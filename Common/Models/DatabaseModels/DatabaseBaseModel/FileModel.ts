@@ -108,4 +108,31 @@ export default class FileModel extends BaseModel {
     length: ColumnLength.Slug,
   })
   public isPublic?: boolean = undefined;
+
+  /*
+   * High-entropy token used to address a file via /file/image/access-token/:token.
+   * Generated server-side on create. Unguessable replacement for the
+   * file id when embedding files in markdown so that ObjectIDs are not
+   * enumerable. Combined with the isPublic flag the token route only
+   * serves anonymous requests when isPublic is true; otherwise an
+   * authenticated session is required.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    unique: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    unique: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public imageAccessToken?: string = undefined;
 }

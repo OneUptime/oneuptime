@@ -388,6 +388,15 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               />
             );
           },
+          img: ({ ...props }: any) => {
+            return (
+              <img
+                className="max-w-full h-auto rounded-md border border-gray-200 my-3"
+                loading="lazy"
+                {...props}
+              />
+            );
+          },
 
           pre: ({ children, ...rest }: any) => {
             // Check if this is a mermaid diagram - don't render pre wrapper for mermaid

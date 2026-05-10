@@ -1871,6 +1871,47 @@ export default class Incident extends BaseModel {
       Permission.EditProjectIncident,
     ],
   })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Private?",
+    description:
+      "If true, this incident is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners. Private incidents are hidden from status pages.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+    nullable: true,
+  })
+  public isPrivate?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentManager,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentManager,
+      Permission.ReadProjectIncident,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentManager,
+      Permission.EditProjectIncident,
+    ],
+  })
   @TableColumn({
     manyToOneRelationColumn: "incidentEpisodeId",
     type: TableColumnType.Entity,

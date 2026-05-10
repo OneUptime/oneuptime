@@ -1670,6 +1670,7 @@ export default class StatusPageAPI extends BaseAPI<
               await IncidentService.findBy({
                 query: {
                   monitors: monitorsOnStatusPage as any,
+                  isVisibleOnStatusPage: true,
                   projectId: statusPage.projectId!,
                 },
                 select: {
@@ -1816,6 +1817,7 @@ export default class StatusPageAPI extends BaseAPI<
                   memberIncidents = await IncidentService.findBy({
                     query: {
                       _id: QueryHelper.any(memberIncidentIds),
+                      isVisibleOnStatusPage: true,
                       projectId: statusPage.projectId!,
                     },
                     select: {
@@ -3997,6 +3999,7 @@ export default class StatusPageAPI extends BaseAPI<
         monitors: monitorsOnStatusPage as any,
         projectId: statusPage.projectId!,
         _id: incidentId.toString(),
+        isVisibleOnStatusPage: true,
       };
     }
 
