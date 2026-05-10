@@ -676,9 +676,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 <Fragment key={fieldName}>
                                   {field.sectionTitle && (
                                     <div
-                                      className={`${fullRowSpan} mt-3 first:mt-0`}
+                                      className={`${fullRowSpan} mt-4 pt-5 first:mt-0 first:pt-0 border-t first:border-t-0 border-gray-200`}
                                     >
-                                      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                      <h3 className="text-base font-semibold text-gray-900">
                                         {field.sectionTitle}
                                       </h3>
                                       {field.sectionDescription && (
