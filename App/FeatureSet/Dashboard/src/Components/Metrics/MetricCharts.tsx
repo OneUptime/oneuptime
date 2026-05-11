@@ -720,8 +720,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           yAxisMax = baseline;
           yAxisMin = 0;
         } else if (observedMax < baseline * 0.25) {
-          // Data is well below the full scale — auto-fit with 25% headroom
-          // so a 2% line is clearly visible rather than flat at the bottom.
+          /*
+           * Data is well below the full scale — auto-fit with 25% headroom
+           * so a 2% line is clearly visible rather than flat at the bottom.
+           */
           const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
           yAxisMax = observedMax + headroom;
           yAxisMin = observedMin;

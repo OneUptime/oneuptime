@@ -144,5 +144,4 @@ export default class DataPointUtil {
         throw new BadDataException("Aggregate type not supported.");
     }
   }
-
 }
