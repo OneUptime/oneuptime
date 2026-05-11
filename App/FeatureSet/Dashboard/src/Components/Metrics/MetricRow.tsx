@@ -7,6 +7,7 @@ import React, {
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 
 export interface MetricRowProps {
@@ -25,21 +26,24 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
   /*
    * While the cursor is over the sparkline, swap the displayed value
    * for the hovered data point so the number on the left tracks the
-   * chart. Reset to undefined on mouse-out to fall back to lastValue.
+   * chart, and surface the data point's timestamp underneath. Reset
+   * to null on mouse-out to fall back to lastValue.
    */
-  const [hoveredValue, setHoveredValue] = useState<number | undefined>(
-    undefined,
-  );
+  const [hoveredPoint, setHoveredPoint] = useState<SparklinePoint | null>(null);
 
   const handleHoverPoint: (point: SparklinePoint | null) => void = useCallback(
     (point: SparklinePoint | null): void => {
-      setHoveredValue(point ? point.value : undefined);
+      setHoveredPoint(point);
     },
     [],
   );
 
-  const displayedValue: number | undefined =
-    hoveredValue !== undefined ? hoveredValue : props.lastValue;
+  const displayedValue: number | undefined = hoveredPoint
+    ? hoveredPoint.value
+    : props.lastValue;
+  const displayedTime: string | null = hoveredPoint
+    ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.time)
+    : null;
 
   const services: Array<Service> = (metric.services || []).filter(
     (service: Service): boolean => {
@@ -113,13 +117,18 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         <div className="flex flex-shrink-0 items-center gap-4">
           {displayedValue !== undefined && (
             <div className="text-right">
-              <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
+              <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
                 {ValueFormatter.formatValue(
                   displayedValue,
                   rawUnit,
                   formatterOptions,
                 )}
-              </span>
+              </div>
+              {displayedTime && (
+                <div className="mt-0.5 font-mono text-[10px] text-gray-400 tabular-nums">
+                  {displayedTime}
+                </div>
+              )}
             </div>
           )}
           <MetricSparkline
