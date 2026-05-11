@@ -3681,6 +3681,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
+      !req.params["subscriberId"] &&
       !req.body.data["subscriberEmail"] &&
       !req.body.data["subscriberPhone"] &&
       !req.body.data["slackWorkspaceName"] &&
