@@ -865,6 +865,7 @@ export default class StatusPageAPI extends BaseAPI<
             enableEmailSubscribers: true,
             enableSlackSubscribers: true,
             enableMicrosoftTeamsSubscribers: true,
+            enableWebhookSubscribers: true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             enableMasterPassword: true,
@@ -3188,6 +3189,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableEmailSubscribers: true,
         enableSlackSubscribers: true,
         enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
@@ -3581,6 +3583,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableSmsSubscribers: true,
         enableSlackSubscribers: true,
         enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
         showSubscriberPageOnStatusPage: true,
@@ -3665,17 +3668,31 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
-      !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackWorkspaceName"] &&
-      !req.body.data["microsoftTeamsWorkspaceName"]
+      req.body.data["subscriberWebhook"] &&
+      !statusPage.enableWebhookSubscribers
     ) {
       logger.debug(
-        `No email, phone, slack workspace name, or Microsoft Teams workspace name provided for subscription to status page with ID: ${objectId}`,
+        `Webhook subscribers not enabled for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
-        "Email, phone, slack workspace name, or Microsoft Teams workspace name is required to subscribe to this status page.",
+        "Webhook subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      !req.body.data["subscriberEmail"] &&
+      !req.body.data["subscriberPhone"] &&
+      !req.body.data["slackWorkspaceName"] &&
+      !req.body.data["microsoftTeamsWorkspaceName"] &&
+      !req.body.data["subscriberWebhook"]
+    ) {
+      logger.debug(
+        `No email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL provided for subscription to status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL is required to subscribe to this status page.",
       );
     }
 
@@ -3709,6 +3726,12 @@ export default class StatusPageAPI extends BaseAPI<
       "microsoftTeamsWorkspaceName"
     ]
       ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
+      : undefined;
+
+    const subscriberWebhookUrl: string | undefined = req.body.data[
+      "subscriberWebhook"
+    ]
+      ? (req.body.data["subscriberWebhook"] as string)
       : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
@@ -3801,6 +3824,15 @@ export default class StatusPageAPI extends BaseAPI<
       );
       statusPageSubscriber.microsoftTeamsWorkspaceName =
         microsoftTeamsWorkspaceName;
+    }
+
+    if (subscriberWebhookUrl) {
+      logger.debug(
+        `Setting subscriber webhook URL: ${subscriberWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.subscriberWebhook =
+        URL.fromString(subscriberWebhookUrl);
     }
 
     if (
