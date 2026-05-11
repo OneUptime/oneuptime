@@ -313,6 +313,7 @@ import { AddAlertIsPrivate1778438949454 } from "./1778438949454-AddAlertIsPrivat
 import { AddPrivacyRules1778440665575 } from "./1778440665575-AddPrivacyRules";
 import { AddEpisodePrivacyRules1778442385970 } from "./1778442385970-AddEpisodePrivacyRules";
 import { AddProjectOIDC1778506655291 } from "./1778506655291-AddProjectOIDC";
+import { MigrationName1778514515756 } from "./1778514515756-MigrationName";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -629,4 +630,5 @@ export default [
   AddPrivacyRules1778440665575,
   AddEpisodePrivacyRules1778442385970,
   AddProjectOIDC1778506655291,
+  MigrationName1778514515756,
 ];

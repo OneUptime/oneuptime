@@ -275,6 +275,7 @@ enum Permission {
   ReadEmailLog = "ReadEmailLog",
   ReadCallLog = "ReadCallLog",
   ReadPushLog = "ReadPushLog",
+  ReadWebhookLog = "ReadWebhookLog",
   ReadWorkspaceNotificationLog = "ReadWorkspaceNotificationLog",
   ReadLlmLog = "ReadLlmLog",
 
@@ -4754,6 +4755,17 @@ export class PermissionHelper {
         title: "Read Push Log",
         description:
           "This permission can read Push Notification Logs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.NotificationLog,
+      },
+
+      {
+        permission: Permission.ReadWebhookLog,
+        title: "Read Webhook Log",
+        description:
+          "This permission can read outbound Webhook request Logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

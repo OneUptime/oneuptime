@@ -7,6 +7,7 @@ import PushLogsTable from "./PushLogsTable";
 import WorkspaceLogsTable from "./WorkspaceLogsTable";
 import WhatsAppLogsTable from "./WhatsAppLogsTable";
 import TelegramLogsTable from "./TelegramLogsTable";
+import WebhookLogsTable from "./WebhookLogsTable";
 import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 
@@ -45,6 +46,10 @@ const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
           {
             name: "Telegram",
             children: <TelegramLogsTable {...commonProps} />,
+          },
+          {
+            name: "Webhook",
+            children: <WebhookLogsTable {...commonProps} />,
           },
           {
             name: "Call",

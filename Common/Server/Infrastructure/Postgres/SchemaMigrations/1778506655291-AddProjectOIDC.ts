@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddProjectOIDC1778506655291 implements MigrationInterface {
-  name = "AddProjectOIDC1778506655291";
+  public name = "AddProjectOIDC1778506655291";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

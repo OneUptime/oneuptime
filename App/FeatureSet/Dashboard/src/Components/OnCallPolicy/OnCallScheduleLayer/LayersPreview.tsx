@@ -54,9 +54,11 @@ const getColorForUserId: (userId: string) => string = (
   userId: string,
 ): string => {
   const colorListLength: number = BrightColors.length;
-  // HashCode.fromString may return a negative 32-bit int; abs first so the
-  // modulo lands inside the BrightColors array instead of falling through to
-  // the Blue500 default for every user with a negative hash.
+  /*
+   * HashCode.fromString may return a negative 32-bit int; abs first so the
+   * modulo lands inside the BrightColors array instead of falling through to
+   * the Blue500 default for every user with a negative hash.
+   */
   const colorIndex: number =
     Math.abs(HashCode.fromString(userId)) % colorListLength;
   return (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();

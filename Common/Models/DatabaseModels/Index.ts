@@ -148,6 +148,7 @@ import ShortLink from "./ShortLink";
 import SmsLog from "./SmsLog";
 import WhatsAppLog from "./WhatsAppLog";
 import TelegramLog from "./TelegramLog";
+import WebhookLog from "./WebhookLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 // Status Page
@@ -185,6 +186,7 @@ import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
 import UserTelegram from "./UserTelegram";
+import UserWebhook from "./UserWebhook";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -458,6 +460,7 @@ const AllModelTypes: Array<{
   SmsLog,
   WhatsAppLog,
   TelegramLog,
+  WebhookLog,
   PushNotificationLog,
   WorkspaceNotificationLog,
   CallLog,
@@ -469,6 +472,7 @@ const AllModelTypes: Array<{
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserWebhook,
   UserIncomingCallNumber,
 
   UserNotificationRule,

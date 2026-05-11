@@ -3,6 +3,7 @@ import UserEmail from "../../Components/NotificationMethods/Email";
 import UserPush from "../../Components/NotificationMethods/Push";
 import UserSMS from "../../Components/NotificationMethods/SMS";
 import UserTelegram from "../../Components/NotificationMethods/Telegram";
+import UserWebhook from "../../Components/NotificationMethods/Webhook";
 import UserWhatsApp from "../../Components/NotificationMethods/WhatsApp";
 import PageComponentProps from "../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -16,6 +17,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <UserTelegram />
       <UserCall />
       <UserPush />
+      <UserWebhook />
     </Fragment>
   );
 };

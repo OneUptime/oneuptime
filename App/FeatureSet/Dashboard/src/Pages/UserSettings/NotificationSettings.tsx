@@ -135,6 +135,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
+          {
+            field: {
+              alertByWebhook: true,
+            },
+            title: "Alert By Webhook",
+            description:
+              "Select if you want to be alerted by an outbound webhook POST to your configured webhook URLs.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         showRefreshButton={true}
         filters={[]}
@@ -144,6 +154,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           alertByTelegram: true,
           alertByCall: true,
           alertByPush: true,
+          alertByWebhook: true,
         }}
         columns={[
           {
@@ -210,6 +221,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   enabled: Boolean(item.alertByTelegram),
                   icon: IconProp.Telegram,
                   color: Blue500,
+                },
+                {
+                  key: "webhook",
+                  label: "Webhook",
+                  enabled: Boolean(item.alertByWebhook),
+                  icon: IconProp.Webhook,
+                  color: Sky500,
                 },
               ];
 

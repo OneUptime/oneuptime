@@ -16,6 +16,7 @@ import UserPush from "./UserPush";
 import UserOnCallLog from "./UserOnCallLog";
 import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
+import UserWebhook from "./UserWebhook";
 import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -1027,6 +1028,53 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userTelegramId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userWebhookId",
+    type: TableColumnType.Entity,
+    modelType: UserWebhook,
+    title: "User Webhook",
+    description:
+      "Relation to User Webhook Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserWebhook;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userWebhookId" })
+  public userWebhook?: UserWebhook = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Webhook ID",
+    description: "ID of User Webhook in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userWebhookId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

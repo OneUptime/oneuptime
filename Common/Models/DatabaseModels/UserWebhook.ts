@@ -14,7 +14,6 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -27,19 +26,20 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/user-notification-setting"))
+@CrudApiEndpoint(new Route("/user-webhook"))
 @Entity({
-  name: "UserNotificationSetting",
+  name: "UserWebhook",
 })
 @TableMetadata({
-  tableName: "UserNotificationSetting",
-  singularName: "Notification Setting",
-  pluralName: "Notification Settings",
-  icon: IconProp.Bell,
-  tableDescription: "Settings which will be used to send notifications.",
+  tableName: "UserWebhook",
+  singularName: "Webhook",
+  pluralName: "Webhooks",
+  icon: IconProp.Webhook,
+  tableDescription:
+    "Webhook URLs used for outbound HTTP notifications to your own services.",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class UserNotificationSetting extends BaseModel {
+class UserWebhook extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -78,7 +78,6 @@ class UserNotificationSetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
-    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -93,12 +92,12 @@ class UserNotificationSetting extends BaseModel {
     update: [Permission.CurrentUser],
   })
   @TableColumn({
-    title: "Rule Type",
+    title: "Name",
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    example: "Incident Created",
+    description: "Label for this webhook (e.g. 'My Slack', 'Internal alerts').",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -106,7 +105,51 @@ class UserNotificationSetting extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public eventType?: NotificationSettingEventType = undefined;
+  public name?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    title: "Webhook URL",
+    required: true,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    description:
+      "HTTPS endpoint that will receive POST requests with notification payloads.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: false,
+  })
+  public webhookUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    title: "Signing Secret",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: false,
+    description:
+      "Optional shared secret used to compute an HMAC-SHA256 signature for each request (sent in X-OneUptime-Signature).",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public secret?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -118,7 +161,7 @@ class UserNotificationSetting extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "User",
-    description: "Relation to User who this email belongs to",
+    description: "Relation to User who this Webhook belongs to",
   })
   @ManyToOne(
     () => {
@@ -142,8 +185,7 @@ class UserNotificationSetting extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "User ID",
-    description: "User ID who this email belongs to",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
+    description: "User ID who this Webhook belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -190,7 +232,6 @@ class UserNotificationSetting extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -237,7 +278,6 @@ class UserNotificationSetting extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -245,125 +285,6 @@ class UserNotificationSetting extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByEmail?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertBySMS?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByWhatsApp?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByTelegram?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByCall?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByPush?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByWebhook?: boolean = undefined;
 }
 
-export default UserNotificationSetting;
+export default UserWebhook;
