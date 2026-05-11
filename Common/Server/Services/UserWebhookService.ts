@@ -7,6 +7,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/UserWebhook";
 import URL from "../../Types/API/URL";
+import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -32,6 +33,31 @@ export class Service extends DatabaseService<Model> {
       createBy,
       carryForward: null,
     };
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    /* Webhooks skip verification, so default on-call rules are seeded at create time. */
+    if (createdItem.projectId && createdItem.userId && createdItem.id) {
+      try {
+        await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+          {
+            projectId: createdItem.projectId,
+            userId: createdItem.userId,
+            notificationMethod: {
+              userWebhookId: createdItem.id,
+            },
+          },
+        );
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
+    return createdItem;
   }
 
   @CaptureSpan()
