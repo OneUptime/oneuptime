@@ -18,6 +18,7 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ObjectID from "Common/Types/ObjectID";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -300,6 +301,71 @@ export default class MetricUtil {
     }
 
     return results;
+  }
+
+  /**
+   * Fetch backend-aggregated time series for many metric names in
+   * parallel. Used by the metrics list sparklines, which previously
+   * paged the raw `Metric` table with `limit: 5000` — fine for low-
+   * cardinality data but truncated to the first few minutes for hosts
+   * that emit per-attribute-combo rows (process.* and system.* metrics
+   * fan out to thousands of rows per scrape, easily exceeding 100k
+   * rows/hour for one host). Truncation made the right side of every
+   * sparkline flatline at 0.
+   *
+   * Switching to the aggregate API delegates the per-bucket Avg to
+   * ClickHouse — at most a few-dozen rows come back per metric, and
+   * for the canonical host page (only `resource.host.name` filter,
+   * no group-by) MetricService routes the read to the per-host MV.
+   * dedupedAggregate also makes the cache hot when the user clicks
+   * a row and the explorer immediately re-issues the same query.
+   */
+  public static async fetchSparklineAggregates(data: {
+    metricNames: Array<string>;
+    attributes?: Dictionary<DictionaryEntryValue> | undefined;
+    startAndEndDate: InBetween<Date>;
+  }): Promise<Map<string, AggregatedResult>> {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId || data.metricNames.length === 0) {
+      return new Map();
+    }
+
+    const startTimestamp: Date = data.startAndEndDate.startValue as Date;
+    const endTimestamp: Date = data.startAndEndDate.endValue as Date;
+
+    const sanitizedAttributes: Dictionary<DictionaryEntryValue> | undefined =
+      sanitizeAttributeFilters(data.attributes);
+
+    const results: Array<[string, AggregatedResult]> = await Promise.all(
+      data.metricNames.map(
+        async (name: string): Promise<[string, AggregatedResult]> => {
+          try {
+            const result: AggregatedResult = await dedupedAggregate({
+              query: {
+                projectId,
+                time: data.startAndEndDate,
+                name,
+                ...(sanitizedAttributes
+                  ? { attributes: sanitizedAttributes as any }
+                  : {}),
+              },
+              aggregationType: MetricsAggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              startTimestamp,
+              endTimestamp,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+            } as AggregateBy<Metric>);
+            return [name, result];
+          } catch {
+            return [name, { data: [] }];
+          }
+        },
+      ),
+    );
+
+    return new Map(results);
   }
 
   /**

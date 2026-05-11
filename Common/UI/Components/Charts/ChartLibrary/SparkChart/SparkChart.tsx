@@ -40,6 +40,15 @@ interface SparkAreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   connectNulls?: boolean;
   type?: "default" | "stacked" | "percent";
   fill?: "gradient" | "solid" | "none";
+  /*
+   * Recharts mouse callbacks forwarded to the inner AreaChart so callers
+   * can react to cursor movement over the chart area (e.g. show the
+   * value at the hovered x position next to the sparkline). Recharts
+   * fires onMouseMove with `{ activePayload: [{ payload }] }` whenever
+   * the cursor moves between data points.
+   */
+  onChartMouseMove?: ((state: any) => void) | undefined;
+  onChartMouseLeave?: (() => void) | undefined;
 }
 
 const SparkAreaChart: React.ForwardRefExoticComponent<
@@ -61,6 +70,8 @@ const SparkAreaChart: React.ForwardRefExoticComponent<
       type = "default",
       className,
       fill = "gradient",
+      onChartMouseMove,
+      onChartMouseLeave,
       ...other
     } = props;
 
@@ -112,6 +123,8 @@ const SparkAreaChart: React.ForwardRefExoticComponent<
               right: 1,
               top: 1,
             }}
+            {...(onChartMouseMove ? { onMouseMove: onChartMouseMove } : {})}
+            {...(onChartMouseLeave ? { onMouseLeave: onChartMouseLeave } : {})}
             {...(type === "percent" && { stackOffset: "expand" })}
           >
             <XAxis hide dataKey={index} />

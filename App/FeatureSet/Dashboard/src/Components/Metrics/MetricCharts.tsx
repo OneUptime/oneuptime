@@ -687,10 +687,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         isFractionScale || ValueFormatter.isPercentUnit(unit);
       const yAxisLegend: string = isPercentChart ? "%" : unit;
       /*
-       * Soft 0–100% range. Always show the full percent scale (so 25% looks
-       * like 25% of the axis, not a peak), but if a series exceeds 100%
-       * — e.g. summed-across-cores or mis-tagged data — expand to fit so
-       * nothing clips. Negative values likewise pull the floor below 0.
+       * Soft 0–100% range. Default to the full percent scale so 25% reads
+       * like 25% of the axis (not a peak). If a series exceeds 100% — e.g.
+       * summed-across-cores or mis-tagged data — expand to fit so nothing
+       * clips. If the series sits well below 100% — e.g. a near-empty
+       * 120 GB disk at ~2% — auto-fit to the data so the line is visible
+       * instead of hugging the bottom. Negative values pull the floor below 0.
        * The baseline differs by data scale: utilization metrics live in
        * [0, 1], explicit percent units live in [0, 100].
        */
@@ -698,22 +700,35 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       let yAxisMax: YScaleMaxMin = "auto";
       if (isPercentChart) {
         const baseline: number = isFractionScale ? 1 : 100;
-        let dataMax: number = baseline;
-        let dataMin: number = 0;
+        let observedMax: number = Number.NEGATIVE_INFINITY;
+        let observedMin: number = 0;
+        let hasFinitePoint: boolean = false;
         for (const series of chartSeries) {
           for (const point of series.data) {
             if (typeof point.y === "number" && Number.isFinite(point.y)) {
-              if (point.y > dataMax) {
-                dataMax = point.y;
+              hasFinitePoint = true;
+              if (point.y > observedMax) {
+                observedMax = point.y;
               }
-              if (point.y < dataMin) {
-                dataMin = point.y;
+              if (point.y < observedMin) {
+                observedMin = point.y;
               }
             }
           }
         }
-        yAxisMax = dataMax;
-        yAxisMin = dataMin;
+        if (!hasFinitePoint) {
+          yAxisMax = baseline;
+          yAxisMin = 0;
+        } else if (observedMax < baseline * 0.25) {
+          // Data is well below the full scale — auto-fit with 25% headroom
+          // so a 2% line is clearly visible rather than flat at the bottom.
+          const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
+          yAxisMax = observedMax + headroom;
+          yAxisMin = observedMin;
+        } else {
+          yAxisMax = Math.max(observedMax, baseline);
+          yAxisMin = observedMin;
+        }
       }
 
       // Build reference lines from thresholds

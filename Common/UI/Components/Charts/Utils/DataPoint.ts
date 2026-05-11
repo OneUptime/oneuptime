@@ -12,7 +12,7 @@ import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import SeriesPoints from "../Types/SeriesPoints";
 import { XAxis, XAxisAggregateType } from "../Types/XAxis/XAxis";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
-import YAxis, { YAxisPrecision } from "../Types/YAxis/YAxis";
+import YAxis from "../Types/YAxis/YAxis";
 import XAxisUtil from "./XAxis";
 
 interface SeriesData {
@@ -36,19 +36,12 @@ export default class DataPointUtil {
       xAxisLegend,
       formatter,
     );
-    const seriesDataMap: {
-      [key: string]: SeriesData;
-    } = this.processSeriesData(
+    this.processSeriesData(
       data.seriesPoints,
       arrayOfData,
       xAxisLegend,
       formatter,
       data.xAxis.options.aggregateType,
-    );
-    this.formatSeriesData(
-      arrayOfData,
-      seriesDataMap,
-      data.yAxis.options.precision,
     );
     return arrayOfData;
   }
@@ -152,41 +145,4 @@ export default class DataPointUtil {
     }
   }
 
-  private static formatSeriesData(
-    arrayOfData: Array<ChartDataPoint>,
-    seriesDataMap: { [key: string]: SeriesData },
-    yAxisPrecision: YAxisPrecision,
-  ): void {
-    for (const chartDataPoint of arrayOfData) {
-      for (const seriesName in seriesDataMap) {
-        if (
-          chartDataPoint[seriesName] &&
-          typeof chartDataPoint[seriesName] === "number"
-        ) {
-          chartDataPoint[seriesName] = this.formatValue(
-            chartDataPoint[seriesName] as number,
-            yAxisPrecision,
-          );
-        }
-      }
-    }
-  }
-
-  private static formatValue(
-    value: number,
-    yAxisPrecision: YAxisPrecision,
-  ): number {
-    switch (yAxisPrecision) {
-      case YAxisPrecision.NoDecimals:
-        return parseFloat(value.toFixed(0));
-      case YAxisPrecision.OneDecimal:
-        return parseFloat(value.toFixed(1));
-      case YAxisPrecision.TwoDecimals:
-        return parseFloat(value.toFixed(2));
-      case YAxisPrecision.ThreeDecimals:
-        return parseFloat(value.toFixed(3));
-      default:
-        throw new BadDataException("YAxis precision not supported.");
-    }
-  }
 }

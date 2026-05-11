@@ -42,6 +42,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
@@ -515,107 +516,56 @@ const MetricsViewer: FunctionComponent<Props> = (
     const fetchSparklines: () => Promise<void> = async () => {
       setSparklineLoading(true);
       try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
         const dateRange: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-        const query: Query<Metric> = {
-          projectId,
-          name: new Includes(visibleNames),
-          time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          ...(Object.keys(effectiveAttributes).length > 0
-            ? { attributes: effectiveAttributes }
-            : {}),
-        } as Query<Metric>;
-
-        const result: AnalyticsListResult<Metric> =
-          await AnalyticsModelAPI.getList<Metric>({
-            modelType: Metric,
-            query,
-            limit: 5000,
-            skip: 0,
-            select: {
-              name: true,
-              time: true,
-              value: true,
-            } as Select<Metric>,
-            sort: { time: SortOrder.Ascending } as Record<string, SortOrder>,
-            requestOptions: {},
+        /*
+         * Backend-aggregated fetch (one parallel call per metric name).
+         * The previous getList path with `limit: 5000` truncated by
+         * time when a host emitted many per-attribute-combo rows
+         * (e.g. process.* metrics: ~700 rows/min each), so the right
+         * side of every sparkline flatlined at 0. The aggregate API
+         * returns one bucketed point per minute (~60 rows/metric for a
+         * 1h window) and reuses the explorer's dedup/result cache.
+         */
+        const aggregates: Map<string, AggregatedResult> =
+          await MetricUtil.fetchSparklineAggregates({
+            metricNames: visibleNames,
+            attributes: effectiveAttributes as Record<string, string>,
+            startAndEndDate: new InBetween<Date>(
+              dateRange.startValue,
+              dateRange.endValue,
+            ),
           });
-
-        // Bucket into N equal-width buckets per metric name
-        const buckets: number = 24;
-        const startMs: number = dateRange.startValue.getTime();
-        const endMs: number = dateRange.endValue.getTime();
-        const bucketMs: number = Math.max(
-          1,
-          Math.floor((endMs - startMs) / buckets),
-        );
-
-        // name -> bucketIdx -> sum + count
-        const acc: Map<
-          string,
-          Array<{ sum: number; count: number }>
-        > = new Map();
-        for (const name of visibleNames) {
-          const arr: Array<{ sum: number; count: number }> = [];
-          for (let i: number = 0; i < buckets; i++) {
-            arr.push({ sum: 0, count: 0 });
-          }
-          acc.set(name, arr);
-        }
-
-        for (const m of result.data) {
-          const name: string = m.name as unknown as string;
-          if (!name || !acc.has(name)) {
-            continue;
-          }
-          const t: Date = OneUptimeDate.fromString(m.time as unknown as string);
-          const idx: number = Math.min(
-            buckets - 1,
-            Math.max(0, Math.floor((t.getTime() - startMs) / bucketMs)),
-          );
-          const v: number = Number(m.value || 0);
-          const arr: Array<{ sum: number; count: number }> = acc.get(name)!;
-          arr[idx]!.sum += v;
-          arr[idx]!.count += 1;
-        }
 
         const last: Record<string, number> = {};
         const out: Record<string, Array<SparklinePoint>> = {};
-        for (const [name, arr] of acc.entries()) {
-          const points: Array<SparklinePoint> = arr.map(
-            (
-              bucket: { sum: number; count: number },
-              i: number,
-            ): SparklinePoint => {
-              const t: Date = new Date(startMs + i * bucketMs);
-              const v: number =
-                bucket.count > 0 ? bucket.sum / bucket.count : 0;
-              return { time: t.toISOString(), value: v };
-            },
-          );
-          out[name] = points;
-          /*
-           * lastValue mirrors the sparkline's rightmost bucket (its
-           * average across all matching rows in the bucket) so the
-           * number next to the chart agrees with what the chart shows.
-           * Walk back to find the most recent non-empty bucket — many
-           * metrics emit per-attribute-combo rows where the latest
-           * timestamp's row order is undefined, so the previous
-           * "last row wins" approach landed on 0 whenever an arbitrary
-           * combo happened to have value 0 (e.g. system.filesystem.usage
-           * "reserved" state on /boot/efi, idle CPU states, etc.).
-           */
-          for (let i: number = arr.length - 1; i >= 0; i--) {
-            const bucket: { sum: number; count: number } = arr[i]!;
-            if (bucket.count > 0) {
-              last[name] = bucket.sum / bucket.count;
-              break;
+        for (const name of visibleNames) {
+          const aggregated: AggregatedResult = aggregates.get(name) || {
+            data: [],
+          };
+          const points: Array<SparklinePoint> = [];
+          for (const row of aggregated.data) {
+            const ts: Date | undefined =
+              row.timestamp instanceof Date
+                ? row.timestamp
+                : row.timestamp
+                  ? OneUptimeDate.fromString(row.timestamp as unknown as string)
+                  : undefined;
+            const value: number = Number(row.value);
+            if (!ts || !Number.isFinite(value)) {
+              continue;
             }
+            points.push({ time: ts.toISOString(), value });
+          }
+          // Sort ascending so the chart renders left-to-right.
+          points.sort((a: SparklinePoint, b: SparklinePoint): number => {
+            return new Date(a.time).getTime() - new Date(b.time).getTime();
+          });
+          out[name] = points;
+          if (points.length > 0) {
+            // Most recent point — the rightmost bucket on the chart.
+            last[name] = points[points.length - 1]!.value;
           }
         }
         setSparklineData(out);

@@ -274,6 +274,18 @@ function formatNumber(value: number): string {
   return (Math.round(value * 100) / 100).toString();
 }
 
+/*
+ * Percent values always render with two decimal places. Trailing zeros are
+ * preserved (so 100 → "100.00", 2 → "2.00") to keep axis ticks and tooltips
+ * visually consistent across high- and low-utilization series.
+ */
+function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0.00";
+  }
+  return value.toFixed(2);
+}
+
 export default class ValueFormatter {
   /*
    * Format a value with a unit into a human-friendly string.
@@ -291,13 +303,16 @@ export default class ValueFormatter {
 
     /*
      * OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
-     * them as a percentage so chart axes / thresholds read 25% instead of 0.25.
+     * them as a percentage so chart axes / thresholds read 25.00% instead
+     * of 0.25. Percent values always render with two decimal places so
+     * low-utilization series (e.g. 2.04%) and exact values (e.g. 100.00%)
+     * read consistently across axis ticks and tooltips.
      */
     if (
       trimmedUnit === "1" &&
       ValueFormatter.isFractionMetric(options?.metricName)
     ) {
-      return `${formatNumber(value * 100)}%`;
+      return `${formatPercent(value * 100)}%`;
     }
 
     // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
@@ -307,10 +322,10 @@ export default class ValueFormatter {
 
     /*
      * "%" and its spelled-out / casual variants all render inline with no
-     * separating space — `25%`, never `25 Percent`.
+     * separating space — `25.00%`, never `25 Percent`.
      */
     if (ValueFormatter.isPercentUnit(trimmedUnit)) {
-      return `${formatNumber(value)}%`;
+      return `${formatPercent(value)}%`;
     }
 
     /*

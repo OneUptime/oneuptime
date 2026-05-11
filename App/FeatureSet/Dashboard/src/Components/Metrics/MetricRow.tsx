@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useState,
+} from "react";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import ValueFormatter from "Common/Utils/ValueFormatter";
@@ -16,6 +21,25 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
   props: MetricRowProps,
 ): ReactElement => {
   const { metric } = props;
+
+  /*
+   * While the cursor is over the sparkline, swap the displayed value
+   * for the hovered data point so the number on the left tracks the
+   * chart. Reset to undefined on mouse-out to fall back to lastValue.
+   */
+  const [hoveredValue, setHoveredValue] = useState<number | undefined>(
+    undefined,
+  );
+
+  const handleHoverPoint: (point: SparklinePoint | null) => void = useCallback(
+    (point: SparklinePoint | null): void => {
+      setHoveredValue(point ? point.value : undefined);
+    },
+    [],
+  );
+
+  const displayedValue: number | undefined =
+    hoveredValue !== undefined ? hoveredValue : props.lastValue;
 
   const services: Array<Service> = (metric.services || []).filter(
     (service: Service): boolean => {
@@ -87,11 +111,11 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
 
         {/* Right: sparkline + last value */}
         <div className="flex flex-shrink-0 items-center gap-4">
-          {props.lastValue !== undefined && (
+          {displayedValue !== undefined && (
             <div className="text-right">
               <span className="font-mono text-sm font-semibold tabular-nums text-gray-900">
                 {ValueFormatter.formatValue(
-                  props.lastValue,
+                  displayedValue,
                   rawUnit,
                   formatterOptions,
                 )}
@@ -103,6 +127,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             isLoading={props.sparklineLoading}
             widthClassName="w-40"
             heightClassName="h-10"
+            onHoverPoint={handleHoverPoint}
           />
         </div>
       </div>
