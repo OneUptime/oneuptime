@@ -389,6 +389,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
       /*
+       * Hosts already heartbeated in this batch. The hostmetrics receiver
+       * emits one ResourceMetrics per scraper, all carrying the same
+       * host.name — without this set we'd write a heartbeat row per
+       * scraper instead of one per host per ingest call.
+       */
+      const hostHeartbeatHostNames: Set<string> = new Set<string>();
+
+      /*
        * Snapshot buffers keyed by cluster ID. Inner maps key by the
        * unique tuple of the resource being tracked so multiple
        * datapoints across a batch collapse into a single UPDATE.
@@ -539,6 +547,70 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               prefixKeysWithString: "resource",
             }),
           };
+
+          /*
+           * Synthetic per-host heartbeat. Lets users alert on "host went
+           * silent" by querying `count(oneuptime.host.heartbeat) > 0`
+           * over a window instead of relying on the presence of a
+           * specific scraper metric. Dedup per host within this batch
+           * (hostmetrics emits one ResourceMetrics per scraper) — the
+           * agent's scrape interval (typically 30-60s) naturally rate-
+           * limits subsequent batches.
+           */
+          const heartbeatHostName: string | null =
+            OtelIngestBaseService.getHostNameFromAttributes(
+              resourceAttributes_raw,
+            );
+          if (
+            heartbeatHostName &&
+            !hostHeartbeatHostNames.has(heartbeatHostName)
+          ) {
+            hostHeartbeatHostNames.add(heartbeatHostName);
+            const heartbeatMetricName: string = "oneuptime.host.heartbeat";
+            if (!metricNameServiceNameMap[heartbeatMetricName]) {
+              const heartbeatMetricType: MetricType = new MetricType();
+              heartbeatMetricType.name = heartbeatMetricName;
+              heartbeatMetricType.description =
+                "Synthetic heartbeat emitted by OneUptime each time the host's OTel collector ships a metric batch. Use `count > 0` over a window to detect host up/down.";
+              heartbeatMetricType.unit = "1";
+              heartbeatMetricType.services = [];
+              metricNameServiceNameMap[heartbeatMetricName] =
+                heartbeatMetricType;
+            }
+            if (
+              metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
+                (svc: Service) => {
+                  return (
+                    svc.id?.toString() ===
+                    serviceMetadata.serviceId!.toString()
+                  );
+                },
+              ).length === 0
+            ) {
+              const heartbeatService: Service = new Service();
+              heartbeatService.id = serviceMetadata.serviceId!;
+              metricNameServiceNameMap[heartbeatMetricName]!.services!.push(
+                heartbeatService,
+              );
+            }
+            const heartbeatTimeNano: string = OneUptimeDate.getCurrentDateAsUnixNano().toString();
+            const heartbeatRow: JSONObject = this.buildMetricRow({
+              datapoint: {
+                timeUnixNano: heartbeatTimeNano,
+                asInt: 1,
+              },
+              baseAttributes: resourceAttributes,
+              projectId: projectId,
+              serviceId: serviceMetadata.serviceId!,
+              serviceName: serviceName,
+              metricName: heartbeatMetricName,
+              metricPointType: MetricPointType.Gauge,
+              dataRententionInDays: serviceMetadata.dataRententionInDays,
+            });
+            dbMetrics.push(heartbeatRow);
+            totalMetricsProcessed++;
+          }
+
           const scopeMetrics: JSONArray = resourceMetric[
             "scopeMetrics"
           ] as JSONArray;
