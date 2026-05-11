@@ -54,8 +54,21 @@ const getColorForUserId: (userId: string) => string = (
   userId: string,
 ): string => {
   const colorListLength: number = BrightColors.length;
-  const colorIndex: number = HashCode.fromString(userId) % colorListLength;
+  // HashCode.fromString may return a negative 32-bit int; abs first so the
+  // modulo lands inside the BrightColors array instead of falling through to
+  // the Blue500 default for every user with a negative hash.
+  const colorIndex: number =
+    Math.abs(HashCode.fromString(userId)) % colorListLength;
   return (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
+};
+
+const getDisplayName: (info: UserInfo | undefined) => string = (
+  info: UserInfo | undefined,
+): string => {
+  if (!info) {
+    return "Unknown user";
+  }
+  return info.name || info.email || "Unknown user";
 };
 
 const formatUserLabel: (info: UserInfo | undefined) => string = (
@@ -218,7 +231,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       seen.add(userId);
       result.push({
         userId,
-        name: info.name || "Unknown",
+        name: getDisplayName(info),
         email: info.email,
         color: getColorForUserId(userId),
       });
@@ -233,7 +246,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       const info: UserInfo | undefined = overrideUserInfo[routeId];
       result.push({
         userId: routeId,
-        name: info?.name || "Unknown",
+        name: getDisplayName(info),
         email: info?.email || "",
         color: getColorForUserId(routeId),
         isSubstitute: true,
