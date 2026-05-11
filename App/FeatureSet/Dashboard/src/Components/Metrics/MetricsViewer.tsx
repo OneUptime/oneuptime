@@ -568,8 +568,6 @@ const MetricsViewer: FunctionComponent<Props> = (
           acc.set(name, arr);
         }
 
-        const last: Record<string, number> = {};
-
         for (const m of result.data) {
           const name: string = m.name as unknown as string;
           if (!name || !acc.has(name)) {
@@ -584,9 +582,9 @@ const MetricsViewer: FunctionComponent<Props> = (
           const arr: Array<{ sum: number; count: number }> = acc.get(name)!;
           arr[idx]!.sum += v;
           arr[idx]!.count += 1;
-          last[name] = v;
         }
 
+        const last: Record<string, number> = {};
         const out: Record<string, Array<SparklinePoint>> = {};
         for (const [name, arr] of acc.entries()) {
           const points: Array<SparklinePoint> = arr.map(
@@ -601,6 +599,24 @@ const MetricsViewer: FunctionComponent<Props> = (
             },
           );
           out[name] = points;
+          /*
+           * lastValue mirrors the sparkline's rightmost bucket (its
+           * average across all matching rows in the bucket) so the
+           * number next to the chart agrees with what the chart shows.
+           * Walk back to find the most recent non-empty bucket — many
+           * metrics emit per-attribute-combo rows where the latest
+           * timestamp's row order is undefined, so the previous
+           * "last row wins" approach landed on 0 whenever an arbitrary
+           * combo happened to have value 0 (e.g. system.filesystem.usage
+           * "reserved" state on /boot/efi, idle CPU states, etc.).
+           */
+          for (let i: number = arr.length - 1; i >= 0; i--) {
+            const bucket: { sum: number; count: number } = arr[i]!;
+            if (bucket.count > 0) {
+              last[name] = bucket.sum / bucket.count;
+              break;
+            }
+          }
         }
         setSparklineData(out);
         setSparklineLastValue(last);
