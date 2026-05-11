@@ -1,4 +1,7 @@
-import { SERVICE_PROVIDER_LOGIN_URL } from "../Utils/ApiPaths";
+import {
+  SERVICE_PROVIDER_LOGIN_OIDC_URL,
+  SERVICE_PROVIDER_LOGIN_URL,
+} from "../Utils/ApiPaths";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -12,6 +15,7 @@ import User from "Common/Models/DatabaseModels/User";
 import React, { ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
+import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -22,7 +26,6 @@ import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
 
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
-  const apiUrl: URL = SERVICE_PROVIDER_LOGIN_URL;
 
   if (UserUtil.isLoggedIn()) {
     Navigation.navigate(DASHBOARD_URL);
@@ -30,53 +33,75 @@ const LoginPage: () => JSX.Element = () => {
 
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [projectSsoConfigList, setProjectSsoConfigList] = useState<
-    Array<ProjectSSO>
-  >([]);
+  const [samlConfigs, setSamlConfigs] = useState<Array<ProjectSSO>>([]);
+  const [oidcConfigs, setOidcConfigs] = useState<Array<ProjectOIDC>>([]);
 
   type FetchSSOConfigsFunction = (email: Email) => Promise<void>;
 
   const fetchSsoConfigs: FetchSSOConfigsFunction = async (
     email: Email,
   ): Promise<void> => {
-    if (email) {
-      setIsLoading(true);
-      try {
-        // get sso config by email.
-        const listResult: HTTPErrorResponse | HTTPResponse<JSONArray> =
-          await API.get({
-            url: URL.fromString(apiUrl.toString()).addQueryParam(
-              "email",
-              email.toString(),
-            ),
-          });
-
-        if (listResult instanceof HTTPErrorResponse) {
-          throw listResult;
-        }
-
-        if (!listResult.data || (listResult.data as JSONArray).length === 0) {
-          setError(t("sso.noConfigForEmail", { email: email.toString() }));
-        } else {
-          setProjectSsoConfigList(
-            ProjectSSO.fromJSONArray(listResult["data"], ProjectSSO),
-          );
-        }
-      } catch (error) {
-        setError(API.getFriendlyErrorMessage(error as Error));
-      }
-    } else {
+    if (!email) {
       setError(t("sso.emailRequired"));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const [samlResult, oidcResult] = await Promise.all([
+        API.get({
+          url: URL.fromString(
+            SERVICE_PROVIDER_LOGIN_URL.toString(),
+          ).addQueryParam("email", email.toString()),
+        }).catch((e: HTTPErrorResponse): HTTPErrorResponse => {
+          return e;
+        }),
+        API.get({
+          url: URL.fromString(
+            SERVICE_PROVIDER_LOGIN_OIDC_URL.toString(),
+          ).addQueryParam("email", email.toString()),
+        }).catch((e: HTTPErrorResponse): HTTPErrorResponse => {
+          return e;
+        }),
+      ]);
+
+      let nextSaml: Array<ProjectSSO> = [];
+      let nextOidc: Array<ProjectOIDC> = [];
+
+      if (
+        !(samlResult instanceof HTTPErrorResponse) &&
+        (samlResult as HTTPResponse<JSONArray>).data
+      ) {
+        nextSaml = ProjectSSO.fromJSONArray(
+          (samlResult as HTTPResponse<JSONArray>).data,
+          ProjectSSO,
+        );
+      }
+
+      if (
+        !(oidcResult instanceof HTTPErrorResponse) &&
+        (oidcResult as HTTPResponse<JSONArray>).data
+      ) {
+        nextOidc = ProjectOIDC.fromJSONArray(
+          (oidcResult as HTTPResponse<JSONArray>).data,
+          ProjectOIDC,
+        );
+      }
+
+      if (nextSaml.length === 0 && nextOidc.length === 0) {
+        setError(t("sso.noConfigForEmail", { email: email.toString() }));
+      } else {
+        setSamlConfigs(nextSaml);
+        setOidcConfigs(nextOidc);
+      }
+    } catch (e) {
+      setError(API.getFriendlyErrorMessage(e as Error));
     }
 
     setIsLoading(false);
   };
 
-  type GetSsoConfigModelListFunction = (
-    configs: Array<ProjectSSO>,
-  ) => ReactElement;
-
-  const getSsoConfigModelList: GetSsoConfigModelListFunction = (
+  const renderSamlList: (configs: Array<ProjectSSO>) => ReactElement = (
     configs: Array<ProjectSSO>,
   ): ReactElement => {
     return (
@@ -99,31 +124,71 @@ const LoginPage: () => JSX.Element = () => {
     );
   };
 
+  const renderOidcList: (configs: Array<ProjectOIDC>) => ReactElement = (
+    configs: Array<ProjectOIDC>,
+  ): ReactElement => {
+    return (
+      <StaticModelList<ProjectOIDC>
+        list={configs}
+        titleField="name"
+        selectedItems={[]}
+        descriptionField="description"
+        onClick={(item: ProjectOIDC) => {
+          setIsLoading(true);
+          Navigation.navigate(
+            URL.fromURL(IDENTITY_URL).addRoute(
+              new Route(
+                `/oidc/${item.projectId?.toString()}/${item.id?.toString()}`,
+              ),
+            ),
+          );
+        }}
+      />
+    );
+  };
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  type GetProjectNameFunction = (projectId: string) => string;
+  const hasAnyConfigs: boolean =
+    samlConfigs.length > 0 || oidcConfigs.length > 0;
 
-  const getProjectName: GetProjectNameFunction = (
+  const getProjectName: (projectId: string) => string = (
     projectId: string,
   ): string => {
-    const projectNames: Array<string | undefined> = projectSsoConfigList
-      .filter((config: ProjectSSO) => {
-        return config.projectId?.toString() === projectId.toString();
-      })
-      .map((config: ProjectSSO) => {
-        return config.project?.name;
-      });
-    return projectNames[0] || t("sso.defaultProjectName");
-  };
-
-  if (projectSsoConfigList.length > 0 && !error && !isLoading) {
-    const projectIds: Array<string> = projectSsoConfigList.map(
-      (config: ProjectSSO) => {
-        return config.projectId?.toString() as string;
+    const samlMatch: ProjectSSO | undefined = samlConfigs.find(
+      (c: ProjectSSO) => {
+        return c.projectId?.toString() === projectId;
       },
     );
+    if (samlMatch?.project?.name) {
+      return samlMatch.project.name;
+    }
+    const oidcMatch: ProjectOIDC | undefined = oidcConfigs.find(
+      (c: ProjectOIDC) => {
+        return c.projectId?.toString() === projectId;
+      },
+    );
+    if (oidcMatch?.project?.name) {
+      return oidcMatch.project.name;
+    }
+    return t("sso.defaultProjectName");
+  };
+
+  if (hasAnyConfigs && !error && !isLoading) {
+    const projectIdSet: Set<string> = new Set();
+    for (const c of samlConfigs) {
+      if (c.projectId) {
+        projectIdSet.add(c.projectId.toString());
+      }
+    }
+    for (const c of oidcConfigs) {
+      if (c.projectId) {
+        projectIdSet.add(c.projectId.toString());
+      }
+    }
+    const projectIds: Array<string> = Array.from(projectIdSet);
 
     return (
       <div className="w-full max-w-md mx-auto px-4 sm:px-0">
@@ -143,18 +208,24 @@ const LoginPage: () => JSX.Element = () => {
           </div>
 
           {projectIds.map((projectId: string) => {
+            const samlForProject: Array<ProjectSSO> = samlConfigs.filter(
+              (c: ProjectSSO) => {
+                return c.projectId?.toString() === projectId;
+              },
+            );
+            const oidcForProject: Array<ProjectOIDC> = oidcConfigs.filter(
+              (c: ProjectOIDC) => {
+                return c.projectId?.toString() === projectId;
+              },
+            );
+
             return (
               <div key={projectId}>
                 <h3 className="mt-6 font-medium  tracking-tight">
                   {getProjectName(projectId)}
                 </h3>
-                {getSsoConfigModelList(
-                  projectSsoConfigList.filter((config: ProjectSSO) => {
-                    return (
-                      config.projectId?.toString() === projectId.toString()
-                    );
-                  }),
-                )}
+                {samlForProject.length > 0 && renderSamlList(samlForProject)}
+                {oidcForProject.length > 0 && renderOidcList(oidcForProject)}
               </div>
             );
           })}

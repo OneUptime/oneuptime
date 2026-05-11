@@ -121,6 +121,7 @@ import ProjectUserProfile from "./ProjectUserProfile";
 import ProjectSmtpConfig from "./ProjectSmtpConfig";
 //SSO
 import ProjectSSO from "./ProjectSso";
+import ProjectOIDC from "./ProjectOidc";
 import PromoCode from "./PromoCode";
 import EnterpriseLicense from "./EnterpriseLicense";
 import OpenSourceDeployment from "./OpenSourceDeployment";
@@ -439,6 +440,7 @@ const AllModelTypes: Array<{
   WorkflowLog,
 
   ProjectSSO,
+  ProjectOIDC,
   StatusPageSSO,
   StatusPageSCIM,
 

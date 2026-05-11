@@ -47,6 +47,7 @@ import SettingsDomains from "../Pages/Settings/Domains";
 
 import SettingsBilling from "../Pages/Settings/Billing";
 import SettingsSSO from "../Pages/Settings/SSO";
+import SettingsOIDC from "../Pages/Settings/OIDC";
 
 import SettingsSCIM from "../Pages/Settings/SCIM";
 
@@ -199,6 +200,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsSSO
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_OIDC)}
+          element={
+            <SettingsOIDC
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_OIDC] as Route}
             />
           }
         />

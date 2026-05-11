@@ -18,6 +18,7 @@ import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
+import ProjectOidcAPI from "Common/Server/API/ProjectOIDC";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
 import TelegramLogAPI from "./TelegramLogAPI";
 
@@ -2538,6 +2539,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ProjectSsoAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ProjectOidcAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

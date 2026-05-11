@@ -85,6 +85,7 @@ import ProfileSampleService from "./ProfileSampleService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
+import ProjectOidcService from "./ProjectOidcService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
@@ -300,6 +301,7 @@ const services: Array<BaseService> = [
   AIAgentTaskLogService,
   AIAgentTaskPullRequestService,
   ProjectSsoService,
+  ProjectOidcService,
 
   ScheduledMaintenanceCustomFieldService,
   ScheduledMaintenanceInternalNoteService,
