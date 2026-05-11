@@ -251,14 +251,18 @@ export default class MetricUtil {
       });
 
     /*
-     * Round to two decimal places for display. The old code used plain
-     * Math.round, but after unit conversion (bytes → GB) the interesting
-     * precision lives in the decimals — so keep two places.
+     * Round to four decimal places to keep the JSON payload compact
+     * without clobbering sub-percent precision. Two decimals was too
+     * aggressive for fraction-scale metrics (system.*.utilization lives
+     * in [0, 1]): a real value of 0.0585 rounded to 0.06 and rendered as
+     * "6.00%" instead of "5.85%". Four decimals preserves percent-level
+     * precision for ratios and is more than enough for converted values
+     * like 13.9234 GB (which the formatter clips back to "13.9 GB").
      */
     for (const result of results) {
       for (const row of result.data as Array<AggregatedModel>) {
         if (typeof row.value === "number" && Number.isFinite(row.value)) {
-          row.value = Math.round(row.value * 100) / 100;
+          row.value = Math.round(row.value * 10000) / 10000;
         }
       }
     }
