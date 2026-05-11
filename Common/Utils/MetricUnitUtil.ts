@@ -113,6 +113,20 @@ const percentUnits: Array<UnitDefinition> = [
     aliases: ["%", "percent"],
     toCanonical: 1,
   },
+  /*
+   * UCUM "1" is OTel's dimensionless marker for ratio metrics — values in
+   * [0, 1] that represent a fraction (e.g. system.filesystem.utilization).
+   * Treating it as part of the percent family lets the threshold UI offer
+   * both "%" and "Fraction (0-1)" as input units. One unit of "1" equals
+   * 100% in the canonical, so a fraction threshold of 0.5 converts to a
+   * stored canonical value of 50.
+   */
+  {
+    value: "1",
+    label: "Fraction (0-1)",
+    aliases: ["1"],
+    toCanonical: 100,
+  },
 ];
 
 const bitUnits: Array<UnitDefinition> = [
@@ -206,6 +220,11 @@ export default class MetricUnitUtil {
    * is what the threshold dropdown should default to when nothing is
    * selected yet. Returns the input unit unchanged if the family is
    * unknown.
+   *
+   * Special case for fraction metrics (unit "1"): users think in percent,
+   * not 0-1 fractions, so the dropdown defaults to "%" rather than the
+   * raw "1" — which used to render an unlabelled "1" next to the value
+   * input and read as a typo.
    */
   public static getCanonicalUnitValue(
     metricUnit: string | undefined,
@@ -223,6 +242,11 @@ export default class MetricUnitUtil {
       metricUnit,
       family,
     );
+
+    if (family === percentUnits && def?.value === "1") {
+      return "%";
+    }
+
     return def?.value || metricUnit;
   }
 
