@@ -9,8 +9,6 @@ import OsVersionDisplay, {
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Label from "Common/Models/DatabaseModels/Label";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -226,10 +224,6 @@ const HostOverview: FunctionComponent<
           hostArch: true,
           hostType: true,
           hostIpAddresses: true,
-          labels: {
-            name: true,
-            color: true,
-          },
         },
       });
 
@@ -618,8 +612,6 @@ const HostOverview: FunctionComponent<
     const hostIdentifier: string =
       (host.hostIdentifier as string | undefined) || "";
 
-    const labelList: Array<Label> = (host["labels"] as Array<Label>) || [];
-
     const specChips: Array<{
       icon: IconProp;
       label: string;
@@ -743,12 +735,6 @@ const HostOverview: FunctionComponent<
                     );
                   },
                 )}
-              </div>
-            )}
-
-            {labelList.length > 0 && (
-              <div className="mt-3 border-t border-gray-100 pt-3">
-                <LabelsElement labels={labelList} />
               </div>
             )}
           </div>

@@ -90,10 +90,6 @@ const DockerHostOverview: FunctionComponent<
           lastSeenAt: true,
           osType: true,
           osVersion: true,
-          labels: {
-            name: true,
-            color: true,
-          },
         },
       });
 
@@ -282,8 +278,6 @@ const DockerHostOverview: FunctionComponent<
     const hostIdentifier: string =
       (host.hostIdentifier as string | undefined) || "";
 
-    const labelList: Array<Label> = (host["labels"] as Array<Label>) || [];
-
     const specChips: Array<{
       icon: IconProp;
       label: string;
@@ -385,12 +379,6 @@ const DockerHostOverview: FunctionComponent<
                     );
                   },
                 )}
-              </div>
-            )}
-
-            {labelList.length > 0 && (
-              <div className="mt-3 border-t border-gray-100 pt-3">
-                <LabelsElement labels={labelList} />
               </div>
             )}
           </div>

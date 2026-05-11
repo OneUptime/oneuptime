@@ -362,10 +362,6 @@ const KubernetesClusterOverview: FunctionComponent<
           clusterIdentifier: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
-          labels: {
-            name: true,
-            color: true,
-          },
         },
       });
       setCluster(item);
@@ -633,8 +629,6 @@ const KubernetesClusterOverview: FunctionComponent<
     const clusterIdentifier: string =
       (cluster.clusterIdentifier as string | undefined) || "";
 
-    const labelList: Array<Label> = (cluster["labels"] as Array<Label>) || [];
-
     const connectionBadgeClass: string = isConnected
       ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
       : "bg-amber-50 text-amber-700 ring-amber-200";
@@ -827,12 +821,6 @@ const KubernetesClusterOverview: FunctionComponent<
                     );
                   },
                 )}
-              </div>
-            )}
-
-            {labelList.length > 0 && (
-              <div className="mt-3 border-t border-gray-100 pt-3">
-                <LabelsElement labels={labelList} />
               </div>
             )}
           </div>
