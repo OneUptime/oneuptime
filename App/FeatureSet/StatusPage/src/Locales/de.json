@@ -147,6 +147,13 @@
       "managePrompt": "Bitte geben Sie den Namen des Microsoft Teams-Arbeitsbereichs ein, mit dem Sie abonniert haben",
       "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diesen Arbeitsbereich."
     },
+    "webhook": {
+      "title": "Per Webhook abonnieren",
+      "description": "Alle unsere Updates werden als JSON-POST-Anfragen an diese Webhook-URL gesendet.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "Bei jedem Statusseiten-Ereignis wird eine JSON-POST-Anfrage an diese URL gesendet.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Alle Ressourcen abonnieren",
       "allDescription": "Wählen Sie diese Option, wenn Sie alle Ressourcen abonnieren möchten.",

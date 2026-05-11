@@ -147,6 +147,13 @@
       "managePrompt": "Veuillez saisir le nom de l'espace de travail Microsoft Teams avec lequel vous vous êtes abonné",
       "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à cet espace de travail."
     },
+    "webhook": {
+      "title": "S'abonner par webhook",
+      "description": "Toutes nos mises à jour seront envoyées sous forme de requêtes JSON POST à cette URL de webhook.",
+      "webhookUrl": "URL du webhook",
+      "webhookUrlDescription": "Une requête JSON POST sera envoyée à cette URL à chaque événement de la page de statut.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "S'abonner à toutes les ressources",
       "allDescription": "Sélectionnez cette option si vous souhaitez vous abonner à toutes les ressources.",

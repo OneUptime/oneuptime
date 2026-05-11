@@ -147,6 +147,13 @@
       "managePrompt": "Vennligst skriv inn navnet på Microsoft Teams-arbeidsområdet du abonnerer med",
       "manageDescription": "Vi sender deg en administrasjonslenke til dette arbeidsområdet."
     },
+    "webhook": {
+      "title": "Abonner via webhook",
+      "description": "Alle våre oppdateringer sendes som JSON POST-forespørsler til denne webhook-URL-en.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "En JSON POST-forespørsel sendes til denne URL-en ved hver statussidehendelse.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Abonner på alle ressurser",
       "allDescription": "Velg dette alternativet hvis du vil abonnere på alle ressurser.",

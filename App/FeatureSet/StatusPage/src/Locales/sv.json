@@ -147,6 +147,13 @@
       "managePrompt": "Ange namnet på den Microsoft Teams-arbetsyta du prenumererar med",
       "manageDescription": "Vi skickar en hanteringslänk till den här arbetsytan."
     },
+    "webhook": {
+      "title": "Prenumerera via webhook",
+      "description": "Alla våra uppdateringar skickas som JSON POST-förfrågningar till den här webhook-URL:en.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "En JSON POST-förfrågan skickas till den här URL:en vid varje händelse på statussidan.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Prenumerera på alla resurser",
       "allDescription": "Välj det här alternativet om du vill prenumerera på alla resurser.",

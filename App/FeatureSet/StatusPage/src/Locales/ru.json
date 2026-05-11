@@ -147,6 +147,13 @@
       "managePrompt": "Пожалуйста, введите название рабочего пространства Microsoft Teams, с которым вы подписались",
       "manageDescription": "Мы отправим вам ссылку для управления подпиской в это рабочее пространство."
     },
+    "webhook": {
+      "title": "Подписаться через webhook",
+      "description": "Все наши обновления будут отправлены в виде JSON POST-запросов на этот URL webhook.",
+      "webhookUrl": "URL webhook",
+      "webhookUrlDescription": "При каждом событии страницы статуса на этот URL будет отправлен JSON POST-запрос.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Подписаться на все ресурсы",
       "allDescription": "Выберите этот параметр, если хотите подписаться на все ресурсы.",

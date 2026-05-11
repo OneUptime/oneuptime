@@ -147,6 +147,13 @@
       "managePrompt": "Voer de naam van de Microsoft Teams-werkruimte in waarmee u bent geabonneerd",
       "manageDescription": "We sturen u een link om uw abonnement te beheren naar deze werkruimte."
     },
+    "webhook": {
+      "title": "Abonneren via webhook",
+      "description": "Al onze updates worden als JSON POST-verzoeken naar deze webhook-URL verzonden.",
+      "webhookUrl": "Webhook-URL",
+      "webhookUrlDescription": "Bij elke statuspaginagebeurtenis wordt een JSON POST-verzoek naar deze URL verzonden.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Abonneren op alle bronnen",
       "allDescription": "Selecteer deze optie als u zich op alle bronnen wilt abonneren.",

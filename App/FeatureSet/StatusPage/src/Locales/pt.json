@@ -147,6 +147,13 @@
       "managePrompt": "Por favor, digite o nome do workspace do Microsoft Teams com o qual você se inscreveu",
       "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este workspace."
     },
+    "webhook": {
+      "title": "Inscrever-se por webhook",
+      "description": "Todas as nossas atualizações serão enviadas como requisições JSON POST para esta URL de webhook.",
+      "webhookUrl": "URL do webhook",
+      "webhookUrlDescription": "Uma requisição JSON POST será enviada para esta URL a cada evento da página de status.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Inscrever-se em todos os recursos",
       "allDescription": "Selecione esta opção se desejar se inscrever em todos os recursos.",
