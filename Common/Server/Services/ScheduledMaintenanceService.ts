@@ -51,6 +51,7 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -325,6 +326,39 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
               url: subscriber.slackIncomingWebhookUrl,
               text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
+            }).catch((err: Error) => {
+              logger.error(err, {
+                projectId: statuspage.projectId?.toString(),
+              } as LogAttributes);
+            });
+          }
+
+          if (subscriber.subscriberWebhook) {
+            StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+              webhookUrl: subscriber.subscriberWebhook,
+              payload: {
+                eventType: "ScheduledMaintenanceCreated",
+                statusPageId: statuspage.id!.toString(),
+                statusPageName: statusPageName,
+                statusPageUrl: statusPageURL,
+                unsubscribeUrl: unsubscribeUrl,
+                data: {
+                  scheduledMaintenanceId: event.id?.toString() || "",
+                  scheduledMaintenanceTitle: event.title || "",
+                  scheduledMaintenanceDescription: event.description || "",
+                  scheduledStartTime:
+                    OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                      event.startsAt!,
+                    ),
+                  scheduledEndTime: event.endsAt
+                    ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                        event.endsAt,
+                      )
+                    : "",
+                  resourcesAffected: resourcesAffected,
+                  detailsUrl: scheduledEventDetailsUrl,
+                },
+              },
             }).catch((err: Error) => {
               logger.error(err, {
                 projectId: statuspage.projectId?.toString(),

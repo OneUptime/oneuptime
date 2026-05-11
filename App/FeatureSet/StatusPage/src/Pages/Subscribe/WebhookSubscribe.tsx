@@ -7,7 +7,6 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
 import { SubscribePageProps } from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -20,10 +19,8 @@ import ModelForm, {
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
-import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   FunctionComponent,
@@ -33,12 +30,17 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
-const SubscribePage: FunctionComponent<SubscribePageProps> = (
-  props: SubscribePageProps,
+export type ComponentProps = SubscribePageProps;
+
+const SubscribePage: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isLaoding, setIsLoading] = useState<boolean>(false);
 
   const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
 
@@ -49,7 +51,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     categories: [],
     options: [],
   });
-  const [isLaoding, setIsLoading] = useState<boolean>(false);
+
   const [error, setError] = useState<string | undefined>(undefined);
 
   const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
@@ -88,13 +90,13 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
   const fields: Array<ModelField<StatusPageSubscriber>> = [
     {
       field: {
-        subscriberPhone: true,
+        subscriberWebhook: true,
       },
-      title: t("subscribe.sms.yourPhoneNumber"),
-      fieldType: FormFieldSchemaType.Phone,
+      title: t("subscribe.webhook.webhookUrl"),
+      description: t("subscribe.webhook.webhookUrlDescription"),
+      fieldType: FormFieldSchemaType.URL,
       required: true,
-      placeholder: t("subscribe.sms.placeholder"),
-      disableSpellCheck: true,
+      placeholder: t("subscribe.webhook.webhookUrlPlaceholder"),
     },
   ];
 
@@ -157,8 +159,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       return (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
-          id="sms-form"
-          name="Status Page > SMS Subscribe"
+          id="webhook-form"
+          name="Status Page > Webhook Subscribe"
           fields={fields}
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),
@@ -166,51 +168,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
           submitButtonText={t("subscribe.submit")}
-          onBeforeCreate={async (item: StatusPageSubscriber) => {
-            const id: ObjectID = LocalStorage.getItem(
-              "statusPageId",
-            ) as ObjectID;
-            if (!id) {
-              throw new BadDataException("Status Page ID is required");
-            }
-
-            item.statusPageId = id;
-            return item;
-          }}
-          onSuccess={() => {
-            setIsSuccess(true);
-          }}
-          maxPrimaryButtonWidth={true}
-        />
-      );
-    };
-
-  const getManageExistingSubscriptionContentElement: GetReactElementFunction =
-    (): ReactElement => {
-      return (
-        <ModelForm<StatusPageSubscriber>
-          modelType={StatusPageSubscriber}
-          id="sms-manage-form"
-          name="Status Page > Manage SMS Subscription"
-          fields={[
-            {
-              field: {
-                subscriberPhone: true,
-              },
-              title: t("subscribe.sms.managePrompt"),
-              description: t("subscribe.sms.manageDescription"),
-              fieldType: FormFieldSchemaType.Phone,
-              required: true,
-              placeholder: t("subscribe.sms.placeholder"),
-              disableSpellCheck: true,
-            },
-          ]}
-          createOrUpdateApiUrl={URL.fromString(
-            STATUS_PAGE_API_URL.toString(),
-          ).addRoute(`/manage-subscription/${id.toString()}`)}
-          requestHeaders={API.getDefaultHeaders()}
-          formType={FormType.Create}
-          submitButtonText={t("subscribe.sendManagementLink")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
             const id: ObjectID = LocalStorage.getItem(
               "statusPageId",
@@ -246,17 +203,17 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           title: t("subscribe.title"),
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route)
-              : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route),
+              ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS] as Route)
+              : (RouteMap[PageMap.SUBSCRIBE_WEBHOOKS] as Route),
           ),
         },
       ]}
       sideMenu={
         <SubscribeSideMenu
           isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
-          enableSMSSubscribers={props.enableSMSSubscribers}
-          enableEmailSubscribers={props.enableEmailSubscribers}
           enableSlackSubscribers={props.enableSlackSubscribers}
+          enableEmailSubscribers={props.enableEmailSubscribers}
+          enableSMSSubscribers={props.enableSMSSubscribers}
           enableMicrosoftTeamsSubscribers={
             props.enableMicrosoftTeamsSubscribers
           }
@@ -273,7 +230,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           <div>
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
-                {" "}
                 {t("subscribe.subscribedSuccessfully")}
               </p>
             )}
@@ -281,22 +237,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             {!isSuccess ? (
               <div className="">
                 <Card
-                  title={t("subscribe.sms.title")}
-                  description={t("subscribe.sms.description")}
+                  title={t("subscribe.webhook.title")}
+                  description={t("subscribe.webhook.description")}
                 >
-                  <Tabs
-                    tabs={[
-                      {
-                        name: t("subscribe.newSubscription"),
-                        children: getNewSubscriptionContentElement(),
-                      },
-                      {
-                        name: t("subscribe.manageExisting"),
-                        children: getManageExistingSubscriptionContentElement(),
-                      },
-                    ]}
-                    onTabChange={() => {}}
-                  />
+                  {getNewSubscriptionContentElement()}
                 </Card>
               </div>
             ) : (

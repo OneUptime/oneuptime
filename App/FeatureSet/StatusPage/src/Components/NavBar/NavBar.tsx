@@ -21,6 +21,8 @@ export interface ComponentProps {
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
   enableSlackSubscribers?: boolean;
+  enableMicrosoftTeamsSubscribers?: boolean;
+  enableWebhookSubscribers?: boolean;
   showIncidentsOnStatusPage: boolean;
   showAnnouncementsOnStatusPage: boolean;
   showScheduledMaintenanceEventsOnStatusPage: boolean;
@@ -162,7 +164,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     props.showSubscriberPageOnStatusPage &&
     (props.enableEmailSubscribers ||
       props.enableSMSSubscribers ||
-      props.enableSlackSubscribers)
+      props.enableSlackSubscribers ||
+      props.enableMicrosoftTeamsSubscribers ||
+      props.enableWebhookSubscribers)
   ) {
     const subscribeRoute: Route = RouteUtil.populateRouteParams(
       props.isPreview
@@ -333,7 +337,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       {props.showSubscriberPageOnStatusPage &&
       (props.enableEmailSubscribers ||
         props.enableSMSSubscribers ||
-        props.enableSlackSubscribers) ? (
+        props.enableSlackSubscribers ||
+        props.enableMicrosoftTeamsSubscribers ||
+        props.enableWebhookSubscribers) ? (
         <NavBarItem
           id="subscribe-nav-bar-item"
           title={t("nav.subscribe")}

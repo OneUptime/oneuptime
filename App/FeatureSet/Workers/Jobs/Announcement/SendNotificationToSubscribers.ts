@@ -31,6 +31,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
@@ -469,6 +470,31 @@ RunCron(
                   MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
                     text: teamsMessage,
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+
+                if (subscriber.subscriberWebhook) {
+                  logger.debug(
+                    `Queueing webhook notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
+                  );
+
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "AnnouncementCreated",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        announcementId: announcement.id?.toString() || "",
+                        announcementTitle: announcement.title || "",
+                        announcementDescription: announcement.description || "",
+                        detailsUrl: announcementDetailsUrl,
+                      },
+                    },
                   }).catch((err: Error) => {
                     logger.error(err);
                   });

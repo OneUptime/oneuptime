@@ -176,6 +176,15 @@ const MicrosoftTeamsSubscribe: React.LazyExoticComponent<
     };
   });
 });
+const WebhookSubscribe: React.LazyExoticComponent<
+  AllPagesModule["WebhookSubscribe"]
+> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.WebhookSubscribe,
+    };
+  });
+});
 const PageForbidden: React.LazyExoticComponent<
   AllPagesModule["PageForbidden"]
 > = lazy(() => {
@@ -209,6 +218,8 @@ const App: () => JSX.Element = () => {
     useState<boolean>(false);
   const [enableMicrosoftTeamsSubscribers, setenableMicrosoftTeamsSubscribers] =
     useState<boolean>(false);
+  const [enableWebhookSubscribers, setenableWebhookSubscribers] =
+    useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
   const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>("");
   const [isPrivateStatusPage, setIsPrivateStatusPage] =
@@ -236,6 +247,8 @@ const App: () => JSX.Element = () => {
       enableSMSSubscribers={enableSMSSubscribers}
       enableEmailSubscribers={enableEmailSubscribers}
       enableSlackSubscribers={enableSlackSubscribers}
+      enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+      enableWebhookSubscribers={enableWebhookSubscribers}
       isPrivateStatusPage={isPrivateStatusPage}
       onLoadComplete={(masterpage: JSONObject) => {
         document.title =
@@ -302,6 +315,12 @@ const App: () => JSX.Element = () => {
             "statusPage.enableMicrosoftTeamsSubscribers",
           ) as boolean;
 
+        const enableWebhookSubscribers: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.enableWebhookSubscribers",
+          ) as boolean;
+
         const allowSubscribersToChooseResources: boolean =
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -322,6 +341,7 @@ const App: () => JSX.Element = () => {
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableSlackSubscribers(enableSlackSubscribers);
         setenableMicrosoftTeamsSubscribers(enableMicrosoftTeamsSubscribers);
+        setenableWebhookSubscribers(enableWebhookSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
 
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
@@ -534,6 +554,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -558,6 +579,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -582,6 +604,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -618,6 +641,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -642,6 +666,32 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.SUBSCRIBE_WEBHOOKS]?.toString() || ""}
+            element={
+              <WebhookSubscribe
+                pageRoute={RouteMap[PageMap.SUBSCRIBE_WEBHOOKS] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -680,6 +730,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -708,6 +759,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -732,6 +784,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -756,6 +809,7 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />
@@ -785,6 +839,36 @@ const App: () => JSX.Element = () => {
                 enableMicrosoftTeamsSubscribers={
                   enableMicrosoftTeamsSubscribers
                 }
+                enableWebhookSubscribers={enableWebhookSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS]?.toString() || ""
+            }
+            element={
+              <WebhookSubscribe
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS] as Route
+                }
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
+                enableWebhookSubscribers={enableWebhookSubscribers}
               />
             }
           />

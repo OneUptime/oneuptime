@@ -73,6 +73,7 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page",
   "/status-page-api",
   "/status-page-sso-api",
+  "/status-page-oidc-api",
   "/status-page-identity-api",
   "/public-dashboard",
   "/public-dashboard-api",
@@ -109,6 +110,7 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
 const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page-api",
   "/status-page-sso-api",
+  "/status-page-oidc-api",
   "/status-page-identity-api",
   "/public-dashboard-api",
   "/.well-known",

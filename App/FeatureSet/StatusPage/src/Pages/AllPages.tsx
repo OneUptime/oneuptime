@@ -18,4 +18,5 @@ export { default as UpdateSubscription } from "./Subscribe/UpdateSubscription";
 export { default as ConfirmSubscription } from "./Subscribe/ConfirmSubscription";
 export { default as SlackSubscribe } from "./Subscribe/SlackSubscribe";
 export { default as MicrosoftTeamsSubscribe } from "./Subscribe/MicrosoftTeamsSubscribe";
+export { default as WebhookSubscribe } from "./Subscribe/WebhookSubscribe";
 export { default as PageForbidden } from "./Forbidden/Forbidden";

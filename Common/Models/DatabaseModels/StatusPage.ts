@@ -1488,6 +1488,49 @@ export default class StatusPage extends BaseModel {
     ],
   })
   @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Webhook Subscribers",
+    description: "Can Webhook subscribers subscribe to this Status Page?",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Free,
+  })
+  public enableWebhookSubscribers?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageManager,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageManager,
+      Permission.ReadProjectStatusPage,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageManager,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
     isDefaultValueColumn: false,
     type: TableColumnType.ShortText,
     title: "Copyright Text",

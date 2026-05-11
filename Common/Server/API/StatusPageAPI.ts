@@ -26,6 +26,7 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
+import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -81,6 +82,7 @@ import StatusPageHeaderLink from "../../Models/DatabaseModels/StatusPageHeaderLi
 import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "../../Models/DatabaseModels/StatusPageSso";
+import StatusPageOIDC from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
@@ -1087,6 +1089,46 @@ export default class StatusPageAPI extends BaseAPI<
             sso,
             new PositiveNumber(sso.length),
             StatusPageSSO,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/oidc/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const oidc: Array<StatusPageOIDC> =
+            await StatusPageOidcService.findBy({
+              query: {
+                statusPageId: objectId,
+                isEnabled: true,
+              },
+              select: {
+                name: true,
+                description: true,
+                _id: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          return Response.sendEntityArrayResponse(
+            req,
+            res,
+            oidc,
+            new PositiveNumber(oidc.length),
+            StatusPageOIDC,
           );
         } catch (err) {
           next(err);

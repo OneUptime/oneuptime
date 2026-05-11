@@ -168,6 +168,7 @@ import StatusPagePrivateUserSession from "./StatusPagePrivateUserSession";
 import StatusPageResource from "./StatusPageResource";
 import StatusPageSCIM from "./StatusPageSCIM";
 import StatusPageSSO from "./StatusPageSso";
+import StatusPageOIDC from "./StatusPageOidc";
 import StatusPageSubscriber from "./StatusPageSubscriber";
 import StatusPageSubscriberNotificationTemplate from "./StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationTemplateStatusPage from "./StatusPageSubscriberNotificationTemplateStatusPage";
@@ -444,6 +445,7 @@ const AllModelTypes: Array<{
   ProjectSSO,
   ProjectOIDC,
   StatusPageSSO,
+  StatusPageOIDC,
   StatusPageSCIM,
 
   MonitorProbe,

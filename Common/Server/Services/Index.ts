@@ -130,6 +130,7 @@ import StatusPageResourceService from "./StatusPageResourceService";
 // Status Page
 import StatusPageService from "./StatusPageService";
 import StatusPageSsoService from "./StatusPageSsoService";
+import StatusPageOidcService from "./StatusPageOidcService";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
@@ -335,6 +336,7 @@ const services: Array<BaseService> = [
   StatusPageResourceService,
   StatusPageService,
   StatusPageSsoService,
+  StatusPageOidcService,
   StatusPageSubscriberService,
   StatusPageSubscriberNotificationTemplateService,
   StatusPageSubscriberNotificationTemplateStatusPageService,

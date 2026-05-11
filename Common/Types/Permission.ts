@@ -538,6 +538,11 @@ enum Permission {
   EditStatusPageSSO = "EditStatusPageSSO",
   ReadStatusPageSSO = "ReadStatusPageSSO",
 
+  CreateStatusPageOIDC = "CreateStatusPageOIDC",
+  DeleteStatusPageOIDC = "DeleteStatusPageOIDC",
+  EditStatusPageOIDC = "EditStatusPageOIDC",
+  ReadStatusPageOIDC = "ReadStatusPageOIDC",
+
   // Label Permissions (Owner + Admin Permission by default)
   CreateProjectLabel = "CreateProjectLabel",
   EditProjectLabel = "EditProjectLabel",
@@ -3027,6 +3032,47 @@ export class PermissionHelper {
         title: "Read Status Page SSO",
         description:
           "This permission can read Status Page SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+
+      {
+        permission: Permission.CreateStatusPageOIDC,
+        title: "Create Status Page OIDC",
+        description:
+          "This permission can create Status Page OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.DeleteStatusPageOIDC,
+        title: "Delete Status Page OIDC",
+        description:
+          "This permission can delete Status Page OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.EditStatusPageOIDC,
+        title: "Edit Status Page OIDC",
+        description:
+          "This permission can edit Status Page OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.ReadStatusPageOIDC,
+        title: "Read Status Page OIDC",
+        description:
+          "This permission can read Status Page OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -31,6 +31,7 @@ import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
 import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
 import StatusPageViewCustomFields from "../Pages/StatusPages/View/CustomFields";
 import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";
+import StatusPageViewOIDC from "../Pages/StatusPages/View/OIDC";
 import StatusPageViewSCIM from "../Pages/StatusPages/View/SCIM";
 import StatusPageViewPrivateUser from "../Pages/StatusPages/View/PrivateUser";
 import StatusPageViewOwners from "../Pages/StatusPages/View/Owners";
@@ -369,6 +370,16 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageViewSSO
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_OIDC)}
+          element={
+            <StatusPageViewOIDC
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_OIDC] as Route}
             />
           }
         />

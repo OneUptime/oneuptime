@@ -1,5 +1,6 @@
 import {
   STATUS_PAGE_API_URL,
+  STATUS_PAGE_OIDC_API_URL,
   STATUS_PAGE_SSO_API_URL,
 } from "../../Utils/Config";
 import StatusPageUtil from "../../Utils/StatusPage";
@@ -12,6 +13,7 @@ import ModelList from "Common/UI/Components/ModelList/ModelList";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
+import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import React, { FunctionComponent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -96,7 +98,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-6">
           <ModelList<StatusPageSSO>
             id="sso-list"
             overrideFetchApiUrl={URL.fromString(
@@ -110,12 +112,42 @@ const LoginPage: FunctionComponent<ComponentProps> = (
               description: true,
               _id: true,
             }}
-            noItemsMessage={t("accounts.sso.noProviders")}
+            noItemsMessage={""}
             onSelectChange={(list: Array<StatusPageSSO>) => {
               if (list && list.length > 0) {
                 setIsLoading(true);
                 Navigation.navigate(
                   URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
+                    new Route(
+                      `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                        list[0]?._id
+                      }`,
+                    ),
+                  ),
+                );
+              }
+            }}
+          />
+
+          <ModelList<StatusPageOIDC>
+            id="oidc-list"
+            overrideFetchApiUrl={URL.fromString(
+              STATUS_PAGE_API_URL.toString(),
+            ).addRoute("/oidc/" + StatusPageUtil.getStatusPageId()?.toString())}
+            modelType={StatusPageOIDC}
+            titleField="name"
+            descriptionField="description"
+            select={{
+              name: true,
+              description: true,
+              _id: true,
+            }}
+            noItemsMessage={t("accounts.sso.noProviders")}
+            onSelectChange={(list: Array<StatusPageOIDC>) => {
+              if (list && list.length > 0) {
+                setIsLoading(true);
+                Navigation.navigate(
+                  URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
                     new Route(
                       `/${StatusPageUtil.getStatusPageId()?.toString()}/${
                         list[0]?._id
