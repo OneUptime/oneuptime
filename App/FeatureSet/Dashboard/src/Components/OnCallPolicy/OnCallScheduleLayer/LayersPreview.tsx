@@ -15,6 +15,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -24,6 +25,21 @@ export interface ComponentProps {
   showFieldLabel?: boolean;
   id?: string | undefined;
 }
+
+interface UserColorAssignment {
+  userId: string;
+  name: string;
+  email: string;
+  color: string;
+}
+
+const getColorForUserId: (userId: string) => string = (
+  userId: string,
+): string => {
+  const colorListLength: number = BrightColors.length;
+  const colorIndex: number = HashCode.fromString(userId) % colorListLength;
+  return (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
+};
 
 const LayersPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -40,6 +56,35 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   );
 
   const layerUtil: LayerUtil = new LayerUtil();
+
+  const uniqueUsers: Array<UserColorAssignment> = useMemo(() => {
+    const seen: Set<string> = new Set<string>();
+    const result: Array<UserColorAssignment> = [];
+
+    for (const key in props.allLayerUsers) {
+      const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+        props.allLayerUsers[key] || [];
+
+      for (const layerUser of layerUsers) {
+        const user: User | undefined = layerUser.user;
+        const userId: string = user?.id?.toString() || "";
+
+        if (!user || !userId || seen.has(userId)) {
+          continue;
+        }
+
+        seen.add(userId);
+        result.push({
+          userId,
+          name: user.name?.toString() || "Unknown",
+          email: user.email?.toString() || "",
+          color: getColorForUserId(userId),
+        });
+      }
+    }
+
+    return result;
+  }, [props.allLayerUsers]);
 
   useEffect(() => {
     setCalendarEvents(getCalendarEvents(startTime, endTime));
@@ -90,10 +135,6 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       layers: layerProps,
     });
 
-    // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
-
-    const colorListLength: number = BrightColors.length;
-
     events.forEach((event: CalendarEvent) => {
       const userId: string = event.title;
 
@@ -105,10 +146,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const colorIndex: number = HashCode.fromString(userId) % colorListLength;
-
-      event.color =
-        (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
+      event.color = getColorForUserId(userId);
 
       event.title = `${
         (user.name?.toString() || "") +
@@ -134,6 +172,30 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           }
         />
       )}
+
+      {uniqueUsers.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            On-Call Users
+          </span>
+          {uniqueUsers.map((u: UserColorAssignment) => {
+            return (
+              <div
+                key={u.userId}
+                className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
+                title={u.email}
+              >
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: u.color }}
+                />
+                <span className="font-medium text-gray-900">{u.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <Calendar
         events={calendarEvents}
         onRangeChange={(startEndTime: StartAndEndTime) => {
