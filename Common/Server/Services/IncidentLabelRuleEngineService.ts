@@ -163,6 +163,22 @@ class IncidentLabelRuleEngineServiceClass {
         .of(incident.id.toString())
         .add(newLabelIds);
 
+      /*
+       * Sync in-memory incident.labels with the now-persisted set so downstream
+       * rule engines (IncidentOnCallRuleEngineService) can match on these labels
+       * in the same onCreateSuccess chain. Without this, the on-call engine sees
+       * only the criteria-time labels and skips rules keyed on rule-added labels.
+       */
+      const mergedLabelIds: Set<string> = new Set([
+        ...existingLabelIds,
+        ...newLabelIds,
+      ]);
+      incident.labels = Array.from(mergedLabelIds).map((id: string) => {
+        const label: Label = new Label();
+        label.id = new ObjectID(id);
+        return label;
+      });
+
       logger.debug(
         `IncidentLabelRuleEngine attached ${newLabelIds.length} labels to incident ${incident.id}`,
         { projectId: incident.projectId.toString() } as LogAttributes,

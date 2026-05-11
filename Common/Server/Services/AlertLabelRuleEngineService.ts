@@ -127,6 +127,22 @@ class AlertLabelRuleEngineServiceClass {
         .of(alert.id.toString())
         .add(newLabelIds);
 
+      /*
+       * Sync in-memory alert.labels with the now-persisted set so downstream
+       * rule engines (AlertOnCallRuleEngineService) can match on these labels
+       * in the same onCreateSuccess chain. Without this, the on-call engine sees
+       * only the criteria-time labels and skips rules keyed on rule-added labels.
+       */
+      const mergedLabelIds: Set<string> = new Set([
+        ...existingLabelIds,
+        ...newLabelIds,
+      ]);
+      alert.labels = Array.from(mergedLabelIds).map((id: string) => {
+        const label: Label = new Label();
+        label.id = new ObjectID(id);
+        return label;
+      });
+
       logger.debug(
         `AlertLabelRuleEngine attached ${newLabelIds.length} labels to alert ${alert.id}`,
         { projectId: alert.projectId.toString() } as LogAttributes,

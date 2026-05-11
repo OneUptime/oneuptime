@@ -581,8 +581,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
                 (svc: Service) => {
                   return (
-                    svc.id?.toString() ===
-                    serviceMetadata.serviceId!.toString()
+                    svc.id?.toString() === serviceMetadata.serviceId!.toString()
                   );
                 },
               ).length === 0
@@ -593,7 +592,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 heartbeatService,
               );
             }
-            const heartbeatTimeNano: string = OneUptimeDate.getCurrentDateAsUnixNano().toString();
+            const heartbeatTimeNano: string =
+              OneUptimeDate.getCurrentDateAsUnixNano().toString();
             const heartbeatRow: JSONObject = this.buildMetricRow({
               datapoint: {
                 timeUnixNano: heartbeatTimeNano,

@@ -23,6 +23,10 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -1127,10 +1131,26 @@ export default class MonitorCriteriaObservationBuilder {
       } returned no data points.`;
     }
 
+    /*
+     * Render the observation in the threshold's unit. The raw samples
+     * arrive in the metric's legendUnit (or its native unit when no
+     * legendUnit was set). If the user picked a different threshold
+     * unit — e.g. "%" against a ratio metric whose native unit is the
+     * dimensionless "1" — convert here so the message reads
+     * "latest 5.85% expected to equal 2" rather than the confusing
+     * "latest 0.0585 expected to equal 2".
+     */
+    const displayValues: Array<number> =
+      MonitorCriteriaObservationBuilder.convertMetricValuesToThresholdUnit({
+        values: metricValues.values,
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        alias: metricValues.alias,
+      });
+
     const summary: string | null =
-      MonitorCriteriaMessageFormatter.summarizeNumericSeries(
-        metricValues.values,
-      );
+      MonitorCriteriaMessageFormatter.summarizeNumericSeries(displayValues);
 
     if (!summary) {
       return null;
@@ -1139,5 +1159,80 @@ export default class MonitorCriteriaObservationBuilder {
     return `Metric Value${
       metricValues.alias ? ` (${metricValues.alias})` : ""
     } recorded ${summary}.`;
+  }
+
+  /*
+   * Best-effort unit conversion for observation text. Mirrors the
+   * sample→thresholdUnit conversion in MetricMonitorCriteria so the
+   * "recorded" message and the breach comparison speak the same unit.
+   * Returns the input array unchanged when units are missing or
+   * incompatible — never throws.
+   */
+  private static convertMetricValuesToThresholdUnit(input: {
+    values: Array<number>;
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    alias: string | null;
+  }): Array<number> {
+    const thresholdUnit: string | undefined =
+      input.criteriaFilter.metricMonitorOptions?.thresholdUnit;
+    if (!thresholdUnit) {
+      return input.values;
+    }
+
+    const metricResponse: MetricMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getMetricMonitorResponse(
+        input.dataToProcess,
+      );
+    if (!metricResponse) {
+      return input.values;
+    }
+
+    const queryConfigs: Array<MetricQueryConfigData> =
+      input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs ||
+      [];
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
+      [];
+
+    const alias: string | null = input.alias;
+    const matchedQuery: MetricQueryConfigData | undefined = alias
+      ? queryConfigs.find((q: MetricQueryConfigData) => {
+          return q.metricAliasData?.metricVariable === alias;
+        })
+      : queryConfigs[0];
+    const matchedFormula: MetricFormulaConfigData | undefined =
+      !matchedQuery && alias
+        ? formulaConfigs.find((f: MetricFormulaConfigData) => {
+            return f.metricAliasData?.metricVariable === alias;
+          })
+        : undefined;
+
+    const rawMetricName: string | undefined =
+      (matchedQuery?.metricQueryData?.filterData?.metricName as
+        | string
+        | undefined) || undefined;
+    const nativeUnitFromMap: string | undefined = rawMetricName
+      ? metricResponse.nativeUnitsByMetricName?.[rawMetricName.toLowerCase()]
+      : undefined;
+
+    const sampleUnit: string | undefined =
+      (matchedQuery?.metricAliasData?.legendUnit as string | undefined) ||
+      (matchedFormula?.metricAliasData?.legendUnit as string | undefined) ||
+      nativeUnitFromMap ||
+      undefined;
+
+    if (!sampleUnit || sampleUnit === thresholdUnit) {
+      return input.values;
+    }
+
+    return input.values.map((v: number) => {
+      return MetricUnitUtil.convertToMetricUnit({
+        value: v,
+        fromUnit: sampleUnit,
+        metricUnit: thresholdUnit,
+      });
+    });
   }
 }

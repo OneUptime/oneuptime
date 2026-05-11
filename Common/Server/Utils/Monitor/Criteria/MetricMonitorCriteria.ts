@@ -121,6 +121,9 @@ export default class MetricMonitorCriteria {
       input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
       [];
 
+    const nativeUnitsByMetricName: { [key: string]: string } | undefined =
+      metricResponse.nativeUnitsByMetricName;
+
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
@@ -135,6 +138,7 @@ export default class MetricMonitorCriteria {
           seriesFingerprint: undefined,
           seriesLabels: {},
           projectId: metricResponse.projectId,
+          nativeUnitsByMetricName,
         });
       return [result];
     }
@@ -149,6 +153,7 @@ export default class MetricMonitorCriteria {
           seriesFingerprint: series.fingerprint,
           seriesLabels: series.labels,
           projectId: metricResponse.projectId,
+          nativeUnitsByMetricName,
         });
       }),
     );
@@ -169,6 +174,7 @@ export default class MetricMonitorCriteria {
     seriesFingerprint: string | undefined;
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
+    nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null = CompareCriteria.convertToNumber(
       input.criteriaFilter.value,
@@ -238,6 +244,7 @@ export default class MetricMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         queryConfigs: input.queryConfigs,
         formulaConfigs: input.formulaConfigs,
+        nativeUnitsByMetricName: input.nativeUnitsByMetricName,
       });
 
     if (input.seriesFingerprint) {
@@ -576,6 +583,7 @@ export default class MetricMonitorCriteria {
     criteriaFilter: CriteriaFilter;
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
+    nativeUnitsByMetricName?: { [key: string]: string } | undefined;
   }): MetricCriteriaContext {
     const q: MetricQueryConfigData | null = input.matchedQuery;
     const f: MetricFormulaConfigData | null = input.matchedFormula;
@@ -587,9 +595,24 @@ export default class MetricMonitorCriteria {
       f?.metricAliasData?.title ||
       "Metric";
 
+    /*
+     * Prefer the legendUnit the user picked, but fall back to the
+     * metric's native unit (loaded from MetricType by the worker). The
+     * fallback matters for ratio metrics like system.filesystem.utilization,
+     * whose native unit is OTel's dimensionless "1" — without it, a "%"
+     * threshold can't be compared against the raw [0, 1] samples.
+     */
+    const rawMetricName: string | undefined =
+      (q?.metricQueryData?.filterData?.metricName as string | undefined) ||
+      undefined;
+    const nativeUnitFromMap: string | undefined = rawMetricName
+      ? input.nativeUnitsByMetricName?.[rawMetricName.toLowerCase()]
+      : undefined;
+
     const unit: string | null =
       (q?.metricAliasData?.legendUnit as string | undefined) ||
       (f?.metricAliasData?.legendUnit as string | undefined) ||
+      nativeUnitFromMap ||
       null;
 
     const aggregationType: MetricsAggregationType | null =
