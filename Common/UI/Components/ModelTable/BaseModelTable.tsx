@@ -364,6 +364,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    React.useRef<HTMLInputElement>(null!);
 
   useEffect(() => {
     const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -373,6 +376,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       clearTimeout(handle);
     };
   }, [searchText]);
+
+  /*
+   * "/" focuses the search input — same affordance as GitHub / Linear.
+   * Skip while the user is typing in another input/textarea or has a modal open.
+   */
+  useEffect(() => {
+    if (!props.searchableFields || props.searchableFields.length === 0) {
+      return undefined;
+    }
+    const handleKey: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+      const target: HTMLElement | null = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [props.searchableFields]);
 
   useEffect(() => {
     // reset to first page whenever the active search term changes
@@ -2030,36 +2063,105 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return <></>;
     }
 
+    const pluralLabel: string = (
+      props.pluralName ||
+      model.pluralName ||
+      "items"
+    ).toLowerCase();
+
     const placeholder: string =
-      props.searchPlaceholder ||
-      `Search ${(props.pluralName || model.pluralName || "items").toLowerCase()}...`;
+      props.searchPlaceholder || `Search ${pluralLabel} by name, description…`;
+
+    const trimmedSearch: string = searchText.trim();
+    const trimmedActive: string = debouncedSearchText.trim();
+    const isSearching: boolean =
+      trimmedSearch.length > 0 && trimmedSearch !== trimmedActive;
+    const hasActiveSearch: boolean = trimmedActive.length > 0;
+
+    const borderClass: string = isSearchFocused
+      ? "border-indigo-500 ring-4 ring-indigo-100 shadow-sm"
+      : hasActiveSearch
+        ? "border-indigo-200 shadow-sm"
+        : "border-gray-200 hover:border-gray-300";
+
+    const iconColorClass: string =
+      isSearchFocused || hasActiveSearch ? "text-indigo-500" : "text-gray-400";
 
     return (
-      <div className="mb-4">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-            <Icon icon={IconProp.Search} className="h-4 w-4" />
-          </div>
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setSearchText(e.target.value);
-            }}
-            placeholder={placeholder}
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-          {searchText && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchText("");
-              }}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+      <div className="mb-5">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-2xl">
+            <div
+              className={`flex items-center gap-2.5 rounded-xl border bg-white px-3.5 py-2.5 transition-all duration-150 ${borderClass}`}
             >
-              <Icon icon={IconProp.Close} className="h-4 w-4" />
-            </button>
-          )}
+              <Icon
+                icon={IconProp.Search}
+                className={`h-4 w-4 flex-none transition-colors ${iconColorClass}`}
+              />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchText}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchText(e.target.value);
+                }}
+                onFocus={() => {
+                  setIsSearchFocused(true);
+                }}
+                onBlur={() => {
+                  setIsSearchFocused(false);
+                }}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === "Escape") {
+                    if (searchText) {
+                      setSearchText("");
+                    } else {
+                      searchInputRef.current?.blur();
+                    }
+                  }
+                }}
+                placeholder={placeholder}
+                spellCheck={false}
+                autoComplete="off"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
+              />
+              {isSearching && (
+                <div className="flex-none text-indigo-500" title="Searching...">
+                  <Icon
+                    icon={IconProp.Spinner}
+                    className="h-4 w-4 animate-spin"
+                  />
+                </div>
+              )}
+              {!isSearching && hasActiveSearch && totalItemsCount >= 0 && (
+                <span className="flex-none rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                  {totalItemsCount}{" "}
+                  {totalItemsCount === 1 ? "match" : "matches"}
+                </span>
+              )}
+              {searchText.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchText("");
+                    searchInputRef.current?.focus();
+                  }}
+                  title="Clear search (Esc)"
+                  aria-label="Clear search"
+                  className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <kbd
+                  className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+                  title="Press / to focus search"
+                >
+                  /
+                </kbd>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
