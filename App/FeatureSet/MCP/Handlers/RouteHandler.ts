@@ -221,8 +221,10 @@ async function handleNewSession(
       },
     });
 
-  // Per-session record; the tool-call handler closes over this so subsequent
-  // requests on this session can update `apiKey` without affecting other sessions.
+  /*
+   * Per-session record; the tool-call handler closes over this so subsequent
+   * requests on this session can update `apiKey` without affecting other sessions.
+   */
   const sessionData: SessionData = { transport, apiKey };
 
   registerToolHandlers(mcpServer, registeredTools, sessionData);

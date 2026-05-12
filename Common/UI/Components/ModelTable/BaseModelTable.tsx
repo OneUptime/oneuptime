@@ -2846,20 +2846,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         className="flex items-center gap-1.5"
       >
         {/*
-         * Search slot — narrow icon when collapsed, wide bar when expanded.
-         * On hover (while collapsed), the wrapper grows from 36px to ~120px
-         * and a "Search" label fades + slides in beside the icon, inviting
-         * the click. `group` here gates the children's hover states so we
-         * can animate both at once.
+         * Search slot — a compact pill showing "Search …    /" by default,
+         * grown into the full search bar when expanded. Always advertising
+         * itself (rather than starting as a tiny icon) reads as a more
+         * polished search affordance, in line with Stripe / Linear / GitHub.
          */}
         <div
-          className={`group relative shrink-0 transition-[width] duration-300 ease-out ${
+          className={`relative shrink-0 transition-[width] duration-300 ease-out ${
             isExpanded
               ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]"
-              : "w-9 hover:w-[7.5rem]"
+              : "w-44 sm:w-56"
           }`}
         >
-          {/* Trigger icon + label (collapsed state) */}
+          {/* Trigger (collapsed state) */}
           <button
             type="button"
             onClick={() => {
@@ -2871,16 +2870,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             title="Search (/)"
             aria-label="Open search"
             tabIndex={isExpanded ? -1 : 0}
-            className={`absolute inset-0 inline-flex items-center justify-center gap-1.5 rounded-lg border bg-white shadow-sm transition-all duration-200 ease-out ${
+            className={`absolute inset-0 inline-flex items-center gap-2 rounded-lg border bg-white pl-3 pr-2 text-sm shadow-sm transition-all duration-200 ease-out ${
               isExpanded
-                ? "pointer-events-none border-gray-200 text-gray-500 opacity-0"
-                : "border-gray-200 text-gray-500 opacity-100 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                ? "pointer-events-none border-gray-200 opacity-0"
+                : "border-gray-200 opacity-100 hover:border-gray-300 hover:bg-gray-50"
             }`}
           >
-            <Icon icon={IconProp.Search} className="h-4 w-4 flex-none" />
-            <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium text-gray-600 opacity-0 transition-all duration-200 ease-out group-hover:max-w-[5rem] group-hover:opacity-100">
-              Search
+            <Icon
+              icon={IconProp.Search}
+              className="h-4 w-4 flex-none text-gray-400"
+            />
+            <span className="flex-1 truncate text-left text-gray-400">
+              Search…
             </span>
+            <kbd className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
+              /
+            </kbd>
           </button>
 
           {/* Expanded search bar */}
