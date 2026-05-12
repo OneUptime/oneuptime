@@ -17,7 +17,6 @@ export interface SessionData {
  */
 export default class SessionManager {
   private static sessions: Map<string, SessionData> = new Map();
-  private static currentSessionApiKey: string = "";
 
   /**
    * Get all active sessions
@@ -79,27 +78,6 @@ export default class SessionManager {
   }
 
   /**
-   * Get the current session API key (used during request processing)
-   */
-  public static getCurrentApiKey(): string {
-    return this.currentSessionApiKey;
-  }
-
-  /**
-   * Set the current session API key (called at the start of each request)
-   */
-  public static setCurrentApiKey(apiKey: string): void {
-    this.currentSessionApiKey = apiKey;
-  }
-
-  /**
-   * Clear the current session API key
-   */
-  public static clearCurrentApiKey(): void {
-    this.currentSessionApiKey = "";
-  }
-
-  /**
    * Get the count of active sessions
    */
   public static getSessionCount(): number {
@@ -111,7 +89,6 @@ export default class SessionManager {
    */
   public static clearAllSessions(): void {
     this.sessions.clear();
-    this.currentSessionApiKey = "";
     logger.info("All MCP sessions cleared", {} as LogAttributes);
   }
 }

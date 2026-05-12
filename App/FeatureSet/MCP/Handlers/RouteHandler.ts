@@ -144,9 +144,6 @@ function createMCPHandler(): McpHandlerFunction {
       // Extract API key (optional - public tools work without it)
       const apiKey: string | undefined = extractApiKey(req);
 
-      // Set the current API key for tool calls (may be undefined for public tools)
-      SessionManager.setCurrentApiKey(apiKey || "");
-
       // Check for existing session
       const sessionId: string | undefined = req.headers[
         SESSION_HEADER
@@ -212,7 +209,6 @@ async function handleNewSession(
 ): Promise<void> {
   // Create a new McpServer for this session (each can only connect to one transport)
   const mcpServer: McpServer = createMCPServerInstance();
-  registerToolHandlers(mcpServer, registeredTools);
 
   const transport: StreamableHTTPServerTransport =
     new StreamableHTTPServerTransport({
@@ -220,11 +216,16 @@ async function handleNewSession(
         return randomUUID();
       },
       onsessioninitialized: (newSessionId: string): void => {
-        // Store the transport with the new session ID and API key
-        SessionManager.setSession(newSessionId, { transport, apiKey });
+        SessionManager.setSession(newSessionId, sessionData);
         logger.info(`New MCP session initialized: ${newSessionId}`);
       },
     });
+
+  // Per-session record; the tool-call handler closes over this so subsequent
+  // requests on this session can update `apiKey` without affecting other sessions.
+  const sessionData: SessionData = { transport, apiKey };
+
+  registerToolHandlers(mcpServer, registeredTools, sessionData);
 
   // Handle transport close
   transport.onclose = (): void => {

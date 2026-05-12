@@ -22,6 +22,8 @@ import {
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import MoreMenu from "../MoreMenu/MoreMenu";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
   CardButtonSchema,
   ComponentProps as CardComponentProps,
@@ -1070,9 +1072,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return v.substring(0, atIndex).trimEnd();
       };
 
-      const effectiveSearch: string = stripTrailingMention(
-        debouncedSearchText,
-      ).trim();
+      const effectiveSearch: string =
+        stripTrailingMention(debouncedSearchText).trim();
       if (
         effectiveSearch.length > 0 &&
         props.searchableFields &&
@@ -2334,9 +2335,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
 
     const trimmedSearch: string = stripTrailingMentionForUi(searchText).trim();
-    const trimmedActive: string = stripTrailingMentionForUi(
-      debouncedSearchText,
-    ).trim();
+    const trimmedActive: string =
+      stripTrailingMentionForUi(debouncedSearchText).trim();
     const isSearching: boolean =
       trimmedSearch.length > 0 && trimmedSearch !== trimmedActive;
     const hasActiveSearch: boolean = trimmedActive.length > 0;
@@ -2366,14 +2366,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       .slice(0, 8);
 
     const borderClass: string = isSearchFocused
-      ? "border-indigo-500 ring-4 ring-indigo-100 shadow-sm"
+      ? "border-gray-400 ring-4 ring-gray-100 shadow-sm"
       : hasActiveSearch || hasSelectedLabels
-        ? "border-indigo-200 shadow-sm"
+        ? "border-gray-300 shadow-sm"
         : "border-gray-200 shadow-sm";
 
     const iconColorClass: string =
       isSearchFocused || hasActiveSearch || hasSelectedLabels
-        ? "text-indigo-500"
+        ? "text-gray-700"
         : "text-gray-400";
 
     type SelectDropdownItemAtIndexFunction = (idx: number) => void;
@@ -2387,43 +2387,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
 
     return (
-      <div
-        className={`relative flex items-center transition-[width] duration-300 ease-out ${
-          expanded
-            ? hasLabelSupport
-              ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]"
-              : "w-[20rem] sm:w-[24rem] lg:w-[28rem]"
-            : "w-9"
-        }`}
-      >
-        {/* Trigger button (collapsed state) */}
-        <button
-          type="button"
-          onClick={() => {
-            setIsSearchExpanded(true);
-            requestAnimationFrame(() => {
-              searchInputRef.current?.focus();
-            });
-          }}
-          title="Search (/)"
-          aria-label="Open search"
-          className={`absolute inset-0 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm transition-all duration-200 ease-out hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 ${
-            expanded
-              ? "pointer-events-none scale-95 opacity-0"
-              : "scale-100 opacity-100"
-          }`}
-        >
-          <Icon icon={IconProp.Search} className="h-4 w-4" />
-        </button>
-
-        {/* Expanded input + dropdown */}
-        <div
-          className={`relative flex w-full flex-col gap-1 transition-all duration-200 ease-out ${
-            expanded
-              ? "scale-100 opacity-100"
-              : "pointer-events-none scale-95 opacity-0"
-          }`}
-        >
+      <div className="relative flex w-full items-center">
+        {/* Expanded input + dropdown — sized to the full title slot */}
+        <div className="relative flex w-full flex-col gap-1">
           <div
             className={`flex w-full items-center gap-2 rounded-lg border bg-white pl-3 pr-2 py-1.5 transition-all duration-200 ${borderClass}`}
             onClick={() => {
@@ -2558,7 +2524,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               />
             </div>
             {isSearching && (
-              <div className="flex-none text-indigo-500" title="Searching…">
+              <div className="flex-none text-gray-400" title="Searching…">
                 <Icon
                   icon={IconProp.Spinner}
                   className="h-4 w-4 animate-spin"
@@ -2567,7 +2533,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             )}
             {showMatchPill && totalItemsCount >= 0 && (
               <span
-                className="flex-none whitespace-nowrap rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                 title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
               >
                 {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
@@ -2646,7 +2612,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       }}
                       className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors ${
                         isActive
-                          ? "bg-indigo-50 text-indigo-900"
+                          ? "bg-gray-100 text-gray-900"
                           : "text-gray-700 hover:bg-gray-50"
                       }`}
                     >
@@ -2657,7 +2623,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       />
                       <span className="flex-1 truncate">{label.name}</span>
                       {isActive && (
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-500">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
                           ↵
                         </span>
                       )}
@@ -2672,45 +2638,174 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     );
   };
 
-  type RenderCardButtonFunction = (
-    button: CardButtonSchema | ReactElement,
-    index: number,
-  ) => ReactElement;
+  type GetHeaderButtonsFunction = () => Array<CardButtonSchema | ReactElement>;
 
-  const renderSingleCardButton: RenderCardButtonFunction = (
-    button: CardButtonSchema | ReactElement,
-    index: number,
-  ): ReactElement => {
-    if (React.isValidElement(button)) {
-      return (
-        <div key={`btn-${index}`} className="flex items-center">
-          {button}
-        </div>
-      );
+  /*
+   * Returns the buttons array passed to Card. When search support is enabled
+   * we add a standalone search-trigger icon to the end of the row. We do
+   * NOT collapse the other buttons here — the expanded search bar lives in
+   * the title slot (see getExpandedSearchTitle), so existing buttons like
+   * Refresh / Filter / Create remain accessible while searching.
+   */
+  /*
+   * The "primary" button is the one with NORMAL style and the Add icon — the
+   * Create button that BaseModelTable injects automatically. We surface it
+   * alongside the search bar and hide everything else behind a kebab menu.
+   * If the page has no such button we fall back to the first NORMAL-styled
+   * one, or the first button outright.
+   */
+  type FindMainButtonResult = {
+    main: CardButtonSchema | null;
+    rest: Array<CardButtonSchema | ReactElement>;
+  };
+
+  const splitButtonsForHeader: (
+    buttons: Array<CardButtonSchema | ReactElement>,
+  ) => FindMainButtonResult = (
+    buttons: Array<CardButtonSchema | ReactElement>,
+  ): FindMainButtonResult => {
+    let mainIndex: number = -1;
+    for (let i: number = 0; i < buttons.length; i++) {
+      const b: CardButtonSchema | ReactElement = buttons[i]!;
+      if (React.isValidElement(b)) {
+        continue;
+      }
+      const c: CardButtonSchema = b as CardButtonSchema;
+      if (c.buttonStyle === ButtonStyleType.NORMAL && c.icon === IconProp.Add) {
+        mainIndex = i;
+        break;
+      }
     }
-    const b: CardButtonSchema = button as CardButtonSchema;
+    if (mainIndex < 0) {
+      for (let i: number = 0; i < buttons.length; i++) {
+        const b: CardButtonSchema | ReactElement = buttons[i]!;
+        if (React.isValidElement(b)) {
+          continue;
+        }
+        if ((b as CardButtonSchema).buttonStyle === ButtonStyleType.NORMAL) {
+          mainIndex = i;
+          break;
+        }
+      }
+    }
+    if (mainIndex < 0) {
+      return { main: null, rest: buttons };
+    }
+    const main: CardButtonSchema = buttons[mainIndex] as CardButtonSchema;
+    const rest: Array<CardButtonSchema | ReactElement> = [
+      ...buttons.slice(0, mainIndex),
+      ...buttons.slice(mainIndex + 1),
+    ];
+    return { main, rest };
+  };
+
+  const renderMainButton: (b: CardButtonSchema) => ReactElement = (
+    b: CardButtonSchema,
+  ): ReactElement => {
     return (
-      <div key={`btn-${index}`} className="flex items-center">
-        <Button
-          title={b.title}
-          buttonStyle={b.buttonStyle}
-          buttonSize={b.buttonSize}
-          className={b.className}
-          onClick={() => {
-            b.onClick?.();
-          }}
-          disabled={b.disabled}
-          icon={b.icon}
-          shortcutKey={b.shortcutKey}
-          dataTestId="card-button"
-          isLoading={b.isLoading}
-        />
-      </div>
+      <Button
+        key="model-table-main-action"
+        title={b.title}
+        buttonStyle={b.buttonStyle}
+        buttonSize={b.buttonSize}
+        className={b.className}
+        onClick={() => {
+          b.onClick?.();
+        }}
+        disabled={b.disabled}
+        icon={b.icon}
+        shortcutKey={b.shortcutKey}
+        dataTestId="card-button"
+        isLoading={b.isLoading}
+      />
     );
   };
 
-  type GetHeaderButtonsFunction = () => Array<CardButtonSchema | ReactElement>;
+  /*
+   * Icon-only card buttons (Refresh, Filter, …) have empty titles, so derive
+   * a label from the icon for the More menu.
+   */
+  // Fallback labels for icon-only buttons (Refresh, Filter, ...) in the More menu.
+  const labelForIconButton: (icon: IconProp | undefined) => string = (
+    icon: IconProp | undefined,
+  ): string => {
+    switch (icon) {
+      case IconProp.Refresh:
+        return "Refresh";
+      case IconProp.Filter:
+        return "Filter";
+      case IconProp.Add:
+        return "Add";
+      case IconProp.Help:
+        return "Help";
+      case IconProp.Book:
+        return "Documentation";
+      case IconProp.Play:
+        return "Watch Demo";
+      case IconProp.Search:
+        return "Search";
+      default:
+        return "Action";
+    }
+  };
 
+  const renderMoreMenu: (
+    items: Array<CardButtonSchema | ReactElement>,
+  ) => ReactElement | null = (
+    items: Array<CardButtonSchema | ReactElement>,
+  ): ReactElement | null => {
+    if (items.length === 0) {
+      return null;
+    }
+    const children: Array<ReactElement> = items.map(
+      (item: CardButtonSchema | ReactElement, idx: number) => {
+        if (React.isValidElement(item)) {
+          return (
+            <div key={`more-${idx}`} className="px-2 py-1">
+              {item}
+            </div>
+          );
+        }
+        const b: CardButtonSchema = item as CardButtonSchema;
+        const label: string = b.title || labelForIconButton(b.icon);
+        return (
+          <MoreMenuItem
+            key={`more-${idx}`}
+            text={label}
+            icon={b.icon}
+            onClick={() => {
+              if (!b.disabled) {
+                b.onClick?.();
+              }
+            }}
+            className={b.disabled ? "opacity-40 pointer-events-none" : ""}
+          />
+        );
+      },
+    );
+
+    return (
+      <MoreMenu
+        key="model-table-more-menu"
+        menuIcon={IconProp.EllipsisHorizontal}
+        text=""
+      >
+        {children}
+      </MoreMenu>
+    );
+  };
+
+  /*
+   * Builds the right-hand side of the card header. All three slots — search
+   * trigger/bar, main button, more menu — stay mounted at all times. State
+   * transitions are purely CSS so the inputs keep their focus, the dropdown
+   * keeps its open state, and there's no mount/unmount flicker.
+   *
+   * Layout when collapsed:  [🔍 trigger] [main] [⋯]
+   * Layout when expanded:   [🔍 ━━━ wide search bar ━━━]
+   * The main button + more menu fade and collapse-to-zero-width when the
+   * search expands, freeing horizontal space for the bar.
+   */
   const getHeaderButtonsWithSearch: GetHeaderButtonsFunction = (): Array<
     CardButtonSchema | ReactElement
   > => {
@@ -2718,43 +2813,128 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       props.searchableFields && props.searchableFields.length > 0,
     );
 
-    if (!hasSearch) {
+    if (cardButtons.length === 0 && !hasSearch) {
       return cardButtons;
     }
 
-    const hasActiveSearch: boolean = debouncedSearchText.trim().length > 0;
-    const expanded: boolean = isSearchExpanded || hasActiveSearch;
+    if (!hasSearch) {
+      // Without search, just split into [main] [⋯]; no special wrapping.
+      const { main, rest }: FindMainButtonResult =
+        splitButtonsForHeader(cardButtons);
+      const composed: Array<ReactElement> = [];
+      if (main) {
+        composed.push(renderMainButton(main));
+      }
+      const moreMenu: ReactElement | null = renderMoreMenu(rest);
+      if (moreMenu) {
+        composed.push(moreMenu);
+      }
+      return composed;
+    }
+
+    const trimmedActive: string = debouncedSearchText.trim();
+    const isExpanded: boolean =
+      isSearchExpanded || trimmedActive.length > 0 || selectedLabels.length > 0;
+
+    const { main, rest }: FindMainButtonResult =
+      splitButtonsForHeader(cardButtons);
+    const moreMenu: ReactElement | null = renderMoreMenu(rest);
 
     const wrapped: ReactElement = (
       <div
         key="model-table-header-actions"
         className="flex items-center gap-1.5"
       >
+        {/*
+         * Search slot — narrow icon when collapsed, wide bar when expanded.
+         * On hover (while collapsed), the wrapper grows from 36px to ~120px
+         * and a "Search" label fades + slides in beside the icon, inviting
+         * the click. `group` here gates the children's hover states so we
+         * can animate both at once.
+         */}
         <div
-          className={`flex items-center gap-1.5 overflow-hidden transition-all duration-300 ease-out ${
-            expanded
-              ? "max-w-0 -translate-x-1 opacity-0"
-              : "max-w-[1000px] translate-x-0 opacity-100"
+          className={`group relative shrink-0 transition-[width] duration-300 ease-out ${
+            isExpanded
+              ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]"
+              : "w-9 hover:w-[7.5rem]"
           }`}
-          aria-hidden={expanded ? "true" : "false"}
         >
-          <div
-            className={`flex flex-wrap items-center gap-1.5 ${
-              expanded ? "pointer-events-none" : ""
+          {/* Trigger icon + label (collapsed state) */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchExpanded(true);
+              requestAnimationFrame(() => {
+                searchInputRef.current?.focus();
+              });
+            }}
+            title="Search (/)"
+            aria-label="Open search"
+            tabIndex={isExpanded ? -1 : 0}
+            className={`absolute inset-0 inline-flex items-center justify-center gap-1.5 rounded-lg border bg-white shadow-sm transition-all duration-200 ease-out ${
+              isExpanded
+                ? "pointer-events-none border-gray-200 text-gray-500 opacity-0"
+                : "border-gray-200 text-gray-500 opacity-100 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
             }`}
           >
-            {cardButtons.map(
-              (button: CardButtonSchema | ReactElement, i: number) => {
-                return renderSingleCardButton(button, i);
-              },
-            )}
+            <Icon icon={IconProp.Search} className="h-4 w-4 flex-none" />
+            <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium text-gray-600 opacity-0 transition-all duration-200 ease-out group-hover:max-w-[5rem] group-hover:opacity-100">
+              Search
+            </span>
+          </button>
+
+          {/* Expanded search bar */}
+          <div
+            className={`transition-opacity duration-200 ease-out ${
+              isExpanded
+                ? "opacity-100 delay-150"
+                : "pointer-events-none opacity-0"
+            }`}
+          >
+            {getSearchControl()}
           </div>
         </div>
-        {getSearchControl()}
+
+        {/*
+         * Buttons that collapse when the bar expands. We avoid
+         * `overflow-hidden` here — the MoreMenu dropdown is an absolutely
+         * positioned child of one of these buttons and would otherwise get
+         * clipped by an `overflow-hidden` ancestor, leaving the user with
+         * an apparent "no menu appears" bug when they click ⋯. The wrapper
+         * is hidden via opacity + pointer-events instead, and its width
+         * collapses by setting both `max-width` and `gap` to 0 so the
+         * search slot to the left can grow into the freed space.
+         */}
+        <div
+          className={`flex items-center transition-all duration-300 ease-out ${
+            isExpanded
+              ? "max-w-0 -ml-1.5 gap-0 opacity-0 pointer-events-none"
+              : "max-w-[600px] gap-1.5 opacity-100"
+          }`}
+          aria-hidden={isExpanded}
+        >
+          {main && renderMainButton(main)}
+          {moreMenu}
+        </div>
       </div>
     );
 
     return [wrapped];
+  };
+
+  /*
+   * Title slot stays unchanged — the search bar lives in the buttons row.
+   * The wrapping function is kept for symmetry / future styling but is a
+   * pass-through today.
+   */
+  type GetCardHeaderTitleFunction = (
+    originalTitle: ReactElement,
+  ) => ReactElement;
+
+  const getCardHeaderTitle: GetCardHeaderTitleFunction = (
+    originalTitle: ReactElement,
+  ): ReactElement => {
+    return originalTitle;
   };
 
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
@@ -2773,7 +2953,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   ? "-ml-6 -mr-6 bg-gray-50 border-top"
                   : ""
               }
-              title={getCardTitle(props.cardProps.title || "")}
+              title={getCardHeaderTitle(
+                getCardTitle(props.cardProps.title || ""),
+              )}
             >
               {tableColumns.length === 0 && props.columns.length > 0 ? (
                 <ErrorMessage
