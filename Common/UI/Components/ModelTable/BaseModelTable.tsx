@@ -1412,10 +1412,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    if (props.saveFilterProps) {
-      headerbuttons.push(getSaveFilterDropdown());
-    }
-
     setCardButtons(headerbuttons);
   };
 
@@ -1861,6 +1857,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       };
     };
 
+  /*
+   * When the load is driven by the search box, suppress the table-level
+   * loading state so existing rows stay visible and the only spinner is
+   * the one in the search bar. Sort / pagination / refresh loads still
+   * show the table loader because there is no other indicator for those.
+   */
+  type ShouldSuppressTableLoadingFunction = () => boolean;
+  const isSearchActive: ShouldSuppressTableLoadingFunction = (): boolean => {
+    return debouncedSearchText.trim().length > 0 || selectedLabels.length > 0;
+  };
+
+  const getTableLoadingState: () => boolean = (): boolean => {
+    return isSearchActive() ? false : isLoading;
+  };
+
   const getTable: GetReactElementFunction = (): ReactElement => {
     return (
       <Table
@@ -1997,7 +2008,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         pluralLabel={props.pluralName || model.pluralName || "Items"}
         error={error}
         currentPageNumber={currentPageNumber}
-        isLoading={isLoading}
+        isLoading={getTableLoadingState()}
         enableDragAndDrop={props.enableDragAndDrop}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
@@ -2156,7 +2167,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
-        isLoading={isLoading}
+        isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
         data={data}
         id={props.id}
@@ -2337,10 +2348,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const trimmedSearch: string = stripTrailingMentionForUi(searchText).trim();
     const trimmedActive: string =
       stripTrailingMentionForUi(debouncedSearchText).trim();
-    const isSearching: boolean =
-      trimmedSearch.length > 0 && trimmedSearch !== trimmedActive;
     const hasActiveSearch: boolean = trimmedActive.length > 0;
     const hasSelectedLabels: boolean = selectedLabels.length > 0;
+    /*
+     * "isSearching" covers both phases — typing-in-flight (before the
+     * debounce fires) AND the actual API request that follows. The table
+     * loader is suppressed during the latter, so this spinner is the only
+     * loading indicator the user sees during a search-driven fetch.
+     */
+    const isTypingInFlight: boolean =
+      trimmedSearch.length > 0 && trimmedSearch !== trimmedActive;
+    const isSearching: boolean =
+      isTypingInFlight || (isLoading && (hasActiveSearch || hasSelectedLabels));
     const showMatchPill: boolean =
       !isSearching && (hasActiveSearch || hasSelectedLabels);
 
@@ -2796,15 +2815,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   };
 
   /*
-   * Builds the right-hand side of the card header. All three slots — search
-   * trigger/bar, main button, more menu — stay mounted at all times. State
-   * transitions are purely CSS so the inputs keep their focus, the dropdown
-   * keeps its open state, and there's no mount/unmount flicker.
+   * Builds the right-hand side of the card header. All slots — search
+   * trigger/bar, saved views, main button, more menu — stay mounted at all
+   * times. State transitions are purely CSS so the inputs keep their focus,
+   * the dropdown keeps its open state, and there's no mount/unmount flicker.
    *
-   * Layout when collapsed:  [🔍 trigger] [main] [⋯]
+   * Layout when collapsed:  [🔍 trigger] [Saved Views] [main] [⋯]
    * Layout when expanded:   [🔍 ━━━ wide search bar ━━━]
-   * The main button + more menu fade and collapse-to-zero-width when the
-   * search expands, freeing horizontal space for the bar.
+   * Saved views + main button + more menu fade and collapse-to-zero-width
+   * when the search expands, freeing horizontal space for the bar.
    */
   const getHeaderButtonsWithSearch: GetHeaderButtonsFunction = (): Array<
     CardButtonSchema | ReactElement
@@ -2813,15 +2832,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       props.searchableFields && props.searchableFields.length > 0,
     );
 
+    /*
+     * Saved views get their own first-class slot in the header — never
+     * collapsed into the overflow ⋯ menu. Render fresh on every call so the
+     * inner TableViewElement always sees the current query / sort / itemsOnPage.
+     */
+    const savedViewsElement: ReactElement | null = props.saveFilterProps
+      ? getSaveFilterDropdown()
+      : null;
+
     if (cardButtons.length === 0 && !hasSearch) {
-      return cardButtons;
+      return savedViewsElement ? [savedViewsElement] : cardButtons;
     }
 
     if (!hasSearch) {
-      // Without search, just split into [main] [⋯]; no special wrapping.
+      // Without search, just split into [Saved Views] [main] [⋯]; no special wrapping.
       const { main, rest }: FindMainButtonResult =
         splitButtonsForHeader(cardButtons);
       const composed: Array<ReactElement> = [];
+      if (savedViewsElement) {
+        composed.push(savedViewsElement);
+      }
       if (main) {
         composed.push(renderMainButton(main));
       }
@@ -2916,6 +2947,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           }`}
           aria-hidden={isExpanded}
         >
+          {savedViewsElement}
           {main && renderMainButton(main)}
           {moreMenu}
         </div>

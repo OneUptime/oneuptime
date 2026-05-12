@@ -342,39 +342,71 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     );
   }
 
-  type GetElementToBeShownInsteadOfButtonFunction = () =>
-    | ReactElement
-    | undefined;
+  type GetElementToBeShownInsteadOfButtonFunction = () => ReactElement;
 
   const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction =
-    (): ReactElement | undefined => {
-      if (!currentlySelectedView) {
-        return undefined;
+    (): ReactElement => {
+      if (currentlySelectedView) {
+        return (
+          <div
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-100"
+            title={`Saved view: ${currentlySelectedView.name}`}
+          >
+            <Icon
+              icon={IconProp.Window}
+              size={SizeProp.Small}
+              className="text-indigo-500"
+            />
+            <span className="max-w-[10rem] truncate">
+              {currentlySelectedView.name}
+            </span>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Clear saved view"
+              className="-mr-1 ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-indigo-500 hover:bg-indigo-200 hover:text-indigo-800"
+              onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+                event.stopPropagation();
+                setCurrentlySelectedView(null);
+                props.onViewChange?.(null);
+                closeDropdownMenu();
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setCurrentlySelectedView(null);
+                  props.onViewChange?.(null);
+                  closeDropdownMenu();
+                }
+              }}
+            >
+              <Icon
+                icon={IconProp.Close}
+                size={SizeProp.Small}
+                thick={ThickProp.Thick}
+              />
+            </div>
+          </div>
+        );
       }
 
       return (
-        <div className="ml-2 mt-1 cursor-pointer font-semibold flex rounded-full border-2 border-gray-600 text-gray-600 text-xs p-1 pl-2 pr-2">
-          <div
-            onClick={() => {
-              flipDropdown();
-            }}
-          >
-            {currentlySelectedView.name}
-          </div>
-          <div
-            className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1"
-            onClick={() => {
-              setCurrentlySelectedView(null);
-              props.onViewChange?.(null);
-              closeDropdownMenu();
-            }}
-          >
-            <Icon
-              icon={IconProp.Close}
-              size={SizeProp.Regular}
-              thick={ThickProp.Thick}
-            />
-          </div>
+        <div
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+          title="Saved Views"
+        >
+          <Icon
+            icon={IconProp.Window}
+            size={SizeProp.Small}
+            className="text-gray-500"
+          />
+          <span>Saved Views</span>
+          {allTableViews.length > 0 && (
+            <span className="text-gray-400">
+              {allTableViews.length.toLocaleString()}
+            </span>
+          )}
         </div>
       );
     };
@@ -382,12 +414,6 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   const closeDropdownMenu: VoidFunction = (): void => {
     if (moreMenuRef.current) {
       (moreMenuRef.current as any).closeDropdown();
-    }
-  };
-
-  const flipDropdown: VoidFunction = (): void => {
-    if (moreMenuRef.current) {
-      (moreMenuRef.current as any).flipDropdown();
     }
   };
 
