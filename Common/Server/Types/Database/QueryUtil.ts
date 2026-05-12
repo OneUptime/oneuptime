@@ -65,7 +65,13 @@ export default class QueryUtil {
         continue;
       }
 
-      const databaseColumnNames: Array<string> = [];
+      /*
+       * Validate the requested fields against entity metadata so we only
+       * emit identifiers TypeORM's post-processor can map back to real
+       * columns (otherwise the alias.field token survives unescaped and
+       * Postgres lowercases the table name → "missing FROM-clause entry").
+       */
+      const validPropertyNames: Array<string> = [];
       if (PostgresAppInstance.isConnected()) {
         const dataSource: DataSource | null =
           PostgresAppInstance.getDataSource();
@@ -81,20 +87,20 @@ export default class QueryUtil {
               const column: any = entityMetadata.columns.find((c: any) => {
                 return c.propertyName === fieldName;
               });
-              if (column && column.databaseName) {
-                databaseColumnNames.push(column.databaseName as string);
+              if (column) {
+                validPropertyNames.push(fieldName);
               }
             }
           }
         }
       }
 
-      if (databaseColumnNames.length === 0) {
+      if (validPropertyNames.length === 0) {
         continue;
       }
 
       const rawFilter: any = QueryHelper.multiSearch(
-        databaseColumnNames,
+        validPropertyNames,
         ms.value,
       );
 

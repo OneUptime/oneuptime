@@ -21,7 +21,7 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import { ButtonSize, ButtonStyleType } from "../Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
   ComponentProps as CardComponentProps,
@@ -89,6 +89,7 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import TableViewElement from "./TableView";
@@ -365,8 +366,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
   const searchInputRef: React.RefObject<HTMLInputElement> =
     React.useRef<HTMLInputElement>(null!);
+
+  interface SearchLabelOption {
+    id: string;
+    name: string;
+    color: string;
+  }
+
+  const [availableLabels, setAvailableLabels] = useState<
+    Array<SearchLabelOption>
+  >([]);
+  const [selectedLabels, setSelectedLabels] = useState<
+    Array<SearchLabelOption>
+  >([]);
+  const [isLabelsLoading, setIsLabelsLoading] = useState<boolean>(false);
+  const [labelsFetched, setLabelsFetched] = useState<boolean>(false);
+  const [labelDropdownIndex, setLabelDropdownIndex] = useState<number>(0);
 
   useEffect(() => {
     const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -399,7 +417,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return;
       }
       e.preventDefault();
-      searchInputRef.current?.focus();
+      setIsSearchExpanded(true);
+      // Wait one frame so the input mounts/becomes visible before focusing.
+      requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+      });
     };
     document.addEventListener("keydown", handleKey);
     return () => {
@@ -407,10 +429,122 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
   }, [props.searchableFields]);
 
+  /*
+   * Keep the search expanded whenever there is an active search term — so
+   * results stay visible alongside the box. Collapsing only happens when the
+   * user blurs an empty input.
+   */
   useEffect(() => {
-    // reset to first page whenever the active search term changes
+    if (
+      (debouncedSearchText.trim().length > 0 || selectedLabels.length > 0) &&
+      !isSearchExpanded
+    ) {
+      setIsSearchExpanded(true);
+    }
+  }, [debouncedSearchText, selectedLabels]);
+
+  useEffect(() => {
+    // reset to first page whenever the active search term or labels change
     setCurrentPageNumber(1);
-  }, [debouncedSearchText]);
+  }, [debouncedSearchText, selectedLabels]);
+
+  /*
+   * Auto-detect label support from the existing filters array. We look for
+   * the filter whose `filterEntityType` class name is "Label" and reuse its
+   * dropdown wiring (entity type, fetch query, label/value field names) so
+   * search inherits whatever scoping the filter popup already had.
+   */
+  type LabelFilterConfig = {
+    fieldKey: string;
+    entityType: any;
+    fetchQuery: any;
+    labelField: string;
+  };
+
+  const labelFilterConfig: LabelFilterConfig | null = useMemo(() => {
+    const filter: Filter<TBaseModel> | undefined = props.filters.find(
+      (f: Filter<TBaseModel>) => {
+        return (
+          f.filterEntityType &&
+          (f.filterEntityType as any).name === "Label" &&
+          f.field &&
+          f.filterDropdownField
+        );
+      },
+    );
+    if (!filter || !filter.field || !filter.filterDropdownField) {
+      return null;
+    }
+    const fieldKey: string | undefined = Object.keys(filter.field)[0];
+    if (!fieldKey) {
+      return null;
+    }
+    return {
+      fieldKey,
+      entityType: filter.filterEntityType,
+      fetchQuery: filter.filterQuery || {},
+      labelField: filter.filterDropdownField.label,
+    };
+  }, [props.filters]);
+
+  // Fetch labels on first search expansion if this resource supports them.
+  useEffect(() => {
+    if (!isSearchExpanded || !labelFilterConfig || labelsFetched) {
+      return;
+    }
+    let cancelled: boolean = false;
+    setIsLabelsLoading(true);
+    (async () => {
+      try {
+        const result: ListResult<TBaseModel> = await props.callbacks.getList({
+          modelType: labelFilterConfig.entityType,
+          query: labelFilterConfig.fetchQuery,
+          limit: 200,
+          skip: 0,
+          select: {
+            _id: true,
+            [labelFilterConfig.labelField]: true,
+            color: true,
+          } as any,
+          sort: { [labelFilterConfig.labelField]: SortOrder.Ascending } as any,
+        });
+        if (cancelled) {
+          return;
+        }
+        const mapped: Array<SearchLabelOption> = (result.data || [])
+          .map((item: any) => {
+            const raw: any = item;
+            const colorAny: any = raw["color"];
+            const colorHex: string =
+              (colorAny &&
+                (typeof colorAny === "string"
+                  ? colorAny
+                  : colorAny.value ||
+                    (colorAny.toString && colorAny.toString()))) ||
+              "#94a3b8";
+            return {
+              id: raw["_id"]?.toString() || "",
+              name: (raw[labelFilterConfig.labelField] as string) || "",
+              color: colorHex,
+            } as SearchLabelOption;
+          })
+          .filter((l: SearchLabelOption) => {
+            return l.id && l.name;
+          });
+        setAvailableLabels(mapped);
+        setLabelsFetched(true);
+      } catch {
+        // Silently fail — search still works without label suggestions.
+      } finally {
+        if (!cancelled) {
+          setIsLabelsLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSearchExpanded, labelFilterConfig, labelsFetched]);
 
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -907,9 +1041,40 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const buildSearchQueryFragment: BuildSearchQueryFragmentFunction =
     (): Query<TBaseModel> => {
       const fragment: Query<TBaseModel> = {};
-      const trimmedSearch: string = debouncedSearchText.trim();
+      /*
+       * Strip the trailing @<prefix> mention before searching — that token
+       * is a label-autocomplete trigger, not part of the user's free-text
+       * query.
+       */
+      const stripTrailingMention: (v: string) => string = (
+        v: string,
+      ): string => {
+        const atIndex: number = v.lastIndexOf("@");
+        if (atIndex < 0) {
+          return v;
+        }
+        if (atIndex > 0) {
+          const prev: string = v[atIndex - 1] || "";
+          if (prev !== " " && prev !== "\t") {
+            return v;
+          }
+        }
+        const after: string = v.substring(atIndex + 1);
+        if (
+          after.includes(" ") ||
+          after.includes("\t") ||
+          after.includes("\n")
+        ) {
+          return v;
+        }
+        return v.substring(0, atIndex).trimEnd();
+      };
+
+      const effectiveSearch: string = stripTrailingMention(
+        debouncedSearchText,
+      ).trim();
       if (
-        trimmedSearch.length > 0 &&
+        effectiveSearch.length > 0 &&
         props.searchableFields &&
         props.searchableFields.length > 0
       ) {
@@ -917,8 +1082,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           fields: props.searchableFields.map((f: keyof TBaseModel) => {
             return f as string;
           }),
-          value: trimmedSearch,
+          value: effectiveSearch,
         });
+      }
+      if (labelFilterConfig && selectedLabels.length > 0) {
+        (fragment as any)[labelFilterConfig.fieldKey] = new Includes(
+          selectedLabels.map((l: SearchLabelOption) => {
+            return l.id;
+          }),
+        );
       }
       return fragment;
     };
@@ -1257,6 +1429,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     itemsOnPage,
     query,
     debouncedSearchText,
+    selectedLabels,
     props.refreshToggle,
   ]);
 
@@ -2058,7 +2231,79 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     );
   };
 
-  const getSearchInput: GetReactElementFunction = (): ReactElement => {
+  type CollapseSearchFunction = () => void;
+
+  const collapseSearch: CollapseSearchFunction = (): void => {
+    setSearchText("");
+    setSelectedLabels([]);
+    setIsSearchExpanded(false);
+  };
+
+  /*
+   * Find the trailing `@<prefix>` mention in the input. A mention is only
+   * recognised when `@` is at the start of the value or follows whitespace,
+   * and only when there is no whitespace after it — matches typical chat
+   * mention semantics.
+   */
+  type MentionParseResult = {
+    hasMention: boolean;
+    prefix: string;
+    atIndex: number;
+  };
+
+  const parseLabelMention: (value: string) => MentionParseResult = (
+    value: string,
+  ): MentionParseResult => {
+    const atIndex: number = value.lastIndexOf("@");
+    if (atIndex < 0) {
+      return { hasMention: false, prefix: "", atIndex: -1 };
+    }
+    if (atIndex > 0) {
+      const prev: string = value[atIndex - 1] || "";
+      if (prev !== " " && prev !== "\t") {
+        return { hasMention: false, prefix: "", atIndex: -1 };
+      }
+    }
+    const after: string = value.substring(atIndex + 1);
+    if (after.includes(" ") || after.includes("\t") || after.includes("\n")) {
+      return { hasMention: false, prefix: "", atIndex: -1 };
+    }
+    return { hasMention: true, prefix: after, atIndex };
+  };
+
+  type AddLabelFunction = (label: SearchLabelOption) => void;
+
+  const addLabel: AddLabelFunction = (label: SearchLabelOption): void => {
+    setSelectedLabels((prev: Array<SearchLabelOption>) => {
+      if (
+        prev.find((l: SearchLabelOption) => {
+          return l.id === label.id;
+        })
+      ) {
+        return prev;
+      }
+      return [...prev, label];
+    });
+    // Strip the `@<prefix>` token from the input.
+    const mention: MentionParseResult = parseLabelMention(searchText);
+    if (mention.hasMention) {
+      const before: string = searchText.substring(0, mention.atIndex);
+      setSearchText(before.replace(/\s+$/, ""));
+    }
+    setLabelDropdownIndex(0);
+  };
+
+  type RemoveLabelFunction = (labelId: string) => void;
+
+  const removeLabel: RemoveLabelFunction = (labelId: string): void => {
+    setSelectedLabels((prev: Array<SearchLabelOption>) => {
+      return prev.filter((l: SearchLabelOption) => {
+        return l.id !== labelId;
+      });
+    });
+  };
+
+  const getSearchControl: GetReactElementFunction = (): ReactElement => {
     if (!props.searchableFields || props.searchableFields.length === 0) {
       return <></>;
     }
@@ -2069,112 +2314,460 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       "items"
     ).toLowerCase();
 
-    const placeholder: string =
-      props.searchPlaceholder || `Search ${pluralLabel} by name, description…`;
+    const hasLabelSupport: boolean = Boolean(labelFilterConfig);
 
-    const trimmedSearch: string = searchText.trim();
-    const trimmedActive: string = debouncedSearchText.trim();
+    const defaultPlaceholder: string = hasLabelSupport
+      ? `Search ${pluralLabel}… (try @ for labels)`
+      : `Search ${pluralLabel} by name, description…`;
+    const placeholder: string = props.searchPlaceholder || defaultPlaceholder;
+
+    /*
+     * Effective search = input minus the trailing @<prefix> mention. The pill
+     * + result-count UI should reflect this so typing "@bug" doesn't claim
+     * "0 matches" before the user has actually committed the label.
+     */
+    const stripTrailingMentionForUi: (v: string) => string = (
+      v: string,
+    ): string => {
+      const m: MentionParseResult = parseLabelMention(v);
+      return m.hasMention ? v.substring(0, m.atIndex).trimEnd() : v;
+    };
+
+    const trimmedSearch: string = stripTrailingMentionForUi(searchText).trim();
+    const trimmedActive: string = stripTrailingMentionForUi(
+      debouncedSearchText,
+    ).trim();
     const isSearching: boolean =
       trimmedSearch.length > 0 && trimmedSearch !== trimmedActive;
     const hasActiveSearch: boolean = trimmedActive.length > 0;
+    const hasSelectedLabels: boolean = selectedLabels.length > 0;
+    const showMatchPill: boolean =
+      !isSearching && (hasActiveSearch || hasSelectedLabels);
+
+    const expanded: boolean =
+      isSearchExpanded || hasActiveSearch || hasSelectedLabels;
+
+    const mention: MentionParseResult = parseLabelMention(searchText);
+    const showLabelDropdown: boolean =
+      hasLabelSupport && isSearchFocused && mention.hasMention;
+
+    const lowerPrefix: string = mention.prefix.toLowerCase();
+    const dropdownLabels: Array<SearchLabelOption> = availableLabels
+      .filter((l: SearchLabelOption) => {
+        return !selectedLabels.find((s: SearchLabelOption) => {
+          return s.id === l.id;
+        });
+      })
+      .filter((l: SearchLabelOption) => {
+        return (
+          lowerPrefix.length === 0 || l.name.toLowerCase().includes(lowerPrefix)
+        );
+      })
+      .slice(0, 8);
 
     const borderClass: string = isSearchFocused
       ? "border-indigo-500 ring-4 ring-indigo-100 shadow-sm"
-      : hasActiveSearch
+      : hasActiveSearch || hasSelectedLabels
         ? "border-indigo-200 shadow-sm"
-        : "border-gray-200 hover:border-gray-300";
+        : "border-gray-200 shadow-sm";
 
     const iconColorClass: string =
-      isSearchFocused || hasActiveSearch ? "text-indigo-500" : "text-gray-400";
+      isSearchFocused || hasActiveSearch || hasSelectedLabels
+        ? "text-indigo-500"
+        : "text-gray-400";
+
+    type SelectDropdownItemAtIndexFunction = (idx: number) => void;
+    const selectDropdownItemAt: SelectDropdownItemAtIndexFunction = (
+      idx: number,
+    ): void => {
+      const item: SearchLabelOption | undefined = dropdownLabels[idx];
+      if (item) {
+        addLabel(item);
+      }
+    };
 
     return (
-      <div className="mb-5">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-2xl">
-            <div
-              className={`flex items-center gap-2.5 rounded-xl border bg-white px-3.5 py-2.5 transition-all duration-150 ${borderClass}`}
-            >
-              <Icon
-                icon={IconProp.Search}
-                className={`h-4 w-4 flex-none transition-colors ${iconColorClass}`}
-              />
+      <div
+        className={`relative flex items-center transition-[width] duration-300 ease-out ${
+          expanded
+            ? hasLabelSupport
+              ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]"
+              : "w-[20rem] sm:w-[24rem] lg:w-[28rem]"
+            : "w-9"
+        }`}
+      >
+        {/* Trigger button (collapsed state) */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsSearchExpanded(true);
+            requestAnimationFrame(() => {
+              searchInputRef.current?.focus();
+            });
+          }}
+          title="Search (/)"
+          aria-label="Open search"
+          className={`absolute inset-0 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm transition-all duration-200 ease-out hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 ${
+            expanded
+              ? "pointer-events-none scale-95 opacity-0"
+              : "scale-100 opacity-100"
+          }`}
+        >
+          <Icon icon={IconProp.Search} className="h-4 w-4" />
+        </button>
+
+        {/* Expanded input + dropdown */}
+        <div
+          className={`relative flex w-full flex-col gap-1 transition-all duration-200 ease-out ${
+            expanded
+              ? "scale-100 opacity-100"
+              : "pointer-events-none scale-95 opacity-0"
+          }`}
+        >
+          <div
+            className={`flex w-full items-center gap-2 rounded-lg border bg-white pl-3 pr-2 py-1.5 transition-all duration-200 ${borderClass}`}
+            onClick={() => {
+              searchInputRef.current?.focus();
+            }}
+            role="presentation"
+          >
+            <Icon
+              icon={IconProp.Search}
+              className={`h-4 w-4 flex-none transition-colors duration-200 ${iconColorClass}`}
+            />
+            {/* Pills + input wrap row */}
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              {selectedLabels.map((label: SearchLabelOption) => {
+                return (
+                  <span
+                    key={label.id}
+                    className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
+                    title={`Label: ${label.name}`}
+                  >
+                    <span
+                      className="h-2 w-2 flex-none rounded-full"
+                      style={{ backgroundColor: label.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="max-w-[8rem] truncate">{label.name}</span>
+                    <button
+                      type="button"
+                      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                      }}
+                      onClick={() => {
+                        removeLabel(label.id);
+                      }}
+                      title="Remove label"
+                      aria-label={`Remove ${label.name}`}
+                      className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                    >
+                      <Icon icon={IconProp.Close} className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })}
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchText}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setSearchText(e.target.value);
+                  setLabelDropdownIndex(0);
                 }}
                 onFocus={() => {
                   setIsSearchFocused(true);
                 }}
                 onBlur={() => {
                   setIsSearchFocused(false);
+                  /*
+                   * Collapse only when the user blurs with nothing active —
+                   * no text and no selected labels.
+                   */
+                  if (
+                    searchText.trim().length === 0 &&
+                    selectedLabels.length === 0
+                  ) {
+                    setIsSearchExpanded(false);
+                  }
                 }}
                 onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (showLabelDropdown && dropdownLabels.length > 0) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setLabelDropdownIndex((i: number) => {
+                        return Math.min(i + 1, dropdownLabels.length - 1);
+                      });
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setLabelDropdownIndex((i: number) => {
+                        return Math.max(i - 1, 0);
+                      });
+                      return;
+                    }
+                    if (e.key === "Enter" || e.key === "Tab") {
+                      e.preventDefault();
+                      selectDropdownItemAt(labelDropdownIndex);
+                      return;
+                    }
+                  }
+                  if (e.key === "Backspace" && searchText.length === 0) {
+                    // Pop last label when backspacing on empty input.
+                    if (selectedLabels.length > 0) {
+                      const last: SearchLabelOption | undefined =
+                        selectedLabels[selectedLabels.length - 1];
+                      if (last) {
+                        removeLabel(last.id);
+                      }
+                    }
+                    return;
+                  }
                   if (e.key === "Escape") {
+                    if (showLabelDropdown) {
+                      // Just cancel the @ mention parse — clear @ prefix.
+                      const m: MentionParseResult =
+                        parseLabelMention(searchText);
+                      if (m.hasMention) {
+                        setSearchText(
+                          searchText
+                            .substring(0, m.atIndex)
+                            .replace(/\s+$/, ""),
+                        );
+                      }
+                      return;
+                    }
                     if (searchText) {
                       setSearchText("");
+                    } else if (selectedLabels.length > 0) {
+                      setSelectedLabels([]);
                     } else {
+                      collapseSearch();
                       searchInputRef.current?.blur();
                     }
                   }
                 }}
-                placeholder={placeholder}
+                placeholder={
+                  selectedLabels.length === 0 ? placeholder : "Refine search…"
+                }
                 spellCheck={false}
                 autoComplete="off"
-                className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
+                tabIndex={expanded ? 0 : -1}
+                className="min-w-[6rem] flex-1 bg-transparent py-1 text-sm text-gray-900 placeholder-gray-400 outline-none"
               />
-              {isSearching && (
-                <div className="flex-none text-indigo-500" title="Searching...">
-                  <Icon
-                    icon={IconProp.Spinner}
-                    className="h-4 w-4 animate-spin"
-                  />
-                </div>
-              )}
-              {!isSearching && hasActiveSearch && totalItemsCount >= 0 && (
-                <span className="flex-none rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                  {totalItemsCount}{" "}
-                  {totalItemsCount === 1 ? "match" : "matches"}
-                </span>
-              )}
-              {searchText.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchText("");
-                    searchInputRef.current?.focus();
-                  }}
-                  title="Clear search (Esc)"
-                  aria-label="Clear search"
-                  className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <kbd
-                  className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
-                  title="Press / to focus search"
-                >
-                  /
-                </kbd>
-              )}
             </div>
+            {isSearching && (
+              <div className="flex-none text-indigo-500" title="Searching…">
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-4 w-4 animate-spin"
+                />
+              </div>
+            )}
+            {showMatchPill && totalItemsCount >= 0 && (
+              <span
+                className="flex-none whitespace-nowrap rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
+              >
+                {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+              </span>
+            )}
+            {searchText.length > 0 || selectedLabels.length > 0 ? (
+              <button
+                type="button"
+                onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                  e.preventDefault();
+                }}
+                onClick={() => {
+                  collapseSearch();
+                }}
+                title="Clear search (Esc Esc)"
+                aria-label="Clear search"
+                className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <kbd
+                className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+                title="Press / to focus search"
+              >
+                /
+              </kbd>
+            )}
           </div>
+
+          {/* Label suggestion dropdown */}
+          {showLabelDropdown && (
+            <div
+              className="absolute left-0 right-0 top-full z-20 mt-1.5 origin-top overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 transition-all duration-150 animate-in fade-in slide-in-from-top-1"
+              onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+                // Prevent input blur on dropdown clicks.
+                e.preventDefault();
+              }}
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  {isLabelsLoading ? "Loading labels…" : "Filter by label"}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  <kbd className="font-mono">↑</kbd>
+                  <kbd className="ml-0.5 font-mono">↓</kbd>
+                  <span className="ml-1">to navigate</span>
+                  <span className="mx-1.5">·</span>
+                  <kbd className="font-mono">↵</kbd>
+                  <span className="ml-1">to select</span>
+                </span>
+              </div>
+              <div className="max-h-64 overflow-y-auto py-1">
+                {!isLabelsLoading && dropdownLabels.length === 0 && (
+                  <div className="px-3 py-3 text-sm text-gray-500">
+                    {availableLabels.length === 0
+                      ? "No labels available for this resource."
+                      : `No labels matching "${mention.prefix}"`}
+                  </div>
+                )}
+                {dropdownLabels.map((label: SearchLabelOption, idx: number) => {
+                  const isActive: boolean = idx === labelDropdownIndex;
+                  return (
+                    <button
+                      key={label.id}
+                      type="button"
+                      onMouseEnter={() => {
+                        setLabelDropdownIndex(idx);
+                      }}
+                      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                      }}
+                      onClick={() => {
+                        addLabel(label);
+                        searchInputRef.current?.focus();
+                      }}
+                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors ${
+                        isActive
+                          ? "bg-indigo-50 text-indigo-900"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 flex-none rounded-full ring-1 ring-inset ring-black/5"
+                        style={{ backgroundColor: label.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="flex-1 truncate">{label.name}</span>
+                      {isActive && (
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-500">
+                          ↵
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
+  type RenderCardButtonFunction = (
+    button: CardButtonSchema | ReactElement,
+    index: number,
+  ) => ReactElement;
+
+  const renderSingleCardButton: RenderCardButtonFunction = (
+    button: CardButtonSchema | ReactElement,
+    index: number,
+  ): ReactElement => {
+    if (React.isValidElement(button)) {
+      return (
+        <div key={`btn-${index}`} className="flex items-center">
+          {button}
+        </div>
+      );
+    }
+    const b: CardButtonSchema = button as CardButtonSchema;
+    return (
+      <div key={`btn-${index}`} className="flex items-center">
+        <Button
+          title={b.title}
+          buttonStyle={b.buttonStyle}
+          buttonSize={b.buttonSize}
+          className={b.className}
+          onClick={() => {
+            b.onClick?.();
+          }}
+          disabled={b.disabled}
+          icon={b.icon}
+          shortcutKey={b.shortcutKey}
+          dataTestId="card-button"
+          isLoading={b.isLoading}
+        />
+      </div>
+    );
+  };
+
+  type GetHeaderButtonsFunction = () => Array<CardButtonSchema | ReactElement>;
+
+  const getHeaderButtonsWithSearch: GetHeaderButtonsFunction = (): Array<
+    CardButtonSchema | ReactElement
+  > => {
+    const hasSearch: boolean = Boolean(
+      props.searchableFields && props.searchableFields.length > 0,
+    );
+
+    if (!hasSearch) {
+      return cardButtons;
+    }
+
+    const hasActiveSearch: boolean = debouncedSearchText.trim().length > 0;
+    const expanded: boolean = isSearchExpanded || hasActiveSearch;
+
+    const wrapped: ReactElement = (
+      <div
+        key="model-table-header-actions"
+        className="flex items-center gap-1.5"
+      >
+        <div
+          className={`flex items-center gap-1.5 overflow-hidden transition-all duration-300 ease-out ${
+            expanded
+              ? "max-w-0 -translate-x-1 opacity-0"
+              : "max-w-[1000px] translate-x-0 opacity-100"
+          }`}
+          aria-hidden={expanded ? "true" : "false"}
+        >
+          <div
+            className={`flex flex-wrap items-center gap-1.5 ${
+              expanded ? "pointer-events-none" : ""
+            }`}
+          >
+            {cardButtons.map(
+              (button: CardButtonSchema | ReactElement, i: number) => {
+                return renderSingleCardButton(button, i);
+              },
+            )}
+          </div>
+        </div>
+        {getSearchControl()}
+      </div>
+    );
+
+    return [wrapped];
+  };
+
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
+    const headerButtons: Array<CardButtonSchema | ReactElement> =
+      getHeaderButtonsWithSearch();
+
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
       return (
         <div>
           {props.cardProps && (
             <Card
               {...props.cardProps}
-              buttons={cardButtons}
+              buttons={headerButtons}
               bodyClassName={
                 showAs === ShowAs.List
                   ? "-ml-6 -mr-6 bg-gray-50 border-top"
@@ -2191,7 +2784,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
-              {tableColumns.length > 0 ? getSearchInput() : <></>}
               {tableColumns.length > 0 && showAs === ShowAs.Table ? (
                 getTable()
               ) : (
@@ -2206,9 +2798,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             </Card>
           )}
 
+          {/*
+           * For card-less tables we expose the search beside the table header
+           * via a thin right-aligned row.
+           */}
           {!props.cardProps &&
-          (showAs === ShowAs.Table || showAs === ShowAs.List) ? (
-            getSearchInput()
+          (showAs === ShowAs.Table || showAs === ShowAs.List) &&
+          props.searchableFields &&
+          props.searchableFields.length > 0 ? (
+            <div className="mb-3 flex justify-end">{getSearchControl()}</div>
           ) : (
             <></>
           )}
@@ -2223,7 +2821,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         {props.cardProps && (
           <Card
             {...props.cardProps}
-            buttons={cardButtons}
+            buttons={headerButtons}
             title={getCardTitle(props.cardProps.title || "")}
           >
             {getOrderedStatesList()}

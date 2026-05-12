@@ -139,17 +139,18 @@ export default class QueryHelper {
   }
 
   /**
-   * Searches the provided database column names with a single OR-joined ILIKE.
-   * `databaseColumnNames` must be the actual DB column names (already resolved
-   * from entity property names via TypeORM metadata).
+   * Searches the provided entity property names with a single OR-joined ILIKE.
    *
-   * The Raw callback receives an alias like `"Entity"."_id"`; we extract the
-   * `"Entity"` prefix and qualify every column with it, so the OR group
-   * filters the correct table even when joins introduce shadow columns.
+   * IMPORTANT: emit unquoted `alias.propertyName` references and let
+   * TypeORM's `replacePropertyNamesForTheWholeQuery` post-processor escape
+   * the table alias and translate property names → DB column names. Pre-
+   * quoting (e.g. `Incident."title"`) bypasses that pass, which leaves an
+   * unquoted `Incident` in the final SQL — Postgres then lowercases it and
+   * fails with `missing FROM-clause entry for table "incident"`.
    */
   @CaptureSpan()
   public static multiSearch(
-    databaseColumnNames: Array<string>,
+    entityPropertyNames: Array<string>,
     value: string,
   ): FindWhereProperty<any> {
     const trimmed: string = value.toLowerCase().trim();
@@ -161,9 +162,9 @@ export default class QueryHelper {
           ? (alias.split(".")[0] as string)
           : alias;
 
-        const orConditions: string = databaseColumnNames
-          .map((col: string) => {
-            return `(CAST(${tableAlias}."${col}" AS TEXT) ILIKE :${rid})`;
+        const orConditions: string = entityPropertyNames
+          .map((field: string) => {
+            return `(CAST(${tableAlias}.${field} AS TEXT) ILIKE :${rid})`;
           })
           .join(" OR ");
 
