@@ -12,7 +12,8 @@ import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
-import ProxyConfig from "../../ProxyConfig";
+import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
+import https from "https";
 
 export interface ProbeWebsiteResponse {
   url: URL;
@@ -39,6 +40,7 @@ export default class WebsiteMonitor {
       isOnlineCheckRequest?: boolean | undefined;
       timeout?: PositiveNumber; // timeout in milliseconds
       doNotFollowRedirects?: boolean | undefined;
+      allowSelfSignedCertificates?: boolean | undefined;
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -55,6 +57,29 @@ export default class WebsiteMonitor {
       requestType = HTTPMethod.HEAD;
     }
 
+    const allowSelfSignedCertificates: boolean = Boolean(
+      options.allowSelfSignedCertificates,
+    );
+
+    const buildAgents: () => ProxyAgents = (): ProxyAgents => {
+      const proxyAgents: ProxyAgents = {
+        ...ProxyConfig.getRequestProxyAgents(
+          url,
+          allowSelfSignedCertificates
+            ? { rejectUnauthorized: false }
+            : undefined,
+        ),
+      };
+
+      if (allowSelfSignedCertificates && !proxyAgents.httpsAgent) {
+        proxyAgents.httpsAgent = new https.Agent({
+          rejectUnauthorized: false,
+        });
+      }
+
+      return proxyAgents;
+    };
+
     try {
       logger.debug(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
@@ -67,7 +92,7 @@ export default class WebsiteMonitor {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
         doNotFollowRedirects: options.doNotFollowRedirects || false,
-        ...ProxyConfig.getRequestProxyAgents(url),
+        ...buildAgents(),
       });
 
       if (
@@ -80,7 +105,7 @@ export default class WebsiteMonitor {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
           doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...ProxyConfig.getRequestProxyAgents(url),
+          ...buildAgents(),
         });
       }
 

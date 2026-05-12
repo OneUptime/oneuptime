@@ -374,7 +374,8 @@ return {
         Object.keys(monitorStep.data.requestHeaders).length > 0,
     ) ||
     Boolean(monitorStep.data?.requestBody) ||
-    Boolean(monitorStep.data?.doNotFollowRedirects);
+    Boolean(monitorStep.data?.doNotFollowRedirects) ||
+    Boolean(monitorStep.data?.allowSelfSignedCertificates);
 
   return (
     <div className="mt-5 space-y-6">
@@ -692,6 +693,22 @@ return {
                 }}
               />
             </div>
+
+            <div>
+              <CheckboxElement
+                initialValue={
+                  monitorStep.data?.allowSelfSignedCertificates || false
+                }
+                title={"Allow self-signed certificates"}
+                description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
+                onChange={(value: boolean) => {
+                  monitorStep.setAllowSelfSignedCertificates(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
           </div>
         </CollapsibleSection>
       )}
@@ -700,13 +717,18 @@ return {
       {props.monitorType === MonitorType.Website && (
         <CollapsibleSection
           title="Advanced Options"
-          description="Redirect settings"
+          description="Redirect and TLS settings"
           badge={
-            monitorStep.data?.doNotFollowRedirects ? "Configured" : undefined
+            monitorStep.data?.doNotFollowRedirects ||
+            monitorStep.data?.allowSelfSignedCertificates
+              ? "Configured"
+              : undefined
           }
           variant="card"
           defaultCollapsed={
-            !monitorStep.data?.doNotFollowRedirects && !showDoNotFollowRedirects
+            !monitorStep.data?.doNotFollowRedirects &&
+            !monitorStep.data?.allowSelfSignedCertificates &&
+            !showDoNotFollowRedirects
           }
           onToggle={(isCollapsed: boolean) => {
             if (!isCollapsed) {
@@ -714,18 +736,36 @@ return {
             }
           }}
         >
-          <div>
-            <CheckboxElement
-              initialValue={monitorStep.data?.doNotFollowRedirects || false}
-              title={"Do not follow redirects"}
-              description="Please check this if you do not want to follow redirects."
-              onChange={(value: boolean) => {
-                monitorStep.setDoNotFollowRedirects(value);
-                if (props.onChange) {
-                  props.onChange(MonitorStep.clone(monitorStep));
+          <div className="space-y-4">
+            <div>
+              <CheckboxElement
+                initialValue={monitorStep.data?.doNotFollowRedirects || false}
+                title={"Do not follow redirects"}
+                description="Please check this if you do not want to follow redirects."
+                onChange={(value: boolean) => {
+                  monitorStep.setDoNotFollowRedirects(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
+
+            <div>
+              <CheckboxElement
+                initialValue={
+                  monitorStep.data?.allowSelfSignedCertificates || false
                 }
-              }}
-            />
+                title={"Allow self-signed certificates"}
+                description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
+                onChange={(value: boolean) => {
+                  monitorStep.setAllowSelfSignedCertificates(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
           </div>
         </CollapsibleSection>
       )}

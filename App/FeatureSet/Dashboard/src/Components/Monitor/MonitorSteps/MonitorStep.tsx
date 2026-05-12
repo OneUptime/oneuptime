@@ -211,6 +211,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Boolean,
         placeholder: "No",
       },
+      {
+        key: "allowSelfSignedCertificates",
+        title: "Allow Self-Signed Certificates",
+        description:
+          "When set, TLS certificate validation is skipped (self-signed or untrusted certificates are accepted).",
+        fieldType: FieldType.Boolean,
+        placeholder: "No",
+      },
     ];
   } else if (props.monitorType === MonitorType.Website) {
     fields = [
@@ -225,6 +233,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         key: "doNotFollowRedirects",
         title: "Do Not Follow Redirects",
         description: "Do not follow redirects.",
+        fieldType: FieldType.Boolean,
+        placeholder: "No",
+      },
+      {
+        key: "allowSelfSignedCertificates",
+        title: "Allow Self-Signed Certificates",
+        description:
+          "When set, TLS certificate validation is skipped (self-signed or untrusted certificates are accepted).",
         fieldType: FieldType.Boolean,
         placeholder: "No",
       },

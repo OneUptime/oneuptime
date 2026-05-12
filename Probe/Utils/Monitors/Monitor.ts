@@ -473,6 +473,8 @@ export default class MonitorUtil {
           retry: PROBE_MONITOR_RETRY_LIMIT,
           timeout: new PositiveNumber(60000), // 60 seconds
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
+          allowSelfSignedCertificates:
+            monitorStep.data?.allowSelfSignedCertificates || false,
         },
       );
 
@@ -519,6 +521,8 @@ export default class MonitorUtil {
         retry: PROBE_MONITOR_RETRY_LIMIT,
         timeout: new PositiveNumber(60000), // 60 seconds
         doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
+        allowSelfSignedCertificates:
+          monitorStep.data?.allowSelfSignedCertificates || false,
       });
 
       if (!response) {

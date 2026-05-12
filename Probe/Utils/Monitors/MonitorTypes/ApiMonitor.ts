@@ -12,7 +12,8 @@ import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
-import ProxyConfig from "../../ProxyConfig";
+import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
+import https from "https";
 
 export interface APIResponse {
   url: URL;
@@ -42,6 +43,7 @@ export default class ApiMonitor {
       isOnlineCheckRequest?: boolean | undefined;
       timeout?: PositiveNumber; // timeout in milliseconds
       doNotFollowRedirects?: boolean | undefined;
+      allowSelfSignedCertificates?: boolean | undefined;
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -53,6 +55,29 @@ export default class ApiMonitor {
     }
 
     const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
+
+    const allowSelfSignedCertificates: boolean = Boolean(
+      options.allowSelfSignedCertificates,
+    );
+
+    const buildAgents: () => ProxyAgents = (): ProxyAgents => {
+      const proxyAgents: ProxyAgents = {
+        ...ProxyConfig.getRequestProxyAgents(
+          url,
+          allowSelfSignedCertificates
+            ? { rejectUnauthorized: false }
+            : undefined,
+        ),
+      };
+
+      if (allowSelfSignedCertificates && !proxyAgents.httpsAgent) {
+        proxyAgents.httpsAgent = new https.Agent({
+          rejectUnauthorized: false,
+        });
+      }
+
+      return proxyAgents;
+    };
 
     try {
       logger.debug(
@@ -69,7 +94,7 @@ export default class ApiMonitor {
         options: {
           timeout: options.timeout?.toNumber() || 5000,
           doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...ProxyConfig.getRequestProxyAgents(url),
+          ...buildAgents(),
         },
       };
 
@@ -93,7 +118,7 @@ export default class ApiMonitor {
           options: {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
-            ...ProxyConfig.getRequestProxyAgents(url),
+            ...buildAgents(),
           },
         };
 

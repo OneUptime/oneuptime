@@ -438,6 +438,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           "If true, the monitor will not follow HTTP redirects (3xx responses). Defaults to false. Used for API and Website monitors.",
       },
       {
+        name: "allowSelfSignedCertificates",
+        type: "boolean",
+        required: false,
+        description:
+          "If true, the monitor will skip TLS certificate validation and accept self-signed or otherwise untrusted certificates. Defaults to false. Used for API and Website monitors.",
+      },
+      {
         name: "customCode",
         type: "string",
         required: false,
@@ -618,6 +625,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
             },
             requestBody: '{"check": "deep"}',
             doNotFollowRedirects: false,
+            allowSelfSignedCertificates: false,
             monitorCriteria: {
               monitorCriteriaInstanceArray: [],
             },
