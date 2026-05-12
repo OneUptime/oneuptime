@@ -2853,9 +2853,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          */}
         <div
           className={`relative shrink-0 transition-[width] duration-300 ease-out ${
-            isExpanded
-              ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]"
-              : "w-44 sm:w-56"
+            isExpanded ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]" : "w-44 sm:w-56"
           }`}
         >
           {/* Trigger (collapsed state) */}
