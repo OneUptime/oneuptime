@@ -30,24 +30,21 @@ export default class GlobalConfigAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/vars`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          /*
-           * const globalConfig: GlobalConfig | null =
-           *     await GlobalConfigService.findOneById({
-           *         id: ObjectID.getZeroObjectID(),
-           *         select: {
-           *             useHttps: true,
-           *         },
-           *         props: {
-           *             isRoot: true,
-           *         },
-           *     });
-           */
+          const globalConfig: GlobalConfig | null =
+            await GlobalConfigService.findOneById({
+              id: ObjectID.getZeroObjectID(),
+              select: {
+                disableUserProjectCreation: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
           return Response.sendJsonObjectResponse(req, res, {
-            /*
-             * USE_HTTPS:
-             *     globalConfig?.useHttps?.toString() || 'false',
-             */
+            disableUserProjectCreation: Boolean(
+              globalConfig?.disableUserProjectCreation,
+            ),
           });
         } catch (err) {
           next(err);
