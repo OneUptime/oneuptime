@@ -49,6 +49,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route,

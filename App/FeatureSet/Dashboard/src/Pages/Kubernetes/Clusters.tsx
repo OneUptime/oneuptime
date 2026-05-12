@@ -200,6 +200,13 @@ const KubernetesClusters: FunctionComponent<
           },
           {
             field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.DateTime,
+          },
+          {
+            field: {
               labels: {
                 name: true,
                 color: true,

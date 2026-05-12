@@ -735,7 +735,7 @@ const KubernetesClusterOverview: FunctionComponent<
               <div className="flex items-start gap-4 min-w-0">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-violet-200 shadow-sm">
                   <Icon
-                    icon={IconProp.ServerStack}
+                    icon={IconProp.Kubernetes}
                     className="h-6 w-6 text-violet-600"
                   />
                 </div>
