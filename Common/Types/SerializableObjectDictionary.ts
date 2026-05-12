@@ -20,6 +20,7 @@ import GreaterThanOrNull from "./BaseDatabase/GreaterThanOrNull";
 import NotEqual from "./BaseDatabase/NotEqual";
 import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
+import MultiSearch from "./BaseDatabase/MultiSearch";
 import Color from "./Color";
 import OneUptimeDate from "./Date";
 import Dictionary from "./Dictionary";
@@ -59,6 +60,7 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.URL]: URL,
   [ObjectType.IP]: IP,
   [ObjectType.Search]: Search,
+  [ObjectType.MultiSearch]: MultiSearch,
   [ObjectType.GreaterThan]: GreaterThan,
   [ObjectType.GreaterThanOrEqual]: GreaterThanOrEqual,
   [ObjectType.LessThan]: LessThan,

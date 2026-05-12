@@ -87,6 +87,7 @@ const KubernetesClusters: FunctionComponent<
         }}
         name="Kubernetes Clusters"
         isViewable={true}
+        searchableFields={["name", "description"]}
         filters={[]}
         cardProps={{
           title: "Kubernetes Clusters",

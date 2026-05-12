@@ -40,6 +40,7 @@ import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import MarkdownViewer from "../Markdown.tsx/MarkdownViewer";
+import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
@@ -61,6 +62,7 @@ import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Search from "../../../Types/BaseDatabase/Search";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
   PlanType,
@@ -244,6 +246,15 @@ export interface BaseTableProps<
     | ((showAdvancedFilters: boolean) => void);
 
   /*
+   * Fields to include in the inline search box above the table. When set, a
+   * search input renders in the card header and an ILIKE OR runs across all
+   * listed fields. Leave undefined to hide the search box entirely.
+   */
+  searchableFields?: Array<keyof TBaseModel> | undefined;
+
+  searchPlaceholder?: string | undefined;
+
+  /*
    * this key is used to save table user preferences in local storage.
    * If you provide this key, the table will save the user preferences in local storage.
    * If you do not provide this key, the table will not save the user preferences in local storage.
@@ -350,6 +361,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
+
+  const [searchText, setSearchText] = useState<string>("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
+
+  useEffect(() => {
+    const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [searchText]);
+
+  useEffect(() => {
+    // reset to first page whenever the active search term changes
+    setCurrentPageNumber(1);
+  }, [debouncedSearchText]);
 
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -841,6 +869,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setIsFilterFetchLoading(false);
     };
 
+  type BuildSearchQueryFragmentFunction = () => Query<TBaseModel>;
+
+  const buildSearchQueryFragment: BuildSearchQueryFragmentFunction =
+    (): Query<TBaseModel> => {
+      const fragment: Query<TBaseModel> = {};
+      const trimmedSearch: string = debouncedSearchText.trim();
+      if (
+        trimmedSearch.length > 0 &&
+        props.searchableFields &&
+        props.searchableFields.length > 0
+      ) {
+        (fragment as any)._multiFieldSearch = new MultiSearch({
+          fields: props.searchableFields.map((f: keyof TBaseModel) => {
+            return f as string;
+          }),
+          value: trimmedSearch,
+        });
+      }
+      return fragment;
+    };
+
   const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
@@ -853,6 +902,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         query: {
           ...props.query,
           ...query,
+          ...buildSearchQueryFragment(),
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -892,6 +942,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         query: {
           ...props.query,
           ...query,
+          ...buildSearchQueryFragment(),
         },
         groupBy: {
           ...props.groupBy,
@@ -1172,6 +1223,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     sortOrder,
     itemsOnPage,
     query,
+    debouncedSearchText,
     props.refreshToggle,
   ]);
 
@@ -1973,6 +2025,46 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     );
   };
 
+  const getSearchInput: GetReactElementFunction = (): ReactElement => {
+    if (!props.searchableFields || props.searchableFields.length === 0) {
+      return <></>;
+    }
+
+    const placeholder: string =
+      props.searchPlaceholder ||
+      `Search ${(props.pluralName || model.pluralName || "items").toLowerCase()}...`;
+
+    return (
+      <div className="mb-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+            <Icon icon={IconProp.Search} className="h-4 w-4" />
+          </div>
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setSearchText(e.target.value);
+            }}
+            placeholder={placeholder}
+            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+          {searchText && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchText("");
+              }}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            >
+              <Icon icon={IconProp.Close} className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
       return (
@@ -1997,6 +2089,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
+              {tableColumns.length > 0 ? getSearchInput() : <></>}
               {tableColumns.length > 0 && showAs === ShowAs.Table ? (
                 getTable()
               ) : (
@@ -2011,6 +2104,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             </Card>
           )}
 
+          {!props.cardProps &&
+          (showAs === ShowAs.Table || showAs === ShowAs.List) ? (
+            getSearchInput()
+          ) : (
+            <></>
+          )}
           {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
           {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
         </div>

@@ -105,6 +105,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         bulkActions={{
           buttons: [...labelBulkActions],
         }}

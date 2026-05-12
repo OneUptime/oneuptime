@@ -18,6 +18,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -40,6 +41,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.metricQueryConfig;
   const additionalQueryConfigs: Array<MetricQueryConfigData> | undefined =
     props.component.arguments.metricQueryConfigs;
+  const formulaConfigsArg: Array<MetricFormulaConfigData> | undefined =
+    props.component.arguments.metricFormulaConfigs;
 
   /*
    * Stabilize derived values so this component does not re-fetch (or
@@ -60,6 +63,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     return configs;
   }, [primaryQueryConfig, additionalQueryConfigs]);
 
+  const formulaConfigs: Array<MetricFormulaConfigData> = useMemo(() => {
+    return formulaConfigsArg && formulaConfigsArg.length > 0
+      ? formulaConfigsArg
+      : [];
+  }, [formulaConfigsArg]);
+
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
   > = useMemo(() => {
@@ -72,9 +81,9 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     return {
       queryConfigs: queryConfigs,
       startAndEndDate: startAndEndDate,
-      formulaConfigs: [],
+      formulaConfigs: formulaConfigs,
     };
-  }, [queryConfigs, startAndEndDate]);
+  }, [queryConfigs, startAndEndDate, formulaConfigs]);
 
   /*
    * Latest props in a ref so fetchAggregatedResults can stay stable
@@ -139,11 +148,13 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }, [
     startAndEndDate,
     queryConfigs,
+    formulaConfigs,
     props.refreshTick,
     fetchAggregatedResults,
   ]);
 
-  const numberOfCharts: number = queryConfigs.length || 1;
+  const numberOfCharts: number =
+    queryConfigs.length + formulaConfigs.length || 1;
   // Account for widget-level header and per-chart overhead (title + legend + padding)
   const hasWidgetHeader: boolean = Boolean(
     props.component.arguments.chartTitle ||
@@ -191,9 +202,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         };
       }),
       startAndEndDate: startAndEndDate,
-      formulaConfigs: [],
+      formulaConfigs: formulaConfigs.map((config: MetricFormulaConfigData) => {
+        return {
+          ...config,
+          chartType: config.chartType || getMetricChartType(),
+        };
+      }),
     };
-  }, [queryConfigs, startAndEndDate, getMetricChartType]);
+  }, [queryConfigs, formulaConfigs, startAndEndDate, getMetricChartType]);
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load

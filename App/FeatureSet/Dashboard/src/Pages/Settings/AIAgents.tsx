@@ -46,6 +46,7 @@ const AIAgentsPage: FunctionComponent<
           }}
           noItemsMessage={"No AI agents found."}
           showRefreshButton={true}
+          searchableFields={["name", "description"]}
           filters={[
             {
               field: {
@@ -199,6 +200,7 @@ const AIAgentsPage: FunctionComponent<
             },
           ]}
           showRefreshButton={true}
+          searchableFields={["name", "description"]}
           filters={[
             {
               field: {

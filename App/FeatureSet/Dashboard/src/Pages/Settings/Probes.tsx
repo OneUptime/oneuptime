@@ -56,6 +56,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           noItemsMessage={"No probes found."}
           showRefreshButton={true}
+          searchableFields={["name", "description"]}
           filters={[
             {
               field: {
@@ -208,6 +209,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
           showRefreshButton={true}
+          searchableFields={["name", "description"]}
           actionButtons={[
             {
               title: "Show ID and Key",

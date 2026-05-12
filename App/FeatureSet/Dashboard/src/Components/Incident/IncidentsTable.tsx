@@ -315,6 +315,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         createVerb="Declare"
         noItemsMessage={props.noItemsMessage || "No incidents found."}
         showRefreshButton={true}
+        searchableFields={["title", "description"]}
         showViewIdButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.INCIDENTS]!,

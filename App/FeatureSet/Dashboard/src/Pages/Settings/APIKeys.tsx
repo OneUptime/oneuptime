@@ -65,6 +65,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {

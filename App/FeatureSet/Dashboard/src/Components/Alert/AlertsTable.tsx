@@ -275,6 +275,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={props.noItemsMessage || "No alerts found."}
         showRefreshButton={true}
+        searchableFields={["title", "description"]}
         showViewIdButton={true}
         saveFilterProps={props.saveFilterProps}
         viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!)}

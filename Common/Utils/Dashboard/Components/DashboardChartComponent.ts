@@ -112,6 +112,17 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
     });
 
     componentArguments.push({
+      name: "Formulas",
+      description:
+        "Combine metric variables with +, -, *, /, %, ^ and parentheses (e.g. (1 - a) * 100)",
+      required: false,
+      type: ComponentInputType.MetricsFormulaConfigs,
+      id: "metricFormulaConfigs",
+      isAdvanced: true,
+      section: DataSourceSection,
+    });
+
+    componentArguments.push({
       name: "Title",
       description: "Displayed above the chart",
       required: false,

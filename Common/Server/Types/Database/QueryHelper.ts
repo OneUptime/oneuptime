@@ -138,6 +138,43 @@ export default class QueryHelper {
     );
   }
 
+  /**
+   * Searches the provided database column names with a single OR-joined ILIKE.
+   * `databaseColumnNames` must be the actual DB column names (already resolved
+   * from entity property names via TypeORM metadata).
+   *
+   * The Raw callback receives an alias like `"Entity"."_id"`; we extract the
+   * `"Entity"` prefix and qualify every column with it, so the OR group
+   * filters the correct table even when joins introduce shadow columns.
+   */
+  @CaptureSpan()
+  public static multiSearch(
+    databaseColumnNames: Array<string>,
+    value: string,
+  ): FindWhereProperty<any> {
+    const trimmed: string = value.toLowerCase().trim();
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        const tableAlias: string = alias.includes(".")
+          ? (alias.split(".")[0] as string)
+          : alias;
+
+        const orConditions: string = databaseColumnNames
+          .map((col: string) => {
+            return `(CAST(${tableAlias}."${col}" AS TEXT) ILIKE :${rid})`;
+          })
+          .join(" OR ");
+
+        return `(${orConditions})`;
+      },
+      {
+        [rid]: `%${trimmed}%`,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static notContains(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();

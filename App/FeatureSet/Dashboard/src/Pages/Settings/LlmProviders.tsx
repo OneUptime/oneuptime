@@ -117,6 +117,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           noItemsMessage={"No global LLM Providers configured."}
           showRefreshButton={true}
+          searchableFields={["name", "description", "modelName"]}
           filters={[
             {
               field: {
@@ -290,6 +291,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
           showRefreshButton={true}
+          searchableFields={["name", "description", "modelName"]}
           filters={[
             {
               field: {

@@ -76,6 +76,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         filters={[
           {
             field: {

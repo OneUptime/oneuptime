@@ -244,6 +244,11 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
           },
         ]}
         showRefreshButton={true}
+        searchableFields={[
+          "templateName",
+          "templateDescription",
+          "monitorName",
+        ]}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[
           {

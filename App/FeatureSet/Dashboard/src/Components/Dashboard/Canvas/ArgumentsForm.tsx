@@ -21,7 +21,9 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
+import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
@@ -69,6 +71,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       "metricQueryConfigs"
     ] as unknown as Array<MetricQueryConfigData>) || [],
   );
+  const [multiFormulaConfigs, setMultiFormulaConfigs] = useState<
+    Array<MetricFormulaConfigData>
+  >(
+    ((props.component?.arguments as JSONObject)?.[
+      "metricFormulaConfigs"
+    ] as unknown as Array<MetricFormulaConfigData>) || [],
+  );
 
   useEffect(() => {
     if (props.onHasFormValidationErrors) {
@@ -111,8 +120,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         [];
 
       for (const arg of componentArguments) {
-        // Skip MetricsQueryConfigs - we render it as a custom multi-query UI
-        if (arg.type === ComponentInputType.MetricsQueryConfigs) {
+        // Skip MetricsQueryConfigs and MetricsFormulaConfigs - rendered as custom multi UI below
+        if (
+          arg.type === ComponentInputType.MetricsQueryConfigs ||
+          arg.type === ComponentInputType.MetricsFormulaConfigs
+        ) {
           continue;
         }
 
@@ -347,6 +359,52 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       },
     );
 
+  const hasMultiFormulaArg: boolean = componentArguments.some(
+    (arg: ComponentArgument<DashboardBaseComponent>) => {
+      return arg.type === ComponentInputType.MetricsFormulaConfigs;
+    },
+  );
+
+  /*
+   * The chart widget has a single primary query stored under "metricQueryConfig"
+   * (variable "a"), then any number of additional queries under "metricQueryConfigs"
+   * (b, c, …). Formula variables must not collide with any of those.
+   */
+  const primaryQueryConfig: MetricQueryConfigData | undefined = (
+    component?.arguments as JSONObject
+  )?.["metricQueryConfig"] as unknown as MetricQueryConfigData | undefined;
+
+  const getAllUsedVariables: () => Set<string> = (): Set<string> => {
+    const taken: Set<string> = new Set<string>();
+    const pushVar: (v: string | undefined) => void = (
+      v: string | undefined,
+    ): void => {
+      if (v) {
+        taken.add(v.toLowerCase());
+      }
+    };
+    pushVar(primaryQueryConfig?.metricAliasData?.metricVariable);
+    multiQueryConfigs.forEach((q: MetricQueryConfigData) => {
+      pushVar(q.metricAliasData?.metricVariable);
+    });
+    multiFormulaConfigs.forEach((f: MetricFormulaConfigData) => {
+      pushVar(f.metricAliasData?.metricVariable);
+    });
+    return taken;
+  };
+
+  const getNextUnusedVariableLetter: () => string = (): string => {
+    const taken: Set<string> = getAllUsedVariables();
+    for (let i: number = 0; i < 26; i++) {
+      const candidate: string = String.fromCharCode(97 + i);
+      if (!taken.has(candidate)) {
+        return candidate;
+      }
+    }
+    // Unlikely fallback when all 26 letters are taken
+    return `f${multiFormulaConfigs.length + 1}`;
+  };
+
   const renderMultiQuerySection: () => ReactElement | null =
     (): ReactElement | null => {
       if (!hasMultiQueryArg || !multiQueryArg) {
@@ -453,6 +511,129 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       );
     };
 
+  const renderMultiFormulaSection: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!hasMultiFormulaArg) {
+        return null;
+      }
+
+      const queryVariables: Array<string> = [
+        primaryQueryConfig?.metricAliasData?.metricVariable,
+        ...multiQueryConfigs.map((q: MetricQueryConfigData) => {
+          return q.metricAliasData?.metricVariable;
+        }),
+      ].filter((v: string | undefined): v is string => {
+        return Boolean(v);
+      });
+
+      return (
+        <div className="mt-4">
+          {multiFormulaConfigs.map(
+            (formulaConfig: MetricFormulaConfigData, index: number) => {
+              /*
+               * Formulas may reference any query variable plus any
+               * earlier formula variable; referencing a later formula
+               * would be a forward dependency the evaluator can't resolve.
+               */
+              const availableVariables: Array<string> = [
+                ...queryVariables,
+                ...multiFormulaConfigs
+                  .slice(0, index)
+                  .map((f: MetricFormulaConfigData) => {
+                    return f.metricAliasData?.metricVariable || "";
+                  })
+                  .filter((v: string) => {
+                    return v !== "";
+                  }),
+              ];
+
+              return (
+                <div
+                  key={index}
+                  className="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Formula{" "}
+                      {formulaConfig.metricAliasData?.metricVariable
+                        ? `(${formulaConfig.metricAliasData.metricVariable})`
+                        : index + 1}
+                    </span>
+                  </div>
+                  <MetricFormulaConfig
+                    data={formulaConfig}
+                    availableVariables={availableVariables}
+                    hideCard={true}
+                    onDataChanged={(data: MetricFormulaConfigData) => {
+                      const updated: Array<MetricFormulaConfigData> = [
+                        ...multiFormulaConfigs,
+                      ];
+                      updated[index] = data;
+                      setMultiFormulaConfigs(updated);
+                      commitComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          metricFormulaConfigs: updated as any,
+                        },
+                      });
+                    }}
+                    onRemove={() => {
+                      const updated: Array<MetricFormulaConfigData> = [
+                        ...multiFormulaConfigs,
+                      ];
+                      updated.splice(index, 1);
+                      setMultiFormulaConfigs(updated);
+                      commitComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          metricFormulaConfigs: updated as any,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              );
+            },
+          )}
+
+          <Button
+            title="Add Formula"
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            icon={IconProp.Calculator}
+            onClick={() => {
+              const newFormula: MetricFormulaConfigData = {
+                metricAliasData: {
+                  metricVariable: getNextUnusedVariableLetter(),
+                  title: undefined,
+                  description: undefined,
+                  legend: undefined,
+                  legendUnit: undefined,
+                },
+                metricFormulaData: {
+                  metricFormula: "",
+                },
+              };
+              const updated: Array<MetricFormulaConfigData> = [
+                ...multiFormulaConfigs,
+                newFormula,
+              ];
+              setMultiFormulaConfigs(updated);
+              commitComponent({
+                ...component,
+                arguments: {
+                  ...((component.arguments as JSONObject) || {}),
+                  metricFormulaConfigs: updated as any,
+                },
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
   const sectionGroups: Array<SectionGroup> = groupArgumentsBySections();
 
   return (
@@ -475,19 +656,28 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             >
               <div>
                 {renderSectionForm(sectionGroup)}
-                {/* Render multi-query UI inside the Data Source section */}
-                {sectionGroup.section.name === "Data Source" &&
-                  renderMultiQuerySection()}
+                {/* Render multi-query and multi-formula UI inside Data Source */}
+                {sectionGroup.section.name === "Data Source" && (
+                  <>
+                    {renderMultiQuerySection()}
+                    {renderMultiFormulaSection()}
+                  </>
+                )}
               </div>
             </CollapsibleSection>
           </div>
         );
       })}
 
-      {/* If no Data Source section exists, render multi-query at end */}
+      {/* If no Data Source section exists, render multi-query/formula at end */}
       {!sectionGroups.some((g: SectionGroup) => {
         return g.section.name === "Data Source";
-      }) && renderMultiQuerySection()}
+      }) && (
+        <>
+          {renderMultiQuerySection()}
+          {renderMultiFormulaSection()}
+        </>
+      )}
     </div>
   );
 };

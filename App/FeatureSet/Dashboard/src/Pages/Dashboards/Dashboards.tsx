@@ -163,6 +163,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: "all-dashboards-table",
         }}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
