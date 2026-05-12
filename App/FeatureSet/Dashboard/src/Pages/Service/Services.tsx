@@ -81,6 +81,7 @@ const ServicesPage: FunctionComponent<
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
+        searchableFields={["name", "description"]}
         filters={[
           {
             field: {
@@ -114,6 +115,13 @@ const ServicesPage: FunctionComponent<
               value: "_id",
             },
           },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.Date,
+          },
         ]}
         columns={[
           {
@@ -137,6 +145,13 @@ const ServicesPage: FunctionComponent<
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+          },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.DateTime,
           },
           {
             field: {

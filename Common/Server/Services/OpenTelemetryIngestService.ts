@@ -65,6 +65,21 @@ export default class OTelIngestService {
     });
 
     /*
+     * Touch `lastSeenAt` on the service. Throttled per-service inside
+     * ServiceService.updateLastSeen so the steady-state firehose costs
+     * one in-memory cache lookup per batch.
+     */
+    try {
+      await ServiceService.updateLastSeen(result.serviceId);
+    } catch (err) {
+      logger.warn(
+        `telemetryServiceFromName lastSeen update failed for "${data.serviceName}": ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
+    /*
      * Promote `oneuptime.label.<dim>=<val>` resource attributes into
      * project labels and attach them to the discovered service. The
      * attach is throttled per-service so steady-state ingest with

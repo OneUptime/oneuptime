@@ -725,4 +725,30 @@ export default class Service extends BaseModel {
   })
   public metricDownsamplingRetentionDays?: MetricDownsamplingRetentionDays =
     undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsManager,
+      Permission.ReadService,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Seen At",
+    description: "When telemetry was last received for this service",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastSeenAt?: Date = undefined;
 }
