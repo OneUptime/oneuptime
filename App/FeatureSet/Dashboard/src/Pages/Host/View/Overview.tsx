@@ -1409,7 +1409,6 @@ const HostOverview: FunctionComponent<
   const renderRefreshControl: () => ReactElement = (): ReactElement => {
     const intervals: Array<AutoRefreshInterval> = [
       AutoRefreshInterval.OFF,
-      AutoRefreshInterval.TEN_SECONDS,
       AutoRefreshInterval.THIRTY_SECONDS,
       AutoRefreshInterval.ONE_MINUTE,
       AutoRefreshInterval.FIVE_MINUTES,
