@@ -241,7 +241,15 @@ const HostOverview: FunctionComponent<
     start: Date;
     end: Date;
   } | null>(null);
-  const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
+  /*
+   * Initial-load flag drives the full-page skeleton. Refresh ticks
+   * (auto + manual) keep this `false` so the rendered tiles, charts,
+   * and tables stay mounted and just swap in new numbers — no
+   * flicker between refreshes. The button spinner uses `isRefreshing`
+   * instead so users still see something is happening on click.
+   */
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string>("");
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [autoRefreshInterval, setAutoRefreshInterval] =
@@ -261,7 +269,7 @@ const HostOverview: FunctionComponent<
     });
 
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
-    setIsStatsLoading(true);
+    setIsRefreshing(true);
     setStatsError("");
     try {
       const item: Host | null = await ModelAPI.getItem({
@@ -289,7 +297,8 @@ const HostOverview: FunctionComponent<
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
-        setIsStatsLoading(false);
+        setIsRefreshing(false);
+        setIsInitialLoading(false);
         return;
       }
 
@@ -768,7 +777,8 @@ const HostOverview: FunctionComponent<
     } catch (err) {
       setStatsError(API.getFriendlyMessage(err));
     }
-    setIsStatsLoading(false);
+    setIsRefreshing(false);
+    setIsInitialLoading(false);
   };
 
   /*
@@ -975,7 +985,7 @@ const HostOverview: FunctionComponent<
   };
 
   const renderSummaryCards: () => ReactElement = (): ReactElement => {
-    if (isStatsLoading) {
+    if (isInitialLoading) {
       return (
         <div className="mb-6">
           <PageLoader isVisible={true} />
@@ -1155,7 +1165,7 @@ const HostOverview: FunctionComponent<
   };
 
   const renderMounts: () => ReactElement = (): ReactElement => {
-    if (isStatsLoading) {
+    if (isInitialLoading) {
       return <Fragment />;
     }
 
@@ -1408,41 +1418,30 @@ const HostOverview: FunctionComponent<
 
     const lastRefreshedLabel: string = lastRefreshedAt
       ? `Updated ${OneUptimeDate.fromNow(lastRefreshedAt)}`
-      : "Not yet refreshed";
+      : "Not refreshed yet";
 
     const isOff: boolean = autoRefreshInterval === AutoRefreshInterval.OFF;
 
     return (
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isStatsLoading
-                ? "bg-amber-500 animate-pulse"
-                : isOff
-                  ? "bg-gray-300"
-                  : "bg-emerald-500"
-            }`}
-          />
-          <span>{lastRefreshedLabel}</span>
-        </div>
+      <div className="flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onManualRefresh}
-            disabled={isStatsLoading}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isRefreshing}
+            title="Refresh now"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon
               icon={IconProp.Refresh}
               className={`h-3.5 w-3.5 ${
-                isStatsLoading ? "animate-spin text-gray-400" : "text-gray-500"
+                isRefreshing ? "animate-spin text-gray-400" : "text-gray-500"
               }`}
             />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           <label className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span>Auto-refresh</span>
+            <span className="hidden sm:inline">Auto-refresh</span>
             <select
               value={autoRefreshInterval}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -1463,6 +1462,18 @@ const HostOverview: FunctionComponent<
               })}
             </select>
           </label>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              isRefreshing
+                ? "bg-amber-500 animate-pulse"
+                : isOff
+                  ? "bg-gray-300"
+                  : "bg-emerald-500"
+            }`}
+          />
+          <span>{lastRefreshedLabel}</span>
         </div>
       </div>
     );
@@ -1506,7 +1517,6 @@ const HostOverview: FunctionComponent<
 
   return (
     <Fragment>
-      {renderRefreshControl()}
       {renderHero()}
       {renderSummaryCards()}
       {renderCharts()}
