@@ -2410,7 +2410,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         {/* Expanded input + dropdown — sized to the full title slot */}
         <div className="relative flex w-full flex-col gap-1">
           <div
-            className={`flex w-full items-center gap-2 rounded-lg border bg-white pl-3 pr-2 py-1.5 transition-all duration-200 ${borderClass}`}
+            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 transition-all duration-200 ${borderClass}`}
             onClick={() => {
               searchInputRef.current?.focus();
             }}
@@ -2539,7 +2539,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 spellCheck={false}
                 autoComplete="off"
                 tabIndex={expanded ? 0 : -1}
-                className="min-w-[6rem] flex-1 bg-transparent py-1 text-sm text-gray-900 placeholder-gray-400 outline-none"
+                className="min-w-[6rem] flex-1 bg-transparent text-sm leading-5 text-gray-900 placeholder-gray-400 outline-none"
               />
             </div>
             {isSearching && (
@@ -2872,10 +2872,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const moreMenu: ReactElement | null = renderMoreMenu(rest);
 
     const wrapped: ReactElement = (
-      <div
-        key="model-table-header-actions"
-        className="flex items-center gap-1.5"
-      >
+      <div key="model-table-header-actions" className="flex items-center gap-3">
         {/*
          * Search slot — a compact pill showing "Search …    /" by default,
          * grown into the full search bar when expanded. Always advertising
@@ -2899,7 +2896,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             title="Search (/)"
             aria-label="Open search"
             tabIndex={isExpanded ? -1 : 0}
-            className={`absolute inset-0 inline-flex items-center gap-2 rounded-lg border bg-white pl-3 pr-2 text-sm shadow-sm transition-all duration-200 ease-out ${
+            className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
               isExpanded
                 ? "pointer-events-none border-gray-200 opacity-0"
                 : "border-gray-200 opacity-100 hover:border-gray-300 hover:bg-gray-50"
@@ -2940,10 +2937,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * search slot to the left can grow into the freed space.
          */}
         <div
-          className={`flex items-center transition-all duration-300 ease-out ${
+          className={`flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 ${
             isExpanded
-              ? "max-w-0 -ml-1.5 gap-0 opacity-0 pointer-events-none"
-              : "max-w-[600px] gap-1.5 opacity-100"
+              ? "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none"
+              : "max-w-[600px] gap-3 opacity-100"
           }`}
           aria-hidden={isExpanded}
         >

@@ -346,25 +346,32 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
   const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction =
     (): ReactElement => {
+      /*
+       * Shared shape so the trigger lines up with the search bar + Create button
+       * (text-sm font-medium + px-3 py-2 + 1px border → ~38px tall).
+       */
+      const triggerBase: string =
+        "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition-colors";
+
       if (currentlySelectedView) {
         return (
           <div
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-100"
+            className={`${triggerBase} border-indigo-300 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100`}
             title={`Saved view: ${currentlySelectedView.name}`}
           >
             <Icon
               icon={IconProp.Window}
-              size={SizeProp.Small}
-              className="text-indigo-500"
+              className="h-4 w-4 flex-none text-indigo-500"
             />
-            <span className="max-w-[10rem] truncate">
+            <span className="max-w-[12rem] truncate">
               {currentlySelectedView.name}
             </span>
             <div
               role="button"
               tabIndex={0}
               aria-label="Clear saved view"
-              className="-mr-1 ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-indigo-500 hover:bg-indigo-200 hover:text-indigo-800"
+              title="Clear saved view"
+              className="-mr-1 ml-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-indigo-100 text-indigo-600 ring-1 ring-inset ring-indigo-300 hover:bg-indigo-200 hover:text-indigo-900 hover:ring-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               onClick={(event: React.MouseEvent<HTMLDivElement>) => {
                 event.stopPropagation();
                 setCurrentlySelectedView(null);
@@ -393,13 +400,12 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
       return (
         <div
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+          className={`${triggerBase} border-gray-300 bg-white text-gray-700 hover:bg-gray-50`}
           title="Saved Views"
         >
           <Icon
             icon={IconProp.Window}
-            size={SizeProp.Small}
-            className="text-gray-500"
+            className="h-4 w-4 flex-none text-gray-500"
           />
           <span>Saved Views</span>
           {allTableViews.length > 0 && (
