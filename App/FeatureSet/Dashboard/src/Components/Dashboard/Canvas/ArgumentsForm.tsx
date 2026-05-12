@@ -33,6 +33,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
+import MetricUtil from "../../Metrics/Utils/Metrics";
+import API from "Common/UI/Utils/API/API";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
@@ -78,6 +80,160 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       "metricFormulaConfigs"
     ] as unknown as Array<MetricFormulaConfigData>) || [],
   );
+
+  /*
+   * Per-metric attribute caches. The dashboard widget editor needs the same
+   * "select a metric → its attribute keys/values autocomplete" behavior as
+   * the Metrics Explorer (MetricView). The global telemetryAttributes list
+   * provided by the parent is not metric-scoped, so it can't supply value
+   * suggestions and shows attributes that don't belong to the chosen metric.
+   */
+  const [telemetryAttributesByMetric, setTelemetryAttributesByMetric] =
+    useState<Record<string, Array<string>>>({});
+  const [loadedMetricAttributes, setLoadedMetricAttributes] = useState<
+    Set<string>
+  >(new Set());
+  const [loadingMetricAttributes, setLoadingMetricAttributes] = useState<
+    Set<string>
+  >(new Set());
+  const [telemetryAttributesError, setTelemetryAttributesError] =
+    useState<string>("");
+
+  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
+    Record<string, Record<string, Array<string>>>
+  >({});
+  const loadedAttributeValuesRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
+  const [loadingAttributeValues, setLoadingAttributeValues] = useState<
+    Record<string, Set<string>>
+  >({});
+
+  type LoadMetricAttributesFunction = (metricName: string) => Promise<void>;
+
+  const loadTelemetryAttributesForMetric: LoadMetricAttributesFunction = async (
+    metricName: string,
+  ): Promise<void> => {
+    if (!metricName) {
+      return;
+    }
+
+    if (
+      loadingMetricAttributes.has(metricName) ||
+      loadedMetricAttributes.has(metricName)
+    ) {
+      return;
+    }
+
+    try {
+      setLoadingMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.add(metricName);
+        return next;
+      });
+      setTelemetryAttributesError("");
+
+      const attributes: Array<string> = await MetricUtil.getTelemetryAttributes(
+        { metricName },
+      );
+
+      setTelemetryAttributesByMetric((prev: Record<string, Array<string>>) => {
+        return { ...prev, [metricName]: attributes };
+      });
+      setLoadedMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.add(metricName);
+        return next;
+      });
+    } catch (err) {
+      setTelemetryAttributesError(
+        `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
+      );
+    } finally {
+      setLoadingMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.delete(metricName);
+        return next;
+      });
+    }
+  };
+
+  type LoadAttributeValuesFunction = (
+    metricName: string,
+    attributeKey: string,
+  ) => Promise<void>;
+
+  const loadAttributeValues: LoadAttributeValuesFunction = async (
+    metricName: string,
+    attributeKey: string,
+  ): Promise<void> => {
+    if (!metricName || !attributeKey) {
+      return;
+    }
+
+    const cacheKey: string = `${metricName}:${attributeKey}`;
+
+    if (loadedAttributeValuesRef.current.has(cacheKey)) {
+      return;
+    }
+
+    loadedAttributeValuesRef.current.add(cacheKey);
+
+    setLoadingAttributeValues(
+      (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+        const next: Set<string> = new Set(prev[metricName] || []);
+        next.add(attributeKey);
+        return { ...prev, [metricName]: next };
+      },
+    );
+
+    try {
+      const values: Array<string> =
+        await MetricUtil.getTelemetryAttributeValues({
+          attributeKey,
+          metricName,
+        });
+
+      setAttributeValueSuggestions(
+        (prev: Record<string, Record<string, Array<string>>>) => {
+          return {
+            ...prev,
+            [metricName]: {
+              ...(prev[metricName] || {}),
+              [attributeKey]: values,
+            },
+          };
+        },
+      );
+    } catch {
+      // Value suggestions are best-effort; allow a retry on next select.
+      loadedAttributeValuesRef.current.delete(cacheKey);
+    } finally {
+      setLoadingAttributeValues(
+        (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+          const next: Set<string> = new Set(prev[metricName] || []);
+          next.delete(attributeKey);
+          return { ...prev, [metricName]: next };
+        },
+      );
+    }
+  };
+
+  type RetryMetricAttributesFunction = (metricName: string) => void;
+
+  const retryLoadTelemetryAttributes: RetryMetricAttributesFunction = (
+    metricName: string,
+  ): void => {
+    if (!metricName) {
+      return;
+    }
+    setLoadedMetricAttributes((prev: Set<string>) => {
+      const next: Set<string> = new Set(prev);
+      next.delete(metricName);
+      return next;
+    });
+    void loadTelemetryAttributesForMetric(metricName);
+  };
 
   useEffect(() => {
     if (props.onHasFormValidationErrors) {
@@ -184,6 +340,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       value: FormValues<JSONObject>,
       componentProps: CustomElementProps,
     ) => {
+      const queryData: MetricQueryConfigData = value[
+        arg.id
+      ] as MetricQueryConfigData;
+      const metricName: string =
+        queryData?.metricQueryData?.filterData?.metricName?.toString() || "";
+
       return (
         <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
           <div className="mb-2">
@@ -193,9 +355,33 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           </div>
           <MetricQueryConfig
             {...componentProps}
-            data={value[arg.id] as MetricQueryConfigData}
+            data={queryData}
             metricTypes={props.metrics.metricTypes}
-            telemetryAttributes={props.metrics.telemetryAttributes}
+            telemetryAttributes={telemetryAttributesByMetric[metricName] || []}
+            attributesLoading={loadingMetricAttributes.has(metricName)}
+            attributesError={telemetryAttributesError}
+            telemetryAttributeValueSuggestions={
+              attributeValueSuggestions[metricName] || {}
+            }
+            loadingAttributeValueKeys={Array.from(
+              loadingAttributeValues[metricName] || [],
+            )}
+            onMetricNameChanged={(nextMetricName: string) => {
+              void loadTelemetryAttributesForMetric(nextMetricName);
+            }}
+            onAttributeKeySelected={(attributeKey: string) => {
+              if (metricName && attributeKey) {
+                void loadAttributeValues(metricName, attributeKey);
+              }
+            }}
+            onAdvancedFiltersToggle={(show: boolean) => {
+              if (show && metricName) {
+                void loadTelemetryAttributesForMetric(metricName);
+              }
+            }}
+            onAttributesRetry={() => {
+              retryLoadTelemetryAttributes(metricName);
+            }}
             hideCard={true}
           />
         </div>
@@ -415,6 +601,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         <div className="mt-4">
           {multiQueryConfigs.map(
             (queryConfig: MetricQueryConfigData, index: number) => {
+              const metricName: string =
+                queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                "";
+
               return (
                 <div
                   key={index}
@@ -448,7 +638,33 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   <MetricQueryConfig
                     data={queryConfig}
                     metricTypes={props.metrics.metricTypes}
-                    telemetryAttributes={props.metrics.telemetryAttributes}
+                    telemetryAttributes={
+                      telemetryAttributesByMetric[metricName] || []
+                    }
+                    attributesLoading={loadingMetricAttributes.has(metricName)}
+                    attributesError={telemetryAttributesError}
+                    telemetryAttributeValueSuggestions={
+                      attributeValueSuggestions[metricName] || {}
+                    }
+                    loadingAttributeValueKeys={Array.from(
+                      loadingAttributeValues[metricName] || [],
+                    )}
+                    onMetricNameChanged={(nextMetricName: string) => {
+                      void loadTelemetryAttributesForMetric(nextMetricName);
+                    }}
+                    onAttributeKeySelected={(attributeKey: string) => {
+                      if (metricName && attributeKey) {
+                        void loadAttributeValues(metricName, attributeKey);
+                      }
+                    }}
+                    onAdvancedFiltersToggle={(show: boolean) => {
+                      if (show && metricName) {
+                        void loadTelemetryAttributesForMetric(metricName);
+                      }
+                    }}
+                    onAttributesRetry={() => {
+                      retryLoadTelemetryAttributes(metricName);
+                    }}
                     hideCard={true}
                     onChange={(data: MetricQueryConfigData) => {
                       const updated: Array<MetricQueryConfigData> = [
