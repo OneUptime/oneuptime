@@ -181,6 +181,10 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     });
   };
 
+  const hasActiveFilters: boolean =
+    Boolean(props.currentQuery) &&
+    Object.keys(props.currentQuery as Record<string, unknown>).length > 0;
+
   const getMenuContents: GetReactElementArrayFunction =
     (): Array<ReactElement> => {
       if (isLoading) {
@@ -197,18 +201,20 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         );
       }
 
-      elements.push(
-        <MoreMenuItem
-          key={"save-new-view"}
-          text="Save as New View"
-          className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 font-medium -mt-2"
-          icon={IconProp.Add}
-          iconClassName=""
-          onClick={() => {
-            setShowCreateNewViewModel(true);
-          }}
-        ></MoreMenuItem>,
-      );
+      if (hasActiveFilters) {
+        elements.push(
+          <MoreMenuItem
+            key={"save-new-view"}
+            text="Save as New View"
+            className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 font-medium -mt-2"
+            icon={IconProp.Add}
+            iconClassName=""
+            onClick={() => {
+              setShowCreateNewViewModel(true);
+            }}
+          ></MoreMenuItem>,
+        );
+      }
 
       return elements;
     };
@@ -422,6 +428,15 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       (moreMenuRef.current as any).closeDropdown();
     }
   };
+
+  if (
+    !isLoading &&
+    allTableViews.length === 0 &&
+    !hasActiveFilters &&
+    !currentlySelectedView
+  ) {
+    return <></>;
+  }
 
   return (
     <MoreMenu
