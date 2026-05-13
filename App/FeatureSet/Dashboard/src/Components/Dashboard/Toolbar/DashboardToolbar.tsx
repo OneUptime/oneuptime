@@ -61,8 +61,6 @@ export interface ComponentProps {
     | undefined;
   telemetryAttributeOptions?: Array<string> | undefined;
   metricNameOptions?: Array<string> | undefined;
-  canResetZoom?: boolean | undefined;
-  onResetZoom?: (() => void) | undefined;
 }
 
 interface CountdownCircleProps {
@@ -370,18 +368,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     props.onAutoRefreshIntervalChange
                   }
                 />
-
-                {/* Reset Zoom button */}
-                {props.canResetZoom && props.onResetZoom && (
-                  <Button
-                    icon={IconProp.Refresh}
-                    title="Reset Zoom"
-                    buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    onClick={props.onResetZoom}
-                    tooltip="Reset to original time range"
-                  />
-                )}
               </>
             )}
 

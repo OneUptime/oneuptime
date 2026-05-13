@@ -86,10 +86,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     Array<DashboardVariable>
   >([]);
 
-  // Zoom stack for time range
-  const [timeRangeStack, setTimeRangeStack] = useState<
-    Array<RangeStartAndEndDateTime>
-  >([]);
   const autoRefreshTimerRef: React.MutableRefObject<ReturnType<
     typeof setInterval
   > | null> = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -426,20 +422,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardMode(DashboardMode.View);
         }}
         startAndEndDate={startAndEndDate}
-        canResetZoom={timeRangeStack.length > 0}
-        onResetZoom={() => {
-          if (timeRangeStack.length > 0) {
-            const previousRange: RangeStartAndEndDateTime =
-              timeRangeStack[timeRangeStack.length - 1]!;
-            setStartAndEndDate(previousRange);
-            setTimeRangeStack(timeRangeStack.slice(0, -1));
-          }
-        }}
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
-          // Push current range to zoom stack before changing
-          setTimeRangeStack([...timeRangeStack, startAndEndDate]);
           setStartAndEndDate(newStartAndEndDate);
         }}
         onCancelEditClick={async () => {

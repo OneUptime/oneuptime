@@ -4,10 +4,8 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import { GetReactElementFunction } from "../../../UI/Types/FunctionTypes";
-import HeaderAlert, {
-  HeaderAlertType,
-} from "../../../UI/Components/HeaderAlert/HeaderAlert";
-import ColorSwatch from "../../../Types/ColorSwatch";
+import Icon from "../Icon/Icon";
+import Tooltip from "../Tooltip/Tooltip";
 import RangeStartAndEndDateEdit from "./RangeStartAndEndDateEdit";
 import Modal from "../Modal/Modal";
 
@@ -40,17 +38,19 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        <HeaderAlert
-          icon={IconProp.Clock}
-          onClick={() => {
-            setTempStartAndEndDate(props.dashboardStartAndEndDate);
-            setShowTimeSelectModal(true);
-          }}
-          title={title}
-          alertType={HeaderAlertType.INFO}
-          colorSwatch={ColorSwatch.Blue}
-          tooltip="Click to change the date and time range of data on this dashboard."
-        />
+        <Tooltip text="Click to change the date and time range of data on this dashboard.">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border bg-gray-50 border-gray-200/60 hover:bg-gray-100"
+            onClick={() => {
+              setTempStartAndEndDate(props.dashboardStartAndEndDate);
+              setShowTimeSelectModal(true);
+            }}
+          >
+            <Icon icon={IconProp.Clock} className="w-3.5 h-3.5 text-gray-500" />
+            <span className="text-xs text-gray-500">{title}</span>
+          </button>
+        </Tooltip>
         {showTimeSelectModal && (
           <Modal
             title="Select Start and End Time"
