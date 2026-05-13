@@ -108,17 +108,35 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [metricTypes, setMetricTypes] = useState<MetricType[]>([]);
 
   const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
-    const {
-      metricTypes,
-      telemetryAttributes,
-    }: {
-      metricTypes: Array<MetricType>;
-      telemetryAttributes: Array<string>;
-    } = await MetricUtil.loadAllMetricsTypes();
+    /*
+     * Telemetry attribute keys are only used by ArgumentsForm inside the edit
+     * Component Settings modal. Fetching them here would block the initial
+     * dashboard render on a 30-day DISTINCT-arrayJoin against the metrics
+     * table that can take 30s+ on busy projects. Load metric types only and
+     * lazy-load attributes in the background.
+     */
+    const { metricTypes }: { metricTypes: Array<MetricType> } =
+      await MetricUtil.loadAllMetricsTypes({ includeAttributes: false });
 
     setMetricTypes(metricTypes);
-    setTelemetryAttributes(telemetryAttributes);
   };
+
+  const telemetryAttributesRequestedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const loadTelemetryAttributesInBackground: VoidFunction = useCallback(() => {
+    if (telemetryAttributesRequestedRef.current) {
+      return;
+    }
+    telemetryAttributesRequestedRef.current = true;
+    MetricUtil.getTelemetryAttributes()
+      .then((attrs: Array<string>) => {
+        setTelemetryAttributes(attrs);
+      })
+      .catch(() => {
+        telemetryAttributesRequestedRef.current = false;
+      });
+  }, []);
 
   const [dashboardName, setDashboardName] = useState<string>("");
   const [dashboardDescription, setDashboardDescription] = useState<string>("");
@@ -219,13 +237,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
     setError(null);
     try {
-      await loadAllMetricsTypes();
-      await fetchDashboardViewConfig();
+      await Promise.all([loadAllMetricsTypes(), fetchDashboardViewConfig()]);
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
     setIsLoading(false);
+
+    // Warm the autocomplete suggestion cache without blocking the render.
+    loadTelemetryAttributesInBackground();
   };
 
   useEffect(() => {
@@ -280,7 +300,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     handleResize();
-  }, [dashboardMode]);
+    if (dashboardMode === DashboardMode.Edit) {
+      loadTelemetryAttributesInBackground();
+    }
+  }, [dashboardMode, loadTelemetryAttributesInBackground]);
 
   useEffect(() => {
     if (!pendingScrollComponentId) {
