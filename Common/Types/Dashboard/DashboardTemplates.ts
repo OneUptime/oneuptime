@@ -435,19 +435,32 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
         legendUnit: "ms",
       },
     }),
+    /*
+     * IsOnline is emitted as 0/1 with unit "" by MonitorMetricUtil, so
+     * `Avg` gives the uptime ratio in [0, 1] rather than a percent. We
+     * label the widget "Uptime (avg)" instead of "%" so the fractional
+     * display isn't misleading; flipping the storage to 0/100 + unit
+     * "%" would change criteria evaluation elsewhere in the codebase.
+     */
     createValueComponent({
-      title: "Uptime %",
+      title: "Uptime (avg)",
       top: 1,
       left: 3,
       width: 3,
       metricConfig: {
         metricName: MonitorMetricType.IsOnline,
         aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "%",
       },
     }),
+    /*
+     * ResponseStatusCode is the literal HTTP status code (200, 404,
+     * 503, …). `Count` over it returns the total number of checks the
+     * monitor ran, not the error rate — the original "Error Rate" label
+     * was misleading. Filtering to status >= 400 would require attribute
+     * filters that the template helper doesn't expose, so we relabel.
+     */
     createValueComponent({
-      title: "Error Rate",
+      title: "Total Checks",
       top: 1,
       left: 6,
       width: 3,
@@ -493,8 +506,7 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MonitorMetricType.IsOnline,
         aggregationType: MetricsAggregationType.Avg,
-        legend: "Online Status",
-        legendUnit: "%",
+        legend: "Uptime Ratio",
       },
     }),
 
@@ -592,6 +604,21 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
 }
 
 function createIncidentDashboardConfig(): DashboardViewConfig {
+  /*
+   * Incident metrics (TimeToResolve, TimeToAcknowledge, IncidentDuration,
+   * TimeInState, PostmortemCompletionTime) are emitted with unit
+   * "seconds" by IncidentService. Templates previously passed
+   * `legendUnit: "min"` to relabel the chart legend, but that bypassed
+   * ValueFormatter's scale-aware formatting and rendered raw seconds
+   * with a "Minutes" suffix (e.g. a 1-hour incident showed as
+   * "3600 Minutes"). Gauges were authored against an implicit minute
+   * scale (maxValue 120, threshold 60/90) and compared bytes-of-seconds
+   * against minutes, so any incident over ~2 minutes pinned the gauge.
+   *
+   * We now drop the legendUnit overrides — ValueFormatter scales
+   * `seconds` to sec/min/hr/days based on magnitude — and reauthor the
+   * gauge ranges in seconds so the 0-100% sweep is meaningful.
+   */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
     createTextComponent({
@@ -622,7 +649,6 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: IncidentMetricType.TimeToResolve,
         aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "min",
       },
     }),
     createValueComponent({
@@ -633,7 +659,6 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: IncidentMetricType.TimeToAcknowledge,
         aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "min",
       },
     }),
     createValueComponent({
@@ -644,7 +669,6 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: IncidentMetricType.IncidentDuration,
         aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "min",
       },
     }),
 
@@ -673,7 +697,6 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.IncidentDuration,
         aggregationType: MetricsAggregationType.Avg,
         legend: "Avg Duration",
-        legendUnit: "min",
       },
     }),
 
@@ -687,32 +710,37 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 6-8: Gauges for MTTR/MTTA and resolution chart
+    /*
+     * Row 6-8: MTTR/MTTA gauges. Ranges and thresholds are now in
+     * seconds (matching the stored metric unit). Targets: MTTR full
+     * scale 2 hours (warn at 1 hour, critical at 1.5 hours); MTTA full
+     * scale 1 hour (warn at 15 min, critical at 30 min).
+     */
     createGaugeComponent({
-      title: "MTTR (minutes)",
+      title: "MTTR",
       top: 6,
       left: 0,
       width: 3,
       height: 3,
       minValue: 0,
-      maxValue: 120,
-      warningThreshold: 60,
-      criticalThreshold: 90,
+      maxValue: 7200,
+      warningThreshold: 3600,
+      criticalThreshold: 5400,
       metricConfig: {
         metricName: IncidentMetricType.TimeToResolve,
         aggregationType: MetricsAggregationType.Avg,
       },
     }),
     createGaugeComponent({
-      title: "MTTA (minutes)",
+      title: "MTTA",
       top: 6,
       left: 3,
       width: 3,
       height: 3,
       minValue: 0,
-      maxValue: 60,
-      warningThreshold: 15,
-      criticalThreshold: 30,
+      maxValue: 3600,
+      warningThreshold: 900,
+      criticalThreshold: 1800,
       metricConfig: {
         metricName: IncidentMetricType.TimeToAcknowledge,
         aggregationType: MetricsAggregationType.Avg,
@@ -729,7 +757,6 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.TimeToResolve,
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
-        legendUnit: "min",
       },
     }),
 
@@ -768,7 +795,6 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.TimeInState,
         aggregationType: MetricsAggregationType.Avg,
         legend: "Time in State",
-        legendUnit: "min",
       },
     }),
 
@@ -1071,6 +1097,27 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
 }
 
 function createMetricsDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - `system.cpu.utilization` and `process.cpu.utilization` are OTel
+   *   ratio metrics with unit "1" reported in [0, 1]. DashboardValueComponent
+   *   / DashboardGaugeComponent scale these to a percent at render time
+   *   (see splitFormattedValue / isFractionScale), so the 0-100 gauge sweep
+   *   and the percent display work without any special template config.
+   *
+   * - `system.memory.usage` is reported in bytes. A previous "Memory Usage"
+   *   gauge compared bytes (10⁹ range) against a 0-100 sweep and pinned
+   *   critical for any sane workload. We swapped it for a Value widget that
+   *   renders the absolute usage via ValueFormatter (e.g. "8.3 GB"), since
+   *   there is no first-class memory-utilization percent metric in OTel's
+   *   default system instrumentation.
+   *
+   * - We also dropped explicit `legendUnit: "bytes"/"%"/"ms"` overrides
+   *   where they duplicated the stored MetricType unit — ValueFormatter
+   *   already auto-scales bytes/seconds/ms and renders ratio metrics as
+   *   percent. Keeping overrides only when they add useful aliasing.
+   */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
     createTextComponent({
@@ -1207,7 +1254,12 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 10-12: System resource gauges and charts
+    /*
+     * Row 10-12: System resource health. CPU has a percent gauge (auto-
+     * scaled from [0, 1] ratio at render time); Memory has a Value widget
+     * since `system.memory.usage` is bytes (auto-formatted to MB/GB) and
+     * we don't have a first-class memory-utilization percent metric.
+     */
     createGaugeComponent({
       title: "CPU Utilization",
       top: 10,
@@ -1223,16 +1275,11 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
       },
     }),
-    createGaugeComponent({
+    createValueComponent({
       title: "Memory Usage",
       top: 10,
       left: 3,
       width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      warningThreshold: 70,
-      criticalThreshold: 90,
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemMemoryUsage,
         aggregationType: MetricsAggregationType.Avg,
@@ -1248,8 +1295,7 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemCpuUtilization,
         aggregationType: MetricsAggregationType.Avg,
-        legend: "CPU %",
-        legendUnit: "%",
+        legend: "CPU",
       },
     }),
 
