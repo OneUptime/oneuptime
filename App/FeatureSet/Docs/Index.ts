@@ -4,7 +4,6 @@ import DocsRender from "./Utils/Render";
 import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
-  SUPPORTED_DOCS_LANGUAGE_CODES,
   getLocalizedNav,
   isSupportedDocsLanguage,
   localizeDocsUrl,
@@ -223,7 +222,6 @@ const DocsFeatureSet: FeatureSet = {
            * Match against the canonical English nav so we can find the
            * category/link regardless of which language is being rendered.
            */
-          const englishUrl: string = `/docs/${fullPath}`;
           const currentCategory: NavGroup | undefined = DocsNav.find(
             (category: NavGroup) => {
               return category.links.find((link: NavLink) => {
@@ -318,7 +316,6 @@ const DocsFeatureSet: FeatureSet = {
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,
             currentPath: req.originalUrl,
-            canonicalEnglishUrl: englishUrl,
           });
         } catch (err) {
           logger.error(err);
@@ -347,5 +344,3 @@ const DocsFeatureSet: FeatureSet = {
 };
 
 export default DocsFeatureSet;
-
-export { SUPPORTED_DOCS_LANGUAGE_CODES };
