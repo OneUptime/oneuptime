@@ -24,6 +24,8 @@ import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
+import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import TelemetryType from "../../Types/Telemetry/TelemetryType";
 
 export default class DashboardAPI extends BaseAPI<
   Dashboard,
@@ -295,6 +297,100 @@ export default class DashboardAPI extends BaseAPI<
             dashboardViewConfig: dashboard.dashboardViewConfig
               ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
               : null,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Public attribute-value lookup for dashboard variables.
+     *
+     * The private `/telemetry/metrics/get-attribute-values` route requires
+     * a logged-in session; public dashboards have no session, so we mirror
+     * the behaviour here scoped to the dashboard's owning projectId.
+     * Authorization reuses DashboardService.hasReadAccess (public flag, IP
+     * whitelist, master password) — never falls back to project-wide read.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/attribute-values/:dashboardId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const dashboardId: ObjectID = new ObjectID(
+            req.params["dashboardId"] as string,
+          );
+
+          const accessResult: {
+            hasReadAccess: boolean;
+            error?: NotAuthenticatedException | ForbiddenException;
+          } = await DashboardService.hasReadAccess({
+            dashboardId,
+            req,
+          });
+
+          if (!accessResult.hasReadAccess) {
+            throw (
+              accessResult.error ||
+              new BadDataException("Access denied to this dashboard.")
+            );
+          }
+
+          const attributeKey: string | undefined =
+            req.body && (req.body["attributeKey"] as string);
+
+          if (!attributeKey || !attributeKey.trim()) {
+            throw new BadDataException("attributeKey is required.");
+          }
+
+          const metricNameRaw: string | undefined =
+            req.body && (req.body["metricName"] as string);
+          const metricName: string | undefined =
+            metricNameRaw && metricNameRaw.trim() ? metricNameRaw : undefined;
+
+          const telemetryTypeRaw: string | undefined =
+            req.body && (req.body["telemetryType"] as string);
+          let telemetryType: TelemetryType = TelemetryType.Metric;
+          if (telemetryTypeRaw) {
+            const match: TelemetryType | undefined = (
+              Object.values(TelemetryType) as Array<string>
+            ).includes(telemetryTypeRaw)
+              ? (telemetryTypeRaw as TelemetryType)
+              : undefined;
+            if (match) {
+              telemetryType = match;
+            }
+          }
+
+          const dashboard: Dashboard | null =
+            await DashboardService.findOneById({
+              id: dashboardId,
+              select: {
+                _id: true,
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!dashboard || !dashboard.projectId) {
+            throw new NotFoundException("Dashboard not found");
+          }
+
+          const values: Array<string> =
+            await TelemetryAttributeService.fetchAttributeValues({
+              projectId: dashboard.projectId,
+              telemetryType,
+              attributeKey: attributeKey.trim(),
+              metricName,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            values,
           });
         } catch (err) {
           next(err);

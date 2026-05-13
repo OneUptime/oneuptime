@@ -20,6 +20,7 @@ import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -706,6 +707,34 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}]) <= ${{
                 value: Number((mapEntry as LessThanOrEqual<any>).value),
                 type: TableColumnType.Number,
+              }}`,
+            );
+            continue;
+          }
+
+          /*
+           * Multi-value selection (dashboard variables, ad-hoc filters):
+           * an empty `Includes` would expand to `IN ()`, which ClickHouse
+           * treats as "match nothing" and is never the user's intent
+           * here — skip the predicate instead so a cleared multi-select
+           * behaves like "All".
+           */
+          if (mapEntry instanceof Includes) {
+            const includesValues: Array<string> = (
+              (mapEntry as Includes).values || []
+            ).map((v: string | ObjectID | number) => {
+              return String(v);
+            });
+            if (includesValues.length === 0) {
+              continue;
+            }
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] IN ${{
+                value: new Includes(includesValues),
+                type: TableColumnType.Text,
               }}`,
             );
             continue;

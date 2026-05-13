@@ -27,6 +27,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -140,7 +141,15 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       }
 
       if (config.variables) {
-        setDashboardVariables(config.variables);
+        const urlSelections: ReturnType<
+          typeof DashboardVariableUrlState.parseFromSearch
+        > = DashboardVariableUrlState.parseFromSearch(window.location.search);
+        const withUrl: Array<DashboardVariable> =
+          DashboardVariableUrlState.applyUrlToVariables(
+            config.variables,
+            urlSelections,
+          );
+        setDashboardVariables(withUrl);
       }
     };
 
@@ -337,18 +346,24 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                   <div className="w-px h-5 bg-gray-200"></div>
                   <DashboardVariableSelector
                     variables={dashboardVariables}
+                    dashboardId={props.dashboardId}
                     onVariableValueChange={(
                       variableId: string,
                       value: string,
                     ) => {
-                      setDashboardVariables(
+                      const updated: Array<DashboardVariable> =
                         dashboardVariables.map((v: DashboardVariable) => {
                           if (v.id === variableId) {
-                            return { ...v, currentValue: value };
+                            return { ...v, selectedValue: value };
                           }
                           return v;
-                        }),
-                      );
+                        });
+                      setDashboardVariables(updated);
+                      DashboardVariableUrlState.writeToBrowserUrl(updated);
+                      // Trigger refresh when variable changes
+                      setRefreshTick((prev: number) => {
+                        return prev + 1;
+                      });
                     }}
                   />
                 </>
@@ -384,6 +399,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
             telemetryAttributes: [],
           }}
           refreshTick={refreshTick}
+          variables={dashboardVariables}
         />
       </div>
 

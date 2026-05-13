@@ -6,7 +6,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
@@ -26,6 +26,7 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import Dictionary from "Common/Types/Dictionary";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -116,6 +117,37 @@ type SanitizeAttributeFiltersFunction = (
   attributes: Dictionary<DictionaryEntryValue> | undefined,
 ) => Dictionary<DictionaryEntryValue> | undefined;
 
+/*
+ * Recognize an Includes wrapper whether it arrived as a hydrated class
+ * instance or as the `{_type, value: [...]}` JSON shape (which is what
+ * round-tripping through the dashboard view config produces, since the
+ * server never rehydrates dashboard JSON into typed instances).
+ */
+function isIncludesValue(
+  value: unknown,
+): value is Includes | { _type: ObjectType.Includes; value: Array<unknown> } {
+  if (value instanceof Includes) {
+    return true;
+  }
+  if (
+    value &&
+    typeof value === "object" &&
+    (value as { _type?: string })._type === ObjectType.Includes
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function getIncludesValues(
+  value: Includes | { _type: ObjectType.Includes; value: Array<unknown> },
+): Array<unknown> {
+  if (value instanceof Includes) {
+    return value.values || [];
+  }
+  return (value.value as Array<unknown>) || [];
+}
+
 export const sanitizeAttributeFilters: SanitizeAttributeFiltersFunction = (
   attributes: Dictionary<DictionaryEntryValue> | undefined,
 ): Dictionary<DictionaryEntryValue> | undefined => {
@@ -125,6 +157,19 @@ export const sanitizeAttributeFilters: SanitizeAttributeFiltersFunction = (
   const result: Dictionary<DictionaryEntryValue> = {};
   for (const [key, value] of Object.entries(attributes)) {
     if (key.trim() === "" || value === undefined || value === null) {
+      continue;
+    }
+    /*
+     * Includes (multi-value) carries an array, not a scalar string. The
+     * generic operator detector below can't read it, so handle it here:
+     * drop if no values were picked ("All"), otherwise pass through.
+     */
+    if (isIncludesValue(value)) {
+      const includesValues: Array<unknown> = getIncludesValues(value);
+      if (includesValues.length === 0) {
+        continue;
+      }
+      result[key] = value as DictionaryEntryValue;
       continue;
     }
     const detected: {

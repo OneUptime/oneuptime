@@ -14,6 +14,7 @@ import ComponentSettingsModal from "./ComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -29,6 +30,7 @@ export interface ComponentProps {
   };
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   refreshTick?: number | undefined;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -231,6 +233,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }}
         isSelected={isSelected}
         refreshTick={props.refreshTick}
+        variables={props.variables}
         onClick={() => {
           props.onComponentSelected(componentId);
         }}

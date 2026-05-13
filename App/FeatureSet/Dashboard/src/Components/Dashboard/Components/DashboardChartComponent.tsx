@@ -23,6 +23,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -60,8 +61,11 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     if (additionalQueryConfigs && additionalQueryConfigs.length > 0) {
       configs.push(...additionalQueryConfigs);
     }
-    return configs;
-  }, [primaryQueryConfig, additionalQueryConfigs]);
+    return DashboardVariableInterpolation.applyToQueryConfigs(
+      configs,
+      props.variables,
+    );
+  }, [primaryQueryConfig, additionalQueryConfigs, props.variables]);
 
   const formulaConfigs: Array<MetricFormulaConfigData> = useMemo(() => {
     return formulaConfigsArg && formulaConfigsArg.length > 0
@@ -314,6 +318,10 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
   if (
     !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
   ) {
+    return false;
+  }
+
+  if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
   }
 

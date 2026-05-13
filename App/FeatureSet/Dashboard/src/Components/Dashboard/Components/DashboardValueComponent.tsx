@@ -21,6 +21,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -101,8 +102,18 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const metricQueryConfig: MetricQueryConfigData | undefined =
+  const rawMetricQueryConfig: MetricQueryConfigData | undefined =
     props.component.arguments.metricQueryConfig;
+
+  const metricQueryConfig: MetricQueryConfigData | undefined = useMemo(() => {
+    if (!rawMetricQueryConfig) {
+      return undefined;
+    }
+    return DashboardVariableInterpolation.applyToQueryConfig(
+      rawMetricQueryConfig,
+      props.variables,
+    );
+  }, [rawMetricQueryConfig, props.variables]);
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -457,6 +468,10 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
   if (
     !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
   ) {
+    return false;
+  }
+
+  if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
   }
 

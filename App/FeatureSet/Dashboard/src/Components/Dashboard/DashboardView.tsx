@@ -58,6 +58,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -227,9 +228,20 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         setAutoRefreshInterval(config.refreshInterval);
       }
 
-      // Restore saved variables
+      /*
+       * Restore saved variables, with URL overrides applied so shared
+       * links land with the same selection the sender had.
+       */
       if (config.variables) {
-        setDashboardVariables(config.variables);
+        const urlSelections: ReturnType<
+          typeof DashboardVariableUrlState.parseFromSearch
+        > = DashboardVariableUrlState.parseFromSearch(window.location.search);
+        const withUrl: Array<DashboardVariable> =
+          DashboardVariableUrlState.applyUrlToVariables(
+            config.variables,
+            urlSelections,
+          );
+        setDashboardVariables(withUrl);
       }
     };
 
@@ -444,19 +456,78 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         isRefreshing={isRefreshing}
         variables={dashboardVariables}
-        onVariableValueChange={(variableId: string, value: string) => {
+        telemetryAttributeOptions={telemetryAttributes}
+        metricNameOptions={metricTypes
+          .map((m: MetricType) => {
+            return m.name?.toString() || "";
+          })
+          .filter((name: string) => {
+            return name.length > 0;
+          })}
+        onVariableValueChange={(
+          variableId: string,
+          change: {
+            selectedValue?: string | undefined;
+            selectedValues?: Array<string> | undefined;
+          },
+        ) => {
           const updatedVariables: Array<DashboardVariable> =
             dashboardVariables.map((v: DashboardVariable) => {
               if (v.id === variableId) {
-                return { ...v, selectedValue: value };
+                /*
+                 * Multi-select selections overwrite both fields so the
+                 * stale scalar from a previous single-select doesn't
+                 * survive an "All" multi-select.
+                 */
+                if (change.selectedValues !== undefined) {
+                  return {
+                    ...v,
+                    selectedValues: change.selectedValues,
+                    selectedValue: undefined,
+                  };
+                }
+                return { ...v, selectedValue: change.selectedValue };
               }
               return v;
             });
           setDashboardVariables(updatedVariables);
+          DashboardVariableUrlState.writeToBrowserUrl(updatedVariables);
           // Trigger refresh when variable changes
           setRefreshTick((prev: number) => {
             return prev + 1;
           });
+        }}
+        onVariablesDefinitionChange={(updated: Array<DashboardVariable>) => {
+          /*
+           * Persist new variable definitions onto the dashboard config (so
+           * they survive a save) and reset the runtime selection state to
+           * mirror them. Preserve any prior selectedValue for variables
+           * that still exist by id so the user does not lose context when
+           * they tweak an unrelated variable.
+           */
+          const priorById: Map<string, DashboardVariable> = new Map(
+            dashboardVariables.map((v: DashboardVariable) => {
+              return [v.id, v];
+            }),
+          );
+          const next: Array<DashboardVariable> = updated.map(
+            (v: DashboardVariable) => {
+              const prior: DashboardVariable | undefined = priorById.get(v.id);
+              return {
+                ...v,
+                selectedValue: prior?.selectedValue,
+                selectedValues: prior?.selectedValues,
+              };
+            },
+          );
+          setDashboardVariables(next);
+          setDashboardViewConfig({
+            ...dashboardViewConfig,
+            variables: updated,
+          });
+          DashboardVariableUrlState.writeToBrowserUrl(next);
+          // Lazy-load telemetry attribute options for the autocomplete.
+          loadTelemetryAttributesInBackground();
         }}
         onAddComponentClick={(componentType: DashboardComponentType) => {
           let newComponent: DashboardBaseComponent | null = null;
@@ -627,6 +698,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           currentTotalDashboardWidthInPx={dashboardTotalWidth}
           metrics={metricsBundle}
           refreshTick={refreshTick}
+          variables={dashboardVariables}
         />
       </div>
     </div>

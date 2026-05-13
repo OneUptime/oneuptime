@@ -26,6 +26,7 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
+import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
 
@@ -47,8 +48,19 @@ export interface ComponentProps {
   isRefreshing?: boolean | undefined;
   variables?: Array<DashboardVariable> | undefined;
   onVariableValueChange?:
-    | ((variableId: string, value: string) => void)
+    | ((
+        variableId: string,
+        change: {
+          selectedValue?: string | undefined;
+          selectedValues?: Array<string> | undefined;
+        },
+      ) => void)
     | undefined;
+  onVariablesDefinitionChange?:
+    | ((variables: Array<DashboardVariable>) => void)
+    | undefined;
+  telemetryAttributeOptions?: Array<string> | undefined;
+  metricNameOptions?: Array<string> | undefined;
   canResetZoom?: boolean | undefined;
   onResetZoom?: (() => void) | undefined;
 }
@@ -268,6 +280,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
   const [showAddWidgetModal, setShowAddWidgetModal] = useState<boolean>(false);
+  const [showVariablesModal, setShowVariablesModal] = useState<boolean>(false);
 
   const isSaving: boolean = props.isSaving;
 
@@ -417,6 +430,18 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   }}
                 />
 
+                {props.onVariablesDefinitionChange && (
+                  <Button
+                    icon={IconProp.Variable}
+                    title="Variables"
+                    buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                    buttonSize={ButtonSize.Small}
+                    onClick={() => {
+                      setShowVariablesModal(true);
+                    }}
+                  />
+                )}
+
                 <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
 
                 <Button
@@ -476,6 +501,23 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setShowAddWidgetModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showVariablesModal && props.onVariablesDefinitionChange ? (
+        <DashboardVariablesModal
+          variables={props.variables || []}
+          telemetryAttributeOptions={props.telemetryAttributeOptions || []}
+          metricNameOptions={props.metricNameOptions || []}
+          onClose={() => {
+            setShowVariablesModal(false);
+          }}
+          onSave={(updated: Array<DashboardVariable>) => {
+            props.onVariablesDefinitionChange?.(updated);
+            setShowVariablesModal(false);
           }}
         />
       ) : (

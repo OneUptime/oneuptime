@@ -17,6 +17,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardGaugeComponent;
@@ -34,8 +35,18 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const metricQueryConfig: MetricQueryConfigData | undefined =
+  const rawMetricQueryConfig: MetricQueryConfigData | undefined =
     props.component.arguments.metricQueryConfig;
+
+  const metricQueryConfig: MetricQueryConfigData | undefined = useMemo(() => {
+    if (!rawMetricQueryConfig) {
+      return undefined;
+    }
+    return DashboardVariableInterpolation.applyToQueryConfig(
+      rawMetricQueryConfig,
+      props.variables,
+    );
+  }, [rawMetricQueryConfig, props.variables]);
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -466,6 +477,10 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
       next.dashboardStartAndEndDate,
     )
   ) {
+    return false;
+  }
+
+  if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
   }
 
