@@ -355,6 +355,60 @@ function createTraceListComponent(data: {
   };
 }
 
+function createKubernetesPodListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  podPhases?: Array<string>;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.KubernetesPodList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      podPhases: data.podPhases,
+    },
+  };
+}
+
+function createKubernetesNodeListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  readinessFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.KubernetesNodeList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      readinessFilter: data.readinessFilter,
+    },
+  };
+}
+
 // -- Dashboard configs --
 
 function createMonitorDashboardConfig(): DashboardViewConfig {
@@ -777,6 +831,32 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
 }
 
 function createKubernetesDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - "Pod Count" / "Node Ready" used to be Value widgets over k8s.pod.phase
+   *   / k8s.node.condition_ready with `Sum` aggregation. Those metrics are
+   *   per-resource gauges that re-emit `1` on every scrape, so summing
+   *   across the dashboard window multiplied (pods * scrapes) and produced
+   *   numbers in the hundreds for tiny clusters. The user-visible fix is
+   *   to use the dedicated KubernetesPodList / KubernetesNodeList widgets
+   *   below — they read the per-cluster snapshot in Postgres and show
+   *   accurate counts in the widget header plus a live list of rows.
+   *
+   * - "Memory Utilization" used to be a 0-100 gauge over k8s.node.memory.usage,
+   *   which is reported in bytes. A node with 8 GB of RAM produced a value
+   *   in the 10^9 range against a 0-100 scale, so the gauge always pinned
+   *   at the critical end with a meaningless absolute number. Without a
+   *   first-class percent metric we replace it with a Value widget that
+   *   renders the absolute usage via ValueFormatter (e.g. "8.3 GB").
+   *
+   * - CPU widgets use OTel's k8s.*.cpu.utilization, which the collector
+   *   emits as a [0, 1] ratio with unit "1". DashboardValueComponent /
+   *   DashboardGaugeComponent now scale that to a percent at render time
+   *   when the metric name carries the `.utilization` suffix, so "0.05"
+   *   reads as "5.00%" and gauge thresholds in the natural 0-100 scale work
+   *   as expected.
+   */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
     createTextComponent({
@@ -788,47 +868,48 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 1: Key cluster metrics
+    /*
+     * Row 1: Key cluster metrics — averages render with proper units via
+     * ValueFormatter (CPU utilization → "%", memory.usage → "MB"/"GB").
+     */
     createValueComponent({
-      title: "CPU Usage",
+      title: "Pod CPU (avg)",
       top: 1,
       left: 0,
       width: 3,
       metricConfig: {
         metricName: "k8s.pod.cpu.utilization",
         aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "%",
       },
     }),
     createValueComponent({
-      title: "Memory Usage",
+      title: "Pod Memory (avg)",
       top: 1,
       left: 3,
       width: 3,
       metricConfig: {
         metricName: "k8s.pod.memory.usage",
         aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "bytes",
       },
     }),
     createValueComponent({
-      title: "Pod Count",
+      title: "Node CPU (avg)",
       top: 1,
       left: 6,
       width: 3,
       metricConfig: {
-        metricName: "k8s.pod.phase",
-        aggregationType: MetricsAggregationType.Sum,
+        metricName: "k8s.node.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
       },
     }),
     createValueComponent({
-      title: "Node Ready",
+      title: "Node Memory (avg)",
       top: 1,
       left: 9,
       width: 3,
       metricConfig: {
-        metricName: "k8s.node.condition_ready",
-        aggregationType: MetricsAggregationType.Sum,
+        metricName: "k8s.node.memory.usage",
+        aggregationType: MetricsAggregationType.Avg,
       },
     }),
 
@@ -844,7 +925,6 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         metricName: "k8s.pod.cpu.utilization",
         aggregationType: MetricsAggregationType.Avg,
         legend: "CPU Utilization",
-        legendUnit: "%",
       },
     }),
     createChartComponent({
@@ -858,13 +938,12 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         metricName: "k8s.pod.memory.usage",
         aggregationType: MetricsAggregationType.Avg,
         legend: "Memory Usage",
-        legendUnit: "bytes",
       },
     }),
 
     // Row 5: Section header
     createTextComponent({
-      text: "Resource Health",
+      text: "Cluster Resources",
       top: 5,
       left: 0,
       width: 12,
@@ -872,12 +951,48 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 6-8: Gauges and pod chart
-    createGaugeComponent({
-      title: "CPU Utilization",
+    /*
+     * Row 6-9: Pod and node lists query the Postgres snapshot, so the
+     * header shows the true current count and the body shows live rows
+     * (replacing the broken Sum-of-gauge Value widgets).
+     */
+    createKubernetesPodListComponent({
+      title: "Pods",
       top: 6,
       left: 0,
-      width: 3,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createKubernetesNodeListComponent({
+      title: "Nodes",
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Resource Health",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 11-13: CPU gauge (auto-scaled from [0,1] to percent), and the
+     * network throughput chart. The old "Memory Utilization" gauge over
+     * raw bytes is gone — see top-of-function comment.
+     */
+    createGaugeComponent({
+      title: "Cluster CPU Utilization",
+      top: 11,
+      left: 0,
+      width: 4,
       height: 3,
       minValue: 0,
       maxValue: 100,
@@ -888,65 +1003,36 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
       },
     }),
-    createGaugeComponent({
-      title: "Memory Utilization",
-      top: 6,
-      left: 3,
-      width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      warningThreshold: 70,
-      criticalThreshold: 90,
-      metricConfig: {
-        metricName: "k8s.node.memory.usage",
-        aggregationType: MetricsAggregationType.Avg,
-      },
-    }),
     createChartComponent({
-      title: "Pod Count Over Time",
-      chartType: DashboardChartType.StackedArea,
-      top: 6,
-      left: 6,
-      width: 6,
+      title: "Network I/O",
+      chartType: DashboardChartType.Area,
+      top: 11,
+      left: 4,
+      width: 8,
       height: 3,
       metricConfig: {
-        metricName: "k8s.pod.phase",
+        metricName: "k8s.pod.network.io",
         aggregationType: MetricsAggregationType.Sum,
-        legend: "Pods",
+        legend: "Network I/O",
       },
     }),
 
-    // Row 9: Section header
+    // Row 14: Section header
     createTextComponent({
-      text: "Workload Details",
-      top: 9,
+      text: "Workload Activity",
+      top: 14,
       left: 0,
       width: 12,
       height: 1,
       isBold: true,
     }),
 
-    // Row 10-12: Network, restarts
-    createChartComponent({
-      title: "Network I/O",
-      chartType: DashboardChartType.Area,
-      top: 10,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: "k8s.pod.network.io",
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Network I/O",
-        legendUnit: "bytes",
-      },
-    }),
+    // Row 15-17: Restarts and replicas
     createChartComponent({
       title: "Container Restarts Over Time",
       chartType: DashboardChartType.Bar,
-      top: 10,
-      left: 6,
+      top: 15,
+      left: 0,
       width: 6,
       height: 3,
       metricConfig: {
@@ -955,12 +1041,10 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         legend: "Restarts",
       },
     }),
-
-    // Row 13-15: Table and logs
     createTableComponent({
       title: "Deployment Replicas",
-      top: 13,
-      left: 0,
+      top: 15,
+      left: 6,
       width: 6,
       height: 3,
       metricConfig: {
@@ -968,11 +1052,13 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Min,
       },
     }),
+
+    // Row 18-20: Logs
     createLogStreamComponent({
       title: "Cluster Logs",
-      top: 13,
-      left: 6,
-      width: 6,
+      top: 18,
+      left: 0,
+      width: 12,
       height: 3,
     }),
   ];
@@ -980,7 +1066,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
-    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 16),
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 21),
   };
 }
 

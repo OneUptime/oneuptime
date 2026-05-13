@@ -18,6 +18,8 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardGaugeComponent;
@@ -225,7 +227,27 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  aggregatedValue = Math.round(aggregatedValue * 100) / 100;
+  const metricName: string =
+    props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
+    "";
+  const rawUnit: string =
+    props.metricTypes?.find((item: MetricType) => {
+      return item.name?.toString() === metricName;
+    })?.unit || "";
+
+  /*
+   * OTel ratio metrics (unit "1" + `.utilization`/`.ratio`/`.fraction`/
+   * `.percent` name) arrive in the [0, 1] range. Gauge thresholds and the
+   * 0-100 sweep are authored in the natural percent scale, so we scale the
+   * stored value to a percent for arc rendering, threshold colouring, and
+   * the centre value display. ValueFormatter handles the same conversion
+   * for the formatted label so the user sees "25.00%" instead of "0.25 1".
+   */
+  const isFractionScale: boolean =
+    rawUnit.trim() === "1" && ValueFormatter.isFractionMetric(metricName);
+  const scaledValue: number = isFractionScale
+    ? aggregatedValue * 100
+    : aggregatedValue;
 
   const minValue: number = props.component.arguments.minValue ?? 0;
   const maxValue: number = props.component.arguments.maxValue ?? 100;
@@ -237,20 +259,24 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   // Calculate percentage for the gauge arc
   const range: number = maxValue - minValue;
   const percentage: number =
-    range > 0
-      ? Math.min(Math.max((aggregatedValue - minValue) / range, 0), 1)
-      : 0;
+    range > 0 ? Math.min(Math.max((scaledValue - minValue) / range, 0), 1) : 0;
 
   // Determine color based on thresholds
   let gaugeColor: string = "#10b981"; // green
-  if (criticalThreshold !== undefined && aggregatedValue >= criticalThreshold) {
+  if (criticalThreshold !== undefined && scaledValue >= criticalThreshold) {
     gaugeColor = "#ef4444"; // red
   } else if (
     warningThreshold !== undefined &&
-    aggregatedValue >= warningThreshold
+    scaledValue >= warningThreshold
   ) {
     gaugeColor = "#f59e0b"; // yellow
   }
+
+  const formattedDisplay: string = ValueFormatter.formatValue(
+    aggregatedValue,
+    rawUnit,
+    { metricName },
+  );
 
   // SVG gauge rendering
   const size: number = Math.min(
@@ -426,7 +452,7 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
             letterSpacing: "-0.03em",
           }}
         >
-          {aggregatedValue}
+          {formattedDisplay}
         </div>
         <div
           className="text-gray-400 font-medium"
@@ -482,6 +508,26 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
 
   if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
+  }
+
+  /*
+   * metricTypes drives unit lookup for ValueFormatter — compare by length
+   * and names so re-renders happen only when the underlying registry
+   * changes, not on every parent identity flip.
+   */
+  const prevTypes: Array<{ name?: string }> = prev.metricTypes as Array<{
+    name?: string;
+  }>;
+  const nextTypes: Array<{ name?: string }> = next.metricTypes as Array<{
+    name?: string;
+  }>;
+  if (prevTypes.length !== nextTypes.length) {
+    return false;
+  }
+  for (let i: number = 0; i < prevTypes.length; i++) {
+    if (prevTypes[i]?.name !== nextTypes[i]?.name) {
+      return false;
+    }
   }
 
   return JSONFunctions.deepEqual(

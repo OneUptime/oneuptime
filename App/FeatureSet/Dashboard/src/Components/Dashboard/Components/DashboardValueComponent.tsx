@@ -22,6 +22,29 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import ValueFormatter from "Common/Utils/ValueFormatter";
+
+/*
+ * Split a ValueFormatter output like "1.5 MB" / "25.00%" / "1.23K" into a
+ * numeric portion and a unit portion so the widget can render them with
+ * different font sizes (big number, small unit suffix).
+ */
+function splitFormattedValue(formatted: string): {
+  value: string;
+  unit: string;
+} {
+  if (formatted.endsWith("%")) {
+    return { value: formatted.slice(0, -1), unit: "%" };
+  }
+  const lastSpace: number = formatted.lastIndexOf(" ");
+  if (lastSpace > 0) {
+    return {
+      value: formatted.substring(0, lastSpace),
+      unit: formatted.substring(lastSpace + 1),
+    };
+  }
+  return { value: formatted, unit: "" };
+}
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -279,9 +302,6 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  // round to 2 decimal places
-  aggregatedValue = Math.round(aggregatedValue * 100) / 100;
-
   // Sparkline data - take raw values in order
   const sparklineData: Array<number> = allDataPoints.map(
     (item: AggregatedModel) => {
@@ -294,13 +314,41 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const showSparkline: boolean =
     sparklineData.length >= 2 && props.dashboardComponentHeightInPx > 100;
 
-  const unit: string | undefined =
+  const metricName: string =
+    props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
+    "";
+
+  const rawUnit: string =
     props.metricTypes?.find((item: MetricType) => {
-      return (
-        item.name?.toString() ===
-        props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString()
-      );
+      return item.name?.toString() === metricName;
     })?.unit || "";
+
+  /*
+   * Run the raw aggregate through ValueFormatter so bytes scale to
+   * KB/MB/GB, OTel ratio metrics (unit "1" + `.utilization` name) render
+   * as percentages, and dimensionless counts (unit "1" with no fraction
+   * suffix) lose the meaningless "1" suffix. The big-number font is
+   * applied to the numeric portion and the unit suffix is rendered in a
+   * smaller gray span, so we split the formatted string here.
+   */
+  const formattedString: string = ValueFormatter.formatValue(
+    aggregatedValue,
+    rawUnit,
+    { metricName },
+  );
+  const { value: formattedValue, unit: displayUnit } =
+    splitFormattedValue(formattedString);
+
+  /*
+   * Threshold comparison uses the same scale as the displayed value.
+   * For fraction metrics arriving as [0, 1] we compare the percent (0-100)
+   * value so thresholds set in the natural percent scale work as expected.
+   */
+  const isFractionScale: boolean =
+    rawUnit.trim() === "1" && ValueFormatter.isFractionMetric(metricName);
+  const thresholdValue: number = isFractionScale
+    ? aggregatedValue * 100
+    : aggregatedValue;
 
   // Determine color based on thresholds
   let valueColorClass: string = "text-gray-900";
@@ -312,7 +360,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const criticalThreshold: number | undefined =
     props.component.arguments.criticalThreshold;
 
-  if (criticalThreshold !== undefined && aggregatedValue >= criticalThreshold) {
+  if (criticalThreshold !== undefined && thresholdValue >= criticalThreshold) {
     valueColorClass = "text-red-600";
     bgStyle = {
       background:
@@ -322,7 +370,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     sparklineFill = "rgba(239, 68, 68, 0.08)";
   } else if (
     warningThreshold !== undefined &&
-    aggregatedValue >= warningThreshold
+    thresholdValue >= warningThreshold
   ) {
     valueColorClass = "text-amber-600";
     bgStyle = {
@@ -400,14 +448,18 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
           letterSpacing: "-0.03em",
         }}
       >
-        {aggregatedValue || "0"}
+        {formattedValue || "0"}
         <span
           className="text-gray-400 font-normal"
           style={{
             fontSize: valueHeightInPx > 0 ? `${valueHeightInPx * 0.3}px` : "",
           }}
         >
-          {unit ? ` ${unit}` : ""}
+          {displayUnit
+            ? displayUnit === "%"
+              ? displayUnit
+              : ` ${displayUnit}`
+            : ""}
         </span>
       </div>
 
