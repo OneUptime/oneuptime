@@ -10,7 +10,7 @@ import BlankDashboardUnitElement from "./BlankDashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
+import ComponentSettingsModal from "./ComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -256,7 +256,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     <div>
       {renderComponents()}
       {props.selectedComponentId && props.isEditMode && (
-        <ComponentSettingsSideOver
+        <ComponentSettingsModal
           title="Component Settings"
           description="Edit the settings of this component"
           dashboardViewConfig={props.dashboardViewConfig}
@@ -286,6 +286,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             updateComponent(updatedComponent);
           }}
           metrics={props.metrics}
+          dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+          totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         />
       )}
     </div>
