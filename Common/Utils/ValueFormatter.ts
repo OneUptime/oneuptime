@@ -189,6 +189,27 @@ function formatWithThresholds(
 ): FormattedValue {
   const absValue: number = Math.abs(value);
 
+  /*
+   * 0 is a tricky edge case for descending-threshold tables: the table
+   * always has a `threshold: 0` entry at the bottom (the smallest sub-
+   * unit — ns for seconds, B for bytes), and `0 >= 0` short-circuits the
+   * loop on that entry. The result is that a 0-value `seconds` metric
+   * renders as "0 ns" instead of "0 sec". Use the natural unit
+   * (divisor === 1) when the value is exactly 0 so the suffix matches
+   * the input scale.
+   */
+  if (absValue === 0) {
+    const natural: UnitThreshold =
+      thresholds.find((t: UnitThreshold) => {
+        return t.divisor === 1;
+      }) ?? (thresholds[thresholds.length - 1] as UnitThreshold);
+    return {
+      value: "0",
+      unit: natural.unit,
+      formatted: `0 ${natural.unit}`,
+    };
+  }
+
   for (const t of thresholds) {
     if (absValue >= t.threshold) {
       const scaled: number = value / t.divisor;

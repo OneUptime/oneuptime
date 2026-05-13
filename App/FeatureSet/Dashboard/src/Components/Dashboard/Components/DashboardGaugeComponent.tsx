@@ -278,13 +278,23 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     { metricName },
   );
 
-  // SVG gauge rendering
+  /*
+   * Gauge sizing — pick a square that fits the available space, then carve
+   * out room above for the title and below for min/max labels. The arc is
+   * a thin half-circle so the value reads cleanly inside; the previous
+   * design used a 10%-wide arc that swallowed the centre digits at small
+   * widget sizes.
+   */
+  const reservedTitlePx: number = 28;
+  const reservedFooterPx: number = 22;
+  const verticalBudget: number =
+    props.dashboardComponentHeightInPx - reservedTitlePx - reservedFooterPx;
   const size: number = Math.min(
-    props.dashboardComponentWidthInPx - 40,
-    props.dashboardComponentHeightInPx - 60,
+    props.dashboardComponentWidthInPx - 24,
+    verticalBudget * 1.8,
   );
-  const gaugeSize: number = Math.max(size, 80);
-  const strokeWidth: number = Math.max(gaugeSize * 0.1, 8);
+  const gaugeSize: number = Math.max(size, 96);
+  const strokeWidth: number = Math.max(gaugeSize * 0.06, 7);
   const radius: number = (gaugeSize - strokeWidth) / 2;
   const centerX: number = gaugeSize / 2;
   const centerY: number = gaugeSize / 2;
@@ -305,36 +315,50 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const backgroundPath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 0 1 ${arcEndX} ${arcEndY}`;
   const valuePath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 ${percentage > 0.5 ? 1 : 0} 1 ${arcCurrentX} ${arcCurrentY}`;
 
-  const titleHeightInPx: number = Math.min(
-    Math.max(props.dashboardComponentHeightInPx * 0.1, 12),
-    16,
-  );
-  const valueHeightInPx: number = Math.max(gaugeSize * 0.22, 16);
+  const valueHeightInPx: number = Math.max(gaugeSize * 0.18, 18);
+
+  // Status label derived from threshold state
+  let statusLabel: string = "Healthy";
+  let statusTextColor: string = "text-emerald-600";
+  let statusDotColor: string = "#10b981";
+  if (criticalThreshold !== undefined && scaledValue >= criticalThreshold) {
+    statusLabel = "Critical";
+    statusTextColor = "text-red-600";
+    statusDotColor = "#ef4444";
+  } else if (
+    warningThreshold !== undefined &&
+    scaledValue >= warningThreshold
+  ) {
+    statusLabel = "Warning";
+    statusTextColor = "text-amber-600";
+    statusDotColor = "#f59e0b";
+  }
 
   // Generate a unique gradient ID for this component instance
   const gradientId: string = `gauge-gradient-${props.componentId?.toString() || "default"}`;
 
-  // Threshold marker positions on arc
-  type ThresholdMarker = {
+  // Threshold tick positions on arc
+  type ThresholdTick = {
     angle: number;
-    x: number;
-    y: number;
     color: string;
+    label: string;
   };
 
-  const thresholdMarkers: Array<ThresholdMarker> = [];
+  const thresholdTicks: Array<ThresholdTick> = [];
 
   if (warningThreshold !== undefined && range > 0) {
     const warningPct: number = Math.min(
       Math.max((warningThreshold - minValue) / range, 0),
       1,
     );
-    const warningAngle: number = startAngle - sweepAngle * warningPct;
-    thresholdMarkers.push({
-      angle: warningAngle,
-      x: centerX + (radius + strokeWidth * 0.7) * Math.cos(warningAngle),
-      y: centerY - (radius + strokeWidth * 0.7) * Math.sin(warningAngle),
+    thresholdTicks.push({
+      angle: startAngle - sweepAngle * warningPct,
       color: "#f59e0b",
+      label: ValueFormatter.formatValue(
+        isFractionScale ? warningThreshold / 100 : warningThreshold,
+        rawUnit,
+        { metricName },
+      ),
     });
   }
 
@@ -343,143 +367,161 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
       Math.max((criticalThreshold - minValue) / range, 0),
       1,
     );
-    const criticalAngle: number = startAngle - sweepAngle * criticalPct;
-    thresholdMarkers.push({
-      angle: criticalAngle,
-      x: centerX + (radius + strokeWidth * 0.7) * Math.cos(criticalAngle),
-      y: centerY - (radius + strokeWidth * 0.7) * Math.sin(criticalAngle),
+    thresholdTicks.push({
+      angle: startAngle - sweepAngle * criticalPct,
       color: "#ef4444",
+      label: ValueFormatter.formatValue(
+        isFractionScale ? criticalThreshold / 100 : criticalThreshold,
+        rawUnit,
+        { metricName },
+      ),
     });
   }
 
-  const percentDisplay: number = Math.round(percentage * 100);
+  /*
+   * Min/max labels go through ValueFormatter so a gauge authored in
+   * seconds doesn't dump "0" / "7200" — it reads "0 sec" / "2 hr"
+   * matching the centre value's scale. For fraction metrics we divide
+   * the percent-scale range back to a ratio before formatting.
+   */
+  const formattedMin: string = ValueFormatter.formatValue(
+    isFractionScale ? minValue / 100 : minValue,
+    rawUnit,
+    { metricName },
+  );
+  const formattedMax: string = ValueFormatter.formatValue(
+    isFractionScale ? maxValue / 100 : maxValue,
+    rawUnit,
+    { metricName },
+  );
+
+  const gaugeViewboxHeight: number = gaugeSize / 2 + strokeWidth + 12;
 
   return (
     <div
-      className="w-full text-center h-full flex flex-col items-center justify-center"
+      className="w-full h-full flex flex-col items-center justify-between py-2 px-3"
       style={{
         opacity: isLoading ? 0.5 : 1,
         transition: "opacity 0.2s ease-in-out",
       }}
     >
       {props.component.arguments.gaugeTitle && (
-        <div
-          style={{
-            fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
-          }}
-          className="text-center font-medium text-gray-400 mb-2 truncate uppercase tracking-wider"
-        >
+        <div className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center">
           {props.component.arguments.gaugeTitle}
         </div>
       )}
-      <svg
-        width={gaugeSize}
-        height={gaugeSize / 2 + strokeWidth + 8}
-        viewBox={`0 0 ${gaugeSize} ${gaugeSize / 2 + strokeWidth + 8}`}
+
+      <div
+        className="relative flex flex-col items-center"
+        style={{ width: `${gaugeSize}px` }}
       >
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={gaugeColor} stopOpacity="0.6" />
-            <stop offset="50%" stopColor={gaugeColor} stopOpacity="0.85" />
-            <stop offset="100%" stopColor={gaugeColor} stopOpacity="1" />
-          </linearGradient>
-          <filter
-            id={`gauge-glow-${props.componentId?.toString() || "default"}`}
-          >
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        {/* Background track */}
-        <path
-          d={backgroundPath}
-          fill="none"
-          stroke="#f0f0f0"
-          strokeWidth={strokeWidth + 4}
-          strokeLinecap="round"
-        />
-        {/* Value arc */}
-        {percentage > 0 && (
+        <svg
+          width={gaugeSize}
+          height={gaugeViewboxHeight}
+          viewBox={`0 0 ${gaugeSize} ${gaugeViewboxHeight}`}
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={gaugeColor} stopOpacity="0.7" />
+              <stop offset="100%" stopColor={gaugeColor} stopOpacity="1" />
+            </linearGradient>
+          </defs>
+          {/* Background track */}
           <path
-            d={valuePath}
+            d={backgroundPath}
             fill="none"
-            stroke={`url(#${gradientId})`}
+            stroke="#eef2f7"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
-            filter={`url(#gauge-glow-${props.componentId?.toString() || "default"})`}
           />
-        )}
-        {/* Threshold markers */}
-        {thresholdMarkers.map((marker: ThresholdMarker, index: number) => {
-          return (
-            <circle
-              key={index}
-              cx={marker.x}
-              cy={marker.y}
-              r={3}
-              fill={marker.color}
-              stroke="white"
-              strokeWidth={1.5}
+          {/* Value arc */}
+          {percentage > 0 && (
+            <path
+              d={valuePath}
+              fill="none"
+              stroke={`url(#${gradientId})`}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              style={{ transition: "stroke 200ms ease" }}
             />
-          );
-        })}
-        {/* Needle tip dot at current position */}
-        {percentage > 0 && (
-          <circle
-            cx={arcCurrentX}
-            cy={arcCurrentY}
-            r={strokeWidth * 0.4}
-            fill="white"
-            stroke={gaugeColor}
-            strokeWidth={2}
-          />
-        )}
-      </svg>
-      {/* Value + percentage display */}
-      <div
-        style={{
-          marginTop: `-${gaugeSize * 0.2}px`,
-        }}
-      >
+          )}
+          {/* Threshold tick marks — short radial slashes outside the arc */}
+          {thresholdTicks.map((tick: ThresholdTick, index: number) => {
+            const innerR: number = radius - strokeWidth * 0.55;
+            const outerR: number = radius + strokeWidth * 0.55;
+            const cosA: number = Math.cos(tick.angle);
+            const sinA: number = Math.sin(tick.angle);
+            return (
+              <line
+                key={index}
+                x1={centerX + innerR * cosA}
+                y1={centerY - innerR * sinA}
+                x2={centerX + outerR * cosA}
+                y2={centerY - outerR * sinA}
+                stroke={tick.color}
+                strokeWidth={2}
+                strokeLinecap="round"
+                opacity={0.85}
+              >
+                <title>{tick.label}</title>
+              </line>
+            );
+          })}
+          {/* Indicator dot at current position */}
+          {percentage > 0 && (
+            <circle
+              cx={arcCurrentX}
+              cy={arcCurrentY}
+              r={strokeWidth * 0.5}
+              fill="#ffffff"
+              stroke={gaugeColor}
+              strokeWidth={2}
+            />
+          )}
+        </svg>
+
+        {/* Centre value — placed in the empty half-disc area below the arc */}
         <div
-          className="font-bold text-gray-900"
+          className="absolute left-0 right-0 flex flex-col items-center"
           style={{
-            fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
-            lineHeight: 1.1,
-            letterSpacing: "-0.03em",
+            top: `${gaugeSize / 2 - valueHeightInPx * 0.55}px`,
           }}
         >
-          {formattedDisplay}
-        </div>
-        <div
-          className="text-gray-400 font-medium"
-          style={{
-            fontSize: `${Math.max(valueHeightInPx * 0.45, 10)}px`,
-          }}
-        >
-          {percentDisplay}%
+          <div
+            className="font-bold text-gray-900 tabular-nums leading-none"
+            style={{
+              fontSize: `${valueHeightInPx}px`,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {formattedDisplay}
+          </div>
+          <div
+            className={`mt-1.5 inline-flex items-center gap-1 ${statusTextColor}`}
+            style={{ fontSize: "10px" }}
+          >
+            <span
+              className="inline-block rounded-full"
+              style={{
+                width: "6px",
+                height: "6px",
+                backgroundColor: statusDotColor,
+              }}
+            />
+            <span className="font-medium tracking-wide uppercase">
+              {statusLabel}
+            </span>
+          </div>
         </div>
       </div>
-      {/* Min/Max labels */}
+
+      {/* Min/Max footer */}
       <div
-        className="flex justify-between w-full px-2 mt-0.5"
-        style={{ maxWidth: `${gaugeSize + 10}px` }}
+        className="flex justify-between w-full text-[10px] text-gray-400 tabular-nums"
+        style={{ maxWidth: `${gaugeSize}px` }}
       >
-        <span
-          className="text-gray-300 tabular-nums"
-          style={{ fontSize: "10px" }}
-        >
-          {minValue}
-        </span>
-        <span
-          className="text-gray-300 tabular-nums"
-          style={{ fontSize: "10px" }}
-        >
-          {maxValue}
-        </span>
+        <span>{formattedMin}</span>
+        <span>{formattedMax}</span>
       </div>
     </div>
   );

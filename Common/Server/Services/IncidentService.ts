@@ -49,6 +49,7 @@ import Metric, {
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger, { LogAttributes } from "../Utils/Logger";
+import NotEqual from "../../Types/BaseDatabase/NotEqual";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
@@ -2563,12 +2564,25 @@ ${incidentSeverity.name}
     const firstIncidentStateTimeline: IncidentStateTimeline | undefined =
       incidentStateTimelines[0];
 
-    // delete all the incident metrics with this incident id because it's a refresh.
-
+    /*
+     * Delete the existing metrics for this incident so the time-varying
+     * ones (TimeToAcknowledge / TimeToResolve / IncidentDuration /
+     * TimeInState) get rewritten with the latest state-timeline values
+     * on this refresh. IncidentCount is excluded from the delete: it is
+     * a constant `value = 1` keyed by `serviceId + bucketTime` that
+     * never changes. Re-emitting it across refreshes inflated the
+     * 1-minute aggregating materialized view (`MetricItemAggMV1m_mv`),
+     * because the MV trigger only fires on inserts — ALTER DELETE
+     * mutations don't roll back the previously-accumulated
+     * `sumState` / `countState`. That's why the Incident Dashboard
+     * sum-of-IncidentCount widget read ~33% higher than the actual
+     * unique-incident count.
+     */
     await MetricService.deleteBy({
       query: {
         projectId: incident.projectId,
         serviceId: data.incidentId,
+        name: new NotEqual<string>(IncidentMetricType.IncidentCount),
       },
       props: {
         isRoot: true,
@@ -2623,36 +2637,59 @@ ${incidentSeverity.name}
       ownerTeamNames: ownerTeamNames.join(", "),
     };
 
-    const incidentCountMetric: Metric = new Metric();
+    /*
+     * Only emit IncidentCount on the very first refresh (i.e. when no
+     * existing IncidentCount row is present for this serviceId). See
+     * the delete comment above — emitting it on every refresh would
+     * accumulate phantom `sumState` entries in the MV that ALTER
+     * DELETE can't undo. By keeping the original row alive and never
+     * re-emitting, the dashboard Sum stays equal to the true count of
+     * distinct incidents.
+     */
+    const existingIncidentCount: PositiveNumber = await MetricService.countBy({
+      query: {
+        projectId: incident.projectId,
+        serviceId: data.incidentId,
+        name: IncidentMetricType.IncidentCount,
+      },
+      skip: 0,
+      limit: 1,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    incidentCountMetric.projectId = incident.projectId;
-    incidentCountMetric.serviceId = incident.id!;
-    incidentCountMetric.serviceType = ServiceType.Incident;
-    incidentCountMetric.name = IncidentMetricType.IncidentCount;
-    incidentCountMetric.value = 1;
-    incidentCountMetric.attributes = { ...baseMetricAttributes };
-    incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-      incidentCountMetric.attributes,
-    );
+    if (existingIncidentCount.toNumber() === 0) {
+      const incidentCountMetric: Metric = new Metric();
 
-    incidentCountMetric.time = incidentStartsAt;
-    incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      incidentCountMetric.time,
-    );
-    incidentCountMetric.metricPointType = MetricPointType.Sum;
-    incidentCountMetric.retentionDate = incidentMetricRetentionDate;
+      incidentCountMetric.projectId = incident.projectId;
+      incidentCountMetric.serviceId = incident.id!;
+      incidentCountMetric.serviceType = ServiceType.Incident;
+      incidentCountMetric.name = IncidentMetricType.IncidentCount;
+      incidentCountMetric.value = 1;
+      incidentCountMetric.attributes = { ...baseMetricAttributes };
+      incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        incidentCountMetric.attributes,
+      );
 
-    itemsToSave.push(incidentCountMetric);
+      incidentCountMetric.time = incidentStartsAt;
+      incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        incidentCountMetric.time,
+      );
+      incidentCountMetric.metricPointType = MetricPointType.Sum;
+      incidentCountMetric.retentionDate = incidentMetricRetentionDate;
 
-    // add metric type for this to map.
+      itemsToSave.push(incidentCountMetric);
+    }
+
+    // Always register the metric type so it shows up in the type catalog.
     const metricType: MetricType = new MetricType();
-    metricType.name = incidentCountMetric.name;
+    metricType.name = IncidentMetricType.IncidentCount;
     metricType.description = "Number of incidents created";
     metricType.unit = "";
     metricType.services = [];
 
-    // add to map.
-    metricTypesMap[incidentCountMetric.name] = metricType;
+    metricTypesMap[IncidentMetricType.IncidentCount] = metricType;
 
     // is the incident acknowledged?
     const isIncidentAcknowledged: boolean = incidentStateTimelines.some(

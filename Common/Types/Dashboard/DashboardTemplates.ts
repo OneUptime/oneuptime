@@ -9,20 +9,22 @@ import IconProp from "../Icon/IconProp";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
 import MonitorMetricType from "../Monitor/MonitorMetricType";
-import SpanMetricType from "../Span/SpanMetricType";
-import ExceptionMetricType from "../Exception/ExceptionMetricType";
-import ProfileMetricType from "../Profile/ProfileMetricType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 
+/*
+ * Trace / Exception / Profiles entries are intentionally not in this
+ * enum: their metric catalogs (SpanMetricType, ExceptionMetricType,
+ * ProfileMetricType) define names that are not emitted anywhere in the
+ * codebase, so the templates only ever rendered empty widgets. Reach
+ * for the Logs / Traces / Exceptions pages directly until those metrics
+ * exist.
+ */
 export enum DashboardTemplateType {
   Blank = "Blank",
   Monitor = "Monitor",
   Incident = "Incident",
   Kubernetes = "Kubernetes",
   Metrics = "Metrics",
-  Trace = "Trace",
-  Exception = "Exception",
-  Profiles = "Profiles",
 }
 
 export interface DashboardTemplate {
@@ -43,50 +45,29 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     type: DashboardTemplateType.Monitor,
     name: "Monitor Dashboard",
     description:
-      "Response time, uptime, error rate, throughput charts, health gauges, and logs.",
+      "Response time, uptime, status codes, CPU/memory health gauges, and breakdown table for synthetic and server monitors.",
     icon: IconProp.Heartbeat,
   },
   {
     type: DashboardTemplateType.Incident,
     name: "Incident Dashboard",
     description:
-      "MTTR/MTTA gauges, incident trends, severity breakdown, duration tables, logs, and traces.",
+      "Incident count, MTTR/MTTA gauges, duration trends, severity breakdown, time-in-state, and longest-incident tables.",
     icon: IconProp.Alert,
   },
   {
     type: DashboardTemplateType.Kubernetes,
     name: "Kubernetes Dashboard",
     description:
-      "CPU/memory gauges, pod and node metrics, network I/O, restart trends, and cluster logs.",
+      "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
     icon: IconProp.Kubernetes,
   },
   {
     type: DashboardTemplateType.Metrics,
     name: "Metrics Dashboard",
     description:
-      "HTTP request rates, latency percentiles, error rates, system resource usage, and custom application metrics.",
+      "HTTP request rate, latency, error rate, CPU utilization gauge, memory usage, disk and network I/O, and runtime metrics.",
     icon: IconProp.ChartBar,
-  },
-  {
-    type: DashboardTemplateType.Trace,
-    name: "Trace Dashboard",
-    description:
-      "Span throughput, latency percentiles, error rates, service health, status breakdown, and recent traces.",
-    icon: IconProp.Activity,
-  },
-  {
-    type: DashboardTemplateType.Exception,
-    name: "Exception Dashboard",
-    description:
-      "Exception counts, error rates, top exception types, resolution status, affected services, and logs.",
-    icon: IconProp.Bug,
-  },
-  {
-    type: DashboardTemplateType.Profiles,
-    name: "Profiles Dashboard",
-    description:
-      "CPU profiles, memory allocations, heap usage, thread counts, top functions by CPU time, and flamegraph data.",
-    icon: IconProp.Fire,
   },
 ];
 
@@ -326,31 +307,6 @@ function createTableComponent(data: {
               groupBy: undefined,
             },
           },
-    },
-  };
-}
-
-function createTraceListComponent(data: {
-  title: string;
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-  maxRows?: number;
-}): DashboardBaseComponent {
-  return {
-    _type: ObjectType.DashboardComponent,
-    componentType: DashboardComponentType.TraceList,
-    componentId: ObjectID.generate(),
-    topInDashboardUnits: data.top,
-    leftInDashboardUnits: data.left,
-    widthInDashboardUnits: data.width,
-    heightInDashboardUnits: data.height,
-    minHeightInDashboardUnits: 3,
-    minWidthInDashboardUnits: 6,
-    arguments: {
-      title: data.title,
-      maxRows: data.maxRows ?? 20,
     },
   };
 }
@@ -808,7 +764,13 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 14-16: Tables
+    /*
+     * Row 14-16: Operational tables. Logs / traces were removed from the
+     * Incident template because incident records are not log/trace
+     * sources — they're rows in Postgres. Surfacing unrelated cluster
+     * logs and trace lists alongside MTTR/MTTA was a UX miss; if a user
+     * wants those views they live on dedicated Trace / Log pages.
+     */
     createTableComponent({
       title: "Incidents by Duration",
       top: 14,
@@ -831,28 +793,12 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
       },
     }),
-
-    // Row 17-19: Logs and traces
-    createLogStreamComponent({
-      title: "Recent Incident Logs",
-      top: 17,
-      left: 0,
-      width: 6,
-      height: 3,
-    }),
-    createTraceListComponent({
-      title: "Recent Traces",
-      top: 17,
-      left: 6,
-      width: 6,
-      height: 3,
-    }),
   ];
 
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
-    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 20),
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 17),
   };
 }
 
@@ -1407,820 +1353,6 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
   };
 }
 
-function createTraceDashboardConfig(): DashboardViewConfig {
-  const components: Array<DashboardBaseComponent> = [
-    // Row 0: Title
-    createTextComponent({
-      text: "Trace Dashboard",
-      top: 0,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 1: Key trace metrics
-    createValueComponent({
-      title: "Span Count",
-      top: 1,
-      left: 0,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createValueComponent({
-      title: "Avg Duration",
-      top: 1,
-      left: 3,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanDuration,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "ms",
-      },
-    }),
-    createValueComponent({
-      title: "Error Rate",
-      top: 1,
-      left: 6,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanErrorRate,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "%",
-      },
-    }),
-    createValueComponent({
-      title: "Throughput",
-      top: 1,
-      left: 9,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanThroughput,
-        aggregationType: MetricsAggregationType.Sum,
-        legendUnit: "req/s",
-      },
-    }),
-
-    // Row 2-4: Throughput and duration charts
-    createChartComponent({
-      title: "Span Throughput Over Time",
-      chartType: DashboardChartType.Bar,
-      top: 2,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Spans",
-      },
-    }),
-    createChartComponent({
-      title: "Avg Span Duration Over Time",
-      chartType: DashboardChartType.Line,
-      top: 2,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanDuration,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "Avg Duration",
-        legendUnit: "ms",
-      },
-    }),
-
-    // Row 5: Section header
-    createTextComponent({
-      text: "Latency Percentiles",
-      top: 5,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 6: Latency percentile values
-    createValueComponent({
-      title: "P50 Latency",
-      top: 6,
-      left: 0,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanP50Duration,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "ms",
-      },
-    }),
-    createValueComponent({
-      title: "P90 Latency",
-      top: 6,
-      left: 3,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanP90Duration,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "ms",
-      },
-    }),
-    createValueComponent({
-      title: "P95 Latency",
-      top: 6,
-      left: 6,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanP95Duration,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "ms",
-      },
-    }),
-    createValueComponent({
-      title: "P99 Latency",
-      top: 6,
-      left: 9,
-      width: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanP99Duration,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "ms",
-      },
-    }),
-
-    // Row 7-9: Latency percentile charts
-    createChartComponent({
-      title: "Latency Percentiles Over Time",
-      chartType: DashboardChartType.Line,
-      top: 7,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanP95Duration,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "P95 Latency",
-        legendUnit: "ms",
-      },
-    }),
-    createChartComponent({
-      title: "Latency Distribution",
-      chartType: DashboardChartType.Histogram,
-      top: 7,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanDuration,
-        aggregationType: MetricsAggregationType.Count,
-        legend: "Latency Distribution",
-        legendUnit: "ms",
-      },
-    }),
-
-    // Row 10: Section header
-    createTextComponent({
-      text: "Error Analysis",
-      top: 10,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 11-13: Error charts and status breakdown
-    createGaugeComponent({
-      title: "Error Rate",
-      top: 11,
-      left: 0,
-      width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      warningThreshold: 5,
-      criticalThreshold: 15,
-      metricConfig: {
-        metricName: SpanMetricType.SpanErrorRate,
-        aggregationType: MetricsAggregationType.Avg,
-      },
-    }),
-    createChartComponent({
-      title: "Errors Over Time",
-      chartType: DashboardChartType.Area,
-      top: 11,
-      left: 3,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanErrorCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Errors",
-      },
-    }),
-    createChartComponent({
-      title: "Span Status Breakdown",
-      chartType: DashboardChartType.Pie,
-      top: 11,
-      left: 9,
-      width: 3,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanStatusOk,
-        aggregationType: MetricsAggregationType.Count,
-        legend: "Status",
-      },
-    }),
-
-    // Row 14: Section header
-    createTextComponent({
-      text: "Trace Details",
-      top: 14,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 15-17: Table of slowest spans and request rate
-    createTableComponent({
-      title: "Slowest Spans",
-      top: 15,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanDuration,
-        aggregationType: MetricsAggregationType.Max,
-      },
-    }),
-    createChartComponent({
-      title: "Request Rate Over Time",
-      chartType: DashboardChartType.StackedArea,
-      top: 15,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: SpanMetricType.SpanRequestRate,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Request Rate",
-        legendUnit: "req/s",
-      },
-    }),
-
-    // Row 18-20: Recent traces and logs
-    createTraceListComponent({
-      title: "Recent Traces",
-      top: 18,
-      left: 0,
-      width: 6,
-      height: 3,
-    }),
-    createLogStreamComponent({
-      title: "Related Logs",
-      top: 18,
-      left: 6,
-      width: 6,
-      height: 3,
-    }),
-  ];
-
-  return {
-    _type: ObjectType.DashboardViewConfig,
-    components,
-    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 21),
-  };
-}
-
-function createExceptionDashboardConfig(): DashboardViewConfig {
-  const components: Array<DashboardBaseComponent> = [
-    // Row 0: Title
-    createTextComponent({
-      text: "Exception Dashboard",
-      top: 0,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 1: Key exception metrics
-    createValueComponent({
-      title: "Total Exceptions",
-      top: 1,
-      left: 0,
-      width: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createValueComponent({
-      title: "Exception Rate",
-      top: 1,
-      left: 3,
-      width: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionRate,
-        aggregationType: MetricsAggregationType.Avg,
-        legendUnit: "/min",
-      },
-    }),
-    createValueComponent({
-      title: "Unresolved",
-      top: 1,
-      left: 6,
-      width: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.UnresolvedExceptionCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createValueComponent({
-      title: "Affected Services",
-      top: 1,
-      left: 9,
-      width: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionAffectedServiceCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-
-    // Row 2-4: Exception trends
-    createChartComponent({
-      title: "Exceptions Over Time",
-      chartType: DashboardChartType.Bar,
-      top: 2,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Exceptions",
-      },
-    }),
-    createChartComponent({
-      title: "Exception Rate Over Time",
-      chartType: DashboardChartType.Line,
-      top: 2,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionRate,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "Exception Rate",
-        legendUnit: "/min",
-      },
-    }),
-
-    // Row 5: Section header
-    createTextComponent({
-      text: "Exception Breakdown",
-      top: 5,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 6-8: Exception type and service breakdown
-    createChartComponent({
-      title: "Exceptions by Type",
-      chartType: DashboardChartType.Pie,
-      top: 6,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionCountByType,
-        aggregationType: MetricsAggregationType.Count,
-        legend: "Exception Type",
-      },
-    }),
-    createChartComponent({
-      title: "Exceptions by Service",
-      chartType: DashboardChartType.Bar,
-      top: 6,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionCountByService,
-        aggregationType: MetricsAggregationType.Count,
-        legend: "Service",
-      },
-    }),
-
-    // Row 9: Section header
-    createTextComponent({
-      text: "Resolution Status",
-      top: 9,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 10-12: Resolution gauges and resolution trends
-    createGaugeComponent({
-      title: "Unresolved Exceptions",
-      top: 10,
-      left: 0,
-      width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      warningThreshold: 25,
-      criticalThreshold: 50,
-      metricConfig: {
-        metricName: ExceptionMetricType.UnresolvedExceptionCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createGaugeComponent({
-      title: "Muted Exceptions",
-      top: 10,
-      left: 3,
-      width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      metricConfig: {
-        metricName: ExceptionMetricType.MutedExceptionCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createChartComponent({
-      title: "Resolution Status Over Time",
-      chartType: DashboardChartType.StackedArea,
-      top: 10,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ResolvedExceptionCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Resolved",
-      },
-    }),
-
-    // Row 13: Section header
-    createTextComponent({
-      text: "Exception Recurrence",
-      top: 13,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 14-16: Occurrence trends and top exceptions table
-    createChartComponent({
-      title: "Exception Occurrences Over Time",
-      chartType: DashboardChartType.Heatmap,
-      top: 14,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionOccurrenceCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Occurrences",
-      },
-    }),
-    createTableComponent({
-      title: "Top Exceptions by Occurrence",
-      top: 14,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ExceptionMetricType.ExceptionOccurrenceCount,
-        aggregationType: MetricsAggregationType.Max,
-      },
-    }),
-
-    // Row 17: Section header
-    createTextComponent({
-      text: "Exception Details",
-      top: 17,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 18-20: Logs and traces
-    createLogStreamComponent({
-      title: "Exception Logs",
-      top: 18,
-      left: 0,
-      width: 6,
-      height: 3,
-    }),
-    createTraceListComponent({
-      title: "Related Traces",
-      top: 18,
-      left: 6,
-      width: 6,
-      height: 3,
-    }),
-  ];
-
-  return {
-    _type: ObjectType.DashboardViewConfig,
-    components,
-    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 21),
-  };
-}
-
-function createProfilesDashboardConfig(): DashboardViewConfig {
-  const components: Array<DashboardBaseComponent> = [
-    // Row 0: Title
-    createTextComponent({
-      text: "Profiles Dashboard",
-      top: 0,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 1: Key profile metrics
-    createValueComponent({
-      title: "Profile Count",
-      top: 1,
-      left: 0,
-      width: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.ProfileCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createValueComponent({
-      title: "CPU Profile Duration",
-      top: 1,
-      left: 3,
-      width: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.CpuProfileDuration,
-        aggregationType: MetricsAggregationType.Sum,
-        legendUnit: "ms",
-      },
-    }),
-    createValueComponent({
-      title: "Memory Allocations",
-      top: 1,
-      left: 6,
-      width: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.MemoryAllocationCount,
-        aggregationType: MetricsAggregationType.Sum,
-      },
-    }),
-    createValueComponent({
-      title: "Thread Count",
-      top: 1,
-      left: 9,
-      width: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.ThreadCount,
-        aggregationType: MetricsAggregationType.Avg,
-      },
-    }),
-
-    // Row 2-4: CPU profile charts
-    createChartComponent({
-      title: "CPU Profile Duration Over Time",
-      chartType: DashboardChartType.Line,
-      top: 2,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.CpuProfileDuration,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "CPU Duration",
-        legendUnit: "ms",
-      },
-    }),
-    createChartComponent({
-      title: "CPU Sample Count Over Time",
-      chartType: DashboardChartType.Bar,
-      top: 2,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.CpuProfileSampleCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "CPU Samples",
-      },
-    }),
-
-    // Row 5: Section header
-    createTextComponent({
-      text: "Memory Profiling",
-      top: 5,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 6-8: Memory gauges and allocation charts
-    createGaugeComponent({
-      title: "Heap Usage",
-      top: 6,
-      left: 0,
-      width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 100,
-      warningThreshold: 70,
-      criticalThreshold: 90,
-      metricConfig: {
-        metricName: ProfileMetricType.HeapUsage,
-        aggregationType: MetricsAggregationType.Avg,
-      },
-    }),
-    createChartComponent({
-      title: "Memory Allocation Size Over Time",
-      chartType: DashboardChartType.Area,
-      top: 6,
-      left: 3,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.MemoryAllocationSize,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Allocation Size",
-        legendUnit: "bytes",
-      },
-    }),
-    createGaugeComponent({
-      title: "Thread Count",
-      top: 6,
-      left: 9,
-      width: 3,
-      height: 3,
-      minValue: 0,
-      maxValue: 500,
-      warningThreshold: 200,
-      criticalThreshold: 400,
-      metricConfig: {
-        metricName: ProfileMetricType.ThreadCount,
-        aggregationType: MetricsAggregationType.Avg,
-      },
-    }),
-
-    // Row 9: Section header
-    createTextComponent({
-      text: "Allocation Trends",
-      top: 9,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 10-12: Allocation count trends and heap trends
-    createChartComponent({
-      title: "Memory Allocation Count Over Time",
-      chartType: DashboardChartType.Bar,
-      top: 10,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.MemoryAllocationCount,
-        aggregationType: MetricsAggregationType.Sum,
-        legend: "Allocations",
-      },
-    }),
-    createChartComponent({
-      title: "Heap Usage Over Time",
-      chartType: DashboardChartType.Area,
-      top: 10,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.HeapUsage,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "Heap",
-        legendUnit: "bytes",
-      },
-    }),
-
-    // Row 13: Section header
-    createTextComponent({
-      text: "Runtime & Concurrency",
-      top: 13,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 14-16: Wall clock, goroutines/threads, sample rate
-    createChartComponent({
-      title: "Wall Clock Duration Over Time",
-      chartType: DashboardChartType.Line,
-      top: 14,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.WallClockDuration,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "Wall Clock",
-        legendUnit: "ms",
-      },
-    }),
-    createChartComponent({
-      title: "Goroutine / Thread Count Over Time",
-      chartType: DashboardChartType.StackedArea,
-      top: 14,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.GoroutineCount,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "Goroutines / Threads",
-      },
-    }),
-
-    // Row 17: Section header
-    createTextComponent({
-      text: "Hot Functions",
-      top: 17,
-      left: 0,
-      width: 12,
-      height: 1,
-      isBold: true,
-    }),
-
-    // Row 18-20: Top functions tables
-    createTableComponent({
-      title: "Top Functions by CPU Time",
-      top: 18,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.TopFunctionCpuTime,
-        aggregationType: MetricsAggregationType.Max,
-      },
-    }),
-    createTableComponent({
-      title: "Top Functions by Allocations",
-      top: 18,
-      left: 6,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.TopFunctionAllocations,
-        aggregationType: MetricsAggregationType.Max,
-      },
-    }),
-
-    // Row 21-23: Profile sample rate and logs
-    createChartComponent({
-      title: "Profile Sample Rate Over Time",
-      chartType: DashboardChartType.Line,
-      top: 21,
-      left: 0,
-      width: 6,
-      height: 3,
-      metricConfig: {
-        metricName: ProfileMetricType.ProfileSampleRate,
-        aggregationType: MetricsAggregationType.Avg,
-        legend: "Sample Rate",
-        legendUnit: "samples/s",
-      },
-    }),
-    createLogStreamComponent({
-      title: "Related Logs",
-      top: 21,
-      left: 6,
-      width: 6,
-      height: 3,
-    }),
-  ];
-
-  return {
-    _type: ObjectType.DashboardViewConfig,
-    components,
-    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 24),
-  };
-}
-
 export function getTemplateConfig(
   type: DashboardTemplateType,
 ): DashboardViewConfig | null {
@@ -2233,12 +1365,6 @@ export function getTemplateConfig(
       return createKubernetesDashboardConfig();
     case DashboardTemplateType.Metrics:
       return createMetricsDashboardConfig();
-    case DashboardTemplateType.Trace:
-      return createTraceDashboardConfig();
-    case DashboardTemplateType.Exception:
-      return createExceptionDashboardConfig();
-    case DashboardTemplateType.Profiles:
-      return createProfilesDashboardConfig();
     case DashboardTemplateType.Blank:
       return null;
   }

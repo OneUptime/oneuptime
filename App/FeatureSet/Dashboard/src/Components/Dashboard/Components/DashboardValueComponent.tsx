@@ -23,6 +23,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * Split a ValueFormatter output like "1.5 MB" / "25.00%" / "1.23K" into a
@@ -50,66 +51,147 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
 }
 
-// Mini sparkline SVG component
+interface SparklinePoint {
+  value: number;
+  timestamp: Date;
+}
+
 interface SparklineProps {
-  data: Array<number>;
+  data: Array<SparklinePoint>;
   width: number;
   height: number;
   color: string;
   fillColor: string;
+  formatValue: (v: number) => string;
 }
 
 const Sparkline: FunctionComponent<SparklineProps> = (
   props: SparklineProps,
 ): ReactElement => {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const svgRef: React.RefObject<SVGSVGElement> = useRef<SVGSVGElement>(null);
+
   if (props.data.length < 2) {
     return <></>;
   }
 
-  const dataPoints: Array<number> = props.data;
-  const minVal: number = Math.min(...dataPoints);
-  const maxVal: number = Math.max(...dataPoints);
+  const dataPoints: Array<SparklinePoint> = props.data;
+  const values: Array<number> = dataPoints.map((p: SparklinePoint) => {
+    return p.value;
+  });
+  const minVal: number = Math.min(...values);
+  const maxVal: number = Math.max(...values);
   const range: number = maxVal - minVal || 1;
   const padding: number = 2;
 
+  const pointAt: (i: number) => [number, number] = (i: number) => {
+    const x: number =
+      padding + (i / (dataPoints.length - 1)) * (props.width - padding * 2);
+    const y: number =
+      props.height -
+      padding -
+      ((dataPoints[i]!.value - minVal) / range) * (props.height - padding * 2);
+    return [x, y];
+  };
+
   const points: string = dataPoints
-    .map((value: number, index: number) => {
-      const x: number =
-        padding +
-        (index / (dataPoints.length - 1)) * (props.width - padding * 2);
-      const y: number =
-        props.height -
-        padding -
-        ((value - minVal) / range) * (props.height - padding * 2);
+    .map((_p: SparklinePoint, index: number) => {
+      const [x, y] = pointAt(index);
       return `${x},${y}`;
     })
     .join(" ");
 
-  // Create fill area path
   const firstX: number = padding;
-  const lastX: number =
-    padding +
-    ((dataPoints.length - 1) / (dataPoints.length - 1)) *
-      (props.width - padding * 2);
+  const lastX: number = padding + (props.width - padding * 2);
   const fillPoints: string = `${firstX},${props.height} ${points} ${lastX},${props.height}`;
 
+  const onMove: (e: React.MouseEvent<SVGSVGElement>) => void = (
+    e: React.MouseEvent<SVGSVGElement>,
+  ) => {
+    const rect: DOMRect | undefined = svgRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+    const xPx: number = e.clientX - rect.left;
+    const usable: number = Math.max(rect.width - padding * 2, 1);
+    const ratio: number = Math.max(0, Math.min(1, (xPx - padding) / usable));
+    const idx: number = Math.round(ratio * (dataPoints.length - 1));
+    setHoverIndex(Math.max(0, Math.min(dataPoints.length - 1, idx)));
+  };
+
+  const onLeave: () => void = () => {
+    setHoverIndex(null);
+  };
+
+  const hoverPos: [number, number] | null =
+    hoverIndex !== null ? pointAt(hoverIndex) : null;
+  const hoverPoint: SparklinePoint | null =
+    hoverIndex !== null ? dataPoints[hoverIndex] ?? null : null;
+
   return (
-    <svg
-      width={props.width}
-      height={props.height}
-      viewBox={`0 0 ${props.width} ${props.height}`}
-      className="overflow-visible"
-    >
-      <polygon points={fillPoints} fill={props.fillColor} />
-      <polyline
-        points={points}
-        fill="none"
-        stroke={props.color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="relative inline-block">
+      <svg
+        ref={svgRef}
+        width={props.width}
+        height={props.height}
+        viewBox={`0 0 ${props.width} ${props.height}`}
+        className="overflow-visible cursor-crosshair"
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+      >
+        <polygon points={fillPoints} fill={props.fillColor} />
+        <polyline
+          points={points}
+          fill="none"
+          stroke={props.color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {hoverPos && (
+          <>
+            <line
+              x1={hoverPos[0]}
+              x2={hoverPos[0]}
+              y1={0}
+              y2={props.height}
+              stroke={props.color}
+              strokeOpacity={0.35}
+              strokeWidth={1}
+              strokeDasharray="2 2"
+            />
+            <circle
+              cx={hoverPos[0]}
+              cy={hoverPos[1]}
+              r={3.5}
+              fill="#ffffff"
+              stroke={props.color}
+              strokeWidth={2}
+            />
+          </>
+        )}
+      </svg>
+      {hoverPoint && hoverPos && (
+        <div
+          className="absolute pointer-events-none whitespace-nowrap rounded-md px-2 py-1 text-xs shadow-lg z-50"
+          style={{
+            background: "rgba(15, 23, 42, 0.94)",
+            backdropFilter: "blur(4px)",
+            color: "#fff",
+            left: `${hoverPos[0]}px`,
+            top: "-44px",
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="font-semibold tabular-nums leading-tight">
+            {props.formatValue(hoverPoint.value)}
+          </div>
+          <div className="text-[10px] opacity-70 font-normal leading-tight mt-0.5">
+            {OneUptimeDate.getDateAsLocalFormattedString(hoverPoint.timestamp)}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -302,10 +384,16 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  // Sparkline data - take raw values in order
-  const sparklineData: Array<number> = allDataPoints.map(
+  // Sparkline data — preserve timestamp alongside value for hover tooltip
+  const sparklineData: Array<SparklinePoint> = allDataPoints.map(
     (item: AggregatedModel) => {
-      return item.value;
+      return {
+        value: item.value,
+        timestamp:
+          item.timestamp instanceof Date
+            ? item.timestamp
+            : new Date(item.timestamp as unknown as string),
+      };
     },
   );
 
@@ -386,9 +474,12 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   let trendDirection: "up" | "down" | "flat" = "flat";
 
   if (sparklineData.length >= 4) {
-    const midpoint: number = Math.floor(sparklineData.length / 2);
-    const firstHalf: Array<number> = sparklineData.slice(0, midpoint);
-    const secondHalf: Array<number> = sparklineData.slice(midpoint);
+    const rawValues: Array<number> = sparklineData.map((p: SparklinePoint) => {
+      return p.value;
+    });
+    const midpoint: number = Math.floor(rawValues.length / 2);
+    const firstHalf: Array<number> = rawValues.slice(0, midpoint);
+    const secondHalf: Array<number> = rawValues.slice(midpoint);
     const firstAvg: number =
       firstHalf.reduce((a: number, b: number) => {
         return a + b;
@@ -489,6 +580,9 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
             height={sparklineHeight}
             color={sparklineColor}
             fillColor={sparklineFill}
+            formatValue={(v: number) => {
+              return ValueFormatter.formatValue(v, rawUnit, { metricName });
+            }}
           />
         </div>
       )}
