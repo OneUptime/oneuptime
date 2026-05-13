@@ -1,8 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -404,47 +401,67 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
             {/* Edit mode actions */}
             {!isSaving && isEditMode && (
-              <div className="flex items-center gap-1">
-                <Button
-                  icon={IconProp.Add}
-                  title="Add Widget"
-                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={() => {
-                    setShowAddWidgetModal(true);
-                  }}
-                />
-
-                {props.onVariablesDefinitionChange && (
-                  <Button
-                    icon={IconProp.Variable}
-                    title="Variables"
-                    buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                    buttonSize={ButtonSize.Small}
+              <div className="flex items-center gap-2">
+                {/* Construction tools — segmented pill */}
+                <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200/60 p-0.5">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
                     onClick={() => {
-                      setShowVariablesModal(true);
+                      setShowAddWidgetModal(true);
                     }}
-                  />
-                )}
+                    title="Add Widget"
+                  >
+                    <Icon
+                      icon={IconProp.Add}
+                      className="w-3.5 h-3.5"
+                    />
+                    <span>Add Widget</span>
+                  </button>
 
-                <div className="w-px h-5 bg-gray-200 mx-0.5"></div>
+                  {props.onVariablesDefinitionChange && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all cursor-pointer"
+                      onClick={() => {
+                        setShowVariablesModal(true);
+                      }}
+                      title="Variables"
+                    >
+                      <Icon
+                        icon={IconProp.Variable}
+                        className="w-3.5 h-3.5"
+                      />
+                      <span>Variables</span>
+                    </button>
+                  )}
+                </div>
 
-                <Button
-                  icon={IconProp.Check}
-                  title="Save"
-                  buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={props.onSaveClick}
-                />
-                <Button
-                  icon={IconProp.Close}
-                  title="Cancel"
-                  buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={() => {
-                    setShowCancelModal(true);
-                  }}
-                />
+                {/* Commit actions */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setShowCancelModal(true);
+                    }}
+                    title="Cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
+                    onClick={props.onSaveClick}
+                    title="Save Changes"
+                  >
+                    <Icon
+                      icon={IconProp.Check}
+                      className="w-3.5 h-3.5"
+                    />
+                    <span>Save Changes</span>
+                  </button>
+                </div>
               </div>
             )}
 
