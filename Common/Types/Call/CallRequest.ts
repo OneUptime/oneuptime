@@ -31,10 +31,12 @@ export default interface CallRequest extends CallRequestMessage {
 
 type IsHighRiskPhoneNumberFunction = (phoneNumber: Phone) => boolean;
 
-// Country dialing codes flagged as high-risk for IRSF / SMS pumping fraud.
-// Twilio surfaces its current list dynamically in the Console; this set is
-// drawn from publicly reported fraud patterns and should be reviewed
-// periodically against Twilio Geo Permissions and Fraud Guard.
+/*
+ * Country dialing codes flagged as high-risk for IRSF / SMS pumping fraud.
+ * Twilio surfaces its current list dynamically in the Console; this set is
+ * drawn from publicly reported fraud patterns and should be reviewed
+ * periodically against Twilio Geo Permissions and Fraud Guard.
+ */
 const HIGH_RISK_COUNTRY_DIALING_CODES: Array<string> = [
   "+92", // Pakistan
   "+27", // South Africa

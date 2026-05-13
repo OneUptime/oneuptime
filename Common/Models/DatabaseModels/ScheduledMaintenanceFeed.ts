@@ -38,6 +38,8 @@ export enum ScheduledMaintenanceFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OnCallPolicy = "OnCallPolicy",
   OnCallNotification = "OnCallNotification",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  LabelRuleExecuted = "LabelRuleExecuted",
 }
 
 @EnableDocumentation()

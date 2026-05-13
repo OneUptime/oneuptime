@@ -256,6 +256,8 @@ import IncidentOnCallRule from "./IncidentOnCallRule";
 import IncidentOwnerRule from "./IncidentOwnerRule";
 import IncidentPrivacyRule from "./IncidentPrivacyRule";
 import IncidentLabelRule from "./IncidentLabelRule";
+import ScheduledMaintenanceOwnerRule from "./ScheduledMaintenanceOwnerRule";
+import ScheduledMaintenanceLabelRule from "./ScheduledMaintenanceLabelRule";
 import IncidentEpisodeOnCallRule from "./IncidentEpisodeOnCallRule";
 import IncidentEpisodeOwnerRule from "./IncidentEpisodeOwnerRule";
 import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
@@ -396,6 +398,8 @@ const AllModelTypes: Array<{
   IncidentOwnerRule,
   IncidentPrivacyRule,
   IncidentLabelRule,
+  ScheduledMaintenanceOwnerRule,
+  ScheduledMaintenanceLabelRule,
   IncidentEpisodeOnCallRule,
   IncidentEpisodeOwnerRule,
   IncidentEpisodePrivacyRule,
