@@ -10,6 +10,7 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
 import MonitorMetricType from "../Monitor/MonitorMetricType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
+import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -147,6 +148,13 @@ function createValueComponent(data: {
   left: number;
   width: number;
   metricConfig?: MetricConfig;
+  /*
+   * Per-widget override for the trend-arrow colour. Leave `undefined` to
+   * let the renderer apply its metric-name heuristic (incident counts,
+   * error rates, latency, CPU/memory usage flip the colour); set
+   * explicitly when the heuristic would guess wrong.
+   */
+  trendDirection?: DashboardValueTrendDirection;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -168,6 +176,7 @@ function createValueComponent(data: {
               groupBy: undefined,
             },
           },
+      trendDirection: data.trendDirection,
     },
   };
 }
@@ -390,6 +399,7 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legendUnit: "ms",
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     /*
      * IsOnline is emitted as 0/1 with unit "" by MonitorMetricUtil, so
@@ -407,6 +417,7 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
         metricName: MonitorMetricType.IsOnline,
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
     }),
     /*
      * ResponseStatusCode is the literal HTTP status code (200, 404,
@@ -424,6 +435,7 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
         metricName: MonitorMetricType.ResponseStatusCode,
         aggregationType: MetricsAggregationType.Count,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
     }),
     createValueComponent({
       title: "Execution Time",
@@ -435,6 +447,7 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legendUnit: "ms",
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
 
     // Row 2-4: Charts
@@ -586,7 +599,7 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 1: Key incident metrics
+    // Row 1: Key incident metrics — every one is "higher = worse".
     createValueComponent({
       title: "Incident Count",
       top: 1,
@@ -596,6 +609,7 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.IncidentCount,
         aggregationType: MetricsAggregationType.Sum,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "MTTR",
@@ -606,6 +620,7 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.TimeToResolve,
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "MTTA",
@@ -616,6 +631,7 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.TimeToAcknowledge,
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "Avg Duration",
@@ -626,6 +642,7 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         metricName: IncidentMetricType.IncidentDuration,
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
 
     // Row 2-4: Incident trends
@@ -843,6 +860,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     /*
      * Row 1: Key cluster metrics — averages render with proper units via
      * ValueFormatter (CPU utilization → "%", memory.usage → "MB"/"GB").
+     * All four are "higher = worse" (closer to capacity = bad).
      */
     createValueComponent({
       title: "Pod CPU (avg)",
@@ -853,6 +871,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         metricName: "k8s.pod.cpu.utilization",
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "Pod Memory (avg)",
@@ -863,6 +882,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         metricName: "k8s.pod.memory.usage",
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "Node CPU (avg)",
@@ -873,6 +893,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         metricName: "k8s.node.cpu.utilization",
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "Node Memory (avg)",
@@ -883,6 +904,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
         metricName: "k8s.node.memory.usage",
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
 
     // Row 2-4: Resource usage charts
@@ -1075,7 +1097,11 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 1: Key HTTP metrics
+    /*
+     * Row 1: Key HTTP metrics. Request volume rising is generally a
+     * sign of activity (good); latency, errors, and active in-flight
+     * requests rising signal saturation or trouble (bad).
+     */
     createValueComponent({
       title: "Request Rate",
       top: 1,
@@ -1086,6 +1112,7 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Sum,
         legendUnit: "req/s",
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
     }),
     createValueComponent({
       title: "Avg Latency",
@@ -1097,6 +1124,7 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legendUnit: "ms",
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "Error Rate",
@@ -1108,6 +1136,7 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legendUnit: "%",
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createValueComponent({
       title: "Active Requests",
@@ -1118,6 +1147,7 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
         metricName: MetricDashboardMetricType.HttpActiveRequests,
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
 
     // Row 2-4: HTTP request charts
@@ -1230,6 +1260,7 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
         metricName: MetricDashboardMetricType.SystemMemoryUsage,
         aggregationType: MetricsAggregationType.Avg,
       },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
     }),
     createChartComponent({
       title: "CPU Usage Over Time",

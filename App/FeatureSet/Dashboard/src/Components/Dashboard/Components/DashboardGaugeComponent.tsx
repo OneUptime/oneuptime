@@ -21,6 +21,29 @@ import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInter
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 
+/*
+ * Split a ValueFormatter output like "6.91 hours" / "25.00%" / "1.5 MB"
+ * into a numeric portion and a unit portion so the gauge can render the
+ * big number prominently with a smaller gray unit suffix — matching how
+ * DashboardValueComponent renders its centre value.
+ */
+function splitFormattedDisplay(formatted: string): {
+  value: string;
+  unit: string;
+} {
+  if (formatted.endsWith("%")) {
+    return { value: formatted.slice(0, -1), unit: "%" };
+  }
+  const lastSpace: number = formatted.lastIndexOf(" ");
+  if (lastSpace > 0) {
+    return {
+      value: formatted.substring(0, lastSpace),
+      unit: formatted.substring(lastSpace + 1),
+    };
+  }
+  return { value: formatted, unit: "" };
+}
+
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardGaugeComponent;
 }
@@ -315,7 +338,32 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const backgroundPath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 0 1 ${arcEndX} ${arcEndY}`;
   const valuePath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 ${percentage > 0.5 ? 1 : 0} 1 ${arcCurrentX} ${arcCurrentY}`;
 
-  const valueHeightInPx: number = Math.max(gaugeSize * 0.18, 18);
+  const { value: displayValue, unit: displayUnit } =
+    splitFormattedDisplay(formattedDisplay);
+
+  /*
+   * The centre value is rendered as a big number plus a smaller gray unit
+   * suffix. Bare "6.91 hours" at one font size overflowed the gauge arc on
+   * wider widgets, so we estimate the laid-out text width and scale both
+   * sides down together when it would spill past ~82% of the gauge width.
+   * Per-character estimate uses 0.55em — accurate enough for tabular nums
+   * and the small set of single-word units we render here.
+   */
+  const baseValueFontPx: number = Math.max(gaugeSize * 0.22, 22);
+  const baseUnitFontPx: number = baseValueFontPx * 0.4;
+  const unitGapPx: number =
+    displayUnit && displayUnit !== "%" ? baseValueFontPx * 0.12 : 0;
+  const estimatedTextWidthPx: number =
+    displayValue.length * baseValueFontPx * 0.55 +
+    (displayUnit ? displayUnit.length * baseUnitFontPx * 0.55 : 0) +
+    unitGapPx;
+  const maxTextWidthPx: number = gaugeSize * 0.82;
+  const widthScale: number = Math.min(
+    1,
+    maxTextWidthPx / Math.max(estimatedTextWidthPx, 1),
+  );
+  const valueFontPx: number = baseValueFontPx * widthScale;
+  const unitFontPx: number = baseUnitFontPx * widthScale;
 
   // Status label derived from threshold state
   let statusLabel: string = "Healthy";
@@ -482,22 +530,33 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
 
         {/* Centre value — placed in the empty half-disc area below the arc */}
         <div
-          className="absolute left-0 right-0 flex flex-col items-center"
+          className="absolute left-0 right-0 flex flex-col items-center px-2"
           style={{
-            top: `${gaugeSize / 2 - valueHeightInPx * 0.55}px`,
+            top: `${gaugeSize / 2 - valueFontPx * 0.55}px`,
           }}
         >
           <div
-            className="font-bold text-gray-900 tabular-nums leading-none"
+            className="font-bold text-gray-900 tabular-nums leading-none whitespace-nowrap"
             style={{
-              fontSize: `${valueHeightInPx}px`,
-              letterSpacing: "-0.02em",
+              fontSize: `${valueFontPx}px`,
+              letterSpacing: "-0.025em",
             }}
           >
-            {formattedDisplay}
+            {displayValue}
+            {displayUnit && (
+              <span
+                className="text-gray-400 font-normal tracking-normal"
+                style={{
+                  fontSize: `${unitFontPx}px`,
+                  marginLeft: displayUnit === "%" ? "0" : "0.15em",
+                }}
+              >
+                {displayUnit}
+              </span>
+            )}
           </div>
           <div
-            className={`mt-1.5 inline-flex items-center gap-1 ${statusTextColor}`}
+            className={`mt-2 inline-flex items-center gap-1 ${statusTextColor}`}
             style={{ fontSize: "10px" }}
           >
             <span

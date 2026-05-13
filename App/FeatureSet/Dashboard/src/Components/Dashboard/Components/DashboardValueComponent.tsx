@@ -13,7 +13,9 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
+import DashboardValueComponentType, {
+  DashboardValueTrendDirection,
+} from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -554,22 +556,44 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
         </span>
       </div>
 
-      {/* Trend indicator */}
-      {trendPercent !== null && trendDirection !== "flat" && (
-        <div
-          className={`flex items-center gap-0.5 mt-0.5 ${
-            trendDirection === "up" ? "text-emerald-500" : "text-red-500"
-          }`}
-          style={{
-            fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
-          }}
-        >
-          <span>{trendDirection === "up" ? "\u2191" : "\u2193"}</span>
-          <span className="font-medium tabular-nums">
-            {Math.abs(trendPercent)}%
-          </span>
-        </div>
-      )}
+      {/* Trend indicator \u2014 colour depends on whether a rising value is good
+          or bad for this metric. The widget config takes precedence; when it
+          says "Auto" (or is unset) we fall back to a metric-name heuristic
+          so legacy widgets get sensible defaults without re-saving. */}
+      {trendPercent !== null &&
+        trendDirection !== "flat" &&
+        (() => {
+          const configured: DashboardValueTrendDirection | undefined =
+            props.component.arguments.trendDirection;
+          let higherIsWorse: boolean;
+          if (configured === DashboardValueTrendDirection.HigherIsWorse) {
+            higherIsWorse = true;
+          } else if (
+            configured === DashboardValueTrendDirection.HigherIsBetter
+          ) {
+            higherIsWorse = false;
+          } else {
+            higherIsWorse = ValueFormatter.isHigherWorseMetric(metricName);
+          }
+          const trendIsGood: boolean = higherIsWorse
+            ? trendDirection === "down"
+            : trendDirection === "up";
+          return (
+            <div
+              className={`flex items-center gap-0.5 mt-0.5 ${
+                trendIsGood ? "text-emerald-500" : "text-red-500"
+              }`}
+              style={{
+                fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
+              }}
+            >
+              <span>{trendDirection === "up" ? "\u2191" : "\u2193"}</span>
+              <span className="font-medium tabular-nums">
+                {Math.abs(trendPercent)}%
+              </span>
+            </div>
+          );
+        })()}
 
       {/* Sparkline */}
       {showSparkline && (

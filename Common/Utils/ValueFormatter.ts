@@ -435,6 +435,42 @@ export default class ValueFormatter {
     return fractionMetricSuffixRegex.test(metricName);
   }
 
+  /*
+   * Direction-of-goodness heuristic for trend coloring. Returns true when a
+   * rising value on this metric should be shown as bad (red ↑) and a falling
+   * value as good (green ↓) — the opposite of the default "up = good".
+   *
+   * Caller is responsible for the inversion; this method only classifies.
+   * Conservative by default: when the metric name carries no signal we
+   * return `false` so generic counters (request rate, network I/O, span
+   * count) keep the up = good colour scheme. Explicit "higher is better"
+   * tokens (uptime/availability/online/ready/healthy/available/success/
+   * passed) take precedence — without that allowlist `oneuptime.monitor.
+   * online` would match nothing and incorrectly fall through; the suffix
+   * test then catches incident counts, error rates, MTTR/MTTA, response
+   * times, CPU/memory usage, restarts, pressure, queue backlogs, etc.
+   *
+   * Adding a metric here is a single regex edit. If a dashboard widget
+   * really needs to override this for a specific case, callers can set
+   * `higherIsBetter` explicitly on the trend display.
+   */
+  public static isHigherWorseMetric(metricName: string | undefined): boolean {
+    if (!metricName) {
+      return false;
+    }
+    const lower: string = metricName.toLowerCase();
+
+    const higherIsBetter: RegExp =
+      /\b(uptime|availability|online|ready|healthy|available|success|passed|ok|alive|up)\b/;
+    if (higherIsBetter.test(lower)) {
+      return false;
+    }
+
+    const higherIsWorse: RegExp =
+      /(error|fail(?:ure|ed)?|incident|exception|crash|restart|timeout|dropped|aborted?|reject(?:ed)?|mttr|mtta|latenc(?:y|ies)|duration|[._-]time\b|time[._-]to[._-]|usage|utilization|pressure|unresolved|pending|backlog|lag|delay|saturation|throttl|stall|missed?)/;
+    return higherIsWorse.test(lower);
+  }
+
   // Check if a unit is one we can auto-scale (bytes, seconds, etc.)
   public static isScalableUnit(unit: string): boolean {
     if (!unit || unit.trim() === "") {

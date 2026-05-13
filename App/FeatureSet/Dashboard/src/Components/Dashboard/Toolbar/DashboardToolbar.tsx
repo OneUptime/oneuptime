@@ -412,10 +412,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     }}
                     title="Add Widget"
                   >
-                    <Icon
-                      icon={IconProp.Add}
-                      className="w-3.5 h-3.5"
-                    />
+                    <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
                     <span>Add Widget</span>
                   </button>
 
@@ -428,10 +425,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       }}
                       title="Variables"
                     >
-                      <Icon
-                        icon={IconProp.Variable}
-                        className="w-3.5 h-3.5"
-                      />
+                      <Icon icon={IconProp.Variable} className="w-3.5 h-3.5" />
                       <span>Variables</span>
                     </button>
                   )}
@@ -455,10 +449,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     onClick={props.onSaveClick}
                     title="Save Changes"
                   >
-                    <Icon
-                      icon={IconProp.Check}
-                      className="w-3.5 h-3.5"
-                    />
+                    <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
                     <span>Save Changes</span>
                   </button>
                 </div>

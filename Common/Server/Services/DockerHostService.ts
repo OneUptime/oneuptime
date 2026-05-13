@@ -1,15 +1,20 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/DockerHost";
+import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import logger from "../Utils/Logger";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "docker-host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
+
+const LABELS_APPLIED_CACHE_NAMESPACE: string = "docker-host-labels-applied";
+const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -145,6 +150,83 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /**
+   * Additively attach labels to a Docker host. Existing labels are
+   * never removed — manual labels set via the UI survive ingest. The
+   * set of labelIds passed in is fingerprinted and cached for 60s so
+   * the common case (steady-state collector pushing the same label
+   * set every batch) costs one in-memory lookup, not a join-table
+   * scan.
+   */
+  @CaptureSpan()
+  public async attachLabels(data: {
+    dockerHostId: ObjectID;
+    labelIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (!data.labelIds || data.labelIds.length === 0) {
+      return;
+    }
+
+    const cacheKey: string = data.dockerHostId.toString();
+    const fingerprint: string = fingerprintLabelIds(data.labelIds);
+    const cached: string | null = await GlobalCache.getString(
+      LABELS_APPLIED_CACHE_NAMESPACE,
+      cacheKey,
+    );
+    if (cached === fingerprint) {
+      return;
+    }
+
+    try {
+      const dockerHostIdStr: string = data.dockerHostId.toString();
+      const existingLabels: Array<Label> = await this.getRepository()
+        .createQueryBuilder()
+        .relation(Model, "labels")
+        .of(dockerHostIdStr)
+        .loadMany();
+
+      const existingIds: Set<string> = new Set();
+      for (const lbl of existingLabels) {
+        const idStr: string | undefined = lbl._id?.toString();
+        if (idStr) {
+          existingIds.add(idStr);
+        }
+      }
+
+      const toAddIds: Array<string> = [];
+      const seen: Set<string> = new Set();
+      for (const id of data.labelIds) {
+        const idStr: string = id.toString();
+        if (existingIds.has(idStr) || seen.has(idStr)) {
+          continue;
+        }
+        seen.add(idStr);
+        toAddIds.push(idStr);
+      }
+
+      if (toAddIds.length > 0) {
+        await this.getRepository()
+          .createQueryBuilder()
+          .relation(Model, "labels")
+          .of(dockerHostIdStr)
+          .add(toAddIds);
+      }
+
+      await GlobalCache.setString(
+        LABELS_APPLIED_CACHE_NAMESPACE,
+        cacheKey,
+        fingerprint,
+        { expiresInSeconds: LABELS_APPLIED_CACHE_TTL_SECONDS },
+      );
+    } catch (err) {
+      logger.warn(
+        `DockerHostService.attachLabels failed for docker host ${data.dockerHostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   @CaptureSpan()
   public async markDisconnectedHosts(): Promise<void> {
     const fiveMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
@@ -181,6 +263,15 @@ export class Service extends DatabaseService<Model> {
       }
     }
   }
+}
+
+function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
+  const sorted: Array<string> = labelIds
+    .map((id: ObjectID) => {
+      return id.toString();
+    })
+    .sort();
+  return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
 }
 
 export default new Service();

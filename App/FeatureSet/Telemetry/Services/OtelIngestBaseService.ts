@@ -8,6 +8,8 @@ import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
+import LabelService from "Common/Server/Services/LabelService";
+import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
@@ -284,10 +286,14 @@ export default abstract class OtelIngestBaseService {
       }
 
       if (clusterIdStr) {
-        await KubernetesClusterService.updateLastSeen(
-          new ObjectID(clusterIdStr),
-        );
-        return new ObjectID(clusterIdStr);
+        const clusterId: ObjectID = new ObjectID(clusterIdStr);
+        await KubernetesClusterService.updateLastSeen(clusterId);
+        await this.promoteOneuptimeLabelsToCluster({
+          projectId: data.projectId,
+          kubernetesClusterId: clusterId,
+          attributes: data.attributes,
+        });
+        return clusterId;
       }
 
       return null;
@@ -296,6 +302,47 @@ export default abstract class OtelIngestBaseService {
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
       );
       return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Kubernetes
+   * cluster. Mirrors the host/service label promotion. Throttled
+   * per-cluster inside `attachLabels` so steady-state ingest with
+   * unchanged labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToCluster(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await KubernetesClusterService.attachLabels({
+        kubernetesClusterId: data.kubernetesClusterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Kubernetes cluster label promotion failed for ${data.kubernetesClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
@@ -458,11 +505,17 @@ export default abstract class OtelIngestBaseService {
       }
 
       if (hostIdStr) {
-        await DockerHostService.updateLastSeen(new ObjectID(hostIdStr), {
+        const dockerHostId: ObjectID = new ObjectID(hostIdStr);
+        await DockerHostService.updateLastSeen(dockerHostId, {
           osType: osType || undefined,
           osVersion: osVersion || undefined,
         });
-        return new ObjectID(hostIdStr);
+        await this.promoteOneuptimeLabelsToDockerHost({
+          projectId: data.projectId,
+          dockerHostId,
+          attributes: data.attributes,
+        });
+        return dockerHostId;
       }
 
       return null;
@@ -471,6 +524,47 @@ export default abstract class OtelIngestBaseService {
         "Error auto-discovering Docker host: " + (err as Error).message,
       );
       return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered Docker host.
+   * Mirrors the host/service label promotion. Throttled per-host
+   * inside `attachLabels` so steady-state ingest with unchanged
+   * labels costs one in-memory cache lookup.
+   */
+  @CaptureSpan()
+  protected static async promoteOneuptimeLabelsToDockerHost(data: {
+    projectId: ObjectID;
+    dockerHostId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await DockerHostService.attachLabels({
+        dockerHostId: data.dockerHostId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Docker host label promotion failed for ${data.dockerHostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
