@@ -19,7 +19,6 @@ import ObjectID from "Common/Types/ObjectID";
 export interface ComponentProps {
   variables: Array<DashboardVariable>;
   telemetryAttributeOptions: Array<string>;
-  metricNameOptions: Array<string>;
   onClose: () => void;
   onSave: (variables: Array<DashboardVariable>) => void;
 }
@@ -27,7 +26,6 @@ export interface ComponentProps {
 interface VariableRowProps {
   variable: DashboardVariable;
   telemetryAttributeOptions: Array<string>;
-  metricNameOptions: Array<string>;
   onChange: (variable: DashboardVariable) => void;
   onDelete: () => void;
   nameError?: string | undefined;
@@ -142,32 +140,6 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
             value. Choosing &quot;All&quot; leaves widgets unfiltered.
           </p>
         </div>
-
-        <div className="col-span-12">
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
-            Scope to Metric{" "}
-            <span className="text-gray-300 normal-case">— optional</span>
-          </label>
-          <input
-            type="text"
-            list={`metric-options-${variable.id}`}
-            className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 font-mono"
-            placeholder="e.g. k8s.container.cpu_usage"
-            value={variable.metricName || ""}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              props.onChange({ ...variable, metricName: e.target.value });
-            }}
-          />
-          <datalist id={`metric-options-${variable.id}`}>
-            {props.metricNameOptions.map((name: string) => {
-              return <option key={name} value={name} />;
-            })}
-          </datalist>
-          <p className="text-[11px] text-gray-400 mt-1">
-            Leave blank to list values across every metric. Set this to narrow
-            the dropdown to values seen on one metric only.
-          </p>
-        </div>
       </div>
     </div>
   );
@@ -271,7 +243,6 @@ const DashboardVariablesModal: FunctionComponent<ComponentProps> = (
                 key={variable.id}
                 variable={variable}
                 telemetryAttributeOptions={props.telemetryAttributeOptions}
-                metricNameOptions={props.metricNameOptions}
                 onChange={updateVariable}
                 onDelete={() => {
                   deleteVariable(variable.id);

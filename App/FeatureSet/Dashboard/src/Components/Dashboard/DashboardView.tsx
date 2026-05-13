@@ -442,13 +442,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         isRefreshing={isRefreshing}
         variables={dashboardVariables}
         telemetryAttributeOptions={telemetryAttributes}
-        metricNameOptions={metricTypes
-          .map((m: MetricType) => {
-            return m.name?.toString() || "";
-          })
-          .filter((name: string) => {
-            return name.length > 0;
-          })}
         onVariableValueChange={(
           variableId: string,
           change: {

@@ -46,7 +46,6 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
         ),
         data: {
           attributeKey: variable.attributeKey,
-          ...(variable.metricName ? { metricName: variable.metricName } : {}),
         },
       })
         .then((response: HTTPResponse<JSONObject>) => {
@@ -73,12 +72,7 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
     return () => {
       cancelled = true;
     };
-  }, [
-    variable.type,
-    variable.attributeKey,
-    variable.metricName,
-    props.dashboardId,
-  ]);
+  }, [variable.type, variable.attributeKey, props.dashboardId]);
 
   const isTelemetryAttribute: boolean =
     variable.type === DashboardVariableType.TelemetryAttribute;

@@ -60,7 +60,6 @@ export interface ComponentProps {
     | ((variables: Array<DashboardVariable>) => void)
     | undefined;
   telemetryAttributeOptions?: Array<string> | undefined;
-  metricNameOptions?: Array<string> | undefined;
 }
 
 interface CountdownCircleProps {
@@ -497,7 +496,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         <DashboardVariablesModal
           variables={props.variables || []}
           telemetryAttributeOptions={props.telemetryAttributeOptions || []}
-          metricNameOptions={props.metricNameOptions || []}
           onClose={() => {
             setShowVariablesModal(false);
           }}

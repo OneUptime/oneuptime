@@ -346,11 +346,6 @@ export default class DashboardAPI extends BaseAPI<
             throw new BadDataException("attributeKey is required.");
           }
 
-          const metricNameRaw: string | undefined =
-            req.body && (req.body["metricName"] as string);
-          const metricName: string | undefined =
-            metricNameRaw && metricNameRaw.trim() ? metricNameRaw : undefined;
-
           const telemetryTypeRaw: string | undefined =
             req.body && (req.body["telemetryType"] as string);
           let telemetryType: TelemetryType = TelemetryType.Metric;
@@ -386,7 +381,6 @@ export default class DashboardAPI extends BaseAPI<
               projectId: dashboard.projectId,
               telemetryType,
               attributeKey: attributeKey.trim(),
-              metricName,
             });
 
           return Response.sendJsonObjectResponse(req, res, {

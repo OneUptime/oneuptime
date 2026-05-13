@@ -166,7 +166,6 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
       setIsLoadingOptions(true);
       MetricUtil.getTelemetryAttributeValues({
         attributeKey: variable.attributeKey,
-        metricName: variable.metricName,
       })
         .then((values: Array<string>) => {
           if (cancelled) {
@@ -190,7 +189,7 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
     return () => {
       cancelled = true;
     };
-  }, [variable.type, variable.attributeKey, variable.metricName]);
+  }, [variable.type, variable.attributeKey]);
 
   const isTelemetryAttribute: boolean =
     variable.type === DashboardVariableType.TelemetryAttribute;

@@ -22,14 +22,6 @@ export default interface DashboardVariable {
    * of this attribute across the current time range.
    */
   attributeKey?: string | undefined;
-  /*
-   * For TelemetryAttribute: optional metric name to scope the option
-   * lookup to. When set, the dropdown lists distinct attribute values
-   * observed on that metric only (e.g. distinct `k8s.pod.name` values
-   * emitted by `k8s.container.cpu_usage`). Leave undefined to list
-   * values across every metric in the project.
-   */
-  metricName?: string | undefined;
   // Current selected value(s)
   selectedValue?: string | undefined;
   selectedValues?: Array<string> | undefined;
