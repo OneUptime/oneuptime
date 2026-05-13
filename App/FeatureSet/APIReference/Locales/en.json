@@ -33,7 +33,20 @@
     "pageNotFoundMetaTitle": "Page Not Found",
     "pageNotFoundMetaDescription": "Page you're looking for is not found.",
     "required": "Required",
-    "or": "or"
+    "or": "or",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "copyCode": "Copy code",
+    "copyRequest": "Copy request",
+    "headers": "Headers",
+    "body": "Body",
+    "success": "Success",
+    "srName": "Name",
+    "srType": "Type",
+    "srDescription": "Description",
+    "srEndpoint": "Endpoint",
+    "srValue": "Value",
+    "srIndex": "Index"
   },
   "pages": {
     "introduction": {

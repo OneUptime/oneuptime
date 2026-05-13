@@ -16,7 +16,10 @@ const tabs = [
 ];
 %>
 
-<div class="code-tabs-container my-6 w-full max-w-full overflow-hidden" id="<%= uniqueId %>">
+<div class="code-tabs-container my-6 w-full max-w-full overflow-hidden"
+     id="<%= uniqueId %>"
+     data-copy-label="<%= t('ui.copy') %>"
+     data-copied-label="<%= t('ui.copied') %>">
    <!-- Header with title and endpoint -->
    <div class="rounded-t-xl bg-slate-900 border border-slate-700/50 border-b-0">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-slate-700/50">
@@ -103,7 +106,7 @@ const tabs = [
                <button
                   class="copy-btn-tabs"
                   onclick="copyPreviewFromPanel(this)"
-                  aria-label="Copy request"
+                  aria-label="<%= t('ui.copyRequest') %>"
                >
                   <svg class="copy-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -111,12 +114,12 @@ const tabs = [
                   <svg class="check-icon w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                   </svg>
-                  <span class="copy-text">Copy</span>
+                  <span class="copy-text"><%= t('ui.copy') %></span>
                </button>
                <div class="code-content p-4 w-full max-w-full overflow-hidden" style="min-height: 200px;">
                   <!-- Headers Section -->
                   <div class="mb-4">
-                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Headers</div>
+                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"><%= t('ui.headers') %></div>
                      <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 overflow-hidden">
                         <pre class="text-sm text-slate-300 font-mono whitespace-pre-wrap m-0 preview-headers overflow-x-auto"><%= codeExamples.requestPreview.headers %></pre>
                      </div>
@@ -124,7 +127,7 @@ const tabs = [
                   <% if(codeExamples.requestPreview.body) { %>
                   <!-- Body Section -->
                   <div>
-                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Body</div>
+                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"><%= t('ui.body') %></div>
                      <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 overflow-hidden">
                         <pre class="text-sm leading-relaxed m-0 overflow-x-auto"><code class="language-json preview-body"><%= codeExamples.requestPreview.body %></code></pre>
                      </div>
@@ -136,7 +139,7 @@ const tabs = [
                <button
                   class="copy-btn-tabs"
                   onclick="copyCodeFromPanel(this)"
-                  aria-label="Copy code"
+                  aria-label="<%= t('ui.copyCode') %>"
                >
                   <svg class="copy-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -144,7 +147,7 @@ const tabs = [
                   <svg class="check-icon w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                   </svg>
-                  <span class="copy-text">Copy</span>
+                  <span class="copy-text"><%= t('ui.copy') %></span>
                </button>
                <div class="code-content w-full max-w-full overflow-hidden" style="min-height: 200px;">
                   <pre class="overflow-x-auto p-4 text-sm leading-relaxed m-0 w-full max-w-full"><code class="language-<%= tab.id === 'javascript' || tab.id === 'typescript' ? 'javascript' : (tab.id === 'python' ? 'python' : (tab.id === 'go' ? 'go' : (tab.id === 'ruby' ? 'ruby' : (tab.id === 'rust' ? 'rust' : (tab.id === 'powershell' ? 'powershell' : (tab.id === 'java' ? 'java' : (tab.id === 'csharp' ? 'csharp' : (tab.id === 'php' ? 'php' : 'bash')))))))) %>"><%= codeExamples[tab.id] %></code></pre>
@@ -228,19 +231,22 @@ function copyPreviewFromPanel(btn) {
 }
 
 function showCopySuccess(btn) {
+   const container = btn.closest('.code-tabs-container');
+   const labelCopy = (container && container.getAttribute('data-copy-label')) || 'Copy';
+   const labelCopied = (container && container.getAttribute('data-copied-label')) || 'Copied!';
    const copyIcon = btn.querySelector('.copy-icon');
    const checkIcon = btn.querySelector('.check-icon');
    const copyText = btn.querySelector('.copy-text');
 
    copyIcon.classList.add('hidden');
    checkIcon.classList.remove('hidden');
-   copyText.textContent = 'Copied!';
+   copyText.textContent = labelCopied;
    btn.classList.add('copied');
 
    setTimeout(() => {
       copyIcon.classList.remove('hidden');
       checkIcon.classList.add('hidden');
-      copyText.textContent = 'Copy';
+      copyText.textContent = labelCopy;
       btn.classList.remove('copied');
    }, 2000);
 }

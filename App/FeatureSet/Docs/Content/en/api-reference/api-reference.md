@@ -13,4 +13,4 @@ All API requests require authentication using API keys. You can generate API key
 
 ### API Reference
 
-Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference)
+Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference). The API reference is available in multiple languages — your preferred language is auto-detected from your browser, and you can switch languages at any time using the selector in the top navigation.
