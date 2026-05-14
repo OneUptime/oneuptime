@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
@@ -32,6 +33,7 @@ import {
   ManyToOne,
 } from "typeorm";
 
+@OperationalResource()
 @EnableDocumentation()
 @TableBillingAccessControl({
   create: PlanType.Growth,

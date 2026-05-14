@@ -11,6 +11,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Color from "../../Types/Color";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -45,6 +46,7 @@ import {
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageLanguage";
 
+@OperationalResource()
 @EnableDocumentation()
 @EnableMCP()
 @AccessControlColumn("labels")

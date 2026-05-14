@@ -65,12 +65,15 @@ export default class TablePermission {
     const modelPermissions: Array<Permission> =
       TablePermission.getTablePermission(modelType, type);
 
+    const effectiveModelPermissions: Array<Permission> =
+      TablePermission.getEffectiveModelPermissions(modelType, modelPermissions, type);
+
     if (
       !PermissionHelper.doesPermissionsIntersect(
         userPermissions.map((userPermission: UserPermission) => {
           return userPermission.permission;
         }) || [],
-        modelPermissions,
+        effectiveModelPermissions,
       )
     ) {
       const permissions: Array<string> =
@@ -87,6 +90,65 @@ export default class TablePermission {
           new modelType().singularName
         }. You need one of these permissions: ${permissions.join(", ")}`,
       );
+    }
+  }
+
+  // Resolves the model's enumerated permissions plus any wildcards that should
+  // grant access. See Internal/Docs/PermissionsSimplification.md.
+  //
+  // - Runtime equivalence: anywhere ReadAllProjectResources is accepted,
+  //   ReadAllResources is too (and vice versa for operational reads). No DB
+  //   migration is performed; this is the only place the alias lives.
+  // - Operational-resource wildcard: models marked @OperationalResource also
+  //   accept the matching *AllResources wildcard (ReadAllResources for read,
+  //   EditAllResources for update, etc.). Scope (All/Owned/Labels) on the
+  //   permission row is evaluated in a later step, not here.
+  private static getEffectiveModelPermissions(
+    modelType: DatabaseBaseModelType,
+    modelPermissions: Array<Permission>,
+    type: DatabaseRequestType,
+  ): Array<Permission> {
+    const effective: Array<Permission> = [...modelPermissions];
+
+    if (
+      effective.includes(Permission.ReadAllProjectResources) &&
+      !effective.includes(Permission.ReadAllResources)
+    ) {
+      effective.push(Permission.ReadAllResources);
+    }
+
+    const model: BaseModel = new modelType();
+    if (model.isOperationalResource) {
+      const wildcard: Permission | null =
+        TablePermission.getWildcardPermissionForOperation(type);
+      if (wildcard && !effective.includes(wildcard)) {
+        effective.push(wildcard);
+      }
+      if (
+        type === DatabaseRequestType.Read &&
+        !effective.includes(Permission.ReadAllProjectResources)
+      ) {
+        effective.push(Permission.ReadAllProjectResources);
+      }
+    }
+
+    return effective;
+  }
+
+  private static getWildcardPermissionForOperation(
+    type: DatabaseRequestType,
+  ): Permission | null {
+    switch (type) {
+      case DatabaseRequestType.Read:
+        return Permission.ReadAllResources;
+      case DatabaseRequestType.Update:
+        return Permission.EditAllResources;
+      case DatabaseRequestType.Delete:
+        return Permission.DeleteAllResources;
+      case DatabaseRequestType.Create:
+        return Permission.CreateAllResources;
+      default:
+        return null;
     }
   }
 

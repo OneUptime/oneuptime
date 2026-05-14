@@ -5,6 +5,7 @@ import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -35,6 +36,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import Label from "./Label";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 
+@OperationalResource()
 @AccessControlColumn("labels")
 @EnableDocumentation()
 @TenantColumn("projectId")
