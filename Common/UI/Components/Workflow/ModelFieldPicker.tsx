@@ -12,10 +12,7 @@ import URL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../Types/JSON";
-import CheckboxElement from "../Checkbox/Checkbox";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import AlertBanner, { AlertBannerType } from "../AlertBanner/AlertBanner";
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CodeEditor from "../CodeEditor/CodeEditor";
 import CodeType from "../../../Types/Code/CodeType";
 import Icon from "../Icon/Icon";
@@ -239,6 +236,48 @@ const buildSelectJson: (
   }
 
   return JSON.stringify(out);
+};
+
+/*
+ * A minimal checkbox that supports an `indeterminate` visual. Used for the
+ * relation header where partial selection of sub-fields needs its own state.
+ */
+interface PickerCheckboxProps {
+  checked: boolean;
+  indeterminate?: boolean | undefined;
+  onChange: () => void;
+  ariaLabel?: string | undefined;
+  size?: "sm" | "md" | undefined;
+}
+
+const PickerCheckbox: FunctionComponent<PickerCheckboxProps> = (
+  props: PickerCheckboxProps,
+): ReactElement => {
+  const ref: React.MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = Boolean(props.indeterminate);
+    }
+  }, [props.indeterminate]);
+
+  const sizeClass: string = props.size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={props.checked}
+      onChange={props.onChange}
+      onClick={(e: React.MouseEvent<HTMLInputElement>) => {
+        // Prevent toggling parent label/row when the click originates here.
+        e.stopPropagation();
+      }}
+      aria-label={props.ariaLabel}
+      className={`${sizeClass} rounded border-gray-300 text-indigo-600 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer`}
+    />
+  );
 };
 
 const ModelFieldPicker: FunctionComponent<ComponentProps> = (
@@ -552,28 +591,8 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
+      <div className="py-10">
         <ComponentLoader />
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="space-y-2">
-        <AlertBanner
-          title="Could not load fields"
-          type={AlertBannerType.Danger}
-        >
-          <p className="text-sm text-gray-700">{loadError}</p>
-        </AlertBanner>
-        <CodeEditor
-          type={CodeType.JSON}
-          value={jsonText}
-          onChange={onJsonChange}
-          placeholder={props.placeholder}
-          error={props.error}
-        />
       </div>
     );
   }
@@ -670,29 +689,6 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
   const hasNoVisibleResults: boolean =
     visibleScalars.length === 0 && visibleRelations.length === 0;
 
-  const viewToggleButton: ReactElement | null = !isLockedToJson ? (
-    <Button
-      title={viewMode === "picker" ? "Edit as JSON" : "Use picker"}
-      buttonStyle={ButtonStyleType.OUTLINE}
-      buttonSize={ButtonSize.Small}
-      icon={viewMode === "picker" ? IconProp.Code : IconProp.ListBullet}
-      onClick={() => {
-        if (viewMode === "picker") {
-          setViewMode("json");
-        } else {
-          onUsePickerClicked();
-        }
-      }}
-    />
-  ) : (
-    <Button
-      title="Reset to picker"
-      buttonStyle={ButtonStyleType.OUTLINE}
-      buttonSize={ButtonSize.Small}
-      onClick={resetToPicker}
-    />
-  );
-
   const selectAllScalars: () => void = (): void => {
     const ids: Array<string> = visibleScalars.map((c: PickerColumn) => {
       return c.id;
@@ -714,87 +710,253 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     setScalarSelection(Array.from(next));
   };
 
-  return (
-    <div className="space-y-3">
-      {/* Header: count + search + view toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div className="flex items-center gap-2">
+  /*
+   * Renders one selectable field row. Used for both top-level scalars and
+   * relation sub-fields (which pass a denser variant via `dense`).
+   */
+  const renderFieldRow: (args: {
+    column: PickerColumn;
+    checked: boolean;
+    onToggle: () => void;
+    dense?: boolean;
+  }) => ReactElement = (args: {
+    column: PickerColumn;
+    checked: boolean;
+    onToggle: () => void;
+    dense?: boolean;
+  }): ReactElement => {
+    const { column, checked, onToggle, dense } = args;
+    const typeLabel: string | null = getTypeLabel(column.type);
+    return (
+      <label
+        className={`group relative flex items-center gap-3 ${
+          dense ? "py-1.5" : "py-2"
+        } px-3 cursor-pointer select-none transition-colors ${
+          checked ? "bg-indigo-50/40" : "hover:bg-gray-50/80"
+        }`}
+      >
+        {checked && (
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-              totalSelected > 0
-                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                : "bg-gray-50 border-gray-200 text-gray-600"
-            }`}
-          >
-            <span className="font-semibold">{totalSelected}</span>
-            <span className="text-current opacity-75">
-              of {totalAvailable} selected
+            className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-indigo-500"
+            aria-hidden="true"
+          />
+        )}
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+        />
+        <span className="flex-1 min-w-0">
+          <span className="flex items-baseline gap-2">
+            <span
+              className={`truncate text-sm ${
+                checked
+                  ? "font-medium text-gray-900"
+                  : "font-medium text-gray-800"
+              }`}
+            >
+              {column.title}
             </span>
+            {typeLabel && (
+              <span className="ml-auto flex-shrink-0 text-[11px] uppercase tracking-wider text-gray-400 group-hover:text-gray-500">
+                {typeLabel}
+              </span>
+            )}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {viewMode === "picker" && !isLockedToJson && totalAvailable > 0 && (
-            <div className="relative flex-1 sm:flex-none">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-                <Icon
-                  icon={IconProp.Search}
-                  className="h-4 w-4 text-gray-400"
-                />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  return onSearchChange(e.target.value);
-                }}
-                placeholder="Search fields"
-                className="block w-full sm:w-56 rounded-md border border-gray-300 bg-white pl-8 pr-7 py-1.5 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    return setSearchQuery("");
-                  }}
-                  className="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 hover:text-gray-600"
-                  aria-label="Clear search"
-                >
-                  <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+          {column.description && (
+            <span
+              className="block text-xs text-gray-500 truncate mt-0.5"
+              title={column.description}
+            >
+              {column.description}
+            </span>
           )}
-          {viewToggleButton}
-        </div>
-      </div>
+        </span>
+      </label>
+    );
+  };
 
-      {/* Incompatibility banner */}
-      {isLockedToJson && (
-        <AlertBanner
-          title="Keeping your existing selection as JSON"
-          type={AlertBannerType.Warning}
-        >
-          <div className="space-y-1 text-sm text-gray-700">
-            <p>
-              We could not show this in the picker for the following reason
-              {incompatibilityReasons.length === 1 ? "" : "s"}:
-            </p>
-            <ul className="list-disc pl-5">
-              {incompatibilityReasons.map((reason: string, i: number) => {
-                return <li key={i}>{reason}</li>;
-              })}
-            </ul>
-            <p className="pt-1 text-gray-500">
-              Your workflow will keep running as-is. Edit the JSON below, or use{" "}
-              <strong>Reset to picker</strong> to start fresh.
-            </p>
+  /*
+   * Top-level toolbar above everything: search on the left (when in picker
+   * mode), then count, then the view-mode toggle. Kept as a single tight row
+   * so it doesn't visually compete with the field list below.
+   */
+  const renderToolbar: () => ReactElement = (): ReactElement => {
+    const showSearch: boolean =
+      viewMode === "picker" && !isLockedToJson && totalAvailable > 0;
+
+    let toggleLabel: string;
+    let toggleIcon: IconProp;
+    let toggleHandler: () => void;
+    if (isLockedToJson) {
+      toggleLabel = "Reset to picker";
+      toggleIcon = IconProp.Refresh;
+      toggleHandler = resetToPicker;
+    } else if (viewMode === "picker") {
+      toggleLabel = "JSON";
+      toggleIcon = IconProp.Code;
+      toggleHandler = (): void => {
+        setViewMode("json");
+      };
+    } else {
+      toggleLabel = "Picker";
+      toggleIcon = IconProp.ListBullet;
+      toggleHandler = onUsePickerClicked;
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        {showSearch && (
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Icon
+                icon={IconProp.MagnifyingGlass}
+                className="h-4 w-4 text-gray-400"
+              />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                return onSearchChange(e.target.value);
+              }}
+              placeholder={`Search ${totalAvailable} fields`}
+              className="block w-full rounded-md border border-gray-200 bg-white pl-9 pr-8 py-1.5 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  return setSearchQuery("");
+                }}
+                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-        </AlertBanner>
+        )}
+        {!showSearch && <div className="flex-1" />}
+        {!isLockedToJson && totalAvailable > 0 && viewMode === "picker" && (
+          <span className="text-xs text-gray-500 whitespace-nowrap font-mono">
+            <span
+              className={`${
+                totalSelected > 0
+                  ? "font-semibold text-indigo-600"
+                  : "text-gray-700"
+              }`}
+            >
+              {totalSelected}
+            </span>
+            <span className="text-gray-300 mx-1">/</span>
+            <span>{totalAvailable}</span>
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={toggleHandler}
+          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        >
+          <Icon icon={toggleIcon} className="h-3.5 w-3.5 text-gray-500" />
+          {toggleLabel}
+        </button>
+      </div>
+    );
+  };
+
+  const renderSectionHeader: (args: {
+    label: string;
+    actions?: ReactElement | null;
+  }) => ReactElement = (args: {
+    label: string;
+    actions?: ReactElement | null;
+  }): ReactElement => {
+    return (
+      <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+          {args.label}
+        </span>
+        {args.actions ? (
+          <div className="flex items-center gap-1 text-[11px]">
+            {args.actions}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderSectionActions: (args: {
+    onSelectAll: () => void;
+    onClear: () => void;
+  }) => ReactElement = (args: {
+    onSelectAll: () => void;
+    onClear: () => void;
+  }): ReactElement => {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={args.onSelectAll}
+          className="font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Select all
+        </button>
+        <span className="text-gray-300">·</span>
+        <button
+          type="button"
+          onClick={args.onClear}
+          className="font-medium text-gray-500 hover:text-gray-700"
+        >
+          Clear
+        </button>
+      </>
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      {renderToolbar()}
+
+      {loadError && (
+        <div className="flex items-start gap-2.5 rounded-md border border-red-200 bg-red-50/60 px-3 py-2 text-xs text-red-800">
+          <Icon
+            icon={IconProp.AltGlobe}
+            className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0"
+          />
+          <div>
+            <p className="font-semibold">Could not load fields</p>
+            <p className="text-red-700">{loadError}</p>
+          </div>
+        </div>
       )}
 
-      {/* JSON editor */}
-      {viewMode === "json" && (
-        <div className="rounded-lg border border-gray-200 overflow-hidden">
+      {isLockedToJson && (
+        <div className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
+          <div className="flex items-start gap-2.5">
+            <Icon
+              icon={IconProp.Info}
+              className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0"
+            />
+            <div className="text-xs text-amber-900 space-y-1">
+              <p className="font-semibold">Keeping your selection as JSON</p>
+              <ul className="text-amber-800 space-y-0.5 list-disc pl-4">
+                {incompatibilityReasons.map((reason: string, i: number) => {
+                  return <li key={i}>{reason}</li>;
+                })}
+              </ul>
+              <p className="pt-0.5 text-amber-700/80">
+                Your workflow keeps running unchanged. Edit the JSON below, or
+                click <strong>Reset to picker</strong> to start fresh.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(viewMode === "json" || loadError) && (
+        <div className="rounded-md border border-gray-200 overflow-hidden">
           <CodeEditor
             type={CodeType.JSON}
             value={jsonText}
@@ -808,17 +970,26 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Picker */}
-      {viewMode === "picker" && (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden shadow-sm">
+      {viewMode === "picker" && !loadError && (
+        <div className="rounded-md border border-gray-200 bg-white">
           {totalAvailable === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">
-              No readable fields are available for this model.
+            <div className="px-6 py-12 text-center">
+              <Icon
+                icon={IconProp.Database}
+                className="h-6 w-6 mx-auto text-gray-300 mb-2"
+              />
+              <p className="text-sm text-gray-500">
+                No readable fields are available for this model.
+              </p>
             </div>
           )}
 
           {totalAvailable > 0 && hasNoVisibleResults && (
-            <div className="p-6 text-center">
+            <div className="px-6 py-10 text-center">
+              <Icon
+                icon={IconProp.MagnifyingGlass}
+                className="h-5 w-5 mx-auto text-gray-300 mb-2"
+              />
               <p className="text-sm text-gray-600">
                 No fields match{" "}
                 <span className="font-medium text-gray-900">
@@ -830,7 +1001,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   return setSearchQuery("");
                 }}
-                className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
               >
                 Clear search
               </button>
@@ -838,89 +1009,47 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           )}
 
           {visibleScalars.length > 0 && (
-            <section className="px-4 py-3">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Fields
-                </h3>
-                <div className="flex items-center gap-1 text-xs">
-                  <button
-                    type="button"
-                    onClick={selectAllScalars}
-                    className="font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    Select all
-                  </button>
-                  <span className="text-gray-300">·</span>
-                  <button
-                    type="button"
-                    onClick={clearAllScalars}
-                    className="font-medium text-gray-500 hover:text-gray-700"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6">
+            <>
+              {renderSectionHeader({
+                label: "Fields",
+                actions: renderSectionActions({
+                  onSelectAll: selectAllScalars,
+                  onClear: clearAllScalars,
+                }),
+              })}
+              <div className="divide-y divide-gray-100">
                 {visibleScalars.map((column: PickerColumn) => {
-                  const checked: boolean = scalarChecks.has(column.id);
-                  const typeLabel: string | null = getTypeLabel(column.type);
                   return (
-                    <label
-                      key={column.id}
-                      className={`group flex items-start gap-2.5 rounded-md px-2 py-1.5 cursor-pointer transition-colors ${
-                        checked ? "bg-indigo-50/50" : "hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          return toggleScalar(column.id);
-                        }}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="flex-1 min-w-0">
-                        <span className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className={`text-sm font-medium ${
-                              checked ? "text-indigo-900" : "text-gray-900"
-                            }`}
-                          >
-                            {column.title}
-                          </span>
-                          {typeLabel && (
-                            <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 leading-none">
-                              {typeLabel}
-                            </span>
-                          )}
-                        </span>
-                        {column.description && (
-                          <span className="block text-xs text-gray-500 line-clamp-2">
-                            {column.description}
-                          </span>
-                        )}
-                      </span>
-                    </label>
+                    <React.Fragment key={column.id}>
+                      {renderFieldRow({
+                        column,
+                        checked: scalarChecks.has(column.id),
+                        onToggle: () => {
+                          toggleScalar(column.id);
+                        },
+                      })}
+                    </React.Fragment>
                   );
                 })}
               </div>
-            </section>
+            </>
           )}
 
           {visibleScalars.length > 0 && visibleRelations.length > 0 && (
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-gray-100 mt-2" />
           )}
 
           {visibleRelations.length > 0 && (
-            <section className="px-4 py-3">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Related records
-                </h3>
-                <span className="text-[10px] text-gray-400">1 level deep</span>
-              </div>
-              <div className="space-y-2">
+            <>
+              {renderSectionHeader({
+                label: "Related records",
+                actions: (
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-gray-300">
+                    1 level
+                  </span>
+                ),
+              })}
+              <div className="divide-y divide-gray-100">
                 {visibleRelations.map(
                   (entry: {
                     column: PickerColumn;
@@ -954,26 +1083,49 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                       }
                     };
 
+                    const selectAllSubs: () => void = (): void => {
+                      const ids: Array<string> = visibleSubs.map(
+                        (s: PickerColumn) => {
+                          return s.id;
+                        },
+                      );
+                      const merged: Set<string> = new Set(selectedSubs);
+                      for (const id of ids) {
+                        merged.add(id);
+                      }
+                      setRelationSelection(column.id, Array.from(merged));
+                    };
+
+                    const clearSubs: () => void = (): void => {
+                      const next: Set<string> = new Set(selectedSubs);
+                      for (const s of visibleSubs) {
+                        next.delete(s.id);
+                      }
+                      setRelationSelection(column.id, Array.from(next));
+                    };
+
                     return (
                       <div
                         key={column.id}
-                        className={`rounded-lg border transition-shadow ${
-                          isExpanded
-                            ? "border-gray-300 shadow-sm"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`${isExpanded ? "bg-gray-50/40" : ""}`}
                       >
+                        {/* Header row */}
                         <div
-                          className={`flex items-center gap-3 px-3 py-2.5 ${
-                            isExpanded
-                              ? "border-b border-gray-200 bg-gray-50"
-                              : ""
+                          className={`relative flex items-center gap-3 px-3 py-2 transition-colors ${
+                            isExpanded ? "" : "hover:bg-gray-50/80"
                           }`}
                         >
-                          <CheckboxElement
-                            value={allChecked}
-                            isIndeterminate={someChecked}
+                          {(allChecked || someChecked) && (
+                            <span
+                              className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-indigo-500"
+                              aria-hidden="true"
+                            />
+                          )}
+                          <PickerCheckbox
+                            checked={allChecked}
+                            indeterminate={someChecked}
                             onChange={toggleAllSubs}
+                            ariaLabel={`Select all from ${column.title}`}
                           />
                           <button
                             type="button"
@@ -982,141 +1134,74 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                             }}
                             className="flex-1 flex items-center justify-between gap-2 text-left min-w-0"
                           >
-                            <span className="min-w-0">
-                              <span className="block text-sm font-medium text-gray-900 truncate">
+                            <span className="min-w-0 flex items-baseline gap-2">
+                              <span
+                                className={`truncate text-sm font-medium ${
+                                  allChecked || someChecked
+                                    ? "text-gray-900"
+                                    : "text-gray-800"
+                                }`}
+                              >
                                 {column.title}
                               </span>
-                              {column.description && (
-                                <span className="block text-xs text-gray-500 truncate">
-                                  {column.description}
+                              {column.relatedTableName && (
+                                <span className="text-[11px] text-gray-400">
+                                  {column.relatedTableName}
                                 </span>
                               )}
                             </span>
                             <span className="flex items-center gap-2 flex-shrink-0">
-                              {selectedSubs.size > 0 ? (
-                                <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 border border-indigo-100">
-                                  {selectedSubs.size} of {totalSubs}
+                              <span className="text-[11px] text-gray-500 font-mono whitespace-nowrap">
+                                <span
+                                  className={
+                                    selectedSubs.size > 0
+                                      ? "font-semibold text-indigo-600"
+                                      : "text-gray-400"
+                                  }
+                                >
+                                  {selectedSubs.size}
                                 </span>
-                              ) : (
-                                <span className="text-[11px] text-gray-400">
-                                  {totalSubs} field{totalSubs === 1 ? "" : "s"}
-                                </span>
-                              )}
+                                <span className="text-gray-300 mx-1">/</span>
+                                <span>{totalSubs}</span>
+                              </span>
                               <Icon
                                 icon={
                                   isExpanded
                                     ? IconProp.ChevronDown
                                     : IconProp.ChevronRight
                                 }
-                                className="h-4 w-4 text-gray-400"
+                                className="h-3.5 w-3.5 text-gray-400"
                               />
                             </span>
                           </button>
                         </div>
+                        {/* Sub-fields */}
                         {isExpanded && (
-                          <div className="px-3 py-3">
-                            <div className="flex items-center justify-between mb-2 text-xs">
-                              <span className="text-gray-400">
-                                {column.relatedTableName
-                                  ? `From ${column.relatedTableName}`
-                                  : "Sub-fields"}
+                          <div className="pl-7 pr-0 pb-1 border-l-2 border-indigo-100 ml-5 mb-1">
+                            <div className="flex items-center justify-between px-3 py-1.5">
+                              <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
+                                Sub-fields
                               </span>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const ids: Array<string> = visibleSubs.map(
-                                      (s: PickerColumn) => {
-                                        return s.id;
-                                      },
-                                    );
-                                    const merged: Set<string> = new Set(
-                                      selectedSubs,
-                                    );
-                                    for (const id of ids) {
-                                      merged.add(id);
-                                    }
-                                    setRelationSelection(
-                                      column.id,
-                                      Array.from(merged),
-                                    );
-                                  }}
-                                  className="font-medium text-indigo-600 hover:text-indigo-800"
-                                >
-                                  Select all
-                                </button>
-                                <span className="text-gray-300">·</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next: Set<string> = new Set(
-                                      selectedSubs,
-                                    );
-                                    for (const s of visibleSubs) {
-                                      next.delete(s.id);
-                                    }
-                                    setRelationSelection(
-                                      column.id,
-                                      Array.from(next),
-                                    );
-                                  }}
-                                  className="font-medium text-gray-500 hover:text-gray-700"
-                                >
-                                  Clear
-                                </button>
+                              <div className="flex items-center gap-1 text-[11px]">
+                                {renderSectionActions({
+                                  onSelectAll: selectAllSubs,
+                                  onClear: clearSubs,
+                                })}
                               </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                            <div className="divide-y divide-gray-100">
                               {visibleSubs.map((sub: PickerColumn) => {
-                                const subChecked: boolean = selectedSubs.has(
-                                  sub.id,
-                                );
-                                const subTypeLabel: string | null =
-                                  getTypeLabel(sub.type);
                                 return (
-                                  <label
-                                    key={sub.id}
-                                    className={`group flex items-start gap-2.5 rounded-md px-2 py-1.5 cursor-pointer transition-colors ${
-                                      subChecked
-                                        ? "bg-indigo-50/50"
-                                        : "hover:bg-gray-50"
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={subChecked}
-                                      onChange={() => {
-                                        return toggleRelationField(
-                                          column.id,
-                                          sub.id,
-                                        );
-                                      }}
-                                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    />
-                                    <span className="flex-1 min-w-0">
-                                      <span className="flex items-center gap-1.5 flex-wrap">
-                                        <span
-                                          className={`text-sm font-medium ${
-                                            subChecked
-                                              ? "text-indigo-900"
-                                              : "text-gray-900"
-                                          }`}
-                                        >
-                                          {sub.title}
-                                        </span>
-                                        {subTypeLabel && (
-                                          <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 leading-none">
-                                            {subTypeLabel}
-                                          </span>
-                                        )}
-                                      </span>
-                                      {sub.description && (
-                                        <span className="block text-xs text-gray-500 line-clamp-2">
-                                          {sub.description}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </label>
+                                  <React.Fragment key={sub.id}>
+                                    {renderFieldRow({
+                                      column: sub,
+                                      checked: selectedSubs.has(sub.id),
+                                      onToggle: () => {
+                                        toggleRelationField(column.id, sub.id);
+                                      },
+                                      dense: true,
+                                    })}
+                                  </React.Fragment>
                                 );
                               })}
                             </div>
@@ -1127,13 +1212,18 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                   },
                 )}
               </div>
-            </section>
+            </>
+          )}
+
+          {/* Bottom spacer */}
+          {(visibleScalars.length > 0 || visibleRelations.length > 0) && (
+            <div className="py-1" />
           )}
         </div>
       )}
 
       {props.error && (
-        <p className="text-sm text-red-500" data-testid="error-message">
+        <p className="text-xs text-red-600 mt-0.5" data-testid="error-message">
           {props.error}
         </p>
       )}
