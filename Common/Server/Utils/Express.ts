@@ -45,6 +45,10 @@ export interface OneUptimeRequest extends express.Request {
   requestId?: string;
   userGlobalAccessPermission?: UserGlobalAccessPermission;
   userTenantAccessPermission?: Dictionary<UserTenantAccessPermission>; // tenantId <-> UserTenantAccessPermission;
+  // Teams the user has accepted membership in for the current tenant.
+  // Populated at authentication time when tenantId is known. Consumed by
+  // the `Owned` permission scope. Absent for non-user callers.
+  userTeamIds?: Array<ObjectID>;
   rawFormUrlEncodedBody?: string;
   rawBody?: string; // Raw body for signature verification (JSON or URL-encoded)
 }

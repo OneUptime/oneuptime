@@ -1,5 +1,6 @@
 import AccessTokenService from "../Services/AccessTokenService";
 import ProjectService from "../Services/ProjectService";
+import TeamMemberService from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CookieUtil from "../Utils/Cookie";
@@ -284,6 +285,16 @@ export default class UserMiddleware {
           oneuptimeRequest.userTenantAccessPermission[tenantId.toString()] =
             userTenantAccessPermission;
         }
+
+        // Load the user's team membership for this tenant so that the
+        // `Owned` permission scope can evaluate team-based ownership without
+        // an extra DB roundtrip on every permission check. Absent for non-user
+        // callers (API keys, Probes); `Owned` then evaluates as `All`.
+        oneuptimeRequest.userTeamIds =
+          await TeamMemberService.getTeamIdsForUser(
+            new ObjectID(userId),
+            tenantId,
+          );
       } catch (error) {
         return Response.sendErrorResponse(req, res, error as Exception);
       }

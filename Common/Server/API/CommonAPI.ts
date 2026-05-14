@@ -40,6 +40,10 @@ export default class CommonAPI {
       ).userTenantAccessPermission;
     }
 
+    if ((req as OneUptimeRequest).userTeamIds) {
+      props.userTeamIds = (req as OneUptimeRequest).userTeamIds;
+    }
+
     if ((req as OneUptimeRequest).tenantId) {
       props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
     }

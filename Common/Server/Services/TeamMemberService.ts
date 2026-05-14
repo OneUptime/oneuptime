@@ -534,6 +534,42 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       });
     }
   }
+
+  // Returns the IDs of teams the given user has accepted membership in,
+  // scoped to a single project. Used by the `Owned` permission scope to
+  // resolve "any of the user's teams owns this resource."
+  @CaptureSpan()
+  public async getTeamIdsForUser(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        userId: userId,
+        projectId: projectId,
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        teamId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    const teamIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+    for (const member of members) {
+      const id: ObjectID | undefined = member.teamId;
+      if (id && !seen.has(id.toString())) {
+        seen.add(id.toString());
+        teamIds.push(id);
+      }
+    }
+    return teamIds;
+  }
 }
 
 export default new TeamMemberService();
