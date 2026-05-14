@@ -7,10 +7,13 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { RUNBOOK_URL } from "Common/UI/Config";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
@@ -19,14 +22,6 @@ import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutio
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import { JSONObject } from "Common/Types/JSON";
-import {
-  Gray500,
-  Green500,
-  Red500,
-  Yellow500,
-  Blue500,
-  Slate500,
-} from "Common/Types/BrandColors";
 import { useAsyncEffect } from "use-async-effect";
 import React, {
   Fragment,
@@ -38,55 +33,122 @@ import React, {
 } from "react";
 import { useParams } from "react-router-dom";
 
-function executionStatusPill(status: RunbookExecutionStatus): ReactElement {
-  switch (status) {
-    case RunbookExecutionStatus.Completed:
-      return <Pill text="Completed" color={Green500} isMinimal={true} />;
-    case RunbookExecutionStatus.Failed:
-      return <Pill text="Failed" color={Red500} isMinimal={true} />;
-    case RunbookExecutionStatus.Running:
-      return <Pill text="Running" color={Blue500} isMinimal={true} />;
-    case RunbookExecutionStatus.WaitingForManualStep:
-      return (
-        <Pill
-          text="Waiting for manual step"
-          color={Yellow500}
-          isMinimal={true}
-        />
-      );
-    case RunbookExecutionStatus.Cancelled:
-      return <Pill text="Cancelled" color={Gray500} isMinimal={true} />;
-    case RunbookExecutionStatus.Scheduled:
-    default:
-      return (
-        <Pill text={status || "Scheduled"} color={Slate500} isMinimal={true} />
-      );
-  }
+interface StatusVisual {
+  label: string;
+  // Tailwind background + text + ring classes for the badge
+  badge: string;
+  // Color for the timeline dot
+  dot: string;
+  // Optional icon to render inside the dot
+  icon?: IconProp;
 }
 
-function stepStatusPill(status: RunbookStepExecutionStatus): ReactElement {
-  switch (status) {
-    case RunbookStepExecutionStatus.Completed:
-      return <Pill text="Done" color={Green500} isMinimal={true} />;
-    case RunbookStepExecutionStatus.Failed:
-      return <Pill text="Failed" color={Red500} isMinimal={true} />;
-    case RunbookStepExecutionStatus.Running:
-      return <Pill text="Running" color={Blue500} isMinimal={true} />;
-    case RunbookStepExecutionStatus.WaitingForUser:
-      return <Pill text="Waiting for you" color={Yellow500} isMinimal={true} />;
-    case RunbookStepExecutionStatus.Skipped:
-      return <Pill text="Skipped" color={Gray500} isMinimal={true} />;
-    case RunbookStepExecutionStatus.Pending:
-    default:
-      return <Pill text="Pending" color={Slate500} isMinimal={true} />;
-  }
-}
+const EXEC_STATUS_VISUAL: Record<RunbookExecutionStatus, StatusVisual> = {
+  [RunbookExecutionStatus.Scheduled]: {
+    label: "Scheduled",
+    badge: "bg-slate-50 text-slate-700 ring-slate-200",
+    dot: "bg-slate-300",
+  },
+  [RunbookExecutionStatus.Running]: {
+    label: "Running",
+    badge: "bg-blue-50 text-blue-700 ring-blue-200",
+    dot: "bg-blue-500",
+  },
+  [RunbookExecutionStatus.WaitingForManualStep]: {
+    label: "Waiting for you",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+    dot: "bg-amber-500",
+  },
+  [RunbookExecutionStatus.Completed]: {
+    label: "Completed",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  [RunbookExecutionStatus.Failed]: {
+    label: "Failed",
+    badge: "bg-rose-50 text-rose-700 ring-rose-200",
+    dot: "bg-rose-500",
+  },
+  [RunbookExecutionStatus.Cancelled]: {
+    label: "Cancelled",
+    badge: "bg-gray-100 text-gray-700 ring-gray-200",
+    dot: "bg-gray-400",
+  },
+};
+
+const STEP_STATUS_VISUAL: Record<RunbookStepExecutionStatus, StatusVisual> = {
+  [RunbookStepExecutionStatus.Pending]: {
+    label: "Pending",
+    badge: "bg-slate-50 text-slate-600 ring-slate-200",
+    dot: "bg-slate-300",
+  },
+  [RunbookStepExecutionStatus.Running]: {
+    label: "Running",
+    badge: "bg-blue-50 text-blue-700 ring-blue-200",
+    dot: "bg-blue-500",
+    icon: IconProp.Spinner,
+  },
+  [RunbookStepExecutionStatus.WaitingForUser]: {
+    label: "Waiting for you",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+    dot: "bg-amber-500",
+  },
+  [RunbookStepExecutionStatus.Completed]: {
+    label: "Done",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+    icon: IconProp.Check,
+  },
+  [RunbookStepExecutionStatus.Skipped]: {
+    label: "Skipped",
+    badge: "bg-gray-100 text-gray-600 ring-gray-200",
+    dot: "bg-gray-300",
+    icon: IconProp.ChevronRight,
+  },
+  [RunbookStepExecutionStatus.Failed]: {
+    label: "Failed",
+    badge: "bg-rose-50 text-rose-700 ring-rose-200",
+    dot: "bg-rose-500",
+    icon: IconProp.Close,
+  },
+};
+
+const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
+  [RunbookStepType.Manual]: IconProp.Check,
+  [RunbookStepType.JavaScript]: IconProp.Code,
+  [RunbookStepType.HttpRequest]: IconProp.Globe,
+  [RunbookStepType.Bash]: IconProp.Terminal,
+};
+
+const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
+  [RunbookStepType.Manual]: "Manual",
+  [RunbookStepType.JavaScript]: "JavaScript",
+  [RunbookStepType.HttpRequest]: "HTTP",
+  [RunbookStepType.Bash]: "Bash",
+};
 
 function isTerminal(status?: RunbookExecutionStatus): boolean {
   return (
     status === RunbookExecutionStatus.Completed ||
     status === RunbookExecutionStatus.Failed ||
     status === RunbookExecutionStatus.Cancelled
+  );
+}
+
+function StatusBadge({
+  visual,
+}: {
+  visual: StatusVisual;
+}): ReactElement {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${visual.badge}`}
+    >
+      <span
+        className={`inline-block w-1.5 h-1.5 rounded-full ${visual.dot}`}
+      ></span>
+      {visual.label}
+    </span>
   );
 }
 
@@ -119,6 +181,7 @@ const ExecutionView: FunctionComponent<
               startedAt: true,
               completedAt: true,
               failureReason: true,
+              createdAt: true,
             },
             requestOptions: {},
           });
@@ -226,26 +289,48 @@ const ExecutionView: FunctionComponent<
 
   if (!execution) {
     return (
-      <div className="text-sm text-gray-500">Runbook execution not found.</div>
+      <Card title="Runbook Execution" description="Not found.">
+        <p className="text-sm text-gray-500">
+          This runbook execution could not be loaded. It may have been deleted.
+        </p>
+      </Card>
     );
   }
 
   const steps: RunbookStepExecutionState[] =
     (execution.stepExecutions as unknown as RunbookStepExecutionState[]) || [];
-  const canCancel: boolean = !isTerminal(
-    execution.status as RunbookExecutionStatus,
-  );
+  const execStatus: RunbookExecutionStatus =
+    (execution.status as RunbookExecutionStatus) ||
+    RunbookExecutionStatus.Scheduled;
+  const execVisual: StatusVisual = EXEC_STATUS_VISUAL[execStatus];
+  const canCancel: boolean = !isTerminal(execStatus);
+
+  const totalSteps: number = steps.length;
+  const completedSteps: number = steps.filter(
+    (s: RunbookStepExecutionState) => {
+      return (
+        s.status === RunbookStepExecutionStatus.Completed ||
+        s.status === RunbookStepExecutionStatus.Skipped
+      );
+    },
+  ).length;
 
   return (
     <Fragment>
       <Card
         title={execution.runbookNameSnapshot || "Runbook Execution"}
         description={
-          execution.startedAt
-            ? `Started ${OneUptimeDate.getDateAsLocalFormattedString(
-                execution.startedAt,
-              )}`
-            : "Not yet started."
+          execStatus === RunbookExecutionStatus.WaitingForManualStep
+            ? "Waiting on a manual step. Tick it off below to continue."
+            : execStatus === RunbookExecutionStatus.Running
+              ? "Steps are running. This page refreshes every 3 seconds."
+              : execStatus === RunbookExecutionStatus.Completed
+                ? "All steps completed successfully."
+                : execStatus === RunbookExecutionStatus.Failed
+                  ? "A step failed and stopped the run."
+                  : execStatus === RunbookExecutionStatus.Cancelled
+                    ? "This execution was cancelled."
+                    : "Scheduled — waiting to start."
         }
         buttons={
           canCancel
@@ -264,100 +349,237 @@ const ExecutionView: FunctionComponent<
         }
       >
         <>
-          <div className="flex items-center gap-3 mb-4">
-            {executionStatusPill(execution.status as RunbookExecutionStatus)}
-            {execution.completedAt ? (
-              <span className="text-xs text-gray-500">
-                Completed{" "}
-                {OneUptimeDate.getDateAsLocalFormattedString(
-                  execution.completedAt,
-                )}
-              </span>
-            ) : null}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                Status
+              </div>
+              <StatusBadge visual={execVisual} />
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                Progress
+              </div>
+              <div className="text-sm font-medium text-gray-900">
+                {completedSteps} of {totalSteps} steps
+              </div>
+              {totalSteps > 0 && (
+                <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 transition-all"
+                    style={{
+                      width: `${(completedSteps / totalSteps) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                Started
+              </div>
+              <div className="text-sm text-gray-900">
+                {execution.startedAt
+                  ? OneUptimeDate.getDateAsLocalFormattedString(
+                      execution.startedAt,
+                    )
+                  : "—"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                {execution.completedAt ? "Completed" : "Elapsed"}
+              </div>
+              <div className="text-sm text-gray-900">
+                {execution.completedAt
+                  ? OneUptimeDate.getDateAsLocalFormattedString(
+                      execution.completedAt,
+                    )
+                  : execution.startedAt
+                    ? "Running..."
+                    : "—"}
+              </div>
+            </div>
           </div>
 
           {execution.failureReason ? (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-3 py-2 mb-4">
-              {execution.failureReason}
+            <div className="rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm px-4 py-3 mb-6 flex items-start gap-3">
+              <Icon
+                icon={IconProp.Alert}
+                size={SizeProp.Regular}
+                className="text-rose-500 mt-0.5 shrink-0"
+              />
+              <div>
+                <div className="font-medium">Run failed</div>
+                <div className="mt-0.5 text-rose-700">
+                  {execution.failureReason}
+                </div>
+              </div>
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3">
-            {steps.length === 0 && (
-              <div className="text-sm text-gray-500">
-                No steps in this runbook.
-              </div>
-            )}
-            {steps.map((stepExec: RunbookStepExecutionState, idx: number) => {
-              const isManualWaiting: boolean =
-                stepExec.step.type === RunbookStepType.Manual &&
-                stepExec.status === RunbookStepExecutionStatus.WaitingForUser;
-              return (
-                <div
-                  key={stepExec.step.id}
-                  className="border border-gray-200 rounded-lg p-4 bg-white"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {idx + 1}. {stepExec.step.title}
-                        </span>
-                        {stepStatusPill(stepExec.status)}
-                      </div>
-                      {stepExec.step.description && (
-                        <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
-                          {stepExec.step.description}
-                        </p>
-                      )}
-                      {stepExec.errorMessage && (
-                        <p className="text-xs text-red-600 mt-1">
-                          Error: {stepExec.errorMessage}
-                        </p>
-                      )}
-                      {stepExec.output && (
-                        <details className="mt-2">
-                          <summary className="text-xs text-gray-500 cursor-pointer">
-                            Output
-                          </summary>
-                          <pre className="text-xs bg-gray-50 border border-gray-200 rounded p-2 mt-1 overflow-auto whitespace-pre-wrap">
-                            {stepExec.output}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      {isManualWaiting && (
-                        <Button
-                          title="Mark Complete"
-                          buttonStyle={ButtonStyleType.PRIMARY}
-                          icon={IconProp.Check}
-                          onClick={() => {
-                            void completeStep(stepExec.step.id);
-                          }}
-                          disabled={actionInFlight}
-                        />
-                      )}
-                      {(stepExec.status ===
+          {steps.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              This runbook had no steps when it ran.
+            </p>
+          ) : (
+            <div className="relative">
+              {/* Vertical timeline line */}
+              <div
+                aria-hidden="true"
+                className="absolute left-[1.125rem] top-2 bottom-2 w-px bg-gray-200"
+              ></div>
+
+              <ul className="space-y-3">
+                {steps.map(
+                  (stepExec: RunbookStepExecutionState, idx: number) => {
+                    const stepVisual: StatusVisual =
+                      STEP_STATUS_VISUAL[stepExec.status];
+                    const isWaiting: boolean =
+                      stepExec.step.type === RunbookStepType.Manual &&
+                      stepExec.status ===
+                        RunbookStepExecutionStatus.WaitingForUser;
+                    const canSkip: boolean =
+                      stepExec.status ===
                         RunbookStepExecutionStatus.WaitingForUser ||
-                        stepExec.status ===
-                          RunbookStepExecutionStatus.Pending) && (
-                        <Button
-                          title="Skip"
-                          buttonStyle={ButtonStyleType.OUTLINE}
-                          icon={IconProp.ChevronRight}
-                          onClick={() => {
-                            void skipStep(stepExec.step.id);
-                          }}
-                          disabled={actionInFlight}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                      stepExec.status === RunbookStepExecutionStatus.Pending;
+                    return (
+                      <li
+                        key={stepExec.step.id}
+                        className="relative pl-12"
+                      >
+                        {/* Timeline dot */}
+                        <div className="absolute left-2.5 top-3 z-10">
+                          <span
+                            className={`flex h-6 w-6 items-center justify-center rounded-full ${stepVisual.dot} text-white shadow ring-4 ring-white`}
+                          >
+                            {stepVisual.icon ? (
+                              <Icon
+                                icon={stepVisual.icon}
+                                size={SizeProp.Smaller}
+                                className="text-white"
+                              />
+                            ) : (
+                              <span className="text-[10px] font-semibold">
+                                {idx + 1}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+
+                        <div
+                          className={`rounded-xl border bg-white px-5 py-4 shadow-sm transition ${
+                            isWaiting
+                              ? "border-amber-300 ring-1 ring-amber-100"
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <span className="text-xs text-gray-400 font-medium">
+                                  Step {idx + 1}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">
+                                  <Icon
+                                    icon={
+                                      STEP_TYPE_ICON[stepExec.step.type]
+                                    }
+                                    size={SizeProp.Smaller}
+                                    className="text-gray-500"
+                                  />
+                                  {STEP_TYPE_LABEL[stepExec.step.type]}
+                                </span>
+                                <StatusBadge visual={stepVisual} />
+                              </div>
+                              <h3 className="text-sm font-semibold text-gray-900">
+                                {stepExec.step.title}
+                              </h3>
+                              {stepExec.step.description && (
+                                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">
+                                  {stepExec.step.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                              {isWaiting && (
+                                <Button
+                                  title="Mark complete"
+                                  buttonStyle={ButtonStyleType.PRIMARY}
+                                  buttonSize={ButtonSize.Small}
+                                  icon={IconProp.Check}
+                                  onClick={() => {
+                                    void completeStep(stepExec.step.id);
+                                  }}
+                                  disabled={actionInFlight}
+                                />
+                              )}
+                              {canSkip && (
+                                <Button
+                                  title="Skip"
+                                  buttonStyle={ButtonStyleType.OUTLINE}
+                                  buttonSize={ButtonSize.Small}
+                                  icon={IconProp.ChevronRight}
+                                  onClick={() => {
+                                    void skipStep(stepExec.step.id);
+                                  }}
+                                  disabled={actionInFlight}
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          {(stepExec.startedAt || stepExec.completedAt) && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2">
+                              {stepExec.startedAt && (
+                                <span>
+                                  Started{" "}
+                                  {OneUptimeDate.getDateAsLocalFormattedString(
+                                    new Date(stepExec.startedAt),
+                                  )}
+                                </span>
+                              )}
+                              {stepExec.completedAt && (
+                                <span>
+                                  Finished{" "}
+                                  {OneUptimeDate.getDateAsLocalFormattedString(
+                                    new Date(stepExec.completedAt),
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {stepExec.errorMessage && (
+                            <div className="mt-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 text-xs">
+                              <span className="font-medium">Error:</span>{" "}
+                              {stepExec.errorMessage}
+                            </div>
+                          )}
+
+                          {stepExec.output && (
+                            <details className="mt-3 group">
+                              <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-800 select-none">
+                                <span className="group-open:hidden">
+                                  Show output
+                                </span>
+                                <span className="hidden group-open:inline">
+                                  Hide output
+                                </span>
+                              </summary>
+                              <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-md px-3 py-2 overflow-auto whitespace-pre-wrap max-h-72">
+                                {stepExec.output}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            </div>
+          )}
         </>
       </Card>
 
