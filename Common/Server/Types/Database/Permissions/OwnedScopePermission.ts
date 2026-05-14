@@ -2,7 +2,12 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import QueryHelper from "../QueryHelper";
 import TablePermission from "./TablePermission";
-import OwnerTableRegistry, { OwnerTablePair } from "./OwnerTableRegistry";
+// Type-only import: keeps the OwnerTablePair shape available without
+// triggering a runtime load of the registry (which imports 20 owner
+// services that extend DatabaseService). The registry is lazy-required
+// inside getAllowedResourceIds to avoid the class-extends-undefined
+// circular-dep crash at module init.
+import type { OwnerTablePair } from "./OwnerTableRegistry";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -191,8 +196,15 @@ export default class OwnedScopePermission {
       resolverName = (modelType as any).name;
     }
 
+    // Lazy require to avoid the circular dep cycle: this file is reachable
+    // from DatabaseService at module-load time, and the registry imports
+    // services that extend DatabaseService.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const ownerTableRegistry: Map<string, OwnerTablePair> =
+      require("./OwnerTableRegistry").default;
+
     const registryEntry: OwnerTablePair | undefined =
-      OwnerTableRegistry.get(resolverName);
+      ownerTableRegistry.get(resolverName);
     if (!registryEntry) {
       // No registered owner tables for this model — Owned scope can't
       // resolve, so nothing is accessible.
