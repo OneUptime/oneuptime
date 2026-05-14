@@ -752,6 +752,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         );
       }
 
+      // Auto-owner-on-create for @OperationalResource models. Inserts the
+      // creating user into <Model>OwnerUser so the Owned permission scope
+      // covers the newly-created resource on the next request. See
+      // Internal/Docs/PermissionsSimplification.md. Best-effort: failures
+      // are logged but do not roll back the create.
+      if (!createBy.props.ignoreHooks) {
+        await this.autoOwnerOnCreate(createBy.data, createBy.props);
+      }
+
       let tenantId: ObjectID | undefined = createBy.props.tenantId;
 
       if (!tenantId && this.getModel().getTenantColumn()) {
@@ -797,6 +806,94 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     } catch (error) {
       await this.onCreateError(error as Exception);
       throw this.getException(error as Exception);
+    }
+  }
+
+  // Inserts the creating user into the resource's *OwnerUser table for
+  // operational resources. Mirrors the existing OwnerRule behavior for user
+  // assignment and gives the creator immediate access under the `Owned`
+  // permission scope.
+  private async autoOwnerOnCreate(
+    createdItem: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    // System/root creates don't get an owner; non-user callers (API keys,
+    // Probes) have no userId either. Both evaluate Owned as All elsewhere.
+    if (props.isRoot || props.isMasterAdmin || !props.userId) {
+      return;
+    }
+
+    // The @OperationalResource() decorator sets this on the model prototype.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(createdItem as any).isOperationalResource) {
+      return;
+    }
+
+    const modelName: string = this.modelType.name;
+
+    // Lazy require to avoid circular dependency: owner services extend
+    // DatabaseService, so importing them at top-level leaves DatabaseService
+    // undefined at class-extension time.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const ownerTableRegistry: Map<
+      string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { ownerUserService: any; ownerTeamService: any; fkColumn: string }
+    > = require("../Types/Database/Permissions/OwnerTableRegistry").default;
+
+    const entry: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ownerUserService: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ownerTeamService: any;
+      fkColumn: string;
+    } | undefined = ownerTableRegistry.get(modelName);
+    if (!entry) {
+      // Operational but no registered owner tables — not a configuration we
+      // know how to auto-own. Skip silently.
+      return;
+    }
+
+    const resourceId: ObjectID | undefined = createdItem.id || undefined;
+    if (!resourceId) {
+      logger.error(
+        `auto-owner-on-create: created ${modelName} has no id; skipping`,
+      );
+      return;
+    }
+
+    const tenantColumnName: string | null = createdItem.getTenantColumn();
+    let projectId: ObjectID | undefined = undefined;
+    if (tenantColumnName) {
+      projectId =
+        createdItem.getValue<ObjectID>(tenantColumnName) || props.tenantId;
+    } else {
+      projectId = props.tenantId;
+    }
+
+    if (!projectId) {
+      logger.error(
+        `auto-owner-on-create: no projectId for ${modelName} ${resourceId.toString()}; skipping`,
+      );
+      return;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ownerModel: any = entry.ownerUserService.getModel();
+      ownerModel[entry.fkColumn] = resourceId;
+      ownerModel.userId = props.userId;
+      ownerModel.projectId = projectId;
+
+      await entry.ownerUserService.create({
+        data: ownerModel,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      logger.error(
+        `auto-owner-on-create failed for ${modelName} ${resourceId.toString()}`,
+      );
+      logger.error(err as Error);
     }
   }
 
