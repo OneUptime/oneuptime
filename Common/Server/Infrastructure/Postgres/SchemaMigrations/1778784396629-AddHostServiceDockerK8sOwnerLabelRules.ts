@@ -281,9 +281,6 @@ export class MigrationName1778784396629 implements MigrationInterface {
       `CREATE INDEX "IDX_c5f173eb0a315f0a13802f72ff" ON "KubernetesClusterLabelRuleLabelToAdd" ("labelId") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "RunbookAgentJob" ADD "stepType" character varying(100) NOT NULL`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
     );
     await queryRunner.query(
@@ -681,9 +678,6 @@ export class MigrationName1778784396629 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "RunbookAgentJob" DROP COLUMN "stepType"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_c5f173eb0a315f0a13802f72ff"`,
