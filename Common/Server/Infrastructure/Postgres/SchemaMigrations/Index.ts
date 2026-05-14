@@ -328,6 +328,7 @@ import { AddRunbookAgentJobStepType1778784000000 } from "./1778784000000-AddRunb
 import { MigrationName1778784396629 } from "./1778784396629-AddHostServiceDockerK8sOwnerLabelRules";
 import { MigrationName1778785741500 } from "./1778785741500-AddRunbookOwnerLabelRules";
 import { MigrationName1778791942334 } from "./1778791942334-AddDashboardWorkflowOwnerLabelRules";
+import { AddTeamPermissionScope1778800000000 } from "./1778800000000-AddTeamPermissionScope";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -659,4 +660,5 @@ export default [
   MigrationName1778784396629,
   MigrationName1778785741500,
   MigrationName1778791942334,
+  AddTeamPermissionScope1778800000000,
 ];

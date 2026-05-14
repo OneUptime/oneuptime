@@ -10,6 +10,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
@@ -486,4 +487,44 @@ export default class TeamPermission extends BaseModel {
     default: false,
   })
   public isBlockPermission?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectTeam,
+      Permission.EditProjectTeamPermissions,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsManager,
+      Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeamPermissions,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    title: "Scope",
+    description:
+      "Scope of this permission row. One of: All, Owned, Labels. Defaults to Labels for backward compatibility with existing rows.",
+    defaultValue: "Labels",
+    example: "Labels",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: PermissionScope.Labels,
+  })
+  public scope?: PermissionScope = undefined;
 }

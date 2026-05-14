@@ -1,5 +1,6 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
 import Dictionary from "./Dictionary";
+import PermissionScope from "./Database/AccessControl/PermissionScope";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject } from "./JSON";
 import ObjectID from "./ObjectID";
@@ -1283,7 +1284,20 @@ enum Permission {
   ReadIncidentSla = "ReadIncidentSla",
 
   // Read All Project Resources Permission - Grants read access to all project resources
+  /**
+   * @deprecated Use {@link ReadAllResources} instead. Kept as a runtime alias
+   * for backward compatibility; the permission check treats this and
+   * `ReadAllResources` as equivalent. Will be removed in a future major version.
+   */
   ReadAllProjectResources = "ReadAllProjectResources",
+
+  // Wildcard permissions covering all models marked @OperationalResource().
+  // These short-circuit table-level checks for that resource class. Scope on
+  // the TeamPermission row still applies (All / Owned / Labels).
+  ReadAllResources = "ReadAllResources",
+  EditAllResources = "EditAllResources",
+  DeleteAllResources = "DeleteAllResources",
+  CreateAllResources = "CreateAllResources",
 }
 
 export class PermissionHelper {
@@ -10724,12 +10738,54 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
-      // Read All Project Resources Permission
+      // Read All Project Resources Permission (deprecated; alias of ReadAllResources)
       {
         permission: Permission.ReadAllProjectResources,
         title: "Read All Project Resources",
         description:
-          "This permission grants read access to all resources in this project. Users with this permission can view all project data including monitors, incidents, alerts, status pages, on-call policies, and other project resources.",
+          "Deprecated. Use Read All Resources instead. Grants read access to all resources in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Project,
+      },
+
+      // Operational Resource Wildcard Permissions
+      {
+        permission: Permission.ReadAllResources,
+        title: "Read All Resources",
+        description:
+          "Wildcard read permission for all operational resources in this project (Monitor, Incident, Alert, StatusPage, etc.). Supersedes Read All Project Resources.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Project,
+      },
+      {
+        permission: Permission.EditAllResources,
+        title: "Edit All Resources",
+        description:
+          "Wildcard edit permission for all operational resources in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Project,
+      },
+      {
+        permission: Permission.DeleteAllResources,
+        title: "Delete All Resources",
+        description:
+          "Wildcard delete permission for all operational resources in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Project,
+      },
+      {
+        permission: Permission.CreateAllResources,
+        title: "Create All Resources",
+        description:
+          "Wildcard create permission for all operational resources in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10773,6 +10829,12 @@ export interface UserPermission extends JSONObject {
   permission: Permission;
   labelIds: Array<ObjectID>;
   isBlockPermission?: boolean | undefined;
+  // Scope of this permission row. Absent means `Labels` (legacy default).
+  // - `All`: applies project-wide.
+  // - `Owned`: applies to resources owned by the user (in *OwnerUser) OR by
+  //   this team (in *OwnerTeam).
+  // - `Labels`: existing allow/block-list label semantics.
+  scope?: PermissionScope | undefined;
 }
 
 export interface UserTenantAccessPermission extends JSONObject {

@@ -8,6 +8,7 @@ import ModelPermission from "../../../Types/BaseDatabase/ModelPermission";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
+import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import Columns from "../../../Types/Database/Columns";
 import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
@@ -137,6 +138,19 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   // realtime events.
   public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;
+
+  // Set by the @OperationalResource() decorator. When true, *AllResources
+  // wildcard permissions (ReadAllResources, EditAllResources, etc.) cover this
+  // model in the table-level permission short-circuit. Settings/admin models
+  // (Team, TeamPermission, Project, Label, Billing, Integration credentials)
+  // remain off.
+  public isOperationalResource!: boolean;
+
+  // Set by the @OwnedThrough(fkColumn, parentModel) decorator. When present,
+  // ownership for the `Owned` permission scope resolves through the named FK
+  // to the parent model — e.g., MonitorStatusTimeline.monitorId → Monitor.
+  // Resolved at request time by walking one hop.
+  public ownedThrough!: OwnedThroughMetadata | null;
 
   // total items  by
   public totalItemsByColumnName!: string | null;
