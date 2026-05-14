@@ -10,6 +10,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { RUNBOOK_URL } from "Common/UI/Config";
@@ -40,6 +41,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "/run/" + modelId.toString(),
           ),
           data: {},
+          headers: ModelAPI.getCommonHeaders({}),
         });
 
       if (result instanceof HTTPErrorResponse) {

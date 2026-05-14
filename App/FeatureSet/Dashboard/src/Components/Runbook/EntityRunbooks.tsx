@@ -83,8 +83,7 @@ function StatusPill({
   status: RunbookExecutionStatus;
 }): ReactElement {
   const v: StatusVisual =
-    STATUS_VISUAL[status] ||
-    STATUS_VISUAL[RunbookExecutionStatus.Scheduled]!;
+    STATUS_VISUAL[status] || STATUS_VISUAL[RunbookExecutionStatus.Scheduled]!;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
@@ -169,6 +168,7 @@ const EntityRunbooks: FunctionComponent<ComponentProps> = (
             "/run/" + runbookId,
           ),
           data: linkagePayload,
+          headers: ModelAPI.getCommonHeaders({}),
         });
       if (result instanceof HTTPErrorResponse) {
         throw result;

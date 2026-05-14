@@ -135,11 +135,7 @@ function isTerminal(status?: RunbookExecutionStatus): boolean {
   );
 }
 
-function StatusBadge({
-  visual,
-}: {
-  visual: StatusVisual;
-}): ReactElement {
+function StatusBadge({ visual }: { visual: StatusVisual }): ReactElement {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${visual.badge}`}
@@ -227,6 +223,7 @@ const ExecutionView: FunctionComponent<
             `/execution/${executionId.toString()}/step/${stepId}/complete`,
           ),
           data: {},
+          headers: ModelAPI.getCommonHeaders({}),
         });
       if (result instanceof HTTPErrorResponse) {
         throw result;
@@ -250,6 +247,7 @@ const ExecutionView: FunctionComponent<
             `/execution/${executionId.toString()}/step/${stepId}/skip`,
           ),
           data: {},
+          headers: ModelAPI.getCommonHeaders({}),
         });
       if (result instanceof HTTPErrorResponse) {
         throw result;
@@ -271,6 +269,7 @@ const ExecutionView: FunctionComponent<
             `/execution/${executionId.toString()}/cancel`,
           ),
           data: {},
+          headers: ModelAPI.getCommonHeaders({}),
         });
       if (result instanceof HTTPErrorResponse) {
         throw result;
@@ -444,10 +443,7 @@ const ExecutionView: FunctionComponent<
                         RunbookStepExecutionStatus.WaitingForUser ||
                       stepExec.status === RunbookStepExecutionStatus.Pending;
                     return (
-                      <li
-                        key={stepExec.step.id}
-                        className="relative pl-12"
-                      >
+                      <li key={stepExec.step.id} className="relative pl-12">
                         {/* Timeline dot */}
                         <div className="absolute left-2.5 top-3 z-10">
                           <span
@@ -482,9 +478,7 @@ const ExecutionView: FunctionComponent<
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">
                                   <Icon
-                                    icon={
-                                      STEP_TYPE_ICON[stepExec.step.type]
-                                    }
+                                    icon={STEP_TYPE_ICON[stepExec.step.type]}
                                     size={SizeProp.Smaller}
                                     className="text-gray-500"
                                   />

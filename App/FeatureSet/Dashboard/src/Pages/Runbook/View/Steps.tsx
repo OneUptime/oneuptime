@@ -125,7 +125,10 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
     continueOnFailure: false,
     config:
       type === RunbookStepType.JavaScript
-        ? ({ script: "// Return a value to capture it on the execution.\nreturn 'ok';" } as JavaScriptStepConfig)
+        ? ({
+            script:
+              "// Return a value to capture it on the execution.\nreturn 'ok';",
+          } as JavaScriptStepConfig)
         : type === RunbookStepType.HttpRequest
           ? ({
               url: "https://",
@@ -321,325 +324,327 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }
       >
         <>
-        <div className="flex flex-col gap-3">
-          {steps.length === 0 && (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10">
-              <div className="text-center mb-6">
-                <div className="mx-auto h-12 w-12 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-3">
-                  <Icon
-                    icon={IconProp.BookOpen}
-                    size={SizeProp.Larger}
-                    className="text-gray-400"
-                  />
+          <div className="flex flex-col gap-3">
+            {steps.length === 0 && (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10">
+                <div className="text-center mb-6">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-3">
+                    <Icon
+                      icon={IconProp.BookOpen}
+                      size={SizeProp.Larger}
+                      className="text-gray-400"
+                    />
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Start your runbook
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Add the first step. You can reorder and edit at any time.
+                  </p>
                 </div>
-                <h3 className="text-sm font-semibold text-gray-900">
-                  Start your runbook
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Add the first step. You can reorder and edit at any time.
-                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto">
+                  {ALL_STEP_TYPES.map((t: RunbookStepType) => {
+                    const meta: StepTypeMeta = STEP_TYPE_META[t];
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          return add(t);
+                        }}
+                        className={`group text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+                      >
+                        <div
+                          className={`inline-flex items-center justify-center h-9 w-9 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-3`}
+                        >
+                          <Icon
+                            icon={meta.icon}
+                            size={SizeProp.Regular}
+                            className={meta.iconColor}
+                          />
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {meta.shortLabel}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                          {meta.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto">
-                {ALL_STEP_TYPES.map((t: RunbookStepType) => {
-                  const meta: StepTypeMeta = STEP_TYPE_META[t];
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        return add(t);
-                      }}
-                      className={`group text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+            )}
+
+            {steps.map((step: RunbookStep, idx: number) => {
+              const meta: StepTypeMeta = STEP_TYPE_META[step.type];
+              return (
+                <div
+                  key={step.id}
+                  className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                >
+                  <div className="flex items-start gap-4 px-5 py-4">
+                    <div
+                      className={`flex-shrink-0 h-9 w-9 rounded-full ${meta.numberBg} text-white text-sm font-semibold flex items-center justify-center mt-0.5`}
                     >
-                      <div
-                        className={`inline-flex items-center justify-center h-9 w-9 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-3`}
-                      >
-                        <Icon
-                          icon={meta.icon}
-                          size={SizeProp.Regular}
-                          className={meta.iconColor}
-                        />
-                      </div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        {meta.shortLabel}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        {meta.description}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {steps.map((step: RunbookStep, idx: number) => {
-            const meta: StepTypeMeta = STEP_TYPE_META[step.type];
-            return (
-              <div
-                key={step.id}
-                className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-              >
-                <div className="flex items-start gap-4 px-5 py-4">
-                  <div
-                    className={`flex-shrink-0 h-9 w-9 rounded-full ${meta.numberBg} text-white text-sm font-semibold flex items-center justify-center mt-0.5`}
-                  >
-                    {idx + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring}`}
-                      >
-                        <Icon
-                          icon={meta.icon}
-                          size={SizeProp.Smaller}
-                          className={meta.iconColor}
-                        />
-                        {meta.shortLabel}
-                      </span>
+                      {idx + 1}
                     </div>
-                    <Input
-                      value={step.title}
-                      onChange={(v: string) => {
-                        return updateStep(idx, { title: v });
-                      }}
-                      placeholder="What does this step do?"
-                      className="block w-full border-0 bg-transparent p-0 text-base font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
-                    />
-                  </div>
-                  <div className="flex-shrink-0 flex items-center gap-1">
-                    <Button
-                      icon={IconProp.ChevronUp}
-                      buttonStyle={ButtonStyleType.ICON}
-                      buttonSize={ButtonSize.Small}
-                      onClick={() => {
-                        return move(idx, -1);
-                      }}
-                      disabled={idx === 0}
-                    />
-                    <Button
-                      icon={IconProp.ChevronDown}
-                      buttonStyle={ButtonStyleType.ICON}
-                      buttonSize={ButtonSize.Small}
-                      onClick={() => {
-                        return move(idx, 1);
-                      }}
-                      disabled={idx === steps.length - 1}
-                    />
-                    <Button
-                      icon={IconProp.Trash}
-                      buttonStyle={ButtonStyleType.ICON}
-                      buttonSize={ButtonSize.Small}
-                      onClick={() => {
-                        return remove(idx);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 px-5 py-4 bg-gray-50/50">
-                  <div className="flex flex-col gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                        Description
-                      </label>
-                      <TextArea
-                        value={step.description || ""}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring}`}
+                        >
+                          <Icon
+                            icon={meta.icon}
+                            size={SizeProp.Smaller}
+                            className={meta.iconColor}
+                          />
+                          {meta.shortLabel}
+                        </span>
+                      </div>
+                      <Input
+                        value={step.title}
                         onChange={(v: string) => {
-                          return updateStep(idx, { description: v });
+                          return updateStep(idx, { title: v });
                         }}
-                        placeholder={
-                          step.type === RunbookStepType.Manual
-                            ? "Instructions the responder will see when they reach this step."
-                            : "Optional notes about what this step does."
-                        }
+                        placeholder="What does this step do?"
+                        className="block w-full border-0 bg-transparent p-0 text-base font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
                       />
                     </div>
-
-                    {step.type === RunbookStepType.JavaScript && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                          Script
-                        </label>
-                        <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                          <CodeEditor
-                            type={CodeType.JavaScript}
-                            value={
-                              (step.config as JavaScriptStepConfig).script ||
-                              ""
-                            }
-                            onChange={(v: string) => {
-                              return updateConfig(idx, { script: v });
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1.5">
-                          Sandboxed via <code>isolated-vm</code>. Use{" "}
-                          <code>return value</code> to capture output. Default
-                          timeout 30s.
-                        </p>
-                      </div>
-                    )}
-
-                    {step.type === RunbookStepType.HttpRequest && (
-                      <div className="flex flex-col gap-3">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                          <div className="md:col-span-1">
-                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                              Method
-                            </label>
-                            <select
-                              className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              value={
-                                (step.config as HttpRequestStepConfig)
-                                  .method || "GET"
-                              }
-                              onChange={(
-                                e: React.ChangeEvent<HTMLSelectElement>,
-                              ) => {
-                                updateConfig(idx, {
-                                  method: e.target.value as HttpRequestMethod,
-                                });
-                              }}
-                            >
-                              {HTTP_METHODS.map((m: HttpRequestMethod) => {
-                                return (
-                                  <option key={m} value={m}>
-                                    {m}
-                                  </option>
-                                );
-                              })}
-                            </select>
-                          </div>
-                          <div className="md:col-span-3">
-                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                              URL
-                            </label>
-                            <Input
-                              value={
-                                (step.config as HttpRequestStepConfig).url ||
-                                ""
-                              }
-                              onChange={(v: string) => {
-                                return updateConfig(idx, { url: v });
-                              }}
-                              placeholder="https://api.example.com/incident"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                            Headers (JSON)
-                          </label>
-                          <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                            <CodeEditor
-                              type={CodeType.JSON}
-                              value={
-                                (step.config as HttpRequestStepConfig)
-                                  .headersJson || ""
-                              }
-                              onChange={(v: string) => {
-                                return updateConfig(idx, { headersJson: v });
-                              }}
-                              placeholder={
-                                '{ "Authorization": "Bearer ..." }'
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                            Body
-                          </label>
-                          <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                            <CodeEditor
-                              type={CodeType.JSON}
-                              value={
-                                (step.config as HttpRequestStepConfig).body ||
-                                ""
-                              }
-                              onChange={(v: string) => {
-                                return updateConfig(idx, { body: v });
-                              }}
-                              placeholder='{ "message": "..." }'
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {step.type === RunbookStepType.Bash && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                          Bash script
-                        </label>
-                        <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                          <CodeEditor
-                            type={CodeType.Text}
-                            value={(step.config as BashStepConfig).script || ""}
-                            onChange={(v: string) => {
-                              return updateConfig(idx, { script: v });
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1.5">
-                          Bash is disabled by default. Set{" "}
-                          <code>RUNBOOK_BASH_ENABLED=true</code> on the Worker
-                          to enable. Output is capped at 50&nbsp;KB.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex items-center pt-1">
-                      <Toggle
-                        title="Continue on failure"
-                        description="If this step fails, continue to the next step instead of stopping the runbook."
-                        value={Boolean(step.continueOnFailure)}
-                        onChange={(v: boolean) => {
-                          return updateStep(idx, { continueOnFailure: v });
+                    <div className="flex-shrink-0 flex items-center gap-1">
+                      <Button
+                        icon={IconProp.ChevronUp}
+                        buttonStyle={ButtonStyleType.ICON}
+                        buttonSize={ButtonSize.Small}
+                        onClick={() => {
+                          return move(idx, -1);
+                        }}
+                        disabled={idx === 0}
+                      />
+                      <Button
+                        icon={IconProp.ChevronDown}
+                        buttonStyle={ButtonStyleType.ICON}
+                        buttonSize={ButtonSize.Small}
+                        onClick={() => {
+                          return move(idx, 1);
+                        }}
+                        disabled={idx === steps.length - 1}
+                      />
+                      <Button
+                        icon={IconProp.Trash}
+                        buttonStyle={ButtonStyleType.ICON}
+                        buttonSize={ButtonSize.Small}
+                        onClick={() => {
+                          return remove(idx);
                         }}
                       />
                     </div>
                   </div>
+
+                  <div className="border-t border-gray-100 px-5 py-4 bg-gray-50/50">
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                          Description
+                        </label>
+                        <TextArea
+                          value={step.description || ""}
+                          onChange={(v: string) => {
+                            return updateStep(idx, { description: v });
+                          }}
+                          placeholder={
+                            step.type === RunbookStepType.Manual
+                              ? "Instructions the responder will see when they reach this step."
+                              : "Optional notes about what this step does."
+                          }
+                        />
+                      </div>
+
+                      {step.type === RunbookStepType.JavaScript && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                            Script
+                          </label>
+                          <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                            <CodeEditor
+                              type={CodeType.JavaScript}
+                              value={
+                                (step.config as JavaScriptStepConfig).script ||
+                                ""
+                              }
+                              onChange={(v: string) => {
+                                return updateConfig(idx, { script: v });
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1.5">
+                            Sandboxed via <code>isolated-vm</code>. Use{" "}
+                            <code>return value</code> to capture output. Default
+                            timeout 30s.
+                          </p>
+                        </div>
+                      )}
+
+                      {step.type === RunbookStepType.HttpRequest && (
+                        <div className="flex flex-col gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="md:col-span-1">
+                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                Method
+                              </label>
+                              <select
+                                className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                value={
+                                  (step.config as HttpRequestStepConfig)
+                                    .method || "GET"
+                                }
+                                onChange={(
+                                  e: React.ChangeEvent<HTMLSelectElement>,
+                                ) => {
+                                  updateConfig(idx, {
+                                    method: e.target.value as HttpRequestMethod,
+                                  });
+                                }}
+                              >
+                                {HTTP_METHODS.map((m: HttpRequestMethod) => {
+                                  return (
+                                    <option key={m} value={m}>
+                                      {m}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                            <div className="md:col-span-3">
+                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                URL
+                              </label>
+                              <Input
+                                value={
+                                  (step.config as HttpRequestStepConfig).url ||
+                                  ""
+                                }
+                                onChange={(v: string) => {
+                                  return updateConfig(idx, { url: v });
+                                }}
+                                placeholder="https://api.example.com/incident"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Headers (JSON)
+                            </label>
+                            <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                              <CodeEditor
+                                type={CodeType.JSON}
+                                value={
+                                  (step.config as HttpRequestStepConfig)
+                                    .headersJson || ""
+                                }
+                                onChange={(v: string) => {
+                                  return updateConfig(idx, { headersJson: v });
+                                }}
+                                placeholder={
+                                  '{ "Authorization": "Bearer ..." }'
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Body
+                            </label>
+                            <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                              <CodeEditor
+                                type={CodeType.JSON}
+                                value={
+                                  (step.config as HttpRequestStepConfig).body ||
+                                  ""
+                                }
+                                onChange={(v: string) => {
+                                  return updateConfig(idx, { body: v });
+                                }}
+                                placeholder='{ "message": "..." }'
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {step.type === RunbookStepType.Bash && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                            Bash script
+                          </label>
+                          <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                            <CodeEditor
+                              type={CodeType.Text}
+                              value={
+                                (step.config as BashStepConfig).script || ""
+                              }
+                              onChange={(v: string) => {
+                                return updateConfig(idx, { script: v });
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1.5">
+                            Bash is disabled by default. Set{" "}
+                            <code>RUNBOOK_BASH_ENABLED=true</code> on the Worker
+                            to enable. Output is capped at 50&nbsp;KB.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center pt-1">
+                        <Toggle
+                          title="Continue on failure"
+                          description="If this step fails, continue to the next step instead of stopping the runbook."
+                          value={Boolean(step.continueOnFailure)}
+                          onChange={(v: boolean) => {
+                            return updateStep(idx, { continueOnFailure: v });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {steps.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                add(RunbookStepType.Manual);
-              }}
-              className="rounded-xl border border-dashed border-gray-300 bg-white hover:bg-gray-50 text-sm text-gray-500 hover:text-gray-700 px-4 py-3 transition flex items-center justify-center gap-2"
-            >
-              <Icon icon={IconProp.Add} size={SizeProp.Smaller} />
-              Add step at the end &mdash; or use the menu above to pick a type
-            </button>
-          )}
-        </div>
-
-        {steps.length > 0 ? (
-          <div className="mt-6 flex items-center justify-end gap-3">
-            {hasUnsaved ? (
-              <span className="text-xs text-amber-600 flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                You have unsaved changes
-              </span>
-            ) : null}
-            <Button
-              title={isSaving ? "Saving..." : "Save Steps"}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              icon={IconProp.Check}
-              onClick={() => {
-                void save();
-              }}
-              disabled={isSaving || !hasUnsaved}
-            />
+            {steps.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  add(RunbookStepType.Manual);
+                }}
+                className="rounded-xl border border-dashed border-gray-300 bg-white hover:bg-gray-50 text-sm text-gray-500 hover:text-gray-700 px-4 py-3 transition flex items-center justify-center gap-2"
+              >
+                <Icon icon={IconProp.Add} size={SizeProp.Smaller} />
+                Add step at the end &mdash; or use the menu above to pick a type
+              </button>
+            )}
           </div>
-        ) : null}
+
+          {steps.length > 0 ? (
+            <div className="mt-6 flex items-center justify-end gap-3">
+              {hasUnsaved ? (
+                <span className="text-xs text-amber-600 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  You have unsaved changes
+                </span>
+              ) : null}
+              <Button
+                title={isSaving ? "Saving..." : "Save Steps"}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                icon={IconProp.Check}
+                onClick={() => {
+                  void save();
+                }}
+                disabled={isSaving || !hasUnsaved}
+              />
+            </div>
+          ) : null}
         </>
       </Card>
 
