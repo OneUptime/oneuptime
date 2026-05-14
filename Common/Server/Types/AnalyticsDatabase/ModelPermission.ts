@@ -579,6 +579,59 @@ export default class ModelPermission {
     return modelPermissions;
   }
 
+  // Mirror of TablePermission.getEffectiveModelPermissions. Adds the
+  // *AllResources wildcard for @OperationalResource analytics models and the
+  // ReadAllResources/ReadAllProjectResources runtime alias. See
+  // Internal/Docs/PermissionsSimplification.md.
+  private static getEffectiveModelPermissions(
+    modelType: AnalyticsBaseModelType,
+    modelPermissions: Array<Permission>,
+    type: DatabaseRequestType,
+  ): Array<Permission> {
+    const effective: Array<Permission> = [...modelPermissions];
+
+    if (
+      effective.includes(Permission.ReadAllProjectResources) &&
+      !effective.includes(Permission.ReadAllResources)
+    ) {
+      effective.push(Permission.ReadAllResources);
+    }
+
+    const model: any = new modelType();
+    if (model.isOperationalResource) {
+      const wildcard: Permission | null =
+        this.getWildcardPermissionForOperation(type);
+      if (wildcard && !effective.includes(wildcard)) {
+        effective.push(wildcard);
+      }
+      if (
+        type === DatabaseRequestType.Read &&
+        !effective.includes(Permission.ReadAllProjectResources)
+      ) {
+        effective.push(Permission.ReadAllProjectResources);
+      }
+    }
+
+    return effective;
+  }
+
+  private static getWildcardPermissionForOperation(
+    type: DatabaseRequestType,
+  ): Permission | null {
+    switch (type) {
+      case DatabaseRequestType.Read:
+        return Permission.ReadAllResources;
+      case DatabaseRequestType.Update:
+        return Permission.EditAllResources;
+      case DatabaseRequestType.Delete:
+        return Permission.DeleteAllResources;
+      case DatabaseRequestType.Create:
+        return Permission.CreateAllResources;
+      default:
+        return null;
+    }
+  }
+
   private static isPublicPermissionAllowed(
     modelType: AnalyticsBaseModelType,
     type: DatabaseRequestType,
@@ -631,12 +684,19 @@ export default class ModelPermission {
       type,
     );
 
+    // Mirror of TablePermission's wildcard short-circuit so the analytics
+    // path (ClickHouse-backed Log/Span/Metric) honors the same *AllResources
+    // permissions and the ReadAllProjectResources runtime alias. See
+    // Internal/Docs/PermissionsSimplification.md.
+    const effectiveModelPermissions: Array<Permission> =
+      this.getEffectiveModelPermissions(modelType, modelPermissions, type);
+
     if (
       !PermissionHelper.doesPermissionsIntersect(
         userPermissions.map((userPermission: UserPermission) => {
           return userPermission.permission;
         }) || [],
-        modelPermissions,
+        effectiveModelPermissions,
       )
     ) {
       const permissions: Array<string> =
