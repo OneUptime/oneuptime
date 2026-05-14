@@ -411,6 +411,78 @@ enum Permission {
   EditMonitorOwnerUser = "EditMonitorOwnerUser",
   ReadMonitorOwnerUser = "ReadMonitorOwnerUser",
 
+  // Monitor Owner Rule Permissions
+  CreateMonitorOwnerRule = "CreateMonitorOwnerRule",
+  DeleteMonitorOwnerRule = "DeleteMonitorOwnerRule",
+  EditMonitorOwnerRule = "EditMonitorOwnerRule",
+  ReadMonitorOwnerRule = "ReadMonitorOwnerRule",
+
+  // Monitor Label Rule Permissions
+  CreateMonitorLabelRule = "CreateMonitorLabelRule",
+  DeleteMonitorLabelRule = "DeleteMonitorLabelRule",
+  EditMonitorLabelRule = "EditMonitorLabelRule",
+  ReadMonitorLabelRule = "ReadMonitorLabelRule",
+
+  // Status Page Owner Rule Permissions
+  CreateStatusPageOwnerRule = "CreateStatusPageOwnerRule",
+  DeleteStatusPageOwnerRule = "DeleteStatusPageOwnerRule",
+  EditStatusPageOwnerRule = "EditStatusPageOwnerRule",
+  ReadStatusPageOwnerRule = "ReadStatusPageOwnerRule",
+
+  // Status Page Label Rule Permissions
+  CreateStatusPageLabelRule = "CreateStatusPageLabelRule",
+  DeleteStatusPageLabelRule = "DeleteStatusPageLabelRule",
+  EditStatusPageLabelRule = "EditStatusPageLabelRule",
+  ReadStatusPageLabelRule = "ReadStatusPageLabelRule",
+
+  // Host Owner Rule Permissions
+  CreateHostOwnerRule = "CreateHostOwnerRule",
+  DeleteHostOwnerRule = "DeleteHostOwnerRule",
+  EditHostOwnerRule = "EditHostOwnerRule",
+  ReadHostOwnerRule = "ReadHostOwnerRule",
+
+  // Host Label Rule Permissions
+  CreateHostLabelRule = "CreateHostLabelRule",
+  DeleteHostLabelRule = "DeleteHostLabelRule",
+  EditHostLabelRule = "EditHostLabelRule",
+  ReadHostLabelRule = "ReadHostLabelRule",
+
+  // Service Owner Rule Permissions
+  CreateServiceOwnerRule = "CreateServiceOwnerRule",
+  DeleteServiceOwnerRule = "DeleteServiceOwnerRule",
+  EditServiceOwnerRule = "EditServiceOwnerRule",
+  ReadServiceOwnerRule = "ReadServiceOwnerRule",
+
+  // Service Label Rule Permissions
+  CreateServiceLabelRule = "CreateServiceLabelRule",
+  DeleteServiceLabelRule = "DeleteServiceLabelRule",
+  EditServiceLabelRule = "EditServiceLabelRule",
+  ReadServiceLabelRule = "ReadServiceLabelRule",
+
+  // Docker Host Owner Rule Permissions
+  CreateDockerHostOwnerRule = "CreateDockerHostOwnerRule",
+  DeleteDockerHostOwnerRule = "DeleteDockerHostOwnerRule",
+  EditDockerHostOwnerRule = "EditDockerHostOwnerRule",
+  ReadDockerHostOwnerRule = "ReadDockerHostOwnerRule",
+
+  // Docker Host Label Rule Permissions
+  CreateDockerHostLabelRule = "CreateDockerHostLabelRule",
+  DeleteDockerHostLabelRule = "DeleteDockerHostLabelRule",
+  EditDockerHostLabelRule = "EditDockerHostLabelRule",
+  ReadDockerHostLabelRule = "ReadDockerHostLabelRule",
+
+  // Kubernetes Cluster Owner Rule Permissions
+  CreateKubernetesClusterOwnerRule = "CreateKubernetesClusterOwnerRule",
+  DeleteKubernetesClusterOwnerRule = "DeleteKubernetesClusterOwnerRule",
+  EditKubernetesClusterOwnerRule = "EditKubernetesClusterOwnerRule",
+  ReadKubernetesClusterOwnerRule = "ReadKubernetesClusterOwnerRule",
+
+  // Kubernetes Cluster Label Rule Permissions
+  CreateKubernetesClusterLabelRule = "CreateKubernetesClusterLabelRule",
+  DeleteKubernetesClusterLabelRule = "DeleteKubernetesClusterLabelRule",
+  EditKubernetesClusterLabelRule = "EditKubernetesClusterLabelRule",
+  ReadKubernetesClusterLabelRule = "ReadKubernetesClusterLabelRule",
+
   CreateOnCallDutyPolicyOwnerTeam = "CreateOnCallDutyPolicyOwnerTeam",
   DeleteOnCallDutyPolicyOwnerTeam = "DeleteOnCallDutyPolicyOwnerTeam",
   EditOnCallDutyPolicyOwnerTeam = "EditOnCallDutyPolicyOwnerTeam",
@@ -536,6 +608,21 @@ enum Permission {
   DeleteRunbookRule = "DeleteRunbookRule",
   EditRunbookRule = "EditRunbookRule",
   ReadRunbookRule = "ReadRunbookRule",
+
+  CreateRunbookOwnerTeam = "CreateRunbookOwnerTeam",
+  DeleteRunbookOwnerTeam = "DeleteRunbookOwnerTeam",
+  EditRunbookOwnerTeam = "EditRunbookOwnerTeam",
+  ReadRunbookOwnerTeam = "ReadRunbookOwnerTeam",
+
+  CreateRunbookOwnerUser = "CreateRunbookOwnerUser",
+  DeleteRunbookOwnerUser = "DeleteRunbookOwnerUser",
+  EditRunbookOwnerUser = "EditRunbookOwnerUser",
+  ReadRunbookOwnerUser = "ReadRunbookOwnerUser",
+
+  CreateRunbookAgent = "CreateRunbookAgent",
+  DeleteRunbookAgent = "DeleteRunbookAgent",
+  EditRunbookAgent = "EditRunbookAgent",
+  ReadRunbookAgent = "ReadRunbookAgent",
 
   CreateStatusPageGroup = "CreateStatusPageGroup",
   DeleteStatusPageGroup = "DeleteStatusPageGroup",
@@ -2944,6 +3031,128 @@ export class PermissionHelper {
         description: "This permission can read Runbook Rules in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookOwnerTeam,
+        title: "Create Runbook Team Owner",
+        description:
+          "This permission can create Runbook Team Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookOwnerTeam,
+        title: "Delete Runbook Team Owner",
+        description:
+          "This permission can delete Runbook Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookOwnerTeam,
+        title: "Edit Runbook Team Owner",
+        description:
+          "This permission can edit Runbook Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookOwnerTeam,
+        title: "Read Runbook Team Owner",
+        description:
+          "This permission can read Runbook Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookOwnerUser,
+        title: "Create Runbook User Owner",
+        description:
+          "This permission can create Runbook User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookOwnerUser,
+        title: "Delete Runbook User Owner",
+        description:
+          "This permission can delete Runbook User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookOwnerUser,
+        title: "Edit Runbook User Owner",
+        description:
+          "This permission can edit Runbook User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookOwnerUser,
+        title: "Read Runbook User Owner",
+        description:
+          "This permission can read Runbook User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookAgent,
+        title: "Create Runbook Agent",
+        description:
+          "This permission can register Runbook Agents in this project. Runbook Agents execute Bash steps in your own infrastructure.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookAgent,
+        title: "Delete Runbook Agent",
+        description:
+          "This permission can delete Runbook Agents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookAgent,
+        title: "Edit Runbook Agent",
+        description:
+          "This permission can edit Runbook Agents (name, description, tags, key) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookAgent,
+        title: "Read Runbook Agent",
+        description: "This permission can read Runbook Agents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
         isRolePermission: false,
         group: PermissionGroup.Runbook,
       },
@@ -7431,6 +7640,510 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Monitor,
+      },
+
+      // Monitor Owner Rule Permissions
+      {
+        permission: Permission.CreateMonitorOwnerRule,
+        title: "Create Monitor Owner Rule",
+        description:
+          "This permission can create Monitor Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteMonitorOwnerRule,
+        title: "Delete Monitor Owner Rule",
+        description:
+          "This permission can delete Monitor Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditMonitorOwnerRule,
+        title: "Edit Monitor Owner Rule",
+        description:
+          "This permission can edit Monitor Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadMonitorOwnerRule,
+        title: "Read Monitor Owner Rule",
+        description:
+          "This permission can read Monitor Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+
+      // Monitor Label Rule Permissions
+      {
+        permission: Permission.CreateMonitorLabelRule,
+        title: "Create Monitor Label Rule",
+        description:
+          "This permission can create Monitor Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteMonitorLabelRule,
+        title: "Delete Monitor Label Rule",
+        description:
+          "This permission can delete Monitor Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditMonitorLabelRule,
+        title: "Edit Monitor Label Rule",
+        description:
+          "This permission can edit Monitor Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadMonitorLabelRule,
+        title: "Read Monitor Label Rule",
+        description:
+          "This permission can read Monitor Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+
+      // Status Page Owner Rule Permissions
+      {
+        permission: Permission.CreateStatusPageOwnerRule,
+        title: "Create Status Page Owner Rule",
+        description:
+          "This permission can create Status Page Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.DeleteStatusPageOwnerRule,
+        title: "Delete Status Page Owner Rule",
+        description:
+          "This permission can delete Status Page Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.EditStatusPageOwnerRule,
+        title: "Edit Status Page Owner Rule",
+        description:
+          "This permission can edit Status Page Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.ReadStatusPageOwnerRule,
+        title: "Read Status Page Owner Rule",
+        description:
+          "This permission can read Status Page Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+
+      // Status Page Label Rule Permissions
+      {
+        permission: Permission.CreateStatusPageLabelRule,
+        title: "Create Status Page Label Rule",
+        description:
+          "This permission can create Status Page Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.DeleteStatusPageLabelRule,
+        title: "Delete Status Page Label Rule",
+        description:
+          "This permission can delete Status Page Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.EditStatusPageLabelRule,
+        title: "Edit Status Page Label Rule",
+        description:
+          "This permission can edit Status Page Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.ReadStatusPageLabelRule,
+        title: "Read Status Page Label Rule",
+        description:
+          "This permission can read Status Page Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+
+      // Host Owner Rule Permissions
+      {
+        permission: Permission.CreateHostOwnerRule,
+        title: "Create Host Owner Rule",
+        description:
+          "This permission can create Host Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHostOwnerRule,
+        title: "Delete Host Owner Rule",
+        description:
+          "This permission can delete Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostOwnerRule,
+        title: "Edit Host Owner Rule",
+        description:
+          "This permission can edit Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostOwnerRule,
+        title: "Read Host Owner Rule",
+        description:
+          "This permission can read Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Host Label Rule Permissions
+      {
+        permission: Permission.CreateHostLabelRule,
+        title: "Create Host Label Rule",
+        description:
+          "This permission can create Host Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHostLabelRule,
+        title: "Delete Host Label Rule",
+        description:
+          "This permission can delete Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostLabelRule,
+        title: "Edit Host Label Rule",
+        description:
+          "This permission can edit Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostLabelRule,
+        title: "Read Host Label Rule",
+        description:
+          "This permission can read Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Service Owner Rule Permissions
+      {
+        permission: Permission.CreateServiceOwnerRule,
+        title: "Create Service Owner Rule",
+        description:
+          "This permission can create Service Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.DeleteServiceOwnerRule,
+        title: "Delete Service Owner Rule",
+        description:
+          "This permission can delete Service Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.EditServiceOwnerRule,
+        title: "Edit Service Owner Rule",
+        description:
+          "This permission can edit Service Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.ReadServiceOwnerRule,
+        title: "Read Service Owner Rule",
+        description:
+          "This permission can read Service Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+
+      // Service Label Rule Permissions
+      {
+        permission: Permission.CreateServiceLabelRule,
+        title: "Create Service Label Rule",
+        description:
+          "This permission can create Service Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.DeleteServiceLabelRule,
+        title: "Delete Service Label Rule",
+        description:
+          "This permission can delete Service Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.EditServiceLabelRule,
+        title: "Edit Service Label Rule",
+        description:
+          "This permission can edit Service Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.ReadServiceLabelRule,
+        title: "Read Service Label Rule",
+        description:
+          "This permission can read Service Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+
+      // Docker Host Owner Rule Permissions
+      {
+        permission: Permission.CreateDockerHostOwnerRule,
+        title: "Create Docker Host Owner Rule",
+        description:
+          "This permission can create Docker Host Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDockerHostOwnerRule,
+        title: "Delete Docker Host Owner Rule",
+        description:
+          "This permission can delete Docker Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHostOwnerRule,
+        title: "Edit Docker Host Owner Rule",
+        description:
+          "This permission can edit Docker Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHostOwnerRule,
+        title: "Read Docker Host Owner Rule",
+        description:
+          "This permission can read Docker Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Docker Host Label Rule Permissions
+      {
+        permission: Permission.CreateDockerHostLabelRule,
+        title: "Create Docker Host Label Rule",
+        description:
+          "This permission can create Docker Host Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDockerHostLabelRule,
+        title: "Delete Docker Host Label Rule",
+        description:
+          "This permission can delete Docker Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHostLabelRule,
+        title: "Edit Docker Host Label Rule",
+        description:
+          "This permission can edit Docker Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHostLabelRule,
+        title: "Read Docker Host Label Rule",
+        description:
+          "This permission can read Docker Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Kubernetes Cluster Owner Rule Permissions
+      {
+        permission: Permission.CreateKubernetesClusterOwnerRule,
+        title: "Create Kubernetes Cluster Owner Rule",
+        description:
+          "This permission can create Kubernetes Cluster Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteKubernetesClusterOwnerRule,
+        title: "Delete Kubernetes Cluster Owner Rule",
+        description:
+          "This permission can delete Kubernetes Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesClusterOwnerRule,
+        title: "Edit Kubernetes Cluster Owner Rule",
+        description:
+          "This permission can edit Kubernetes Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesClusterOwnerRule,
+        title: "Read Kubernetes Cluster Owner Rule",
+        description:
+          "This permission can read Kubernetes Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Kubernetes Cluster Label Rule Permissions
+      {
+        permission: Permission.CreateKubernetesClusterLabelRule,
+        title: "Create Kubernetes Cluster Label Rule",
+        description:
+          "This permission can create Kubernetes Cluster Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteKubernetesClusterLabelRule,
+        title: "Delete Kubernetes Cluster Label Rule",
+        description:
+          "This permission can delete Kubernetes Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesClusterLabelRule,
+        title: "Edit Kubernetes Cluster Label Rule",
+        description:
+          "This permission can edit Kubernetes Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesClusterLabelRule,
+        title: "Read Kubernetes Cluster Label Rule",
+        description:
+          "This permission can read Kubernetes Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
       },
 
       {

@@ -38,6 +38,10 @@ import ServiceViewDependencies from "../Pages/Service/View/Dependencies";
 
 import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
 
+import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
+
+import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
+
 const ServiceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -59,6 +63,28 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceDependencyGraph
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ServiceRoutePath[PageMap.SERVICE_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <ServiceSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <ServiceSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route
+              }
             />
           }
         />

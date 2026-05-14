@@ -201,7 +201,11 @@ import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
 // Runbooks.
 import Runbook from "./Runbook";
+import RunbookAgent from "./RunbookAgent";
+import RunbookAgentJob from "./RunbookAgentJob";
 import RunbookExecution from "./RunbookExecution";
+import RunbookOwnerTeam from "./RunbookOwnerTeam";
+import RunbookOwnerUser from "./RunbookOwnerUser";
 import RunbookRule from "./RunbookRule";
 import ServiceDependency from "./ServiceDependency";
 import ServiceMonitor from "./ServiceMonitor";
@@ -268,6 +272,18 @@ import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
+import MonitorOwnerRule from "./MonitorOwnerRule";
+import MonitorLabelRule from "./MonitorLabelRule";
+import StatusPageOwnerRule from "./StatusPageOwnerRule";
+import StatusPageLabelRule from "./StatusPageLabelRule";
+import HostOwnerRule from "./HostOwnerRule";
+import HostLabelRule from "./HostLabelRule";
+import ServiceOwnerRule from "./ServiceOwnerRule";
+import ServiceLabelRule from "./ServiceLabelRule";
+import DockerHostOwnerRule from "./DockerHostOwnerRule";
+import DockerHostLabelRule from "./DockerHostLabelRule";
+import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
+import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
@@ -411,6 +427,19 @@ const AllModelTypes: Array<{
   IncidentSlaRule,
   IncidentSla,
 
+  MonitorOwnerRule,
+  MonitorLabelRule,
+  StatusPageOwnerRule,
+  StatusPageLabelRule,
+  HostOwnerRule,
+  HostLabelRule,
+  ServiceOwnerRule,
+  ServiceLabelRule,
+  DockerHostOwnerRule,
+  DockerHostLabelRule,
+  KubernetesClusterOwnerRule,
+  KubernetesClusterLabelRule,
+
   MonitorStatusTimeline,
 
   File,
@@ -452,7 +481,11 @@ const AllModelTypes: Array<{
 
   Runbook,
   RunbookExecution,
+  RunbookOwnerTeam,
+  RunbookOwnerUser,
   RunbookRule,
+  RunbookAgent,
+  RunbookAgentJob,
 
   ProjectSSO,
   ProjectOIDC,

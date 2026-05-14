@@ -9,10 +9,12 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
+import RunbookAgents from "../Pages/Runbook/Agents";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
 import RunbookExecutionView from "../Pages/Runbook/View/ExecutionView";
+import RunbookOwners from "../Pages/Runbook/View/Owners";
 import RunbookSettings from "../Pages/Runbook/View/Settings";
 import RunbookDelete from "../Pages/Runbook/View/Delete";
 
@@ -37,6 +39,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbooksExecutions
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_EXECUTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_AGENTS] || ""}
+          element={
+            <RunbookAgents
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_AGENTS] as Route}
             />
           }
         />
@@ -79,6 +90,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookExecutionView
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.RUNBOOK_VIEW_OWNERS)}
+          element={
+            <RunbookOwners
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_OWNERS] as Route}
             />
           }
         />

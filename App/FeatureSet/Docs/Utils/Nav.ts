@@ -308,6 +308,35 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Runbooks",
+    links: [
+      {
+        title: "Runbooks Overview",
+        url: "/docs/runbooks/index",
+      },
+      {
+        title: "Authoring a Runbook",
+        url: "/docs/runbooks/authoring",
+      },
+      {
+        title: "Runbook Rules",
+        url: "/docs/runbooks/rules",
+      },
+      {
+        title: "Running a Runbook",
+        url: "/docs/runbooks/running",
+      },
+      {
+        title: "Runbook Agents",
+        url: "/docs/runbooks/agents",
+      },
+      {
+        title: "Runbook Configuration & Safety",
+        url: "/docs/runbooks/configuration",
+      },
+    ],
+  },
+  {
     title: "Status Pages",
     links: [
       {

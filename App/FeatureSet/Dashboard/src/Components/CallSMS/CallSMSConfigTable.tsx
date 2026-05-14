@@ -2,6 +2,7 @@ import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import { Green } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -11,6 +12,7 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -200,6 +202,17 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               minLength: 2,
             },
           },
+          {
+            field: {
+              isProjectDefault: true,
+            },
+            title: "Set as Project Default",
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, all SMS and Calls sent to project team members (on-call notifications, alerts, phone verification, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. Status pages are unaffected — they continue to use the config explicitly assigned to each status page.",
+          },
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -239,6 +252,13 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               twilioSecondaryPhoneNumbers: true,
             },
           },
+          {
+            title: "Project Default",
+            type: FieldType.Boolean,
+            field: {
+              isProjectDefault: true,
+            },
+          },
         ]}
         columns={[
           {
@@ -276,6 +296,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Secondary Twilio Phone Number",
             type: FieldType.LongText,
+          },
+          {
+            field: {
+              isProjectDefault: true,
+            },
+            title: "Project Default",
+            type: FieldType.Boolean,
+            getElement: (item: ProjectCallSMSConfig): ReactElement => {
+              if (item.isProjectDefault) {
+                return <Pill text="Default" color={Green} />;
+              }
+              return <span className="text-gray-400">-</span>;
+            },
           },
         ]}
       />

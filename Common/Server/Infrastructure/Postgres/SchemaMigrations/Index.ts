@@ -320,6 +320,12 @@ import { MigrationName1778582583897 } from "./1778582583897-MigrationName";
 import { AddScheduledMaintenanceRules1778703414082 } from "./1778703414082-AddScheduledMaintenanceRules";
 import { MigrationName1778759476700 } from "./1778759476700-MigrationName";
 import { MigrationName1778761532493 } from "./1778761532493-MigrationName";
+import { MigrationName1778776830462 } from "./1778776830462-MigrationName";
+import { MigrationName1778777574869 } from "./1778777574869-MigrationName";
+import { MigrationName1778779608191 } from "./1778779608191-MigrationName";
+import { MigrationName1778782819382 } from "./1778782819382-AddMonitorAndStatusPageOwnerLabelRules";
+import { AddRunbookAgentJobStepType1778784000000 } from "./1778784000000-AddRunbookAgentJobStepType";
+import { MigrationName1778784396629 } from "./1778784396629-AddHostServiceDockerK8sOwnerLabelRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -643,4 +649,10 @@ export default [
   AddScheduledMaintenanceRules1778703414082,
   MigrationName1778759476700,
   MigrationName1778761532493,
+  MigrationName1778776830462,
+  MigrationName1778777574869,
+  MigrationName1778779608191,
+  MigrationName1778782819382,
+  AddRunbookAgentJobStepType1778784000000,
+  MigrationName1778784396629,
 ];

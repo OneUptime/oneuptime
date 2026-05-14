@@ -12,6 +12,7 @@ import {
   runBashStep,
   runHttpStep,
   runJavaScriptStep,
+  StepExecutionContext,
   StepRunResult,
 } from "./StepExecutors";
 import QueueRunbook from "./QueueRunbook";
@@ -128,7 +129,10 @@ export default class RunRunbook {
 
       let result: StepRunResult;
       try {
-        result = await this.runAutomatedStep(stepExec.step);
+        result = await this.runAutomatedStep(stepExec.step, {
+          projectId: execution.projectId!,
+          runbookExecutionId: new ObjectID(execution._id!),
+        });
       } catch (err) {
         result = {
           success: false,
@@ -140,6 +144,20 @@ export default class RunRunbook {
       stepExec.completedAt = new Date().toISOString();
       stepExec.output = result.output;
       if (result.success) {
+        if (stepExec.step.requireApproval) {
+          /*
+           * Step ran successfully but is gated on user approval before the
+           * next step runs. Reuse the WaitingForUser flow so the existing
+           * completeManualStep API resumes execution on approval.
+           */
+          stepExec.status = RunbookStepExecutionStatus.WaitingForUser;
+          await this.persistStepExecutions(
+            execution._id!,
+            stepExecutions,
+            RunbookExecutionStatus.WaitingForManualStep,
+          );
+          return;
+        }
         stepExec.status = RunbookStepExecutionStatus.Completed;
       } else {
         stepExec.status = RunbookStepExecutionStatus.Failed;
@@ -196,14 +214,17 @@ export default class RunRunbook {
     }
   }
 
-  private async runAutomatedStep(step: RunbookStep): Promise<StepRunResult> {
+  private async runAutomatedStep(
+    step: RunbookStep,
+    ctx: StepExecutionContext,
+  ): Promise<StepRunResult> {
     switch (step.type) {
       case RunbookStepType.JavaScript:
-        return runJavaScriptStep(step);
+        return runJavaScriptStep(step, ctx);
       case RunbookStepType.HttpRequest:
         return runHttpStep(step);
       case RunbookStepType.Bash:
-        return runBashStep(step);
+        return runBashStep(step, ctx);
       default:
         return {
           success: false,

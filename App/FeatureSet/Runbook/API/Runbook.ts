@@ -13,6 +13,7 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
@@ -302,6 +303,10 @@ export default class RunbookAPI {
           completedAt: new Date(),
         } as unknown as JSONObject,
         props: { isRoot: true },
+      });
+
+      await RunbookAgentJobService.cancelJobsForExecution({
+        runbookExecutionId: new ObjectID(executionId),
       });
 
       return Response.sendJsonObjectResponse(req, res, {

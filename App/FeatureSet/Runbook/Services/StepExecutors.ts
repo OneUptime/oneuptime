@@ -1,6 +1,4 @@
-import { spawn } from "child_process";
 import axios, { AxiosResponse } from "axios";
-import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import logger from "Common/Server/Utils/Logger";
 import {
   BashStepConfig,
@@ -8,6 +6,11 @@ import {
   JavaScriptStepConfig,
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
+import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import ObjectID from "Common/Types/ObjectID";
+import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
+import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
 
 export interface StepRunResult {
   success: boolean;
@@ -15,9 +18,15 @@ export interface StepRunResult {
   errorMessage?: string;
 }
 
+export interface StepExecutionContext {
+  projectId: ObjectID;
+  runbookExecutionId: ObjectID;
+}
+
 const MAX_OUTPUT_BYTES: number = 50_000;
 const DEFAULT_SCRIPT_TIMEOUT_MS: number = 30_000;
 const DEFAULT_HTTP_TIMEOUT_MS: number = 30_000;
+const DEFAULT_AGENT_CLAIM_TIMEOUT_MS: number = 2 * 60_000;
 
 function truncate(s: string): string {
   if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
@@ -29,48 +38,96 @@ function truncate(s: string): string {
   );
 }
 
-export async function runJavaScriptStep(
-  step: RunbookStep,
-): Promise<StepRunResult> {
-  const config: JavaScriptStepConfig = step.config as JavaScriptStepConfig;
-  const timeout: number = config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS;
+/*
+ * Bash and JavaScript steps share an identical dispatch path: enqueue a job
+ * tagged for an agent, poll until the agent reports back. Only the stepType
+ * differs — the agent uses it to pick the right local executor.
+ */
+async function dispatchToAgent(args: {
+  stepType: RunbookStepType.Bash | RunbookStepType.JavaScript;
+  step: RunbookStep;
+  ctx: StepExecutionContext;
+  script: string;
+  timeoutInMs: number;
+  claimTimeoutInMs: number;
+  agentTag: string;
+  missingTagError: string;
+}): Promise<StepRunResult> {
+  const agentTag: string = args.agentTag.trim();
+
+  if (!agentTag) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: args.missingTagError,
+    };
+  }
+
+  if (!args.script) {
+    return { success: true, output: "" };
+  }
+
   try {
-    const result: {
-      returnValue: any;
-      logMessages: string[];
-      scriptError?: Error | undefined;
-    } = await VMUtil.runCodeInSandbox({
-      code: config.script || "",
-      options: { args: {}, timeout },
+    const job: RunbookAgentJob = await RunbookAgentJobService.enqueue({
+      projectId: args.ctx.projectId,
+      runbookExecutionId: args.ctx.runbookExecutionId,
+      stepId: args.step.id,
+      stepType: args.stepType,
+      requiredTag: agentTag,
+      script: args.script,
+      timeoutInMs: args.timeoutInMs,
+      claimTimeoutInMs: args.claimTimeoutInMs,
     });
 
-    const lines: string[] = [...(result.logMessages || [])];
-    if (result.returnValue !== undefined) {
-      lines.push(
-        `Return: ${
-          typeof result.returnValue === "string"
-            ? result.returnValue
-            : JSON.stringify(result.returnValue, null, 2)
-        }`,
-      );
+    const terminal: RunbookAgentJob =
+      await RunbookAgentJobService.pollUntilTerminal({
+        jobId: new ObjectID(job._id!),
+        claimTimeoutInMs: args.claimTimeoutInMs,
+        executionTimeoutInMs: args.timeoutInMs,
+      });
+
+    const output: string = truncate(terminal.output || "");
+
+    if (terminal.status === RunbookAgentJobStatus.Succeeded) {
+      return { success: true, output };
     }
 
-    if (result.scriptError) {
-      return {
-        success: false,
-        output: truncate(lines.join("\n")),
-        errorMessage: result.scriptError.message,
-      };
-    }
-
-    return { success: true, output: truncate(lines.join("\n")) };
+    return {
+      success: false,
+      output,
+      errorMessage:
+        terminal.errorMessage ||
+        (typeof terminal.exitCode === "number"
+          ? `Exit code ${terminal.exitCode}`
+          : `Step ended with status ${terminal.status ?? "unknown"}`),
+    };
   } catch (err) {
+    logger.error(`${args.stepType} step dispatch failed`);
+    logger.error(err);
     return {
       success: false,
       output: "",
       errorMessage: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+export async function runJavaScriptStep(
+  step: RunbookStep,
+  ctx: StepExecutionContext,
+): Promise<StepRunResult> {
+  const config: JavaScriptStepConfig = step.config as JavaScriptStepConfig;
+  return dispatchToAgent({
+    stepType: RunbookStepType.JavaScript,
+    step,
+    ctx,
+    script: config.script || "",
+    timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
+    claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
+    agentTag: config.agentTag || "",
+    missingTagError:
+      "JavaScript step is missing an Agent Tag. Pick a tag matching one of your Runbook Agents (Runbooks → Agents). JavaScript no longer runs on the OneUptime Worker.",
+  });
 }
 
 export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
@@ -142,92 +199,20 @@ export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
   }
 }
 
-export async function runBashStep(step: RunbookStep): Promise<StepRunResult> {
+export async function runBashStep(
+  step: RunbookStep,
+  ctx: StepExecutionContext,
+): Promise<StepRunResult> {
   const config: BashStepConfig = step.config as BashStepConfig;
-  const timeout: number = config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS;
-  const script: string = config.script || "";
-
-  if (process.env["RUNBOOK_BASH_ENABLED"] !== "true") {
-    return {
-      success: false,
-      output: "",
-      errorMessage:
-        "Bash steps are disabled. Set RUNBOOK_BASH_ENABLED=true on the Worker to enable.",
-    };
-  }
-
-  return new Promise<StepRunResult>((resolve: (v: StepRunResult) => void) => {
-    let stdout: string = "";
-    let stderr: string = "";
-    let stdoutBytes: number = 0;
-    let stderrBytes: number = 0;
-    let settled: boolean = false;
-
-    const child: ReturnType<typeof spawn> = spawn("bash", ["-c", script], {
-      env: {
-        PATH: process.env["PATH"] || "/usr/local/bin:/usr/bin:/bin",
-      },
-      timeout,
-      killSignal: "SIGKILL",
-    });
-
-    child.stdout?.on("data", (chunk: Buffer) => {
-      if (stdoutBytes < MAX_OUTPUT_BYTES) {
-        stdoutBytes += chunk.length;
-        stdout += chunk.toString("utf8");
-      }
-    });
-
-    child.stderr?.on("data", (chunk: Buffer) => {
-      if (stderrBytes < MAX_OUTPUT_BYTES) {
-        stderrBytes += chunk.length;
-        stderr += chunk.toString("utf8");
-      }
-    });
-
-    child.on("error", (err: Error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve({ success: false, output: "", errorMessage: err.message });
-    });
-
-    child.on("close", (code: number | null, signal: string | null) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      const combined: string = [
-        stdout && `[stdout]\n${stdout}`,
-        stderr && `[stderr]\n${stderr}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
-      if (signal === "SIGKILL") {
-        resolve({
-          success: false,
-          output: truncate(combined),
-          errorMessage: `Killed (timeout ${timeout}ms)`,
-        });
-        return;
-      }
-      if (code === 0) {
-        resolve({ success: true, output: truncate(combined) });
-        return;
-      }
-      resolve({
-        success: false,
-        output: truncate(combined),
-        errorMessage: `Exit code ${code ?? "?"}`,
-      });
-    });
-  }).catch((err: unknown) => {
-    logger.error(err);
-    return {
-      success: false,
-      output: "",
-      errorMessage: err instanceof Error ? err.message : String(err),
-    };
+  return dispatchToAgent({
+    stepType: RunbookStepType.Bash,
+    step,
+    ctx,
+    script: config.script || "",
+    timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
+    claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
+    agentTag: config.agentTag || "",
+    missingTagError:
+      "Bash step is missing an Agent Tag. Pick a tag matching one of your Runbook Agents (Runbooks → Agents).",
   });
 }

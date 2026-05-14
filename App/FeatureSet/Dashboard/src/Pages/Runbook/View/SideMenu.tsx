@@ -50,6 +50,19 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Owners">
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOK_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{

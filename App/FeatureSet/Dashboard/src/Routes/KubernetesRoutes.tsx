@@ -45,6 +45,8 @@ import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
 import KubernetesDocumentation from "../Pages/Kubernetes/Documentation";
+import KubernetesSettingsOwnerRules from "../Pages/Kubernetes/Settings/OwnerRules";
+import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRules";
 
 const KubernetesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,6 +69,32 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <KubernetesSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <KubernetesSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] as Route
+              }
             />
           }
         />

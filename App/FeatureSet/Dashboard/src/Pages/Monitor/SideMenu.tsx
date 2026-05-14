@@ -177,6 +177,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Template,
         },
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
       ],
     },
   ];

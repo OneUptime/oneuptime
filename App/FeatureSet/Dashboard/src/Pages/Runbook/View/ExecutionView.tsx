@@ -435,9 +435,11 @@ const ExecutionView: FunctionComponent<
                     const stepVisual: StatusVisual =
                       STEP_STATUS_VISUAL[stepExec.status];
                     const isWaiting: boolean =
-                      stepExec.step.type === RunbookStepType.Manual &&
                       stepExec.status ===
-                        RunbookStepExecutionStatus.WaitingForUser;
+                      RunbookStepExecutionStatus.WaitingForUser;
+                    const isWaitingForApproval: boolean =
+                      isWaiting &&
+                      stepExec.step.type !== RunbookStepType.Manual;
                     const canSkip: boolean =
                       stepExec.status ===
                         RunbookStepExecutionStatus.WaitingForUser ||
@@ -498,7 +500,11 @@ const ExecutionView: FunctionComponent<
                             <div className="flex-shrink-0 flex items-center gap-2">
                               {isWaiting && (
                                 <Button
-                                  title="Mark complete"
+                                  title={
+                                    isWaitingForApproval
+                                      ? "Approve & continue"
+                                      : "Mark complete"
+                                  }
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}

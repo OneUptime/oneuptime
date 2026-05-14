@@ -114,6 +114,10 @@ const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.Bash,
 ];
 
+function isAutomatedStep(type: RunbookStepType): boolean {
+  return type !== RunbookStepType.Manual;
+}
+
 function newStep(type: RunbookStepType, order: number): RunbookStep {
   const meta: StepTypeMeta = STEP_TYPE_META[type];
   const base: RunbookStep = {
@@ -122,12 +126,12 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
     type,
     title: meta.label,
     description: "",
-    continueOnFailure: false,
     config:
       type === RunbookStepType.JavaScript
         ? ({
             script:
               "// Return a value to capture it on the execution.\nreturn 'ok';",
+            agentTag: "",
           } as JavaScriptStepConfig)
         : type === RunbookStepType.HttpRequest
           ? ({
@@ -135,9 +139,13 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
               method: "GET",
             } as HttpRequestStepConfig)
           : type === RunbookStepType.Bash
-            ? ({ script: "echo hello" } as BashStepConfig)
+            ? ({ script: "echo hello", agentTag: "" } as BashStepConfig)
             : {},
   };
+  if (isAutomatedStep(type)) {
+    base.continueOnFailure = false;
+    base.requireApproval = false;
+  }
   return base;
 }
 
@@ -461,27 +469,56 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       </div>
 
                       {step.type === RunbookStepType.JavaScript && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                            Script
-                          </label>
-                          <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                            <CodeEditor
-                              type={CodeType.JavaScript}
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Agent Tag
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                              placeholder="prod-eu-west-1"
                               value={
-                                (step.config as JavaScriptStepConfig).script ||
-                                ""
+                                (step.config as JavaScriptStepConfig)
+                                  .agentTag || ""
                               }
-                              onChange={(v: string) => {
-                                return updateConfig(idx, { script: v });
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                              ) => {
+                                return updateConfig(idx, {
+                                  agentTag: e.target.value,
+                                });
                               }}
                             />
+                            <p className="text-xs text-gray-500 mt-1.5">
+                              JavaScript runs sandboxed on a Runbook Agent in
+                              your own infrastructure. Any healthy agent
+                              carrying this tag will claim the job. Create
+                              agents under Runbooks &rsaquo; Agents.
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1.5">
-                            Sandboxed via <code>isolated-vm</code>. Use{" "}
-                            <code>return value</code> to capture output. Default
-                            timeout 30s.
-                          </p>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Script
+                            </label>
+                            <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                              <CodeEditor
+                                type={CodeType.JavaScript}
+                                value={
+                                  (step.config as JavaScriptStepConfig)
+                                    .script || ""
+                                }
+                                onChange={(v: string) => {
+                                  return updateConfig(idx, { script: v });
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1.5">
+                              Sandboxed via <code>isolated-vm</code> on the
+                              agent. Use <code>return value</code> to capture
+                              output. Default timeout 30s.
+                            </p>
+                          </div>
                         </div>
                       )}
 
@@ -573,39 +610,76 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       )}
 
                       {step.type === RunbookStepType.Bash && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                            Bash script
-                          </label>
-                          <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                            <CodeEditor
-                              type={CodeType.Text}
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Agent Tag
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                              placeholder="prod-eu-west-1"
                               value={
-                                (step.config as BashStepConfig).script || ""
+                                (step.config as BashStepConfig).agentTag || ""
                               }
-                              onChange={(v: string) => {
-                                return updateConfig(idx, { script: v });
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                              ) => {
+                                return updateConfig(idx, {
+                                  agentTag: e.target.value,
+                                });
                               }}
                             />
+                            <p className="text-xs text-gray-500 mt-1.5">
+                              Bash runs on a Runbook Agent in your own
+                              infrastructure. Any healthy agent carrying this
+                              tag will claim the job. Create agents under
+                              Runbooks &rsaquo; Agents.
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1.5">
-                            Bash is disabled by default. Set{" "}
-                            <code>RUNBOOK_BASH_ENABLED=true</code> on the Worker
-                            to enable. Output is capped at 50&nbsp;KB.
-                          </p>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Bash script
+                            </label>
+                            <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                              <CodeEditor
+                                type={CodeType.Text}
+                                value={
+                                  (step.config as BashStepConfig).script || ""
+                                }
+                                onChange={(v: string) => {
+                                  return updateConfig(idx, { script: v });
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1.5">
+                              Output is capped at 50&nbsp;KB. The script may not
+                              run if no agent with the chosen tag is online.
+                            </p>
+                          </div>
                         </div>
                       )}
 
-                      <div className="flex items-center pt-1">
-                        <Toggle
-                          title="Continue on failure"
-                          description="If this step fails, continue to the next step instead of stopping the runbook."
-                          value={Boolean(step.continueOnFailure)}
-                          onChange={(v: boolean) => {
-                            return updateStep(idx, { continueOnFailure: v });
-                          }}
-                        />
-                      </div>
+                      {isAutomatedStep(step.type) && (
+                        <div className="flex flex-col gap-3 pt-1">
+                          <Toggle
+                            title="Continue on failure"
+                            description="If this step fails, continue to the next step instead of stopping the runbook."
+                            value={Boolean(step.continueOnFailure)}
+                            onChange={(v: boolean) => {
+                              return updateStep(idx, { continueOnFailure: v });
+                            }}
+                          />
+                          <Toggle
+                            title="Require approval before running the next step"
+                            description="After this step completes, pause the runbook and wait for a user to approve before running the next step."
+                            value={Boolean(step.requireApproval)}
+                            onChange={(v: boolean) => {
+                              return updateStep(idx, { requireApproval: v });
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

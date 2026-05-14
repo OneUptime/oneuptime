@@ -7,6 +7,7 @@ import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
+import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ShortLinkService from "./ShortLinkService";
 import SmsService from "./SmsService";
 import TelegramService from "./TelegramService";
@@ -36,6 +37,7 @@ import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
 import TelegramMessage from "../../Types/Telegram/TelegramMessage";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
   renderWhatsAppTemplate,
@@ -199,6 +201,16 @@ export class Service extends DatabaseService<Model> {
     if (!notificationRuleItem) {
       throw new BadDataException("Notification rule item not found.");
     }
+
+    /*
+     * If the project has a default Twilio config set, use it for all
+     * team-member SMS and Calls in this rule. Otherwise the global config
+     * is used by the notification service.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        options.projectId,
+      );
 
     const logTimelineItem: UserOnCallLogTimeline = new UserOnCallLogTimeline();
     logTimelineItem.projectId = options.projectId;
@@ -600,6 +612,7 @@ export class Service extends DatabaseService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: alert.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
@@ -653,6 +666,7 @@ export class Service extends DatabaseService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: incident.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
@@ -703,6 +717,7 @@ export class Service extends DatabaseService<Model> {
 
         SmsService.sendSms(smsMessage, {
           projectId: alertEpisode.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
@@ -1321,6 +1336,7 @@ export class Service extends DatabaseService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: alert.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
@@ -1373,6 +1389,7 @@ export class Service extends DatabaseService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: incident.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
@@ -1423,6 +1440,7 @@ export class Service extends DatabaseService<Model> {
 
         CallService.makeCall(callRequest, {
           projectId: alertEpisode.projectId,
+          customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,

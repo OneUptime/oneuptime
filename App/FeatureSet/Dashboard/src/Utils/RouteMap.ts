@@ -21,6 +21,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS_SECRETS]: "settings/secrets",
   [PageMap.MONITORS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
+  [PageMap.MONITORS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.MONITORS_SETTINGS_LABEL_RULES]: "settings/label-rules",
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
@@ -55,6 +57,8 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
   [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
+  [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
@@ -101,6 +105,8 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
+  [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -114,6 +120,8 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.DOCKER_HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DOCKER_DOCUMENTATION]: `documentation`,
+  [PageMap.DOCKER_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.DOCKER_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
 export const HostRoutePath: Dictionary<string> = {
@@ -128,6 +136,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.HOST_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.HOST_DOCUMENTATION]: `documentation`,
+  [PageMap.HOST_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -143,10 +153,12 @@ export const WorkflowRoutePath: Dictionary<string> = {
 
 export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
+  [PageMap.RUNBOOKS_AGENTS]: "agents",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
   [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
   [PageMap.RUNBOOK_VIEW_EXECUTION]: `${RouteParams.ModelID}/executions/${RouteParams.SubModelID}`,
+  [PageMap.RUNBOOK_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.RUNBOOK_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.RUNBOOK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -236,6 +248,8 @@ export const StatusPagesRoutePath: Dictionary<string> = {
     "settings/subscriber-notification-templates",
   [PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]: `settings/subscriber-notification-templates/${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs`,
   [PageMap.ANNOUNCEMENT_VIEW_DELETE]: `announcements/${RouteParams.ModelID}/delete`,
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
@@ -740,6 +754,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -1600,6 +1626,18 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/service/dependency-graph`,
   ),
 
+  // Service Settings Routes
+  [PageMap.SERVICE_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.SERVICE_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
   [PageMap.SERVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW]
@@ -1944,6 +1982,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Kubernetes Settings Routes
+  [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
   // Docker
 
   [PageMap.DOCKER_ROOT]: new Route(
@@ -2011,6 +2061,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DOCKER_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_DOCUMENTATION]
+    }`,
+  ),
+
+  // Docker Settings Routes
+  [PageMap.DOCKER_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.DOCKER_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -2083,6 +2145,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_DOCUMENTATION]
+    }`,
+  ),
+
+  // Host Settings Routes
+  [PageMap.HOST_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.HOST_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -2405,6 +2479,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]
     }`,
   ),
 
@@ -3156,6 +3242,11 @@ const RouteMap: Dictionary<Route> = {
       RunbookRoutePath[PageMap.RUNBOOKS_EXECUTIONS]
     }`,
   ),
+  [PageMap.RUNBOOKS_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_AGENTS]
+    }`,
+  ),
   [PageMap.RUNBOOK_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOK_VIEW]
@@ -3174,6 +3265,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOK_VIEW_EXECUTION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOK_VIEW_EXECUTION]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_OWNERS]
     }`,
   ),
   [PageMap.RUNBOOK_VIEW_SETTINGS]: new Route(

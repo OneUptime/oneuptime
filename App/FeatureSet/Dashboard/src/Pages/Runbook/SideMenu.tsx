@@ -30,6 +30,15 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Play,
         },
+        {
+          link: {
+            title: "Agents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOKS_AGENTS] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
       ],
     },
   ];

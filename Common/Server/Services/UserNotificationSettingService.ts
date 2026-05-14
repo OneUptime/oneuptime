@@ -4,6 +4,7 @@ import logger from "../Utils/Logger";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
+import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import SmsService from "./SmsService";
 import TeamMemberService from "./TeamMemberService";
 import TelegramService from "./TelegramService";
@@ -28,6 +29,7 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import TelegramMessage, {
   TelegramMessagePayload,
 } from "../../Types/Telegram/TelegramMessage";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import WhatsAppMessage, {
   WhatsAppMessagePayload,
 } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -150,6 +152,15 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
+      /*
+       * If the project has a default Twilio config set, all SMS and Calls
+       * sent to project team members will use it instead of the global config.
+       */
+      const projectTwilioConfig: TwilioConfig | undefined =
+        await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          data.projectId,
+        );
+
       if (notificationSettings.alertBySMS) {
         const userSmses: Array<UserSMS> = await UserSmsService.findBy({
           query: {
@@ -175,6 +186,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
             {
               projectId: data.projectId,
+              customTwilioConfig: projectTwilioConfig,
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
@@ -383,6 +395,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
             {
               projectId: data.projectId,
+              customTwilioConfig: projectTwilioConfig,
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,

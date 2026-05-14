@@ -11,6 +11,8 @@ import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
+import StatusPageLabelRuleEngineService from "./StatusPageLabelRuleEngineService";
+import StatusPageOwnerRuleEngineService from "./StatusPageOwnerRuleEngineService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
 import TeamMemberService from "./TeamMemberService";
@@ -222,6 +224,34 @@ export class Service extends DatabaseService<StatusPage> {
           statusPageId: createdItem.id?.toString(),
         } as LogAttributes);
       });
+    }
+
+    /*
+     * Apply label rules first so rule-added labels are persisted before owner
+     * rules run. Owner rules re-fetch labels from the DB, so this lets owner
+     * rules key on rule-added labels.
+     */
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await StatusPageLabelRuleEngineService.applyRulesToStatusPage(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await StatusPageOwnerRuleEngineService.applyRulesToStatusPage(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying status page rules in StatusPageService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              statusPageId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
     }
 
     return createdItem;

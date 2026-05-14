@@ -1,4 +1,5 @@
 import RunbookAPI from "./API/Runbook";
+import RunbookAgentIngressAPI from "./API/RunbookAgentIngress";
 import QueueRunbook from "./Services/QueueRunbook";
 import RunRunbook from "./Services/RunRunbook";
 import ObjectID from "Common/Types/ObjectID";
@@ -10,6 +11,7 @@ import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 
 const APP_NAME: string = "runbook";
+const AGENT_INGRESS_PATH: string = "runbook-agent-ingest";
 
 const RunbookFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -17,6 +19,7 @@ const RunbookFeatureSet: FeatureSet = {
       const app: ExpressApplication = Express.getExpressApp();
 
       app.use(`/${APP_NAME}`, new RunbookAPI().router);
+      app.use(`/${AGENT_INGRESS_PATH}`, new RunbookAgentIngressAPI().router);
 
       // Hand the engine a queue enqueuer so rule-triggered runs actually start.
       RunbookRuleEngineService.registerExecutionEnqueuer(

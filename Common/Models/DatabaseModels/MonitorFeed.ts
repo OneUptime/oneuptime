@@ -31,6 +31,8 @@ export enum MonitorFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerUserRemoved = "OwnerUserRemoved",
   SubscriberNotificationSent = "SubscriberNotificationSent",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  LabelRuleExecuted = "LabelRuleExecuted",
 }
 
 @EnableDocumentation()

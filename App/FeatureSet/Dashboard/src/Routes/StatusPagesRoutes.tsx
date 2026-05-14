@@ -70,6 +70,10 @@ import StatusPagesSettingsSubscriberTemplatesView from "../Pages/StatusPages/Set
 
 import StatusPagesSettingsCustomFields from "../Pages/StatusPages/Settings/StatusPageCustomFields";
 
+import StatusPagesSettingsOwnerRules from "../Pages/StatusPages/Settings/StatusPageOwnerRules";
+
+import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusPageLabelRules";
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -190,6 +194,36 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES] ||
+            ""
+          }
+          element={
+            <StatusPagesSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] ||
+            ""
+          }
+          element={
+            <StatusPagesSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] as Route
               }
             />
           }

@@ -1,13 +1,16 @@
 import DatabaseService from "./DatabaseService";
+import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
+import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
+import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "k8s-cluster-last-seen";
@@ -19,6 +22,36 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await KubernetesClusterLabelRuleEngineService.applyRulesToKubernetesCluster(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await KubernetesClusterOwnerRuleEngineService.applyRulesToKubernetesCluster(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying kubernetes cluster rules in KubernetesClusterService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              kubernetesClusterId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   @CaptureSpan()

@@ -226,6 +226,54 @@ import IncidentLabelRuleService, {
   Service as IncidentLabelRuleServiceType,
 } from "Common/Server/Services/IncidentLabelRuleService";
 
+import MonitorOwnerRuleService, {
+  Service as MonitorOwnerRuleServiceType,
+} from "Common/Server/Services/MonitorOwnerRuleService";
+
+import MonitorLabelRuleService, {
+  Service as MonitorLabelRuleServiceType,
+} from "Common/Server/Services/MonitorLabelRuleService";
+
+import StatusPageOwnerRuleService, {
+  Service as StatusPageOwnerRuleServiceType,
+} from "Common/Server/Services/StatusPageOwnerRuleService";
+
+import StatusPageLabelRuleService, {
+  Service as StatusPageLabelRuleServiceType,
+} from "Common/Server/Services/StatusPageLabelRuleService";
+
+import HostOwnerRuleService, {
+  Service as HostOwnerRuleServiceType,
+} from "Common/Server/Services/HostOwnerRuleService";
+
+import HostLabelRuleService, {
+  Service as HostLabelRuleServiceType,
+} from "Common/Server/Services/HostLabelRuleService";
+
+import ServiceOwnerRuleService, {
+  Service as ServiceOwnerRuleServiceType,
+} from "Common/Server/Services/ServiceOwnerRuleService";
+
+import ServiceLabelRuleService, {
+  Service as ServiceLabelRuleServiceType,
+} from "Common/Server/Services/ServiceLabelRuleService";
+
+import DockerHostOwnerRuleService, {
+  Service as DockerHostOwnerRuleServiceType,
+} from "Common/Server/Services/DockerHostOwnerRuleService";
+
+import DockerHostLabelRuleService, {
+  Service as DockerHostLabelRuleServiceType,
+} from "Common/Server/Services/DockerHostLabelRuleService";
+
+import KubernetesClusterOwnerRuleService, {
+  Service as KubernetesClusterOwnerRuleServiceType,
+} from "Common/Server/Services/KubernetesClusterOwnerRuleService";
+
+import KubernetesClusterLabelRuleService, {
+  Service as KubernetesClusterLabelRuleServiceType,
+} from "Common/Server/Services/KubernetesClusterLabelRuleService";
+
 import ScheduledMaintenanceOwnerRuleService, {
   Service as ScheduledMaintenanceOwnerRuleServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceOwnerRuleService";
@@ -608,9 +656,21 @@ import RunbookService, {
 import RunbookExecutionService, {
   Service as RunbookExecutionServiceType,
 } from "Common/Server/Services/RunbookExecutionService";
+import RunbookOwnerTeamService, {
+  Service as RunbookOwnerTeamServiceType,
+} from "Common/Server/Services/RunbookOwnerTeamService";
+import RunbookOwnerUserService, {
+  Service as RunbookOwnerUserServiceType,
+} from "Common/Server/Services/RunbookOwnerUserService";
 import RunbookRuleService, {
   Service as RunbookRuleServiceType,
 } from "Common/Server/Services/RunbookRuleService";
+import RunbookAgentService, {
+  Service as RunbookAgentServiceType,
+} from "Common/Server/Services/RunbookAgentService";
+import RunbookAgentJobService, {
+  Service as RunbookAgentJobServiceType,
+} from "Common/Server/Services/RunbookAgentJobService";
 
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
@@ -691,6 +751,19 @@ import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule"
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
+
+import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
+import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
+import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
+import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
+import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
+import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
+import ServiceOwnerRule from "Common/Models/DatabaseModels/ServiceOwnerRule";
+import ServiceLabelRule from "Common/Models/DatabaseModels/ServiceLabelRule";
+import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
+import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
+import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
+import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
@@ -802,7 +875,11 @@ import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
+import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
+import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
@@ -1487,6 +1564,108 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorOwnerRule, MonitorOwnerRuleServiceType>(
+        MonitorOwnerRule,
+        MonitorOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorLabelRule, MonitorLabelRuleServiceType>(
+        MonitorLabelRule,
+        MonitorLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageOwnerRule, StatusPageOwnerRuleServiceType>(
+        StatusPageOwnerRule,
+        StatusPageOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageLabelRule, StatusPageLabelRuleServiceType>(
+        StatusPageLabelRule,
+        StatusPageLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostOwnerRule, HostOwnerRuleServiceType>(
+        HostOwnerRule,
+        HostOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostLabelRule, HostLabelRuleServiceType>(
+        HostLabelRule,
+        HostLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceOwnerRule, ServiceOwnerRuleServiceType>(
+        ServiceOwnerRule,
+        ServiceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceLabelRule, ServiceLabelRuleServiceType>(
+        ServiceLabelRule,
+        ServiceLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostOwnerRule, DockerHostOwnerRuleServiceType>(
+        DockerHostOwnerRule,
+        DockerHostOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostLabelRule, DockerHostLabelRuleServiceType>(
+        DockerHostLabelRule,
+        DockerHostLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        KubernetesClusterOwnerRule,
+        KubernetesClusterOwnerRuleServiceType
+      >(
+        KubernetesClusterOwnerRule,
+        KubernetesClusterOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        KubernetesClusterLabelRule,
+        KubernetesClusterLabelRuleServiceType
+      >(
+        KubernetesClusterLabelRule,
+        KubernetesClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         ScheduledMaintenanceOwnerRule,
         ScheduledMaintenanceOwnerRuleServiceType
@@ -2059,6 +2238,38 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RunbookRule, RunbookRuleServiceType>(
         RunbookRule,
         RunbookRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookOwnerTeam, RunbookOwnerTeamServiceType>(
+        RunbookOwnerTeam,
+        RunbookOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookOwnerUser, RunbookOwnerUserServiceType>(
+        RunbookOwnerUser,
+        RunbookOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookAgent, RunbookAgentServiceType>(
+        RunbookAgent,
+        RunbookAgentService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookAgentJob, RunbookAgentJobServiceType>(
+        RunbookAgentJob,
+        RunbookAgentJobService,
       ).getRouter(),
     );
 
