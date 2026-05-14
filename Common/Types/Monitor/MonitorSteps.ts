@@ -183,11 +183,24 @@ export default class MonitorSteps extends DatabaseProperty {
   protected static override fromDatabase(
     value: JSONObject,
   ): MonitorSteps | null {
-    if (value) {
-      return MonitorSteps.fromJSON(value);
+    if (!value) {
+      return null;
     }
 
-    return null;
+    /*
+     * Be lenient when reading from the database. Some rows can be created
+     * with malformed monitorSteps (e.g. via Terraform or older migrations),
+     * and throwing here makes those rows un-deletable and un-readable —
+     * `_deleteBy` selects every column for the audit-log snapshot, so a
+     * single bad row blocks DELETE entirely. Strict validation still runs
+     * via fromJSON / getValidationError on writes from the API layer, which
+     * is the right place to reject bad input.
+     */
+    try {
+      return MonitorSteps.fromJSON(value);
+    } catch {
+      return new MonitorSteps();
+    }
   }
 
   public override toString(): string {
