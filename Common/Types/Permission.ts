@@ -495,6 +495,52 @@ enum Permission {
   EditRunbookLabelRule = "EditRunbookLabelRule",
   ReadRunbookLabelRule = "ReadRunbookLabelRule",
 
+  // Dashboard Owner Permissions
+  CreateDashboardOwnerTeam = "CreateDashboardOwnerTeam",
+  DeleteDashboardOwnerTeam = "DeleteDashboardOwnerTeam",
+  EditDashboardOwnerTeam = "EditDashboardOwnerTeam",
+  ReadDashboardOwnerTeam = "ReadDashboardOwnerTeam",
+
+  CreateDashboardOwnerUser = "CreateDashboardOwnerUser",
+  DeleteDashboardOwnerUser = "DeleteDashboardOwnerUser",
+  EditDashboardOwnerUser = "EditDashboardOwnerUser",
+  ReadDashboardOwnerUser = "ReadDashboardOwnerUser",
+
+  // Dashboard Owner Rule Permissions
+  CreateDashboardOwnerRule = "CreateDashboardOwnerRule",
+  DeleteDashboardOwnerRule = "DeleteDashboardOwnerRule",
+  EditDashboardOwnerRule = "EditDashboardOwnerRule",
+  ReadDashboardOwnerRule = "ReadDashboardOwnerRule",
+
+  // Dashboard Label Rule Permissions
+  CreateDashboardLabelRule = "CreateDashboardLabelRule",
+  DeleteDashboardLabelRule = "DeleteDashboardLabelRule",
+  EditDashboardLabelRule = "EditDashboardLabelRule",
+  ReadDashboardLabelRule = "ReadDashboardLabelRule",
+
+  // Workflow Owner Permissions
+  CreateWorkflowOwnerTeam = "CreateWorkflowOwnerTeam",
+  DeleteWorkflowOwnerTeam = "DeleteWorkflowOwnerTeam",
+  EditWorkflowOwnerTeam = "EditWorkflowOwnerTeam",
+  ReadWorkflowOwnerTeam = "ReadWorkflowOwnerTeam",
+
+  CreateWorkflowOwnerUser = "CreateWorkflowOwnerUser",
+  DeleteWorkflowOwnerUser = "DeleteWorkflowOwnerUser",
+  EditWorkflowOwnerUser = "EditWorkflowOwnerUser",
+  ReadWorkflowOwnerUser = "ReadWorkflowOwnerUser",
+
+  // Workflow Owner Rule Permissions
+  CreateWorkflowOwnerRule = "CreateWorkflowOwnerRule",
+  DeleteWorkflowOwnerRule = "DeleteWorkflowOwnerRule",
+  EditWorkflowOwnerRule = "EditWorkflowOwnerRule",
+  ReadWorkflowOwnerRule = "ReadWorkflowOwnerRule",
+
+  // Workflow Label Rule Permissions
+  CreateWorkflowLabelRule = "CreateWorkflowLabelRule",
+  DeleteWorkflowLabelRule = "DeleteWorkflowLabelRule",
+  EditWorkflowLabelRule = "EditWorkflowLabelRule",
+  ReadWorkflowLabelRule = "ReadWorkflowLabelRule",
+
   CreateOnCallDutyPolicyOwnerTeam = "CreateOnCallDutyPolicyOwnerTeam",
   DeleteOnCallDutyPolicyOwnerTeam = "DeleteOnCallDutyPolicyOwnerTeam",
   EditOnCallDutyPolicyOwnerTeam = "EditOnCallDutyPolicyOwnerTeam",
@@ -1711,6 +1757,174 @@ export class PermissionHelper {
         group: PermissionGroup.Settings,
       },
 
+      // Dashboard Owner Team Permissions
+      {
+        permission: Permission.CreateDashboardOwnerTeam,
+        title: "Create Dashboard Team Owner",
+        description:
+          "This permission can create Dashboard Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardOwnerTeam,
+        title: "Delete Dashboard Team Owner",
+        description:
+          "This permission can delete Dashboard Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardOwnerTeam,
+        title: "Edit Dashboard Team Owner",
+        description:
+          "This permission can edit Dashboard Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardOwnerTeam,
+        title: "Read Dashboard Team Owner",
+        description:
+          "This permission can read Dashboard Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard Owner User Permissions
+      {
+        permission: Permission.CreateDashboardOwnerUser,
+        title: "Create Dashboard User Owner",
+        description:
+          "This permission can create Dashboard User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardOwnerUser,
+        title: "Delete Dashboard User Owner",
+        description:
+          "This permission can delete Dashboard User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardOwnerUser,
+        title: "Edit Dashboard User Owner",
+        description:
+          "This permission can edit Dashboard User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardOwnerUser,
+        title: "Read Dashboard User Owner",
+        description:
+          "This permission can read Dashboard User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard Owner Rule Permissions
+      {
+        permission: Permission.CreateDashboardOwnerRule,
+        title: "Create Dashboard Owner Rule",
+        description:
+          "This permission can create Dashboard Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardOwnerRule,
+        title: "Delete Dashboard Owner Rule",
+        description:
+          "This permission can delete Dashboard Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardOwnerRule,
+        title: "Edit Dashboard Owner Rule",
+        description:
+          "This permission can edit Dashboard Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardOwnerRule,
+        title: "Read Dashboard Owner Rule",
+        description:
+          "This permission can read Dashboard Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Dashboard Label Rule Permissions
+      {
+        permission: Permission.CreateDashboardLabelRule,
+        title: "Create Dashboard Label Rule",
+        description:
+          "This permission can create Dashboard Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardLabelRule,
+        title: "Delete Dashboard Label Rule",
+        description:
+          "This permission can delete Dashboard Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardLabelRule,
+        title: "Edit Dashboard Label Rule",
+        description:
+          "This permission can edit Dashboard Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardLabelRule,
+        title: "Read Dashboard Label Rule",
+        description:
+          "This permission can read Dashboard Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
       // Dashboard Domain permissions.
       {
         permission: Permission.CreateDashboardDomain,
@@ -2820,6 +3034,174 @@ export class PermissionHelper {
         description: "This permission can read Workflow in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+
+      // Workflow Owner Team Permissions
+      {
+        permission: Permission.CreateWorkflowOwnerTeam,
+        title: "Create Workflow Team Owner",
+        description:
+          "This permission can create Workflow Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.DeleteWorkflowOwnerTeam,
+        title: "Delete Workflow Team Owner",
+        description:
+          "This permission can delete Workflow Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.EditWorkflowOwnerTeam,
+        title: "Edit Workflow Team Owner",
+        description:
+          "This permission can edit Workflow Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.ReadWorkflowOwnerTeam,
+        title: "Read Workflow Team Owner",
+        description:
+          "This permission can read Workflow Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+
+      // Workflow Owner User Permissions
+      {
+        permission: Permission.CreateWorkflowOwnerUser,
+        title: "Create Workflow User Owner",
+        description:
+          "This permission can create Workflow User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.DeleteWorkflowOwnerUser,
+        title: "Delete Workflow User Owner",
+        description:
+          "This permission can delete Workflow User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.EditWorkflowOwnerUser,
+        title: "Edit Workflow User Owner",
+        description:
+          "This permission can edit Workflow User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.ReadWorkflowOwnerUser,
+        title: "Read Workflow User Owner",
+        description:
+          "This permission can read Workflow User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+
+      // Workflow Owner Rule Permissions
+      {
+        permission: Permission.CreateWorkflowOwnerRule,
+        title: "Create Workflow Owner Rule",
+        description:
+          "This permission can create Workflow Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.DeleteWorkflowOwnerRule,
+        title: "Delete Workflow Owner Rule",
+        description:
+          "This permission can delete Workflow Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.EditWorkflowOwnerRule,
+        title: "Edit Workflow Owner Rule",
+        description:
+          "This permission can edit Workflow Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.ReadWorkflowOwnerRule,
+        title: "Read Workflow Owner Rule",
+        description:
+          "This permission can read Workflow Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+
+      // Workflow Label Rule Permissions
+      {
+        permission: Permission.CreateWorkflowLabelRule,
+        title: "Create Workflow Label Rule",
+        description:
+          "This permission can create Workflow Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.DeleteWorkflowLabelRule,
+        title: "Delete Workflow Label Rule",
+        description:
+          "This permission can delete Workflow Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.EditWorkflowLabelRule,
+        title: "Edit Workflow Label Rule",
+        description:
+          "This permission can edit Workflow Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.ReadWorkflowLabelRule,
+        title: "Read Workflow Label Rule",
+        description:
+          "This permission can read Workflow Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Workflow,
       },

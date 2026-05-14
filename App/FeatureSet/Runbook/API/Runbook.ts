@@ -269,6 +269,7 @@ export default class RunbookAPI {
             _id: true,
             projectId: true,
             status: true,
+            stepExecutions: true,
           },
           props: { isRoot: true },
         });
@@ -296,11 +297,28 @@ export default class RunbookAPI {
         });
       }
 
+      const stepExecutions: RunbookStepExecutionState[] =
+        (execution.stepExecutions as unknown as RunbookStepExecutionState[]) ||
+        [];
+
+      const nowIso: string = new Date().toISOString();
+      for (const stepExec of stepExecutions) {
+        if (
+          stepExec.status === RunbookStepExecutionStatus.Pending ||
+          stepExec.status === RunbookStepExecutionStatus.Running ||
+          stepExec.status === RunbookStepExecutionStatus.WaitingForUser
+        ) {
+          stepExec.status = RunbookStepExecutionStatus.Cancelled;
+          stepExec.completedAt = nowIso;
+        }
+      }
+
       await RunbookExecutionService.updateOneById({
         id: new ObjectID(executionId),
         data: {
           status: RunbookExecutionStatus.Cancelled,
           completedAt: new Date(),
+          stepExecutions: stepExecutions as unknown as JSONArray,
         } as unknown as JSONObject,
         props: { isRoot: true },
       });

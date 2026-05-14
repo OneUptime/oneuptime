@@ -15,8 +15,11 @@ import WorkflowLogs from "../Pages/Workflow/View/Logs";
 import WorkflowDelete from "../Pages/Workflow/View/Delete";
 import WorkflowBuilder from "../Pages/Workflow/View/Builder";
 import WorkflowOverview from "../Pages/Workflow/View/Index";
+import WorkflowOwners from "../Pages/Workflow/View/Owners";
 import WorkflowVariables from "../Pages/Workflow/View/Variable";
 import WorkflowSettings from "../Pages/Workflow/View/Settings";
+import WorkflowSettingsOwnerRules from "../Pages/Workflow/Settings/OwnerRules";
+import WorkflowSettingsLabelRules from "../Pages/Workflow/Settings/LabelRules";
 
 const WorkflowRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -50,6 +53,30 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             <WorkflowsLogs
               {...props}
               pageRoute={RouteMap[PageMap.WORKFLOWS_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <WorkflowSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.WORKFLOWS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <WorkflowSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES] as Route
+              }
             />
           }
         />
@@ -104,6 +131,16 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             <WorkflowLogs
               {...props}
               pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_VIEW_OWNERS)}
+          element={
+            <WorkflowOwners
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_VIEW_OWNERS] as Route}
             />
           }
         />

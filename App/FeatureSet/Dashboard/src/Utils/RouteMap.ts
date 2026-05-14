@@ -23,6 +23,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
   [PageMap.MONITORS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.MONITORS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.MONITORS_SETTINGS_PROBES]: "settings/probes",
+  [PageMap.MONITORS_SETTINGS_PROBE_VIEW]: `settings/probes/${RouteParams.ModelID}`,
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
@@ -148,7 +150,10 @@ export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOW_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.WORKFLOW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.WORKFLOW_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.WORKFLOWS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.WORKFLOWS_SETTINGS_LABEL_RULES]: "settings/label-rules",
 };
 
 export const RunbookRoutePath: Dictionary<string> = {
@@ -235,6 +240,9 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
+  [PageMap.DASHBOARD_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: "settings/label-rules",
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -473,9 +481,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
-  [PageMap.SETTINGS_PROBES]: "probes",
   [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
   [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LLM_PROVIDERS]: "llm-provider",
@@ -768,6 +774,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_PROBES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_PROBE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBE_VIEW]
     }`,
   ),
 
@@ -2213,6 +2231,21 @@ const RouteMap: Dictionary<Route> = {
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS]
     }`,
   ),
+  [PageMap.DASHBOARD_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_OWNERS]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
 
   // Status Pages
 
@@ -3127,23 +3160,10 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_PROBE_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_PROBE_VIEW]
-    }`,
-  ),
-
   // labels.
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
-    }`,
-  ),
-
-  // Probes.
-  [PageMap.SETTINGS_PROBES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_PROBES]
     }`,
   ),
 
@@ -3231,6 +3251,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOW_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.WORKFLOW_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOW_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.WORKFLOWS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.WORKFLOWS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES]
     }`,
   ),
 

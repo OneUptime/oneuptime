@@ -7,37 +7,19 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { ReactElement } from "react";
 
-const DashboardSideMenu: () => ReactElement = (): ReactElement => {
+const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Workflows",
+      title: "Dashboards",
       items: [
         {
           link: {
-            title: "Workflows",
+            title: "Dashboards",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOWS] as Route,
+              RouteMap[PageMap.DASHBOARDS] as Route,
             ),
           },
-          icon: IconProp.Workflow,
-        },
-        {
-          link: {
-            title: "Global Variables",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route,
-            ),
-          },
-          icon: IconProp.Variable,
-        },
-        {
-          link: {
-            title: "Runs & Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOWS_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Logs,
+          icon: IconProp.Window,
         },
       ],
     },
@@ -49,7 +31,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           link: {
             title: "Owner Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOWS_SETTINGS_OWNER_RULES] as Route,
+              RouteMap[PageMap.DASHBOARDS_SETTINGS_OWNER_RULES] as Route,
             ),
           },
           icon: IconProp.User,
@@ -58,7 +40,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           link: {
             title: "Label Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOWS_SETTINGS_LABEL_RULES] as Route,
+              RouteMap[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES] as Route,
             ),
           },
           icon: IconProp.Tag,
@@ -70,4 +52,4 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   return <SideMenu sections={sections} />;
 };
 
-export default DashboardSideMenu;
+export default DashboardsSideMenu;

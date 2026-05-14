@@ -125,7 +125,7 @@ const RESOURCE_META: { [key: string]: ResourceMeta } = {
     icon: IconProp.Signal,
     color: "text-emerald-700",
     bgColor: "bg-emerald-50 border-emerald-100",
-    viewRoute: PageMap.SETTINGS_PROBE_VIEW,
+    viewRoute: PageMap.MONITORS_SETTINGS_PROBE_VIEW,
   },
   Workflow: {
     icon: IconProp.Workflow,

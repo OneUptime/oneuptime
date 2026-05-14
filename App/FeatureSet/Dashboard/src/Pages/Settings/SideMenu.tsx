@@ -185,15 +185,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Probes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_PROBES] as Route,
-            ),
-          },
-          icon: IconProp.Signal,
-        },
-        {
-          link: {
             title: "Domains",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DOMAINS] as Route,

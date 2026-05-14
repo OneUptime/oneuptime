@@ -199,6 +199,8 @@ import UserIncomingCallNumber from "./UserIncomingCallNumber";
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
+import WorkflowOwnerTeam from "./WorkflowOwnerTeam";
+import WorkflowOwnerUser from "./WorkflowOwnerUser";
 // Runbooks.
 import Runbook from "./Runbook";
 import RunbookAgent from "./RunbookAgent";
@@ -286,10 +288,16 @@ import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
+import WorkflowOwnerRule from "./WorkflowOwnerRule";
+import WorkflowLabelRule from "./WorkflowLabelRule";
+import DashboardOwnerRule from "./DashboardOwnerRule";
+import DashboardLabelRule from "./DashboardLabelRule";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 import DashboardDomain from "./DashboardDomain";
+import DashboardOwnerTeam from "./DashboardOwnerTeam";
+import DashboardOwnerUser from "./DashboardOwnerUser";
 
 import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
@@ -443,6 +451,10 @@ const AllModelTypes: Array<{
   KubernetesClusterLabelRule,
   RunbookOwnerRule,
   RunbookLabelRule,
+  WorkflowOwnerRule,
+  WorkflowLabelRule,
+  DashboardOwnerRule,
+  DashboardLabelRule,
 
   MonitorStatusTimeline,
 
@@ -482,6 +494,8 @@ const AllModelTypes: Array<{
   Workflow,
   WorkflowVariables,
   WorkflowLog,
+  WorkflowOwnerTeam,
+  WorkflowOwnerUser,
 
   Runbook,
   RunbookExecution,
@@ -608,6 +622,8 @@ const AllModelTypes: Array<{
   // Dashboards
   Dashboard,
   DashboardDomain,
+  DashboardOwnerTeam,
+  DashboardOwnerUser,
 
   MonitorTest,
 

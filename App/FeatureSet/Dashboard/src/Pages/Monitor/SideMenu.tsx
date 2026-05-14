@@ -195,6 +195,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Tag,
         },
+        {
+          link: {
+            title: "Probes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+            ),
+          },
+          icon: IconProp.Signal,
+        },
       ],
     },
   ];

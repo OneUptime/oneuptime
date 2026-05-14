@@ -5,6 +5,7 @@ enum RunbookStepExecutionStatus {
   Completed = "Completed",
   Skipped = "Skipped",
   Failed = "Failed",
+  Cancelled = "Cancelled",
 }
 
 export default RunbookStepExecutionStatus;

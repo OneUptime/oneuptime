@@ -1,10 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import UserElement from "../../Components/User/User";
+import UserElement from "../../../Components/User/User";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageMap from "../../Utils/PageMap";
-import ProjectUser from "../../Utils/ProjectUser";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import ProjectUser from "../../../Utils/ProjectUser";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -25,18 +25,18 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import TeamElement from "../../Components/Team/Team";
+import TeamElement from "../../../Components/Team/Team";
 import Team from "Common/Models/DatabaseModels/Team";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
-import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
-import CustomProbeDocumentation from "../../Components/Probe/CustomProbeDocumentation";
+import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
   BlockPermissions = "BlockPermissions",
 }
 
-const TeamView: FunctionComponent<PageComponentProps> = (
+const ProbeView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
@@ -435,7 +435,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_PROBES] as Route,
+              RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
               { modelId },
             ),
           );
@@ -445,4 +445,4 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default TeamView;
+export default ProbeView;

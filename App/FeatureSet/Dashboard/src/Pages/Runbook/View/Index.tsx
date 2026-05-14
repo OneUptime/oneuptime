@@ -55,9 +55,7 @@ import {
   Yellow500,
 } from "Common/Types/BrandColors";
 
-function statusPill(
-  status: RunbookExecutionStatus | undefined,
-): ReactElement {
+function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   switch (status) {
     case RunbookExecutionStatus.Completed:
       return <Pill text="Completed" color={Green500} isMinimal={true} />;
@@ -76,9 +74,7 @@ function statusPill(
   }
 }
 
-function triggerSourceElement(
-  execution: RunbookExecution,
-): ReactElement {
+function triggerSourceElement(execution: RunbookExecution): ReactElement {
   if (execution.incident) {
     return (
       <span className="inline-flex items-center gap-1 text-sm text-gray-700">
@@ -167,14 +163,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         projectId,
       };
 
-      const [
-        lastExec,
-        total,
-        success,
-        failed,
-        ownerTeams,
-        ownerUsers,
-      ]: [
+      const [lastExec, total, success, failed, ownerTeams, ownerUsers]: [
         ListResult<RunbookExecution>,
         number,
         number,
@@ -273,7 +262,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   useEffect(() => {
     void loadStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runNow: () => Promise<void> = async (): Promise<void> => {
@@ -469,15 +457,11 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   {statusPill(lastExec.status as RunbookExecutionStatus)}
                 </div>
                 <div className="text-sm text-gray-700">
-                  {lastStartedAt
-                    ? OneUptimeDate.fromNow(lastStartedAt)
-                    : "—"}
+                  {lastStartedAt ? OneUptimeDate.fromNow(lastStartedAt) : "—"}
                 </div>
                 <div className="text-xs text-gray-500">
                   {lastStartedAt
-                    ? OneUptimeDate.getDateAsLocalFormattedString(
-                        lastStartedAt,
-                      )
+                    ? OneUptimeDate.getDateAsLocalFormattedString(lastStartedAt)
                     : null}
                 </div>
                 <div className="mt-1">{triggerSourceElement(lastExec)}</div>

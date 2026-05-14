@@ -3,8 +3,10 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
+import Route from "Common/Types/API/Route";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Button, {
@@ -15,12 +17,23 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import { RUNBOOK_URL } from "Common/UI/Config";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
+import User from "Common/Models/DatabaseModels/User";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import IncidentElement from "../../../Components/Incident/Incident";
+import AlertElement from "../../../Components/Alert/Alert";
+import UserElement from "../../../Components/User/User";
+import AppLink from "../../../Components/AppLink/AppLink";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { JSONObject } from "Common/Types/JSON";
 import { useAsyncEffect } from "use-async-effect";
 import React, {
@@ -111,6 +124,12 @@ const STEP_STATUS_VISUAL: Record<RunbookStepExecutionStatus, StatusVisual> = {
     dot: "bg-rose-500",
     icon: IconProp.Close,
   },
+  [RunbookStepExecutionStatus.Cancelled]: {
+    label: "Cancelled",
+    badge: "bg-gray-100 text-gray-700 ring-gray-200",
+    dot: "bg-gray-400",
+    icon: IconProp.Close,
+  },
 };
 
 const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
@@ -148,6 +167,72 @@ function StatusBadge({ visual }: { visual: StatusVisual }): ReactElement {
   );
 }
 
+function renderTrigger(execution: RunbookExecution): ReactElement | null {
+  if (execution.incident) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Incident
+        </span>
+        <span className="text-sm text-gray-900">
+          <IncidentElement incident={execution.incident as Incident} />
+        </span>
+      </div>
+    );
+  }
+  if (execution.alert) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Alert
+        </span>
+        <span className="text-sm text-gray-900">
+          <AlertElement alert={execution.alert as Alert} />
+        </span>
+      </div>
+    );
+  }
+  if (execution.scheduledMaintenance) {
+    const sm: ScheduledMaintenance =
+      execution.scheduledMaintenance as ScheduledMaintenance;
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Scheduled Maintenance
+        </span>
+        <span className="text-sm text-gray-900">
+          {sm._id ? (
+            <AppLink
+              className="hover:underline"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+                { modelId: new ObjectID(sm._id as string) },
+              )}
+            >
+              <span>{sm.title || "View"}</span>
+            </AppLink>
+          ) : (
+            <span>{sm.title || "—"}</span>
+          )}
+        </span>
+      </div>
+    );
+  }
+  if (execution.triggeredByUser) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Manual run by
+        </span>
+        <span className="text-sm text-gray-900">
+          <UserElement user={execution.triggeredByUser as User} />
+        </span>
+      </div>
+    );
+  }
+  return null;
+}
+
 const ExecutionView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -158,8 +243,61 @@ const ExecutionView: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionInFlight, setActionInFlight] = useState<boolean>(false);
+  const [stepUsers, setStepUsers] = useState<Map<string, User>>(new Map());
   const pollRef: React.MutableRefObject<NodeJS.Timeout | null> =
     useRef<NodeJS.Timeout | null>(null);
+
+  const loadStepUsers: (
+    steps: RunbookStepExecutionState[],
+  ) => Promise<void> = async (
+    steps: RunbookStepExecutionState[],
+  ): Promise<void> => {
+    const userIdsToFetch: Set<string> = new Set();
+    for (const s of steps) {
+      if (s.completedByUserId) {
+        userIdsToFetch.add(s.completedByUserId);
+      }
+    }
+    if (userIdsToFetch.size === 0) {
+      return;
+    }
+    const idsToFetch: string[] = Array.from(userIdsToFetch).filter(
+      (id: string) => {
+        return !stepUsers.has(id);
+      },
+    );
+    if (idsToFetch.length === 0) {
+      return;
+    }
+    try {
+      const result: ListResult<User> = await ModelAPI.getList<User>({
+        modelType: User,
+        query: {
+          _id: new Includes(idsToFetch) as unknown as string,
+        },
+        limit: idsToFetch.length,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          profilePictureId: true,
+        },
+        sort: {},
+      });
+      setStepUsers((prev: Map<string, User>) => {
+        const next: Map<string, User> = new Map(prev);
+        for (const u of result.data) {
+          if (u._id) {
+            next.set(u._id as unknown as string, u);
+          }
+        }
+        return next;
+      });
+    } catch {
+      // non-fatal: completed-by display will fall back to user ID
+    }
+  };
 
   const load: () => Promise<RunbookExecution | null> =
     async (): Promise<RunbookExecution | null> => {
@@ -178,10 +316,25 @@ const ExecutionView: FunctionComponent<
               completedAt: true,
               failureReason: true,
               createdAt: true,
+              incident: { _id: true, title: true },
+              alert: { _id: true, title: true },
+              scheduledMaintenance: { _id: true, title: true },
+              triggeredByUser: {
+                _id: true,
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
             },
             requestOptions: {},
           });
         setExecution(exec);
+        if (exec) {
+          const steps: RunbookStepExecutionState[] =
+            (exec.stepExecutions as unknown as RunbookStepExecutionState[]) ||
+            [];
+          void loadStepUsers(steps);
+        }
         return exec;
       } catch (err) {
         setError(API.getFriendlyMessage(err));
@@ -401,6 +554,21 @@ const ExecutionView: FunctionComponent<
             </div>
           </div>
 
+          {(() => {
+            const trigger: ReactElement | null = renderTrigger(execution);
+            if (!trigger) {
+              return null;
+            }
+            return (
+              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 mb-6">
+                <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                  Triggered by
+                </div>
+                {trigger}
+              </div>
+            );
+          })()}
+
           {execution.failureReason ? (
             <div className="rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm px-4 py-3 mb-6 flex items-start gap-3">
               <Icon
@@ -492,9 +660,11 @@ const ExecutionView: FunctionComponent<
                                 {stepExec.step.title}
                               </h3>
                               {stepExec.step.description && (
-                                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">
-                                  {stepExec.step.description}
-                                </p>
+                                <div className="text-sm text-gray-600 mt-1 leading-relaxed prose prose-sm max-w-none">
+                                  <MarkdownViewer
+                                    text={stepExec.step.description}
+                                  />
+                                </div>
                               )}
                             </div>
                             <div className="flex-shrink-0 flex items-center gap-2">
@@ -529,8 +699,10 @@ const ExecutionView: FunctionComponent<
                             </div>
                           </div>
 
-                          {(stepExec.startedAt || stepExec.completedAt) && (
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2">
+                          {(stepExec.startedAt ||
+                            stepExec.completedAt ||
+                            stepExec.completedByUserId) && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
                               {stepExec.startedAt && (
                                 <span>
                                   Started{" "}
@@ -547,6 +719,33 @@ const ExecutionView: FunctionComponent<
                                   )}
                                 </span>
                               )}
+                              {stepExec.completedByUserId &&
+                                (stepExec.status ===
+                                  RunbookStepExecutionStatus.Completed ||
+                                  stepExec.status ===
+                                    RunbookStepExecutionStatus.Skipped) && (
+                                  <span className="inline-flex items-center gap-1">
+                                    {stepExec.status ===
+                                    RunbookStepExecutionStatus.Skipped
+                                      ? "Skipped by"
+                                      : "Completed by"}
+                                    {stepUsers.get(
+                                      stepExec.completedByUserId,
+                                    ) ? (
+                                      <UserElement
+                                        user={
+                                          stepUsers.get(
+                                            stepExec.completedByUserId,
+                                          ) as User
+                                        }
+                                      />
+                                    ) : (
+                                      <span className="font-mono text-gray-400">
+                                        {stepExec.completedByUserId.slice(0, 8)}
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
                             </div>
                           )}
 

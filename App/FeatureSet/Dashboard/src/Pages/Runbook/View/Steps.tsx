@@ -454,6 +454,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Description
+                          <span className="ml-2 text-[10px] font-normal text-gray-400">
+                            Markdown supported
+                          </span>
                         </label>
                         <TextArea
                           value={step.description || ""}
@@ -462,8 +465,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           }}
                           placeholder={
                             step.type === RunbookStepType.Manual
-                              ? "Instructions the responder will see when they reach this step."
-                              : "Optional notes about what this step does."
+                              ? "Instructions the responder will see when they reach this step. Markdown is supported."
+                              : "Optional notes about what this step does. Markdown is supported."
                           }
                         />
                       </div>

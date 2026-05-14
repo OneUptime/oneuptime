@@ -55,17 +55,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Notification Logs",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PROBES, [
-      "Project",
-      "Settings",
-      "Probes",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PROBE_VIEW, [
-      "Project",
-      "Settings",
-      "Probes",
-      "View Probe",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DOMAINS, [
       "Project",
       "Settings",

@@ -1,6 +1,6 @@
-import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
+import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
