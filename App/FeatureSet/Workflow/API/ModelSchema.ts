@@ -7,6 +7,7 @@ import {
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import { getColumnAccessControl } from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableColumnType from "Common/Types/Database/TableColumnType";
+import Permission from "Common/Types/Permission";
 import Entities from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -57,7 +58,21 @@ const hasReadAccess: (acl: ColumnAccessControl | undefined) => boolean = (
     // No ACL decorator means the column was never gated — treat as not selectable.
     return false;
   }
-  return Array.isArray(acl.read) && acl.read.length > 0;
+  if (!Array.isArray(acl.read) || acl.read.length === 0) {
+    return false;
+  }
+  /*
+   * Self-only fields (password, MFA secrets, personal tokens, etc.) have
+   * CurrentUser as their only reader. They don't belong in a workflow
+   * picker — a workflow runs as a role, not as the field's owner.
+   */
+  const everyReaderIsCurrentUser: boolean = acl.read.every((p: Permission) => {
+    return p === Permission.CurrentUser;
+  });
+  if (everyReaderIsCurrentUser) {
+    return false;
+  }
+  return true;
 };
 
 const describeColumns: (
