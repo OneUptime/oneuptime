@@ -4,7 +4,7 @@
 
 - Sortie par étape : **50 Ko**. Toute sortie plus longue est tronquée avec un marqueur.
 - Délai par défaut par étape : **30 secondes** pour JavaScript, Bash et HTTP. Configurable par étape.
-- **Claim timeout** par défaut pour les étapes Bash : **2 minutes** — combien de temps le Worker attend qu'un Agent de Runbook prenne le job avant de le faire échouer.
+- **Claim timeout** par défaut pour les étapes Bash et JavaScript : **2 minutes** — combien de temps le Worker attend qu'un Agent de Runbook prenne le job avant de le faire échouer.
 
 ## Permissions
 
@@ -24,8 +24,7 @@ Quand une étape manuelle est validée via l'API, l'exécution est remise en fil
 
 ## Notes de durcissement
 
-- Les **étapes JavaScript** tournent dans `isolated-vm` avec un préambule de durcissement (rompt les chaînes de prototypes, supprime `Function` et `eval`, gèle les prototypes natifs).
-- Les **étapes Bash** ne tournent jamais sur le Worker OneUptime. Elles sont envoyées comme jobs à un [Agent de Runbook](/docs/runbooks/agents) que vous avez installé dans votre propre infrastructure. Le Worker met le job en file avec l'**Agent Tag** de l'étape, un agent le réclame atomiquement, exécute `bash -c <script>` localement et renvoie le résultat. Le processus Worker lui-même n'a aucun accès shell à votre environnement.
+- Les **étapes Bash et JavaScript** ne tournent jamais sur le Worker OneUptime. Elles sont envoyées comme jobs à un [Agent de Runbook](/docs/runbooks/agents) que vous avez installé dans votre propre infrastructure. Le Worker met le job en file avec l'**Agent Tag** et le type d'étape, un agent le réclame atomiquement, l'exécute localement — Bash via `bash -c <script>`, JavaScript dans un bac à sable `isolated-vm` avec le préambule habituel (rompt les chaînes de prototypes, supprime `Function` et `eval`, gèle les prototypes natifs) — et renvoie le résultat. Le processus Worker lui-même n'exécute pas de scripts clients.
 - Les **étapes HTTP** utilisent un validateur de statut permissif, donc une réponse 4xx ou 5xx est enregistrée comme étape échouée plutôt que levée. La sortie capturée reflète ainsi ce que la cible a réellement renvoyé.
 
 ## Tables de base de données
@@ -34,7 +33,7 @@ Quand une étape manuelle est validée via l'API, l'exécution est remise en fil
 - `RunbookExecution` — une ligne par exécution, avec des clés étrangères nullables `incidentId`, `alertId` et `scheduledMaintenanceId` et un tableau JSON `stepExecutions` qui prend en snapshot les étapes et l'état par étape.
 - `RunbookRule` — règles d'auto-déclenchement avec discriminateur `triggerEntityType` (Incident, Alert, ScheduledMaintenance) et une relation many-to-many vers les runbooks à démarrer.
 - `RunbookAgent` — une ligne par agent installé : nom, tags, clé secrète, `lastAlive`, `connectionStatus`, infos d'hôte.
-- `RunbookAgentJob` — une ligne par étape Bash envoyée : tag requis, script, statut (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, sortie, code de sortie.
+- `RunbookAgentJob` — une ligne par étape Bash ou JavaScript envoyée : tag requis, type d'étape, script, statut (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, sortie, code de sortie.
 
 ## Conseils opérationnels
 

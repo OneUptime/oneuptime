@@ -5,7 +5,7 @@ Runbooks er gjenbrukbare responsprosedyrer — ordnede lister med manuelle eller
 ## Et raskt overblikk
 
 - **Toppnivåfunksjon** i OneUptime-dashbordet under **Analyse & Automatisering → Runbooks**.
-- **Fire trinntyper**: manuell sjekkliste, JavaScript (sandkasse), HTTP-forespørsel, Bash (kjører på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur).
+- **Fire trinntyper**: manuell sjekkliste, JavaScript (sandkasse) og Bash (begge kjører på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur), HTTP-forespørsel.
 - **Tre utløsningsveier**: regler som matcher hendelser/varsler/planlagt vedlikehold, eller den manuelle knappen "Kjør runbook" på enhver hendelse.
 - **Snapshot-semantikk**: når et runbook starter, kopieres trinnene inn på kjøringen. Redigering av malen senere endrer aldri en pågående kjøring.
 - **Fullt revisjonsspor**: status, output, feilmelding og varighet for hvert trinn lagres på kjøringen for alltid.
@@ -47,7 +47,7 @@ En rask beslutningsveiledning. Den lange gjennomgangen står i [Skrive et runboo
 | Trinntype | Bruk det når… | Eksempel |
 | --- | --- | --- |
 | **Manuell** | Et menneske må verifisere noe, vurdere eller utføre en handling OneUptime ikke kan observere. | "Bekreft trafikk i sekundær region på load balancer-dashbordet." |
-| **JavaScript** | Du trenger en liten, innesluttet beregning — spørre en konfig-tjeneste, transformere en payload, kjøre logikk før neste trinn. | Regn ut nåværende replika-etterslep og avgjør om du går videre. |
+| **JavaScript** | Du trenger en liten, innesluttet beregning — spørre en konfig-tjeneste, transformere en payload, kjøre logikk før neste trinn. Kjører i sandkasse på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Regn ut nåværende replika-etterslep og avgjør om du går videre. |
 | **HTTP-forespørsel** | Du kaller en eksisterende API — ditt eget admin-endepunkt, en skyleverandør, PagerDuty, Slack. | `POST` til failover-orkestratoren din. |
 | **Bash** | Du må kjøre shell-kommandoer på din egen infrastruktur — restarte en tjeneste, kjøre `kubectl`, kalle et deploy-skript. Krever en [Runbook-agent](/docs/runbooks/agents) installert i miljøet ditt. | Restart en tjeneste, `kubectl rollout restart`, kjør et recovery-skript. |
 

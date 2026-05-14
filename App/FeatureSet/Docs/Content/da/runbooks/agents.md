@@ -1,25 +1,27 @@
 # Runbook-agenter
 
-En **Runbook-agent** er en lille selv-hostet proces, der eksekverer Bash-trinene i dine runbooks **inde i din egen infrastruktur**. OneUptime Worker'en kører aldrig dine shell-kommandoer selv — den lægger dem i kø, og en Runbook-agent, du har installeret i dit miljø, henter dem, kører dem og sender resultatet tilbage.
+En **Runbook-agent** er en lille selv-hostet proces, der eksekverer Bash- *og* JavaScript-trinene i dine runbooks **inde i din egen infrastruktur**. OneUptime Worker'en kører aldrig dine scripts selv — den lægger dem i kø, og en Runbook-agent, du har installeret i dit miljø, henter dem, kører dem og sender resultatet tilbage.
 
-Denne side forklarer, hvordan du installerer en agent, ruter Bash-trin til den og driver den i hverdagen.
+JavaScript kører stadig i en `isolated-vm`-sandkasse; forskellen er, at den sandkasse lever på din agent-host i stedet for hos os.
+
+Denne side forklarer, hvordan du installerer en agent, ruter Bash- og JavaScript-trin til den og driver den i hverdagen.
 
 ## Hvorfor agenter findes
 
-Tidligere versioner af OneUptime kørte Bash-trin direkte på Worker'en. Det fungerede for single-tenant self-hosted opsætninger, hvor operatørerne i forvejen havde shell på maskinen, men det giver to problemer for alle andre:
+Tidligere versioner af OneUptime kørte Bash- og JavaScript-trin på Worker'en. JavaScript var i sandkasse (`isolated-vm`), Bash var ikke. Begge var problematiske for alt ud over en single-tenant self-hosted opsætning:
 
-- **Tillidsgrænse.** Enhver, der kan forfatte et runbook, kan eksekvere shell på Worker'en, med adgang til alle de environment variables og det filsystem, som Worker'en har.
-- **Rækkevidde.** De fleste nyttige Bash-trin vil operere på *kundens* infrastruktur ("genstart denne tjeneste", "kubectl på vores cluster") — ikke på OneUptimes.
+- **Tillidsgrænse.** Enhver, der kunne forfatte et runbook, kunne eksekvere kode på Worker'en, med adgang til alle environment variables og hele det filsystem, som Worker'en havde. JavaScript-sandkassen blokerede de oplagte ting, men kunne ikke forhindre en målrettet bruger i at undersøge, hvad der var nåeligt fra vores netværk.
+- **Rækkevidde.** De fleste nyttige trin vil operere på *kundens* infrastruktur ("genstart denne tjeneste", "kubectl på vores cluster", "slå et record op i vores interne DB") — ikke på OneUptimes.
 
-Runbook-agenter vender det om. Bash-trin kører ikke hos os. De kører på en host, du kontrollerer, og du bestemmer, hvad den host må.
+Runbook-agenter vender det om. Bash- og JavaScript-trin kører ikke hos os. De kører på en host, du kontrollerer, og du bestemmer, hvad den host må.
 
 ## Sådan fungerer det
 
 1. Du opretter en Runbook-agent i OneUptime. OneUptime genererer et ID og en hemmelig nøgle.
 2. Du kører agentens container på en host i din infrastruktur med det ID/nøgle plus din OneUptime-URL.
 3. Agenten spørger OneUptime hver par sekunder: "noget arbejde til mig?"
-4. Når et Bash-trin kører, indsætter Worker'en en jobrække mærket med trinets **Agent Tag** og sætter status til `Pending`.
-5. Enhver sund agent i samme projekt, der bærer det tag, claimer jobbet (atomart — aldrig to agenter på samme job), kører `bash -c <dit script>` lokalt, fanger stdout/stderr/exit-code, og sender resultatet retur.
+4. Når et Bash- eller JavaScript-trin kører, indsætter Worker'en en jobrække mærket med trinets **Agent Tag** og en trintype (Bash eller JavaScript), og sætter status til `Pending`.
+5. Enhver sund agent i samme projekt, der bærer det tag, claimer jobbet (atomart — aldrig to agenter på samme job), kører det lokalt — `bash -c <script>` for Bash, en `isolated-vm`-sandkasse for JavaScript — fanger resultatet og sender det retur.
 6. Worker'en fortsætter runbook'et med resultatet.
 
 Agenten har kun brug for **udgående HTTPS** til din OneUptime-instans. Den accepterer ingen indgående forbindelser.
@@ -34,7 +36,7 @@ Gå til **Runbooks → Agents → Opret ny**. Udfyld:
 | --- | --- |
 | **Navn** | Et sigende navn — typisk `hvor-den-kører-og-hvad-den-kan`, fx `prod-eu-west-1`. |
 | **Beskrivelse** | Valgfri. En sætning om hvad denne host kan nå. Dit fremtidige jeg vil takke dig. |
-| **Tags** | Kommaseparerede. Bash-trin sigter efter et tag; enhver agent i projektet med det tag må køre dem. Almindelige mønstre: `prod`, `staging`, `eu-west-1`, `db-host`. |
+| **Tags** | Kommaseparerede. Bash- og JavaScript-trin sigter efter et tag; enhver agent i projektet med det tag må køre dem. Almindelige mønstre: `prod`, `staging`, `eu-west-1`, `db-host`. |
 
 ### 2. Kopier installationskommandoen
 
@@ -65,34 +67,34 @@ Gå tilbage til **Runbooks → Agents**. Inden for ca. 60 sekunder skal agentens
 
 ## Tags og routing
 
-Tags er måden, hvorpå et Bash-trin finder en agent. Et par mønstre:
+Tags er måden, hvorpå et Bash- eller JavaScript-trin finder en agent. Et par mønstre:
 
 - **Ét tag per miljø.** Tag prod-agenten `prod`, staging-agenten `staging`. Bash-trin der sigter mod `prod` kører kun på prod.
 - **Ét tag per region.** `eu-west-1`, `us-east-1`. Nyttigt når et trin skal køre tæt på den ressource, det rører.
 - **Flere agenter, samme tag.** Kør to agenter begge tagget `prod`. Hvem som helst kan claime et job — det giver høj tilgængelighed og lader dig lave rullende genstarter uden at runbooks går ned.
 - **Flere tags per agent.** En agent i dit prod-EU-cluster kan bære `prod`, `eu-west-1` og `kubernetes`. Bash-trin kan sigte mod et hvilket som helst af dem.
 
-Et Bash-trin **skal** angive præcis ét agent-tag. Multi-tag-routing (kør på enhver agent der har `prod` AND `db`) er på roadmap'et, men ikke i denne release.
+Bash- og JavaScript-trin **skal** hver især angive præcis ét agent-tag. Multi-tag-routing (kør på enhver agent der har `prod` AND `db`) er på roadmap'et, men ikke i denne release.
 
-## Peg et Bash-trin mod en agent
+## Peg et trin mod en agent
 
-Tilføj et Bash-trin i dit runbook. Formularen spørger om et **Agent Tag**:
+Tilføj et Bash- eller JavaScript-trin i dit runbook. Formularen spørger om et **Agent Tag**:
 
 - Skriv tag'et der matcher den/de agent(er), du vil have det til at køre på.
 - Skriv dit script i editoren nedenfor.
 
-Når runbook'et kører og når dette trin, sætter Worker'en et job i kø med det tag. Hvis mindst én sund agent med det tag er online, claimes jobbet inden for få sekunder og kører.
+Når runbook'et kører og når trinet, sætter Worker'en et job i kø med det tag og den trintype. Hvis mindst én sund agent med det tag er online, claimes jobbet inden for få sekunder og kører. Bash udføres via `bash -c`; JavaScript kører inde i en `isolated-vm`-sandkasse på agenten (intet filsystem, intet netværk, ingen `Function`/`eval`).
 
 ## Driftsnoter
 
 ### Timeouts
 
-To timeouts gælder for hvert Bash-trin:
+To timeouts gælder for hvert Bash- eller JavaScript-trin:
 
 | Timeout | Standard | Hvad den styrer |
 | --- | --- | --- |
 | **Claim timeout** | 2 minutter | Hvor længe Worker'en venter på, at *en* agent claimer jobbet. Hvis ingen tager det i tide, fejler trinnet med `TimedOut`, og runbook'et fortsætter (eller stopper, afhængigt af **Fortsæt ved fejl**). |
-| **Execution timeout** | 30 sekunder | Hvor længe agenten lader scriptet køre, før den sender `SIGKILL`. Konfigurerbar per trin. |
+| **Execution timeout** | 30 sekunder | Hvor længe agenten lader scriptet køre, før den afslutter det. Konfigurerbar per trin. (Bash får `SIGKILL`; JavaScript-isolaten rives ned.) |
 
 Worker'ens samlede ventevindue er `claim timeout + execution timeout + et par sekunders margen`. Vælg tal, der passer til trinnet.
 
@@ -100,7 +102,7 @@ Worker'ens samlede ventevindue er `claim timeout + execution timeout + et par se
 
 Når en agent claimer et job, får den en kort lease (30 sekunder som standard). Mens scriptet kører, fornyer agenten lease'en hvert 10. sekund. Dør agenten eller mister netværk midt i scriptet, udløber lease'en, og Worker'en markerer jobbet som `TimedOut` i stedet for at vente i det uendelige.
 
-Scriptets child-proces aflyses **ikke** automatisk når lease'en udløber — men Worker'en holder op med at vente, og agenten kan ikke længere sende et resultat, når et andet claim har taget over. Designe scripts så de er sikre at køre igen, hvis exactly-once betyder noget for dig.
+Bash-child-processer aflyses **ikke** automatisk når lease'en udløber (en JavaScript-isolate får også lov at køre færdig, hvis den nogensinde gør det) — men Worker'en holder op med at vente, og agenten kan ikke længere sende et resultat, når et andet claim har taget over. Designe scripts så de er sikre at køre igen, hvis exactly-once betyder noget for dig.
 
 ### Ingen agent online
 

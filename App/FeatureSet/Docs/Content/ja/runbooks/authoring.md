@@ -25,7 +25,7 @@
 
 ### JavaScript
 
-`isolated-vm` サンドボックス内で動く JavaScript スニペット (ファイルシステムなし、API を持ち込まない限りネットワークなし)。
+`isolated-vm` サンドボックス内で動く JavaScript スニペット (ファイルシステムなし、API を持ち込まない限りネットワークなし) — ただしサンドボックスは OneUptime Worker ではなく、お客様自身のインフラ内の [Runbook エージェント](/docs/runbooks/agents) 上で動きます。ステップに **Agent Tag** を設定し、実行させたいエージェントを指定してください。そのタグを持つエージェントが 1 つもオンラインでない場合、ステップは **claim タイムアウト** (既定 2 分) まで待ってから失敗します。
 
 ```js
 const start = Date.now();

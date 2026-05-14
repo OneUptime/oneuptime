@@ -1,25 +1,27 @@
 # Runbook-agenter
 
-En **Runbook-agent** är en liten självhostad process som kör Bash-stegen i dina runbooks **inuti din egen infrastruktur**. OneUptime-Worker'n kör aldrig dina shell-kommandon själv — den köar dem, och en Runbook-agent som du installerat i din miljö hämtar dem, kör dem och skickar tillbaka resultatet.
+En **Runbook-agent** är en liten självhostad process som kör Bash- *och* JavaScript-stegen i dina runbooks **inuti din egen infrastruktur**. OneUptime-Worker'n kör aldrig dina skript själv — den köar dem, och en Runbook-agent som du installerat i din miljö hämtar dem, kör dem och skickar tillbaka resultatet.
 
-Den här sidan förklarar hur du installerar en agent, dirigerar Bash-steg till den och driver den i vardagen.
+JavaScript körs fortfarande i en `isolated-vm`-sandlåda; skillnaden är att den sandlådan lever på din agent-värd istället för på vår.
+
+Den här sidan förklarar hur du installerar en agent, dirigerar Bash- och JavaScript-steg till den och driver den i vardagen.
 
 ## Varför agenter finns
 
-Tidigare OneUptime-versioner körde Bash-steg direkt på Worker'n. Det fungerade för single-tenant självhostade installationer där operatörerna ändå hade shell på maskinen, men ger två problem för alla andra:
+Tidigare OneUptime-versioner körde Bash- och JavaScript-steg på Worker'n. JavaScript var i sandlåda (`isolated-vm`), Bash var inte. Båda gav problem för allt utöver en single-tenant självhostad installation:
 
-- **Förtroendegräns.** Den som kan författa ett runbook kan köra shell på Worker'n, med åtkomst till alla environment variables och hela filsystemet som Worker'n har.
-- **Räckvidd.** De flesta användbara Bash-steg vill operera på *kundens* infrastruktur ("starta om den här tjänsten", "kubectl på vårt cluster") — inte på OneUptimes.
+- **Förtroendegräns.** Den som kunde författa ett runbook kunde köra kod på Worker'n, med åtkomst till alla environment variables och hela filsystemet som Worker'n hade. JavaScript-sandlådan blockerade det uppenbara, men kunde inte hindra en målmedveten användare från att sondera vad som var nåbart från vårt nätverk.
+- **Räckvidd.** De flesta användbara steg vill operera på *kundens* infrastruktur ("starta om den här tjänsten", "kubectl på vårt cluster", "slå upp en post i vår interna DB") — inte på OneUptimes.
 
-Runbook-agenter vänder på det här. Bash-steg körs inte hos oss. De körs på en värd du kontrollerar, och du bestämmer vad den värden får göra.
+Runbook-agenter vänder på det här. Bash- och JavaScript-steg körs inte hos oss. De körs på en värd du kontrollerar, och du bestämmer vad den värden får göra.
 
 ## Hur det fungerar
 
 1. Du skapar en Runbook-agent i OneUptime. OneUptime genererar ett ID och en hemlig nyckel.
 2. Du kör agentens container på en värd i din infrastruktur med det ID/nyckel plus din OneUptime-URL.
 3. Agenten frågar OneUptime varje par sekunder: "något jobb åt mig?"
-4. När ett Bash-steg körs lägger Worker'n in en jobbrad märkt med stegets **Agent Tag** och sätter status till `Pending`.
-5. Vilken som helst frisk agent i samma projekt som bär den taggen claim:ar jobbet (atomiskt — aldrig två agenter på samma jobb), kör `bash -c <ditt skript>` lokalt, fångar stdout/stderr/exit-kod, och skickar tillbaka resultatet.
+4. När ett Bash- eller JavaScript-steg körs lägger Worker'n in en jobbrad märkt med stegets **Agent Tag** och en stegtyp (Bash eller JavaScript), och sätter status till `Pending`.
+5. Vilken som helst frisk agent i samma projekt som bär den taggen claim:ar jobbet (atomiskt — aldrig två agenter på samma jobb), kör det lokalt — `bash -c <skript>` för Bash, en `isolated-vm`-sandlåda för JavaScript — fångar resultatet och skickar tillbaka det.
 6. Worker'n återupptar runbooket med resultatet.
 
 Agenten behöver bara **utgående HTTPS** till din OneUptime-instans. Den accepterar inga inkommande anslutningar.
@@ -34,7 +36,7 @@ Gå till **Runbooks → Agents → Skapa ny**. Fyll i:
 | --- | --- |
 | **Namn** | Ett talande namn — vanligtvis `var-den-körs-och-vad-den-kan`, t.ex. `prod-eu-west-1`. |
 | **Beskrivning** | Valfritt. En mening om vad denna värd kan nå. Ditt framtida jag tackar dig. |
-| **Tags** | Komma-separerade. Bash-steg siktar på en tag; varje agent i projektet med den taggen får köra dem. Vanliga mönster: `prod`, `staging`, `eu-west-1`, `db-host`. |
+| **Tags** | Komma-separerade. Bash- och JavaScript-steg siktar på en tag; varje agent i projektet med den taggen får köra dem. Vanliga mönster: `prod`, `staging`, `eu-west-1`, `db-host`. |
 
 ### 2. Kopiera installationskommandot
 
@@ -65,34 +67,34 @@ Gå tillbaka till **Runbooks → Agents**. Inom ca 60 sekunder bör agentens rad
 
 ## Taggar och routing
 
-Taggar är hur ett Bash-steg hittar en agent. Några mönster:
+Taggar är hur ett Bash- eller JavaScript-steg hittar en agent. Några mönster:
 
 - **En tag per miljö.** Tagga prod-agenten `prod`, staging-agenten `staging`. Bash-steg som siktar på `prod` körs bara på prod.
 - **En tag per region.** `eu-west-1`, `us-east-1`. Användbart när ett steg måste köras nära resursen det rör vid.
 - **Flera agenter, samma tag.** Kör två agenter båda taggade `prod`. Vilken som helst kan claim:a ett jobb — ger hög tillgänglighet och låter dig göra rullande omstarter utan att bryta runbooks.
 - **Flera taggar per agent.** En agent i ditt prod-EU-cluster kan bära `prod`, `eu-west-1` och `kubernetes`. Bash-steg kan sikta på vilken som helst av dem.
 
-Ett Bash-steg **måste** ange exakt en agent-tag. Multi-tag-routing (kör på vilken agent som helst med `prod` AND `db`) är på roadmap:en, men inte i den här releasen.
+Bash- och JavaScript-steg **måste** vardera ange exakt en agent-tag. Multi-tag-routing (kör på vilken agent som helst med `prod` AND `db`) är på roadmap:en, men inte i den här releasen.
 
-## Peka ett Bash-steg mot en agent
+## Peka ett steg mot en agent
 
-Lägg till ett Bash-steg i ditt runbook. Formuläret frågar efter en **Agent Tag**:
+Lägg till ett Bash- eller JavaScript-steg i ditt runbook. Formuläret frågar efter en **Agent Tag**:
 
 - Skriv in taggen som matchar agenten/agenterna du vill köra på.
 - Skriv ditt skript i editorn nedanför.
 
-När runbooket körs och når detta steg köar Worker'n ett jobb med den taggen. Om minst en frisk agent med den taggen är online claim:as jobbet inom några sekunder och körs.
+När runbooket körs och når steget köar Worker'n ett jobb med den taggen och stegtypen. Om minst en frisk agent med den taggen är online claim:as jobbet inom några sekunder och körs. Bash körs via `bash -c`; JavaScript körs inuti en `isolated-vm`-sandlåda på agenten (inget filsystem, inget nätverk, ingen `Function`/`eval`).
 
 ## Driftsanteckningar
 
 ### Timeouts
 
-Två timeouts gäller för varje Bash-steg:
+Två timeouts gäller för varje Bash- eller JavaScript-steg:
 
 | Timeout | Standard | Vad det styr |
 | --- | --- | --- |
 | **Claim timeout** | 2 minuter | Hur länge Worker'n väntar på att *någon* agent ska claim:a jobbet. Om ingen tar det i tid misslyckas steget med `TimedOut` och runbooket fortsätter (eller stannar, beroende på **Fortsätt vid fel**). |
-| **Execution timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den skickar `SIGKILL`. Konfigurerbar per steg. |
+| **Execution timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den avslutar det. Konfigurerbar per steg. (Bash får `SIGKILL`; JavaScript-isolaten rivs ner.) |
 
 Worker'ns totala väntefönster är `claim timeout + execution timeout + några sekunders marginal`. Välj tal som passar steget.
 
@@ -100,7 +102,7 @@ Worker'ns totala väntefönster är `claim timeout + execution timeout + några 
 
 När en agent claim:ar ett jobb får den en kort lease (30 sekunder som standard). Medan skriptet körs förnyar agenten leasen var 10:e sekund. Dör agenten eller tappar nätverk mitt i skriptet löper leasen ut och Worker'n markerar jobbet som `TimedOut` istället för att vänta i evighet.
 
-Skriptets barnprocess avbryts **inte** automatiskt när leasen löper ut — men Worker'n slutar vänta, och agenten kan inte längre skicka ett resultat när en annan claim har tagit över. Designa skript så att de är säkra att köra om ifall exactly-once spelar någon roll för dig.
+Bash-barnprocesser avbryts **inte** automatiskt när leasen löper ut (en JavaScript-isolate får också köra färdigt om den någonsin gör det) — men Worker'n slutar vänta, och agenten kan inte längre skicka ett resultat när en annan claim har tagit över. Designa skript så att de är säkra att köra om ifall exactly-once spelar någon roll för dig.
 
 ### Ingen agent online
 

@@ -483,6 +483,18 @@ enum Permission {
   EditKubernetesClusterLabelRule = "EditKubernetesClusterLabelRule",
   ReadKubernetesClusterLabelRule = "ReadKubernetesClusterLabelRule",
 
+  // Runbook Owner Rule Permissions
+  CreateRunbookOwnerRule = "CreateRunbookOwnerRule",
+  DeleteRunbookOwnerRule = "DeleteRunbookOwnerRule",
+  EditRunbookOwnerRule = "EditRunbookOwnerRule",
+  ReadRunbookOwnerRule = "ReadRunbookOwnerRule",
+
+  // Runbook Label Rule Permissions
+  CreateRunbookLabelRule = "CreateRunbookLabelRule",
+  DeleteRunbookLabelRule = "DeleteRunbookLabelRule",
+  EditRunbookLabelRule = "EditRunbookLabelRule",
+  ReadRunbookLabelRule = "ReadRunbookLabelRule",
+
   CreateOnCallDutyPolicyOwnerTeam = "CreateOnCallDutyPolicyOwnerTeam",
   DeleteOnCallDutyPolicyOwnerTeam = "DeleteOnCallDutyPolicyOwnerTeam",
   EditOnCallDutyPolicyOwnerTeam = "EditOnCallDutyPolicyOwnerTeam",
@@ -8144,6 +8156,90 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
+      },
+
+      // Runbook Owner Rule Permissions
+      {
+        permission: Permission.CreateRunbookOwnerRule,
+        title: "Create Runbook Owner Rule",
+        description:
+          "This permission can create Runbook Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookOwnerRule,
+        title: "Delete Runbook Owner Rule",
+        description:
+          "This permission can delete Runbook Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookOwnerRule,
+        title: "Edit Runbook Owner Rule",
+        description:
+          "This permission can edit Runbook Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookOwnerRule,
+        title: "Read Runbook Owner Rule",
+        description:
+          "This permission can read Runbook Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      // Runbook Label Rule Permissions
+      {
+        permission: Permission.CreateRunbookLabelRule,
+        title: "Create Runbook Label Rule",
+        description:
+          "This permission can create Runbook Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookLabelRule,
+        title: "Delete Runbook Label Rule",
+        description:
+          "This permission can delete Runbook Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookLabelRule,
+        title: "Edit Runbook Label Rule",
+        description:
+          "This permission can edit Runbook Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookLabelRule,
+        title: "Read Runbook Label Rule",
+        description:
+          "This permission can read Runbook Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
       },
 
       {

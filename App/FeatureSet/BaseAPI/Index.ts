@@ -274,6 +274,14 @@ import KubernetesClusterLabelRuleService, {
   Service as KubernetesClusterLabelRuleServiceType,
 } from "Common/Server/Services/KubernetesClusterLabelRuleService";
 
+import RunbookOwnerRuleService, {
+  Service as RunbookOwnerRuleServiceType,
+} from "Common/Server/Services/RunbookOwnerRuleService";
+
+import RunbookLabelRuleService, {
+  Service as RunbookLabelRuleServiceType,
+} from "Common/Server/Services/RunbookLabelRuleService";
+
 import ScheduledMaintenanceOwnerRuleService, {
   Service as ScheduledMaintenanceOwnerRuleServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceOwnerRuleService";
@@ -764,6 +772,8 @@ import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRul
 import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
+import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
+import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
@@ -1661,6 +1671,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         KubernetesClusterLabelRule,
         KubernetesClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookOwnerRule, RunbookOwnerRuleServiceType>(
+        RunbookOwnerRule,
+        RunbookOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookLabelRule, RunbookLabelRuleServiceType>(
+        RunbookLabelRule,
+        RunbookLabelRuleService,
       ).getRouter(),
     );
 

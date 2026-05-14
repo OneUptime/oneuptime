@@ -1,25 +1,27 @@
 # Agentes de Runbook
 
-Um **Agente de Runbook** é um pequeno processo auto-hospedado que executa os passos Bash dos seus runbooks **dentro da sua própria infraestrutura**. O Worker do OneUptime nunca executa os seus comandos shell — ele os enfileira, e um Agente de Runbook que você instalou no seu ambiente os recolhe, executa e devolve o resultado.
+Um **Agente de Runbook** é um pequeno processo auto-hospedado que executa os passos Bash *e* JavaScript dos seus runbooks **dentro da sua própria infraestrutura**. O Worker do OneUptime nunca executa os seus scripts — ele os enfileira, e um Agente de Runbook que você instalou no seu ambiente os recolhe, executa e devolve o resultado.
 
-Esta página explica como instalar um agente, direcionar passos Bash para ele e operá-lo no dia a dia.
+JavaScript continua rodando em um sandbox `isolated-vm`; a diferença é que esse sandbox vive no seu host agente, não no nosso.
+
+Esta página explica como instalar um agente, direcionar passos Bash e JavaScript para ele e operá-lo no dia a dia.
 
 ## Por que existem agentes
 
-Versões anteriores do OneUptime executavam passos Bash diretamente no Worker. Funcionava em implantações self-hosted single-tenant onde os operadores já tinham shell na máquina, mas traz dois problemas para todos os outros:
+Versões anteriores do OneUptime executavam passos Bash e JavaScript no Worker. JavaScript era em sandbox (`isolated-vm`), Bash não. Ambos tinham problemas para qualquer coisa além de uma implantação self-hosted single-tenant:
 
-- **Fronteira de confiança.** Qualquer pessoa que possa criar um runbook consegue executar shell no Worker, com acesso a todas as variáveis de ambiente e ao filesystem do Worker.
-- **Alcance.** A maioria dos passos Bash úteis quer operar sobre a infraestrutura do *cliente* ("reiniciar este serviço", "kubectl no nosso cluster"), não sobre a do OneUptime.
+- **Fronteira de confiança.** Qualquer pessoa que pudesse criar um runbook conseguia executar código no Worker, com acesso às variáveis de ambiente e ao filesystem do Worker. O sandbox de JavaScript bloqueava o óbvio, mas não conseguia impedir um usuário determinado de sondar o que era alcançável a partir da nossa rede.
+- **Alcance.** A maioria dos passos úteis quer operar sobre a infraestrutura do *cliente* ("reiniciar este serviço", "kubectl no nosso cluster", "buscar um registro no nosso BD interno"), não sobre a do OneUptime.
 
-Os Agentes de Runbook invertem isso. Os passos Bash não rodam em nós. Rodam num host que você controla, e você decide o que esse host pode fazer.
+Os Agentes de Runbook invertem isso. Os passos Bash e JavaScript não rodam em nós. Rodam num host que você controla, e você decide o que esse host pode fazer.
 
 ## Como funciona
 
 1. Você cria um Agente de Runbook no OneUptime. O OneUptime gera um ID e uma chave secreta.
 2. Você executa o contêiner do agente num host dentro da sua infraestrutura com esse ID/chave e a sua URL do OneUptime.
 3. O agente pergunta ao OneUptime a cada poucos segundos: "tem trabalho para mim?"
-4. Quando um passo Bash é executado, o Worker insere uma linha de job marcada com o **Tag de Agente** do passo e seu status vai para `Pending`.
-5. Qualquer agente saudável no mesmo projeto que carregue esse tag reivindica o job (atomicamente — nunca dois agentes executam o mesmo job), executa `bash -c <seu script>` localmente, captura stdout/stderr/exit-code, e envia o resultado.
+4. Quando um passo Bash ou JavaScript é executado, o Worker insere uma linha de job marcada com o **Tag de Agente** do passo e um tipo de passo (Bash ou JavaScript), e seu status vai para `Pending`.
+5. Qualquer agente saudável no mesmo projeto que carregue esse tag reivindica o job (atomicamente — nunca dois agentes executam o mesmo job), executa-o localmente — `bash -c <script>` para Bash, um sandbox `isolated-vm` para JavaScript — captura o resultado e envia.
 6. O Worker continua o runbook com o resultado.
 
 O agente precisa apenas de **HTTPS de saída** para a sua instância OneUptime. Ele não aceita nenhuma conexão de entrada.
@@ -34,7 +36,7 @@ Vá em **Runbooks → Agents → Criar novo**. Preencha:
 | --- | --- |
 | **Nome** | Um nome descritivo — normalmente `onde-roda-e-o-que-faz`, ex. `prod-eu-west-1`. |
 | **Descrição** | Opcional. Uma frase sobre o que esse host consegue alcançar. Seu eu futuro vai agradecer. |
-| **Tags** | Separadas por vírgula. Os passos Bash apontam para um tag; qualquer agente no projeto com esse tag pode executá-los. Padrões comuns: `prod`, `staging`, `eu-west-1`, `db-host`. |
+| **Tags** | Separadas por vírgula. Os passos Bash e JavaScript apontam para um tag; qualquer agente no projeto com esse tag pode executá-los. Padrões comuns: `prod`, `staging`, `eu-west-1`, `db-host`. |
 
 ### 2. Copiar o comando de instalação
 
@@ -65,34 +67,34 @@ Volte para **Runbooks → Agents**. Em cerca de 60 segundos a linha do agente de
 
 ## Tags e roteamento
 
-Tags são como um passo Bash encontra um agente. Alguns padrões:
+Tags são como um passo Bash ou JavaScript encontra um agente. Alguns padrões:
 
 - **Um tag por ambiente.** Marque o agente de prod com `prod`, o de staging com `staging`. Passos Bash apontando para `prod` só rodam em prod.
 - **Um tag por região.** `eu-west-1`, `us-east-1`. Útil quando um passo precisa rodar perto do recurso que toca.
 - **Vários agentes, mesmo tag.** Suba dois agentes ambos com `prod`. Qualquer um pode reivindicar um job — você ganha alta disponibilidade e pode fazer reinícios rotativos sem quebrar runbooks.
 - **Vários tags por agente.** Um agente no seu cluster prod EU pode carregar `prod`, `eu-west-1` e `kubernetes`. Passos Bash podem apontar para qualquer um.
 
-Um passo Bash **deve** especificar exatamente um tag de agente. O roteamento multi-tag (rodar em qualquer agente que tenha `prod` AND `db`) está no roadmap, não nesta versão.
+Os passos Bash e JavaScript **devem** cada um especificar exatamente um tag de agente. O roteamento multi-tag (rodar em qualquer agente que tenha `prod` AND `db`) está no roadmap, não nesta versão.
 
-## Apontar um passo Bash para um agente
+## Apontar um passo para um agente
 
-No seu runbook, adicione um passo Bash. O formulário pede um **Agent Tag**:
+No seu runbook, adicione um passo Bash ou JavaScript. O formulário pede um **Agent Tag**:
 
 - Escreva o tag correspondente ao(s) agente(s) onde você quer que rode.
 - Escreva o seu script no editor abaixo.
 
-Quando o runbook rodar e chegar a este passo, o Worker enfileira um job com esse tag. Se houver pelo menos um agente saudável com esse tag online, o job é reivindicado em poucos segundos e executado.
+Quando o runbook rodar e chegar ao passo, o Worker enfileira um job com esse tag e tipo de passo. Se houver pelo menos um agente saudável com esse tag online, o job é reivindicado em poucos segundos e executado. Bash é executado via `bash -c`; JavaScript roda dentro de um sandbox `isolated-vm` no agente (sem filesystem, sem rede, sem `Function`/`eval`).
 
 ## Notas operacionais
 
 ### Timeouts
 
-Cada passo Bash tem dois timeouts:
+Cada passo Bash ou JavaScript tem dois timeouts:
 
 | Timeout | Padrão | O que controla |
 | --- | --- | --- |
 | **Claim timeout** | 2 minutos | Por quanto tempo o Worker espera que *algum* agente reivindique o job. Se ninguém pegar a tempo, o passo falha com `TimedOut` e o runbook segue (ou para, dependendo de **Continuar em caso de falha**). |
-| **Execution timeout** | 30 segundos | Por quanto tempo o agente deixa o script rodar antes de mandar `SIGKILL`. Configurável por passo. |
+| **Execution timeout** | 30 segundos | Por quanto tempo o agente deixa o script rodar antes de terminá-lo. Configurável por passo. (Bash recebe `SIGKILL`; o isolate de JavaScript é desmontado.) |
 
 A janela total de espera do Worker é `claim timeout + execution timeout + alguns segundos de folga`. Escolha valores adequados ao passo.
 
@@ -100,7 +102,7 @@ A janela total de espera do Worker é `claim timeout + execution timeout + algun
 
 Quando um agente reivindica um job, recebe um lease curto (30 segundos por padrão). Enquanto o script roda, o agente renova o lease a cada 10 segundos. Se o agente morrer ou perder a rede no meio do script, o lease expira e o Worker marca o job como `TimedOut` em vez de esperar para sempre.
 
-O processo filho do script **não** é cancelado automaticamente quando o lease expira — mas o Worker para de esperar por ele, e o agente não conseguirá enviar um resultado depois que outro claim assumir. Projete scripts para serem seguros para reexecutar se você se importa com "exactly-once".
+Os processos filhos Bash **não** são cancelados automaticamente quando o lease expira (um isolate JavaScript também é deixado para terminar se isso acontecer) — mas o Worker para de esperar por eles, e o agente não conseguirá enviar um resultado depois que outro claim assumir. Projete scripts para serem seguros para reexecutar se você se importa com "exactly-once".
 
 ### Nenhum agente online
 

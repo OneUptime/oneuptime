@@ -4,7 +4,7 @@
 
 - Ausgabe pro Schritt: **50 KB**. Größere Ausgaben werden mit einem Marker abgeschnitten.
 - Timeout pro Schritt (Standard): **30 Sekunden** für JavaScript, Bash und HTTP. Pro Schritt konfigurierbar.
-- **Claim-Timeout** für Bash-Schritte (Standard): **2 Minuten** — so lange wartet der Worker auf einen Runbook-Agent, der den Job übernimmt, bevor der Schritt fehlschlägt.
+- **Claim-Timeout** für Bash- und JavaScript-Schritte (Standard): **2 Minuten** — so lange wartet der Worker auf einen Runbook-Agent, der den Job übernimmt, bevor der Schritt fehlschlägt.
 
 ## Berechtigungen
 
@@ -24,8 +24,7 @@ Wird ein manueller Schritt per API abgehakt, wird die Ausführung erneut in die 
 
 ## Härtungs-Hinweise
 
-- **JavaScript-Schritte** laufen in `isolated-vm` mit einer Sandbox-Härtungs-Präambel (kappt Prototypenketten, entfernt `Function` und `eval`, friert eingebaute Prototypen ein).
-- **Bash-Schritte** laufen nie auf dem OneUptime-Worker. Sie werden als Jobs an einen [Runbook-Agent](/docs/runbooks/agents) gesendet, den Sie in Ihrer eigenen Infrastruktur installiert haben. Der Worker stellt den Job mit dem **Agent Tag** des Schritts in die Warteschlange, ein Agent beansprucht ihn atomar, führt `bash -c <Skript>` lokal aus und schickt das Ergebnis zurück. Der Worker-Prozess hat selbst keinen Shell-Zugriff auf Ihre Umgebung.
+- **Bash- und JavaScript-Schritte** laufen nie auf dem OneUptime-Worker. Sie werden als Jobs an einen [Runbook-Agent](/docs/runbooks/agents) gesendet, den Sie in Ihrer eigenen Infrastruktur installiert haben. Der Worker stellt den Job mit dem **Agent Tag** und dem Schritttyp des Schritts in die Warteschlange, ein Agent beansprucht ihn atomar, führt ihn lokal aus — Bash über `bash -c <Skript>`, JavaScript in einer `isolated-vm`-Sandbox mit der üblichen Präambel (kappt Prototypenketten, entfernt `Function` und `eval`, friert eingebaute Prototypen ein) — und schickt das Ergebnis zurück. Der Worker-Prozess selbst führt keine Kundenskripte aus.
 - **HTTP-Schritte** verwenden einen permissiven Status-Validator, sodass eine 4xx- oder 5xx-Antwort als fehlgeschlagener Schritt protokolliert wird, anstatt geworfen zu werden. Dadurch spiegelt die erfasste Ausgabe wider, was die Gegenseite tatsächlich geliefert hat.
 
 ## Datenbanktabellen
@@ -34,7 +33,7 @@ Wird ein manueller Schritt per API abgehakt, wird die Ausführung erneut in die 
 - `RunbookExecution` — eine Zeile pro Lauf mit nullbaren `incidentId`-, `alertId`- und `scheduledMaintenanceId`-Fremdschlüsseln und einem JSON-Array `stepExecutions`, das Schritte und Schrittzustand als Snapshot enthält.
 - `RunbookRule` — Auto-Trigger-Regeln mit Diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance) und einer Many-to-Many-Beziehung zu den zu startenden Runbooks.
 - `RunbookAgent` — eine Zeile pro installiertem Agent: Name, Tags, Geheimschlüssel, `lastAlive`, `connectionStatus`, Host-Info.
-- `RunbookAgentJob` — eine Zeile pro versandtem Bash-Schritt: erforderlicher Tag, Skript, Status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), Claim-Deadline, Lease, Ausgabe, Exit-Code.
+- `RunbookAgentJob` — eine Zeile pro versandtem Bash- oder JavaScript-Schritt: erforderlicher Tag, Schritttyp, Skript, Status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), Claim-Deadline, Lease, Ausgabe, Exit-Code.
 
 ## Betriebshinweise
 

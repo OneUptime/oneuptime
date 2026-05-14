@@ -326,6 +326,7 @@ import { MigrationName1778779608191 } from "./1778779608191-MigrationName";
 import { MigrationName1778782819382 } from "./1778782819382-AddMonitorAndStatusPageOwnerLabelRules";
 import { AddRunbookAgentJobStepType1778784000000 } from "./1778784000000-AddRunbookAgentJobStepType";
 import { MigrationName1778784396629 } from "./1778784396629-AddHostServiceDockerK8sOwnerLabelRules";
+import { MigrationName1778785741500 } from "./1778785741500-AddRunbookOwnerLabelRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -655,4 +656,5 @@ export default [
   MigrationName1778782819382,
   AddRunbookAgentJobStepType1778784000000,
   MigrationName1778784396629,
+  MigrationName1778785741500,
 ];

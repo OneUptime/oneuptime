@@ -4,7 +4,7 @@
 
 - Output per trin: **50 KB**. Større output afkortes med en markør.
 - Standard timeout per trin: **30 sekunder** for JavaScript, Bash og HTTP. Kan indstilles per trin.
-- **Claim timeout** for Bash-trin (standard): **2 minutter** — så længe venter Workeren på, at en Runbook-agent tager jobbet, før det fejler.
+- **Claim timeout** for Bash- og JavaScript-trin (standard): **2 minutter** — så længe venter Workeren på, at en Runbook-agent tager jobbet, før det fejler.
 
 ## Rettigheder
 
@@ -24,8 +24,7 @@ Når et manuelt trin tikkes af via API'en, sættes kørslen tilbage i køen for 
 
 ## Hærdningsnoter
 
-- **JavaScript-trin** kører i `isolated-vm` med en sandkasse-hærdnings-præambel (afbryder prototype-kæder, fjerner `Function` og `eval`, fryser indbyggede prototypes).
-- **Bash-trin** kører aldrig på OneUptime-Worker'en. De sendes som jobs til en [Runbook-agent](/docs/runbooks/agents), som du har installeret i din egen infrastruktur. Worker'en lægger jobbet i kø med trinets **Agent Tag**, en agent claimer det atomart, kører `bash -c <script>` lokalt og sender resultatet tilbage. Selve Worker-processen har ikke shell-adgang til dit miljø.
+- **Bash- og JavaScript-trin** kører aldrig på OneUptime-Worker'en. De sendes som jobs til en [Runbook-agent](/docs/runbooks/agents), som du har installeret i din egen infrastruktur. Worker'en lægger jobbet i kø med trinets **Agent Tag** og trintype, en agent claimer det atomart, kører det lokalt — Bash via `bash -c <script>`, JavaScript inde i en `isolated-vm`-sandkasse med den sædvanlige præambel (afbryder prototype-kæder, fjerner `Function` og `eval`, fryser indbyggede prototypes) — og sender resultatet tilbage. Selve Worker-processen kører ikke kundescripts.
 - **HTTP-trin** bruger en eftergivende statusvalidator, så et 4xx- eller 5xx-svar registreres som fejlet trin i stedet for at blive kastet. Dermed afspejler det fangede output, hvad modparten faktisk returnerede.
 
 ## Databasetabeller
@@ -34,7 +33,7 @@ Når et manuelt trin tikkes af via API'en, sættes kørslen tilbage i køen for 
 - `RunbookExecution` — én række per kørsel, med null-bare fremmednøgler `incidentId`, `alertId` og `scheduledMaintenanceId` og et JSON-array `stepExecutions`, der tager snapshot af trin og status per trin.
 - `RunbookRule` — automatiske udløsningsregler med diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance) og mange-til-mange-relation til runbooks, der skal starte.
 - `RunbookAgent` — én række per installeret agent: navn, tags, hemmelig nøgle, `lastAlive`, `connectionStatus`, host-info.
-- `RunbookAgentJob` — én række per afsendt Bash-trin: påkrævet tag, script, status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim-deadline, lease, output, exit-kode.
+- `RunbookAgentJob` — én række per afsendt Bash- eller JavaScript-trin: påkrævet tag, trintype, script, status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim-deadline, lease, output, exit-kode.
 
 ## Driftsråd
 

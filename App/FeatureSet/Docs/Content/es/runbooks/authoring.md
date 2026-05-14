@@ -25,7 +25,7 @@ Una casilla que marca quien responde. La ejecución se pausa al llegar a un paso
 
 ### JavaScript
 
-Un fragmento de JavaScript que se ejecuta en un sandbox `isolated-vm` (sin sistema de archivos, sin red salvo que aportes una API).
+Un fragmento de JavaScript que se ejecuta en un sandbox `isolated-vm` (sin sistema de archivos, sin red salvo que aportes una API) — pero el sandbox vive en un [Agente de Runbook](/docs/runbooks/agents) en tu propia infraestructura, no en el Worker de OneUptime. Configura un **Agent Tag** en el paso apuntando al/los agente(s) que deben ejecutarlo. Si ningún agente con ese tag está en línea, el paso espera hasta el **claim timeout** (por defecto 2 minutos) y luego falla.
 
 ```js
 const start = Date.now();

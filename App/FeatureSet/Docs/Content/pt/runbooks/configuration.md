@@ -4,7 +4,7 @@
 
 - Saída por passo: **50 KB**. Saídas maiores são truncadas com um marcador.
 - Timeout por passo padrão: **30 segundos** para JavaScript, Bash e HTTP. Configurável por passo.
-- **Claim timeout** padrão para passos Bash: **2 minutos** — quanto o Worker espera até que um Agente de Runbook pegue o job antes de falhá-lo.
+- **Claim timeout** padrão para passos Bash e JavaScript: **2 minutos** — quanto o Worker espera até que um Agente de Runbook pegue o job antes de falhá-lo.
 
 ## Permissões
 
@@ -24,8 +24,7 @@ Quando um passo manual é marcado via API, a execução volta para a fila para c
 
 ## Notas de hardening
 
-- **Passos JavaScript** rodam em `isolated-vm` com um preâmbulo de hardening (corta cadeias de prototype, remove `Function` e `eval`, congela prototypes nativos).
-- **Passos Bash** nunca rodam no Worker do OneUptime. Eles são despachados como jobs para um [Agente de Runbook](/docs/runbooks/agents) que você instalou na sua própria infraestrutura. O Worker enfileira o job com o **Agent Tag** do passo, um agente reivindica atomicamente, executa `bash -c <script>` localmente e devolve o resultado. O próprio processo Worker não tem acesso shell ao seu ambiente.
+- **Passos Bash e JavaScript** nunca rodam no Worker do OneUptime. Eles são despachados como jobs para um [Agente de Runbook](/docs/runbooks/agents) que você instalou na sua própria infraestrutura. O Worker enfileira o job com o **Agent Tag** e o tipo de passo, um agente reivindica atomicamente, executa-o localmente — Bash via `bash -c <script>`, JavaScript dentro de um sandbox `isolated-vm` com o preâmbulo usual (corta cadeias de prototype, remove `Function` e `eval`, congela prototypes nativos) — e devolve o resultado. O próprio processo Worker não executa scripts de clientes.
 - **Passos HTTP** usam um validador de status permissivo, então uma resposta 4xx ou 5xx é registrada como passo falho em vez de lançada. A saída capturada reflete o que a contraparte realmente retornou.
 
 ## Tabelas do banco
@@ -34,7 +33,7 @@ Quando um passo manual é marcado via API, a execução volta para a fila para c
 - `RunbookExecution` — uma linha por corrida, com chaves estrangeiras nuláveis `incidentId`, `alertId` e `scheduledMaintenanceId` e um array JSON `stepExecutions` com snapshot dos passos e estado por passo.
 - `RunbookRule` — regras de auto-disparo com discriminador `triggerEntityType` (Incident, Alert, ScheduledMaintenance) e relação muitos-para-muitos com os runbooks a iniciar.
 - `RunbookAgent` — uma linha por agente instalado: nome, tags, chave secreta, `lastAlive`, `connectionStatus`, info do host.
-- `RunbookAgentJob` — uma linha por passo Bash despachado: tag exigido, script, status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
+- `RunbookAgentJob` — uma linha por passo Bash ou JavaScript despachado: tag exigido, tipo de passo, script, status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
 
 ## Dicas operacionais
 

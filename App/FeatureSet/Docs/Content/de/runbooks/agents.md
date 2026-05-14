@@ -1,25 +1,27 @@
 # Runbook-Agents
 
-Ein **Runbook-Agent** ist ein kleiner, selbst gehosteter Prozess, der die Bash-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime-Worker führt Ihre Shell-Befehle nie selbst aus — er stellt sie in eine Warteschlange, und ein Runbook-Agent, den Sie in Ihrer Umgebung installiert haben, holt sie ab, führt sie aus und meldet das Ergebnis zurück.
+Ein **Runbook-Agent** ist ein kleiner, selbst gehosteter Prozess, der die Bash- *und* JavaScript-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime-Worker führt Ihre Skripte nie selbst aus — er stellt sie in eine Warteschlange, und ein Runbook-Agent, den Sie in Ihrer Umgebung installiert haben, holt sie ab, führt sie aus und meldet das Ergebnis zurück.
 
-Diese Seite erklärt, wie Sie einen Agent installieren, Bash-Schritte zu ihm leiten und ihn im Alltag betreiben.
+JavaScript läuft weiterhin in einer `isolated-vm`-Sandbox; nur dass diese Sandbox auf Ihrem Agent-Host und nicht auf unserem läuft.
+
+Diese Seite erklärt, wie Sie einen Agent installieren, Bash- und JavaScript-Schritte zu ihm leiten und ihn im Alltag betreiben.
 
 ## Warum es Agents gibt
 
-Frühere OneUptime-Versionen führten Bash-Schritte direkt auf dem Worker aus. Das war für single-tenant-Self-Hosted-Setups in Ordnung, in denen die Betreiber ohnehin Shell-Zugang zum Host hatten, hat aber für alle anderen zwei Probleme:
+Frühere OneUptime-Versionen führten Bash- und JavaScript-Schritte auf dem Worker aus. JavaScript war zwar in einer Sandbox (`isolated-vm`), Bash nicht. Beides war für alles jenseits eines Single-Tenant-Self-Hosted-Setups problematisch:
 
-- **Vertrauensgrenze.** Wer ein Runbook verfassen darf, kann Shell-Befehle auf dem Worker ausführen — mit Zugriff auf alle Umgebungsvariablen und Dateisysteme, die der Worker hat.
-- **Reichweite.** Die meisten nützlichen Bash-Schritte wollen auf der *Kunden*-Infrastruktur arbeiten („Diesen Dienst neu starten", „kubectl auf unserem Cluster") — nicht auf OneUptimes.
+- **Vertrauensgrenze.** Wer ein Runbook verfassen darf, konnte Code auf dem Worker ausführen — mit Zugriff auf alle Umgebungsvariablen und Dateisysteme, die der Worker hat. Die JavaScript-Sandbox blockierte offensichtliche Dinge, konnte aber einen entschlossenen Nutzer nicht daran hindern, zu prüfen, was von unserem Netzwerk aus erreichbar war.
+- **Reichweite.** Die meisten nützlichen Schritte wollen auf der *Kunden*-Infrastruktur arbeiten („Diesen Dienst neu starten", „kubectl auf unserem Cluster", „einen Datensatz in unserer internen DB nachschlagen") — nicht auf OneUptimes.
 
-Runbook-Agents drehen das um. Bash-Schritte laufen nicht bei uns. Sie laufen auf einem Host, den Sie kontrollieren, und Sie entscheiden, was dieser Host darf.
+Runbook-Agents drehen das um. Bash- und JavaScript-Schritte laufen nicht bei uns. Sie laufen auf einem Host, den Sie kontrollieren, und Sie entscheiden, was dieser Host darf.
 
 ## Wie es funktioniert
 
 1. Sie erstellen einen Runbook-Agent in OneUptime. OneUptime generiert eine ID und einen geheimen Schlüssel.
 2. Sie starten den Agent-Container auf einem Host in Ihrer Infrastruktur mit dieser ID/Schlüssel und Ihrer OneUptime-URL.
 3. Der Agent fragt OneUptime alle paar Sekunden: „Habt ihr Arbeit für mich?"
-4. Sobald ein Bash-Schritt läuft, fügt der Worker einen Job-Eintrag mit dem **Agent-Tag** des Schritts ein und setzt seinen Status auf `Pending`.
-5. Ein beliebiger funktionierender Agent im selben Projekt, der diesen Tag trägt, beansprucht den Job atomar (niemals führen zwei Agents denselben Job aus), führt `bash -c <ihr Skript>` lokal aus, erfasst stdout/stderr/Exit-Code und schickt das Ergebnis zurück.
+4. Sobald ein Bash- oder JavaScript-Schritt läuft, fügt der Worker einen Job-Eintrag mit dem **Agent-Tag** des Schritts und einem Schritttyp (Bash oder JavaScript) ein und setzt seinen Status auf `Pending`.
+5. Ein beliebiger funktionierender Agent im selben Projekt, der diesen Tag trägt, beansprucht den Job atomar (niemals führen zwei Agents denselben Job aus), führt ihn lokal aus — `bash -c <Skript>` für Bash, eine `isolated-vm`-Sandbox für JavaScript — erfasst das Ergebnis und schickt es zurück.
 6. Der Worker setzt das Runbook mit dem Ergebnis fort.
 
 Der Agent benötigt nur **ausgehendes HTTPS** zu Ihrer OneUptime-Instanz. Er akzeptiert keine eingehenden Verbindungen.
@@ -34,7 +36,7 @@ Gehen Sie zu **Runbooks → Agents → Neu erstellen**. Füllen Sie aus:
 | --- | --- |
 | **Name** | Ein sprechender Name — üblicherweise `wo-er-läuft-und-was-er-kann`, z.B. `prod-eu-west-1`. |
 | **Beschreibung** | Optional. Ein Satz darüber, was dieser Host erreichen kann. Ihr zukünftiges Ich wird es Ihnen danken. |
-| **Tags** | Kommagetrennt. Bash-Schritte zielen auf einen Tag; jeder Agent im Projekt mit diesem Tag darf sie ausführen. Übliche Muster: `prod`, `staging`, `eu-west-1`, `db-host`. |
+| **Tags** | Kommagetrennt. Bash- und JavaScript-Schritte zielen auf einen Tag; jeder Agent im Projekt mit diesem Tag darf sie ausführen. Übliche Muster: `prod`, `staging`, `eu-west-1`, `db-host`. |
 
 ### 2. Den Installationsbefehl kopieren
 
@@ -65,34 +67,34 @@ Gehen Sie zurück zu **Runbooks → Agents**. Innerhalb von etwa 60 Sekunden sol
 
 ## Tagging und Routing
 
-Tags sind der Weg, wie ein Bash-Schritt einen Agent findet. Ein paar Muster:
+Tags sind der Weg, wie ein Bash- oder JavaScript-Schritt einen Agent findet. Ein paar Muster:
 
 - **Ein Tag pro Umgebung.** Markieren Sie den prod-Agent `prod`, den staging-Agent `staging`. Bash-Schritte mit dem Tag `prod` laufen nur auf prod.
 - **Ein Tag pro Region.** `eu-west-1`, `us-east-1`. Sinnvoll, wenn ein Schritt nahe der Ressource laufen muss, die er anfasst.
 - **Mehrere Agents, gleicher Tag.** Zwei Agents beide mit `prod` markieren. Beide können einen Job beanspruchen — gibt Ihnen Hochverfügbarkeit und erlaubt rollende Neustarts ohne Runbook-Ausfälle.
 - **Mehrere Tags pro Agent.** Ein Agent in Ihrem prod-EU-Cluster könnte `prod`, `eu-west-1` und `kubernetes` tragen. Bash-Schritte können jedes davon ansprechen.
 
-Ein Bash-Schritt **muss** genau einen Agent-Tag angeben. Mehrfach-Tag-Routing (auf irgendeinem Agent laufen, der `prod` AND `db` hat) steht auf der Roadmap, ist aber in diesem Release nicht enthalten.
+Bash- und JavaScript-Schritte **müssen** jeweils genau einen Agent-Tag angeben. Mehrfach-Tag-Routing (auf irgendeinem Agent laufen, der `prod` AND `db` hat) steht auf der Roadmap, ist aber in diesem Release nicht enthalten.
 
-## Einen Bash-Schritt auf einen Agent zeigen lassen
+## Einen Schritt auf einen Agent zeigen lassen
 
-Fügen Sie in Ihrem Runbook einen Bash-Schritt hinzu. Das Formular fragt nach einem **Agent Tag**:
+Fügen Sie in Ihrem Runbook einen Bash- oder JavaScript-Schritt hinzu. Das Formular fragt nach einem **Agent Tag**:
 
 - Tragen Sie den Tag der Agent(s) ein, auf denen er laufen soll.
 - Schreiben Sie Ihr Skript im Editor darunter.
 
-Wenn das Runbook läuft und diesen Schritt erreicht, stellt der Worker einen Job mit diesem Tag in die Warteschlange. Ist mindestens ein funktionierender Agent mit diesem Tag online, wird der Job innerhalb weniger Sekunden beansprucht und ausgeführt.
+Wenn das Runbook läuft und den Schritt erreicht, stellt der Worker einen Job mit diesem Tag und Schritttyp in die Warteschlange. Ist mindestens ein funktionierender Agent mit diesem Tag online, wird der Job innerhalb weniger Sekunden beansprucht und ausgeführt. Bash wird über `bash -c` ausgeführt; JavaScript läuft in einer `isolated-vm`-Sandbox auf dem Agent (kein Dateisystem, kein Netzwerk, kein `Function`/`eval`).
 
 ## Betriebshinweise
 
 ### Timeouts
 
-Auf jeden Bash-Schritt wirken zwei Timeouts:
+Auf jeden Bash- oder JavaScript-Schritt wirken zwei Timeouts:
 
 | Timeout | Standard | Wirkung |
 | --- | --- | --- |
 | **Claim-Timeout** | 2 Minuten | Wie lange der Worker auf *irgendeinen* Agent wartet, der den Job übernimmt. Greift keiner rechtzeitig zu, schlägt der Schritt mit `TimedOut` fehl und das Runbook macht weiter (oder stoppt, je nach **Bei Fehler fortfahren**). |
-| **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er `SIGKILL` schickt. Pro Schritt konfigurierbar. |
+| **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er es beendet. Pro Schritt konfigurierbar. (Bash bekommt `SIGKILL`; die Isolate von JavaScript wird abgebaut.) |
 
 Das gesamte Wartefenster des Workers ist `Claim-Timeout + Ausführungs-Timeout + ein paar Sekunden Puffer`. Wählen Sie Werte, die zum Schritt passen.
 
@@ -100,7 +102,7 @@ Das gesamte Wartefenster des Workers ist `Claim-Timeout + Ausführungs-Timeout +
 
 Wenn ein Agent einen Job beansprucht, erhält er einen kurzen Lease (Standard 30 Sekunden). Während das Skript läuft, erneuert der Agent den Lease alle 10 Sekunden. Stirbt der Agent oder verliert er mitten im Skript das Netzwerk, läuft der Lease ab und der Worker markiert den Job als `TimedOut`, anstatt ewig zu warten.
 
-Der Kindprozess des Skripts wird beim Ablauf des Lease **nicht** automatisch abgebrochen — aber der Worker wartet nicht mehr darauf, und der Agent kann kein Ergebnis mehr einreichen, sobald ein anderer Claim übernommen hat. Gestalten Sie Skripte so, dass sie sicher wiederholbar sind, falls Sie Exactly-once brauchen.
+Bash-Kindprozesse werden beim Ablauf des Lease **nicht** automatisch abgebrochen (auch eine JavaScript-Isolate läuft – falls sie das überhaupt tut – bis zum Ende weiter) — aber der Worker wartet nicht mehr darauf, und der Agent kann kein Ergebnis mehr einreichen, sobald ein anderer Claim übernommen hat. Gestalten Sie Skripte so, dass sie sicher wiederholbar sind, falls Sie Exactly-once brauchen.
 
 ### Kein Agent online
 

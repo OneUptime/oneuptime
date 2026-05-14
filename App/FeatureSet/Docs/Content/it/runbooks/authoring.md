@@ -25,7 +25,7 @@ Usalo per ciò che solo un umano può verificare: "Il traffico è stato spostato
 
 ### JavaScript
 
-Uno snippet JavaScript eseguito in una sandbox `isolated-vm` (niente filesystem, niente rete se non porti tu un'API).
+Uno snippet JavaScript eseguito in una sandbox `isolated-vm` (niente filesystem, niente rete se non porti tu un'API) — ma la sandbox vive su un [Agente Runbook](/docs/runbooks/agents) nella tua infrastruttura, non sul Worker di OneUptime. Configura un **Agent Tag** sullo step che punta all'agente o agli agenti che devono eseguirlo. Se nessun agente con quel tag è online, lo step aspetta fino al **claim timeout** (predefinito 2 minuti) e poi fallisce.
 
 ```js
 const start = Date.now();

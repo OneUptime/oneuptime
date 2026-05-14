@@ -25,7 +25,7 @@
 
 ### JavaScript
 
-`isolated-vm` सैंडबॉक्स में चलने वाला JavaScript स्निपेट (कोई फ़ाइलसिस्टम नहीं, कोई नेटवर्क नहीं जब तक आप API न लाएँ)।
+`isolated-vm` सैंडबॉक्स में चलने वाला JavaScript स्निपेट (कोई फ़ाइलसिस्टम नहीं, कोई नेटवर्क नहीं जब तक आप API न लाएँ) — पर sandbox आपकी अपनी इन्फ्रास्ट्रक्चर के [Runbook एजेंट](/docs/runbooks/agents) पर रहता है, OneUptime Worker पर नहीं। step पर एक **Agent Tag** सेट करें जो उन एजेंट(ओं) की ओर इशारा करे जिन्हें इसे चलाना है। अगर उस tag वाला कोई एजेंट online नहीं है, तो step **claim timeout** (डिफ़ॉल्ट 2 मिनट) तक प्रतीक्षा करता है और फिर fail हो जाता है।
 
 ```js
 const start = Date.now();

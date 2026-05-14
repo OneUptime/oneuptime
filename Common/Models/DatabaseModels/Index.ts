@@ -284,6 +284,8 @@ import DockerHostOwnerRule from "./DockerHostOwnerRule";
 import DockerHostLabelRule from "./DockerHostLabelRule";
 import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
+import RunbookOwnerRule from "./RunbookOwnerRule";
+import RunbookLabelRule from "./RunbookLabelRule";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
@@ -439,6 +441,8 @@ const AllModelTypes: Array<{
   DockerHostLabelRule,
   KubernetesClusterOwnerRule,
   KubernetesClusterLabelRule,
+  RunbookOwnerRule,
+  RunbookLabelRule,
 
   MonitorStatusTimeline,
 

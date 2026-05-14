@@ -5,7 +5,7 @@ Runbook 是可复用的响应流程——由手动或自动步骤组成的有序
 ## 一览
 
 - OneUptime 仪表板 **分析与自动化 → Runbooks** 下的**顶层功能**。
-- **四种步骤类型**：手动清单、JavaScript（沙箱）、HTTP 请求、Bash（在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上运行）。
+- **四种步骤类型**：手动清单、JavaScript（沙箱）和 Bash（两者都在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上运行）、HTTP 请求。
 - **三条触发路径**：匹配事件 / 告警 / 计划维护的规则，或者在任意事件上手动点击"运行 Runbook"。
 - **快照语义**：Runbook 启动时，它的步骤会被拷贝到执行上。之后编辑模板永远不会改变正在进行中的执行。
 - **完整审计轨迹**：每个步骤的状态、输出、错误信息和耗时永远保留在执行上。
@@ -47,7 +47,7 @@ Runbook 是可复用的响应流程——由手动或自动步骤组成的有序
 | 步骤类型 | 适用场景 | 例子 |
 | --- | --- | --- |
 | **Manual** | 必须由人来验证、判断或执行 OneUptime 无法观察的动作。 | "在负载均衡器仪表板上确认副本区域流量。" |
-| **JavaScript** | 需要一个小的、封闭的计算——查询配置服务、转换 payload、在下一步前执行逻辑。 | 计算当前副本延迟并决定是否继续。 |
+| **JavaScript** | 需要一个小的、封闭的计算——查询配置服务、转换 payload、在下一步前执行逻辑。在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上以沙箱方式运行。 | 计算当前副本延迟并决定是否继续。 |
 | **HTTP 请求** | 你在调用现有 API——自家管理接口、云厂商、PagerDuty、Slack。 | 向 failover 协调器 `POST`。 |
 | **Bash** | 你需要在自己的基础设施上运行 shell 命令 — 重启服务、执行 `kubectl`、调用部署脚本。需要在你的环境中安装 [Runbook 代理](/docs/runbooks/agents)。 | 重启服务，`kubectl rollout restart`，运行恢复脚本。 |
 

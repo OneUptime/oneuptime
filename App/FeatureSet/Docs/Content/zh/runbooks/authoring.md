@@ -25,7 +25,7 @@
 
 ### JavaScript
 
-在 `isolated-vm` 沙箱中运行的 JavaScript 片段（没有文件系统，没有网络，除非你自己注入 API）。
+在 `isolated-vm` 沙箱中运行的 JavaScript 片段（没有文件系统，没有网络，除非你自己注入 API）— 但沙箱住在你自己基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上,而不是 OneUptime Worker 上。在步骤上配置 **Agent Tag** 指向应该执行它的代理。如果没有带该标签的代理在线,步骤会等到 **认领超时**（默认 2 分钟）后失败。
 
 ```js
 const start = Date.now();

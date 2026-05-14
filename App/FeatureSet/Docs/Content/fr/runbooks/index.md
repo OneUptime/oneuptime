@@ -5,7 +5,7 @@ Les runbooks sont des procédures de réponse réutilisables — des listes ordo
 ## En un coup d'œil
 
 - **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Analyse & Automatisation → Runbooks**.
-- **Quatre types d'étapes** : liste manuelle, JavaScript (en bac à sable), requête HTTP, Bash (tourne sur un [Agent de Runbook](/docs/runbooks/agents) dans votre propre infrastructure).
+- **Quatre types d'étapes** : liste manuelle, JavaScript (en bac à sable) et Bash (tous deux tournent sur un [Agent de Runbook](/docs/runbooks/agents) dans votre propre infrastructure), requête HTTP.
 - **Trois voies de déclenchement** : règles qui correspondent à des incidents/alertes/maintenances planifiées, ou bouton manuel « Exécuter le runbook » sur tout événement.
 - **Sémantique de snapshot** : au démarrage d'un runbook, ses étapes sont copiées dans l'exécution. Modifier le modèle ensuite ne change jamais une exécution en cours.
 - **Piste d'audit complète** : le statut, la sortie, le message d'erreur et la durée de chaque étape sont conservés à jamais sur l'exécution.
@@ -47,7 +47,7 @@ Un guide rapide de décision. La présentation complète se trouve dans [Rédige
 | Type d'étape | À utiliser quand… | Exemple |
 | --- | --- | --- |
 | **Manuelle** | Un humain doit vérifier quelque chose, porter un jugement ou effectuer une action que OneUptime ne peut pas observer. | « Confirmer que le trafic est basculé sur la région secondaire dans le tableau du load balancer. » |
-| **JavaScript** | Vous avez besoin d'un petit calcul contenu — interroger un service de configuration, transformer une charge utile, exécuter une logique avant l'étape suivante. | Calculer le retard de réplication actuel et décider si l'on continue. |
+| **JavaScript** | Vous avez besoin d'un petit calcul contenu — interroger un service de configuration, transformer une charge utile, exécuter une logique avant l'étape suivante. Tourne en bac à sable sur un [Agent de Runbook](/docs/runbooks/agents) dans votre propre infrastructure. | Calculer le retard de réplication actuel et décider si l'on continue. |
 | **Requête HTTP** | Vous appelez une API existante — votre endpoint d'administration, un fournisseur cloud, PagerDuty, Slack. | `POST` vers votre orchestrateur de bascule. |
 | **Bash** | Vous devez exécuter des commandes shell sur votre propre infrastructure — redémarrer un service, lancer `kubectl`, appeler un script de déploiement. Nécessite un [Agent de Runbook](/docs/runbooks/agents) installé dans votre environnement. | Redémarrer un service, `kubectl rollout restart`, exécuter un script de récupération. |
 

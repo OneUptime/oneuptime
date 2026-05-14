@@ -4,7 +4,7 @@
 
 - Output per passo: **50 KB**. Output più grandi vengono troncati con un marcatore.
 - Timeout per passo predefinito: **30 secondi** per JavaScript, Bash e HTTP. Configurabile per passo.
-- **Claim timeout** predefinito per i passi Bash: **2 minuti** — quanto il Worker aspetta che un Agente Runbook prenda il job prima di farlo fallire.
+- **Claim timeout** predefinito per i passi Bash e JavaScript: **2 minuti** — quanto il Worker aspetta che un Agente Runbook prenda il job prima di farlo fallire.
 
 ## Permessi
 
@@ -24,8 +24,7 @@ Quando un passo manuale viene spuntato via API, l'esecuzione viene rimessa in co
 
 ## Note di hardening
 
-- I **passi JavaScript** girano in `isolated-vm` con un preambolo di hardening (taglia le catene dei prototype, rimuove `Function` ed `eval`, congela i prototype nativi).
-- I **passi Bash** non girano mai sul Worker di OneUptime. Vengono inviati come job a un [Agente Runbook](/docs/runbooks/agents) che hai installato nella tua infrastruttura. Il Worker mette in coda il job con l'**Agent Tag** del passo, un agente lo rivendica atomicamente, esegue `bash -c <script>` localmente e restituisce il risultato. Il processo Worker non ha accesso shell al tuo ambiente.
+- I **passi Bash e JavaScript** non girano mai sul Worker di OneUptime. Vengono inviati come job a un [Agente Runbook](/docs/runbooks/agents) che hai installato nella tua infrastruttura. Il Worker mette in coda il job con l'**Agent Tag** e il tipo di passo, un agente lo rivendica atomicamente, lo esegue localmente — Bash via `bash -c <script>`, JavaScript dentro una sandbox `isolated-vm` con il solito preambolo (taglia le catene dei prototype, rimuove `Function` ed `eval`, congela i prototype nativi) — e restituisce il risultato. Il processo Worker stesso non esegue script dei clienti.
 - I **passi HTTP** usano un validatore di stato permissivo, quindi una risposta 4xx o 5xx viene registrata come passo fallito invece che lanciata. Così l'output catturato riflette ciò che la controparte ha realmente restituito.
 
 ## Tabelle del database
@@ -34,7 +33,7 @@ Quando un passo manuale viene spuntato via API, l'esecuzione viene rimessa in co
 - `RunbookExecution` — una riga per esecuzione, con chiavi esterne nullable `incidentId`, `alertId` e `scheduledMaintenanceId` e un array JSON `stepExecutions` che fa snapshot di passi e stato per passo.
 - `RunbookRule` — regole di auto-trigger con discriminatore `triggerEntityType` (Incident, Alert, ScheduledMaintenance) e una relazione many-to-many ai runbook da avviare.
 - `RunbookAgent` — una riga per agente installato: nome, tag, chiave segreta, `lastAlive`, `connectionStatus`, info host.
-- `RunbookAgentJob` — una riga per passo Bash dispatchato: tag richiesto, script, stato (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
+- `RunbookAgentJob` — una riga per passo Bash o JavaScript dispatchato: tag richiesto, tipo di passo, script, stato (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
 
 ## Consigli operativi
 

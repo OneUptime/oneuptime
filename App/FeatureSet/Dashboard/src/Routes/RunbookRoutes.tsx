@@ -17,6 +17,8 @@ import RunbookExecutionView from "../Pages/Runbook/View/ExecutionView";
 import RunbookOwners from "../Pages/Runbook/View/Owners";
 import RunbookSettings from "../Pages/Runbook/View/Settings";
 import RunbookDelete from "../Pages/Runbook/View/Delete";
+import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
+import RunbookSettingsLabelRules from "../Pages/Runbook/Settings/LabelRules";
 
 const RunbookRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,6 +50,28 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookAgents
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_AGENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <RunbookSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUNBOOKS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <RunbookSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES] as Route
+              }
             />
           }
         />

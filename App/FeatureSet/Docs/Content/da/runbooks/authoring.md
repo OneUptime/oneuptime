@@ -25,7 +25,7 @@ Brug det til ting, kun et menneske kan verificere: "Trafikken er flyttet til sek
 
 ### JavaScript
 
-Et JavaScript-uddrag, der køres i en `isolated-vm`-sandkasse (intet filsystem, intet netværk medmindre du selv medbringer en API).
+Et JavaScript-uddrag, der køres i en `isolated-vm`-sandkasse (intet filsystem, intet netværk medmindre du selv medbringer en API) — men sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, ikke på OneUptime-Worker'en. Konfigurer et **Agent Tag** på trinet, der peger på den/de agent(er), der skal udføre det. Er ingen agent med det tag online, venter trinet indtil **claim timeout** (standard 2 minutter) og fejler så.
 
 ```js
 const start = Date.now();

@@ -25,7 +25,7 @@ Gebruik dit voor wat alleen een mens kan verifiëren: "Verkeer is volgens het lo
 
 ### JavaScript
 
-Een stukje JavaScript dat draait in een `isolated-vm` sandbox (geen filesystem, geen netwerk tenzij je zelf een API meebrengt).
+Een stukje JavaScript dat draait in een `isolated-vm`-sandbox (geen filesystem, geen netwerk tenzij je zelf een API meebrengt) — maar de sandbox leeft op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur, niet op de OneUptime Worker. Stel een **Agent Tag** in op de stap die wijst naar de agent(s) die hem moeten uitvoeren. Is er geen agent met die tag online, dan wacht de stap tot de **claim timeout** (standaard 2 minuten) en faalt vervolgens.
 
 ```js
 const start = Date.now();

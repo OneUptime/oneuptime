@@ -5,7 +5,7 @@ Runbooks zijn herbruikbare responseprocedures — geordende lijsten van handmati
 ## In één oogopslag
 
 - **Top-level functie** in het OneUptime-dashboard onder **Analyse & Automatisering → Runbooks**.
-- **Vier staptypen**: handmatige checklist, JavaScript (sandbox), HTTP-verzoek, Bash (draait op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur).
+- **Vier staptypen**: handmatige checklist, JavaScript (sandbox) en Bash (beide draaien op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur), HTTP-verzoek.
 - **Drie triggerpaden**: regels die overeenkomen met incidenten/alerts/gepland onderhoud, of de handmatige knop "Runbook uitvoeren" op elk event.
 - **Snapshot-semantiek**: zodra een runbook start, worden zijn stappen naar de uitvoering gekopieerd. Het sjabloon later bewerken verandert nooit een lopende uitvoering.
 - **Volledig auditspoor**: status, uitvoer, foutmelding en duur van elke stap worden voor altijd in de uitvoering bewaard.
@@ -47,7 +47,7 @@ Een snelle keuzehulp. De uitgebreide uitleg staat in [Een runbook schrijven](/do
 | Staptype | Gebruik wanneer… | Voorbeeld |
 | --- | --- | --- |
 | **Handmatig** | Een mens iets moet verifiëren, beoordelen of een actie moet uitvoeren die OneUptime niet kan waarnemen. | "Bevestig in het load balancer-dashboard dat verkeer naar de secundaire regio is verplaatst." |
-| **JavaScript** | Je hebt een kleine, ingesloten berekening nodig — een config-service raadplegen, een payload transformeren, logica draaien vóór de volgende stap. | Huidige replicatievertraging berekenen en beslissen of je doorgaat. |
+| **JavaScript** | Je hebt een kleine, ingesloten berekening nodig — een config-service raadplegen, een payload transformeren, logica draaien vóór de volgende stap. Draait gesandboxed op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur. | Huidige replicatievertraging berekenen en beslissen of je doorgaat. |
 | **HTTP-verzoek** | Je roept een bestaande API aan — je eigen admin-endpoint, een cloudleverancier, PagerDuty, Slack. | `POST` naar je failover-orchestrator. |
 | **Bash** | Je moet shell-commando's draaien in je eigen infrastructuur — een service herstarten, `kubectl` draaien, een deploy-script aanroepen. Vereist een [Runbook-agent](/docs/runbooks/agents) in je omgeving. | Service herstarten, `kubectl rollout restart`, een recovery-script draaien. |
 

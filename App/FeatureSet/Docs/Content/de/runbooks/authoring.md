@@ -25,7 +25,7 @@ Verwenden Sie dies für Dinge, die nur ein Mensch bestätigen kann: „Verkehr w
 
 ### JavaScript
 
-Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox läuft (kein Dateisystem, kein Netzwerk, außer Sie bringen eine API mit).
+Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox läuft (kein Dateisystem, kein Netzwerk, außer Sie bringen eine API mit) — die Sandbox lebt jedoch auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur und nicht auf dem OneUptime-Worker. Konfigurieren Sie einen **Agent Tag** am Schritt, der auf den/die Agent(s) zeigt, die ihn ausführen sollen. Ist kein Agent mit diesem Tag online, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann fehl.
 
 ```js
 const start = Date.now();

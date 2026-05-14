@@ -25,7 +25,7 @@ Use para o que só um humano consegue verificar: "Tráfego foi para a região se
 
 ### JavaScript
 
-Um trecho de JavaScript rodando em sandbox `isolated-vm` (sem filesystem, sem rede a menos que você traga uma API).
+Um trecho de JavaScript rodando em sandbox `isolated-vm` (sem filesystem, sem rede a menos que você traga uma API) — mas o sandbox vive em um [Agente de Runbook](/docs/runbooks/agents) na sua própria infraestrutura, não no Worker do OneUptime. Configure um **Agent Tag** no passo apontando para o(s) agente(s) que devem executá-lo. Se nenhum agente com esse tag estiver online, o passo aguarda até o **claim timeout** (padrão 2 minutos) e então falha.
 
 ```js
 const start = Date.now();

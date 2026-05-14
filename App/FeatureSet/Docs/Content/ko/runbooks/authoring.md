@@ -25,7 +25,7 @@
 
 ### JavaScript
 
-샌드박스 `isolated-vm`에서 실행되는 JavaScript 스니펫(파일 시스템 없음, API를 직접 가져오지 않는 한 네트워크 없음).
+샌드박스 `isolated-vm`에서 실행되는 JavaScript 스니펫(파일 시스템 없음, API를 직접 가져오지 않는 한 네트워크 없음) — 다만 샌드박스는 OneUptime Worker가 아니라 여러분 자신의 인프라 내 [Runbook 에이전트](/docs/runbooks/agents) 위에서 산다. 단계에 **Agent Tag**를 설정해 실행시킬 에이전트(들)를 가리키세요. 그 태그를 가진 에이전트가 온라인이 아니면 단계는 **claim 타임아웃**(기본 2분)까지 기다린 뒤 실패합니다.
 
 ```js
 const start = Date.now();

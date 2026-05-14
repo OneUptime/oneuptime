@@ -5,7 +5,7 @@ Los runbooks son procedimientos de respuesta reutilizables — listas ordenadas 
 ## De un vistazo
 
 - **Función de primer nivel** en el panel de OneUptime, en **Análisis y automatización → Runbooks**.
-- **Cuatro tipos de pasos**: lista manual, JavaScript (en sandbox), petición HTTP, Bash (corre en un [Agente de Runbook](/docs/runbooks/agents) dentro de tu propia infraestructura).
+- **Cuatro tipos de pasos**: lista manual, JavaScript (en sandbox) y Bash (ambos corren en un [Agente de Runbook](/docs/runbooks/agents) dentro de tu propia infraestructura), petición HTTP.
 - **Tres vías de activación**: reglas que coinciden con incidentes/alertas/mantenimiento programado, o el botón manual "Ejecutar runbook" en cualquier evento.
 - **Semántica de snapshot**: al iniciar un runbook se copian sus pasos en la ejecución. Editar después la plantilla nunca altera una ejecución en curso.
 - **Rastro de auditoría completo**: el estado, la salida, el mensaje de error y la duración de cada paso quedan registrados en la ejecución para siempre.
@@ -47,7 +47,7 @@ Guía rápida de decisión. El desglose completo está en [Crear un runbook](/do
 | Tipo de paso | Úsalo cuando… | Ejemplo |
 | --- | --- | --- |
 | **Manual** | Un humano debe verificar algo, emitir un juicio o realizar una acción que OneUptime no puede observar. | "Confirmar tráfico de la región secundaria en el panel del balanceador." |
-| **JavaScript** | Necesitas un cálculo pequeño y contenido — consultar un servicio de configuración, transformar un payload, ejecutar lógica antes del siguiente paso. | Calcular el lag actual de réplica y decidir si seguir. |
+| **JavaScript** | Necesitas un cálculo pequeño y contenido — consultar un servicio de configuración, transformar un payload, ejecutar lógica antes del siguiente paso. Corre en sandbox en un [Agente de Runbook](/docs/runbooks/agents) dentro de tu propia infraestructura. | Calcular el lag actual de réplica y decidir si seguir. |
 | **Petición HTTP** | Llamas a una API existente — tu propio endpoint admin, un proveedor cloud, PagerDuty, Slack. | `POST` a tu orquestador de failover. |
 | **Bash** | Necesitas ejecutar comandos de shell en tu propia infraestructura — reiniciar un servicio, correr `kubectl`, llamar a un script de despliegue. Requiere un [Agente de Runbook](/docs/runbooks/agents) instalado en tu entorno. | Reiniciar un servicio, `kubectl rollout restart`, ejecutar un script de recuperación. |
 

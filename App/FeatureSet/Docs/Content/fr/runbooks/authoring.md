@@ -25,7 +25,7 @@ Une case à cocher que le répondeur valide. L'exécution se met en pause à une
 
 ### JavaScript
 
-Un extrait JavaScript exécuté dans un bac à sable `isolated-vm` (pas d'accès au système de fichiers ni au réseau, sauf à fournir une API).
+Un extrait JavaScript exécuté dans un bac à sable `isolated-vm` (pas d'accès au système de fichiers ni au réseau, sauf à fournir une API) — mais le bac à sable vit sur un [Agent de Runbook](/docs/runbooks/agents) dans votre propre infrastructure, pas sur le Worker OneUptime. Configurez un **Agent Tag** sur l'étape pointant vers le ou les agents qui doivent l'exécuter. Si aucun agent avec ce tag n'est en ligne, l'étape attend jusqu'au **claim timeout** (par défaut 2 minutes) puis échoue.
 
 ```js
 const start = Date.now();

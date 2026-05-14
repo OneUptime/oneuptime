@@ -25,7 +25,7 @@ Använd för sådant bara en människa kan verifiera: "Trafik flyttad till sekun
 
 ### JavaScript
 
-Ett JavaScript-utdrag som körs i en `isolated-vm`-sandlåda (inget filsystem, inget nätverk om du inte själv bär med dig ett API).
+Ett JavaScript-utdrag som körs i en `isolated-vm`-sandlåda (inget filsystem, inget nätverk om du inte själv bär med dig ett API) — men sandlådan lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, inte på OneUptime-Worker'n. Konfigurera en **Agent Tag** på steget som pekar på agenten/agenterna som ska köra det. Om ingen agent med den taggen är online väntar steget tills **claim timeout** (standard 2 minuter) och misslyckas sedan.
 
 ```js
 const start = Date.now();

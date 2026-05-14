@@ -5,7 +5,7 @@ Runbooks sind wiederverwendbare Reaktionsprozeduren — geordnete Listen aus man
 ## Auf einen Blick
 
 - **Top-Level-Funktion** im OneUptime-Dashboard unter **Analyse & Automatisierung → Runbooks**.
-- **Vier Schritttypen**: Manuelle Checkliste, JavaScript (Sandbox), HTTP-Anfrage, Bash (läuft auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur).
+- **Vier Schritttypen**: Manuelle Checkliste, JavaScript (Sandbox) und Bash (beide laufen auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur), HTTP-Anfrage.
 - **Drei Auslöserpfade**: Regeln, die auf Vorfälle/Warnmeldungen/geplante Wartung passen, oder die manuelle Schaltfläche „Runbook ausführen" bei jedem Ereignis.
 - **Snapshot-Semantik**: Beim Start eines Runbooks werden seine Schritte in die Ausführung kopiert. Späteres Bearbeiten der Vorlage verändert eine laufende Ausführung nie.
 - **Vollständiger Audit-Trail**: Status, Ausgabe, Fehlermeldung und Dauer jedes Schritts werden dauerhaft in der Ausführung festgehalten.
@@ -47,7 +47,7 @@ Eine schnelle Entscheidungshilfe. Die ausführliche Erklärung steht in [Ein Run
 | Schritttyp | Greifen Sie zu, wenn… | Beispiel |
 | --- | --- | --- |
 | **Manuell** | Ein Mensch muss etwas prüfen, eine Einschätzung treffen oder eine Aktion durchführen, die OneUptime nicht beobachten kann. | „Im Load-Balancer-Dashboard bestätigen, dass der Traffic in die Sekundärregion geschwenkt wurde." |
-| **JavaScript** | Sie brauchen eine kleine, gekapselte Berechnung — einen Config-Service abfragen, einen Payload transformieren, Logik vor dem nächsten Schritt ausführen. | Aktuelle Replikationsverzögerung berechnen und entscheiden, ob weiter ausgeführt wird. |
+| **JavaScript** | Sie brauchen eine kleine, gekapselte Berechnung — einen Config-Service abfragen, einen Payload transformieren, Logik vor dem nächsten Schritt ausführen. Läuft gesandboxt auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. | Aktuelle Replikationsverzögerung berechnen und entscheiden, ob weiter ausgeführt wird. |
 | **HTTP-Anfrage** | Sie rufen eine bestehende API auf — Ihr eigenes Admin-Endpunkt, einen Cloud-Anbieter, PagerDuty, Slack. | `POST` an Ihren Failover-Orchestrator. |
 | **Bash** | Sie müssen Shell-Befehle auf Ihrer eigenen Infrastruktur ausführen — einen Dienst neu starten, `kubectl` ausführen, ein Deploy-Skript aufrufen. Erfordert einen in Ihrer Umgebung installierten [Runbook-Agent](/docs/runbooks/agents). | Dienst neu starten, `kubectl rollout restart`, ein Recovery-Skript ausführen. |
 
