@@ -64,6 +64,7 @@ import AlertGroupingEngineService from "./AlertGroupingEngineService";
 import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 
@@ -423,6 +424,19 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Apply alert on-call rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),

@@ -14,6 +14,7 @@ export enum PermissionGroup {
   OnCallDutyPolicy = "On-Call Duty Policy",
   Telemetry = "Telemetry",
   Workflow = "Workflow",
+  Runbook = "Runbook",
   Team = "Team",
   Billing = "Billing",
   ServiceCatalog = "Service Catalog",
@@ -63,6 +64,7 @@ enum Permission {
   BillingManager = "BillingManager",
   Viewer = "Viewer",
   WorkflowManager = "WorkflowManager",
+  RunbookManager = "RunbookManager",
 
   User = "User", //registered user. Can or cannot belong to a project.
 
@@ -519,6 +521,21 @@ enum Permission {
   DeleteWorkflowVariable = "DeleteWorkflowVariable",
   EditWorkflowVariable = "EditWorkflowVariable",
   ReadWorkflowVariable = "ReadWorkflowVariable",
+
+  CreateRunbook = "CreateRunbook",
+  DeleteRunbook = "DeleteRunbook",
+  EditRunbook = "EditRunbook",
+  ReadRunbook = "ReadRunbook",
+
+  CreateRunbookExecution = "CreateRunbookExecution",
+  DeleteRunbookExecution = "DeleteRunbookExecution",
+  EditRunbookExecution = "EditRunbookExecution",
+  ReadRunbookExecution = "ReadRunbookExecution",
+
+  CreateRunbookRule = "CreateRunbookRule",
+  DeleteRunbookRule = "DeleteRunbookRule",
+  EditRunbookRule = "EditRunbookRule",
+  ReadRunbookRule = "ReadRunbookRule",
 
   CreateStatusPageGroup = "CreateStatusPageGroup",
   DeleteStatusPageGroup = "DeleteStatusPageGroup",
@@ -1400,6 +1417,16 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.RunbookManager,
+        title: "Runbook Manager",
+        description:
+          "Can create, edit, delete, and execute runbooks in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Runbook,
       },
       {
         permission: Permission.ProjectUser,
@@ -2803,6 +2830,124 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Workflow,
       },
+
+      {
+        permission: Permission.CreateRunbook,
+        title: "Create Runbook",
+        description: "This permission can create Runbook in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbook,
+        title: "Delete Runbook",
+        description: "This permission can delete Runbook in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbook,
+        title: "Edit Runbook",
+        description: "This permission can edit Runbook in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbook,
+        title: "Read Runbook",
+        description: "This permission can read Runbook in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookExecution,
+        title: "Create Runbook Execution",
+        description:
+          "This permission can create Runbook Executions in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookExecution,
+        title: "Delete Runbook Execution",
+        description:
+          "This permission can delete Runbook Executions in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookExecution,
+        title: "Edit Runbook Execution",
+        description:
+          "This permission can edit Runbook Executions (e.g. tick off manual steps) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookExecution,
+        title: "Read Runbook Execution",
+        description:
+          "This permission can read Runbook Executions in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookRule,
+        title: "Create Runbook Rule",
+        description:
+          "This permission can create Runbook Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookRule,
+        title: "Delete Runbook Rule",
+        description:
+          "This permission can delete Runbook Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookRule,
+        title: "Edit Runbook Rule",
+        description: "This permission can edit Runbook Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookRule,
+        title: "Read Runbook Rule",
+        description: "This permission can read Runbook Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
       {
         permission: Permission.ReadAuditLog,
         title: "Read Audit Log",

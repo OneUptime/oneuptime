@@ -52,6 +52,7 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
+import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -776,6 +777,8 @@ const IncidentView: FunctionComponent<
         )}
 
       <IncidentAffectedResources incidentId={modelId} />
+
+      <EntityRunbooks incidentId={modelId} />
 
       <IncidentFeedElement incidentId={modelId} />
     </Fragment>

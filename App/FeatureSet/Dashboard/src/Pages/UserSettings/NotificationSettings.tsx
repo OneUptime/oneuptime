@@ -296,8 +296,7 @@ const buildSection: SectionFactory = (
     title,
     description,
     events: types.map((type: NotificationSettingEventType): EventDef => {
-      const entry: { label: string; description: string } =
-        EVENT_LIBRARY[type];
+      const entry: { label: string; description: string } = EVENT_LIBRARY[type];
       return {
         type,
         label: entry.label,
@@ -372,52 +371,51 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const fetchSettings: () => Promise<void> = useCallback(async (): Promise<
-    void
-  > => {
-    setIsLoading(true);
-    try {
-      const result: ListResult<UserNotificationSetting> =
-        await ModelAPI.getList<UserNotificationSetting>({
-          modelType: UserNotificationSetting,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            userId: User.getUserId(),
-            eventType: new Includes(eventTypes),
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            eventType: true,
-            alertByEmail: true,
-            alertBySMS: true,
-            alertByCall: true,
-            alertByPush: true,
-            alertByWhatsApp: true,
-            alertByTelegram: true,
-            alertByWebhook: true,
-          },
-          sort: {},
-        });
+  const fetchSettings: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setIsLoading(true);
+      try {
+        const result: ListResult<UserNotificationSetting> =
+          await ModelAPI.getList<UserNotificationSetting>({
+            modelType: UserNotificationSetting,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              userId: User.getUserId(),
+              eventType: new Includes(eventTypes),
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              eventType: true,
+              alertByEmail: true,
+              alertBySMS: true,
+              alertByCall: true,
+              alertByPush: true,
+              alertByWhatsApp: true,
+              alertByTelegram: true,
+              alertByWebhook: true,
+            },
+            sort: {},
+          });
 
-      const nextMap: Map<
-        NotificationSettingEventType,
-        UserNotificationSetting
-      > = new Map();
-      for (const setting of result.data) {
-        if (setting.eventType) {
-          nextMap.set(setting.eventType, setting);
+        const nextMap: Map<
+          NotificationSettingEventType,
+          UserNotificationSetting
+        > = new Map();
+        for (const setting of result.data) {
+          if (setting.eventType) {
+            nextMap.set(setting.eventType, setting);
+          }
         }
+        setRowsByEvent(nextMap);
+        setError("");
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
       }
-      setRowsByEvent(nextMap);
-      setError("");
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [eventTypes]);
+    }, [eventTypes]);
 
   useEffect(() => {
     fetchSettings().catch((err: Error) => {
@@ -448,7 +446,9 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
           ],
         );
       }
-      optimistic._id = previous._id;
+      if (previous._id) {
+        optimistic._id = previous._id;
+      }
     }
     optimistic.projectId = ProjectUtil.getCurrentProjectId()!;
     optimistic.userId = User.getUserId();
@@ -614,16 +614,12 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const incidentsAndAlerts: Array<SectionDef> = [
-    buildSection(
-      "Incidents",
-      "Notify me about incidents on resources I own.",
-      [
-        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-      ],
-    ),
+    buildSection("Incidents", "Notify me about incidents on resources I own.", [
+      NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+    ]),
     buildSection(
       "Incident Episodes",
       "Notify me about activity on incident episodes I own.",

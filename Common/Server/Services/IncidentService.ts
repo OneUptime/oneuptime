@@ -59,6 +59,7 @@ import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -913,6 +914,19 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToIncident(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),

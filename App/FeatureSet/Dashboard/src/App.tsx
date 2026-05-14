@@ -163,6 +163,15 @@ const WorkflowRoutes: React.LazyExoticComponent<
     };
   });
 });
+const RunbookRoutes: React.LazyExoticComponent<
+  AllRoutesModule["RunbookRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.RunbookRoutes,
+    };
+  });
+});
 const StatusPagesRoutes: React.LazyExoticComponent<
   AllRoutesModule["StatusPagesRoutes"]
 > = lazy(() => {
@@ -548,6 +557,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.WORKFLOWS_ROOT]?.toString() || ""}
             element={<WorkflowRoutes {...commonPageProps} />}
+          />
+
+          {/* Runbooks */}
+          <PageRoute
+            path={RouteMap[PageMap.RUNBOOKS_ROOT]?.toString() || ""}
+            element={<RunbookRoutes {...commonPageProps} />}
           />
 
           {/* Status Pages */}

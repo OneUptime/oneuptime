@@ -219,6 +219,15 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: analyticsAutomationCategory,
     },
     {
+      title: t("navbar.items.runbooksTitle"),
+      description: t("navbar.items.runbooksDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.RUNBOOKS] as Route),
+      activeRoute: RouteMap[PageMap.RUNBOOKS],
+      icon: IconProp.BookOpen,
+      iconColor: "teal",
+      category: analyticsAutomationCategory,
+    },
+    {
       title: t("navbar.items.aiAgentTitle"),
       description: t("navbar.items.aiAgentDescription"),
       route: RouteUtil.populateRouteParams(

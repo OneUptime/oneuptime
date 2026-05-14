@@ -16,6 +16,7 @@ import {
   StatusPageApiRoute,
   StatusPageRoute,
   WorkflowRoute,
+  RunbookRoute,
   TelemetryRoute,
 } from "../ServiceRoute";
 import Hostname from "../Types/API/Hostname";
@@ -134,6 +135,12 @@ export const WORKFLOW_URL: URL = new URL(
   HTTP_PROTOCOL,
   WORKFLOW_HOSTNAME,
   new Route(WorkflowRoute.toString()),
+);
+
+export const RUNBOOK_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  APP_HOSTNAME,
+  new Route(RunbookRoute.toString()),
 );
 
 export const PROBE_INGEST_URL: URL = new URL(

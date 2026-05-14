@@ -17,6 +17,7 @@ export { default as MonitorGroupRoutes } from "./MonitorGroupRoutes";
 
 // Platform
 export { default as WorkflowRoutes } from "./WorkflowRoutes";
+export { default as RunbookRoutes } from "./RunbookRoutes";
 export { default as StatusPagesRoutes } from "./StatusPagesRoutes";
 export { default as DashboardRoutes } from "./DashboardRoutes";
 export { default as ServiceRoutes } from "./ServiceRoutes";

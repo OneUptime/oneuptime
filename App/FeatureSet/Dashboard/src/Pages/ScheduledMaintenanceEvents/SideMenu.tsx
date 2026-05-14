@@ -138,6 +138,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Runbook Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.BookOpen,
+        },
+        {
+          link: {
             title: "Label Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[

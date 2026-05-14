@@ -76,6 +76,8 @@
       "dashboardsDescription": "Visualize all your data.",
       "workflowsTitle": "Workflows",
       "workflowsDescription": "No-code automation builder.",
+      "runbooksTitle": "Runbooks",
+      "runbooksDescription": "Reusable response procedures: manual checklists or scripts.",
       "aiAgentTitle": "AI Agent",
       "aiAgentDescription": "AI-powered issue resolution.",
       "codeRepositoriesTitle": "Code Repositories",

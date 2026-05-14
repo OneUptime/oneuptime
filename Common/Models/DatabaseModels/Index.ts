@@ -199,6 +199,10 @@ import UserIncomingCallNumber from "./UserIncomingCallNumber";
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
+// Runbooks.
+import Runbook from "./Runbook";
+import RunbookExecution from "./RunbookExecution";
+import RunbookRule from "./RunbookRule";
 import ServiceDependency from "./ServiceDependency";
 import ServiceMonitor from "./ServiceMonitor";
 
@@ -445,6 +449,10 @@ const AllModelTypes: Array<{
   Workflow,
   WorkflowVariables,
   WorkflowLog,
+
+  Runbook,
+  RunbookExecution,
+  RunbookRule,
 
   ProjectSSO,
   ProjectOIDC,

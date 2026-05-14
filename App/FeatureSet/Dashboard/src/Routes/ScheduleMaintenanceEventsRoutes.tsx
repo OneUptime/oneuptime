@@ -53,6 +53,7 @@ import ScheduledMaintenanceSettingsNoteTemplatesView from "../Pages/ScheduledMai
 import ScheduledMaintenanceSettingsCustomFields from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields";
 
 import ScheduledMaintenanceSettingsOwnerRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceOwnerRules";
+import ScheduledMaintenanceSettingsRunbookRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceRunbookRules";
 
 import ScheduledMaintenanceSettingsLabelRules from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceLabelRules";
 
@@ -283,6 +284,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsRunbookRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
                 ] as Route
               }
             />

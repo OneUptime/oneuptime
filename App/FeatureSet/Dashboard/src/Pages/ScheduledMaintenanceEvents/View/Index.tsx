@@ -33,6 +33,7 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
+import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import OneUptimeDate from "Common/Types/Date";
 
 const ScheduledMaintenanceView: FunctionComponent<
@@ -490,6 +491,8 @@ const ScheduledMaintenanceView: FunctionComponent<
           // do nothing!
         }}
       />
+
+      <EntityRunbooks scheduledMaintenanceId={modelId} />
 
       <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
     </Fragment>

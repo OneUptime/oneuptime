@@ -1,13 +1,13 @@
 <header id="vpat">
   <h1>Voluntary Product Accessibility Template (VPAT)</h1>
-  <p>OneUptime Accessibility Conformance Report - WCAG 2.1 Edition</p>
+  <p>OneUptime Accessibility Conformance Report - WCAG 2.2 Edition</p>
 </header>
 
 <section>
   <h2>About This Document</h2>
 
   <p><strong>Name of Product/Version:</strong> OneUptime - Web Application</p>
-  <p><strong>Report Date:</strong> January 2026</p>
+  <p><strong>Report Date:</strong> May 2026</p>
   <p><strong>Product Description:</strong> OneUptime is a comprehensive observability platform that provides uptime monitoring, incident management, status pages, and on-call scheduling capabilities.</p>
   <p><strong>Contact Information:</strong> accessibility@oneuptime.com</p>
 
@@ -23,7 +23,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><a href="https://www.w3.org/TR/WCAG21/">Web Content Accessibility Guidelines 2.1</a></td>
+        <td><a href="https://www.w3.org/TR/WCAG22/">Web Content Accessibility Guidelines 2.2</a></td>
         <td>Level A (Yes), Level AA (Yes), Level AAA (No)</td>
       </tr>
       <tr>
@@ -52,7 +52,7 @@
 </section>
 
 <section>
-  <h2>WCAG 2.1 Level A Conformance</h2>
+  <h2>WCAG 2.2 Level A Conformance</h2>
 
   <table>
     <thead>
@@ -194,6 +194,11 @@
         <td>Form controls do not trigger unexpected context changes when changed.</td>
       </tr>
       <tr>
+        <td><strong>3.2.6 Consistent Help</strong></td>
+        <td>Supports</td>
+        <td>Help mechanisms (contact links, documentation, support email) appear in consistent locations across the application. The Legal Center sidebar, dashboard footer, and "Contact us" call-to-action use a consistent placement and order across pages.</td>
+      </tr>
+      <tr>
         <td><strong>3.3.1 Error Identification</strong></td>
         <td>Supports</td>
         <td>Form errors are identified and described in text. Error states include visual and programmatic indicators.</td>
@@ -204,9 +209,9 @@
         <td>Form fields include visible labels and instructions. FieldLabel component provides consistent labeling.</td>
       </tr>
       <tr>
-        <td><strong>4.1.1 Parsing</strong></td>
+        <td><strong>3.3.7 Redundant Entry</strong></td>
         <td>Supports</td>
-        <td>HTML is well-formed with unique IDs. React components ensure valid markup generation.</td>
+        <td>Information previously entered by the user is auto-populated or available for selection within multi-step processes (billing details, contact information, project metadata). Users are not required to re-enter the same information within a single process.</td>
       </tr>
       <tr>
         <td><strong>4.1.2 Name, Role, Value</strong></td>
@@ -218,7 +223,7 @@
 </section>
 
 <section>
-  <h2>WCAG 2.1 Level AA Conformance</h2>
+  <h2>WCAG 2.2 Level AA Conformance</h2>
 
   <table>
     <thead>
@@ -300,6 +305,21 @@
         <td>Focus indicators are visible using focus:ring-2 and focus-visible:outline CSS patterns.</td>
       </tr>
       <tr>
+        <td><strong>2.4.11 Focus Not Obscured (Minimum)</strong></td>
+        <td>Supports</td>
+        <td>When user interface components receive keyboard focus, they are not entirely hidden by author-created content. Sticky headers, footers, and modal overlays are sized and positioned so that focused controls remain at least partially visible. Scroll-into-view behavior is applied where focus might fall behind a sticky element.</td>
+      </tr>
+      <tr>
+        <td><strong>2.5.7 Dragging Movements</strong></td>
+        <td>Supports</td>
+        <td>Functionality that uses dragging (reordering items, rearranging dashboard widgets, drag-and-drop uploads) can also be operated with a single-pointer activation alternative, such as action buttons, context menus, or keyboard shortcuts.</td>
+      </tr>
+      <tr>
+        <td><strong>2.5.8 Target Size (Minimum)</strong></td>
+        <td>Supports</td>
+        <td>Interactive controls meet a target size of at least 24 by 24 CSS pixels, except where targets are inline within text, controlled by the user agent, or essential to the information being conveyed. Buttons, links, and form controls use sufficient padding to meet this requirement.</td>
+      </tr>
+      <tr>
         <td><strong>3.1.2 Language of Parts</strong></td>
         <td>Supports</td>
         <td>The application is primarily in English. Multi-language content sections are appropriately marked.</td>
@@ -323,6 +343,11 @@
         <td><strong>3.3.4 Error Prevention (Legal, Financial, Data)</strong></td>
         <td>Supports</td>
         <td>Confirmation dialogs are used for destructive actions. Data submissions can be reviewed before final confirmation.</td>
+      </tr>
+      <tr>
+        <td><strong>3.3.8 Accessible Authentication (Minimum)</strong></td>
+        <td>Supports</td>
+        <td>Authentication does not rely on a cognitive function test. Email/password sign-in supports paste, autofill, and password manager integration. Single sign-on (SSO/SAML), magic link, and OAuth-based sign-in are available as alternatives to memorized passwords. No CAPTCHA puzzles or pattern-matching challenges are required to complete authentication.</td>
       </tr>
       <tr>
         <td><strong>4.1.3 Status Messages</strong></td>
@@ -350,25 +375,25 @@
     <tbody>
       <tr>
         <td>9.1</td>
-        <td>Perceivable (WCAG 2.1 Level A and AA)</td>
+        <td>Perceivable (WCAG 2.2 Level A and AA)</td>
         <td>Supports</td>
         <td>See WCAG criteria above for detailed conformance. All Level A criteria are fully supported; most Level AA criteria are supported with minor exceptions noted.</td>
       </tr>
       <tr>
         <td>9.2</td>
-        <td>Operable (WCAG 2.1 Level A and AA)</td>
+        <td>Operable (WCAG 2.2 Level A and AA)</td>
         <td>Supports</td>
         <td>See WCAG criteria above for detailed conformance. Full keyboard navigation, focus management, and navigation landmarks implemented.</td>
       </tr>
       <tr>
         <td>9.3</td>
-        <td>Understandable (WCAG 2.1 Level A and AA)</td>
+        <td>Understandable (WCAG 2.2 Level A and AA)</td>
         <td>Supports</td>
         <td>See WCAG criteria above for detailed conformance.</td>
       </tr>
       <tr>
         <td>9.4</td>
-        <td>Robust (WCAG 2.1 Level A and AA)</td>
+        <td>Robust (WCAG 2.2 Level A and AA)</td>
         <td>Supports</td>
         <td>See WCAG criteria above for detailed conformance. ARIA roles, states, and properties are properly implemented across all components.</td>
       </tr>
@@ -397,7 +422,7 @@
 <section>
   <h2>Revised Section 508 Standards</h2>
 
-  <p>OneUptime's conformance to the Revised Section 508 Standards (as referenced in the 2017 update) aligns with our WCAG 2.1 Level A and AA conformance as detailed above. The Revised Section 508 Standards incorporate WCAG 2.0 Level A and AA success criteria for web content.</p>
+  <p>OneUptime's conformance to the Revised Section 508 Standards (as referenced in the 2017 update) aligns with our WCAG 2.2 Level A and AA conformance as detailed above. The Revised Section 508 Standards incorporate WCAG 2.0 Level A and AA success criteria for web content.</p>
 
   <h3>Chapter 5: Software</h3>
   <table>

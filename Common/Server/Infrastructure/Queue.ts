@@ -16,6 +16,7 @@ export enum QueueName {
   Workflow = "Workflow",
   Worker = "Worker",
   Telemetry = "Telemetry",
+  Runbook = "Runbook",
 }
 
 export type QueueJob = Job;

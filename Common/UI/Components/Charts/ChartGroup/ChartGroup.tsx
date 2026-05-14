@@ -147,9 +147,11 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       metricInfoModalChart.attributes || {};
     const attributeKeys: Array<string> = Object.keys(attributes);
 
-    // OTel reports fraction metrics like `*.utilization` with unit "1".
-    // Translate that to a human label ("Percent") for the details modal,
-    // and hide the row entirely for truly dimensionless counts.
+    /*
+     * OTel reports fraction metrics like `*.utilization` with unit "1".
+     * Translate that to a human label ("Percent") for the details modal,
+     * and hide the row entirely for truly dimensionless counts.
+     */
     const displayUnit: string = metricInfoModalChart.unit
       ? ValueFormatter.getReadableUnit(metricInfoModalChart.unit, {
           metricName: metricInfoModalChart.metricName,

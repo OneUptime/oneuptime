@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Runbooks — response procedures that actually run themselves.</title>
+  <meta name="description"
+    content="OneUptime Runbooks are reusable response procedures — manual checklists and automated steps — that attach to incidents, alerts, and scheduled maintenance the moment they're created.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+  <main id="main-content">
+
+    <!-- Hero -->
+    <div class="relative isolate overflow-hidden bg-white" id="runbooks-hero">
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <p class="text-sm font-medium text-teal-600 mb-4">Response procedures — done your way</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Runbooks that run themselves
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Define an ordered list of steps — manual checklists, JavaScript, HTTP calls, or bash. Attach them to incidents, alerts, or scheduled maintenance by rule. Responders see exactly what's been done and what's left.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Manual checklists</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>JavaScript &amp; bash</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>HTTP calls</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Auto-trigger on incidents</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How it works -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            One feature, three roles in one
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            A runbook is a recipe. The same recipe can be ticked off by a human, executed by a script, or both — interleaved.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-10 w-10 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-semibold">1</div>
+              <h3 class="text-lg font-semibold text-gray-900">Author the steps</h3>
+            </div>
+            <p class="text-sm text-gray-600">
+              Add steps one at a time. Manual steps are checklist items. JavaScript runs in an isolated VM. HTTP and bash give you escape hatches when you need them.
+            </p>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-10 w-10 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-semibold">2</div>
+              <h3 class="text-lg font-semibold text-gray-900">Hook it to events</h3>
+            </div>
+            <p class="text-sm text-gray-600">
+              Create a Runbook Rule on Incidents, Alerts, or Scheduled Maintenance. Match by title or description regex. When the event is created, the matching runbooks start automatically.
+            </p>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-10 w-10 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-semibold">3</div>
+              <h3 class="text-lg font-semibold text-gray-900">Respond &amp; tick off</h3>
+            </div>
+            <p class="text-sm text-gray-600">
+              The runbook execution lives on the incident page. Automated steps run inline; manual steps wait for someone to tick them. Every output is captured — no lost-tab postmortems.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature grid -->
+    <div class="relative bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Built for actual incident response
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Not a workflow engine wearing a checklist costume.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-gray-200 p-6">
+            <h3 class="text-base font-semibold text-gray-900">Four step types</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              Manual checklist · Sandboxed JavaScript (via isolated-vm) · HTTP request · Bash (gated). Mix and match in any order.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-200 p-6">
+            <h3 class="text-base font-semibold text-gray-900">Snapshot on start</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              When a runbook starts, its steps are snapshotted onto the execution. Editing the template afterwards never mutates an in-flight run — postmortems stay accurate.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-200 p-6">
+            <h3 class="text-base font-semibold text-gray-900">Per-event executions</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              Every run is attached to its incident, alert, or maintenance event. See past runs on the event page; open one to view step-by-step output and tick off remaining steps.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-200 p-6">
+            <h3 class="text-base font-semibold text-gray-900">Pattern-based rules</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              Match by title/description regex per entity type. "Anything matching <code>db-</code> in title → run the DB failover runbook." Skip patterns to match everything.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-200 p-6">
+            <h3 class="text-base font-semibold text-gray-900">Manual override</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              "Run Runbook" button on every incident, alert, and maintenance event. Pick a runbook and go — no need to define a rule first.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-200 p-6">
+            <h3 class="text-base font-semibold text-gray-900">Captured output</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              Stdout, return values, HTTP responses, error messages — all retained on the execution. No more "what did that script actually print?"
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="bg-gray-50 py-20">
+      <div class="mx-auto max-w-4xl text-center px-6">
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          Stop writing "step 1: SSH to box" in Slack
+        </h2>
+        <p class="mt-4 text-lg text-gray-600">
+          Codify your response. Make it runnable. Trigger it automatically. Get back to sleep.
+        </p>
+        <div class="mt-8 flex items-center justify-center gap-4">
+          <a href="/accounts/register"
+            class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+            Start free
+          </a>
+          <a href="/enterprise/demo"
+            class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+            Talk to us &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  <%- include('footer') -%>
+</body>
+
+</html>

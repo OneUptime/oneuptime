@@ -202,6 +202,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Runbook Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route,
+            ),
+          },
+          icon: IconProp.BookOpen,
+        },
+        {
+          link: {
             title: "Privacy Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,

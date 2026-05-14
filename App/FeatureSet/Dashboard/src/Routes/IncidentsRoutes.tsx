@@ -75,6 +75,7 @@ import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentG
 import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnCallRules";
 
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
+import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
 
 import IncidentSettingsPrivacyRules from "../Pages/Incidents/Settings/IncidentPrivacyRules";
 
@@ -371,6 +372,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] || ""
+          }
+          element={
+            <IncidentSettingsRunbookRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route
               }
             />
           }

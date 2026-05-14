@@ -51,6 +51,7 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceLabelRuleEngineService from "./ScheduledMaintenanceLabelRuleEngineService";
 import ScheduledMaintenanceOwnerRuleEngineService from "./ScheduledMaintenanceOwnerRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
@@ -962,6 +963,21 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         } catch (error) {
           logger.error(
             `Apply scheduled maintenance label rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToScheduledMaintenance(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               scheduledMaintenanceId: createdItem.id?.toString(),

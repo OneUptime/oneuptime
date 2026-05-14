@@ -141,6 +141,16 @@ export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
+export const RunbookRoutePath: Dictionary<string> = {
+  [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
+  [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
+  [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
+  [PageMap.RUNBOOK_VIEW_EXECUTION]: `${RouteParams.ModelID}/executions/${RouteParams.SubModelID}`,
+  [PageMap.RUNBOOK_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.RUNBOOK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -304,6 +314,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
@@ -361,6 +372,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.ALERTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -399,6 +411,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/owner-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES]:
     "settings/label-rules",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES]:
+    "settings/runbook-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
@@ -880,6 +894,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_PRIVACY_RULES]
@@ -1323,6 +1343,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]
@@ -1535,6 +1561,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
         PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
       ]
     }`,
   ),
@@ -3109,6 +3143,47 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOW_VIEW_SETTINGS]
+    }`,
+  ),
+
+  // runbooks.
+  [PageMap.RUNBOOKS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/*`,
+  ),
+  [PageMap.RUNBOOKS]: new Route(`/dashboard/${RouteParams.ProjectID}/runbooks`),
+  [PageMap.RUNBOOKS_EXECUTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_EXECUTIONS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_STEPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_STEPS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_EXECUTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_EXECUTIONS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_EXECUTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_EXECUTION]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_SETTINGS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_DELETE]
     }`,
   ),
 
