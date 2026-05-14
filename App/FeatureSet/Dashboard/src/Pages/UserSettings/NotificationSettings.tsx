@@ -13,6 +13,7 @@ import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Color from "Common/Types/Color";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
 import {
   Blue500,
   Gray500,
@@ -268,201 +269,139 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
-  type CategoryHeaderProps = {
-    title: string;
-    description: string;
-    icon: IconProp;
-  };
-
-  const CategoryHeader: FunctionComponent<CategoryHeaderProps> = (
-    props: CategoryHeaderProps,
-  ): ReactElement => {
-    return (
-      <div className="mt-8 mb-4 flex items-start gap-3 border-b border-gray-200 pb-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-          <Icon icon={props.icon} className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-gray-900">{props.title}</h2>
-          <p className="mt-0.5 text-sm text-gray-500">{props.description}</p>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <Fragment>
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white px-5 py-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-            <Icon icon={IconProp.Bell} className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-base font-semibold text-gray-900">
-              Notification Settings
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Choose how you want to be notified when events happen on resources
-              you own across this project. Rules are grouped by resource type
-              below. To manage the underlying delivery channels (email address,
-              phone number, webhook URLs, etc.), visit{" "}
-              <span className="font-medium text-gray-700">
-                Notification Methods
-              </span>
-              .
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <CategoryHeader
-        title="Incidents & Alerts"
-        description="Notifications for incidents, alerts, and their child episodes that you own."
-        icon={IconProp.Alert}
+      <Tabs
+        tabs={[
+          {
+            name: "Incidents & Alerts",
+            children: (
+              <div className="space-y-4">
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Incident Notifications",
+                  description:
+                    "Get notified when an incident is created, its state changes, a note is posted, or you are added as an owner.",
+                })}
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Incident Episode Notifications",
+                  description:
+                    "Get notified about activity on incident episodes you own — when an episode is created, its state changes, a note is posted, or you are added as an owner.",
+                })}
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Alert Notifications",
+                  description:
+                    "Get notified when an alert is created, its state changes, a note is posted, or you are added as an owner.",
+                })}
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Alert Episode Notifications",
+                  description:
+                    "Get notified about activity on alert episodes you own — when an episode is created, its state changes, a note is posted, or you are added as an owner.",
+                })}
+              </div>
+            ),
+          },
+          {
+            name: "Monitoring",
+            children: (
+              <div className="space-y-4">
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+                    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+                    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+                  ],
+                  title: "Monitor Notifications",
+                  description:
+                    "Get notified when a monitor is created, its status changes, or when probe coverage changes for a monitor you own.",
+                })}
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Probe Notifications",
+                  description:
+                    "Get notified when a custom probe's status changes or when you are added as an owner of a probe.",
+                })}
+              </div>
+            ),
+          },
+          {
+            name: "Status Pages & Maintenance",
+            children: (
+              <div className="space-y-4">
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Status Page Notifications",
+                  description:
+                    "Get notified when a status page is created, an announcement is posted, or you are added as an owner.",
+                })}
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
+                    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
+                  ],
+                  title: "Scheduled Maintenance Notifications",
+                  description:
+                    "Get notified when a scheduled maintenance event is created, its state changes, a note is posted, or you are added as an owner.",
+                })}
+              </div>
+            ),
+          },
+          {
+            name: "On-Call",
+            children: (
+              <div className="space-y-4">
+                {getModelTable({
+                  eventOptions: [
+                    NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+                    NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+                    NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+                    NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
+                    NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+                  ],
+                  title: "On-Call Notifications",
+                  description:
+                    "Get notified when you go on or off the on-call roster, when you are up next, or when you are added to or removed from an on-call policy.",
+                })}
+              </div>
+            ),
+          },
+        ]}
+        onTabChange={() => {}}
       />
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Incident Notifications",
-          description:
-            "Get notified when an incident is created, its state changes, a note is posted, or you are added as an owner.",
-        })}
-      </div>
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Incident Episode Notifications",
-          description:
-            "Get notified about activity on incident episodes you own — when an episode is created, its state changes, a note is posted, or you are added as an owner.",
-        })}
-      </div>
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Alert Notifications",
-          description:
-            "Get notified when an alert is created, its state changes, a note is posted, or you are added as an owner.",
-        })}
-      </div>
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Alert Episode Notifications",
-          description:
-            "Get notified about activity on alert episodes you own — when an episode is created, its state changes, a note is posted, or you are added as an owner.",
-        })}
-      </div>
-
-      <CategoryHeader
-        title="Monitoring"
-        description="Notifications for monitors and probes that watch your infrastructure."
-        icon={IconProp.Activity}
-      />
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
-            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
-            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
-          ],
-          title: "Monitor Notifications",
-          description:
-            "Get notified when a monitor is created, its status changes, or when probe coverage changes for a monitor you own.",
-        })}
-      </div>
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Probe Notifications",
-          description:
-            "Get notified when a custom probe's status changes or when you are added as an owner of a probe.",
-        })}
-      </div>
-
-      <CategoryHeader
-        title="Status Pages & Maintenance"
-        description="Notifications for status pages and scheduled maintenance events that you own."
-        icon={IconProp.CheckCircle}
-      />
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Status Page Notifications",
-          description:
-            "Get notified when a status page is created, an announcement is posted, or you are added as an owner.",
-        })}
-      </div>
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
-            NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
-          ],
-          title: "Scheduled Maintenance Notifications",
-          description:
-            "Get notified when a scheduled maintenance event is created, its state changes, a note is posted, or you are added as an owner.",
-        })}
-      </div>
-
-      <CategoryHeader
-        title="On-Call"
-        description="Notifications about your on-call shifts and on-call policy membership."
-        icon={IconProp.Call}
-      />
-
-      <div>
-        {getModelTable({
-          eventOptions: [
-            NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
-            NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
-            NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
-            NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
-            NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
-          ],
-          title: "On-Call Notifications",
-          description:
-            "Get notified when you go on or off the on-call roster, when you are up next, or when you are added to or removed from an on-call policy.",
-        })}
-      </div>
     </Fragment>
   );
 };
