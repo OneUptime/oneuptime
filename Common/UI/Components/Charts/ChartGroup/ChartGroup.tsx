@@ -1,5 +1,6 @@
 import Text from "../../../../Types/Text";
 import Dictionary from "../../../../Types/Dictionary";
+import ValueFormatter from "../../../../Utils/ValueFormatter";
 import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
 import BarChartElement, {
   ComponentProps as BarChartProps,
@@ -146,6 +147,15 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       metricInfoModalChart.attributes || {};
     const attributeKeys: Array<string> = Object.keys(attributes);
 
+    // OTel reports fraction metrics like `*.utilization` with unit "1".
+    // Translate that to a human label ("Percent") for the details modal,
+    // and hide the row entirely for truly dimensionless counts.
+    const displayUnit: string = metricInfoModalChart.unit
+      ? ValueFormatter.getReadableUnit(metricInfoModalChart.unit, {
+          metricName: metricInfoModalChart.metricName,
+        })
+      : "";
+
     return (
       <Modal
         title="Metric Details"
@@ -178,14 +188,12 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {metricInfoModalChart.aggregationType}
                   </td>
                 </tr>
-                {metricInfoModalChart.unit && (
+                {displayUnit && (
                   <tr className="border-b border-gray-200">
                     <td className="py-2.5 pr-4 font-medium text-gray-500 whitespace-nowrap">
                       Unit
                     </td>
-                    <td className="py-2.5 text-gray-900">
-                      {metricInfoModalChart.unit}
-                    </td>
+                    <td className="py-2.5 text-gray-900">{displayUnit}</td>
                   </tr>
                 )}
                 {metricInfoModalChart.groupByAttribute && (
