@@ -1,8 +1,11 @@
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
+import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
+import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
+import ModelFieldPicker from "./ModelFieldPicker";
 import { componentInputTypeToFormFieldType } from "./Utils";
 import VariableModal from "./VariableModal";
 import Dictionary from "../../../Types/Dictionary";
@@ -190,15 +193,51 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   const isWorkflowSelect: boolean =
                     arg.type === ComponentInputType.WorkflowSelect;
 
+                  /*
+                   * Database Select args (the "Select Fields" / "Listen on"
+                   * trigger inputs) get a tree-style field picker backed by
+                   * the model's schema, instead of a raw JSON textarea. We
+                   * need a tableName on the component metadata to fetch the
+                   * column list; without it, fall back to the JSON editor.
+                   */
+                  const useFieldPicker: boolean =
+                    arg.type === ComponentInputType.Select &&
+                    Boolean(component.metadata.tableName);
+
                   const baseField: {
                     fieldType: import("../Forms/Types/FormFieldSchemaType").default;
                     dropdownOptions?: Array<DropdownOption> | undefined;
-                  } = componentInputTypeToFormFieldType(
-                    arg.type,
-                    component.arguments && component.arguments[arg.id]
-                      ? component.arguments[arg.id]
-                      : null,
-                  );
+                    getCustomElement?: (
+                      values: FormValues<JSONObject>,
+                      customProps: CustomElementProps,
+                    ) => ReactElement | undefined;
+                  } = useFieldPicker
+                    ? {
+                        fieldType: FormFieldSchemaType.CustomComponent,
+                        getCustomElement: (
+                          _values: FormValues<JSONObject>,
+                          customProps: CustomElementProps,
+                        ): ReactElement => {
+                          return (
+                            <ModelFieldPicker
+                              tableName={component.metadata.tableName as string}
+                              initialValue={customProps.initialValue}
+                              onChange={(value: string) => {
+                                void customProps.onChange?.(value);
+                              }}
+                              placeholder={customProps.placeholder}
+                              error={customProps.error}
+                              tabIndex={customProps.tabIndex}
+                            />
+                          );
+                        },
+                      }
+                    : componentInputTypeToFormFieldType(
+                        arg.type,
+                        component.arguments && component.arguments[arg.id]
+                          ? component.arguments[arg.id]
+                          : null,
+                      );
 
                   /*
                    * For WorkflowSelect, inject the dynamically fetched list
@@ -208,13 +247,17 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     baseField.dropdownOptions = workflowDropdownOptions;
                   }
 
+                  /*
+                   * The "pick from component / variable" footer doesn't
+                   * apply to the field picker (it edits a structured object,
+                   * not a free-text expression) or to WorkflowSelect.
+                   */
+                  const showVariableFooter: boolean =
+                    !isWorkflowSelect && !useFieldPicker;
+
                   return {
                     title: `${arg.name}`,
-                    /*
-                     * WorkflowSelect has no "pick from component/variable"
-                     * footer — it's a bound dropdown, not a free-text field.
-                     */
-                    footerElement: isWorkflowSelect ? undefined : (
+                    footerElement: showVariableFooter ? (
                       <div className="text-gray-500">
                         <p className="text-sm">
                           Pick this value from other{" "}
@@ -239,7 +282,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           </button>
                         </p>
                       </div>
-                    ),
+                    ) : undefined,
                     description: `${
                       arg.required ? "Required" : "Optional"
                     }. ${arg.description}`,
