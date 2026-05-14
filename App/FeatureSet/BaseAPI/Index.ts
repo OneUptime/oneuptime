@@ -602,6 +602,15 @@ import WorkflowService, {
 import WorkflowVariableService, {
   Service as WorkflowVariableServiceType,
 } from "Common/Server/Services/WorkflowVariableService";
+import RunbookService, {
+  Service as RunbookServiceType,
+} from "Common/Server/Services/RunbookService";
+import RunbookExecutionService, {
+  Service as RunbookExecutionServiceType,
+} from "Common/Server/Services/RunbookExecutionService";
+import RunbookRuleService, {
+  Service as RunbookRuleServiceType,
+} from "Common/Server/Services/RunbookRuleService";
 
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
@@ -791,6 +800,9 @@ import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
@@ -2023,6 +2035,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
         WorkflowLog,
         WorkflowLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<Runbook, RunbookServiceType>(
+        Runbook,
+        RunbookService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookExecution, RunbookExecutionServiceType>(
+        RunbookExecution,
+        RunbookExecutionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookRule, RunbookRuleServiceType>(
+        RunbookRule,
+        RunbookRuleService,
       ).getRouter(),
     );
 

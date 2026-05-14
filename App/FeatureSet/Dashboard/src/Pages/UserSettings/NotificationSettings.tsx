@@ -527,7 +527,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                 <tr className="border-b border-gray-200">
                   <th
                     scope="col"
-                    className="sticky left-0 z-10 bg-white py-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+                    className="sticky left-0 z-0 bg-white py-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
                   >
                     Event
                   </th>
@@ -562,7 +562,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                       key={event.type}
                       className="group hover:bg-gray-50/60 transition-colors"
                     >
-                      <td className="sticky left-0 z-10 bg-white py-4 pr-4 align-top group-hover:bg-gray-50/60 transition-colors">
+                      <td className="sticky left-0 z-0 bg-white py-4 pr-4 align-top group-hover:bg-gray-50/60 transition-colors">
                         <div className="text-sm font-medium text-gray-900">
                           {event.label}
                         </div>
