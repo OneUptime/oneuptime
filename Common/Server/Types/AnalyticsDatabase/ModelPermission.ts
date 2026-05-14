@@ -5,6 +5,7 @@ import {
 import DatabaseRequestType from "../BaseDatabase/DatabaseRequestType";
 import Query from "./Query";
 import Select from "./Select";
+import QueryHelper from "../Database/QueryHelper";
 import BaseModel, {
   AnalyticsBaseModelType,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -14,8 +15,11 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Columns from "../../../Types/Database/Columns";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -51,6 +55,13 @@ export default class ModelPermission {
         DatabaseRequestType.Delete,
       );
       query = await this.addTenantScopeToQuery(modelType, query, null, props);
+      // Owned scope: restrict deletes to telemetry from accessible services.
+      query = await this.addOwnedScopeToQuery(
+        modelType,
+        query,
+        props,
+        DatabaseRequestType.Delete,
+      );
     }
 
     return query;
@@ -248,6 +259,17 @@ export default class ModelPermission {
         // check model level permissions.
         this.checkModelLevelPermissions(
           modelType,
+          props,
+          DatabaseRequestType.Read,
+        );
+
+        // Apply the `Owned` permission scope filter for telemetry models
+        // (Log/Span/Metric). Resolves the user's accessible Service IDs
+        // once and constrains the ClickHouse query with `serviceId IN (...)`.
+        // See Internal/Docs/PermissionsSimplification.md.
+        query = await this.addOwnedScopeToQuery(
+          modelType,
+          query,
           props,
           DatabaseRequestType.Read,
         );
@@ -630,6 +652,146 @@ export default class ModelPermission {
       default:
         return null;
     }
+  }
+
+  // `Owned` scope filter for analytics models (Log, Span, Metric). Resolves
+  // the user's accessible Service IDs via the Postgres ServiceOwner* tables
+  // once and injects `serviceId IN (...)` into the ClickHouse query. The
+  // operational per-row owner-join from the Postgres path doesn't scale to
+  // telemetry volume; one Postgres roundtrip + one indexed predicate does.
+  // See Internal/Docs/PermissionsSimplification.md §Telemetry & Analytics.
+  private static async addOwnedScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Promise<Query<TBaseModel>> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return query;
+    }
+
+    if (type === DatabaseRequestType.Create) {
+      return query;
+    }
+
+    // Only applies to analytics models that declare @OwnedThrough — today
+    // Log, Span, Metric all do (to Service via serviceId). Anything without
+    // it can't have ownership filtering applied, so we leave the query alone.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model: any = new modelType();
+    if (!model.ownedThrough) {
+      return query;
+    }
+
+    const modelPermissions: Array<Permission> = this.getModelPermissions(
+      modelType,
+      type,
+    );
+    const effectivePermissions: Array<Permission> =
+      this.getEffectiveModelPermissions(modelType, modelPermissions, type);
+
+    const userPermissions: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      );
+
+    const applicableRows: Array<UserPermission> = userPermissions.filter(
+      (p: UserPermission) => {
+        return effectivePermissions.includes(p.permission);
+      },
+    );
+
+    if (applicableRows.length === 0) {
+      return query;
+    }
+
+    // If any applicable row is non-Owned scope, that broader grant wins
+    // and the Owned filter doesn't apply.
+    const hasNonOwnedGrant: boolean = applicableRows.some(
+      (p: UserPermission) => {
+        return p.scope !== PermissionScope.Owned;
+      },
+    );
+    if (hasNonOwnedGrant) {
+      return query;
+    }
+
+    // Resolve allowed service IDs via the Postgres ServiceOwner* tables.
+    // Lazy require to avoid circular deps with services that extend
+    // DatabaseService.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const ownerTableRegistry: Map<
+      string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { ownerUserService: any; ownerTeamService: any; fkColumn: string }
+    > = require("../Database/Permissions/OwnerTableRegistry").default;
+
+    const serviceEntry: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ownerUserService: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ownerTeamService: any;
+      fkColumn: string;
+    } | undefined = ownerTableRegistry.get("Service");
+    if (!serviceEntry) {
+      return query;
+    }
+
+    const allowedServiceIds: Set<string> = new Set<string>();
+
+    if (props.userId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userOwnedRows: Array<any> =
+        await serviceEntry.ownerUserService.findBy({
+          query: {
+            userId: props.userId,
+            ...(props.tenantId ? { projectId: props.tenantId } : {}),
+          },
+          select: { serviceId: true },
+          props: { isRoot: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+        });
+      for (const row of userOwnedRows) {
+        const id: ObjectID | undefined = row.serviceId;
+        if (id) {
+          allowedServiceIds.add(id.toString());
+        }
+      }
+    }
+
+    if (props.userTeamIds && props.userTeamIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const teamOwnedRows: Array<any> =
+        await serviceEntry.ownerTeamService.findBy({
+          query: {
+            teamId: QueryHelper.any(props.userTeamIds),
+            ...(props.tenantId ? { projectId: props.tenantId } : {}),
+          },
+          select: { serviceId: true },
+          props: { isRoot: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+        });
+      for (const row of teamOwnedRows) {
+        const id: ObjectID | undefined = row.serviceId;
+        if (id) {
+          allowedServiceIds.add(id.toString());
+        }
+      }
+    }
+
+    const fkColumn: string = model.ownedThrough.fkColumn;
+    const idList: Array<string> =
+      allowedServiceIds.size > 0
+        ? Array.from(allowedServiceIds)
+        : [ObjectID.getZeroObjectID().toString()]; // sentinel: match nothing
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (query as any)[fkColumn] = new Includes(idList);
+
+    return query;
   }
 
   private static isPublicPermissionAllowed(
