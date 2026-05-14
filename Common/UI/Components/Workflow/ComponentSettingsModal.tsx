@@ -68,8 +68,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
 
-  const argumentsSection: ReactElement = (
-    <SectionCard icon={IconProp.Settings} title="Configuration">
+  const settingsSection: ReactElement = (
+    <SectionCard icon={IconProp.Settings} title="Settings">
       <ArgumentsForm
         graphComponents={props.graphComponents}
         workflowId={props.workflowId}
@@ -87,11 +87,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     </SectionCard>
   );
 
-  const identitySection: ReactElement = (
-    <SectionCard
-      icon={IconProp.Label}
-      title={`${component.metadata.componentType} ID`}
-    >
+  const idSection: ReactElement = (
+    <SectionCard icon={IconProp.Label} title="ID">
       <BasicForm
         hideSubmitButton={true}
         initialValues={{ id: component?.id }}
@@ -107,7 +104,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         fields={[
           {
             title: "Identifier",
-            description: `Used to reference this ${component.metadata.componentType.toLowerCase()} from other components.`,
+            description: `Used to reference this ${component.metadata.componentType.toLowerCase()} from other steps.`,
             field: { id: true },
             required: true,
             fieldType: FormFieldSchemaType.Text,
@@ -128,32 +125,50 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     </SectionCard>
   ) : null;
 
-  const connectionsSection: ReactElement = (
-    <SectionCard icon={IconProp.Link} title="Connections">
-      <>
-        <ComponentPortViewer
-          name="In Ports"
-          description="Input connections for this component"
-          ports={component.metadata.inPorts}
-        />
-        <ComponentPortViewer
-          name="Out Ports"
-          description="Output connections from this component"
-          ports={component.metadata.outPorts}
-        />
-      </>
-    </SectionCard>
-  );
+  /*
+   * Each connection/output card is only rendered if there's something to
+   * show — keeps the sidebar lean for triggers (no inputs) and components
+   * that don't return any data.
+   */
+  const hasInputs: boolean =
+    Array.isArray(component.metadata.inPorts) &&
+    component.metadata.inPorts.length > 0;
+  const hasOutputs: boolean =
+    Array.isArray(component.metadata.outPorts) &&
+    component.metadata.outPorts.length > 0;
+  const hasReturns: boolean =
+    Array.isArray(component.metadata.returnValues) &&
+    component.metadata.returnValues.length > 0;
 
-  const outputSection: ReactElement = (
-    <SectionCard icon={IconProp.ArrowCircleRight} title="Output">
+  const inputsSection: ReactElement | null = hasInputs ? (
+    <SectionCard icon={IconProp.ArrowCircleDown} title="Inputs">
+      <ComponentPortViewer
+        name=""
+        description="Where this step is reached from."
+        ports={component.metadata.inPorts}
+      />
+    </SectionCard>
+  ) : null;
+
+  const outputsSection: ReactElement | null = hasOutputs ? (
+    <SectionCard icon={IconProp.ArrowCircleRight} title="Outputs">
+      <ComponentPortViewer
+        name=""
+        description="What runs after this step."
+        ports={component.metadata.outPorts}
+      />
+    </SectionCard>
+  ) : null;
+
+  const returnsSection: ReactElement | null = hasReturns ? (
+    <SectionCard icon={IconProp.Database} title="Returns">
       <ComponentReturnValueViewer
-        name="Return Values"
-        description="Values this component produces for downstream use"
+        name=""
+        description="Data this step makes available downstream."
         returnValues={component.metadata.returnValues}
       />
     </SectionCard>
-  );
+  ) : null;
 
   const hasErrors: boolean = Object.values(hasFormValidationErrors).some(
     (v: boolean) => {
@@ -207,12 +222,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
          * column below md.
          */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 space-y-4">{argumentsSection}</div>
+          <div className="md:col-span-2 space-y-4">{settingsSection}</div>
           <div className="md:col-span-1 space-y-4">
-            {identitySection}
+            {idSection}
             {documentationSection}
-            {connectionsSection}
-            {outputSection}
+            {inputsSection}
+            {outputsSection}
+            {returnsSection}
           </div>
         </div>
       </>

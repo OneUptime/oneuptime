@@ -143,17 +143,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   }, [component]);
 
   return (
-    <div className="mb-3 mt-3">
-      <div className="mt-5 mb-5">
-        <h2 className="text-base font-medium text-gray-500">Arguments</h2>
-        <p className="text-sm font-medium text-gray-400 mb-5">
-          Arguments for this component
-        </p>
+    <div>
+      <div>
         {component.metadata.arguments &&
           component.metadata.arguments.length === 0 && (
-            <ErrorMessage
-              message={"This component does not take any arguments."}
-            />
+            <ErrorMessage message={"This step does not need any settings."} />
           )}
         {/*
           If any argument is a WorkflowSelect and we're still fetching the
