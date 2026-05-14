@@ -10,6 +10,14 @@ import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import User from "Common/Models/DatabaseModels/User";
+import IncidentElement from "../../../Components/Incident/Incident";
+import AlertElement from "../../../Components/Alert/Alert";
+import UserElement from "../../../Components/User/User";
+import AppLink from "../../../Components/AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -40,6 +48,61 @@ function statusPill(status: RunbookExecutionStatus): ReactElement {
         <Pill text={status || "Scheduled"} color={Gray500} isMinimal={true} />
       );
   }
+}
+
+function triggerCell(item: RunbookExecution): ReactElement {
+  if (item.incident) {
+    return (
+      <div className="flex flex-col">
+        <span className="text-xs text-gray-500">Incident</span>
+        <IncidentElement incident={item.incident as Incident} />
+      </div>
+    );
+  }
+  if (item.alert) {
+    return (
+      <div className="flex flex-col">
+        <span className="text-xs text-gray-500">Alert</span>
+        <AlertElement alert={item.alert as Alert} />
+      </div>
+    );
+  }
+  if (item.scheduledMaintenance) {
+    const sm: ScheduledMaintenance =
+      item.scheduledMaintenance as ScheduledMaintenance;
+    return (
+      <div className="flex flex-col">
+        <span className="text-xs text-gray-500">Maintenance</span>
+        {sm._id ? (
+          <AppLink
+            className="hover:underline"
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+              { modelId: new ObjectID(sm._id as string) },
+            )}
+          >
+            <span>{sm.title || "View"}</span>
+          </AppLink>
+        ) : (
+          <span>{sm.title || "—"}</span>
+        )}
+      </div>
+    );
+  }
+  if (item.triggeredByUser) {
+    return (
+      <div className="flex flex-col">
+        <span className="text-xs text-gray-500">Manual run by</span>
+        <UserElement user={item.triggeredByUser as User} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col">
+      <span className="text-xs text-gray-500">Trigger</span>
+      <span className="text-sm text-gray-500">Manual / unknown</span>
+    </div>
+  );
 }
 
 const RunbookExecutionsList: FunctionComponent<
@@ -124,6 +187,24 @@ const RunbookExecutionsList: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: RunbookExecution): ReactElement => {
               return statusPill(item.status as RunbookExecutionStatus);
+            },
+          },
+          {
+            field: {
+              incident: { _id: true, title: true },
+              alert: { _id: true, title: true },
+              scheduledMaintenance: { _id: true, title: true },
+              triggeredByUser: {
+                _id: true,
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            title: "Triggered by",
+            type: FieldType.Element,
+            getElement: (item: RunbookExecution): ReactElement => {
+              return triggerCell(item);
             },
           },
           {

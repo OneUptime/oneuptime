@@ -98,7 +98,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     type: RunbookStepType.Bash,
     label: "Bash script",
     shortLabel: "Bash",
-    description: "Shell command on the Worker (requires RUNBOOK_BASH_ENABLED).",
+    description: "Run a shell command on the agent.",
     icon: IconProp.Terminal,
     bg: "bg-slate-50",
     ring: "ring-slate-200",
@@ -368,7 +368,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           <Icon
                             icon={meta.icon}
                             size={SizeProp.Regular}
-                            className={meta.iconColor}
+                            className={`h-5 w-5 ${meta.iconColor}`}
                           />
                         </div>
                         <div className="text-sm font-semibold text-gray-900">
@@ -687,16 +687,42 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             })}
 
             {steps.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  add(RunbookStepType.Manual);
-                }}
-                className="rounded-xl border border-dashed border-gray-300 bg-white hover:bg-gray-50 text-sm text-gray-500 hover:text-gray-700 px-4 py-3 transition flex items-center justify-center gap-2"
-              >
-                <Icon icon={IconProp.Add} size={SizeProp.Smaller} />
-                Add step at the end &mdash; or use the menu above to pick a type
-              </button>
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4 mt-1">
+                <div className="text-xs font-medium text-gray-500 mb-3 text-center uppercase tracking-wide">
+                  Add another step
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {ALL_STEP_TYPES.map((t: RunbookStepType) => {
+                    const meta: StepTypeMeta = STEP_TYPE_META[t];
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          return add(t);
+                        }}
+                        className={`group text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-3 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+                      >
+                        <div
+                          className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-2`}
+                        >
+                          <Icon
+                            icon={meta.icon}
+                            size={SizeProp.Regular}
+                            className={`h-4 w-4 ${meta.iconColor}`}
+                          />
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {meta.shortLabel}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                          {meta.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
 

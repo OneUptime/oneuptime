@@ -15,48 +15,31 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <CardModelDetail<Runbook>
-        name="Runbook > Details"
+        name="Runbook > Enable / Disable"
         cardProps={{
-          title: "Runbook Details",
-          description: "Name, description, and enabled state.",
+          title: "Enable / Disable Runbook",
+          description:
+            "When disabled, this runbook will not be executable manually or by any triggers. Existing executions are unaffected.",
         }}
         isEditable={true}
+        editButtonText="Edit"
         formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Runbook name",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
           {
             field: { isEnabled: true },
             title: "Enabled",
+            description:
+              "Turn this off to stop the runbook from running until it is re-enabled.",
             fieldType: FormFieldSchemaType.Toggle,
           },
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          showDetailsInNumberOfColumns: 1,
           modelType: Runbook,
-          id: "model-detail-runbook",
+          id: "model-detail-runbook-enabled",
           fields: [
             {
-              field: { _id: true },
-              title: "Runbook ID",
-              fieldType: FieldType.ObjectID,
-            },
-            { field: { name: true }, title: "Name" },
-            { field: { description: true }, title: "Description" },
-            {
               field: { isEnabled: true },
-              title: "Enabled",
+              title: "Status",
               fieldType: FieldType.Element,
               getElement: (item: Runbook): ReactElement => {
                 if (item.isEnabled) {
@@ -66,6 +49,34 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 }
                 return <Pill text="Disabled" color={Red500} isMinimal={true} />;
               },
+            },
+          ],
+          modelId,
+        }}
+      />
+
+      <CardModelDetail<Runbook>
+        name="Runbook > Identifiers"
+        cardProps={{
+          title: "Identifiers",
+          description:
+            "Machine-readable identifiers for this runbook. Useful when referencing it from the API or scripts.",
+        }}
+        isEditable={false}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 2,
+          modelType: Runbook,
+          id: "model-detail-runbook-ids",
+          fields: [
+            {
+              field: { _id: true },
+              title: "Runbook ID",
+              fieldType: FieldType.ObjectID,
+            },
+            {
+              field: { slug: true },
+              title: "Slug",
+              fieldType: FieldType.Text,
             },
           ],
           modelId,
