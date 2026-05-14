@@ -3,6 +3,7 @@ import Query from "../Query";
 import QueryUtil from "../QueryUtil";
 import Select from "../Select";
 import AccessControlPermission from "./AccessControlPermission";
+import OwnedScopePermission from "./OwnedScopePermission";
 import PermissionUtil from "./PermissionsUtil";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
@@ -76,6 +77,18 @@ export default class BasePermission {
           modelType,
           query,
           select,
+          props,
+          type,
+        );
+
+        // Apply the `Owned` permission scope filter (see
+        // Internal/Docs/PermissionsSimplification.md). When the user's
+        // applicable permission rows are exclusively Owned-scoped, this
+        // restricts the query to resources where the user is in *OwnerUser
+        // or any of their teams is in *OwnerTeam.
+        query = await OwnedScopePermission.addOwnedScopeToQuery(
+          modelType,
+          query,
           props,
           type,
         );
