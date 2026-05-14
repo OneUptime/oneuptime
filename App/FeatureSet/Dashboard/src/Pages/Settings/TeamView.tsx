@@ -15,6 +15,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
@@ -304,6 +305,44 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 },
                 {
                   field: {
+                    scope: true,
+                  },
+                  title: "Scope",
+                  description:
+                    "Which resources this permission applies to. Owned (recommended): resources where this team or its members are listed as owners. All: every resource in the project. Labels: restrict by labels (advanced).",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: [
+                    {
+                      value: PermissionScope.Owned,
+                      label: "Owned by this team or its members",
+                    },
+                    {
+                      value: PermissionScope.All,
+                      label: "All resources in the project",
+                    },
+                    {
+                      value: PermissionScope.Labels,
+                      label: "Restrict by labels (advanced)",
+                    },
+                  ],
+                  defaultValue: PermissionScope.Owned,
+                  required: true,
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    if (!values["permission"]) {
+                      return false;
+                    }
+                    if (
+                      !PermissionHelper.isAccessControlPermission(
+                        values["permission"] as Permission,
+                      )
+                    ) {
+                      return false;
+                    }
+                    return true;
+                  },
+                },
+                {
+                  field: {
                     labels: true,
                   },
                   title: "Restrict to Labels",
@@ -326,6 +365,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         values["permission"] as Permission,
                       )
                     ) {
+                      return false;
+                    }
+
+                    // Labels apply only in Labels scope mode. Owned/All do
+                    // their filtering elsewhere and would ignore labels.
+                    const scope: PermissionScope | undefined = values[
+                      "scope"
+                    ] as PermissionScope | undefined;
+                    if (scope && scope !== PermissionScope.Labels) {
                       return false;
                     }
 
@@ -378,6 +426,24 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   {PermissionHelper.getTitle(item["permission"] as Permission)}
                 </p>
               );
+            },
+          },
+          {
+            field: {
+              scope: true,
+            },
+            title: "Scope",
+            type: FieldType.Text,
+            getElement: (item: TeamPermission): ReactElement => {
+              const scope: PermissionScope =
+                (item["scope"] as PermissionScope) || PermissionScope.Labels;
+              if (scope === PermissionScope.Owned) {
+                return <p>Owned by team or members</p>;
+              }
+              if (scope === PermissionScope.All) {
+                return <p>All resources</p>;
+              }
+              return <p>By labels</p>;
             },
           },
           {
