@@ -46,8 +46,8 @@
 </script>
 <!-- Compiled CSS: font-face declarations, prose typography, syntax tokens -->
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
-<title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - OneUptime Docs' : 'OneUptime Documentation' %></title>
-<meta name="description" content="Complete documentation for OneUptime - the open-source observability platform. Learn how to monitor your applications, set up alerts, and manage incidents.">
+<title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - ' + t('ui.metaTitleSuffix') : t('ui.metaTitleDefault') %></title>
+<meta name="description" content="<%= t('ui.metaDescription') %>">
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">

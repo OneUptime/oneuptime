@@ -9,15 +9,15 @@
                    </svg>
                 </div>
                 <div>
-                   <h3 class="text-sm font-semibold text-slate-900 mb-1">Open Source</h3>
+                   <h3 class="text-sm font-semibold text-slate-900 mb-1"><%= t('ui.openSourceTitle') %></h3>
                    <p class="text-sm text-slate-600 leading-relaxed">
-                      OneUptime API documentation is under Apache 2.0 license. Contribute on GitHub.
+                      <%= t('ui.openSourceBody') %>
                    </p>
                 </div>
              </div>
              <div class="flex gap-3">
                 <a class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-indigo-300 hover:bg-indigo-50 transition-all" href="https://twitter.com/OneUptimeHQ" target="_blank">
-                   <span class="sr-only">Follow us on Twitter</span>
+                   <span class="sr-only"><%= t('ui.followTwitter') %></span>
                    <svg viewBox="0 0 20 20" aria-hidden="true"
                       class="h-4 w-4 fill-slate-500 transition group-hover:fill-indigo-600">
                       <path
@@ -26,7 +26,7 @@
                    </svg>
                 </a>
                 <a class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-indigo-300 hover:bg-indigo-50 transition-all" href="https://github.com/oneuptime/oneuptime" target="_blank">
-                   <span class="sr-only">Follow us on GitHub</span>
+                   <span class="sr-only"><%= t('ui.followGithub') %></span>
                    <svg viewBox="0 0 20 20" aria-hidden="true"
                       class="h-4 w-4 fill-slate-500 transition group-hover:fill-indigo-600">
                       <path fill-rule="evenodd" clip-rule="evenodd"

@@ -1,14 +1,16 @@
-<div class="not-prose my-6 overflow-hidden rounded-xl bg-slate-900 shadow-lg ring-1 ring-slate-800/50 code-block-wrapper">
+<div class="not-prose my-6 overflow-hidden rounded-xl bg-slate-900 shadow-lg ring-1 ring-slate-800/50 code-block-wrapper"
+     data-copy-label="<%= t('ui.copy') %>"
+     data-copied-label="<%= t('ui.copied') %>">
     <div class="flex min-h-[calc(theme(spacing.11)+1px)] flex-wrap items-center gap-x-4 border-b border-slate-700/50 bg-slate-800/50 px-3 sm:px-4">
        <h4 class="mr-auto text-xs font-semibold text-slate-300 tracking-wide"><%= title -%></h4>
-       <button class="copy-btn-response" onclick="copyCodeBlock(this)" aria-label="Copy code">
+       <button class="copy-btn-response" onclick="copyCodeBlock(this)" aria-label="<%= t('ui.copyCode') %>">
           <svg class="copy-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
           </svg>
           <svg class="check-icon w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
           </svg>
-          <span class="copy-text">Copy</span>
+          <span class="copy-text"><%= t('ui.copy') %></span>
        </button>
     </div>
     <div class="group">
@@ -40,6 +42,8 @@
 function copyCodeBlock(btn) {
    const codeBlock = btn.closest('.code-block-wrapper');
    const code = codeBlock.querySelector('code');
+   const labelCopy = codeBlock.getAttribute('data-copy-label') || 'Copy';
+   const labelCopied = codeBlock.getAttribute('data-copied-label') || 'Copied!';
    if (code) {
       navigator.clipboard.writeText(code.textContent).then(() => {
          const copyIcon = btn.querySelector('.copy-icon');
@@ -48,13 +52,13 @@ function copyCodeBlock(btn) {
 
          copyIcon.classList.add('hidden');
          checkIcon.classList.remove('hidden');
-         copyText.textContent = 'Copied!';
+         copyText.textContent = labelCopied;
          btn.classList.add('copied');
 
          setTimeout(() => {
             copyIcon.classList.remove('hidden');
             checkIcon.classList.add('hidden');
-            copyText.textContent = 'Copy';
+            copyText.textContent = labelCopy;
             btn.classList.remove('copied');
          }, 2000);
       });

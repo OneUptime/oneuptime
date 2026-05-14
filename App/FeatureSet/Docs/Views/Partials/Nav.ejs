@@ -1,4 +1,7 @@
 <%
+// Map category icons by the canonical English title. We look up using the
+// `key` we attach to each localized group below — that key is the original
+// English title so icons stay stable across languages.
 var categoryIcons = {
     'Introduction': '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
     'Installation': '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>',
@@ -19,12 +22,19 @@ var categoryIcons = {
     'Self Hosted': '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>'
 };
 var defaultIcon = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
+// Stable English category keys, in nav order. The localized `nav` array is
+// rendered in the same order, so we can look up the icon by index.
+var navKeys = [
+    'Introduction','Installation','Mobile & Desktop Apps','Configuration','Emails','Identity',
+    'Terraform Provider','CLI','Monitor','On Call','Status Pages','Workspace Connections','Probe',
+    'Telemetry','AI','API Reference','Self Hosted'
+];
 %>
-<nav class="text-sm" style="width:16rem;flex:0 0 16rem;" aria-label="Documentation navigation">
+<nav class="text-sm" style="width:16rem;flex:0 0 16rem;" aria-label="<%= t('ui.documentation') %>">
     <ul role="list" class="space-y-1">
         <% for(var i=0; i<nav.length; i++) {
             var isActiveCategory = category && category.title === nav[i].title;
-            var catIcon = categoryIcons[nav[i].title] || defaultIcon;
+            var catIcon = categoryIcons[navKeys[i]] || defaultIcon;
         %>
         <li>
             <button type="button"

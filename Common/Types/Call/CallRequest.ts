@@ -31,13 +31,37 @@ export default interface CallRequest extends CallRequestMessage {
 
 type IsHighRiskPhoneNumberFunction = (phoneNumber: Phone) => boolean;
 
+/*
+ * Country dialing codes flagged as high-risk for IRSF / SMS pumping fraud.
+ * Twilio surfaces its current list dynamically in the Console; this set is
+ * drawn from publicly reported fraud patterns and should be reviewed
+ * periodically against Twilio Geo Permissions and Fraud Guard.
+ */
+const HIGH_RISK_COUNTRY_DIALING_CODES: Array<string> = [
+  "+92", // Pakistan
+  "+27", // South Africa
+  "+213", // Algeria
+  "+371", // Latvia
+  "+370", // Lithuania
+  "+372", // Estonia
+  "+252", // Somalia
+  "+232", // Sierra Leone
+  "+231", // Liberia
+  "+53", // Cuba
+  "+960", // Maldives
+  "+992", // Tajikistan
+  "+880", // Bangladesh
+  "+62", // Indonesia
+  "+84", // Vietnam
+  "+95", // Myanmar
+];
+
 export const isHighRiskPhoneNumber: IsHighRiskPhoneNumberFunction = (
   phoneNumber: Phone,
 ): boolean => {
-  // Pakistan
-  if (phoneNumber.toString().startsWith("+92")) {
-    return true;
-  }
+  const phoneNumberString: string = phoneNumber.toString();
 
-  return false;
+  return HIGH_RISK_COUNTRY_DIALING_CODES.some((code: string) => {
+    return phoneNumberString.startsWith(code);
+  });
 };

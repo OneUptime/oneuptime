@@ -317,6 +317,7 @@ import { MigrationName1778514515756 } from "./1778514515756-MigrationName";
 import { MigrationName1778521361934 } from "./1778521361934-MigrationName";
 import { AddStatusPageOIDC1778522070962 } from "./1778522070962-AddStatusPageOIDC";
 import { MigrationName1778582583897 } from "./1778582583897-MigrationName";
+import { AddScheduledMaintenanceRules1778703414082 } from "./1778703414082-AddScheduledMaintenanceRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -637,4 +638,5 @@ export default [
   MigrationName1778521361934,
   AddStatusPageOIDC1778522070962,
   MigrationName1778582583897,
+  AddScheduledMaintenanceRules1778703414082,
 ];

@@ -8,78 +8,78 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                </svg>
             </div>
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Guide</span>
+            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider"><%= t('pages.pagination.badge') %></span>
          </div>
-         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3">Pagination</h1>
-         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl">In this guide, we will look at how to work with paginated responses when querying the OneUptime API. By default, all responses limit results to ten.</p>
+         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= t('pages.pagination.title') %></h1>
+         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%= t('pages.pagination.intro') %></p>
       </div>
 
-      <p class="text-slate-600 leading-relaxed">When an API response returns a list of objects, no matter the amount, pagination is supported. In paginated responses, objects are nested in a <code class="inline-code">data</code> attribute. The API response also has <code class="inline-code">count</code> attribute that indicates total count in the list with that query. You can use the <code class="inline-code">limit</code> and <code class="inline-code">skip</code> query parameters to query pages.</p>
+      <p class="text-slate-600 leading-relaxed"><%- t('pages.pagination.body') %></p>
 
       <h2 id="example-using-cursors" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-6 mt-12">
-         Pagination Example
+         <%= t('pages.pagination.exampleHeading') %>
       </h2>
       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-            <p class="text-slate-600 leading-relaxed">In this example, we request the list of monitors. As a result, we get a list of three monitors and can tell by the <code class="inline-code">count</code> attribute that we have reached the end of the result set</p>
+            <p class="text-slate-600 leading-relaxed"><%- t('pages.pagination.exampleBody') %></p>
 
-            <h3 class="text-base font-semibold text-slate-800 mt-8 mb-3">Query Parameters</h3>
+            <h3 class="text-base font-semibold text-slate-800 mt-8 mb-3"><%= t('pages.pagination.queryParameters') %></h3>
             <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                   <li class="m-0 px-4 py-3">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code">limit</code></dd>
-                        <dd class="font-mono text-xs text-slate-500">Number</dd>
-                        <dd class="w-full flex-none text-sm text-slate-600">Number of items you need to fetch. More items will lead to slower responses. Max limit is 100.</dd>
+                        <dd class="font-mono text-xs text-slate-500"><%= t('pages.pagination.typeNumber') %></dd>
+                        <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.pagination.limitDescription') %></dd>
                      </dl>
                   </li>
                   <li class="m-0 px-4 py-3">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code">skip</code></dd>
-                        <dd class="font-mono text-xs text-slate-500">Number</dd>
-                        <dd class="w-full flex-none text-sm text-slate-600">Number of items to skip. This can be useful when you are paginating items.</dd>
+                        <dd class="font-mono text-xs text-slate-500"><%= t('pages.pagination.typeNumber') %></dd>
+                        <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.pagination.skipDescription') %></dd>
                      </dl>
                   </li>
                </ul>
             </div>
 
-            <h3 class="text-base font-semibold text-slate-800 mt-8 mb-3">Response Body</h3>
+            <h3 class="text-base font-semibold text-slate-800 mt-8 mb-3"><%= t('pages.pagination.responseBody') %></h3>
             <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
                <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                   <li class="m-0 px-4 py-3">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code">data</code></dd>
-                        <dd class="font-mono text-xs text-slate-500">JSON Array</dd>
-                        <dd class="w-full flex-none text-sm text-slate-600">List of items fetched.</dd>
+                        <dd class="font-mono text-xs text-slate-500"><%= t('pages.pagination.typeJsonArray') %></dd>
+                        <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.pagination.dataDescription') %></dd>
                      </dl>
                   </li>
                   <li class="m-0 px-4 py-3">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code">count</code></dd>
-                        <dd class="font-mono text-xs text-slate-500">Number</dd>
-                        <dd class="w-full flex-none text-sm text-slate-600">Total number of items in the database</dd>
+                        <dd class="font-mono text-xs text-slate-500"><%= t('pages.pagination.typeNumber') %></dd>
+                        <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.pagination.countDescription') %></dd>
                      </dl>
                   </li>
                   <li class="m-0 px-4 py-3">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code">limit</code></dd>
-                        <dd class="font-mono text-xs text-slate-500">Number</dd>
-                        <dd class="w-full flex-none text-sm text-slate-600">Number of items you need to fetch. More items will lead to slower responses. Max limit is 100.</dd>
+                        <dd class="font-mono text-xs text-slate-500"><%= t('pages.pagination.typeNumber') %></dd>
+                        <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.pagination.limitDescription') %></dd>
                      </dl>
                   </li>
                   <li class="m-0 px-4 py-3">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code">skip</code></dd>
-                        <dd class="font-mono text-xs text-slate-500">Number</dd>
-                        <dd class="w-full flex-none text-sm text-slate-600">Number of items to skip. This can be useful when you are paginating items.</dd>
+                        <dd class="font-mono text-xs text-slate-500"><%= t('pages.pagination.typeNumber') %></dd>
+                        <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.pagination.skipDescription') %></dd>
                      </dl>
                   </li>
                </ul>
             </div>
          </div>
          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-            <%- include('../partials/code', {title: "Example Pagination Request", requestUrl: "/api/monitors/get-list?skip=0&limit=3", requestType: "POST", code: pageData.requestCode }) -%>
-            <%- include('../partials/code', {title: "Example Pagination Response" , requestUrl: "", requestType: "", code: pageData.responseCode }) -%>
+            <%- include('../partials/code', {title: t('pages.pagination.exampleRequestTitle'), requestUrl: "/api/monitors/get-list?skip=0&limit=3", requestType: "POST", code: pageData.requestCode }) -%>
+            <%- include('../partials/code', {title: t('pages.pagination.exampleResponseTitle'), requestUrl: "", requestType: "", code: pageData.responseCode }) -%>
          </div>
       </div>
    </article>

@@ -127,6 +127,28 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+        {
+          link: {
             title: "More Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[

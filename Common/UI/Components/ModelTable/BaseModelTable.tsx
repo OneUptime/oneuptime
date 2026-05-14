@@ -281,7 +281,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const { translateValue } = useTranslateValue();
+  const { translateValue, translateString } = useTranslateValue();
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -803,7 +806,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     if (showActionsColumn) {
       columns.push({
-        title: "Actions",
+        title: tx("Actions"),
         type: FieldType.Actions,
       });
     }
@@ -1305,7 +1308,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // Add documentation link button first if provided
     if (props.documentationLink) {
       headerbuttons.push({
-        title: "View Documentation",
+        title: tx("View Documentation"),
         icon: IconProp.Book,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
@@ -1335,7 +1338,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // Add video link button if provided
     if (props.videoLink) {
       headerbuttons.push({
-        title: "Watch Demo",
+        title: tx("Watch Demo"),
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
@@ -1371,9 +1374,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       showAs !== ShowAs.OrderedStatesList
     ) {
       headerbuttons.push({
-        title: `${props.createVerb || "Create"} ${
-          props.singularName || model.singularName
-        }`,
+        title: `${tx(props.createVerb || "Create")} ${tx(
+          props.singularName || model.singularName || "",
+        )}`,
         buttonStyle: ButtonStyleType.NORMAL,
         buttonSize: ButtonSize.Normal,
         className: "",
@@ -1581,7 +1584,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     if (props.showViewIdButton) {
       actionsSchema.push({
-        title: "Show ID",
+        title: tx("Show ID"),
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
         onClick: async (
@@ -1613,9 +1616,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         (model.hasReadPermissions(permissions) || User.isMasterAdmin())
       ) {
         actionsSchema.push({
-          title:
-            props.viewButtonText ||
-            `View ${props.singularName || model.singularName}`,
+          title: props.viewButtonText
+            ? tx(props.viewButtonText)
+            : `${tx("View")} ${tx(props.singularName || model.singularName || "")}`,
           buttonStyleType: ButtonStyleType.NORMAL,
           onClick: async (
             item: TBaseModel,
@@ -1675,7 +1678,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         (model.hasUpdatePermissions(permissions) || User.isMasterAdmin())
       ) {
         actionsSchema.push({
-          title: props.editButtonText || "Edit",
+          title: tx(props.editButtonText || "Edit"),
           buttonStyleType: ButtonStyleType.OUTLINE,
           onClick: async (
             item: TBaseModel,
@@ -1704,7 +1707,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         (model.hasDeletePermissions(permissions) || User.isMasterAdmin())
       ) {
         actionsSchema.push({
-          title: props.deleteButtonText || "Delete",
+          title: tx(props.deleteButtonText || "Delete"),
           icon: IconProp.Trash,
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
           onClick: async (

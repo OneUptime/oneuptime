@@ -1,15 +1,15 @@
 <header id="docs-header" class="sticky top-0 z-50 flex flex-none items-center justify-between bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-transparent sm:px-6 lg:px-8 supports-[backdrop-filter]:bg-white/80 transition-[border-color,box-shadow] duration-200">
     <!-- Logo and brand -->
     <div class="flex items-center gap-4">
-        <a aria-label="Home page" href="/" class="flex items-center gap-3 group">
+        <a aria-label="<%= t('ui.homePage') %>" href="/" class="flex items-center gap-3 group">
             <img class="h-8 w-auto" src="/img/3-transparent.svg" alt="OneUptime">
         </a>
         <div class="hidden sm:block h-6 w-px bg-slate-200"></div>
-        <a href="/docs/introduction/getting-started" class="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors">
+        <a href="/docs/<%= lang %>/introduction/getting-started" class="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors">
             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
             </svg>
-            Docs
+            <%- t('ui.docs') %>
         </a>
     </div>
 
@@ -18,7 +18,7 @@
         <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
-        <span class="flex-1 text-left">Search docs...</span>
+        <span class="flex-1 text-left"><%- t('ui.searchDocs') %></span>
         <kbd class="hidden lg:inline-flex items-center gap-0.5 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
             <span class="text-xs">&#8984;</span>K
         </kbd>
@@ -27,11 +27,30 @@
     <!-- Right side actions -->
     <div class="flex items-center gap-3">
         <!-- Mobile search button -->
-        <button id="search-trigger-mobile" class="sm:hidden inline-flex items-center rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors" aria-label="Search">
+        <button id="search-trigger-mobile" class="sm:hidden inline-flex items-center rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors" aria-label="<%= t('ui.searchAriaLabel') %>">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
         </button>
+
+        <!-- Language switcher -->
+        <% if (typeof supportedLanguages !== 'undefined' && supportedLanguages && supportedLanguages.length > 1) { %>
+        <label for="docs-language-switcher" class="sr-only"><%- t('ui.switchLanguage') %></label>
+        <div class="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-200 transition-colors">
+            <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+            </svg>
+            <select id="docs-language-switcher"
+                    data-current-path="<%= typeof currentPath !== 'undefined' ? currentPath : '' %>"
+                    aria-label="<%= t('ui.switchLanguage') %>"
+                    class="cursor-pointer border-0 bg-transparent p-0 pr-1 text-sm font-medium text-slate-600 focus:outline-none focus:ring-0">
+                <% supportedLanguages.forEach(function(language){ %>
+                    <option value="<%= language.code %>" <%= language.code === lang ? 'selected' : '' %>><%= language.nativeName %></option>
+                <% }); %>
+            </select>
+        </div>
+        <% } %>
+
         <!-- GitHub link -->
         <a class="group flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-all"
            aria-label="GitHub"

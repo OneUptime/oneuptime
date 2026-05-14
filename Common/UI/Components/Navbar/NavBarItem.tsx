@@ -1,5 +1,6 @@
 // Tailwind
 import Navigation from "../../Utils/Navigation";
+import useTranslateValue from "../../Utils/Translation";
 import Icon, { ThickProp } from "../Icon/Icon";
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
@@ -23,6 +24,8 @@ export interface ComponentProps {
 const NavBarItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) ?? props.title;
   const activeRoute: Route | undefined = props.activeRoute || props.route;
   const isActive: boolean = Boolean(
     activeRoute &&
@@ -67,7 +70,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <span>{props.title}</span>
+        <span>{translatedTitle}</span>
         {props.children ? <div className="arrow-down"></div> : <></>}
       </Link>
       {props.children}

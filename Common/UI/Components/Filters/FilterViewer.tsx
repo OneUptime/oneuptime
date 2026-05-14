@@ -34,6 +34,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -61,6 +62,12 @@ type FilterComponentFunction = <T extends GenericObject>(
 const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const tx: (value: string | undefined) => string = (
+    value: string | undefined,
+  ): string => {
+    return translateString(value) ?? value ?? "";
+  };
   const [tempFilterDataForModal, setTempFilterDataForModal] = useState<
     FilterData<T>
   >({});
@@ -207,9 +214,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     if (data.filter.type === FieldType.Boolean) {
       filterText = (
         <span>
-          <span className="font-medium">{data.filter.title}</span> is{" "}
+          <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+          {tx("is")}{" "}
           <span className="font-medium">
-            {data.filterData[data.filter.key] ? "Yes" : "No"}
+            {data.filterData[data.filter.key] ? tx("Yes") : tx("No")}
           </span>
         </span>
       );
@@ -238,8 +246,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       ): ReactElement => {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> {verb}{" "}
-            <span className="font-medium">{display}</span>
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx(verb)} <span className="font-medium">{display}</span>
           </span>
         );
       };
@@ -247,15 +255,16 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (value instanceof IsNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is empty
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx("is empty")}
           </span>
         );
       }
       if (value instanceof NotNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is not
-            empty
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx("is not empty")}
           </span>
         );
       }
@@ -328,8 +337,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       ): ReactElement => {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> {verb}{" "}
-            <span className="font-medium">{display}</span>
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx(verb)} <span className="font-medium">{display}</span>
           </span>
         );
       };
@@ -337,15 +346,16 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (value instanceof IsNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is empty
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx("is empty")}
           </span>
         );
       }
       if (value instanceof NotNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is not
-            empty
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx("is not empty")}
           </span>
         );
       }
@@ -409,8 +419,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
       return (
         <span className="inline-flex items-center space-x-1">
-          <span className="font-medium">{data.filter.title}</span>
-          <span>{isPlural ? "are" : "is"}</span>
+          <span className="font-medium">{tx(data.filter.title)}</span>
+          <span>{isPlural ? tx("are") : tx("is")}</span>
           <span className="font-medium">{formatJson(json)}</span>
         </span>
       );
@@ -428,15 +438,16 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (rawValue instanceof IsNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is empty
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx("is empty")}
           </span>
         );
       }
       if (rawValue instanceof NotNull) {
         return (
           <span>
-            <span className="font-medium">{data.filter.title}</span> is not
-            empty
+            <span className="font-medium">{tx(data.filter.title)}</span>{" "}
+            {tx("is not empty")}
           </span>
         );
       }
@@ -484,19 +495,18 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const isMoreItems: boolean = items.length > 1;
       let joiner: string;
       if (matchMode === "all") {
-        joiner = " has all of: ";
+        joiner = tx("has all of:");
       } else if (matchMode === "none") {
-        joiner = " has none of: ";
+        joiner = tx("has none of:");
       } else if (isMoreItems) {
-        joiner = " is any of: ";
+        joiner = tx("is any of:");
       } else {
-        joiner = " is ";
+        joiner = tx("is");
       }
 
       return (
         <span>
-          <span className="font-medium">{data.filter.title}</span>
-          {joiner}
+          <span className="font-medium">{tx(data.filter.title)}</span> {joiner}{" "}
           <span className="font-medium">{entityNames}</span>
         </span>
       );
@@ -525,7 +535,8 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <Icon icon={IconProp.Filter} size={SizeProp.Smaller} />
                 <span className="font-semibold">
-                  Showing {props.pluralLabel || "results"} that match
+                  {tx("Showing")} {props.pluralLabel || tx("results")}{" "}
+                  {tx("that match")}
                 </span>
               </div>
             </div>
@@ -549,7 +560,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 className="font-medium text-gray-900"
                 icon={IconProp.Filter}
                 onClick={props.onFilterModalOpen}
-                title="Edit Filters"
+                title={tx("Edit Filters")}
                 iconSize={SizeProp.Smaller}
                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
               />
@@ -562,7 +573,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 }}
                 className="font-medium text-gray-900"
                 icon={IconProp.Close}
-                title="Clear Filters"
+                title={tx("Clear Filters")}
                 buttonStyle={ButtonStyleType.SECONDARY_LINK}
               />
             </div>
@@ -574,11 +585,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         <Modal
           modalWidth={ModalWidth.Large}
           isLoading={props.isModalLoading}
-          title={`Filter ${props.pluralLabel || props.singularLabel || "results"}`}
-          description={`Narrow down ${
-            props.pluralLabel || "results"
-          } by one or more criteria below.`}
-          submitButtonText={`Apply Filters`}
+          title={`${tx("Filter")} ${props.pluralLabel || props.singularLabel || tx("results")}`}
+          description={`${tx("Narrow down")} ${
+            props.pluralLabel || tx("results")
+          } ${tx("by one or more criteria below.")}`}
+          submitButtonText={tx("Apply Filters")}
           onClose={() => {
             props.onFilterModalClose?.();
           }}

@@ -1,3 +1,4 @@
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum TopAlertType {
@@ -16,6 +17,11 @@ export interface ComponentProps {
 const TopAlert: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString, translateValue } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) ?? props.title;
+  const translatedDescription: string | ReactElement =
+    (translateValue(props.description) as string | ReactElement | undefined) ??
+    props.description;
   const alertType: TopAlertType = props.alertType || TopAlertType.INFO;
 
   return (
@@ -26,9 +32,9 @@ const TopAlert: FunctionComponent<ComponentProps> = (
     >
       <div className="text-sm leading-6 text-white w-full">
         <div className="w-full">
-          <strong className="font-semibold">{props.title}</strong>
+          <strong className="font-semibold">{translatedTitle}</strong>
           &nbsp;-&nbsp;
-          {props.description} &nbsp;&nbsp;
+          {translatedDescription} &nbsp;&nbsp;
           {/** Uncomment the follwing line if you need a button on top alert */}
           {/* <a
                         href="#"

@@ -226,6 +226,14 @@ import IncidentLabelRuleService, {
   Service as IncidentLabelRuleServiceType,
 } from "Common/Server/Services/IncidentLabelRuleService";
 
+import ScheduledMaintenanceOwnerRuleService, {
+  Service as ScheduledMaintenanceOwnerRuleServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceOwnerRuleService";
+
+import ScheduledMaintenanceLabelRuleService, {
+  Service as ScheduledMaintenanceLabelRuleServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceLabelRuleService";
+
 import IncidentEpisodeOnCallRuleService, {
   Service as IncidentEpisodeOnCallRuleServiceType,
 } from "Common/Server/Services/IncidentEpisodeOnCallRuleService";
@@ -674,6 +682,8 @@ import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule"
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
+import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
+import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
 import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
@@ -1460,6 +1470,28 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentLabelRule, IncidentLabelRuleServiceType>(
         IncidentLabelRule,
         IncidentLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceOwnerRule,
+        ScheduledMaintenanceOwnerRuleServiceType
+      >(
+        ScheduledMaintenanceOwnerRule,
+        ScheduledMaintenanceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceLabelRule,
+        ScheduledMaintenanceLabelRuleServiceType
+      >(
+        ScheduledMaintenanceLabelRule,
+        ScheduledMaintenanceLabelRuleService,
       ).getRouter(),
     );
 

@@ -1,3 +1,4 @@
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -8,9 +9,15 @@ export interface ComponentProps {
 const ErrorMessage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateValue, translateString } = useTranslateValue();
+  const translatedMessage: string | ReactElement | undefined =
+    typeof props.message === "string"
+      ? (translateValue(props.message) as string | ReactElement | undefined) ??
+        props.message
+      : props.message;
   return (
     <div className="text-center my-10 text-gray-500 text-sm">
-      {props.message}
+      {translatedMessage}
       {props.onRefreshClick ? (
         <div
           role={"refresh-button"}
@@ -21,7 +28,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
           }}
           className="underline cursor-pointer hover:text-gray-700 mt-3"
         >
-          Refresh?
+          {translateString("Refresh?") ?? "Refresh?"}
         </div>
       ) : (
         <></>

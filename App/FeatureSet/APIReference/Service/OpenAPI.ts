@@ -6,43 +6,36 @@ import {
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 
-// Fetch a list of resources used in the application
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 
 export default class ServiceHandler {
-  // Handles the HTTP response for a given request
   public static async executeResponse(
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    let pageTitle: string = "";
-    let pageDescription: string = "";
-
-    // Get the 'page' parameter from the request
-    const page: string | undefined = req.params["page"];
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     const pageData: Dictionary<unknown> = {
       hostUrl: new URL(HttpProtocol, Host).toString(),
     };
 
-    // Set the default page title and description
-    pageTitle = "OneUptime OpenAPI Specification";
-    pageDescription =
-      "Learn more about the OpenAPI specification for OneUptime";
-
-    // Render the response using the given view and data
     return res.render(`${ViewsPath}/pages/index`, {
-      page: page,
+      page: "openapi",
       resources: Resources,
       dataTypes: DataTypes,
-      pageTitle: pageTitle,
+      pageTitle: ctx.t("pages.openapi.metaTitle"),
       enableGoogleTagManager: IsBillingEnabled,
-      pageDescription: pageDescription,
+      pageDescription: ctx.t("pages.openapi.metaDescription"),
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

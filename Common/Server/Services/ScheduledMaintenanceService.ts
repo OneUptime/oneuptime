@@ -49,6 +49,8 @@ import Protocol from "../../Types/API/Protocol";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
+import ScheduledMaintenanceLabelRuleEngineService from "./ScheduledMaintenanceLabelRuleEngineService";
+import ScheduledMaintenanceOwnerRuleEngineService from "./ScheduledMaintenanceOwnerRuleEngineService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
@@ -933,6 +935,38 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the event.
+        try {
+          await ScheduledMaintenanceOwnerRuleEngineService.applyRulesToScheduledMaintenance(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply scheduled maintenance owner rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply label rules: attach matched (and optionally inherited monitor) labels to the event.
+        try {
+          await ScheduledMaintenanceLabelRuleEngineService.applyRulesToScheduledMaintenance(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply scheduled maintenance label rules failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .catch((error: Error) => {
