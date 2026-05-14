@@ -87,6 +87,15 @@ const describeColumns: (
       continue;
     }
 
+    /*
+     * Skip columns without a human-readable title. Untitled columns are
+     * typically internal/system fields (FK columns, computed flags, etc.)
+     * that shouldn't show up in the user-facing picker.
+     */
+    if (!column.title) {
+      continue;
+    }
+
     const isRelation: boolean = isRelationType(column.type);
 
     if (isRelation && !options.includeRelations) {
@@ -96,7 +105,7 @@ const describeColumns: (
 
     const descriptor: ColumnDescriptor = {
       id: columnId,
-      title: column.title || columnId,
+      title: column.title,
       description: column.description,
       type: column.type,
       isRelation,
