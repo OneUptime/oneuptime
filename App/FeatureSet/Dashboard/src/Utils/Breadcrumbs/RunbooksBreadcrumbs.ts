@@ -47,6 +47,11 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "View Runbook",
       "Delete Runbook",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SECRETS, [
+      "Project",
+      "Runbooks",
+      "Secrets",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

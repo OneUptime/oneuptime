@@ -331,6 +331,7 @@ import { MigrationName1778791942334 } from "./1778791942334-AddDashboardWorkflow
 import { AddTeamPermissionScope1778800000000 } from "./1778800000000-AddTeamPermissionScope";
 import { SwitchRunbookAgentTagsToAgentId1778834788959 } from "./1778834788959-SwitchRunbookAgentTagsToAgentId";
 import { AddRunbookAgentOwnersAndLabels1778842348388 } from "./1778842348388-AddRunbookAgentOwnersAndLabels";
+import { AddRunbookSecret1778851431287 } from "./1778851431287-AddRunbookSecret";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -665,4 +666,5 @@ export default [
   AddTeamPermissionScope1778800000000,
   SwitchRunbookAgentTagsToAgentId1778834788959,
   AddRunbookAgentOwnersAndLabels1778842348388,
+  AddRunbookSecret1778851431287,
 ];

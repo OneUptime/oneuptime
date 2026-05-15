@@ -685,6 +685,9 @@ import RunbookAgentOwnerTeamService, {
 import RunbookAgentOwnerUserService, {
   Service as RunbookAgentOwnerUserServiceType,
 } from "Common/Server/Services/RunbookAgentOwnerUserService";
+import RunbookSecretService, {
+  Service as RunbookSecretServiceType,
+} from "Common/Server/Services/RunbookSecretService";
 
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
@@ -898,6 +901,7 @@ import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
 import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
 import RunbookAgentOwnerTeam from "Common/Models/DatabaseModels/RunbookAgentOwnerTeam";
 import RunbookAgentOwnerUser from "Common/Models/DatabaseModels/RunbookAgentOwnerUser";
+import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
@@ -2320,6 +2324,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RunbookAgentOwnerUser, RunbookAgentOwnerUserServiceType>(
         RunbookAgentOwnerUser,
         RunbookAgentOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunbookSecret, RunbookSecretServiceType>(
+        RunbookSecret,
+        RunbookSecretService,
       ).getRouter(),
     );
 

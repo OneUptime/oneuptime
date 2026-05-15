@@ -52,6 +52,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
+import RunbookSecretService from "./RunbookSecretService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -280,6 +281,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  RunbookSecretService,
   MonitorFeedService,
 
   NotificationService,

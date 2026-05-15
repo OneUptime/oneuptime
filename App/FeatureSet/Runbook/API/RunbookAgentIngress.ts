@@ -1,5 +1,6 @@
 import RunbookAgentAuthorization from "../Middleware/RunbookAgentAuthorization";
 import { RunbookAgentExpressRequest } from "../Types/Request";
+import RunbookSecretsUtil from "../Utils/Secrets";
 import RunbookAgentService from "Common/Server/Services/RunbookAgentService";
 import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -9,6 +10,7 @@ import Version from "Common/Types/Version";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
 import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -110,13 +112,29 @@ export default class RunbookAgentIngressAPI {
         return Response.sendJsonObjectResponse(req, res, { job: null });
       }
 
+      /*
+       * Substitute {{runbookSecrets.NAME}} placeholders in the script with
+       * the agent's assigned secret values. Secrets are loaded per claim so
+       * a freshly-rotated value reaches the next run without redeploying
+       * the agent, and the stored script row never holds plaintext values.
+       */
+      let scriptToSend: string = job.script ?? "";
+      if (scriptToSend) {
+        const secrets: Array<RunbookSecret> =
+          await RunbookSecretsUtil.loadForAgent(agent.id);
+        scriptToSend = RunbookSecretsUtil.populateInScript({
+          script: scriptToSend,
+          secrets,
+        });
+      }
+
       return Response.sendJsonObjectResponse(req, res, {
         job: {
           jobId: job.id?.toString(),
           runbookExecutionId: job.runbookExecutionId?.toString(),
           stepId: job.stepId,
           stepType: job.stepType,
-          script: job.script,
+          script: scriptToSend,
           timeoutInMs: job.timeoutInMs,
           leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
         },

@@ -11,6 +11,7 @@ import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
 import RunbookAgents from "../Pages/Runbook/Agents";
 import RunbookAgentView from "../Pages/Runbook/AgentView";
+import RunbookSecrets from "../Pages/Runbook/Secrets";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
@@ -60,6 +61,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookAgentView
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_AGENT_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_SECRETS] || ""}
+          element={
+            <RunbookSecrets
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_SECRETS] as Route}
             />
           }
         />
