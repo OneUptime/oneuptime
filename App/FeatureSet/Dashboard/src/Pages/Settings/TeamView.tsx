@@ -156,6 +156,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       [Permission.WorkflowManager]: IconProp.Workflow,
     };
 
+    const ownerRoles: Array<CardSelectOption> = [];
     const projectRoles: Array<CardSelectOption> = [];
     const administrationRoles: Array<CardSelectOption> = [];
     const domainRoles: Array<CardSelectOption> = [];
@@ -169,8 +170,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       };
 
       if (
+        // Top-level project grants. Unconditional project-wide access;
+        // surfaced as scope-exempt (see PermissionHelper.isScopeApplicable).
         p.permission === Permission.ProjectOwner ||
-        p.permission === Permission.ProjectAdmin ||
+        p.permission === Permission.ProjectAdmin
+      ) {
+        ownerRoles.push(option);
+      } else if (
         p.permission === Permission.ProjectMember ||
         p.permission === Permission.Viewer
       ) {
@@ -191,6 +197,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
     const roleCardSelectOptions: Array<
       CardSelectOption | CardSelectOptionGroup
     > = [
+      {
+        label: "Owner",
+        options: ownerRoles,
+      },
       {
         label: "Project Roles",
         options: projectRoles,

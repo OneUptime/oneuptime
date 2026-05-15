@@ -1358,6 +1358,7 @@ export class PermissionHelper {
   public static isScopeApplicable(permission: Permission): boolean {
     return (
       permission !== Permission.ProjectOwner &&
+      permission !== Permission.ProjectAdmin &&
       permission !== Permission.SettingsManager &&
       permission !== Permission.BillingManager
     );
