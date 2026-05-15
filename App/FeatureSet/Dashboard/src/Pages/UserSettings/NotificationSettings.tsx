@@ -613,7 +613,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
 };
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const incidentsAndAlerts: Array<SectionDef> = [
+  const incidents: Array<SectionDef> = [
     buildSection("Incidents", "Notify me about incidents on resources I own.", [
       NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
@@ -630,6 +630,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
       ],
     ),
+  ];
+
+  const alerts: Array<SectionDef> = [
     buildSection("Alerts", "Notify me about alerts on resources I own.", [
       NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
@@ -662,12 +665,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ]),
   ];
 
-  const statusPagesAndMaintenance: Array<SectionDef> = [
+  const statusPages: Array<SectionDef> = [
     buildSection("Status Pages", "Notify me about status pages I own.", [
       NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
     ]),
+  ];
+
+  const scheduledMaintenance: Array<SectionDef> = [
     buildSection(
       "Scheduled Maintenance",
       "Notify me about scheduled maintenance events I own.",
@@ -711,16 +717,24 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <Tabs
         tabs={[
           {
-            name: "Incidents & Alerts",
-            children: renderSections(incidentsAndAlerts),
+            name: "Incidents",
+            children: renderSections(incidents),
+          },
+          {
+            name: "Alerts",
+            children: renderSections(alerts),
           },
           {
             name: "Monitoring",
             children: renderSections(monitoring),
           },
           {
-            name: "Status Pages & Maintenance",
-            children: renderSections(statusPagesAndMaintenance),
+            name: "Status Pages",
+            children: renderSections(statusPages),
+          },
+          {
+            name: "Scheduled Maintenance",
+            children: renderSections(scheduledMaintenance),
           },
           {
             name: "On-Call",

@@ -717,7 +717,7 @@ export class Service extends DatabaseService<Model> {
       projectId: episode.projectId,
       episodeId: episodeId,
       incidentStateId: incidentState.id,
-      notifyOwners: false,
+      notifyOwners: true,
       rootCause: acknowledgedByUserId
         ? `Acknowledged by user.`
         : "Acknowledged via API.",
@@ -773,7 +773,7 @@ export class Service extends DatabaseService<Model> {
       projectId: episode.projectId,
       episodeId: episodeId,
       incidentStateId: incidentState.id,
-      notifyOwners: false,
+      notifyOwners: true,
       rootCause: resolvedByUserId ? `Resolved by user.` : "Resolved via API.",
       props: {
         isRoot: true,
@@ -827,7 +827,7 @@ export class Service extends DatabaseService<Model> {
       projectId: episode.projectId,
       episodeId: episodeId,
       incidentStateId: incidentState.id,
-      notifyOwners: false,
+      notifyOwners: true,
       rootCause: reopenedByUserId ? `Reopened by user.` : "Reopened via API.",
       props: {
         isRoot: true,
