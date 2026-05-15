@@ -146,6 +146,7 @@ const EntityRunbooks: FunctionComponent<ComponentProps> = (
         isViewable={false}
         name="Runbooks"
         query={query}
+        selectMoreFields={{ runbookId: true }}
         refreshToggle={refresher.toString()}
         cardProps={{
           title: "Runbooks",
@@ -154,7 +155,7 @@ const EntityRunbooks: FunctionComponent<ComponentProps> = (
           buttons: [
             {
               title: "Run Runbook",
-              buttonStyle: ButtonStyleType.PRIMARY,
+              buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Play,
               onClick: () => {
                 setShowPickerModal(true);
