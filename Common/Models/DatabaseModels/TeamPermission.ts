@@ -516,15 +516,15 @@ export default class TeamPermission extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Scope",
     description:
-      "Scope of this permission row. One of: All, Owned, Labels. Defaults to Labels for backward compatibility with existing rows.",
-    defaultValue: "Labels",
-    example: "Labels",
+      "Scope of this permission row. One of: All, Owned, Labels. Defaults to All so new permissions apply to every resource in the project unless explicitly narrowed.",
+    defaultValue: "All",
+    example: "All",
   })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: PermissionScope.Labels,
+    default: PermissionScope.All,
   })
   public scope?: PermissionScope = undefined;
 }

@@ -332,6 +332,7 @@ import { AddTeamPermissionScope1778800000000 } from "./1778800000000-AddTeamPerm
 import { SwitchRunbookAgentTagsToAgentId1778834788959 } from "./1778834788959-SwitchRunbookAgentTagsToAgentId";
 import { AddRunbookAgentOwnersAndLabels1778842348388 } from "./1778842348388-AddRunbookAgentOwnersAndLabels";
 import { AddRunbookSecret1778851431287 } from "./1778851431287-AddRunbookSecret";
+import { UpdateTeamPermissionScopeDefault1778877094014 } from "./1778877094014-UpdateTeamPermissionScopeDefault";
 export default [
   InitialMigration,
   MigrationName1717678334852,

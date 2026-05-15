@@ -322,23 +322,23 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   },
                   title: "Scope",
                   description:
-                    "Which resources this role applies to. Owned (recommended): resources where this team or its members are listed as owners. All: every resource in the project. Labels: restrict by labels (advanced).",
+                    "Which resources this role applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownOptions: [
                     {
-                      value: PermissionScope.Owned,
-                      label: "Owned by this team or its members",
-                    },
-                    {
                       value: PermissionScope.All,
                       label: "All resources in the project",
+                    },
+                    {
+                      value: PermissionScope.Owned,
+                      label: "Owned by this team or its members",
                     },
                     {
                       value: PermissionScope.Labels,
                       label: "Restrict by labels (advanced)",
                     },
                   ],
-                  defaultValue: PermissionScope.Owned,
+                  defaultValue: PermissionScope.All,
                   required: true,
                   showIf: (values: FormValues<TeamPermission>): boolean => {
                     if (!values["permission"]) {
@@ -430,23 +430,23 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   },
                   title: "Scope",
                   description:
-                    "Which resources this permission applies to. Owned (recommended): resources where this team or its members are listed as owners. All: every resource in the project. Labels: restrict by labels (advanced).",
+                    "Which resources this permission applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownOptions: [
                     {
-                      value: PermissionScope.Owned,
-                      label: "Owned by this team or its members",
-                    },
-                    {
                       value: PermissionScope.All,
                       label: "All resources in the project",
+                    },
+                    {
+                      value: PermissionScope.Owned,
+                      label: "Owned by this team or its members",
                     },
                     {
                       value: PermissionScope.Labels,
                       label: "Restrict by labels (advanced)",
                     },
                   ],
-                  defaultValue: PermissionScope.Owned,
+                  defaultValue: PermissionScope.All,
                   required: true,
                   showIf: (values: FormValues<TeamPermission>): boolean => {
                     if (!values["permission"]) {
