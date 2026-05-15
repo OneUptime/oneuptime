@@ -59,6 +59,18 @@ export default class OwnedScopePermission {
 
     const model: BaseModel = new modelType();
 
+    /*
+     * Owned scope only restricts resources that can carry ownership:
+     * operational resources (own *OwnerUser / *OwnerTeam tables) or
+     * nested resources that inherit ownership via @OwnedThrough. For
+     * everything else (settings / config tables like IncidentState,
+     * Label, Team, etc.) the table-level permission check is the only
+     * gate — Owned has no resources to scope to, so it's a no-op.
+     */
+    if (!model.isOperationalResource && !model.ownedThrough) {
+      return query;
+    }
+
     const effectivePermissions: Array<Permission> =
       OwnedScopePermission.getEffectivePermissionsForModel(
         modelType as DatabaseBaseModelType,

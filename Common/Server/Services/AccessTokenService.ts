@@ -165,6 +165,7 @@ export class AccessTokenService extends BaseService {
             _id: true,
           },
           isBlockPermission: true,
+          scope: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -186,6 +187,7 @@ export class AccessTokenService extends BaseService {
           return label.id!;
         }),
         isBlockPermission: teamPermission.isBlockPermission,
+        scope: teamPermission.scope,
         _type: "UserPermission",
       });
     }
