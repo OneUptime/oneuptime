@@ -6,10 +6,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { IconType } from "Common/UI/Components/Icon/Icon";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
 import RunbookAgent, {
   RunbookAgentConnectionStatus,
 } from "Common/Models/DatabaseModels/RunbookAgent";
@@ -42,7 +44,7 @@ const RunbookAgentsPage: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
-        isViewable={false}
+        isViewable={true}
         showRefreshButton={true}
         cardProps={{
           title: "Runbook Agents",
@@ -74,6 +76,20 @@ const RunbookAgentsPage: FunctionComponent<
             placeholder:
               "Runs inside the production EU cluster. Can reach internal services.",
           },
+          {
+            field: { labels: true },
+            title: "Labels",
+            description:
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
+          },
         ]}
         searchableFields={["name", "description"]}
         actionButtons={[
@@ -100,6 +116,24 @@ const RunbookAgentsPage: FunctionComponent<
             field: { name: true },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            title: "Labels",
+            type: FieldType.EntityArray,
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            filterEntityType: Label,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
         ]}
         columns={[
@@ -137,6 +171,19 @@ const RunbookAgentsPage: FunctionComponent<
                   Disconnected · {lastLabel}
                 </span>
               );
+            },
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            getElement: (item: RunbookAgent): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
             },
           },
         ]}

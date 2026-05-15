@@ -683,6 +683,16 @@ enum Permission {
   EditRunbookAgent = "EditRunbookAgent",
   ReadRunbookAgent = "ReadRunbookAgent",
 
+  CreateRunbookAgentOwnerTeam = "CreateRunbookAgentOwnerTeam",
+  DeleteRunbookAgentOwnerTeam = "DeleteRunbookAgentOwnerTeam",
+  EditRunbookAgentOwnerTeam = "EditRunbookAgentOwnerTeam",
+  ReadRunbookAgentOwnerTeam = "ReadRunbookAgentOwnerTeam",
+
+  CreateRunbookAgentOwnerUser = "CreateRunbookAgentOwnerUser",
+  DeleteRunbookAgentOwnerUser = "DeleteRunbookAgentOwnerUser",
+  EditRunbookAgentOwnerUser = "EditRunbookAgentOwnerUser",
+  ReadRunbookAgentOwnerUser = "ReadRunbookAgentOwnerUser",
+
   CreateStatusPageGroup = "CreateStatusPageGroup",
   DeleteStatusPageGroup = "DeleteStatusPageGroup",
   EditStatusPageGroup = "EditStatusPageGroup",
@@ -1348,13 +1358,15 @@ export class PermissionHelper {
     });
   }
 
-  // Returns true when a permission can meaningfully be scoped by All / Owned /
-  // Labels. Some roles are unconditional project-wide grants — scoping them
-  // would create confusing semantics ("Settings Manager but only for owned
-  // settings" doesn't compute since settings aren't @OperationalResource).
-  // UI hides the scope picker for these; the runtime filter also treats a
-  // stray Owned-scoped row of one of these as a broader grant so access
-  // isn't accidentally narrowed.
+  /*
+   * Returns true when a permission can meaningfully be scoped by All / Owned /
+   * Labels. Some roles are unconditional project-wide grants — scoping them
+   * would create confusing semantics ("Settings Manager but only for owned
+   * settings" doesn't compute since settings aren't @OperationalResource).
+   * UI hides the scope picker for these; the runtime filter also treats a
+   * stray Owned-scoped row of one of these as a broader grant so access
+   * isn't accidentally narrowed.
+   */
   public static isScopeApplicable(permission: Permission): boolean {
     return (
       permission !== Permission.ProjectOwner &&
@@ -3579,6 +3591,88 @@ export class PermissionHelper {
         description: "This permission can read Runbook Agents in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookAgentOwnerTeam,
+        title: "Create Runbook Agent Team Owner",
+        description:
+          "This permission can create Runbook Agent Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookAgentOwnerTeam,
+        title: "Delete Runbook Agent Team Owner",
+        description:
+          "This permission can delete Runbook Agent Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookAgentOwnerTeam,
+        title: "Edit Runbook Agent Team Owner",
+        description:
+          "This permission can edit Runbook Agent Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookAgentOwnerTeam,
+        title: "Read Runbook Agent Team Owner",
+        description:
+          "This permission can read Runbook Agent Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookAgentOwnerUser,
+        title: "Create Runbook Agent User Owner",
+        description:
+          "This permission can create Runbook Agent User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookAgentOwnerUser,
+        title: "Delete Runbook Agent User Owner",
+        description:
+          "This permission can delete Runbook Agent User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookAgentOwnerUser,
+        title: "Edit Runbook Agent User Owner",
+        description:
+          "This permission can edit Runbook Agent User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookAgentOwnerUser,
+        title: "Read Runbook Agent User Owner",
+        description:
+          "This permission can read Runbook Agent User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Runbook,
       },

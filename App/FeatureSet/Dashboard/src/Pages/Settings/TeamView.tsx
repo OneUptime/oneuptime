@@ -170,8 +170,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       };
 
       if (
-        // Top-level project grants. Unconditional project-wide access;
-        // surfaced as scope-exempt (see PermissionHelper.isScopeApplicable).
+        /*
+         * Top-level project grants. Unconditional project-wide access;
+         * surfaced as scope-exempt (see PermissionHelper.isScopeApplicable).
+         */
         p.permission === Permission.ProjectOwner ||
         p.permission === Permission.ProjectAdmin
       ) {
@@ -182,9 +184,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       ) {
         projectRoles.push(option);
       } else if (
-        // Project-wide admin roles — manage settings/billing, not
-        // resources. Grouped separately and surfaced as scope-exempt
-        // (see PermissionHelper.isScopeApplicable).
+        /*
+         * Project-wide admin roles — manage settings/billing, not
+         * resources. Grouped separately and surfaced as scope-exempt
+         * (see PermissionHelper.isScopeApplicable).
+         */
         p.permission === Permission.SettingsManager ||
         p.permission === Permission.BillingManager
       ) {
@@ -285,12 +289,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   },
                   onChange: async (value: any): Promise<void> => {
                     await formRef.current.setFieldValue("labels", [], true);
-                    // For scope-exempt roles (Project Owner, Settings
-                    // Manager, Billing Manager) force scope to All since
-                    // these are unconditional project-wide grants. The
-                    // scope dropdown is hidden in that case, so without
-                    // this the form would submit the default (Owned) and
-                    // wrongly narrow the role.
+                    /*
+                     * For scope-exempt roles (Project Owner, Settings
+                     * Manager, Billing Manager) force scope to All since
+                     * these are unconditional project-wide grants. The
+                     * scope dropdown is hidden in that case, so without
+                     * this the form would submit the default (Owned) and
+                     * wrongly narrow the role.
+                     */
                     if (
                       value &&
                       !PermissionHelper.isScopeApplicable(value as Permission)
@@ -376,9 +382,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   },
                   onChange: async (value: any): Promise<void> => {
                     await formRef.current.setFieldValue("labels", [], true);
-                    // Match the role-flow behavior: force scope=All when
-                    // the user picks a scope-exempt permission so the
-                    // hidden scope dropdown can't submit Owned.
+                    /*
+                     * Match the role-flow behavior: force scope=All when
+                     * the user picks a scope-exempt permission so the
+                     * hidden scope dropdown can't submit Owned.
+                     */
                     if (
                       value &&
                       !PermissionHelper.isScopeApplicable(value as Permission)
@@ -451,8 +459,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     ) {
                       return false;
                     }
-                    // Scope-exempt permissions (ProjectOwner, Settings
-                    // Manager, Billing Manager) are unconditional grants.
+                    /*
+                     * Scope-exempt permissions (ProjectOwner, Settings
+                     * Manager, Billing Manager) are unconditional grants.
+                     */
                     if (
                       !PermissionHelper.isScopeApplicable(
                         values["permission"] as Permission,
@@ -591,16 +601,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 );
               }
 
-              const labels: Array<Label> = (item["labels"] || []) as Array<
-                Label
-              >;
+              const labels: Array<Label> = (item["labels"] ||
+                []) as Array<Label>;
               if (labels.length === 0) {
                 return (
                   <p>
                     All resources{" "}
-                    <span className="text-gray-400">
-                      (no labels selected)
-                    </span>
+                    <span className="text-gray-400">(no labels selected)</span>
                   </p>
                 );
               }

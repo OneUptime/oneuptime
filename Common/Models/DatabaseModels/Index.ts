@@ -205,6 +205,8 @@ import WorkflowOwnerUser from "./WorkflowOwnerUser";
 import Runbook from "./Runbook";
 import RunbookAgent from "./RunbookAgent";
 import RunbookAgentJob from "./RunbookAgentJob";
+import RunbookAgentOwnerTeam from "./RunbookAgentOwnerTeam";
+import RunbookAgentOwnerUser from "./RunbookAgentOwnerUser";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
@@ -504,6 +506,8 @@ const AllModelTypes: Array<{
   RunbookRule,
   RunbookAgent,
   RunbookAgentJob,
+  RunbookAgentOwnerTeam,
+  RunbookAgentOwnerUser,
 
   ProjectSSO,
   ProjectOIDC,

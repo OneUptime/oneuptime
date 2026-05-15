@@ -1,64 +1,33 @@
-import Label from "./Label";
 import Project from "./Project";
+import RunbookAgent from "./RunbookAgent";
+import Team from "./Team";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
-import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
-import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import Version from "../../Types/Version";
-import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-} from "typeorm";
-
-export enum RunbookAgentConnectionStatus {
-  Connected = "connected",
-  Disconnected = "disconnected",
-}
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
-@CrudApiEndpoint(new Route("/runbook-agent"))
-@AccessControlColumn("labels")
-@SlugifyColumn("name", "slug")
-@Entity({
-  name: "RunbookAgent",
-})
-@TableMetadata({
-  tableName: "RunbookAgent",
-  singularName: "Runbook Agent",
-  pluralName: "Runbook Agents",
-  icon: IconProp.Terminal,
-  tableDescription:
-    "A self-hosted agent that executes Bash and JavaScript runbook steps in your own infrastructure and reports results back to OneUptime. Each step picks the agent that should run it.",
-})
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookManager,
-    Permission.CreateRunbookAgent,
+    Permission.CreateRunbookAgentOwnerTeam,
   ],
   read: [
     Permission.ProjectOwner,
@@ -66,30 +35,50 @@ export enum RunbookAgentConnectionStatus {
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.RunbookManager,
-    Permission.ReadRunbookAgent,
+    Permission.ReadRunbookAgentOwnerTeam,
     Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.ProjectMember,
     Permission.RunbookManager,
-    Permission.DeleteRunbookAgent,
+    Permission.DeleteRunbookAgentOwnerTeam,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.ProjectMember,
     Permission.RunbookManager,
-    Permission.EditRunbookAgent,
+    Permission.EditRunbookAgentOwnerTeam,
   ],
 })
-export default class RunbookAgent extends BaseModel {
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
+@CrudApiEndpoint(new Route("/runbook-agent-owner-team"))
+@TableMetadata({
+  tableName: "RunbookAgentOwnerTeam",
+  singularName: "Runbook Agent Team Owner",
+  pluralName: "Runbook Agent Team Owners",
+  icon: IconProp.Terminal,
+  tableDescription: "Add teams as owners to your runbook agents.",
+})
+@Entity({
+  name: "RunbookAgentOwnerTeam",
+})
+@Index(["runbookAgentId", "teamId", "projectId"])
+export default class RunbookAgentOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
@@ -97,7 +86,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -115,7 +104,7 @@ export default class RunbookAgent extends BaseModel {
     },
     {
       eager: false,
-      nullable: true,
+      nullable: false,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -129,7 +118,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
@@ -137,12 +126,11 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -163,7 +151,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
@@ -171,31 +159,32 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookManager,
-      Permission.EditRunbookAgent,
-    ],
+    update: [],
   })
   @TableColumn({
-    required: true,
-    type: TableColumnType.ShortText,
-    canReadOnRelationQuery: true,
-    title: "Name",
-    description: "Friendly name for this agent",
-    example: "prod-eu-west-1-agent",
+    manyToOneRelationColumn: "runbookAgentId",
+    type: TableColumnType.Entity,
+    modelType: RunbookAgent,
+    title: "Runbook Agent",
+    description:
+      "Relation to Runbook Agent Resource in which this object belongs",
   })
-  @Column({
-    nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  @UniqueColumnBy("projectId")
-  public name?: string = undefined;
+  @ManyToOne(
+    () => {
+      return RunbookAgent;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runbookAgentId" })
+  public runbookAgent?: RunbookAgent = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -203,7 +192,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
@@ -211,57 +200,25 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookManager,
-      Permission.EditRunbookAgent,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.LongText,
-    title: "Description",
-    description: "Optional description for this agent",
-    example: "Runs in the production EU cluster; can reach internal services.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public description?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.ObjectID,
     required: true,
-    unique: true,
-    type: TableColumnType.Slug,
-    computed: true,
-    title: "Slug",
-    description: "Friendly globally unique name for your object",
+    canReadOnRelationQuery: true,
+    title: "Runbook Agent ID",
+    description:
+      "ID of your OneUptime Runbook Agent in which this object belongs",
   })
   @Column({
+    type: ColumnType.ObjectID,
     nullable: false,
-    type: ColumnType.Slug,
-    length: ColumnLength.Slug,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public slug?: string = undefined;
+  public runbookAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -269,142 +226,40 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.RunbookManager,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookManager,
-      Permission.EditRunbookAgent,
-    ],
+    update: [],
   })
   @TableColumn({
-    required: true,
-    unique: true,
-    type: TableColumnType.ShortText,
-    title: "Agent Key",
+    manyToOneRelationColumn: "teamId",
+    type: TableColumnType.Entity,
+    modelType: Team,
+    title: "Team",
     description:
-      "Secret key the agent presents on every request. Never share this key. Reset it to revoke the agent.",
+      "Team that is the owner. All users in this team will receive notifications.",
   })
-  @Column({
-    type: ColumnType.ShortText,
-    nullable: false,
-    unique: true,
-  })
-  public key?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Version,
-    title: "Agent Version",
-    description:
-      "Self-reported version of the agent binary. Updated on each heartbeat.",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Version,
-    length: ColumnLength.Version,
-    transformer: Version.getDatabaseTransformer(),
-  })
-  public agentVersion?: Version = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Date,
-    title: "Last Alive",
-    description: "Most recent heartbeat from this agent.",
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Date,
-  })
-  public lastAlive?: Date = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.ShortText,
-    title: "Connection Status",
-    description: "Connected if the agent has heartbeated recently.",
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    type: ColumnType.ShortText,
-    nullable: true,
-    unique: false,
-  })
-  public connectionStatus?: RunbookAgentConnectionStatus = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Host Info",
-    description:
-      "Self-reported host info (hostname, OS, arch). Updated on each heartbeat.",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public hostInfo?: JSONObject = undefined;
+  @ManyToOne(
+    () => {
+      return Team;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "teamId" })
+  public team?: Team = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -412,7 +267,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
@@ -420,7 +275,40 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Team ID",
+    description: "ID of your OneUptime Team in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookManager,
+      Permission.CreateRunbookAgentOwnerTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookManager,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -453,7 +341,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
+      Permission.CreateRunbookAgentOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
@@ -461,7 +349,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -481,7 +369,15 @@ export default class RunbookAgent extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookManager,
+      Permission.ReadRunbookAgentOwnerTeam,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({
@@ -509,7 +405,15 @@ export default class RunbookAgent extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookManager,
+      Permission.ReadRunbookAgentOwnerTeam,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({
@@ -526,54 +430,32 @@ export default class RunbookAgent extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
+      Permission.ReadRunbookAgentOwnerTeam,
       Permission.ReadAllProjectResources,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookManager,
-      Permission.EditRunbookAgent,
-    ],
+    update: [],
   })
   @TableColumn({
-    required: false,
-    type: TableColumnType.EntityArray,
-    modelType: Label,
-    title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Are Owners Notified",
+    description: "Are owners notified of this resource ownership?",
+    defaultValue: false,
   })
-  @ManyToMany(
-    () => {
-      return Label;
-    },
-    { eager: false },
-  )
-  @JoinTable({
-    name: "RunbookAgentLabel",
-    inverseJoinColumn: {
-      name: "labelId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
-      name: "runbookAgentId",
-      referencedColumnName: "_id",
-    },
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
   })
-  public labels?: Array<Label> = undefined;
+  public isOwnerNotified?: boolean = undefined;
 }
