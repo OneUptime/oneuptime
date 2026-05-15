@@ -263,10 +263,12 @@ export default class ModelPermission {
           DatabaseRequestType.Read,
         );
 
-        // Apply the `Owned` permission scope filter for telemetry models
-        // (Log/Span/Metric). Resolves the user's accessible Service IDs
-        // once and constrains the ClickHouse query with `serviceId IN (...)`.
-        // See Internal/Docs/PermissionsSimplification.md.
+        /*
+         * Apply the `Owned` permission scope filter for telemetry models
+         * (Log/Span/Metric). Resolves the user's accessible Service IDs
+         * once and constrains the ClickHouse query with `serviceId IN (...)`.
+         * See Internal/Docs/PermissionsSimplification.md.
+         */
         query = await this.addOwnedScopeToQuery(
           modelType,
           query,
@@ -601,10 +603,12 @@ export default class ModelPermission {
     return modelPermissions;
   }
 
-  // Mirror of TablePermission.getEffectiveModelPermissions. Adds the
-  // *AllResources wildcard for @OperationalResource analytics models and the
-  // ReadAllResources/ReadAllProjectResources runtime alias. See
-  // Internal/Docs/PermissionsSimplification.md.
+  /*
+   * Mirror of TablePermission.getEffectiveModelPermissions. Adds the
+   * *AllOperationalResources wildcard for @OperationalResource analytics models and the
+   * ReadAllOperationalResources/ReadAllProjectResources runtime alias. See
+   * Internal/Docs/PermissionsSimplification.md.
+   */
   private static getEffectiveModelPermissions(
     modelType: AnalyticsBaseModelType,
     modelPermissions: Array<Permission>,
@@ -614,9 +618,9 @@ export default class ModelPermission {
 
     if (
       effective.includes(Permission.ReadAllProjectResources) &&
-      !effective.includes(Permission.ReadAllResources)
+      !effective.includes(Permission.ReadAllOperationalResources)
     ) {
-      effective.push(Permission.ReadAllResources);
+      effective.push(Permission.ReadAllOperationalResources);
     }
 
     const model: any = new modelType();
@@ -642,24 +646,26 @@ export default class ModelPermission {
   ): Permission | null {
     switch (type) {
       case DatabaseRequestType.Read:
-        return Permission.ReadAllResources;
+        return Permission.ReadAllOperationalResources;
       case DatabaseRequestType.Update:
-        return Permission.EditAllResources;
+        return Permission.EditAllOperationalResources;
       case DatabaseRequestType.Delete:
-        return Permission.DeleteAllResources;
+        return Permission.DeleteAllOperationalResources;
       case DatabaseRequestType.Create:
-        return Permission.CreateAllResources;
+        return Permission.CreateAllOperationalResources;
       default:
         return null;
     }
   }
 
-  // `Owned` scope filter for analytics models (Log, Span, Metric). Resolves
-  // the user's accessible Service IDs via the Postgres ServiceOwner* tables
-  // once and injects `serviceId IN (...)` into the ClickHouse query. The
-  // operational per-row owner-join from the Postgres path doesn't scale to
-  // telemetry volume; one Postgres roundtrip + one indexed predicate does.
-  // See Internal/Docs/PermissionsSimplification.md §Telemetry & Analytics.
+  /*
+   * `Owned` scope filter for analytics models (Log, Span, Metric). Resolves
+   * the user's accessible Service IDs via the Postgres ServiceOwner* tables
+   * once and injects `serviceId IN (...)` into the ClickHouse query. The
+   * operational per-row owner-join from the Postgres path doesn't scale to
+   * telemetry volume; one Postgres roundtrip + one indexed predicate does.
+   * See Internal/Docs/PermissionsSimplification.md §Telemetry & Analytics.
+   */
   private static async addOwnedScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
@@ -674,9 +680,11 @@ export default class ModelPermission {
       return query;
     }
 
-    // Only applies to analytics models that declare @OwnedThrough — today
-    // Log, Span, Metric all do (to Service via serviceId). Anything without
-    // it can't have ownership filtering applied, so we leave the query alone.
+    /*
+     * Only applies to analytics models that declare @OwnedThrough — today
+     * Log, Span, Metric all do (to Service via serviceId). Anything without
+     * it can't have ownership filtering applied, so we leave the query alone.
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model: any = new modelType();
     if (!model.ownedThrough) {
@@ -706,8 +714,10 @@ export default class ModelPermission {
       return query;
     }
 
-    // If any applicable row is non-Owned scope, that broader grant wins
-    // and the Owned filter doesn't apply.
+    /*
+     * If any applicable row is non-Owned scope, that broader grant wins
+     * and the Owned filter doesn't apply.
+     */
     const hasNonOwnedGrant: boolean = applicableRows.some(
       (p: UserPermission) => {
         return p.scope !== PermissionScope.Owned;
@@ -717,9 +727,11 @@ export default class ModelPermission {
       return query;
     }
 
-    // Resolve allowed service IDs via the Postgres ServiceOwner* tables.
-    // Lazy require to avoid circular deps with services that extend
-    // DatabaseService.
+    /*
+     * Resolve allowed service IDs via the Postgres ServiceOwner* tables.
+     * Lazy require to avoid circular deps with services that extend
+     * DatabaseService.
+     */
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const ownerTableRegistry: Map<
       string,
@@ -727,13 +739,15 @@ export default class ModelPermission {
       { ownerUserService: any; ownerTeamService: any; fkColumn: string }
     > = require("../Database/Permissions/OwnerTableRegistry").default;
 
-    const serviceEntry: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ownerUserService: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ownerTeamService: any;
-      fkColumn: string;
-    } | undefined = ownerTableRegistry.get("Service");
+    const serviceEntry:
+      | {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ownerUserService: any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ownerTeamService: any;
+          fkColumn: string;
+        }
+      | undefined = ownerTableRegistry.get("Service");
     if (!serviceEntry) {
       return query;
     }
@@ -846,10 +860,12 @@ export default class ModelPermission {
       type,
     );
 
-    // Mirror of TablePermission's wildcard short-circuit so the analytics
-    // path (ClickHouse-backed Log/Span/Metric) honors the same *AllResources
-    // permissions and the ReadAllProjectResources runtime alias. See
-    // Internal/Docs/PermissionsSimplification.md.
+    /*
+     * Mirror of TablePermission's wildcard short-circuit so the analytics
+     * path (ClickHouse-backed Log/Span/Metric) honors the same *AllOperationalResources
+     * permissions and the ReadAllProjectResources runtime alias. See
+     * Internal/Docs/PermissionsSimplification.md.
+     */
     const effectiveModelPermissions: Array<Permission> =
       this.getEffectiveModelPermissions(modelType, modelPermissions, type);
 

@@ -66,7 +66,11 @@ export default class TablePermission {
       TablePermission.getTablePermission(modelType, type);
 
     const effectiveModelPermissions: Array<Permission> =
-      TablePermission.getEffectiveModelPermissions(modelType, modelPermissions, type);
+      TablePermission.getEffectiveModelPermissions(
+        modelType,
+        modelPermissions,
+        type,
+      );
 
     if (
       !PermissionHelper.doesPermissionsIntersect(
@@ -93,16 +97,18 @@ export default class TablePermission {
     }
   }
 
-  // Resolves the model's enumerated permissions plus any wildcards that should
-  // grant access. See Internal/Docs/PermissionsSimplification.md.
-  //
-  // - Runtime equivalence: anywhere ReadAllProjectResources is accepted,
-  //   ReadAllResources is too (and vice versa for operational reads). No DB
-  //   migration is performed; this is the only place the alias lives.
-  // - Operational-resource wildcard: models marked @OperationalResource also
-  //   accept the matching *AllResources wildcard (ReadAllResources for read,
-  //   EditAllResources for update, etc.). Scope (All/Owned/Labels) on the
-  //   permission row is evaluated in a later step, not here.
+  /*
+   * Resolves the model's enumerated permissions plus any wildcards that should
+   * grant access. See Internal/Docs/PermissionsSimplification.md.
+   *
+   * - Runtime equivalence: anywhere ReadAllProjectResources is accepted,
+   *   ReadAllOperationalResources is too (and vice versa for operational reads). No DB
+   *   migration is performed; this is the only place the alias lives.
+   * - Operational-resource wildcard: models marked @OperationalResource also
+   *   accept the matching *AllOperationalResources wildcard (ReadAllOperationalResources for read,
+   *   EditAllOperationalResources for update, etc.). Scope (All/Owned/Labels) on the
+   *   permission row is evaluated in a later step, not here.
+   */
   private static getEffectiveModelPermissions(
     modelType: DatabaseBaseModelType,
     modelPermissions: Array<Permission>,
@@ -112,9 +118,9 @@ export default class TablePermission {
 
     if (
       effective.includes(Permission.ReadAllProjectResources) &&
-      !effective.includes(Permission.ReadAllResources)
+      !effective.includes(Permission.ReadAllOperationalResources)
     ) {
-      effective.push(Permission.ReadAllResources);
+      effective.push(Permission.ReadAllOperationalResources);
     }
 
     const model: BaseModel = new modelType();
@@ -140,13 +146,13 @@ export default class TablePermission {
   ): Permission | null {
     switch (type) {
       case DatabaseRequestType.Read:
-        return Permission.ReadAllResources;
+        return Permission.ReadAllOperationalResources;
       case DatabaseRequestType.Update:
-        return Permission.EditAllResources;
+        return Permission.EditAllOperationalResources;
       case DatabaseRequestType.Delete:
-        return Permission.DeleteAllResources;
+        return Permission.DeleteAllOperationalResources;
       case DatabaseRequestType.Create:
-        return Permission.CreateAllResources;
+        return Permission.CreateAllOperationalResources;
       default:
         return null;
     }

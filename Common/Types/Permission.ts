@@ -1285,19 +1285,21 @@ enum Permission {
 
   // Read All Project Resources Permission - Grants read access to all project resources
   /**
-   * @deprecated Use {@link ReadAllResources} instead. Kept as a runtime alias
+   * @deprecated Use {@link ReadAllOperationalResources} instead. Kept as a runtime alias
    * for backward compatibility; the permission check treats this and
-   * `ReadAllResources` as equivalent. Will be removed in a future major version.
+   * `ReadAllOperationalResources` as equivalent. Will be removed in a future major version.
    */
   ReadAllProjectResources = "ReadAllProjectResources",
 
-  // Wildcard permissions covering all models marked @OperationalResource().
-  // These short-circuit table-level checks for that resource class. Scope on
-  // the TeamPermission row still applies (All / Owned / Labels).
-  ReadAllResources = "ReadAllResources",
-  EditAllResources = "EditAllResources",
-  DeleteAllResources = "DeleteAllResources",
-  CreateAllResources = "CreateAllResources",
+  /*
+   * Wildcard permissions covering all models marked @OperationalResource().
+   * These short-circuit table-level checks for that resource class. Scope on
+   * the TeamPermission row still applies (All / Owned / Labels).
+   */
+  ReadAllOperationalResources = "ReadAllOperationalResources",
+  EditAllOperationalResources = "EditAllOperationalResources",
+  DeleteAllOperationalResources = "DeleteAllOperationalResources",
+  CreateAllOperationalResources = "CreateAllOperationalResources",
 }
 
 export class PermissionHelper {
@@ -10738,12 +10740,12 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
-      // Read All Project Resources Permission (deprecated; alias of ReadAllResources)
+      // Read All Project Resources Permission (deprecated; alias of ReadAllOperationalResources)
       {
         permission: Permission.ReadAllProjectResources,
         title: "Read All Project Resources",
         description:
-          "Deprecated. Use Read All Resources instead. Grants read access to all resources in this project.",
+          "Deprecated. Use Read All Operational Resources instead. Grants read access to all resources in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10752,8 +10754,8 @@ export class PermissionHelper {
 
       // Operational Resource Wildcard Permissions
       {
-        permission: Permission.ReadAllResources,
-        title: "Read All Resources",
+        permission: Permission.ReadAllOperationalResources,
+        title: "Read All Operational Resources",
         description:
           "Wildcard read permission for all operational resources in this project (Monitor, Incident, Alert, StatusPage, etc.). Supersedes Read All Project Resources.",
         isAssignableToTenant: true,
@@ -10762,8 +10764,8 @@ export class PermissionHelper {
         group: PermissionGroup.Project,
       },
       {
-        permission: Permission.EditAllResources,
-        title: "Edit All Resources",
+        permission: Permission.EditAllOperationalResources,
+        title: "Edit All Operational Resources",
         description:
           "Wildcard edit permission for all operational resources in this project.",
         isAssignableToTenant: true,
@@ -10772,8 +10774,8 @@ export class PermissionHelper {
         group: PermissionGroup.Project,
       },
       {
-        permission: Permission.DeleteAllResources,
-        title: "Delete All Resources",
+        permission: Permission.DeleteAllOperationalResources,
+        title: "Delete All Operational Resources",
         description:
           "Wildcard delete permission for all operational resources in this project.",
         isAssignableToTenant: true,
@@ -10782,8 +10784,8 @@ export class PermissionHelper {
         group: PermissionGroup.Project,
       },
       {
-        permission: Permission.CreateAllResources,
-        title: "Create All Resources",
+        permission: Permission.CreateAllOperationalResources,
+        title: "Create All Operational Resources",
         description:
           "Wildcard create permission for all operational resources in this project.",
         isAssignableToTenant: true,
@@ -10829,11 +10831,13 @@ export interface UserPermission extends JSONObject {
   permission: Permission;
   labelIds: Array<ObjectID>;
   isBlockPermission?: boolean | undefined;
-  // Scope of this permission row. Absent means `Labels` (legacy default).
-  // - `All`: applies project-wide.
-  // - `Owned`: applies to resources owned by the user (in *OwnerUser) OR by
-  //   this team (in *OwnerTeam).
-  // - `Labels`: existing allow/block-list label semantics.
+  /*
+   * Scope of this permission row. Absent means `Labels` (legacy default).
+   * - `All`: applies project-wide.
+   * - `Owned`: applies to resources owned by the user (in *OwnerUser) OR by
+   *   this team (in *OwnerTeam).
+   * - `Labels`: existing allow/block-list label semantics.
+   */
   scope?: PermissionScope | undefined;
 }
 

@@ -11,7 +11,7 @@ Today, scoping team access to specific resources requires applying labels to eve
 This document proposes:
 
 1. Adding a **scope** field to `TeamPermission` (`All` | `Owned` | `Labels`).
-2. Introducing **wildcard `AllResources` permissions** (`ReadAllResources`, `EditAllResources`, `DeleteAllResources`, `CreateAllResources`) so a team's full operator role is 4 rows, not 30+.
+2. Introducing **wildcard `AllOperationalResources` permissions** (`ReadAllOperationalResources`, `EditAllOperationalResources`, `DeleteAllOperationalResources`, `CreateAllOperationalResources`) so a team's full operator role is 4 rows, not 30+.
 3. Inheriting ownership for **nested resources** through a parent FK via an `@OwnedThrough(...)` decorator.
 4. Exposing **role bundles** in the UI (Viewer / Operator / Admin) so most users never see individual permission enums.
 
@@ -65,18 +65,18 @@ Add a `scope` enum to `TeamPermission`:
 (DBA team, DeleteMonitor, Owned)    -- delete only owned monitors
 ```
 
-### 2. `AllResources` wildcard permissions
+### 2. `AllOperationalResources` wildcard permissions
 
 Four new permissions covering the operational resource surface:
 
-- `ReadAllResources` (promotes the existing `ReadAllProjectResources`)
-- `EditAllResources`
-- `DeleteAllResources`
-- `CreateAllResources`
+- `ReadAllOperationalResources` (promotes the existing `ReadAllProjectResources`)
+- `EditAllOperationalResources`
+- `DeleteAllOperationalResources`
+- `CreateAllOperationalResources`
 
 These do **not** cover settings/admin resources (Team, TeamPermission, Project settings, Billing, Integrations). Each model is annotated with `@OperationalResource()` or not; the wildcard short-circuit only applies to those.
 
-In `TablePermission.checkTableLevelPermissions`, add a short-circuit: if the user has the matching `*AllResources` permission for the requested operation, and the model is `@OperationalResource()`, table-level access is granted. The owner-scope filter (if any) still applies on top. This is a single code-path change, not per-model edits.
+In `TablePermission.checkTableLevelPermissions`, add a short-circuit: if the user has the matching `*AllOperationalResources` permission for the requested operation, and the model is `@OperationalResource()`, table-level access is granted. The owner-scope filter (if any) still applies on top. This is a single code-path change, not per-model edits.
 
 ### 3. Nested resources
 
@@ -90,9 +90,9 @@ The backend stays granular. The UI exposes preset role bundles:
 
 | Role | Bundle |
 |---|---|
-| Viewer | `ReadAllResources` |
-| Editor | `ReadAllResources` + `EditAllResources` |
-| Operator | `ReadAllResources` + `EditAllResources` + `DeleteAllResources` + `CreateAllResources` |
+| Viewer | `ReadAllOperationalResources` |
+| Editor | `ReadAllOperationalResources` + `EditAllOperationalResources` |
+| Operator | `ReadAllOperationalResources` + `EditAllOperationalResources` + `DeleteAllOperationalResources` + `CreateAllOperationalResources` |
 | Admin | Above + settings permissions, typically with `scope = All` |
 
 Picking a bundle writes the corresponding `TeamPermission` rows. Users can still drop to "advanced mode" to edit rows individually.
@@ -107,7 +107,7 @@ For a request like `PATCH /monitor/:id`:
 2. **Billing** — plan permits this operation. (Unchanged.)
 3. **Table-level** — user has one of:
    - the model's enumerated `update` permissions, OR
-   - `EditAllResources` (if model is `@OperationalResource()`).
+   - `EditAllOperationalResources` (if model is `@OperationalResource()`).
 4. **Scope** — for each matching permission row:
    - `All` → pass.
    - `Owned` → fetch resource (and walk `@OwnedThrough` for nested); pass if the requesting user is in the resource's `*OwnerUser` table, OR if any of the user's teams is in the resource's `*OwnerTeam` table.
@@ -134,13 +134,13 @@ Team B:  Operator  /  Owned
 
 ```
 TeamPermission rows for Team A:
-  (Team A, ReadAllResources,   Owned)
+  (Team A, ReadAllOperationalResources,   Owned)
 
 TeamPermission rows for Team B:
-  (Team B, ReadAllResources,   Owned)
-  (Team B, EditAllResources,   Owned)
-  (Team B, DeleteAllResources, Owned)
-  (Team B, CreateAllResources, Owned)
+  (Team B, ReadAllOperationalResources,   Owned)
+  (Team B, EditAllOperationalResources,   Owned)
+  (Team B, DeleteAllOperationalResources, Owned)
+  (Team B, CreateAllOperationalResources, Owned)
 ```
 
 **Behavior:**
@@ -155,7 +155,7 @@ TeamPermission rows for Team B:
 
 Team B member updates a `MonitorStatusTimeline` entry whose `monitorId` points to a monitor owned by Team B.
 
-- Table-level: user has `EditAllResources`, `MonitorStatusTimeline` is `@OperationalResource()` → pass.
+- Table-level: user has `EditAllOperationalResources`, `MonitorStatusTimeline` is `@OperationalResource()` → pass.
 - Scope: `@OwnedThrough("monitorId", Monitor)` resolves ownership via the parent monitor. Team B owns the parent → pass.
 
 No new permission, no separate config.
@@ -176,9 +176,9 @@ Each telemetry record carries a `serviceId` FK pointing at `Service` (the Teleme
 
 Same decorator used for nested Postgres resources (e.g., `MonitorStatusTimeline`); the analytics path interprets it via its own resolver.
 
-### `*AllResources` coverage
+### `*AllOperationalResources` coverage
 
-Log, Span, and Metric are marked `@OperationalResource()`. They count toward `ReadAllResources` / `EditAllResources` / `DeleteAllResources` / `CreateAllResources`.
+Log, Span, and Metric are marked `@OperationalResource()`. They count toward `ReadAllOperationalResources` / `EditAllOperationalResources` / `DeleteAllOperationalResources` / `CreateAllOperationalResources`.
 
 The wildcard short-circuit, which today only fires inside `TablePermission`, must be mirrored in `AnalyticsDatabaseService` so analytics queries pick it up. Same logic, parallel location.
 
@@ -204,7 +204,7 @@ One Postgres roundtrip resolves access for the whole request; the ClickHouse pre
 
 ### Granularity
 
-Existing per-data-type permissions stay (`ReadTelemetryServiceLog`, `ReadTelemetryServiceTraces`, `ReadTelemetryServiceMetrics`). `*AllResources` is additive on top — both paths grant access. Existing label-mode rows continue to work because the analytics path always evaluates scope before returning rows.
+Existing per-data-type permissions stay (`ReadTelemetryServiceLog`, `ReadTelemetryServiceTraces`, `ReadTelemetryServiceMetrics`). `*AllOperationalResources` is additive on top — both paths grant access. Existing label-mode rows continue to work because the analytics path always evaluates scope before returning rows.
 
 ---
 
@@ -212,7 +212,7 @@ Existing per-data-type permissions stay (`ReadTelemetryServiceLog`, `ReadTelemet
 
 ### Create + Owned
 
-A resource can't be owner-scoped before it exists. Rule: `CreateAllResources` (and any `Create*` permission) **ignores scope** and acts project-wide. On successful create, the **creating user** is auto-added to the resource's `*OwnerUser` table (not their team). Because the `Owned` scope check also matches user-ownership (see §Proposed Design §1), the creator can immediately edit/delete their resource. Teams are populated separately, via explicit configuration or `OwnerRule`.
+A resource can't be owner-scoped before it exists. Rule: `CreateAllOperationalResources` (and any `Create*` permission) **ignores scope** and acts project-wide. On successful create, the **creating user** is auto-added to the resource's `*OwnerUser` table (not their team). Because the `Owned` scope check also matches user-ownership (see §Proposed Design §1), the creator can immediately edit/delete their resource. Teams are populated separately, via explicit configuration or `OwnerRule`.
 
 If a team should be forbidden from creating at all, simply don't grant `Create*` permission to it.
 
@@ -234,7 +234,7 @@ To give Team A access to a Team B resource, add Team A to that resource's `*Owne
 
 ### Settings resources
 
-Models without `@OperationalResource()` are not covered by `*AllResources`. Examples: Team, TeamPermission, Project, Label, Billing, Integration credentials. These remain governed by their explicit permission enums (`EditProjectTeamPermissions`, etc.).
+Models without `@OperationalResource()` are not covered by `*AllOperationalResources`. Examples: Team, TeamPermission, Project, Label, Billing, Integration credentials. These remain governed by their explicit permission enums (`EditProjectTeamPermissions`, etc.).
 
 ### Non-user callers (API keys, Probes)
 
@@ -267,15 +267,15 @@ scope ENUM('All','Owned','Labels') NOT NULL DEFAULT 'Labels'
 Add:
 
 ```
-ReadAllResources       -- supersedes ReadAllProjectResources (keep as alias)
-EditAllResources
-DeleteAllResources
-CreateAllResources
+ReadAllOperationalResources       -- supersedes ReadAllProjectResources (keep as alias)
+EditAllOperationalResources
+DeleteAllOperationalResources
+CreateAllOperationalResources
 ```
 
 ### Decorators
 
-- `@OperationalResource()` — class decorator on models that should be covered by `*AllResources`.
+- `@OperationalResource()` — class decorator on models that should be covered by `*AllOperationalResources`.
 - `@OwnedThrough(fkColumn, ParentModel)` — class decorator on nested models. Resolves ownership via the parent.
 
 ### Auto-owner-on-create
@@ -299,7 +299,7 @@ For non-user callers (API keys, Probes), `userTeamIds` is absent and `Owned` eva
 ## Migration
 
 1. **Add `scope` field** with default `Labels`. Existing rows behave exactly as today.
-2. **Ship `*AllResources` permissions** and the `TablePermission` short-circuit.
+2. **Ship `*AllOperationalResources` permissions** and the `TablePermission` short-circuit.
 3. **Annotate models** with `@OperationalResource()` and nested models with `@OwnedThrough(...)`.
 4. **Thread `userTeamIds` through `DatabaseCommonInteractionProps`** so `Owned` scope can be evaluated cheaply per request.
 5. **UI rollout**: introduce the role-bundle picker as the default for new team permissions. Existing rows render in "advanced mode."
@@ -320,8 +320,8 @@ Recorded so future readers don't relitigate them.
 5. **Threading team membership** → `DatabaseCommonInteractionProps` gains a `userTeamIds: ObjectID[]` field populated at request authentication, consumed by the `Owned` scope check.
 6. **Default scope for a brand-new project's "Members" team** → `Owned`. With auto-owner-on-create assigning the creating user, resources the user created themselves are always visible under `Owned`. The remaining empty-list risk ("resources I didn't create and no one assigned to me/my team") is acceptable for member-style teams.
 7. **Default scope per role bundle in the UI** → `Owned` for every bundle (Viewer / Editor / Operator). Single uniform default, least-privilege by default, matches the canonical customer ask in this doc. The day-one empty-list UX (e.g., a new Viewer who hasn't been assigned ownership of anything) is addressed via UI empty-state copy, not by widening the default scope.
-8. **`ReadAllProjectResources` strategy** → Runtime equivalence. Keep both enum values; the permission check treats `ReadAllProjectResources` and `ReadAllResources` as equivalent. Mark `ReadAllProjectResources` `@deprecated`. No DB writes. Remove the old value in a future major version, consistent with the no-data-migration policy.
-9. **Telemetry / analytics permissions** → Log, Span, and Metric inherit ownership via `@OwnedThrough("serviceId", Service)` and are `@OperationalResource()` (covered by `*AllResources`). The wildcard short-circuit and `Owned` scope check are mirrored in `AnalyticsDatabaseService` as a parallel path. At query time, the user's allowed service IDs are resolved **once per request** from `ServiceOwnerUser` / `ServiceOwnerTeam`, then injected as `WHERE serviceId IN (...)` on every ClickHouse query — not per-row owner joins, which don't scale to telemetry volume.
+8. **`ReadAllProjectResources` strategy** → Runtime equivalence. Keep both enum values; the permission check treats `ReadAllProjectResources` and `ReadAllOperationalResources` as equivalent. Mark `ReadAllProjectResources` `@deprecated`. No DB writes. Remove the old value in a future major version, consistent with the no-data-migration policy.
+9. **Telemetry / analytics permissions** → Log, Span, and Metric inherit ownership via `@OwnedThrough("serviceId", Service)` and are `@OperationalResource()` (covered by `*AllOperationalResources`). The wildcard short-circuit and `Owned` scope check are mirrored in `AnalyticsDatabaseService` as a parallel path. At query time, the user's allowed service IDs are resolved **once per request** from `ServiceOwnerUser` / `ServiceOwnerTeam`, then injected as `WHERE serviceId IN (...)` on every ClickHouse query — not per-row owner joins, which don't scale to telemetry volume.
 
 ## Open Questions
 

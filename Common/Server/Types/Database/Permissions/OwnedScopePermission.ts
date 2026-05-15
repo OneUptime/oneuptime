@@ -2,11 +2,13 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import QueryHelper from "../QueryHelper";
 import TablePermission from "./TablePermission";
-// Type-only import: keeps the OwnerTablePair shape available without
-// triggering a runtime load of the registry (which imports 20 owner
-// services that extend DatabaseService). The registry is lazy-required
-// inside getAllowedResourceIds to avoid the class-extends-undefined
-// circular-dep crash at module init.
+/*
+ * Type-only import: keeps the OwnerTablePair shape available without
+ * triggering a runtime load of the registry (which imports 20 owner
+ * services that extend DatabaseService). The registry is lazy-required
+ * inside getAllowedResourceIds to avoid the class-extends-undefined
+ * circular-dep crash at module init.
+ */
 import type { OwnerTablePair } from "./OwnerTableRegistry";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -21,15 +23,17 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
-// Implements the `Owned` permission scope (see
-// Internal/Docs/PermissionsSimplification.md). When the requesting user's
-// applicable permission rows are exclusively `Owned`-scoped, this restricts
-// the query to resources where the user is in *OwnerUser or any of the
-// user's teams is in *OwnerTeam.
-//
-// `All` and `Labels` scoped rows are evaluated elsewhere; if any non-Owned
-// row also grants the operation, that broader grant wins and this filter
-// is skipped.
+/*
+ * Implements the `Owned` permission scope (see
+ * Internal/Docs/PermissionsSimplification.md). When the requesting user's
+ * applicable permission rows are exclusively `Owned`-scoped, this restricts
+ * the query to resources where the user is in *OwnerUser or any of the
+ * user's teams is in *OwnerTeam.
+ *
+ * `All` and `Labels` scoped rows are evaluated elsewhere; if any non-Owned
+ * row also grants the operation, that broader grant wins and this filter
+ * is skipped.
+ */
 export default class OwnedScopePermission {
   @CaptureSpan()
   public static async addOwnedScopeToQuery<TBaseModel extends BaseModel>(
@@ -42,8 +46,10 @@ export default class OwnedScopePermission {
       return query;
     }
 
-    // Create has no resource to scope to; auto-owner-on-create lives in the
-    // create path itself, not here.
+    /*
+     * Create has no resource to scope to; auto-owner-on-create lives in the
+     * create path itself, not here.
+     */
     if (type === DatabaseRequestType.Create) {
       return query;
     }
@@ -69,13 +75,17 @@ export default class OwnedScopePermission {
     );
 
     if (applicableRows.length === 0) {
-      // No grant applies — the existing table-level check will reject this
-      // request. Leave the query untouched.
+      /*
+       * No grant applies — the existing table-level check will reject this
+       * request. Leave the query untouched.
+       */
       return query;
     }
 
-    // If any applicable row is non-Owned (All / Labels / undefined), it
-    // grants broader access than Owned and the Owned constraint is moot.
+    /*
+     * If any applicable row is non-Owned (All / Labels / undefined), it
+     * grants broader access than Owned and the Owned constraint is moot.
+     */
     const hasNonOwnedGrant: boolean = applicableRows.some(
       (p: UserPermission) => {
         return p.scope !== PermissionScope.Owned;
@@ -90,8 +100,10 @@ export default class OwnedScopePermission {
       await OwnedScopePermission.getAllowedResourceIds(modelType, props);
 
     if (model.ownedThrough) {
-      // Nested resource: ownership inherits via the parent FK. The allowedIds
-      // we computed are the parent's IDs, so filter on the FK column.
+      /*
+       * Nested resource: ownership inherits via the parent FK. The allowedIds
+       * we computed are the parent's IDs, so filter on the FK column.
+       */
       const fkColumn: string = model.ownedThrough.fkColumn;
       if (allowedIds.length === 0) {
         // No accessible parents -> match nothing.
@@ -119,11 +131,13 @@ export default class OwnedScopePermission {
     return query;
   }
 
-  // Returns the permissions that should be considered to grant access for
-  // this op/model — model-enumerated plus operational wildcards plus the
-  // ReadAllProjectResources runtime alias. Mirrors the logic in
-  // TablePermission.getEffectiveModelPermissions but exposed here because
-  // we need to filter user-permission rows by this set.
+  /*
+   * Returns the permissions that should be considered to grant access for
+   * this op/model — model-enumerated plus operational wildcards plus the
+   * ReadAllProjectResources runtime alias. Mirrors the logic in
+   * TablePermission.getEffectiveModelPermissions but exposed here because
+   * we need to filter user-permission rows by this set.
+   */
   private static getEffectivePermissionsForModel(
     modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
@@ -134,9 +148,9 @@ export default class OwnedScopePermission {
 
     if (
       effective.includes(Permission.ReadAllProjectResources) &&
-      !effective.includes(Permission.ReadAllResources)
+      !effective.includes(Permission.ReadAllOperationalResources)
     ) {
-      effective.push(Permission.ReadAllResources);
+      effective.push(Permission.ReadAllOperationalResources);
     }
 
     const model: BaseModel = new modelType();
@@ -162,24 +176,26 @@ export default class OwnedScopePermission {
   ): Permission | null {
     switch (type) {
       case DatabaseRequestType.Read:
-        return Permission.ReadAllResources;
+        return Permission.ReadAllOperationalResources;
       case DatabaseRequestType.Update:
-        return Permission.EditAllResources;
+        return Permission.EditAllOperationalResources;
       case DatabaseRequestType.Delete:
-        return Permission.DeleteAllResources;
+        return Permission.DeleteAllOperationalResources;
       case DatabaseRequestType.Create:
-        return Permission.CreateAllResources;
+        return Permission.CreateAllOperationalResources;
       default:
         return null;
     }
   }
 
-  // Computes the set of resource IDs the requesting user can access via
-  // ownership: those where they personally sit in *OwnerUser OR where any of
-  // their teams sits in *OwnerTeam.
-  //
-  // For nested models the lookup uses the parent's owner tables and returns
-  // parent IDs (the caller filters the nested query by the parent FK).
+  /*
+   * Computes the set of resource IDs the requesting user can access via
+   * ownership: those where they personally sit in *OwnerUser OR where any of
+   * their teams sits in *OwnerTeam.
+   *
+   * For nested models the lookup uses the parent's owner tables and returns
+   * parent IDs (the caller filters the nested query by the parent FK).
+   */
   private static async getAllowedResourceIds<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
@@ -196,9 +212,11 @@ export default class OwnedScopePermission {
       resolverName = (modelType as any).name;
     }
 
-    // Lazy require to avoid the circular dep cycle: this file is reachable
-    // from DatabaseService at module-load time, and the registry imports
-    // services that extend DatabaseService.
+    /*
+     * Lazy require to avoid the circular dep cycle: this file is reachable
+     * from DatabaseService at module-load time, and the registry imports
+     * services that extend DatabaseService.
+     */
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const ownerTableRegistry: Map<string, OwnerTablePair> =
       require("./OwnerTableRegistry").default;
@@ -206,16 +224,20 @@ export default class OwnedScopePermission {
     const registryEntry: OwnerTablePair | undefined =
       ownerTableRegistry.get(resolverName);
     if (!registryEntry) {
-      // No registered owner tables for this model — Owned scope can't
-      // resolve, so nothing is accessible.
+      /*
+       * No registered owner tables for this model — Owned scope can't
+       * resolve, so nothing is accessible.
+       */
       return [];
     }
 
     const seen: Set<string> = new Set<string>();
     const fkColumn: string = registryEntry.fkColumn;
 
-    // User-ownership lookup. Skipped for non-user callers (API keys, Probes
-    // with no userId); those evaluate `Owned` as `All` elsewhere.
+    /*
+     * User-ownership lookup. Skipped for non-user callers (API keys, Probes
+     * with no userId); those evaluate `Owned` as `All` elsewhere.
+     */
     if (props.userId) {
       const userOwnedRows: Array<BaseModel> =
         await registryEntry.ownerUserService.findBy({
