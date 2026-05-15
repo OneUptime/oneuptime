@@ -260,6 +260,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   field: {
                     permission: true,
                   },
+                  onChange: async (_value: any): Promise<void> => {
+                    await formRef.current.setFieldValue("labels", [], true);
+                  },
                   title: "Role",
                   description:
                     "Select a role to assign to this team. Roles provide a predefined set of permissions.",
@@ -267,6 +270,59 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   cardSelectOptions: roleCardSelectOptions,
                   required: true,
                   placeholder: "Select a role",
+                },
+                {
+                  field: {
+                    scope: true,
+                  },
+                  title: "Scope",
+                  description:
+                    "Which resources this role applies to. Owned (recommended): resources where this team or its members are listed as owners. All: every resource in the project. Labels: restrict by labels (advanced). Note: project-wide admin roles (Owner / Admin) typically want All.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: [
+                    {
+                      value: PermissionScope.Owned,
+                      label: "Owned by this team or its members",
+                    },
+                    {
+                      value: PermissionScope.All,
+                      label: "All resources in the project",
+                    },
+                    {
+                      value: PermissionScope.Labels,
+                      label: "Restrict by labels (advanced)",
+                    },
+                  ],
+                  defaultValue: PermissionScope.Owned,
+                  required: true,
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    return Boolean(values["permission"]);
+                  },
+                },
+                {
+                  field: {
+                    labels: true,
+                  },
+                  title: "Restrict to Labels",
+                  description:
+                    "If you want to restrict this role to specific labels, you can select them here. Advanced.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    if (!values["permission"]) {
+                      return false;
+                    }
+                    const scope: PermissionScope | undefined = values[
+                      "scope"
+                    ] as PermissionScope | undefined;
+                    return scope === PermissionScope.Labels;
+                  },
+                  required: false,
+                  placeholder: "Labels",
                 },
               ]
             : [
@@ -368,8 +424,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                       return false;
                     }
 
-                    // Labels apply only in Labels scope mode. Owned/All do
-                    // their filtering elsewhere and would ignore labels.
+                    /*
+                     * Labels apply only in Labels scope mode. Owned/All do
+                     * their filtering elsewhere and would ignore labels.
+                     */
                     const scope: PermissionScope | undefined = values[
                       "scope"
                     ] as PermissionScope | undefined;
