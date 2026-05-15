@@ -26,6 +26,25 @@ const DEFAULT_CLAIM_TIMEOUT_MS: number = 2 * 60_000;
 
 const POLL_INTERVAL_MS: number = 500;
 
+/*
+ * TypeORM's dataSource.query returns `[rows, rowCount]` for UPDATE/DELETE
+ * (even with RETURNING), and just `rows` for SELECT/INSERT. This helper
+ * normalises the response so callers always see the rows array.
+ */
+function unwrapRows(result: unknown): Array<JSONObject> {
+  if (Array.isArray(result)) {
+    if (
+      result.length === 2 &&
+      Array.isArray(result[0]) &&
+      typeof result[1] === "number"
+    ) {
+      return result[0] as Array<JSONObject>;
+    }
+    return result as Array<JSONObject>;
+  }
+  return [];
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -122,13 +141,15 @@ export class Service extends DatabaseService<Model> {
                 j."timeoutInMs", j."status", j."claimedAt", j."leaseExpiresAt";
     `;
 
-    const rows: Array<JSONObject> = await dataSource.query(sql, [
-      data.projectId.toString(),
-      RunbookAgentJobStatus.Pending,
-      data.agentId.toString(),
-      RunbookAgentJobStatus.Claimed,
-      leaseMs.toString(),
-    ]);
+    const rows: Array<JSONObject> = unwrapRows(
+      await dataSource.query(sql, [
+        data.projectId.toString(),
+        RunbookAgentJobStatus.Pending,
+        data.agentId.toString(),
+        RunbookAgentJobStatus.Claimed,
+        leaseMs.toString(),
+      ]),
+    );
 
     if (!rows || rows.length === 0) {
       return null;
@@ -186,13 +207,15 @@ export class Service extends DatabaseService<Model> {
         AND "status" IN ($4, $5)
       RETURNING "_id";
     `;
-    const rows: Array<JSONObject> = await dataSource.query(sql, [
-      leaseMs.toString(),
-      data.jobId.toString(),
-      data.agentId.toString(),
-      RunbookAgentJobStatus.Claimed,
-      RunbookAgentJobStatus.Running,
-    ]);
+    const rows: Array<JSONObject> = unwrapRows(
+      await dataSource.query(sql, [
+        leaseMs.toString(),
+        data.jobId.toString(),
+        data.agentId.toString(),
+        RunbookAgentJobStatus.Claimed,
+        RunbookAgentJobStatus.Running,
+      ]),
+    );
 
     return rows.length > 0;
   }
@@ -235,16 +258,18 @@ export class Service extends DatabaseService<Model> {
         AND "status" IN ($7, $8)
       RETURNING "_id";
     `;
-    const rows: Array<JSONObject> = await dataSource.query(sql, [
-      status,
-      data.output ?? null,
-      data.exitCode ?? null,
-      data.errorMessage ?? null,
-      data.jobId.toString(),
-      data.agentId.toString(),
-      RunbookAgentJobStatus.Claimed,
-      RunbookAgentJobStatus.Running,
-    ]);
+    const rows: Array<JSONObject> = unwrapRows(
+      await dataSource.query(sql, [
+        status,
+        data.output ?? null,
+        data.exitCode ?? null,
+        data.errorMessage ?? null,
+        data.jobId.toString(),
+        data.agentId.toString(),
+        RunbookAgentJobStatus.Claimed,
+        RunbookAgentJobStatus.Running,
+      ]),
+    );
 
     return rows.length > 0;
   }
@@ -312,7 +337,8 @@ export class Service extends DatabaseService<Model> {
       ) {
         return this.timeoutJob({
           jobId: data.jobId,
-          reason: `The selected Runbook Agent did not claim the job before the deadline (${job.claimDeadlineAt.toISOString()}). Make sure the agent is online.`,
+          reason:
+            "No runbook agent picked up this step before the wait window expired. The agent may be offline — check that it is running and reachable, then try again.",
         });
       }
 
@@ -325,7 +351,8 @@ export class Service extends DatabaseService<Model> {
       ) {
         return this.timeoutJob({
           jobId: data.jobId,
-          reason: `Runbook Agent stopped sending heartbeats after claiming the job. Lease expired at ${job.leaseExpiresAt.toISOString()}.`,
+          reason:
+            "The runbook agent stopped responding while this step was running. The agent may have crashed or lost its network connection — check that it is still online, then try running the runbook again.",
         });
       }
 
@@ -333,7 +360,7 @@ export class Service extends DatabaseService<Model> {
         return this.timeoutJob({
           jobId: data.jobId,
           reason:
-            "Overall execution window exceeded while waiting for the agent.",
+            "This step ran longer than the allowed execution window. Increase the timeout on the step or make the script complete faster.",
         });
       }
 

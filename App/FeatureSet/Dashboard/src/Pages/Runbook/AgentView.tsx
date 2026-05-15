@@ -18,7 +18,6 @@ import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import OneUptimeDate from "Common/Types/Date";
 import Label from "Common/Models/DatabaseModels/Label";
 import RunbookAgent, {
   RunbookAgentConnectionStatus,
@@ -143,24 +142,24 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
               title: "Connection Status",
               fieldType: FieldType.Element,
               getElement: (item: RunbookAgent): ReactElement => {
-                const status: string | undefined = item.connectionStatus as
-                  | string
-                  | undefined;
-                const last: Date | undefined = item.lastAlive;
-                const lastLabel: string = last
-                  ? `Last seen ${OneUptimeDate.fromNow(last)}`
-                  : "Never connected";
-                if (status === RunbookAgentConnectionStatus.Connected) {
-                  return (
-                    <span className="text-green-700">
-                      Connected · {lastLabel}
-                    </span>
-                  );
-                }
+                const isConnected: boolean =
+                  item.connectionStatus ===
+                  RunbookAgentConnectionStatus.Connected;
                 return (
-                  <span className="text-gray-500">
-                    Disconnected · {lastLabel}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full ${
+                        isConnected ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        isConnected ? "text-emerald-700" : "text-red-700"
+                      }`}
+                    >
+                      {isConnected ? "Connected" : "Disconnected"}
+                    </span>
+                  </div>
                 );
               },
             },

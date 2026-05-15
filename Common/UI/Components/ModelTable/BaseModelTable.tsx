@@ -2673,8 +2673,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * The "primary" button is the one with NORMAL style and the Add icon — the
    * Create button that BaseModelTable injects automatically. We surface it
    * alongside the search bar and hide everything else behind a kebab menu.
-   * If the page has no such button we fall back to the first NORMAL-styled
-   * one, or the first button outright.
+   * If the page has no such button we fall back to the first NORMAL- or
+   * PRIMARY-styled one. PRIMARY is treated as a main candidate because it
+   * explicitly marks a primary action (e.g. "Run Runbook") — hiding it in
+   * the overflow menu defeats the purpose of the style.
    */
   type FindMainButtonResult = {
     main: CardButtonSchema | null;
@@ -2704,7 +2706,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         if (React.isValidElement(b)) {
           continue;
         }
-        if ((b as CardButtonSchema).buttonStyle === ButtonStyleType.NORMAL) {
+        const style: ButtonStyleType | undefined = (b as CardButtonSchema)
+          .buttonStyle;
+        if (
+          style === ButtonStyleType.NORMAL ||
+          style === ButtonStyleType.PRIMARY
+        ) {
           mainIndex = i;
           break;
         }

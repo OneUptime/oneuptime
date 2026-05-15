@@ -152,25 +152,36 @@ const RunbookAgentsPage: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             getElement: (item: RunbookAgent): ReactElement => {
-              const status: string | undefined = item.connectionStatus as
-                | string
-                | undefined;
-              const last: Date | undefined = item.lastAlive;
-              const lastLabel: string = last
-                ? `Last seen ${OneUptimeDate.fromNow(last)}`
-                : "Never connected";
-              if (status === RunbookAgentConnectionStatus.Connected) {
-                return (
-                  <span className="text-green-700">
-                    Connected · {lastLabel}
-                  </span>
-                );
-              }
+              const isConnected: boolean =
+                item.connectionStatus ===
+                RunbookAgentConnectionStatus.Connected;
               return (
-                <span className="text-gray-500">
-                  Disconnected · {lastLabel}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      isConnected ? "bg-emerald-500" : "bg-red-500"
+                    }`}
+                  />
+                  <span
+                    className={`text-sm font-medium ${
+                      isConnected ? "text-emerald-700" : "text-red-700"
+                    }`}
+                  >
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </span>
+                </div>
               );
+            },
+          },
+          {
+            field: { lastAlive: true },
+            title: "Last Seen",
+            type: FieldType.Element,
+            getElement: (item: RunbookAgent): ReactElement => {
+              if (!item.lastAlive) {
+                return <span className="text-gray-500">Never</span>;
+              }
+              return <span>{OneUptimeDate.fromNow(item.lastAlive)}</span>;
             },
           },
           {

@@ -13,7 +13,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -44,7 +44,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+
+/*
+ * How often the page polls the server for the latest execution state while
+ * the run is still in progress. Quiet enough to not hammer the API, frequent
+ * enough that the timeline feels live.
+ */
+const POLL_INTERVAL_MS: number = 30_000;
 
 interface StatusVisual {
   label: string;
@@ -237,12 +244,15 @@ const ExecutionView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const params: Readonly<Record<string, string | undefined>> = useParams();
+  const navigate: ReturnType<typeof useNavigate> = useNavigate();
   const executionId: ObjectID = new ObjectID(params["subModelId"] || "");
 
   const [execution, setExecution] = useState<RunbookExecution | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionInFlight, setActionInFlight] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [stepUsers, setStepUsers] = useState<Map<string, User>>(new Map());
   const pollRef: React.MutableRefObject<NodeJS.Timeout | null> =
     useRef<NodeJS.Timeout | null>(null);
@@ -301,6 +311,7 @@ const ExecutionView: FunctionComponent<
 
   const load: () => Promise<RunbookExecution | null> =
     async (): Promise<RunbookExecution | null> => {
+      setIsRefreshing(true);
       try {
         const exec: RunbookExecution | null =
           await ModelAPI.getItem<RunbookExecution>({
@@ -329,6 +340,7 @@ const ExecutionView: FunctionComponent<
             requestOptions: {},
           });
         setExecution(exec);
+        setLastRefreshedAt(new Date());
         if (exec) {
           const steps: RunbookStepExecutionState[] =
             (exec.stepExecutions as unknown as RunbookStepExecutionState[]) ||
@@ -339,6 +351,8 @@ const ExecutionView: FunctionComponent<
       } catch (err) {
         setError(API.getFriendlyMessage(err));
         return null;
+      } finally {
+        setIsRefreshing(false);
       }
     };
 
@@ -347,6 +361,11 @@ const ExecutionView: FunctionComponent<
     setIsLoading(false);
   }, []);
 
+  /*
+   * Auto-refresh every POLL_INTERVAL_MS while the execution is still moving
+   * so the user can leave the page open and watch progress without manually
+   * reloading.
+   */
   useEffect(() => {
     if (!execution) {
       return;
@@ -356,7 +375,7 @@ const ExecutionView: FunctionComponent<
     }
     pollRef.current = setInterval(() => {
       void load();
-    }, 3000);
+    }, POLL_INTERVAL_MS);
     return () => {
       if (pollRef.current) {
         clearInterval(pollRef.current);
@@ -435,6 +454,50 @@ const ExecutionView: FunctionComponent<
     }
   };
 
+  const rerun: () => Promise<void> = async (): Promise<void> => {
+    if (!execution?.runbookId) {
+      return;
+    }
+    setActionInFlight(true);
+    try {
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>({
+          url: URL.fromString(RUNBOOK_URL.toString()).addRoute(
+            `/run/${(execution.runbookId as ObjectID).toString()}`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders({}),
+        });
+      if (result instanceof HTTPErrorResponse) {
+        throw result;
+      }
+      const newExecutionId: string | undefined = (
+        result.data as JSONObject | undefined
+      )?.["runbookExecutionId"] as string | undefined;
+      if (newExecutionId) {
+        navigate(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route,
+            {
+              modelId: execution.runbookId as ObjectID,
+              subModelId: new ObjectID(newExecutionId),
+            },
+          ).toString(),
+        );
+      } else {
+        await load();
+      }
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    } finally {
+      setActionInFlight(false);
+    }
+  };
+
+  const refresh: () => Promise<void> = async (): Promise<void> => {
+    await load();
+  };
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -466,39 +529,65 @@ const ExecutionView: FunctionComponent<
       );
     },
   ).length;
+  const canRerun: boolean =
+    isTerminal(execStatus) && Boolean(execution.runbookId);
+
+  const pollSeconds: number = Math.round(POLL_INTERVAL_MS / 1000);
+  const cardDescription: string =
+    execStatus === RunbookExecutionStatus.WaitingForManualStep
+      ? "Waiting on a manual step. Tick it off below to continue."
+      : execStatus === RunbookExecutionStatus.Running
+        ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
+        : execStatus === RunbookExecutionStatus.Completed
+          ? "All steps completed successfully."
+          : execStatus === RunbookExecutionStatus.Failed
+            ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
+            : execStatus === RunbookExecutionStatus.Cancelled
+              ? "This execution was cancelled."
+              : "Scheduled — waiting to start.";
+
+  const cardButtons: Array<CardButtonSchema> = [];
+
+  if (canRerun) {
+    cardButtons.push({
+      title: "Run Again",
+      buttonStyle: ButtonStyleType.PRIMARY,
+      icon: IconProp.Play,
+      onClick: () => {
+        void rerun();
+      },
+      disabled: actionInFlight,
+    });
+  }
+
+  cardButtons.push({
+    title: isRefreshing ? "Refreshing..." : "Refresh",
+    buttonStyle: ButtonStyleType.OUTLINE,
+    icon: IconProp.Refresh,
+    onClick: () => {
+      void refresh();
+    },
+    disabled: actionInFlight || isRefreshing,
+  });
+
+  if (canCancel) {
+    cardButtons.push({
+      title: "Cancel Execution",
+      buttonStyle: ButtonStyleType.DANGER_OUTLINE,
+      icon: IconProp.Close,
+      onClick: () => {
+        void cancel();
+      },
+      disabled: actionInFlight,
+    });
+  }
 
   return (
     <Fragment>
       <Card
         title={execution.runbookNameSnapshot || "Runbook Execution"}
-        description={
-          execStatus === RunbookExecutionStatus.WaitingForManualStep
-            ? "Waiting on a manual step. Tick it off below to continue."
-            : execStatus === RunbookExecutionStatus.Running
-              ? "Steps are running. This page refreshes every 3 seconds."
-              : execStatus === RunbookExecutionStatus.Completed
-                ? "All steps completed successfully."
-                : execStatus === RunbookExecutionStatus.Failed
-                  ? "A step failed and stopped the run."
-                  : execStatus === RunbookExecutionStatus.Cancelled
-                    ? "This execution was cancelled."
-                    : "Scheduled — waiting to start."
-        }
-        buttons={
-          canCancel
-            ? [
-                {
-                  title: "Cancel Execution",
-                  buttonStyle: ButtonStyleType.DANGER_OUTLINE,
-                  icon: IconProp.Close,
-                  onClick: () => {
-                    void cancel();
-                  },
-                  disabled: actionInFlight,
-                },
-              ]
-            : undefined
-        }
+        description={cardDescription}
+        buttons={cardButtons}
       >
         <>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -578,12 +667,29 @@ const ExecutionView: FunctionComponent<
               />
               <div>
                 <div className="font-medium">Run failed</div>
-                <div className="mt-0.5 text-rose-700">
+                <div className="mt-0.5 text-rose-700 whitespace-pre-wrap leading-relaxed">
                   {execution.failureReason}
                 </div>
               </div>
             </div>
           ) : null}
+
+          {!isTerminal(execStatus) && (
+            <div className="text-xs text-gray-500 mb-4 flex items-center gap-2">
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  isRefreshing ? "bg-blue-500 animate-pulse" : "bg-gray-300"
+                }`}
+              ></span>
+              {isRefreshing
+                ? "Refreshing now..."
+                : lastRefreshedAt
+                  ? `Live — last refreshed ${OneUptimeDate.getDateAsLocalFormattedString(
+                      lastRefreshedAt,
+                    )}. Auto-refreshing every ${pollSeconds} seconds.`
+                  : `Live — auto-refreshing every ${pollSeconds} seconds.`}
+            </div>
+          )}
 
           {steps.length === 0 ? (
             <p className="text-sm text-gray-500">
@@ -750,23 +856,45 @@ const ExecutionView: FunctionComponent<
                           )}
 
                           {stepExec.errorMessage && (
-                            <div className="mt-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 text-xs">
-                              <span className="font-medium">Error:</span>{" "}
-                              {stepExec.errorMessage}
+                            <div className="mt-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 text-xs flex items-start gap-2">
+                              <Icon
+                                icon={IconProp.Alert}
+                                size={SizeProp.Smaller}
+                                className="text-rose-500 mt-0.5 shrink-0"
+                              />
+                              <div>
+                                <div className="font-medium">Step failed</div>
+                                <div className="mt-0.5 whitespace-pre-wrap leading-relaxed">
+                                  {stepExec.errorMessage}
+                                </div>
+                              </div>
                             </div>
                           )}
 
                           {stepExec.output && (
-                            <details className="mt-3 group">
-                              <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-800 select-none">
+                            <details
+                              className="mt-3 group"
+                              open={
+                                stepExec.status ===
+                                  RunbookStepExecutionStatus.Failed ||
+                                stepExec.status ===
+                                  RunbookStepExecutionStatus.Running
+                              }
+                            >
+                              <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-800 select-none flex items-center gap-1.5">
+                                <Icon
+                                  icon={IconProp.Terminal}
+                                  size={SizeProp.Smaller}
+                                  className="text-gray-500"
+                                />
                                 <span className="group-open:hidden">
-                                  Show output
+                                  Show output / logs
                                 </span>
                                 <span className="hidden group-open:inline">
-                                  Hide output
+                                  Hide output / logs
                                 </span>
                               </summary>
-                              <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-md px-3 py-2 overflow-auto whitespace-pre-wrap max-h-72">
+                              <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-md px-3 py-2 overflow-auto whitespace-pre-wrap max-h-72 font-mono">
                                 {stepExec.output}
                               </pre>
                             </details>
