@@ -732,12 +732,13 @@ export default class ModelPermission {
      * Lazy require to avoid circular deps with services that extend
      * DatabaseService.
      */
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const ownerTableRegistry: Map<
       string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { ownerUserService: any; ownerTeamService: any; fkColumn: string }
-    > = require("../Database/Permissions/OwnerTableRegistry").default;
+    > =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Database/Permissions/OwnerTableRegistry").default;
 
     const serviceEntry:
       | {

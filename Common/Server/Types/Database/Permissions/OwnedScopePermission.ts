@@ -124,17 +124,16 @@ export default class OwnedScopePermission {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (query as any)[fkColumn] = QueryHelper.any(allowedIds);
       }
+    } else if (allowedIds.length === 0) {
+      // Top-level operational resource: no accessible IDs -> match nothing.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (query as any)._id = QueryHelper.equalTo(
+        ObjectID.getZeroObjectID().toString(),
+      );
     } else {
       // Top-level operational resource: filter on _id.
-      if (allowedIds.length === 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (query as any)._id = QueryHelper.equalTo(
-          ObjectID.getZeroObjectID().toString(),
-        );
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (query as any)._id = QueryHelper.any(allowedIds);
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (query as any)._id = QueryHelper.any(allowedIds);
     }
 
     return query;
@@ -226,8 +225,8 @@ export default class OwnedScopePermission {
      * from DatabaseService at module-load time, and the registry imports
      * services that extend DatabaseService.
      */
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const ownerTableRegistry: Map<string, OwnerTablePair> =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("./OwnerTableRegistry").default;
 
     const registryEntry: OwnerTablePair | undefined =

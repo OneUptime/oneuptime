@@ -842,12 +842,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * DatabaseService, so importing them at top-level leaves DatabaseService
      * undefined at class-extension time.
      */
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const ownerTableRegistry: Map<
       string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { ownerUserService: any; ownerTeamService: any; fkColumn: string }
-    > = require("../Types/Database/Permissions/OwnerTableRegistry").default;
+    > =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Types/Database/Permissions/OwnerTableRegistry").default;
 
     const entry:
       | {
