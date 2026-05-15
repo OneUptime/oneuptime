@@ -90,9 +90,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -133,9 +131,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -170,9 +166,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -189,9 +183,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -244,9 +236,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -263,9 +253,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -286,9 +274,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -330,9 +316,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -431,9 +415,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -450,9 +432,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -478,9 +458,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -497,9 +475,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -521,9 +497,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -540,9 +514,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -564,9 +536,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -583,9 +553,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -607,9 +575,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -626,9 +592,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })
@@ -651,9 +615,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.CreateScheduledMaintenanceState,
     ],
     read: [
@@ -670,9 +632,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
       Permission.EditScheduledMaintenanceState,
     ],
   })

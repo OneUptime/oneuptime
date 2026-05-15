@@ -92,9 +92,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -135,9 +133,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -173,9 +169,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -192,9 +186,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })
@@ -248,9 +240,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -267,9 +257,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })
@@ -292,9 +280,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -336,9 +322,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -437,9 +421,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -456,9 +438,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })
@@ -484,9 +464,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -503,9 +481,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })
@@ -526,9 +502,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -545,9 +519,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })
@@ -568,9 +540,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -587,9 +557,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })
@@ -611,9 +579,7 @@ export default class IncidentState extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.CreateIncidentState,
     ],
     read: [
@@ -630,9 +596,7 @@ export default class IncidentState extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.IncidentAdmin,
-      Permission.IncidentMember,
       Permission.EditIncidentState,
     ],
   })

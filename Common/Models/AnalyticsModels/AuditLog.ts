@@ -22,6 +22,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -40,6 +41,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -57,6 +59,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -74,6 +77,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -91,6 +95,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -108,6 +113,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -125,6 +131,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -142,6 +149,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -160,6 +168,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -178,6 +187,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -195,6 +205,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -215,6 +226,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -241,6 +253,7 @@ export default class AuditLog extends AnalyticsBaseModel {
         read: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
         create: [Permission.ProjectOwner, Permission.ProjectAdmin],
