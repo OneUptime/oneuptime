@@ -157,6 +157,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
     };
 
     const projectRoles: Array<CardSelectOption> = [];
+    const administrationRoles: Array<CardSelectOption> = [];
     const domainRoles: Array<CardSelectOption> = [];
 
     for (const p of PermissionHelper.getRolePermissionProps()) {
@@ -174,6 +175,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         p.permission === Permission.Viewer
       ) {
         projectRoles.push(option);
+      } else if (
+        // Project-wide admin roles — manage settings/billing, not
+        // resources. Grouped separately and surfaced as scope-exempt
+        // (see PermissionHelper.isScopeApplicable).
+        p.permission === Permission.SettingsManager ||
+        p.permission === Permission.BillingManager
+      ) {
+        administrationRoles.push(option);
       } else {
         domainRoles.push(option);
       }
@@ -185,6 +194,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       {
         label: "Project Roles",
         options: projectRoles,
+      },
+      {
+        label: "Administration",
+        options: administrationRoles,
       },
       {
         label: "Domain Roles",
@@ -260,8 +273,24 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   field: {
                     permission: true,
                   },
-                  onChange: async (_value: any): Promise<void> => {
+                  onChange: async (value: any): Promise<void> => {
                     await formRef.current.setFieldValue("labels", [], true);
+                    // For scope-exempt roles (Project Owner, Settings
+                    // Manager, Billing Manager) force scope to All since
+                    // these are unconditional project-wide grants. The
+                    // scope dropdown is hidden in that case, so without
+                    // this the form would submit the default (Owned) and
+                    // wrongly narrow the role.
+                    if (
+                      value &&
+                      !PermissionHelper.isScopeApplicable(value as Permission)
+                    ) {
+                      await formRef.current.setFieldValue(
+                        "scope",
+                        PermissionScope.All,
+                        true,
+                      );
+                    }
                   },
                   title: "Role",
                   description:
@@ -277,7 +306,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   },
                   title: "Scope",
                   description:
-                    "Which resources this role applies to. Owned (recommended): resources where this team or its members are listed as owners. All: every resource in the project. Labels: restrict by labels (advanced). Note: project-wide admin roles (Owner / Admin) typically want All.",
+                    "Which resources this role applies to. Owned (recommended): resources where this team or its members are listed as owners. All: every resource in the project. Labels: restrict by labels (advanced).",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownOptions: [
                     {
@@ -296,7 +325,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   defaultValue: PermissionScope.Owned,
                   required: true,
                   showIf: (values: FormValues<TeamPermission>): boolean => {
-                    return Boolean(values["permission"]);
+                    if (!values["permission"]) {
+                      return false;
+                    }
+                    return PermissionHelper.isScopeApplicable(
+                      values["permission"] as Permission,
+                    );
                   },
                 },
                 {
@@ -330,8 +364,21 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   field: {
                     permission: true,
                   },
-                  onChange: async (_value: any): Promise<void> => {
+                  onChange: async (value: any): Promise<void> => {
                     await formRef.current.setFieldValue("labels", [], true);
+                    // Match the role-flow behavior: force scope=All when
+                    // the user picks a scope-exempt permission so the
+                    // hidden scope dropdown can't submit Owned.
+                    if (
+                      value &&
+                      !PermissionHelper.isScopeApplicable(value as Permission)
+                    ) {
+                      await formRef.current.setFieldValue(
+                        "scope",
+                        PermissionScope.All,
+                        true,
+                      );
+                    }
                   },
                   title: "Permission",
                   fieldType: FormFieldSchemaType.CustomComponent,
@@ -389,6 +436,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     }
                     if (
                       !PermissionHelper.isAccessControlPermission(
+                        values["permission"] as Permission,
+                      )
+                    ) {
+                      return false;
+                    }
+                    // Scope-exempt permissions (ProjectOwner, Settings
+                    // Manager, Billing Manager) are unconditional grants.
+                    if (
+                      !PermissionHelper.isScopeApplicable(
                         values["permission"] as Permission,
                       )
                     ) {

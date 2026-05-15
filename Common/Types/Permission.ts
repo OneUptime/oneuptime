@@ -1348,6 +1348,21 @@ export class PermissionHelper {
     });
   }
 
+  // Returns true when a permission can meaningfully be scoped by All / Owned /
+  // Labels. Some roles are unconditional project-wide grants — scoping them
+  // would create confusing semantics ("Settings Manager but only for owned
+  // settings" doesn't compute since settings aren't @OperationalResource).
+  // UI hides the scope picker for these; the runtime filter also treats a
+  // stray Owned-scoped row of one of these as a broader grant so access
+  // isn't accidentally narrowed.
+  public static isScopeApplicable(permission: Permission): boolean {
+    return (
+      permission !== Permission.ProjectOwner &&
+      permission !== Permission.SettingsManager &&
+      permission !== Permission.BillingManager
+    );
+  }
+
   public static isAccessControlPermission(permission: Permission): boolean {
     return (
       this.getAllPermissionProps()

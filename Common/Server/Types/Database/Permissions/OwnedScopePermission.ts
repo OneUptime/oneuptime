@@ -20,7 +20,10 @@ import DatabaseCommonInteractionPropsUtil, {
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -85,9 +88,15 @@ export default class OwnedScopePermission {
     /*
      * If any applicable row is non-Owned (All / Labels / undefined), it
      * grants broader access than Owned and the Owned constraint is moot.
+     * Rows for scope-exempt permissions (e.g. ProjectOwner) are also
+     * treated as broader grants regardless of their stored scope, since
+     * scoping doesn't apply to them.
      */
     const hasNonOwnedGrant: boolean = applicableRows.some(
       (p: UserPermission) => {
+        if (!PermissionHelper.isScopeApplicable(p.permission)) {
+          return true;
+        }
         return p.scope !== PermissionScope.Owned;
       },
     );
