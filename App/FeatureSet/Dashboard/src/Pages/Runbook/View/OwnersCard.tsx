@@ -620,7 +620,11 @@ const OwnersCard: FunctionComponent<ComponentProps> = (
                   aria-label="Add owner"
                   className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
                 >
-                  <Icon icon={IconProp.Add} size={SizeProp.Five} />
+                  <Icon
+                    icon={IconProp.Add}
+                    className="h-5 w-5"
+                    size={SizeProp.Five}
+                  />
                 </button>
               </Tooltip>
             </div>
