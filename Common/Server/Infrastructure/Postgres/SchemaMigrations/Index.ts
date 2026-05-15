@@ -668,4 +668,5 @@ export default [
   SwitchRunbookAgentTagsToAgentId1778834788959,
   AddRunbookAgentOwnersAndLabels1778842348388,
   AddRunbookSecret1778851431287,
+  UpdateTeamPermissionScopeDefault1778877094014,
 ];
