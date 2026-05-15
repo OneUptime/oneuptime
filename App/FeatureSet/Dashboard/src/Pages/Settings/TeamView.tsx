@@ -143,17 +143,51 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       [Permission.ProjectOwner]: IconProp.ShieldCheck,
       [Permission.ProjectAdmin]: IconProp.User,
       [Permission.ProjectMember]: IconProp.Team,
-      [Permission.IncidentManager]: IconProp.Alert,
-      [Permission.AlertManager]: IconProp.BellAlert,
-      [Permission.MonitorManager]: IconProp.Activity,
-      [Permission.StatusPageManager]: IconProp.Globe,
-      [Permission.OnCallManager]: IconProp.Phone,
-      [Permission.ScheduledMaintenanceManager]: IconProp.Calendar,
-      [Permission.TelemetryManager]: IconProp.ChartBar,
-      [Permission.SettingsManager]: IconProp.Settings,
-      [Permission.BillingManager]: IconProp.CreditCard,
       [Permission.Viewer]: IconProp.Eye,
-      [Permission.WorkflowManager]: IconProp.Workflow,
+
+      [Permission.IncidentAdmin]: IconProp.Alert,
+      [Permission.IncidentMember]: IconProp.Alert,
+      [Permission.IncidentViewer]: IconProp.Alert,
+
+      [Permission.AlertAdmin]: IconProp.BellAlert,
+      [Permission.AlertMember]: IconProp.BellAlert,
+      [Permission.AlertViewer]: IconProp.BellAlert,
+
+      [Permission.MonitorAdmin]: IconProp.Activity,
+      [Permission.MonitorMember]: IconProp.Activity,
+      [Permission.MonitorViewer]: IconProp.Activity,
+
+      [Permission.StatusPageAdmin]: IconProp.Globe,
+      [Permission.StatusPageMember]: IconProp.Globe,
+      [Permission.StatusPageViewer]: IconProp.Globe,
+
+      [Permission.OnCallAdmin]: IconProp.Phone,
+      [Permission.OnCallMember]: IconProp.Phone,
+      [Permission.OnCallViewer]: IconProp.Phone,
+
+      [Permission.ScheduledMaintenanceAdmin]: IconProp.Calendar,
+      [Permission.ScheduledMaintenanceMember]: IconProp.Calendar,
+      [Permission.ScheduledMaintenanceViewer]: IconProp.Calendar,
+
+      [Permission.TelemetryAdmin]: IconProp.ChartBar,
+      [Permission.TelemetryMember]: IconProp.ChartBar,
+      [Permission.TelemetryViewer]: IconProp.ChartBar,
+
+      [Permission.SettingsAdmin]: IconProp.Settings,
+      [Permission.SettingsMember]: IconProp.Settings,
+      [Permission.SettingsViewer]: IconProp.Settings,
+
+      [Permission.BillingAdmin]: IconProp.CreditCard,
+      [Permission.BillingMember]: IconProp.CreditCard,
+      [Permission.BillingViewer]: IconProp.CreditCard,
+
+      [Permission.WorkflowAdmin]: IconProp.Workflow,
+      [Permission.WorkflowMember]: IconProp.Workflow,
+      [Permission.WorkflowViewer]: IconProp.Workflow,
+
+      [Permission.RunbookAdmin]: IconProp.PlayCircle,
+      [Permission.RunbookMember]: IconProp.PlayCircle,
+      [Permission.RunbookViewer]: IconProp.PlayCircle,
     };
 
     const ownerRoles: Array<CardSelectOption> = [];
@@ -189,8 +223,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
          * resources. Grouped separately and surfaced as scope-exempt
          * (see PermissionHelper.isScopeApplicable).
          */
-        p.permission === Permission.SettingsManager ||
-        p.permission === Permission.BillingManager
+        p.permission === Permission.SettingsAdmin ||
+        p.permission === Permission.SettingsMember ||
+        p.permission === Permission.SettingsViewer ||
+        p.permission === Permission.BillingAdmin ||
+        p.permission === Permission.BillingMember ||
+        p.permission === Permission.BillingViewer
       ) {
         administrationRoles.push(option);
       } else {
@@ -291,11 +329,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     await formRef.current.setFieldValue("labels", [], true);
                     /*
                      * For scope-exempt roles (Project Owner, Settings
-                     * Manager, Billing Manager) force scope to All since
-                     * these are unconditional project-wide grants. The
-                     * scope dropdown is hidden in that case, so without
-                     * this the form would submit the default (Owned) and
-                     * wrongly narrow the role.
+                     * Admin/Member/Viewer, Billing Admin/Member/Viewer)
+                     * force scope to All since these are unconditional
+                     * project-wide grants. The scope dropdown is hidden
+                     * in that case, so without this the form would submit
+                     * the default (Owned) and wrongly narrow the role.
                      */
                     if (
                       value &&
@@ -461,7 +499,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     }
                     /*
                      * Scope-exempt permissions (ProjectOwner, Settings
-                     * Manager, Billing Manager) are unconditional grants.
+                     * Admin/Member/Viewer, Billing Admin/Member/Viewer)
+                     * are unconditional grants.
                      */
                     if (
                       !PermissionHelper.isScopeApplicable(

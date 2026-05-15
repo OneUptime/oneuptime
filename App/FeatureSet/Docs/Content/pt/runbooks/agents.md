@@ -143,7 +143,7 @@ Se uma chave vazar, abra o agente no OneUptime e resete a chave. A chave antiga 
 O gerenciamento de agentes vive no grupo de permissões Runbooks existente:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gerenciar registros de agentes.
-- `RunbookManager` (papel) — agrupa todos acima.
+- `RunbookAdmin` (papel) — agrupa todos acima.
 
 Permissões para *disparar* um runbook (e portanto despachar passos Bash) continuam sendo `CreateRunbookExecution` / `EditRunbookExecution`.
 

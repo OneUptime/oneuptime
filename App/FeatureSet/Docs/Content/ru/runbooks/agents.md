@@ -143,7 +143,7 @@ Bash- и JavaScript-шаги **обязаны** каждый указать ро
 Управление агентами живёт в существующей группе прав Runbooks:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — управление записями агентов.
-- `RunbookManager` (роль) — объединяет всё вышеперечисленное.
+- `RunbookAdmin` (роль) — объединяет всё вышеперечисленное.
 
 Права на *запуск* runbook'а (и, как следствие, диспетчеризацию Bash-шагов) по-прежнему `CreateRunbookExecution` / `EditRunbookExecution`.
 

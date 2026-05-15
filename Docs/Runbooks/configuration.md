@@ -27,7 +27,7 @@ Runbook permissions live in the `Runbook` permission group:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — read/tick-off executions.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — manage auto-trigger rules.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — manage Runbook Agents.
-- `RunbookManager` (role) — bundles all of the above; assign to a team to give it full runbook capabilities.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — assign to a team to grant full control, day-to-day usage, or read-only access respectively. `RunbookAdmin` bundles all of the granular permissions above.
 
 ## Queue & worker
 

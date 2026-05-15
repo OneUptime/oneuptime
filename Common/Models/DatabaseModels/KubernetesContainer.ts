@@ -43,7 +43,9 @@ const READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.ProjectMember,
   Permission.Viewer,
-  Permission.SettingsManager,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
   Permission.ReadKubernetesCluster,
   Permission.ReadAllProjectResources,
 ];

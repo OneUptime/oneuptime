@@ -14,7 +14,7 @@
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — запускать, отмечать и читать исполнения.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — управлять правилами автозапуска.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — управлять Runbook-агентами, которые выполняют Bash-шаги в вашей инфраструктуре.
-- `RunbookManager` (роль) — собирает всё вышеперечисленное; назначайте команде для полного контроля над runbook-ами.
+- `RunbookAdmin` (роль) — собирает всё вышеперечисленное; назначайте команде для полного контроля над runbook-ами.
 
 ## Очередь и воркер
 

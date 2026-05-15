@@ -14,7 +14,7 @@ Runbook-Berechtigungen leben in der Berechtigungsgruppe `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — Ausführungen starten, abhaken und lesen.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — Auto-Trigger-Regeln verwalten.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — Runbook-Agents verwalten, die Bash-Schritte in Ihrer eigenen Infrastruktur ausführen.
-- `RunbookManager` (Rolle) — bündelt alle obigen; weisen Sie sie einem Team zu, um vollen Runbook-Zugriff zu gewähren.
+- `RunbookAdmin` (Rolle) — bündelt alle obigen; weisen Sie sie einem Team zu, um vollen Runbook-Zugriff zu gewähren.
 
 ## Queue & Worker
 

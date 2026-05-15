@@ -143,7 +143,7 @@ Hvis en nøgle lækker, åbn agenten i OneUptime og nulstil nøglen. Den gamle s
 Håndtering af agenter ligger under den eksisterende Runbooks-rettighedsgruppe:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — håndter agent-records.
-- `RunbookManager` (rolle) — samler alle ovenstående.
+- `RunbookAdmin` (rolle) — samler alle ovenstående.
 
 Rettigheder til at *udløse* et runbook (og dermed afsende Bash-trin) er stadig `CreateRunbookExecution` / `EditRunbookExecution`.
 

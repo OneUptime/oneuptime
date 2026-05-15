@@ -333,6 +333,7 @@ import { SwitchRunbookAgentTagsToAgentId1778834788959 } from "./1778834788959-Sw
 import { AddRunbookAgentOwnersAndLabels1778842348388 } from "./1778842348388-AddRunbookAgentOwnersAndLabels";
 import { AddRunbookSecret1778851431287 } from "./1778851431287-AddRunbookSecret";
 import { UpdateTeamPermissionScopeDefault1778877094014 } from "./1778877094014-UpdateTeamPermissionScopeDefault";
+import { MigrateLegacyManagerRolesToAdmin1778900000000 } from "./1778900000000-MigrateLegacyManagerRolesToAdmin";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -669,4 +670,5 @@ export default [
   AddRunbookAgentOwnersAndLabels1778842348388,
   AddRunbookSecret1778851431287,
   UpdateTeamPermissionScopeDefault1778877094014,
+  MigrateLegacyManagerRolesToAdmin1778900000000,
 ];

@@ -143,7 +143,7 @@ Si una clave se filtra, abre el agente en OneUptime y resetea su clave. La clave
 La gestión de agentes vive bajo el grupo de permisos de Runbooks ya existente:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gestionar registros de agentes.
-- `RunbookManager` (rol) — agrupa todos los anteriores.
+- `RunbookAdmin` (rol) — agrupa todos los anteriores.
 
 Los permisos para *disparar* un runbook (y por tanto despachar pasos Bash) siguen siendo `CreateRunbookExecution` / `EditRunbookExecution`.
 

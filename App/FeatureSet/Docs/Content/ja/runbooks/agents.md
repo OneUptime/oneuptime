@@ -143,7 +143,7 @@ Runbook 実行をキャンセル (実行ビューや API から) すると、そ
 エージェントの管理は既存の Runbooks 権限グループに属します:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — エージェントレコードを管理。
-- `RunbookManager` (ロール) — 上記すべてを束ねる。
+- `RunbookAdmin` (ロール) — 上記すべてを束ねる。
 
 Runbook を*実行する* (したがって Bash ステップをディスパッチする) 権限は依然として `CreateRunbookExecution` / `EditRunbookExecution` です。
 

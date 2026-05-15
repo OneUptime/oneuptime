@@ -14,7 +14,7 @@ As permissões de runbook vivem no grupo de permissões `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — iniciar, marcar e ler execuções.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gerenciar regras de auto-disparo.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gerenciar Agentes de Runbook que executam passos Bash na sua própria infraestrutura.
-- `RunbookManager` (papel) — junta tudo acima; atribua a um time para dar capacidade completa de runbooks.
+- `RunbookAdmin` (papel) — junta tudo acima; atribua a um time para dar capacidade completa de runbooks.
 
 ## Fila e worker
 

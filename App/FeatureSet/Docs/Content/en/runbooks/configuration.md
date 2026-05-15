@@ -14,7 +14,7 @@ Runbook permissions live in the `Runbook` permission group:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — start, tick off, and read executions.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — manage auto-trigger rules.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — manage Runbook Agents that execute Bash steps in your own infrastructure.
-- `RunbookManager` (role) — bundles all of the above; assign to a team to give it full runbook capabilities.
+- `RunbookAdmin` (role) — bundles all of the above; assign to a team to give it full runbook capabilities.
 
 ## Queue & worker
 

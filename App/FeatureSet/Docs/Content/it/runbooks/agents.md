@@ -143,7 +143,7 @@ Se una chiave trapela, apri l'agente in OneUptime e resettagli la chiave. La vec
 La gestione degli agenti vive sotto il gruppo permessi Runbooks esistente:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gestire i record degli agenti.
-- `RunbookManager` (ruolo) — racchiude tutti i precedenti.
+- `RunbookAdmin` (ruolo) — racchiude tutti i precedenti.
 
 I permessi per *avviare* un runbook (e quindi dispatchare step Bash) restano `CreateRunbookExecution` / `EditRunbookExecution`.
 

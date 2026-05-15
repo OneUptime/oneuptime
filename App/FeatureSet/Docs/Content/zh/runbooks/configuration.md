@@ -14,7 +14,7 @@ Runbook 权限位于 `Runbook` 权限组：
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution` — 启动、勾选、读取执行。
 - `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule` — 管理自动触发规则。
 - `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — 管理在你自己的基础设施中执行 Bash 步骤的 Runbook 代理。
-- `RunbookManager`（角色）— 打包以上所有权限；分配给团队即可拥有完整的 Runbook 能力。
+- `RunbookAdmin`（角色）— 打包以上所有权限；分配给团队即可拥有完整的 Runbook 能力。
 
 ## 队列与 worker
 

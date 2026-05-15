@@ -143,7 +143,7 @@ Wenn ein Schlüssel ausläuft, öffnen Sie den Agent in OneUptime und setzen Sie
 Das Verwalten von Agents lebt in der bestehenden Runbooks-Berechtigungsgruppe:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — Agent-Datensätze verwalten.
-- `RunbookManager` (Rolle) — bündelt all diese.
+- `RunbookAdmin` (Rolle) — bündelt all diese.
 
 Berechtigungen zum *Auslösen* eines Runbooks (und damit zum Versand von Bash-Schritten) bleiben `CreateRunbookExecution` / `EditRunbookExecution`.
 

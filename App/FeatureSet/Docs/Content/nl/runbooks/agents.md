@@ -143,7 +143,7 @@ Lekt een sleutel, open dan de agent in OneUptime en reset zijn sleutel. De oude 
 Beheer van agents valt onder de bestaande Runbooks-permissiegroep:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — agent-records beheren.
-- `RunbookManager` (rol) — bundelt alle bovenstaande.
+- `RunbookAdmin` (rol) — bundelt alle bovenstaande.
 
 Permissies om een runbook te *starten* (en dus Bash-stappen te dispatchen) blijven `CreateRunbookExecution` / `EditRunbookExecution`.
 

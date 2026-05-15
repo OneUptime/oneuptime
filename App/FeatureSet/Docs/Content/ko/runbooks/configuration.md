@@ -14,7 +14,7 @@ Runbook 권한은 `Runbook` 권한 그룹에 있습니다:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — 실행 시작, 체크, 조회.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — 자동 트리거 규칙 관리.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — 자신의 인프라에서 Bash 단계를 실행하는 Runbook 에이전트 관리.
-- `RunbookManager` (역할) — 위 모두를 묶음. 팀에 부여하면 Runbook 전반을 다룰 수 있습니다.
+- `RunbookAdmin` (역할) — 위 모두를 묶음. 팀에 부여하면 Runbook 전반을 다룰 수 있습니다.
 
 ## 큐 & 워커
 

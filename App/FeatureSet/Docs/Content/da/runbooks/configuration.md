@@ -14,7 +14,7 @@ Runbook-rettigheder ligger i rettighedsgruppen `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — starte, tikke af og læse kørsler.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — styre automatiske udløsningsregler.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — styre Runbook-agenter, der udfører Bash-trin i din egen infrastruktur.
-- `RunbookManager` (rolle) — samler alle ovenstående; tildel til et team for at give fuld runbook-kapacitet.
+- `RunbookAdmin` (rolle) — samler alle ovenstående; tildel til et team for at give fuld runbook-kapacitet.
 
 ## Kø & worker
 

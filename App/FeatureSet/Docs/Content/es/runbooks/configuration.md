@@ -14,7 +14,7 @@ Los permisos de runbook viven en el grupo de permisos `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — iniciar, marcar y leer ejecuciones.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gestionar reglas de auto-disparo.
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gestionar Agentes de Runbook que ejecutan pasos Bash en tu propia infraestructura.
-- `RunbookManager` (rol) — agrupa todo lo anterior; asígnalo a un equipo para darle capacidad completa sobre runbooks.
+- `RunbookAdmin` (rol) — agrupa todo lo anterior; asígnalo a un equipo para darle capacidad completa sobre runbooks.
 
 ## Cola y worker
 

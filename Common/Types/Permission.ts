@@ -53,19 +53,53 @@ enum Permission {
 
   ProjectMember = "ProjectMember", // member of a project
 
-  // Role-based permissions
-  IncidentManager = "IncidentManager",
-  AlertManager = "AlertManager",
-  MonitorManager = "MonitorManager",
-  StatusPageManager = "StatusPageManager",
-  OnCallManager = "OnCallManager",
-  ScheduledMaintenanceManager = "ScheduledMaintenanceManager",
-  TelemetryManager = "TelemetryManager",
-  SettingsManager = "SettingsManager",
-  BillingManager = "BillingManager",
+  // Role-based permissions (per-domain Admin / Member / Viewer tiers)
+  IncidentAdmin = "IncidentAdmin",
+  IncidentMember = "IncidentMember",
+  IncidentViewer = "IncidentViewer",
+
+  AlertAdmin = "AlertAdmin",
+  AlertMember = "AlertMember",
+  AlertViewer = "AlertViewer",
+
+  MonitorAdmin = "MonitorAdmin",
+  MonitorMember = "MonitorMember",
+  MonitorViewer = "MonitorViewer",
+
+  StatusPageAdmin = "StatusPageAdmin",
+  StatusPageMember = "StatusPageMember",
+  StatusPageViewer = "StatusPageViewer",
+
+  OnCallAdmin = "OnCallAdmin",
+  OnCallMember = "OnCallMember",
+  OnCallViewer = "OnCallViewer",
+
+  ScheduledMaintenanceAdmin = "ScheduledMaintenanceAdmin",
+  ScheduledMaintenanceMember = "ScheduledMaintenanceMember",
+  ScheduledMaintenanceViewer = "ScheduledMaintenanceViewer",
+
+  TelemetryAdmin = "TelemetryAdmin",
+  TelemetryMember = "TelemetryMember",
+  TelemetryViewer = "TelemetryViewer",
+
+  SettingsAdmin = "SettingsAdmin",
+  SettingsMember = "SettingsMember",
+  SettingsViewer = "SettingsViewer",
+
+  BillingAdmin = "BillingAdmin",
+  BillingMember = "BillingMember",
+  BillingViewer = "BillingViewer",
+
+  // Project-wide read-only role
   Viewer = "Viewer",
-  WorkflowManager = "WorkflowManager",
-  RunbookManager = "RunbookManager",
+
+  WorkflowAdmin = "WorkflowAdmin",
+  WorkflowMember = "WorkflowMember",
+  WorkflowViewer = "WorkflowViewer",
+
+  RunbookAdmin = "RunbookAdmin",
+  RunbookMember = "RunbookMember",
+  RunbookViewer = "RunbookViewer",
 
   User = "User", //registered user. Can or cannot belong to a project.
 
@@ -1366,7 +1400,7 @@ export class PermissionHelper {
   /*
    * Returns true when a permission can meaningfully be scoped by All / Owned /
    * Labels. Some roles are unconditional project-wide grants — scoping them
-   * would create confusing semantics ("Settings Manager but only for owned
+   * would create confusing semantics ("Settings Admin but only for owned
    * settings" doesn't compute since settings aren't @OperationalResource).
    * UI hides the scope picker for these; the runtime filter also treats a
    * stray Owned-scoped row of one of these as a broader grant so access
@@ -1376,8 +1410,12 @@ export class PermissionHelper {
     return (
       permission !== Permission.ProjectOwner &&
       permission !== Permission.ProjectAdmin &&
-      permission !== Permission.SettingsManager &&
-      permission !== Permission.BillingManager
+      permission !== Permission.SettingsAdmin &&
+      permission !== Permission.SettingsMember &&
+      permission !== Permission.SettingsViewer &&
+      permission !== Permission.BillingAdmin &&
+      permission !== Permission.BillingMember &&
+      permission !== Permission.BillingViewer
     );
   }
 
@@ -1503,90 +1541,263 @@ export class PermissionHelper {
         group: PermissionGroup.Project,
       },
       {
-        permission: Permission.IncidentManager,
-        title: "Incident Manager",
+        permission: Permission.IncidentAdmin,
+        title: "Incident Admin",
         description:
-          "Can create, edit, and delete incidents, incident notes, incident state timelines, incident templates, incident severity, and incident episodes.",
+          "Full control over incidents and incident configuration. Can create, edit, and delete incidents, notes, state timelines, templates, severities, and states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Incident,
       },
       {
-        permission: Permission.AlertManager,
-        title: "Alert Manager",
+        permission: Permission.IncidentMember,
+        title: "Incident Member",
         description:
-          "Can create, edit, and delete alerts, alert notes, alert state timelines, alert episodes, and alert grouping rules.",
+          "Can create, edit, and delete incidents, incident notes, and incident state timelines. Cannot modify incident severities or states.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.IncidentViewer,
+        title: "Incident Viewer",
+        description: "Read-only access to incidents and incident resources.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.AlertAdmin,
+        title: "Alert Admin",
+        description:
+          "Full control over alerts and alert configuration. Can create, edit, and delete alerts, notes, state timelines, severities, and states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Alert,
       },
       {
-        permission: Permission.MonitorManager,
-        title: "Monitor Manager",
+        permission: Permission.AlertMember,
+        title: "Alert Member",
         description:
-          "Can create, edit, and delete monitors, monitor groups, monitor probes, monitor secrets, and monitor statuses.",
+          "Can create, edit, and delete alerts, alert notes, and alert state timelines. Cannot modify alert severities or states.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.AlertViewer,
+        title: "Alert Viewer",
+        description: "Read-only access to alerts and alert resources.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.MonitorAdmin,
+        title: "Monitor Admin",
+        description:
+          "Full control over monitors and monitor configuration. Can create, edit, and delete monitors, monitor groups, probes, secrets, and statuses.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Monitor,
       },
       {
-        permission: Permission.StatusPageManager,
-        title: "Status Page Manager",
+        permission: Permission.MonitorMember,
+        title: "Monitor Member",
         description:
-          "Can create, edit, and delete status pages, announcements, subscribers, resources, domains, groups, and SSO configurations.",
+          "Can create, edit, and delete monitors, monitor groups, and monitor secrets. Cannot modify monitor statuses.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.MonitorViewer,
+        title: "Monitor Viewer",
+        description: "Read-only access to monitors and monitor resources.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.StatusPageAdmin,
+        title: "Status Page Admin",
+        description:
+          "Full control over status pages, announcements, subscribers, resources, domains, groups, and SSO configurations.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.StatusPage,
       },
       {
-        permission: Permission.OnCallManager,
-        title: "On-Call Manager",
+        permission: Permission.StatusPageMember,
+        title: "Status Page Member",
         description:
-          "Can create, edit, and delete on-call duty policies, schedules, escalation rules, and user overrides.",
+          "Can create, edit, and delete status pages, announcements, and subscribers.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.StatusPageViewer,
+        title: "Status Page Viewer",
+        description: "Read-only access to status pages and status page resources.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.OnCallAdmin,
+        title: "On-Call Admin",
+        description:
+          "Full control over on-call duty policies, schedules, escalation rules, and user overrides.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.OnCallDutyPolicy,
       },
       {
-        permission: Permission.ScheduledMaintenanceManager,
-        title: "Scheduled Maintenance Manager",
+        permission: Permission.OnCallMember,
+        title: "On-Call Member",
         description:
-          "Can create, edit, and delete scheduled maintenances, maintenance notes, maintenance state timelines, and maintenance templates.",
+          "Can create, edit, and delete on-call duty policies, schedules, and user overrides.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.OnCallViewer,
+        title: "On-Call Viewer",
+        description: "Read-only access to on-call duty policies and schedules.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ScheduledMaintenanceAdmin,
+        title: "Scheduled Maintenance Admin",
+        description:
+          "Full control over scheduled maintenances, notes, state timelines, templates, and maintenance states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.ScheduledMaintenance,
       },
       {
-        permission: Permission.TelemetryManager,
-        title: "Telemetry Manager",
+        permission: Permission.ScheduledMaintenanceMember,
+        title: "Scheduled Maintenance Member",
         description:
-          "Can create, edit, and delete telemetry services, logs, traces, metrics, profiles, exceptions, ingestion keys, and log pipelines.",
+          "Can create, edit, and delete scheduled maintenances, notes, and state timelines. Cannot modify maintenance states.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.ScheduledMaintenanceViewer,
+        title: "Scheduled Maintenance Viewer",
+        description:
+          "Read-only access to scheduled maintenances and maintenance resources.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.TelemetryAdmin,
+        title: "Telemetry Admin",
+        description:
+          "Full control over telemetry services, logs, traces, metrics, profiles, exceptions, ingestion keys, and log pipelines.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Telemetry,
       },
       {
-        permission: Permission.SettingsManager,
-        title: "Settings Manager",
+        permission: Permission.TelemetryMember,
+        title: "Telemetry Member",
         description:
-          "Can manage API keys, teams, team permissions, labels, SSO, SMTP config, call/SMS config, domains, probes, and service catalog.",
+          "Can create, edit, and delete telemetry services and view all telemetry data.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.TelemetryViewer,
+        title: "Telemetry Viewer",
+        description: "Read-only access to telemetry services and telemetry data.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.SettingsAdmin,
+        title: "Settings Admin",
+        description:
+          "Full control over project settings: API keys, teams, team permissions, labels, SSO, SMTP, call/SMS config, domains, probes, and service catalog.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Settings,
       },
       {
-        permission: Permission.BillingManager,
-        title: "Billing Manager",
+        permission: Permission.SettingsMember,
+        title: "Settings Member",
         description:
-          "Can manage project billing, invoices, and payment methods.",
+          "Can manage labels and service catalog. Cannot manage API keys, teams, SSO, or sensitive integrations.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.SettingsViewer,
+        title: "Settings Viewer",
+        description: "Read-only access to project settings.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.BillingAdmin,
+        title: "Billing Admin",
+        description:
+          "Full control over project billing, invoices, and payment methods.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Billing,
+      },
+      {
+        permission: Permission.BillingMember,
+        title: "Billing Member",
+        description:
+          "Can view and manage payment methods. Cannot change the project plan.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Billing,
+      },
+      {
+        permission: Permission.BillingViewer,
+        title: "Billing Viewer",
+        description:
+          "Read-only access to billing information and invoices.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -1603,20 +1814,58 @@ export class PermissionHelper {
         group: PermissionGroup.Project,
       },
       {
-        permission: Permission.WorkflowManager,
-        title: "Workflow Manager",
+        permission: Permission.WorkflowAdmin,
+        title: "Workflow Admin",
         description:
-          "Can create, edit, and delete workflows, workflow logs, and workflow variables.",
+          "Full control over workflows, workflow logs, and workflow variables.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Workflow,
       },
       {
-        permission: Permission.RunbookManager,
-        title: "Runbook Manager",
+        permission: Permission.WorkflowMember,
+        title: "Workflow Member",
+        description:
+          "Can create, edit, and delete workflows and workflow variables.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.WorkflowViewer,
+        title: "Workflow Viewer",
+        description: "Read-only access to workflows and workflow logs.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Workflow,
+      },
+      {
+        permission: Permission.RunbookAdmin,
+        title: "Runbook Admin",
+        description:
+          "Full control over runbooks. Can create, edit, delete, and execute runbooks.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.RunbookMember,
+        title: "Runbook Member",
         description:
           "Can create, edit, delete, and execute runbooks in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.RunbookViewer,
+        title: "Runbook Viewer",
+        description: "Read-only access to runbooks.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
