@@ -459,7 +459,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               },
             },
             type: FieldType.EntityArray,
-            title: "Restrict to Labels",
+            title: "Labels",
             filterEntityType: Label,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
@@ -489,34 +489,27 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           {
             field: {
               scope: true,
+              labels: {
+                name: true,
+                color: true,
+              },
             },
             title: "Scope",
             type: FieldType.Text,
             getElement: (item: TeamPermission): ReactElement => {
               const scope: PermissionScope =
                 (item["scope"] as PermissionScope) || PermissionScope.Labels;
+
               if (scope === PermissionScope.Owned) {
                 return <p>Owned by team or members</p>;
               }
-              if (scope === PermissionScope.All) {
-                return <p>All resources</p>;
-              }
-              return <p>By labels</p>;
-            },
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Restrict to Labels",
-            type: FieldType.EntityArray,
 
-            getElement: (item: TeamPermission): ReactElement => {
+              if (scope === PermissionScope.All) {
+                return <p>All resources in project</p>;
+              }
+
+              // scope === Labels — show the labels (or an explanation).
               if (
-                item &&
                 item["permission"] &&
                 !PermissionHelper.isAccessControlPermission(
                   item["permission"] as Permission,
@@ -524,18 +517,34 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               ) {
                 return (
                   <p>
-                    Restriction by labels cannot be applied to this permission.
+                    All resources{" "}
+                    <span className="text-gray-400">
+                      (labels don&apos;t apply to this permission)
+                    </span>
                   </p>
                 );
               }
 
-              if (!item["labels"] || item["labels"].length === 0) {
+              const labels: Array<Label> = (item["labels"] || []) as Array<
+                Label
+              >;
+              if (labels.length === 0) {
                 return (
-                  <p>No restrictions has been applied to this permission.</p>
+                  <p>
+                    All resources{" "}
+                    <span className="text-gray-400">
+                      (no labels selected)
+                    </span>
+                  </p>
                 );
               }
 
-              return <LabelsElement labels={item["labels"] || []} />;
+              return (
+                <div className="flex flex-col gap-1">
+                  <p className="text-gray-500">Restricted to labels:</p>
+                  <LabelsElement labels={labels} />
+                </div>
+              );
             },
           },
         ]}
