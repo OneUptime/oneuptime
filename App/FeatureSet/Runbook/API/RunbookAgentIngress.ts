@@ -96,26 +96,14 @@ export default class RunbookAgentIngressAPI {
       }
 
       /*
-       * Authoritative source of truth for an agent's tags is the DB row,
-       * not what the agent claims in the request. This prevents a leaked
-       * key from being used to claim jobs the agent isn't tagged for.
+       * Steps now target a specific agent by ID. The authenticated agent's
+       * own ID is the only thing we trust here — a leaked key cannot be used
+       * to claim work targeted at a different agent.
        */
-      const rawTags: unknown = agent.tags;
-      const tags: Array<string> = Array.isArray(rawTags)
-        ? rawTags.filter((t: unknown): t is string => {
-            return typeof t === "string" && t.length > 0;
-          })
-        : [];
-
-      if (tags.length === 0) {
-        return Response.sendJsonObjectResponse(req, res, { job: null });
-      }
-
       const job: RunbookAgentJob | null =
         await RunbookAgentJobService.claimNextJob({
           agentId: agent.id,
           projectId: agent.projectId,
-          agentTags: tags,
         });
 
       if (!job) {

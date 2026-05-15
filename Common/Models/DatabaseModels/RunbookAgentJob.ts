@@ -30,7 +30,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Runbook Agent Jobs",
   icon: IconProp.Logs,
   tableDescription:
-    "One row per Bash step dispatched to a Runbook Agent. Tracks claim, execution, and result. Managed by the Worker and the agents; not user-writable.",
+    "One row per Bash or JavaScript step dispatched to a specific Runbook Agent. Tracks claim, execution, and result. Managed by the Worker and the agents; not user-writable.",
 })
 @TableAccessControl({
   create: [],
@@ -237,20 +237,27 @@ export default class RunbookAgentJob extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
-    type: TableColumnType.ShortText,
-    required: true,
-    title: "Required Tag",
+    manyToOneRelationColumn: "targetAgentId",
+    type: TableColumnType.Entity,
+    modelType: RunbookAgent,
+    title: "Target Agent",
     description:
-      "The agent tag this job targets. Any healthy agent in the same project carrying this tag may claim and execute it.",
+      "The agent the step is configured to run on. Only this agent may claim the job.",
   })
-  @Column({
-    type: ColumnType.ShortText,
-    nullable: false,
-    length: ColumnLength.ShortText,
-  })
-  public requiredTag?: string = undefined;
+  @ManyToOne(
+    () => {
+      return RunbookAgent;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "targetAgentId" })
+  public targetAgent?: RunbookAgent = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -265,26 +272,19 @@ export default class RunbookAgentJob extends BaseModel {
     ],
     update: [],
   })
+  @Index()
   @TableColumn({
-    manyToOneRelationColumn: "assignedAgentId",
-    type: TableColumnType.Entity,
-    modelType: RunbookAgent,
-    title: "Assigned Agent",
-    description: "The agent that claimed this job.",
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Target Agent ID",
+    description: "ID of the agent that should claim and execute this job.",
   })
-  @ManyToOne(
-    () => {
-      return RunbookAgent;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "assignedAgentId" })
-  public assignedAgent?: RunbookAgent = undefined;
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public targetAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -303,7 +303,7 @@ export default class RunbookAgentJob extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     title: "Assigned Agent ID",
-    description: "ID of the agent that claimed this job.",
+    description: "ID of the agent that claimed this job (same as the target).",
   })
   @Column({
     type: ColumnType.ObjectID,

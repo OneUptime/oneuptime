@@ -535,9 +535,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
   }
 
-  // Returns the IDs of teams the given user has accepted membership in,
-  // scoped to a single project. Used by the `Owned` permission scope to
-  // resolve "any of the user's teams owns this resource."
+  /*
+   * Returns the IDs of teams the given user has accepted membership in,
+   * scoped to a single project. Used by the `Owned` permission scope to
+   * resolve "any of the user's teams owns this resource."
+   */
   @CaptureSpan()
   public async getTeamIdsForUser(
     userId: ObjectID,

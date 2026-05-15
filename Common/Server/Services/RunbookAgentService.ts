@@ -1,6 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
-import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
@@ -9,40 +8,8 @@ import Model, {
   RunbookAgentConnectionStatus,
 } from "../../Models/DatabaseModels/RunbookAgent";
 import OneUptimeDate from "../../Types/Date";
-import { JSONArray, JSONObject } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-
-/*
- * Tags arrive from the dashboard form as a comma-separated string for ease
- * of entry, but the column stores a JSON array. Accept both shapes and
- * canonicalize to a deduped array of trimmed non-empty strings.
- */
-function normalizeTagsInPlace(data: Record<string, unknown>): void {
-  const raw: unknown = data["tags"];
-  if (raw === undefined || raw === null) {
-    return;
-  }
-  let arr: Array<string> = [];
-  if (typeof raw === "string") {
-    arr = raw.split(",");
-  } else if (Array.isArray(raw)) {
-    arr = raw.map((v: unknown) => {
-      return String(v);
-    });
-  }
-  const deduped: Array<string> = Array.from(
-    new Set(
-      arr
-        .map((t: string) => {
-          return t.trim();
-        })
-        .filter((t: string) => {
-          return t.length > 0;
-        }),
-    ),
-  );
-  data["tags"] = deduped as unknown as JSONArray;
-}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -66,17 +33,7 @@ export class Service extends DatabaseService<Model> {
         RunbookAgentConnectionStatus.Disconnected;
     }
 
-    normalizeTagsInPlace(createBy.data as unknown as Record<string, unknown>);
-
     return { createBy, carryForward: [] };
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    normalizeTagsInPlace(updateBy.data as unknown as Record<string, unknown>);
-    return { updateBy, carryForward: [] };
   }
 
   @CaptureSpan()
@@ -96,7 +53,6 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
-        tags: true,
         name: true,
       },
       props: { isRoot: true },

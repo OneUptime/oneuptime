@@ -2,9 +2,11 @@ import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/Insta
 import PageComponentProps from "../PageComponentProps";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { IconType } from "Common/UI/Components/Icon/Icon";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -19,8 +21,6 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-
-const PLACEHOLDER_TAGS: string = "prod, eu-west-1";
 
 const RunbookAgentsPage: FunctionComponent<
   PageComponentProps
@@ -47,12 +47,11 @@ const RunbookAgentsPage: FunctionComponent<
         cardProps={{
           title: "Runbook Agents",
           description:
-            "Self-hosted agents that execute Bash runbook steps in your own infrastructure. Each Bash step targets agents by tag.",
+            "Self-hosted agents that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the agent that should run it.",
         }}
         selectMoreFields={{
           _id: true,
           key: true,
-          tags: true,
         }}
         noItemsMessage={
           "No runbook agents yet. Create one, then run the Docker command on a host inside your infrastructure."
@@ -74,15 +73,6 @@ const RunbookAgentsPage: FunctionComponent<
             required: false,
             placeholder:
               "Runs inside the production EU cluster. Can reach internal services.",
-          },
-          {
-            field: { tags: true },
-            title: "Tags",
-            description:
-              "Comma-separated tags. Bash steps target a tag; any healthy agent with that tag may run them.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: PLACEHOLDER_TAGS,
           },
         ]}
         searchableFields={["name", "description"]}
@@ -124,40 +114,6 @@ const RunbookAgentsPage: FunctionComponent<
             type: FieldType.Text,
           },
           {
-            field: { tags: true },
-            title: "Tags",
-            type: FieldType.Element,
-            getElement: (item: RunbookAgent): ReactElement => {
-              const raw: unknown = item["tags"];
-              const list: Array<string> = Array.isArray(raw)
-                ? raw
-                    .filter((t: unknown): t is string => {
-                      return typeof t === "string" && t.length > 0;
-                    })
-                    .map((t: string) => {
-                      return t;
-                    })
-                : [];
-              if (list.length === 0) {
-                return <span className="text-gray-400">none</span>;
-              }
-              return (
-                <div className="flex flex-wrap gap-1">
-                  {list.map((tag: string, idx: number) => {
-                    return (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800"
-                      >
-                        {tag}
-                      </span>
-                    );
-                  })}
-                </div>
-              );
-            },
-          },
-          {
             field: { connectionStatus: true },
             title: "Status",
             type: FieldType.Element,
@@ -187,22 +143,26 @@ const RunbookAgentsPage: FunctionComponent<
       />
 
       {showSetupAgent ? (
-        <ConfirmModal
+        <Modal
           title="Runbook Agent setup"
-          description={
-            <div>
-              <RunbookAgentInstallInstructions
-                agentId={new ObjectID(showSetupAgent._id!.toString())}
-                agentKey={(showSetupAgent.key as string) || ""}
-              />
-            </div>
-          }
+          icon={IconProp.Terminal}
+          iconType={IconType.Info}
+          modalWidth={ModalWidth.Medium}
           submitButtonText="Done"
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={async () => {
+          submitButtonStyleType={ButtonStyleType.PRIMARY}
+          onSubmit={() => {
             setShowSetupAgent(null);
           }}
-        />
+          onClose={() => {
+            setShowSetupAgent(null);
+          }}
+          closeButtonText="Close"
+        >
+          <RunbookAgentInstallInstructions
+            agentId={new ObjectID(showSetupAgent._id!.toString())}
+            agentKey={(showSetupAgent.key as string) || ""}
+          />
+        </Modal>
       ) : (
         <></>
       )}

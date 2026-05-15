@@ -47,10 +47,10 @@ A bash script that runs on a [Runbook Agent](/docs/runbooks/agents) — a small 
 
 Configure two things on a Bash step:
 
-- **Agent Tag** — the tag identifying which agent(s) should run this step. Any healthy agent in the project carrying that tag will claim and run the job.
+- **Runbook Agent** — pick the agent that should run this step from the dropdown. Only that agent may claim the job.
 - **Script** — the bash to run. Output (stdout + stderr) is captured up to 50 KB; the process is killed on timeout.
 
-If no agent carrying the chosen tag is online when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails. Add an agent under **Runbooks → Agents** before relying on a Bash step.
+If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails. Add an agent under **Runbooks → Agents** before relying on a Bash step.
 
 ## Saving and editing
 

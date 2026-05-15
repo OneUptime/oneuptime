@@ -30,6 +30,12 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Play,
         },
+      ],
+    },
+    {
+      title: "Settings",
+      defaultCollapsed: true,
+      items: [
         {
           link: {
             title: "Agents",
@@ -39,12 +45,6 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Terminal,
         },
-      ],
-    },
-    {
-      title: "Settings",
-      defaultCollapsed: true,
-      items: [
         {
           link: {
             title: "Owner Rules",

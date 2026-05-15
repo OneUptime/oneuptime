@@ -24,7 +24,7 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 
 ## Hardening notes
 
-- **Bash and JavaScript steps** never run on the OneUptime Worker. They are dispatched as jobs to a [Runbook Agent](/docs/runbooks/agents) that you installed inside your own infrastructure. The Worker enqueues the job tagged with the step's **Agent Tag** and step type, an agent claims it atomically, runs it locally — Bash via `bash -c <script>`, JavaScript inside an `isolated-vm` sandbox with the usual prelude (severs prototype chains, removes `Function` and `eval`, freezes built-in prototypes) — and posts the result back. The Worker process itself does not run customer scripts.
+- **Bash and JavaScript steps** never run on the OneUptime Worker. They are dispatched as jobs to a specific [Runbook Agent](/docs/runbooks/agents) that the step author picked from the dropdown. The Worker enqueues the job targeted at that agent's ID, the agent claims it atomically, runs it locally — Bash via `bash -c <script>`, JavaScript inside an `isolated-vm` sandbox with the usual prelude (severs prototype chains, removes `Function` and `eval`, freezes built-in prototypes) — and posts the result back. The Worker process itself does not run customer scripts.
 - **HTTP steps** use a permissive status validator, so a 4xx or 5xx response is recorded as a failed step rather than thrown. This makes the captured output reflect what the upstream actually returned.
 
 ## Database tables
@@ -32,11 +32,11 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 - `Runbook` — template (name, slug, description, isEnabled, steps JSON).
 - `RunbookExecution` — one row per run, with nullable `incidentId`, `alertId`, and `scheduledMaintenanceId` foreign keys and a JSON `stepExecutions` array snapshotting the steps and per-step state.
 - `RunbookRule` — auto-trigger rules with a `triggerEntityType` discriminator (Incident, Alert, ScheduledMaintenance) and a many-to-many relationship to runbooks to start.
-- `RunbookAgent` — one row per installed agent: name, tags, secret key, `lastAlive`, `connectionStatus`, host info.
-- `RunbookAgentJob` — one row per dispatched Bash or JavaScript step: required tag, step type, script, status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
+- `RunbookAgent` — one row per installed agent: name, secret key, `lastAlive`, `connectionStatus`, host info.
+- `RunbookAgentJob` — one row per dispatched Bash or JavaScript step: target agent ID, step type, script, status (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
 
 ## Operational tips
 
-- **Run at least one agent per tag you target**, and ideally two for high availability. With two agents carrying the same tag, either may claim a job — you can roll restarts without breaking runbooks.
+- **Make sure the agent you pick on a step is healthy.** If you need redundancy, run a second agent and split your steps between them, or keep a backup runbook that targets the other agent.
 - **Capture URLs, not blobs.** If a step generates more than a few KB of output, write it to S3 or your logging stack and return the URL.
 - **Idempotency matters.** Automated steps (HTTP, JavaScript, Bash) may run more than once if the worker restarts mid-step or if an agent's lease expires while a script is still running; design them to be safe to retry.

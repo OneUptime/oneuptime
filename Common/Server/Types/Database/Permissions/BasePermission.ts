@@ -81,11 +81,13 @@ export default class BasePermission {
           type,
         );
 
-        // Apply the `Owned` permission scope filter (see
-        // Internal/Docs/PermissionsSimplification.md). When the user's
-        // applicable permission rows are exclusively Owned-scoped, this
-        // restricts the query to resources where the user is in *OwnerUser
-        // or any of their teams is in *OwnerTeam.
+        /*
+         * Apply the `Owned` permission scope filter (see
+         * Internal/Docs/PermissionsSimplification.md). When the user's
+         * applicable permission rows are exclusively Owned-scoped, this
+         * restricts the query to resources where the user is in *OwnerUser
+         * or any of their teams is in *OwnerTeam.
+         */
         query = await OwnedScopePermission.addOwnedScopeToQuery(
           modelType,
           query,

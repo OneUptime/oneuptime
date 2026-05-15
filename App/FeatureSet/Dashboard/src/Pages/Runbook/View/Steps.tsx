@@ -17,10 +17,16 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import RunbookAgent, {
+  RunbookAgentConnectionStatus,
+} from "Common/Models/DatabaseModels/RunbookAgent";
 import { JSONArray } from "Common/Types/JSON";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   BashStepConfig,
   HttpRequestMethod,
@@ -37,6 +43,12 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+
+interface AgentOption {
+  id: string;
+  name: string;
+  connected: boolean;
+}
 
 const HTTP_METHODS: HttpRequestMethod[] = [
   "GET",
@@ -131,7 +143,7 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
         ? ({
             script:
               "// Return a value to capture it on the execution.\nreturn 'ok';",
-            agentTag: "",
+            agentId: "",
           } as JavaScriptStepConfig)
         : type === RunbookStepType.HttpRequest
           ? ({
@@ -139,7 +151,7 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
               method: "GET",
             } as HttpRequestStepConfig)
           : type === RunbookStepType.Bash
-            ? ({ script: "echo hello", agentTag: "" } as BashStepConfig)
+            ? ({ script: "echo hello", agentId: "" } as BashStepConfig)
             : {},
   };
   if (isAutomatedStep(type)) {
@@ -157,15 +169,32 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
   const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
+  const [agents, setAgents] = useState<AgentOption[]>([]);
 
   useAsyncEffect(async () => {
     try {
-      const runbook: Runbook | null = await ModelAPI.getItem<Runbook>({
-        modelType: Runbook,
-        id: modelId,
-        select: { steps: true },
-        requestOptions: {},
-      });
+      const [runbook, agentList] = await Promise.all([
+        ModelAPI.getItem<Runbook>({
+          modelType: Runbook,
+          id: modelId,
+          select: { steps: true },
+          requestOptions: {},
+        }),
+        ModelAPI.getList<RunbookAgent>({
+          modelType: RunbookAgent,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: {
+            _id: true,
+            name: true,
+            connectionStatus: true,
+          },
+          sort: { name: SortOrder.Ascending },
+          limit: LIMIT_MAX,
+          skip: 0,
+        }),
+      ]);
 
       const loaded: RunbookStep[] =
         (runbook?.steps as unknown as RunbookStep[]) || [];
@@ -179,6 +208,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }
       });
       setSteps(loaded);
+
+      const result: ListResult<RunbookAgent> = agentList;
+      setAgents(
+        result.data.map((a: RunbookAgent): AgentOption => {
+          return {
+            id: a._id?.toString() || "",
+            name: a.name || "Unnamed agent",
+            connected:
+              (a.connectionStatus as unknown as string) ===
+              RunbookAgentConnectionStatus.Connected,
+          };
+        }),
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -293,6 +335,62 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
+
+  const renderAgentPicker: (args: {
+    currentAgentId: string;
+    onChange: (id: string) => void;
+    helperText: ReactElement;
+  }) => ReactElement = (args: {
+    currentAgentId: string;
+    onChange: (id: string) => void;
+    helperText: ReactElement;
+  }): ReactElement => {
+    const currentSelected: AgentOption | undefined = agents.find(
+      (a: AgentOption) => {
+        return a.id === args.currentAgentId;
+      },
+    );
+    const hasStaleSelection: boolean = Boolean(
+      args.currentAgentId && !currentSelected,
+    );
+    return (
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+          Runbook Agent
+        </label>
+        {agents.length === 0 ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            No Runbook Agents in this project yet. Create one under{" "}
+            <strong>Runbooks &rsaquo; Agents</strong>, then come back to pick it
+            here.
+          </div>
+        ) : (
+          <select
+            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            value={args.currentAgentId || ""}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              args.onChange(e.target.value);
+            }}
+          >
+            <option value="">— Select an agent —</option>
+            {hasStaleSelection && (
+              <option value={args.currentAgentId}>
+                Unknown agent ({args.currentAgentId})
+              </option>
+            )}
+            {agents.map((a: AgentOption) => {
+              return (
+                <option key={a.id} value={a.id}>
+                  {a.name} {a.connected ? "· connected" : "· disconnected"}
+                </option>
+              );
+            })}
+          </select>
+        )}
+        <p className="text-xs text-gray-500 mt-1.5">{args.helperText}</p>
+      </div>
+    );
+  };
 
   const addMenu: ReactElement = (
     <MoreMenu text="Add Step" menuIcon={IconProp.Add}>
@@ -473,33 +571,22 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                       {step.type === RunbookStepType.JavaScript && (
                         <div className="flex flex-col gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                              Agent Tag
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                              placeholder="prod-eu-west-1"
-                              value={
-                                (step.config as JavaScriptStepConfig)
-                                  .agentTag || ""
-                              }
-                              onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>,
-                              ) => {
-                                return updateConfig(idx, {
-                                  agentTag: e.target.value,
-                                });
-                              }}
-                            />
-                            <p className="text-xs text-gray-500 mt-1.5">
-                              JavaScript runs sandboxed on a Runbook Agent in
-                              your own infrastructure. Any healthy agent
-                              carrying this tag will claim the job. Create
-                              agents under Runbooks &rsaquo; Agents.
-                            </p>
-                          </div>
+                          {renderAgentPicker({
+                            currentAgentId:
+                              (step.config as JavaScriptStepConfig).agentId ||
+                              "",
+                            onChange: (id: string) => {
+                              updateConfig(idx, { agentId: id });
+                            },
+                            helperText: (
+                              <>
+                                JavaScript runs sandboxed on the selected
+                                Runbook Agent in your own infrastructure. The
+                                step waits until this agent claims the job, or
+                                fails after the claim timeout.
+                              </>
+                            ),
+                          })}
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1.5">
                               Script
@@ -614,32 +701,21 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                       {step.type === RunbookStepType.Bash && (
                         <div className="flex flex-col gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                              Agent Tag
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                              placeholder="prod-eu-west-1"
-                              value={
-                                (step.config as BashStepConfig).agentTag || ""
-                              }
-                              onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>,
-                              ) => {
-                                return updateConfig(idx, {
-                                  agentTag: e.target.value,
-                                });
-                              }}
-                            />
-                            <p className="text-xs text-gray-500 mt-1.5">
-                              Bash runs on a Runbook Agent in your own
-                              infrastructure. Any healthy agent carrying this
-                              tag will claim the job. Create agents under
-                              Runbooks &rsaquo; Agents.
-                            </p>
-                          </div>
+                          {renderAgentPicker({
+                            currentAgentId:
+                              (step.config as BashStepConfig).agentId || "",
+                            onChange: (id: string) => {
+                              updateConfig(idx, { agentId: id });
+                            },
+                            helperText: (
+                              <>
+                                Bash runs on the selected Runbook Agent in your
+                                own infrastructure. The step waits until this
+                                agent claims the job, or fails after the claim
+                                timeout.
+                              </>
+                            ),
+                          })}
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1.5">
                               Bash script
@@ -657,7 +733,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                             </div>
                             <p className="text-xs text-gray-500 mt-1.5">
                               Output is capped at 50&nbsp;KB. The script may not
-                              run if no agent with the chosen tag is online.
+                              run if the selected agent is offline.
                             </p>
                           </div>
                         </div>

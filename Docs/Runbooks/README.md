@@ -5,13 +5,14 @@ Runbooks are reusable response procedures — ordered lists of manual or automat
 ## At a glance
 
 - **Top-level feature** in the OneUptime dashboard under **Analytics & Automation → Runbooks**.
-- **Four step types**: Manual checklist, JavaScript (sandboxed), HTTP request, Bash (gated by env flag).
+- **Four step types**: Manual checklist, JavaScript (sandboxed), HTTP request, Bash. JavaScript and Bash steps run on a [Runbook Agent](./agents.md) you install in your own infrastructure — never on the OneUptime Worker.
 - **Three trigger paths**: rules that match incidents/alerts/scheduled maintenance, or a manual "Run Runbook" button on any event.
 - **Snapshot semantics**: when a runbook starts, its steps are copied onto the execution. Editing the template later never mutates an in-flight run.
 
 ## Where to read next
 
 - [Authoring a runbook](./authoring.md) — creating runbooks, the four step types, and what each does.
+- [Runbook agents](./agents.md) — install a self-hosted agent and pick it on Bash/JavaScript steps.
 - [Runbook rules](./rules.md) — auto-attaching runbooks to incidents, alerts, and scheduled maintenance events.
 - [Running a runbook](./running.md) — manual triggers, the execution view, and how manual steps interact with automated ones.
-- [Configuration & safety](./configuration.md) — environment flags, the bash escape hatch, output limits.
+- [Configuration & safety](./configuration.md) — output limits, permissions, and the dispatch model.

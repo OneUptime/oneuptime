@@ -7,14 +7,13 @@ export interface JavaScriptStepConfig {
   script: string;
   timeoutInMs?: number;
   /*
-   * Tag identifying which Runbook Agent should execute this step. Any healthy
-   * agent in the same project carrying this tag may claim and run the job.
-   * Required for the step to execute — JavaScript never runs on the OneUptime
-   * Worker.
+   * ID of the Runbook Agent that should execute this step. Required for the
+   * step to execute — JavaScript never runs on the OneUptime Worker. Only the
+   * selected agent may claim the job.
    */
-  agentTag: string;
+  agentId: string;
   /*
-   * Maximum time the Worker will wait for an agent to claim the job before
+   * Maximum time the Worker will wait for the agent to claim the job before
    * failing it with TimedOut. Defaults to a few minutes if unset.
    */
   claimTimeoutInMs?: number;
@@ -40,13 +39,13 @@ export interface BashStepConfig {
   script: string;
   timeoutInMs?: number;
   /*
-   * Tag identifying which Runbook Agent should execute this step. Any healthy
-   * agent in the same project carrying this tag may claim and run the job.
-   * Required for the step to execute — bash never runs on the OneUptime Worker.
+   * ID of the Runbook Agent that should execute this step. Required for the
+   * step to execute — bash never runs on the OneUptime Worker. Only the
+   * selected agent may claim the job.
    */
-  agentTag: string;
+  agentId: string;
   /*
-   * Maximum time the Worker will wait for an agent to claim the job before
+   * Maximum time the Worker will wait for the agent to claim the job before
    * failing it with TimedOut. Defaults to a few minutes if unset.
    */
   claimTimeoutInMs?: number;

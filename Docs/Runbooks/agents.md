@@ -1,28 +1,26 @@
-# Runbook Agents
+# Runbook agents
 
-A **Runbook Agent** is a small self-hosted process that executes the Bash *and* JavaScript steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts — it queues them, and a Runbook Agent that you installed in your environment picks them up, runs them, and posts the result back.
+A **Runbook Agent** is a small self-hosted process that executes the Bash *and* JavaScript steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts — it queues them, and the Runbook Agent that the step author picked claims them, runs them, and posts the result back.
 
 JavaScript still runs in an `isolated-vm` sandbox; the difference is that the sandbox lives on your agent host instead of on ours.
 
-This page explains how to install an agent, point Bash and JavaScript steps at it, and operate it day-to-day.
-
 ## Why agents exist
 
-Earlier versions of OneUptime ran Bash and JavaScript steps on the Worker. JavaScript was sandboxed (via `isolated-vm`), Bash was not. Both had problems for anything beyond a single-tenant self-hosted setup:
+Earlier prototypes of Runbooks ran JavaScript and Bash on the Worker itself. JavaScript was sandboxed, Bash was gated by a server-wide env flag. Both had problems for anything beyond a single-tenant self-hosted setup:
 
-- **Trust boundary.** Anyone who can author a runbook could execute code on the Worker, with access to whatever env vars and filesystem the Worker had. The JavaScript sandbox blocked obvious things but couldn't stop a determined user from probing what was reachable from our network.
+- **Trust boundary.** Anyone who could author a runbook could execute code on the Worker, with access to whatever env vars and filesystem the Worker had.
 - **Reach.** Most useful steps want to operate on the *customer's* infrastructure ("restart this service", "kubectl on our cluster", "look up a record in our internal DB") — not on OneUptime's.
 
-Runbook Agents flip that around. Bash and JavaScript steps don't run on us. They run on a host you control, and you decide what that host can do.
+Runbook Agents flip that around. JavaScript and Bash run on a host you control, and you decide what that host can do.
 
 ## How it works
 
-1. You create a Runbook Agent in OneUptime. OneUptime generates an ID and a secret key.
+1. You create a Runbook Agent in OneUptime under **Runbooks → Settings → Agents**. OneUptime generates an ID and a secret key.
 2. You run the agent container on a host inside your infrastructure with that ID/key plus your OneUptime URL.
 3. The agent polls OneUptime every few seconds asking "any work for me?"
-4. When a Bash or JavaScript step runs, the Worker inserts a job row targeted at the agent the step author picked, and sets its status to `Pending`.
-5. That specific agent claims the job (atomically — no other agent can pick it up), runs it locally — `bash -c <script>` for Bash, an `isolated-vm` sandbox for JavaScript — captures the result, and posts it back.
-6. The Worker resumes the runbook with the result.
+4. When you author a Bash or JavaScript step, you pick the agent from a dropdown — the step is bound to that specific agent.
+5. When the step runs, the Worker inserts a job row with `targetAgentId` set to that agent. Only that agent can claim it.
+6. The agent runs the script locally — `bash -c <script>` for Bash, an `isolated-vm` sandbox for JavaScript — captures the result, and posts it back. The Worker resumes the runbook with the result.
 
 The agent only needs **outbound HTTPS** to your OneUptime instance. It does not accept any inbound connections.
 
@@ -30,7 +28,7 @@ The agent only needs **outbound HTTPS** to your OneUptime instance. It does not 
 
 ### 1. Create the agent record
 
-Go to **Runbooks → Agents → Create New**. Fill in:
+Go to **Runbooks → Settings → Agents** and create a new agent.
 
 | Field | Notes |
 | --- | --- |
@@ -46,7 +44,7 @@ After creating the agent, click **Show setup instructions** on its row. You will
 Run the Docker command on any host in your environment that can:
 
 - reach your OneUptime instance over HTTPS, and
-- do the things you want your Bash steps to do (e.g. SSH to other hosts, `kubectl`, talk to a database).
+- do the things you want your Bash/JavaScript steps to do (e.g. SSH to other hosts, `kubectl`, talk to a database).
 
 ```bash
 docker run --name oneuptime-runbook-agent --restart unless-stopped \
@@ -58,7 +56,7 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 
 ### 4. Verify the agent is connected
 
-Go back to **Runbooks → Agents**. Within ~60 seconds the agent's row should switch to `Connected` with a fresh **Last seen** timestamp. If it stays `Disconnected`:
+Go back to **Runbooks → Settings → Agents**. Within ~60 seconds the agent's row should switch to `Connected` with a fresh **Last seen** timestamp. If it stays `Disconnected`:
 
 - Check the container logs (`docker logs oneuptime-runbook-agent`) for auth errors or network failures.
 - Verify the host can reach your OneUptime URL with `curl`.
@@ -83,7 +81,7 @@ Two timeouts apply to every Bash or JavaScript step:
 
 | Timeout | Default | What it controls |
 | --- | --- | --- |
-| **Claim timeout** | 2 minutes | How long the Worker waits for *some* agent to claim the job. If no agent picks it up in time, the step fails with `TimedOut` and the runbook moves on (or stops, depending on **Continue on failure**). |
+| **Claim timeout** | 2 minutes | How long the Worker waits for the selected agent to claim the job. If the agent doesn't pick it up in time, the step fails with `TimedOut` and the runbook moves on (or stops, depending on **Continue on failure**). |
 | **Execution timeout** | 30 seconds | How long the agent will let the script run before terminating it. Configurable per step. (Bash gets `SIGKILL`; JavaScript's isolate is torn down.) |
 
 The Worker's overall wait window is `claim timeout + execution timeout + a few seconds`. Pick numbers that match the step.
@@ -100,11 +98,11 @@ If the selected agent is offline at the moment the step runs, the job sits `Pend
 
 ### Output cap
 
-Combined stdout + stderr is capped at **50 KB** per step. Larger output is truncated with a marker. If you need a full log, write it to S3 or your log store inside the script and `echo` the URL.
+Combined stdout + stderr is capped at **50&nbsp;KB** per step. Larger output is truncated with a marker. If you need a full log, write it to S3 or your log store inside the script and `echo` the URL.
 
 ### Cancellation
 
-Cancelling a runbook execution (from the execution view or the API) immediately marks all of its `Pending`/`Claimed`/`Running` Bash jobs as `Cancelled`. An agent that's already mid-script will finish its work, but its result will not be accepted by the server.
+Cancelling a runbook execution (from the execution view or the API) immediately marks all of its `Pending` / `Claimed` / `Running` Bash and JavaScript jobs as `Cancelled`. An agent that's already mid-script will finish its work, but its result will not be accepted by the server.
 
 ### Concurrency
 
@@ -127,15 +125,6 @@ The agent reads these on startup:
 ## Rotating an agent key
 
 If a key leaks, open the agent in OneUptime and reset its key. The old key stops working immediately. Update the agent container with the new key and restart it.
-
-## Permissions
-
-Managing agents lives under the existing Runbooks permission group:
-
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — manage agent records.
-- `RunbookManager` (role) — bundles all of these.
-
-Permissions to *trigger* a runbook (and therefore cause Bash steps to dispatch) are still `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-facing API
 

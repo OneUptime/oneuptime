@@ -286,10 +286,12 @@ export default class UserMiddleware {
             userTenantAccessPermission;
         }
 
-        // Load the user's team membership for this tenant so that the
-        // `Owned` permission scope can evaluate team-based ownership without
-        // an extra DB roundtrip on every permission check. Absent for non-user
-        // callers (API keys, Probes); `Owned` then evaluates as `All`.
+        /*
+         * Load the user's team membership for this tenant so that the
+         * `Owned` permission scope can evaluate team-based ownership without
+         * an extra DB roundtrip on every permission check. Absent for non-user
+         * callers (API keys, Probes); `Owned` then evaluates as `All`.
+         */
         oneuptimeRequest.userTeamIds =
           await TeamMemberService.getTeamIdsForUser(
             new ObjectID(userId),

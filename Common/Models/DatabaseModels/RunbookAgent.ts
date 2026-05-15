@@ -14,7 +14,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONArray, JSONObject } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Version from "../../Types/Version";
@@ -39,7 +39,7 @@ export enum RunbookAgentConnectionStatus {
   pluralName: "Runbook Agents",
   icon: IconProp.Terminal,
   tableDescription:
-    "A self-hosted agent that executes Bash runbook steps in your own infrastructure and reports results back to OneUptime. Runbook steps target agents by tag.",
+    "A self-hosted agent that executes Bash and JavaScript runbook steps in your own infrastructure and reports results back to OneUptime. Each step picks the agent that should run it.",
 })
 @TableAccessControl({
   create: [
@@ -287,43 +287,6 @@ export default class RunbookAgent extends BaseModel {
     unique: true,
   })
   public key?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookManager,
-      Permission.CreateRunbookAgent,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookManager,
-      Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookManager,
-      Permission.EditRunbookAgent,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Tags",
-    description:
-      "Routing tags for this agent (e.g. ['prod', 'eu-west-1']). Bash steps target agents by tag — any healthy agent with the step's tag can claim and run it.",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public tags?: JSONArray = undefined;
 
   @ColumnAccessControl({
     create: [],

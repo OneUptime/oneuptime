@@ -40,8 +40,8 @@ function truncate(s: string): string {
 
 /*
  * Bash and JavaScript steps share an identical dispatch path: enqueue a job
- * tagged for an agent, poll until the agent reports back. Only the stepType
- * differs — the agent uses it to pick the right local executor.
+ * targeted at a specific agent, poll until the agent reports back. Only the
+ * stepType differs — the agent uses it to pick the right local executor.
  */
 async function dispatchToAgent(args: {
   stepType: RunbookStepType.Bash | RunbookStepType.JavaScript;
@@ -50,21 +50,32 @@ async function dispatchToAgent(args: {
   script: string;
   timeoutInMs: number;
   claimTimeoutInMs: number;
-  agentTag: string;
-  missingTagError: string;
+  agentId: string;
+  missingAgentError: string;
 }): Promise<StepRunResult> {
-  const agentTag: string = args.agentTag.trim();
+  const agentIdRaw: string = args.agentId.trim();
 
-  if (!agentTag) {
+  if (!agentIdRaw) {
     return {
       success: false,
       output: "",
-      errorMessage: args.missingTagError,
+      errorMessage: args.missingAgentError,
     };
   }
 
   if (!args.script) {
     return { success: true, output: "" };
+  }
+
+  let targetAgentId: ObjectID;
+  try {
+    targetAgentId = new ObjectID(agentIdRaw);
+  } catch {
+    return {
+      success: false,
+      output: "",
+      errorMessage: `Invalid agent ID configured on the step: ${agentIdRaw}`,
+    };
   }
 
   try {
@@ -73,7 +84,7 @@ async function dispatchToAgent(args: {
       runbookExecutionId: args.ctx.runbookExecutionId,
       stepId: args.step.id,
       stepType: args.stepType,
-      requiredTag: agentTag,
+      targetAgentId,
       script: args.script,
       timeoutInMs: args.timeoutInMs,
       claimTimeoutInMs: args.claimTimeoutInMs,
@@ -124,9 +135,9 @@ export async function runJavaScriptStep(
     script: config.script || "",
     timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
     claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
-    agentTag: config.agentTag || "",
-    missingTagError:
-      "JavaScript step is missing an Agent Tag. Pick a tag matching one of your Runbook Agents (Runbooks → Agents). JavaScript no longer runs on the OneUptime Worker.",
+    agentId: config.agentId || "",
+    missingAgentError:
+      "JavaScript step is missing a Runbook Agent. Pick an agent under Runbooks → Agents. JavaScript no longer runs on the OneUptime Worker.",
   });
 }
 
@@ -211,8 +222,8 @@ export async function runBashStep(
     script: config.script || "",
     timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
     claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
-    agentTag: config.agentTag || "",
-    missingTagError:
-      "Bash step is missing an Agent Tag. Pick a tag matching one of your Runbook Agents (Runbooks → Agents).",
+    agentId: config.agentId || "",
+    missingAgentError:
+      "Bash step is missing a Runbook Agent. Pick an agent under Runbooks → Agents.",
   });
 }

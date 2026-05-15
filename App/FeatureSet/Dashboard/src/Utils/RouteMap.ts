@@ -158,7 +158,7 @@ export const WorkflowRoutePath: Dictionary<string> = {
 
 export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
-  [PageMap.RUNBOOKS_AGENTS]: "agents",
+  [PageMap.RUNBOOKS_AGENTS]: "settings/agents",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
   [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,

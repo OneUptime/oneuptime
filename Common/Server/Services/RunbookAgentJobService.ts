@@ -37,14 +37,14 @@ export class Service extends DatabaseService<Model> {
     runbookExecutionId: ObjectID;
     stepId: string;
     stepType: RunbookStepType;
-    requiredTag: string;
+    targetAgentId: ObjectID;
     script: string;
     timeoutInMs: number;
     claimTimeoutInMs?: number | undefined;
   }): Promise<Model> {
-    if (!data.requiredTag) {
+    if (!data.targetAgentId) {
       throw new BadDataException(
-        "requiredTag is required to dispatch a step to a Runbook Agent.",
+        "targetAgentId is required to dispatch a step to a Runbook Agent.",
       );
     }
 
@@ -67,7 +67,7 @@ export class Service extends DatabaseService<Model> {
     row.runbookExecutionId = data.runbookExecutionId;
     row.stepId = data.stepId;
     row.stepType = data.stepType;
-    row.requiredTag = data.requiredTag;
+    row.targetAgentId = data.targetAgentId;
     row.script = data.script;
     row.timeoutInMs = data.timeoutInMs;
     row.status = RunbookAgentJobStatus.Pending;
@@ -77,21 +77,16 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Atomically claim the oldest Pending job in the agent's project whose
-   * requiredTag matches one of the agent's tags. Uses FOR UPDATE SKIP LOCKED
-   * so concurrent agents don't fight over the same row.
+   * Atomically claim the oldest Pending job in the agent's project targeted
+   * at this specific agent. Uses FOR UPDATE SKIP LOCKED so concurrent agents
+   * don't fight over the same row.
    */
   @CaptureSpan()
   public async claimNextJob(data: {
     agentId: ObjectID;
     projectId: ObjectID;
-    agentTags: Array<string>;
     leaseMs?: number | undefined;
   }): Promise<Model | null> {
-    if (!data.agentTags || data.agentTags.length === 0) {
-      return null;
-    }
-
     const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
       PostgresAppInstance.getDataSource();
 
@@ -106,7 +101,7 @@ export class Service extends DatabaseService<Model> {
         SELECT "_id" FROM "RunbookAgentJob"
         WHERE "projectId" = $1::uuid
           AND "status" = $2
-          AND "requiredTag" = ANY($3::text[])
+          AND "targetAgentId" = $3::uuid
           AND "claimDeadlineAt" > NOW()
           AND "deletedAt" IS NULL
         ORDER BY "createdAt" ASC
@@ -115,24 +110,23 @@ export class Service extends DatabaseService<Model> {
       )
       UPDATE "RunbookAgentJob" j
       SET "status" = $4,
-          "assignedAgentId" = $5::uuid,
+          "assignedAgentId" = $3::uuid,
           "claimedAt" = NOW(),
-          "leaseExpiresAt" = NOW() + ($6 || ' milliseconds')::interval,
+          "leaseExpiresAt" = NOW() + ($5 || ' milliseconds')::interval,
           "updatedAt" = NOW(),
           "version" = j."version" + 1
       FROM claimed
       WHERE j."_id" = claimed."_id"
       RETURNING j."_id", j."projectId", j."runbookExecutionId",
-                j."stepId", j."stepType", j."requiredTag", j."script",
+                j."stepId", j."stepType", j."targetAgentId", j."script",
                 j."timeoutInMs", j."status", j."claimedAt", j."leaseExpiresAt";
     `;
 
     const rows: Array<JSONObject> = await dataSource.query(sql, [
       data.projectId.toString(),
       RunbookAgentJobStatus.Pending,
-      data.agentTags,
-      RunbookAgentJobStatus.Claimed,
       data.agentId.toString(),
+      RunbookAgentJobStatus.Claimed,
       leaseMs.toString(),
     ]);
 
@@ -147,7 +141,7 @@ export class Service extends DatabaseService<Model> {
     job.runbookExecutionId = new ObjectID(String(r["runbookExecutionId"]));
     job.stepId = String(r["stepId"]);
     job.stepType = r["stepType"] as RunbookStepType;
-    job.requiredTag = String(r["requiredTag"]);
+    job.targetAgentId = new ObjectID(String(r["targetAgentId"]));
     job.script = String(r["script"]);
     job.timeoutInMs = Number(r["timeoutInMs"]);
     job.status = r["status"] as RunbookAgentJobStatus;
@@ -318,7 +312,7 @@ export class Service extends DatabaseService<Model> {
       ) {
         return this.timeoutJob({
           jobId: data.jobId,
-          reason: `No Runbook Agent claimed the job before the deadline (${job.claimDeadlineAt.toISOString()}). Make sure an agent with the matching tag is online.`,
+          reason: `The selected Runbook Agent did not claim the job before the deadline (${job.claimDeadlineAt.toISOString()}). Make sure the agent is online.`,
         });
       }
 

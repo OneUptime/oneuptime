@@ -19,14 +19,16 @@ import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserSer
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
 import WorkflowOwnerUserService from "../../../Services/WorkflowOwnerUserService";
 
-// Maps an operational model name (e.g. "Monitor") to the two services that
-// hold its ownership rows plus the FK column those services use to point at
-// the parent resource. The `Owned` permission scope reads from these to
-// compute which resource IDs the requesting user can act on.
-//
-// Nested models (those decorated with @OwnedThrough) resolve ownership
-// through their parent, so this registry only needs entries for the
-// canonical operational roots.
+/*
+ * Maps an operational model name (e.g. "Monitor") to the two services that
+ * hold its ownership rows plus the FK column those services use to point at
+ * the parent resource. The `Owned` permission scope reads from these to
+ * compute which resource IDs the requesting user can act on.
+ *
+ * Nested models (those decorated with @OwnedThrough) resolve ownership
+ * through their parent, so this registry only needs entries for the
+ * canonical operational roots.
+ */
 export interface OwnerTablePair {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ownerUserService: any;

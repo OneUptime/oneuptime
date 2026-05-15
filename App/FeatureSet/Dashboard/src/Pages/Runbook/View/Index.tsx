@@ -6,14 +6,17 @@ import AlertElement from "../../../Components/Alert/Alert";
 import TeamElement from "../../../Components/Team/Team";
 import UserElement from "../../../Components/User/User";
 import AppLink from "../../../Components/AppLink/AppLink";
+import ProjectUser from "../../../Utils/ProjectUser";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -46,7 +49,6 @@ import React, {
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Card from "Common/UI/Components/Card/Card";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import {
   Blue500,
   Gray500,
@@ -133,8 +135,6 @@ interface OverviewStats {
   totalRuns: number;
   successRuns: number;
   failedRuns: number;
-  ownerTeams: RunbookOwnerTeam[];
-  ownerUsers: RunbookOwnerUser[];
 }
 
 const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -147,8 +147,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
     totalRuns: 0,
     successRuns: 0,
     failedRuns: 0,
-    ownerTeams: [],
-    ownerUsers: [],
   });
 
   const loadStats: () => Promise<void> = async (): Promise<void> => {
@@ -163,13 +161,11 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         projectId,
       };
 
-      const [lastExec, total, success, failed, ownerTeams, ownerUsers]: [
+      const [lastExec, total, success, failed]: [
         ListResult<RunbookExecution>,
         number,
         number,
         number,
-        ListResult<RunbookOwnerTeam>,
-        ListResult<RunbookOwnerUser>,
       ] = await Promise.all([
         ModelAPI.getList<RunbookExecution>({
           modelType: RunbookExecution,
@@ -215,33 +211,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             status: RunbookExecutionStatus.Failed,
           },
         }),
-        ModelAPI.getList<RunbookOwnerTeam>({
-          modelType: RunbookOwnerTeam,
-          query: baseQuery,
-          limit: 50,
-          skip: 0,
-          select: {
-            _id: true,
-            team: { _id: true, name: true },
-          },
-          sort: { createdAt: SortOrder.Ascending },
-        }),
-        ModelAPI.getList<RunbookOwnerUser>({
-          modelType: RunbookOwnerUser,
-          query: baseQuery,
-          limit: 50,
-          skip: 0,
-          select: {
-            _id: true,
-            user: {
-              _id: true,
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-          },
-          sort: { createdAt: SortOrder.Ascending },
-        }),
       ]);
 
       setStats({
@@ -250,8 +219,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         totalRuns: total,
         successRuns: success,
         failedRuns: failed,
-        ownerTeams: ownerTeams.data,
-        ownerUsers: ownerUsers.data,
       });
     } catch {
       setStats((prev: OverviewStats) => {
@@ -329,15 +296,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
     Navigation.navigate(
       RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUNBOOK_VIEW_EXECUTIONS] as Route,
-        { modelId },
-      ),
-    );
-  };
-
-  const goToOwners: () => void = () => {
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.RUNBOOK_VIEW_OWNERS] as Route,
         { modelId },
       ),
     );
@@ -517,93 +475,201 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
       </Card>
 
-      <Card
-        title="Owners"
-        description="Teams and users who own this runbook. They are notified about changes."
-        rightElement={
-          <button
-            type="button"
-            onClick={goToOwners}
-            className="text-sm text-indigo-600 hover:text-indigo-700 hover:underline inline-flex items-center gap-1"
-          >
-            <Icon icon={IconProp.Edit} size={SizeProp.Smaller} />
-            Manage
-          </button>
-        }
-      >
-        {!stats.isLoaded ? (
-          <div className="text-sm text-gray-400">Loading…</div>
-        ) : stats.ownerTeams.length === 0 && stats.ownerUsers.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-            <div className="text-sm text-gray-700 font-medium">
-              No owners yet
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Assign teams or users so they are notified when this runbook
-              changes.
-            </div>
-            <button
-              type="button"
-              onClick={goToOwners}
-              className="mt-3 inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 hover:underline"
-            >
-              <Icon icon={IconProp.Add} size={SizeProp.Smaller} />
-              Add an owner
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-                Teams ({stats.ownerTeams.length})
-              </div>
-              {stats.ownerTeams.length === 0 ? (
-                <div className="text-sm text-gray-500">No team owners.</div>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {stats.ownerTeams.map((owner: RunbookOwnerTeam) => {
-                    if (!owner.team) {
-                      return null;
-                    }
-                    return (
-                      <li
-                        key={owner._id as unknown as string}
-                        className="text-sm text-gray-800"
-                      >
-                        <TeamElement team={owner.team as Team} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-                Users ({stats.ownerUsers.length})
-              </div>
-              {stats.ownerUsers.length === 0 ? (
-                <div className="text-sm text-gray-500">No user owners.</div>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {stats.ownerUsers.map((owner: RunbookOwnerUser) => {
-                    if (!owner.user) {
-                      return null;
-                    }
-                    return (
-                      <li
-                        key={owner._id as unknown as string}
-                        className="text-sm text-gray-800"
-                      >
-                        <UserElement user={owner.user as User} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </div>
-        )}
-      </Card>
+      <ModelTable<RunbookOwnerTeam>
+        modelType={RunbookOwnerTeam}
+        id="table-runbook-owner-team"
+        name="Runbook > Owner Team"
+        userPreferencesKey="runbook-owner-team-table"
+        singularName="Team"
+        isDeleteable={true}
+        createVerb={"Add"}
+        isCreateable={true}
+        isViewable={false}
+        showViewIdButton={true}
+        query={{
+          runbookId: modelId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        onBeforeCreate={(item: RunbookOwnerTeam): Promise<RunbookOwnerTeam> => {
+          item.runbookId = modelId;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
+          return Promise.resolve(item);
+        }}
+        cardProps={{
+          title: "Owners (Teams)",
+          description:
+            "Teams that own this runbook. They are notified about changes.",
+        }}
+        noItemsMessage={"No teams associated with this runbook so far."}
+        formFields={[
+          {
+            field: {
+              team: true,
+            },
+            title: "Team",
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            placeholder: "Select Team",
+            dropdownModal: {
+              type: Team,
+              labelField: "name",
+              valueField: "_id",
+            },
+          },
+        ]}
+        showRefreshButton={true}
+        viewPageRoute={Navigation.getCurrentRoute()}
+        filters={[
+          {
+            field: {
+              team: true,
+            },
+            type: FieldType.Entity,
+            title: "Team",
+            filterEntityType: Team,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Owner since",
+            type: FieldType.Date,
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              team: {
+                name: true,
+              },
+            },
+            title: "Team",
+            type: FieldType.Entity,
+
+            getElement: (item: RunbookOwnerTeam): ReactElement => {
+              if (!item["team"]) {
+                throw new BadDataException("Team not found");
+              }
+
+              return <TeamElement team={item["team"] as Team} />;
+            },
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Owner since",
+            type: FieldType.DateTime,
+          },
+        ]}
+      />
+
+      <ModelTable<RunbookOwnerUser>
+        modelType={RunbookOwnerUser}
+        id="table-runbook-owner-user"
+        name="Runbook > Owner User"
+        userPreferencesKey="runbook-owner-user-table"
+        isDeleteable={true}
+        singularName="User"
+        isCreateable={true}
+        isViewable={false}
+        showViewIdButton={true}
+        createVerb={"Add"}
+        query={{
+          runbookId: modelId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        onBeforeCreate={(item: RunbookOwnerUser): Promise<RunbookOwnerUser> => {
+          item.runbookId = modelId;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
+          return Promise.resolve(item);
+        }}
+        cardProps={{
+          title: "Owners (Users)",
+          description:
+            "Users that own this runbook. They are notified about changes.",
+        }}
+        noItemsMessage={"No users associated with this runbook so far."}
+        formFields={[
+          {
+            field: {
+              user: true,
+            },
+            title: "User",
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            placeholder: "Select User",
+            fetchDropdownOptions: async () => {
+              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                ProjectUtil.getCurrentProjectId()!,
+              );
+            },
+          },
+        ]}
+        showRefreshButton={true}
+        viewPageRoute={Navigation.getCurrentRoute()}
+        filters={[
+          {
+            field: {
+              user: true,
+            },
+            title: "User",
+            type: FieldType.Entity,
+            filterEntityType: User,
+            fetchFilterDropdownOptions: async () => {
+              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                ProjectUtil.getCurrentProjectId()!,
+              );
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Owner since",
+            type: FieldType.Date,
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              user: {
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            title: "User",
+            type: FieldType.Entity,
+
+            getElement: (item: RunbookOwnerUser): ReactElement => {
+              if (!item["user"]) {
+                throw new BadDataException("User not found");
+              }
+
+              return <UserElement user={item["user"] as User} />;
+            },
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Owner since",
+            type: FieldType.DateTime,
+          },
+        ]}
+      />
 
       {error && (
         <ConfirmModal
