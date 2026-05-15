@@ -26,6 +26,10 @@ import UserNotificationEventType from "Common/Types/UserNotification/UserNotific
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import Icon from "Common/UI/Components/Icon/Icon";
+import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -41,6 +45,9 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
 
   const [showPrivateNoteModal, setShowPrivateNoteModal] =
+    React.useState<boolean>(false);
+
+  const [showRunbookPickerModal, setShowRunbookPickerModal] =
     React.useState<boolean>(false);
 
   type GetFeedItemsFromAlertFeeds = (
@@ -208,22 +215,44 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this alert. You can see all the updates and information about this alert here."
       }
       buttons={[
-        {
-          title: "Execute On-Call Policy",
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Call,
-          onClick: () => {
-            setShowOnCallPolicyModal(true);
-          },
-        },
-        {
-          title: "Add Private Note",
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Lock,
-          onClick: () => {
-            setShowPrivateNoteModal(true);
-          },
-        },
+        <MoreMenu
+          key="alert-feed-actions-menu"
+          elementToBeShownInsteadOfButton={
+            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
+              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
+              <span>Actions</span>
+              <Icon
+                icon={IconProp.ChevronDown}
+                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
+              />
+            </div>
+          }
+        >
+          <MoreMenuItem
+            key="alert-action-run-runbook"
+            text="Execute Runbook"
+            icon={IconProp.Play}
+            onClick={() => {
+              setShowRunbookPickerModal(true);
+            }}
+          />
+          <MoreMenuItem
+            key="alert-action-execute-policy"
+            text="Execute On-Call Policy"
+            icon={IconProp.Call}
+            onClick={() => {
+              setShowOnCallPolicyModal(true);
+            }}
+          />
+          <MoreMenuItem
+            key="alert-action-private-note"
+            text="Add Private Note"
+            icon={IconProp.Lock}
+            onClick={() => {
+              setShowPrivateNoteModal(true);
+            }}
+          />
+        </MoreMenu>,
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,
@@ -295,6 +324,19 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             }}
           />
         )}
+
+        <RunbookPicker
+          isOpen={showRunbookPickerModal}
+          onClose={() => {
+            setShowRunbookPickerModal(false);
+          }}
+          onStarted={() => {
+            fetchItems().catch((err: unknown) => {
+              setError(API.getFriendlyMessage(err as Exception));
+            });
+          }}
+          alertId={props.alertId}
+        />
 
         {showPrivateNoteModal && (
           <ModelFormModal

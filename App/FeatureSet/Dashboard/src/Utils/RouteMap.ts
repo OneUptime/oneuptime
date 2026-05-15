@@ -362,6 +362,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
   [PageMap.INCIDENT_VIEW_SLA]: `${RouteParams.ModelID}/sla`,
   [PageMap.INCIDENT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.INCIDENT_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
 };
 
 export const AlertsRoutePath: Dictionary<string> = {
@@ -412,6 +413,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
   [PageMap.ALERT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.ALERT_VIEW_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+  [PageMap.ALERT_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
 };
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
@@ -451,6 +453,7 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
 };
 
 export const SettingsRoutePath: Dictionary<string> = {
@@ -892,6 +895,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_RUNBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_RUNBOOKS]
+    }`,
+  ),
+
   // Alert Settings Routes
   [PageMap.ALERTS_SETTINGS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
@@ -1317,6 +1326,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENT_VIEW_RUNBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_RUNBOOKS]
+    }`,
+  ),
+
   // Incident Settings Routes
   [PageMap.INCIDENTS_SETTINGS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
@@ -1542,6 +1557,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
         PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS
       ]
     }`,
   ),

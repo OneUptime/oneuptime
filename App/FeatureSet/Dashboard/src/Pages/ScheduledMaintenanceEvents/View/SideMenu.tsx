@@ -61,6 +61,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.List}
         />
+        <SideMenuItem
+          link={{
+            title: "Runbooks",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.BookOpen}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Logs">

@@ -14,8 +14,6 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
-import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -618,38 +616,15 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   const addMenu: ReactElement = (
-    <MoreMenu text="Add Step" menuIcon={IconProp.Add}>
-      {ALL_STEP_TYPES.map((t: RunbookStepType) => {
-        const meta: StepTypeMeta = STEP_TYPE_META[t];
-        return (
-          <MoreMenuItem
-            key={t}
-            text={meta.label}
-            icon={meta.icon}
-            onClick={() => {
-              return add(t);
-            }}
-          />
-        );
-      })}
-    </MoreMenu>
+    <Button
+      title="Add Step"
+      icon={IconProp.Add}
+      buttonStyle={ButtonStyleType.NORMAL}
+      onClick={() => {
+        add(RunbookStepType.Manual);
+      }}
+    />
   );
-
-  const allCollapsed: boolean =
-    steps.length > 0 &&
-    steps.every((s: RunbookStep) => {
-      return collapsedState[s.id!] !== false;
-    });
-
-  const setAllCollapsed: (value: boolean) => void = (value: boolean): void => {
-    setCollapsedState(() => {
-      const next: Record<string, boolean> = {};
-      steps.forEach((s: RunbookStep) => {
-        next[s.id!] = value;
-      });
-      return next;
-    });
-  };
 
   return (
     <Fragment>
@@ -665,17 +640,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   Unsaved changes
                 </span>
               ) : null}
-              <Button
-                title={allCollapsed ? "Expand all" : "Collapse all"}
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.SECONDARY}
-                icon={
-                  allCollapsed ? IconProp.ChevronDown : IconProp.ChevronRight
-                }
-                onClick={() => {
-                  setAllCollapsed(!allCollapsed);
-                }}
-              />
               {addMenu}
             </div>
           ) : undefined

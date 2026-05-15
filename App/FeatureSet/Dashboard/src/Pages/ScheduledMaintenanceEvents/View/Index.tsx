@@ -492,7 +492,7 @@ const ScheduledMaintenanceView: FunctionComponent<
         }}
       />
 
-      <EntityRunbooks scheduledMaintenanceId={modelId} />
+      <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
 
       <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
     </Fragment>

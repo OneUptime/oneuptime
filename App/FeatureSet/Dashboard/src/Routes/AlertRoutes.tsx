@@ -32,6 +32,7 @@ import AlertInternalNote from "../Pages/Alerts/View/InternalNote";
 import UnresolvedAlerts from "../Pages/Alerts/Unresolved";
 import AlertViewCustomFields from "../Pages/Alerts/View/CustomFields";
 import AlertViewOwner from "../Pages/Alerts/View/Owners";
+import AlertViewRunbooks from "../Pages/Alerts/View/Runbooks";
 
 import AlertViewRootCause from "../Pages/Alerts/View/RootCause";
 
@@ -468,6 +469,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertViewDelete
               {...props}
               pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_RUNBOOKS)}
+          element={
+            <AlertViewRunbooks
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_RUNBOOKS] as Route}
             />
           }
         />

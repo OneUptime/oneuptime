@@ -686,7 +686,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <AlertAffectedResources alertId={modelId} />
 
-      <EntityRunbooks alertId={modelId} />
+      <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 
       <AlertFeedElement alertId={modelId} />
     </Fragment>

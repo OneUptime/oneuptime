@@ -352,6 +352,11 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType: Runbook,
           id: "model-detail-runbook-overview",
           fields: [
+            {
+              field: { _id: true },
+              title: "Runbook ID",
+              fieldType: FieldType.ObjectID,
+            },
             { field: { name: true }, title: "Name" },
             { field: { description: true }, title: "Description" },
             {

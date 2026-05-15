@@ -20,6 +20,7 @@ import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEv
 import ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
 
 import ScheduledMaintenanceEventViewOwner from "../Pages/ScheduledMaintenanceEvents/View/Owners";
+import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenanceEvents/View/Runbooks";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionSlack from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack";
 
@@ -501,6 +502,20 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS,
+          )}
+          element={
+            <ScheduledMaintenanceEventViewRunbooks
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS] as Route
               }
             />
           }

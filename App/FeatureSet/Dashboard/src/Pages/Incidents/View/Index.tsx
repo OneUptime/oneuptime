@@ -778,7 +778,7 @@ const IncidentView: FunctionComponent<
 
       <IncidentAffectedResources incidentId={modelId} />
 
-      <EntityRunbooks incidentId={modelId} />
+      <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
 
       <IncidentFeedElement incidentId={modelId} />
     </Fragment>
