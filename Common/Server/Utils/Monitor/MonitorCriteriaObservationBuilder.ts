@@ -1254,4 +1254,151 @@ export default class MonitorCriteriaObservationBuilder {
       });
     });
   }
+
+  private static getSnmpResponse(input: {
+    dataToProcess: DataToProcess;
+  }): SnmpMonitorResponse | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    return probeResponse?.snmpResponse || null;
+  }
+
+  private static findSnmpOidResponse(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): {
+    snmpResponse: SnmpMonitorResponse | null;
+    oid: string | undefined;
+    oidResponse: SnmpOidResponse | undefined;
+  } {
+    const snmpResponse: SnmpMonitorResponse | null =
+      MonitorCriteriaObservationBuilder.getSnmpResponse({
+        dataToProcess: input.dataToProcess,
+      });
+
+    const oid: string | undefined =
+      input.criteriaFilter.snmpMonitorOptions?.oid;
+
+    const oidResponse: SnmpOidResponse | undefined = oid
+      ? snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
+          return response.oid === oid;
+        })
+      : undefined;
+
+    return { snmpResponse, oid, oidResponse };
+  }
+
+  private static describeSnmpIsOnlineObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const snmpResponse: SnmpMonitorResponse | null =
+      MonitorCriteriaObservationBuilder.getSnmpResponse(input);
+
+    if (!snmpResponse) {
+      return "SNMP response was unavailable.";
+    }
+
+    if (snmpResponse.isOnline) {
+      return "SNMP device is online.";
+    }
+
+    if (snmpResponse.failureCause) {
+      return `SNMP device is offline: ${snmpResponse.failureCause}`;
+    }
+
+    return "SNMP device is offline.";
+  }
+
+  private static describeSnmpResponseTimeObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const snmpResponse: SnmpMonitorResponse | null =
+      MonitorCriteriaObservationBuilder.getSnmpResponse(input);
+
+    if (
+      !snmpResponse ||
+      snmpResponse.responseTimeInMs === null ||
+      snmpResponse.responseTimeInMs === undefined
+    ) {
+      return "SNMP response time was not recorded.";
+    }
+
+    const formatted: string | null =
+      MonitorCriteriaMessageFormatter.formatNumber(
+        snmpResponse.responseTimeInMs,
+        { maximumFractionDigits: 2 },
+      );
+
+    return `SNMP response time was ${formatted ?? snmpResponse.responseTimeInMs}ms.`;
+  }
+
+  private static describeSnmpOidExistsObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const { snmpResponse, oid, oidResponse } =
+      MonitorCriteriaObservationBuilder.findSnmpOidResponse(input);
+
+    if (!oid) {
+      return "No OID is configured on this criteria.";
+    }
+
+    if (!snmpResponse) {
+      return `SNMP response for OID ${oid} was unavailable.`;
+    }
+
+    if (!oidResponse || oidResponse.value === null) {
+      return `SNMP OID ${oid} did not return a value.`;
+    }
+
+    return `SNMP OID ${oid} returned ${MonitorCriteriaObservationBuilder.formatSnmpValue(
+      oidResponse.value,
+    )} (${oidResponse.type}).`;
+  }
+
+  private static describeSnmpOidValueObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const { snmpResponse, oid, oidResponse } =
+      MonitorCriteriaObservationBuilder.findSnmpOidResponse(input);
+
+    if (!oid) {
+      return "No OID is configured on this criteria. Pick one from the OID dropdown in the criteria editor.";
+    }
+
+    if (!snmpResponse) {
+      return `SNMP response for OID ${oid} was unavailable.`;
+    }
+
+    if (!oidResponse) {
+      return `SNMP OID ${oid} was not returned by the device.`;
+    }
+
+    if (oidResponse.value === null) {
+      return `SNMP OID ${oid} returned no value (${oidResponse.type}).`;
+    }
+
+    const formattedValue: string =
+      MonitorCriteriaObservationBuilder.formatSnmpValue(oidResponse.value);
+
+    const label: string = oidResponse.name
+      ? `${oidResponse.name} (${oid})`
+      : oid;
+
+    return `SNMP OID ${label} value was ${formattedValue} (${oidResponse.type})`;
+  }
+
+  private static formatSnmpValue(value: string | number): string {
+    if (typeof value === Typeof.Number) {
+      const formatted: string | null =
+        MonitorCriteriaMessageFormatter.formatNumber(value as number, {
+          maximumFractionDigits: 2,
+        });
+      return formatted ?? String(value);
+    }
+
+    return String(value);
+  }
 }
