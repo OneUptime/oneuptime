@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
@@ -87,6 +88,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
   tableDescription:
     "Manage groups on your status page and categorize resources like monitors into these groups.",
 })
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPageGroup",
 })

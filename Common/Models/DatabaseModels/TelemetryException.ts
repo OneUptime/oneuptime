@@ -3,6 +3,7 @@ import User from "./User";
 import Team from "./Team";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -58,6 +59,7 @@ import Service from "./Service";
   tableDescription:
     "List of all Telemetry Exceptions created for the telemetry service for this OneUptime project and it's status.",
 })
+@OwnedThrough("serviceId", Service)
 @Entity({
   name: "TelemetryException",
 })

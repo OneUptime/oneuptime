@@ -6,6 +6,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -85,6 +86,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Links subscriber notification templates to specific status pages. This allows you to use different notification templates for different status pages.",
 })
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPageSubscriberNotificationTemplateStatusPage",
 })

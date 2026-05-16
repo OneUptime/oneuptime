@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
@@ -84,6 +85,7 @@ import CodeRepositoryImprovementAction from "../../Types/Service/CodeRepositoryI
   tableDescription:
     "Link code repositories to service items with the path where the service code lives.",
 })
+@OwnedThrough("serviceId", Service)
 @Entity({
   name: "ServiceCodeRepository",
 })

@@ -6,6 +6,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -80,6 +81,7 @@ export enum IncidentEpisodeMemberAddedBy {
   icon: IconProp.Layers,
   tableDescription: "Link between incidents and episodes",
 })
+@OwnedThrough("incidentId", Incident)
 @Entity({
   name: "IncidentEpisodeMember",
 })

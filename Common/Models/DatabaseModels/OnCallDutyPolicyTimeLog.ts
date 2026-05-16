@@ -1,8 +1,10 @@
+import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -68,6 +70,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   ],
 })
 @CrudApiEndpoint(new Route("/on-call-duty-policy-time-log"))
+@OwnedThrough("onCallDutyPolicyId", OnCallDutyPolicy)
 @Entity({
   name: "OnCallDutyPolicyTimeLog",
 })

@@ -6,6 +6,7 @@ import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
@@ -38,6 +39,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: [],
 })
 @CrudApiEndpoint(new Route("/status-page-private-user-session"))
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPagePrivateUserSession",
 })
