@@ -1234,6 +1234,16 @@ jobs:
         run: |
           echo "=== Disk space BEFORE cleanup ==="
           df -h /
+          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
+          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
+          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
+          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
+            google-cloud-cli \
+            azure-cli \
+            firefox \
+            powershell \
+            mono-devel \
+            google-chrome-stable 2>/dev/null || true
           # Remove pre-installed software not needed for this job
           sudo rm -rf /usr/share/dotnet || true
           sudo rm -rf /usr/local/lib/android || true
@@ -1262,6 +1272,9 @@ jobs:
           sudo rm -rf /usr/share/kotlinc || true
           sudo rm -rf /usr/share/ri || true
           sudo rm -rf /usr/local/.ghcup || true
+          # Repair any dpkg state left half-broken by the rm operations above
+          sudo dpkg --configure -a 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
           # Clean apt cache
           sudo apt-get clean || true
           sudo rm -rf /var/lib/apt/lists/* || true
@@ -1365,6 +1378,16 @@ jobs:
         run: |
           echo "=== Disk space BEFORE cleanup ==="
           df -h /
+          # Purge apt-installed packages before rm-ing their files so dpkg state stays consistent.
+          # Otherwise a later `apt-get install` triggers reconfiguration of half-removed packages
+          # (e.g. google-cloud-cli's postinst calls /usr/bin/gcloud) and fails with exit 100.
+          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y \
+            google-cloud-cli \
+            azure-cli \
+            firefox \
+            powershell \
+            mono-devel \
+            google-chrome-stable 2>/dev/null || true
           # Remove pre-installed software not needed for this job
           sudo rm -rf /usr/share/dotnet || true
           sudo rm -rf /usr/local/lib/android || true
@@ -1393,6 +1416,9 @@ jobs:
           sudo rm -rf /usr/share/kotlinc || true
           sudo rm -rf /usr/share/ri || true
           sudo rm -rf /usr/local/.ghcup || true
+          # Repair any dpkg state left half-broken by the rm operations above
+          sudo dpkg --configure -a 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y 2>/dev/null || true
           # Clean apt cache
           sudo apt-get clean || true
           sudo rm -rf /var/lib/apt/lists/* || true
