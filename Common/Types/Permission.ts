@@ -1650,7 +1650,8 @@ export class PermissionHelper {
       {
         permission: Permission.StatusPageViewer,
         title: "Status Page Viewer",
-        description: "Read-only access to status pages and status page resources.",
+        description:
+          "Read-only access to status pages and status page resources.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -1738,7 +1739,8 @@ export class PermissionHelper {
       {
         permission: Permission.TelemetryViewer,
         title: "Telemetry Viewer",
-        description: "Read-only access to telemetry services and telemetry data.",
+        description:
+          "Read-only access to telemetry services and telemetry data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -1796,8 +1798,7 @@ export class PermissionHelper {
       {
         permission: Permission.BillingViewer,
         title: "Billing Viewer",
-        description:
-          "Read-only access to billing information and invoices.",
+        description: "Read-only access to billing information and invoices.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,

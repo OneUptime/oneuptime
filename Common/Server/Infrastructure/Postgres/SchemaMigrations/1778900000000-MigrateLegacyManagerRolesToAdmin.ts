@@ -26,7 +26,10 @@ export class MigrateLegacyManagerRolesToAdmin1778900000000
   ];
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    for (const [legacy, replacement] of MigrateLegacyManagerRolesToAdmin1778900000000.ROLE_MAP) {
+    for (const [
+      legacy,
+      replacement,
+    ] of MigrateLegacyManagerRolesToAdmin1778900000000.ROLE_MAP) {
       await queryRunner.query(
         `UPDATE "TeamPermission" SET "permission" = $1 WHERE "permission" = $2`,
         [replacement, legacy],
@@ -35,7 +38,10 @@ export class MigrateLegacyManagerRolesToAdmin1778900000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    for (const [legacy, replacement] of MigrateLegacyManagerRolesToAdmin1778900000000.ROLE_MAP) {
+    for (const [
+      legacy,
+      replacement,
+    ] of MigrateLegacyManagerRolesToAdmin1778900000000.ROLE_MAP) {
       await queryRunner.query(
         `UPDATE "TeamPermission" SET "permission" = $1 WHERE "permission" = $2`,
         [legacy, replacement],
