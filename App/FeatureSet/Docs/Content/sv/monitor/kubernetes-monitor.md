@@ -1,117 +1,117 @@
 # Kubernetes-monitor
 
-Kubernetes-övervakning gör det möjligt att övervaka hälsan och prestandan hos dina Kubernetes-kluster, inklusive noder, pods, arbetsbelastningar och kontrollplanekomponenter. OneUptime samlar in mätvärden från ditt kluster och utvärderar dem mot dina konfigurerade kriterier.
+Kubernetes-övervakning gör det möjligt att övervaka hälsan och prestandan hos dina Kubernetes-kluster, inklusive noder, poddar, arbetsbelastningar och kontrollplanekomponenter. OneUptime samlar in mätvärden från ditt kluster och utvärderar dem mot dina konfigurerade kriterier.
 
 ## Översikt
 
 Kubernetes-monitorer använder mätvärden från ditt kluster för att ge djup insyn i din infrastruktur. Detta gör det möjligt att:
 
-- Övervaka kluster-, namnrymds-, arbetsbelastnings-, nod- och pod-hälsa
-- Spåra CPU, minne, disk och nätverksanvändning för resurser
-- Identifiera podkraschar, omstarter och schemaläggningsfel
-- Övervaka tillgänglighet för deployment-repliker
-- Varna om problem med kontrollplanet (etcd, API-server, schemaläggare)
-- Spåra resursbegäranden och gränser
+- Övervaka hälsan hos kluster, namespace, arbetsbelastning, nod och pod
+- Spåra CPU-, minnes-, disk- och nätverksanvändning över resurser
+- Upptäcka pod-krascher, omstarter och schemaläggningsfel
+- Övervaka tillgänglighet för Deployment-repliker
+- Larma vid problem på kontrollplanet (etcd, API-server, scheduler)
+- Spåra resursförfrågningar och -gränser
 
 ## Skapa en Kubernetes-monitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
-2. Klicka på **Skapa monitor**
+1. Gå till **Monitors** i OneUptime-dashboarden
+2. Klicka på **Create Monitor**
 3. Välj **Kubernetes** som monitortyp
 4. Välj klustret och resursomfånget att övervaka
-5. Konfigurera resursfilter och mätvärdesförfrågningar
+5. Konfigurera resursfilter och metric-frågor
 6. Konfigurera övervakningskriterier efter behov
 
 ## Konfigurationsalternativ
 
 ### Kluster
 
-Välj det Kubernetes-kluster att övervaka. Kluster måste vara integrerade med OneUptime via OpenTelemetry.
+Välj det Kubernetes-kluster som ska övervakas. Kluster måste vara integrerade med OneUptime via OpenTelemetry.
 
 ### Resursomfång
 
-Välj nivån att övervaka resurser på:
+Välj nivån på vilken resurser ska övervakas:
 
 | Omfång | Beskrivning |
-|--------|-------------|
-| Kluster | Övervaka hela klustret |
-| Namnrymd | Övervaka resurser inom en specifik namnrymd |
-| Arbetsbelastning | Övervaka en specifik deployment, statefulset, daemonset, jobb eller cronjobb |
-| Nod | Övervaka en specifik klusternod |
+|-------|-------------|
+| Cluster | Övervaka hela klustret |
+| Namespace | Övervaka resurser inom ett specifikt namespace |
+| Workload | Övervaka en specifik deployment, statefulset, daemonset, job eller cronjob |
+| Node | Övervaka en specifik klusternod |
 | Pod | Övervaka en specifik pod |
 
 ### Resursfilter
 
-Begränsa omfånget med valfria filter:
+Snäva in omfånget med valfria filter:
 
 | Filter | Beskrivning | Tillämpliga omfång |
 |--------|-------------|-------------------|
-| Namnrymd | Kubernetes-namnrymd | Namnrymd, Arbetsbelastning, Pod |
-| Arbetsbelastningstyp | deployment, statefulset, daemonset, jobb, cronjobb | Arbetsbelastning |
-| Arbetsbelastningsnamn | Arbetsbelastningens namn | Arbetsbelastning |
-| Nodnamn | Nodens namn | Nod |
-| Podnamn | Podens namn | Pod |
+| Namespace | Kubernetes-namespace | Namespace, Workload, Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
+| Workload Name | Arbetsbelastningens namn | Workload |
+| Node Name | Nodens namn | Node |
+| Pod Name | Poddens namn | Pod |
 
-### Mätvärdesförfrågningar
+### Metric-frågor
 
-Konfigurera en eller flera mätvärdesförfrågningar att utvärdera. Varje förfrågan anger:
+Konfigurera en eller flera metric-frågor att utvärdera. Varje fråga anger:
 
-- **Mätvärdets namn** – Kubernetes-mätvärdet att fråga
-- **Aggregering** – Hur man aggregerar mätvärden
-- **Filter** – Ytterligare attributbaserad filtrering
+- **Metric-namn** — Det Kubernetes-mätvärde som ska frågas
+- **Aggregering** — Hur metric-värden ska aggregeras
+- **Filter** — Ytterligare attributbaserad filtrering
 
-Du kan också skapa **formler** som kombinerar flera mätvärdesförfrågningar med matematiska uttryck.
+Du kan också skapa **formler** som kombinerar flera metric-frågor med matematiska uttryck.
 
 ### Rullande tidsfönster
 
-Välj tidsfönstret för mätvärdesutvärdering:
+Välj tidsfönster för metric-utvärdering:
 
-- Senaste 1 minuten
-- Senaste 5 minuterna
-- Senaste 10 minuterna
-- Senaste 15 minuterna
-- Senaste 30 minuterna
-- Senaste 60 minuterna
+- Senaste 1 minut
+- Senaste 5 minuter
+- Senaste 10 minuter
+- Senaste 15 minuter
+- Senaste 30 minuter
+- Senaste 60 minuter
 
 ## Vanliga Kubernetes-mätvärden
 
 ### Pod-mätvärden
 
 | Mätvärde | Beskrivning |
-|---------|-------------|
-| Pod CPU-användning | CPU-förbrukning av pods |
-| Pod-minnesanvändning | Minnesförbrukning av pods |
-| Pod-filsystemanvändning | Diskanvändning av pods |
-| Pod-nätverksmottagning/-sändning | Nätverkstrafik |
-| Pod-fas | Aktuell pod-fas (Running, Pending, Failed etc.) |
+|--------|-------------|
+| Pod CPU Usage | CPU-förbrukning av poddar |
+| Pod Memory Usage | Minnesförbrukning av poddar |
+| Pod Filesystem Usage | Diskanvändning av poddar |
+| Pod Network Receive/Transmit | Nätverkstrafik |
+| Pod Phase | Aktuell pod-fas (Running, Pending, Failed osv.) |
 
 ### Nodmätvärden
 
 | Mätvärde | Beskrivning |
-|---------|-------------|
-| Nod-CPU-användning | CPU-utnyttjande per nod |
-| Nod-minnesanvändning | Minnesutnyttjande per nod |
-| Nod-filsystemanvändning | Diskanvändning per nod |
-| Nod-disk-I/O | Läs/skriv-operationer |
-| Nodklar-tillstånd | Om noden är klar |
+|--------|-------------|
+| Node CPU Usage | CPU-utnyttjande per nod |
+| Node Memory Usage | Minnesutnyttjande per nod |
+| Node Filesystem Usage | Diskanvändning per nod |
+| Node Disk I/O | Läs/skriv-operationer |
+| Node Ready Condition | Om noden är redo |
 
 ### Containermätvärden
 
 | Mätvärde | Beskrivning |
-|---------|-------------|
-| Containeromstarter | Antal containeromstarter |
-| Container-CPU/minnesgränser | Resursgränser |
-| Container-CPU/minnesbegäranden | Resursbegäranden |
-| Container klartillstånd | Om containers är redo |
+|--------|-------------|
+| Container Restarts | Antal containeromstarter |
+| Container CPU/Memory Limits | Resursgränser |
+| Container CPU/Memory Requests | Resursförfrågningar |
+| Container Ready Status | Om containrar är redo |
 
 ### Arbetsbelastningsmätvärden
 
 | Mätvärde | Beskrivning |
-|---------|-------------|
-| Deployment tillgängliga/otillgängliga repliker | Replikat antal |
-| DaemonSet felschemalagda noder | Schemaläggningsproblem |
-| StatefulSet redo repliker | Antal redo repliker |
-| Jobb aktiva/misslyckade/lyckade pods | Jobbstatus |
+|--------|-------------|
+| Deployment Available/Unavailable Replicas | Antal repliker |
+| DaemonSet Misscheduled Nodes | Schemaläggningsproblem |
+| StatefulSet Ready Replicas | Antal redo-repliker |
+| Job Active/Failed/Succeeded Pods | Job-status |
 
 ## Övervakningskriterier
 
@@ -119,44 +119,44 @@ Välj tidsfönstret för mätvärdesutvärdering:
 
 | Kontrolltyp | Beskrivning |
 |------------|-------------|
-| Mätvärde | Värdet av den konfigurerade mätvärdesförfrågan eller formeln |
+| Metric Value | Värdet på den konfigurerade metric-frågan eller formeln |
 
 ### Aggregeringstyper
 
 | Aggregering | Beskrivning |
 |-------------|-------------|
-| Medelvärde | Medelvärde under tidsfönstret |
-| Summa | Summan av alla värden |
-| Maxvärde | Högsta värdet i tidsfönstret |
-| Minvärde | Lägsta värdet i tidsfönstret |
-| Alla värden | Alla värden måste matcha kriterierna |
-| Valfritt värde | Minst ett värde måste matcha |
+| Average | Medelvärde över tidsfönstret |
+| Sum | Summan av alla värden |
+| Maximum Value | Högsta värde i tidsfönstret |
+| Minimum Value | Lägsta värde i tidsfönstret |
+| All Values | Alla värden måste matcha kriterierna |
+| Any Value | Minst ett värde måste matcha |
 
 ### Filtertyper
 
-- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**, **Inte lika med**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
 
-## Förbyggda varningsmallar
+## Förbyggda larmmallar
 
 OneUptime tillhandahåller mallar för vanliga Kubernetes-övervakningsscenarier:
 
 | Mall | Beskrivning | Tröskel |
-|------|-------------|---------|
-| CrashLoopBackOff-identifiering | Antal containeromstarter | > 5 omstarter |
-| Pod fastnad i Pending | Pods i Pending-fas | > 0 pods |
-| Nod inte klar | Nodens klartillstånd | = 0 (inte klar) |
-| Hög nod-CPU | Nod-CPU-utnyttjande | > 90% |
-| Högt nod-minne | Nod-minnesutnyttjande | > 85% |
-| Deployment-replikmismatch | Otillgängliga repliker | > 0 repliker |
-| Jobbmisslyckanden | Misslyckade pods i ett jobb | > 0 misslyckanden |
-| etcd ingen ledare | etcd-klustrets ledare saknas | = 0 (ingen ledare) |
-| API-serverthrottling | Borttagna API-förfrågningar | > 0 förfrågningar |
-| Schemaläggningseftersläpning | Väntande pods i schemaläggare | > 0 pods |
-| Hög nodiskanvändning | Nod-filsystemanvändning | > 90% |
-| DaemonSet otillgänglig | Felschemalagda noder | > 0 noder |
+|----------|-------------|-----------|
+| CrashLoopBackOff Detection | Antal containeromstarter | > 5 omstarter |
+| Pod Stuck in Pending | Poddar i Pending-fas | > 0 poddar |
+| Node Not Ready | Nodens redo-villkor | = 0 (inte redo) |
+| High Node CPU | CPU-utnyttjande för nod | > 90% |
+| High Node Memory | Minnesutnyttjande för nod | > 85% |
+| Deployment Replica Mismatch | Otillgängliga repliker | > 0 repliker |
+| Job Failures | Misslyckade poddar i ett job | > 0 fel |
+| etcd No Leader | etcd-klusterledare saknas | = 0 (ingen ledare) |
+| API Server Throttling | Borttappade API-förfrågningar | > 0 förfrågningar |
+| Scheduler Backlog | Väntande poddar i scheduler | > 0 poddar |
+| High Node Disk Usage | Filsystemsanvändning för nod | > 90% |
+| DaemonSet Unavailable | Felschemalagda noder | > 0 noder |
 
-## Konfigurationskrav
+## Installationskrav
 
-För att använda Kubernetes-övervakning behöver du installera OneUptime Kubernetes-agenten i ditt kluster. Agenten skickar klustermätvärden, händelser och pod-loggar till OneUptime via OTLP.
+För att använda Kubernetes-övervakning behöver du installera OneUptime Kubernetes-agenten i ditt kluster. Agenten skickar klustermätvärden, händelser, pod-loggar och — som standard — **applikationsspårningar och HTTP RED-mätvärden insamlade via eBPF** till OneUptime över OTLP. Inga kodändringar eller per-app-SDK:er behövs för att se trafik på tjänstenivå.
 
-Se guiden [Installera Kubernetes-agenten](/docs/monitor/kubernetes-agent) – den täcker Helm-installationen med ett kommando och alternativet `preset` för att välja rätt konfiguration för ditt kluster (standard, GKE Autopilot, EKS Fargate).
+Se guiden [Installera Kubernetes-agenten](/docs/monitor/kubernetes-agent) — den täcker Helm-installation med ett enda kommando, alternativet `preset` för att välja rätt konfiguration för ditt kluster (standard, GKE Autopilot, EKS Fargate) och växlarna `ebpf.features.*` för de enskilda signalfamiljerna (HTTP RED-mätvärden, tjänstegraf, nätverksflöden, TCP-statistik).

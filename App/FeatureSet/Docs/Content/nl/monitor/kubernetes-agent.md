@@ -1,6 +1,6 @@
-# De Kubernetes Agent installeren
+# De Kubernetes-agent installeren
 
-De OneUptime Kubernetes-agent verzamelt cluster-metrics, events en pod-logboeken van uw Kubernetes-cluster en stuurt ze naar OneUptime. Hij wordt gedistribueerd als een Helm-chart.
+De OneUptime Kubernetes-agent verzamelt cluster-metrics, events, pod-logboeken, **applicatie-traces (HTTP/gRPC via eBPF)**, **continue CPU-flame graphs (eBPF-profiler)** en **OS-niveau node-metrics** van uw Kubernetes-cluster en stuurt deze naar OneUptime. Hij wordt gedistribueerd als een Helm-chart en geïnstalleerd met één commando — eBPF auto-instrumentatie en profilering staan beide standaard aan, zodat u service-niveau traces, RED-metrics en flame graphs ziet zonder codewijzigingen.
 
 ## Snel starten
 
@@ -28,7 +28,7 @@ Verschillende Kubernetes-distributies hebben verschillende beperkingen — met n
 | `gke-autopilot` | **GKE Autopilot** | Kubernetes API-tailer (Deployment) | hostPath is geblokkeerd op Autopilot. Stelt een geharde beveiligingscontext in die voldoet aan de Pod Security Standards van Autopilot. |
 | `eks-fargate` | **EKS Fargate** | Kubernetes API-tailer (Deployment) | Hetzelfde als `gke-autopilot`. Fargate blokkeert hostPath en DaemonSets. |
 
-Als u het niet zeker weet, laat `preset` dan ongewijzigd — u krijgt de `standard`-standaarden. Als uw cluster de installatie weigert met een Pod Security-beleidsfout met vermelding van `hostPath`, schakel dan over naar `gke-autopilot` (of `eks-fargate` op EKS Fargate) en installeer opnieuw.
+Als u het niet zeker weet, laat `preset` dan ongezet — u krijgt de `standard`-standaardwaarden. Als uw cluster de installatie afwijst met een Pod Security-fout die `hostPath` vermeldt, schakel dan over naar `gke-autopilot` (of `eks-fargate` op EKS Fargate) en installeer opnieuw.
 
 ### Voorbeelden
 
@@ -64,29 +64,135 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set preset=eks-fargate
 ```
 
-## Hoe de twee logboekverz amelingsmodi verschillen
+## Hoe de twee log-verzamelmodi verschillen
 
-Achter de schermen stelt `preset` `logs.mode` in — en u kunt dat ook rechtstreeks instellen als u de preset-standaard wilt overschrijven.
+Onder de motorkap stelt `preset` `logs.mode` in — en u kunt dit ook direct instellen als u de standaard van de preset moet overschrijven.
 
 ### DaemonSet-modus (`logs.mode: daemonset`)
 
-Een DaemonSet draait één OpenTelemetry Collector-pod per node. Het volgt logbestanden onder `/var/log/pods/` via een hostPath-volume en stuurt ze door via OTLP.
+Een DaemonSet draait één OpenTelemetry Collector-pod per node. Hij leest logbestanden onder `/var/log/pods/` via een hostPath-volume en stuurt deze door via OTLP.
 
-- **Voordelen:** Laagste overhead, schaalt lineair met nodes, geen belasting op de Kubernetes API-server, verwerkt logrotatie.
-- **Nadelen:** Vereist hostPath, vereist de mogelijkheid om DaemonSets te plannen — beide niet beschikbaar op GKE Autopilot en EKS Fargate.
+- **Voordelen:** laagste overhead, schaalt lineair met nodes, geen belasting voor de Kubernetes API-server, verwerkt logrotatie.
+- **Nadelen:** vereist hostPath, vereist de mogelijkheid om DaemonSets te plannen — beide niet beschikbaar op GKE Autopilot en EKS Fargate.
 
 ### API-modus (`logs.mode: api`)
 
-Een Deployment met één replica (de `oneuptime/kubernetes-log-tailer`-image) gebruikt de Kubernetes API om containerlogboeken te streamen — hetzelfde eindpunt dat `kubectl logs -f` gebruikt. Geen hostPath, geen hosttoegang, geen DaemonSet.
+Een Deployment met één replica (de `oneuptime/kubernetes-log-tailer`-image) gebruikt de Kubernetes API om container-logboeken te streamen — hetzelfde endpoint dat `kubectl logs -f` gebruikt. Geen hostPath, geen host-toegang, geen DaemonSet.
 
-- **Voordelen:** Werkt op GKE Autopilot, EKS Fargate en elk cluster dat hostPath blokkeert of de `restricted` Pod Security Standard hanteert.
-- **Nadelen:** Elke containerstroom is een langlevende verbinding naar `kube-apiserver`. In de praktijk verwerkt één replica comfortabel een paar duizend containers. Voor zeer grote clusters, verdeel per namespace met `logs.api.replicas` en `namespaceFilters.include` op elke replica.
+- **Voordelen:** werkt op GKE Autopilot, EKS Fargate en elk cluster dat hostPath blokkeert of de `restricted` Pod Security Standard afdwingt.
+- **Nadelen:** elke containerstream is een langlevende verbinding naar `kube-apiserver`. In de praktijk verwerkt één replica enkele duizenden containers comfortabel. Voor zeer grote clusters: shard op namespace met behulp van `logs.api.replicas` plus `namespaceFilters.include` op elke replica.
 
 ### Welke moet u gebruiken?
 
-Als hostPath werkt, gebruik DaemonSet. Overal anders, gebruik API-modus. De `preset`-instelling kiest de juiste modus voor u.
+Als hostPath werkt, gebruik DaemonSet. Overal anders, gebruik API-modus. De `preset`-instelling kiest de juiste voor u.
 
-U kunt logboekverzameling ook volledig uitschakelen met `--set logs.enabled=false` en in plaats daarvan applicatielogboeken via OpenTelemetry SDK's versturen. Zie de [OpenTelemetry](/docs/telemetry/open-telemetry)-documenten.
+U kunt logboekverzameling ook volledig uitschakelen met `--set logs.enabled=false` en applicatielogboeken in plaats daarvan via OpenTelemetry SDKs versturen. Zie de [OpenTelemetry](/docs/telemetry/open-telemetry)-documentatie.
+
+## Applicatie-traces & HTTP-verzoeken via eBPF (standaard aan)
+
+De chart levert een DaemonSet die [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) draait op elke node. OBI laadt eBPF-programma's in de Linux-kernel en bekijkt verkeer op socket-niveau om HTTP/HTTPS-, gRPC- en SQL/Redis-aanroepen vanuit elke pod op de node te reconstrueren — geen codewijzigingen, geen SDK, geen sidecar. Vastgelegd verkeer wordt geëxporteerd als OTLP-traces en verzoek-/latentie-metrics rechtstreeks naar OneUptime.
+
+Na installatie verschijnen uw services binnen een minuut of twee onder **Telemetry → Traces** en op de service-kaart, met `k8s.cluster.name` ingesteld op uw `clusterName` zodat u kunt filteren per cluster.
+
+### Wanneer uitschakelen
+
+eBPF is **standaard ingeschakeld**. U moet het uitschakelen (`--set ebpf.enabled=false`) als:
+
+- U installeert op **GKE Autopilot** of **EKS Fargate**. Deze platformen blokkeren privileged pods, en OBI heeft privileged-modus nodig om eBPF-programma's te laden.
+- Uw nodes een kernel draaien ouder dan **Linux 5.8** zonder BTF-backports. (Moderne distributies — Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+ — zijn in orde.)
+- U al traces verstuurt via de OpenTelemetry SDK vanuit uw apps en geen duplicaten wilt.
+
+### Wat er wordt verzonden
+
+OBI extraheert verschillende signaal-families uit het vastgelegde verkeer. Alle staan standaard aan; elk kan onafhankelijk worden uitgeschakeld met `--set ebpf.features.<key>=false`:
+
+| Signaal | Standaard | Wat het toevoegt |
+| --- | --- | --- |
+| `ebpf.features.httpMetrics` | aan | HTTP/gRPC RED-metrics — verzoekfrequentie, latentie-histogrammen, fouttellingen — per service. |
+| `ebpf.features.spanMetrics` | aan | Op span-attribuut gesleutelde metrics: verzoekgrootte, antwoordgrootte, duur opgesplitst per route/operatie. |
+| `ebpf.features.serviceGraph` | aan | Service-naar-service edge-metrics (aanroeper → aangeroepene verzoekfrequentie + latentie). Voedt de service-kaart. |
+| `ebpf.features.hostMetrics` | aan | CPU en geheugen per geïnstrumenteerd proces — bespaart het draaien van een aparte profiler voor basale capaciteitsvragen. |
+| `ebpf.features.networkMetrics` | aan | Pod-naar-pod TCP/UDP-flow byte- en packet-tellers met k8s-metadata. Toont elk paar pods dat communiceert, inclusief die welke protocollen draaien die OBI niet kan parsen. |
+| `ebpf.features.networkInterZoneMetrics` | uit | Inter-zone variant van netwerkmetrics. Verdubbelt cardinaliteit; alleen de moeite waard om in te schakelen als u daadwerkelijk zone-gebaseerde scheduling gebruikt. |
+| `ebpf.features.tcpStats` | aan | TCP-statistieken op nodeniveau: RTT-histogrammen, tellingen van mislukte verbindingen, retransmissies. |
+
+OBI propageert standaard ook trace-context over service-grenzen heen. Wanneer pod A een HTTP/gRPC-verzoek doet aan pod B, injecteert OBI een W3C `traceparent`-header in het uitgaande verzoek — zodat de resulterende span aan de zijde van pod B koppelt aan dezelfde trace als de uitgaande van pod A. Geen SDK-wijzigingen nodig in beide apps.
+
+| Optie | Standaard | Beschrijving |
+| --- | --- | --- |
+| `ebpf.contextPropagation` | aan | Injecteer W3C `traceparent` in uitgaand verkeer (HTTP-headers + aangepaste TCP-optie). Stel in op `false` om de spans van elke service lokaal te houden. |
+| `ebpf.trackRequestHeaders` | aan | Verzoek-header-tracking aan kernel-zijde, zodat propagatie ook werkt op plain HTTP-servers (non-Go, non-TLS). Heeft alleen effect wanneer `contextPropagation` true is. |
+
+### Log ↔ trace-correlatie
+
+Ook standaard aan. OBI's log-enricher onderschept pod-stdout-writes vanuit geïnstrumenteerde processen en:
+
+- Voor **JSON-formaat logboeken**: injecteert `trace_id`- en `span_id`-velden in de regel (bestaande waarden in het logboek worden behouden). De filelog-DaemonSet tilt die velden vervolgens op naar de native trace_id/span_id-slots van het LogRecord, zodat het klikken op een span in de trace-weergave naar zijn logboeken springt in OneUptime — en het klikken op een logregel naar zijn bovenliggende trace springt.
+- Voor **niet-JSON-logboeken**: de regel blijft onveranderd — nog steeds verzameld, alleen niet automatisch gekoppeld.
+
+| Optie | Standaard | Beschrijving |
+| --- | --- | --- |
+| `ebpf.logToTraceCorrelation` | aan | Schakel de OBI log-enricher en de trace_id-lift van de filelog-pipeline in. Stel in op `false` om beide over te slaan. |
+
+Voorbehouden:
+
+- **Logboeken moeten JSON zijn om trace_id te laten verschijnen.** Schakel uw logger over naar een JSON-formatter — `structlog`, `pino`, `winston`, `serilog`, `logback-json`, klog `--logging-format=json`, enz.
+- **Gebufferde stdout breekt de correlatie** omdat de `write()`-syscall op een andere thread afgaat dan degene die het verzoek afhandelde. Veelvoorkomende oplossingen:
+  - **Python**: stel `PYTHONUNBUFFERED=1` in (de runtime blok-buffert stdout wanneer het geen TTY is).
+  - **.NET**: bij opstart, `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })`. Microsoft.Extensions.Logging `AddConsole()` en Serilogs async-sinks werken ook niet — schakel over naar een synchrone console-writer (de standaard `WriteTo.Console()` van Serilog is prima).
+- Greenlet / gevent, Tornado en andere aangepaste async-runtimes worden niet ondersteund.
+
+### Afstemming
+
+| Optie | Standaard | Beschrijving |
+| --- | --- | --- |
+| `ebpf.enabled` | `true` | Hoofdschakelaar. Stel in op `false` om de eBPF-DaemonSet volledig over te slaan. |
+| `ebpf.image.tag` | `v0.9.0` | OBI-image-tag. OBI is pre-1.0; pin op een bekende werkende versie en hertest bij upgrades. |
+| `ebpf.autoTargetExe` | `*` | Glob van uitvoerbare bestanden om te instrumenteren. Versmal dit (bijv. `*/python,*/java`) als u auto-instrumentatie wilt afbakenen. |
+| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI zelf) | Door komma's gescheiden globs om over te slaan. |
+| `ebpf.logLevel` | `info` | `debug`, `info`, `warn` of `error`. Stel in op `debug` tijdens probleemoplossing. |
+| `ebpf.printTraces` | `false` | Druk spans af naar OBI's stdout naast OTLP-export — nuttig voor het verifiëren van capture tijdens installatie. |
+| `ebpf.resources.*` | `100m / 256Mi` requests, `1000m / 1Gi` limits | Verhoog voor clusters met veel verkeer. |
+
+Om te controleren of OBI draait en verkeer ziet:
+
+```bash
+kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+```
+
+## Continue CPU-profilering (standaard aan)
+
+Een aparte DaemonSet draait de [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — verpakt als de `otel/opentelemetry-collector-ebpf-profiler`-image. Hij bemonstert on-CPU-stacks op 19Hz over elke ondersteunde runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) en stuurt OTLP-profielen naar OneUptime, waar ze verschijnen onder **Telemetry → Performance Profiles** en als flame graphs gekoppeld aan individuele trace-spans.
+
+Wanneer eBPF auto-instrumentatie ook aan staat (`ebpf.enabled: true`, de standaard), wordt elke CPU-sample gecorreleerd met OBI's trace-context via een gedeelde bpffs-map — zodat flame graphs trace_id/span_id meedragen en de OneUptime-UI u een flame graph per span kan tonen.
+
+Vereisten:
+
+- **Linux-kernel 5.10+** (iets nieuwer dan de 5.8 die OBI nodig heeft).
+- Privileged pod met hostPID — dezelfde beperkingen als de eBPF auto-instrumentatie-DaemonSet. Schakel uit op GKE Autopilot, EKS Fargate en afgeschermde omgevingen: `--set profiling.enabled=false`.
+
+Afstemming:
+
+| Optie | Standaard | Beschrijving |
+| --- | --- | --- |
+| `profiling.enabled` | `true` | Hoofdschakelaar. |
+| `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler`-image-tag. De profiler is pre-1.0; pin op een bekende werkende versie. |
+| `profiling.samplesPerSecond` | `19` | Bemonsteringsfrequentie in Hz. Upstream-standaard; voorkomt het per ongeluk aliasen met veelvoorkomende timer-frequenties. |
+| `profiling.offCpuThreshold` | `0` | (0–1] schakelt off-CPU-profilering in — diagnosticeert lock-contention en blokkerende I/O. Standaard uit omdat het tracepoint-overhead toevoegt. |
+| `profiling.tracers` | `""` *(alle runtimes)* | Door komma's gescheiden lijst van taaltracers om te laden. |
+| `profiling.obiProcessContext` | `true` | Correleer samples met OBI's trace-context voor trace ↔ profile-koppeling. |
+
+## Overige dataverzameling (host-metrics, audit-logboeken, CSI, CoreDNS)
+
+De chart kan ook verzamelen:
+
+| `<key>.enabled` | Standaard | Wat het toevoegt |
+| --- | --- | --- |
+| `hostMetrics` | aan | OS-metrics per node uit `/proc` en `/sys` — schijf-I/O-wachtrijdiepte, gebruik van bestandssysteem-inodes, NIC-fouttellers, paging-statistieken, load average. Bevindt zich in de log-collector-DaemonSet (geen extra pods). |
+| `auditLogs` | uit | Lees `/var/log/kubernetes/audit.log` vanaf de host. Legt elk Kubernetes API-verzoek vast — wie wat met welke resource deed. Alleen zelf-beheerde clusters — beheerde K8s (EKS, GKE, AKS, DOKS) routeren audit-logboeken naar de sink van de cloudprovider. |
+| `csi` | uit | Detecteert automatisch pods gelabeld `app=csi-driver` (of `app.kubernetes.io/component=csi-driver`) en scrapet hun Prometheus `metrics`-poort — volume attach/detach-latentie, provisioning-fouten, IOPS. |
+| `coreDns` | uit | Scrapet de cluster-CoreDNS-service op `:9153/metrics`. Toont query-frequentie, latentie, cache-hitrate, fouttellingen — veelvoorkomende oorzaken van P99-latentie. |
 
 ## Veelgebruikte opties
 
@@ -94,14 +200,20 @@ U kunt logboekverzameling ook volledig uitschakelen met `--set logs.enabled=fals
 | --- | --- | --- |
 | `preset` | (leeg — behandeld als `standard`) | Zie de tabel hierboven. |
 | `oneuptime.url` | *(vereist)* | URL van uw OneUptime-instantie. |
-| `oneuptime.apiKey` | *(vereist)* | Project-API-sleutel (Instellingen → API-sleutels). |
-| `clusterName` | *(vereist)* | Unieke naam voor dit cluster. Wordt als `k8s.cluster.name` gestempeld op elk record. |
-| `namespaceFilters.include` | `[]` | Indien ingesteld, worden alleen deze namespaces bewaakt. |
-| `namespaceFilters.exclude` | `["kube-system"]` | Te overslaan namespaces. |
-| `logs.enabled` | `true` | Logboekverzameling in- of uitschakelen. |
+| `oneuptime.apiKey` | *(vereist)* | Project-API-sleutel (Settings → API Keys). |
+| `clusterName` | *(vereist)* | Unieke naam voor dit cluster. Wordt gestempeld als `k8s.cluster.name` op elk record. |
+| `namespaceFilters.include` | `[]` | Indien ingesteld, worden alleen deze namespaces gemonitord. |
+| `namespaceFilters.exclude` | `["kube-system"]` | Namespaces om over te slaan. |
+| `logs.enabled` | `true` | Schakel logboekverzameling aan of uit. |
 | `logs.mode` | (afgeleid van `preset`) | `daemonset`, `api` of `disabled`. Overschrijft de preset. |
-| `logs.api.replicas` | `1` | Aantal log-tailer Deployment-replica's (alleen in API-modus). |
-| `controlPlane.enabled` | `false` | etcd/api-server/scheduler/controller-manager scrapen. Alleen voor zelf-beheerde clusters — beheerde aanbiedingen (EKS/GKE/AKS) stellen deze eindpunten doorgaans niet bloot. |
+| `logs.api.replicas` | `1` | Aantal replicas van de log-tailer-Deployment (alleen in API-modus). |
+| `ebpf.enabled` | `true` | Leg automatisch HTTP/gRPC-traces vast vanuit elke pod via OpenTelemetry eBPF Instrumentation. Zie de sectie hierboven. |
+| `profiling.enabled` | `true` | Continue CPU-flame graphs via de OpenTelemetry eBPF Profiler. Zie de sectie hierboven. |
+| `hostMetrics.enabled` | `true` | OS-metrics per node. |
+| `auditLogs.enabled` | `false` | Verzameling van Kubernetes audit-logboeken (zelf-beheerde clusters). |
+| `csi.enabled` | `false` | Prometheus-metrics van CSI-driver. |
+| `coreDns.enabled` | `false` | Prometheus-metrics van CoreDNS. |
+| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Alleen zelf-beheerde clusters — beheerde aanbiedingen (EKS/GKE/AKS) stellen deze endpoints doorgaans niet bloot. |
 
 Zie de [`values.yaml` van de chart](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) voor de volledige lijst.
 
@@ -114,9 +226,23 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --reuse-values
 ```
 
-`--reuse-values` behoudt uw bestaande configuratie; geef eventuele nieuwe `--set`-overschrijvingen erbovenop door.
+`--reuse-values` behoudt uw bestaande configuratie; geef nieuwe `--set`-overrides daarbovenop door.
 
-## Verwijderen
+> **Let op: `--reuse-values` voegt geen nieuwe standaardwaarden uit de chart samen.** Helm hergebruikt uw eerder gerenderde waarden letterlijk — dus elk nieuw top-level veld dat is toegevoegd in een nieuwere chart-versie (bijv. `profiling.*`, `ebpf.features.*`) blijft ongezet op uw bestaande release en de template rendert alsof u het had uitgeschakeld.
+>
+> **Helm 3.14+** — schakel over naar `--reset-then-reuse-values`. Het leest de chart-standaarden opnieuw voor sleutels die u niet heeft overschreven:
+>
+> ```bash
+> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+>   --namespace oneuptime-kubernetes-agent \
+>   --reset-then-reuse-values
+> ```
+>
+> **Helm 3.13 of eerder** — laat `--reuse-values` weg en geef uw originele `--set`-vlaggen (of `-f values.yaml`) expliciet door. Nieuwe chart-standaarden zullen worden toegepast voor alles wat u niet overschrijft.
+>
+> Als de pods van een nieuwe functie (bijv. `kubernetes-agent-profiling-*`) niet verschijnen na het upgraden, is dit bijna altijd de reden. `helm get values <release>` toont wat Helm daadwerkelijk heeft — velden die ontbreken in de output betekenen dat standaarden niet zijn samengevoegd.
+
+## Deïnstalleren
 
 ```bash
 helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
@@ -133,10 +259,10 @@ Uw cluster blokkeert hostPath. Schakel over naar een API-modus preset:
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reuse-values \
-  --set preset=gke-autopilot   # of eks-fargate
+  --set preset=gke-autopilot   # or eks-fargate
 ```
 
-### Geen logboeken verschijnen in OneUptime
+### Er verschijnen geen logboeken in OneUptime
 
 Controleer de agent-pods:
 
@@ -145,11 +271,25 @@ kubectl get pods -n oneuptime-kubernetes-agent
 kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
-In API-modus stelt de log-tailer-pod `/healthz` beschikbaar op poort 13133 — bereik het via `kubectl port-forward` voor een momentopname van de exportstatus.
+In API-modus exposeert de log-tailer-pod `/healthz` op poort 13133 — benader het via `kubectl port-forward` voor een momentopname van de exportstatus.
 
-### Mijn cluster heeft te veel pods voor één log-tailer replica (alleen API-modus)
+### De eBPF-DaemonSet-pod is `CrashLoopBackOff` of start niet
 
-Schaal horizontaal door namespaces te verdelen. Implementeer eenmaal per namespacegroep:
+Controleer de OBI-pod-logboeken:
+
+```bash
+kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+```
+
+Veelvoorkomende oorzaken:
+
+- **Kernel te oud of BTF ontbreekt.** OBI heeft Linux 5.8+ met BTF nodig. Controleer met `uname -r` op een node. Als u niet kunt upgraden, schakel eBPF uit: `--set ebpf.enabled=false`.
+- **Privileged pods zijn geblokkeerd.** Sommige clusters weigeren privileged pods zelfs buiten Autopilot/Fargate. Schakel eBPF uit.
+- **Geen traces in het dashboard maar OBI draait.** Stel `--set ebpf.printTraces=true` in en controleer OBI's stdout — als u daar spans ziet, is het probleem OTLP-levering (controleer de `OTEL_EXPORTER_OTLP_ENDPOINT` en uw OneUptime-URL/API-sleutel). Als u geen spans ziet, is het verkeer dat OBI bekijkt mogelijk volledig versleuteld door een TLS-bibliotheek die OBI niet kan onderscheppen (bijv. een statisch gelinkte TLS-implementatie die het niet herkent).
+
+### Mijn cluster heeft te veel pods voor één log-tailer-replica (alleen API-modus)
+
+Schaal horizontaal door namespaces te sharden. Deploy één keer per namespace-groep:
 
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
@@ -158,4 +298,4 @@ helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   ...
 ```
 
-Als alternatief kunt u `logs.api.replicas` verhogen — maar houd er rekening mee dat elke replica alle toegestane namespaces verwerkt, dus voor deduplicatie heeft u nog steeds namespace-verdeling nodig.
+Verhoog als alternatief `logs.api.replicas` — maar let op dat elke replica alle toegestane namespaces verwerkt, dus voor deduplicatie heeft u nog steeds namespace-sharding nodig.

@@ -1,16 +1,16 @@
 # Kubernetes-monitor
 
-Kubernetes-overvåking lar deg overvåke helse og ytelse for Kubernetes-klyngene dine, inkludert noder, pods, arbeidsmengder og kontrollplanekomponenter. OneUptime samler inn metrikker fra klyngen din og evaluerer dem mot dine konfigurerte kriterier.
+Kubernetes-overvåking lar deg overvåke helsen og ytelsen til Kubernetes-klyngene dine, inkludert noder, pods, arbeidsmengder og kontrollplankomponenter. OneUptime samler inn metrikker fra klyngen din og evaluerer dem mot dine konfigurerte kriterier.
 
 ## Oversikt
 
-Kubernetes-monitorer bruker metrikker fra klyngen din for å gi dyp synlighet inn i infrastrukturen din. Dette gjør det mulig å:
+Kubernetes-monitorer bruker metrikker fra klyngen din for å gi dyp innsikt i infrastrukturen din. Dette gjør at du kan:
 
-- Overvåke helse for klynge, navnerom, arbeidsmengde, node og pod
-- Spore CPU-, minne-, disk- og nettverksforbruk på tvers av ressurser
+- Overvåke helsen til klynge, namespace, arbeidsmengde, node og pod
+- Spore CPU-, minne-, disk- og nettverksbruk på tvers av ressurser
 - Oppdage pod-krasj, omstarter og planleggingsfeil
-- Overvåke tilgjengeligheten av deployment-replikaer
-- Varsle om kontrollplane-problemer (etcd, API-server, planlegger)
+- Overvåke tilgjengelighet for Deployment-replikaer
+- Varsle om problemer i kontrollplanet (etcd, API-server, scheduler)
 - Spore ressursforespørsler og -grenser
 
 ## Opprette en Kubernetes-monitor
@@ -19,52 +19,52 @@ Kubernetes-monitorer bruker metrikker fra klyngen din for å gi dyp synlighet in
 2. Klikk **Create Monitor**
 3. Velg **Kubernetes** som monitortype
 4. Velg klyngen og ressursomfanget som skal overvåkes
-5. Konfigurer ressursfiltre og metrikk-spørringer
+5. Konfigurer ressursfiltre og metrikkspørringer
 6. Konfigurer overvåkingskriterier etter behov
 
-## Konfigurasjonsalternativer
+## Konfigurasjonsvalg
 
 ### Klynge
 
-Velg Kubernetes-klyngen som skal overvåkes. Klynger må integreres med OneUptime via OpenTelemetry.
+Velg Kubernetes-klyngen som skal overvåkes. Klynger må være integrert med OneUptime via OpenTelemetry.
 
 ### Ressursomfang
 
-Velg nivået det skal overvåkes på:
+Velg nivået ressurser skal overvåkes på:
 
 | Omfang | Beskrivelse |
-|--------|-------------|
-| Cluster | Overvåke hele klyngen |
-| Namespace | Overvåke ressurser innenfor et spesifikt navnerom |
-| Workload | Overvåke en spesifikk deployment, statefulset, daemonset, job eller cronjob |
-| Node | Overvåke en spesifikk klyngenode |
-| Pod | Overvåke en spesifikk pod |
+|-------|-------------|
+| Cluster | Overvåk hele klyngen |
+| Namespace | Overvåk ressurser innenfor et spesifikt namespace |
+| Workload | Overvåk en spesifikk deployment, statefulset, daemonset, job eller cronjob |
+| Node | Overvåk en spesifikk klyngenode |
+| Pod | Overvåk en spesifikk pod |
 
 ### Ressursfiltre
 
-Begrens omfanget med valgfrie filtre:
+Snevre inn omfanget med valgfrie filtre:
 
-| Filter | Beskrivelse | Gjeldende omfang |
-|--------|-------------|------------------|
-| Namespace | Kubernetes-navnerom | Namespace, Workload, Pod |
+| Filter | Beskrivelse | Aktuelle omfang |
+|--------|-------------|-------------------|
+| Namespace | Kubernetes namespace | Namespace, Workload, Pod |
 | Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | Navn på arbeidsmengden | Workload |
-| Node Name | Navn på noden | Node |
-| Pod Name | Navn på poden | Pod |
+| Workload Name | Navnet på arbeidsmengden | Workload |
+| Node Name | Navnet på noden | Node |
+| Pod Name | Navnet på poden | Pod |
 
-### Metrikk-spørringer
+### Metrikkspørringer
 
-Konfigurer én eller flere metrikk-spørringer som skal evalueres. Hver spørring angir:
+Konfigurer én eller flere metrikkspørringer som skal evalueres. Hver spørring spesifiserer:
 
-- **Metrikknavnet** – Kubernetes-metrikken som skal spørres
-- **Aggregering** – Hvordan metrikkverdier skal aggregeres
-- **Filtre** – Ytterligere attributtbasert filtrering
+- **Metrikknavn** — Kubernetes-metrikken som skal spørres
+- **Aggregering** — Hvordan metrikkverdier skal aggregeres
+- **Filtre** — Ytterligere attributtbasert filtrering
 
-Du kan også opprette **formler** som kombinerer flere metrikk-spørringer ved hjelp av matematiske uttrykk.
+Du kan også opprette **formler** som kombinerer flere metrikkspørringer ved hjelp av matematiske uttrykk.
 
 ### Rullende tidsvindu
 
-Velg tidsvinduet for metrikkevealuering:
+Velg tidsvinduet for metrikkevaluering:
 
 - Siste 1 minutt
 - Siste 5 minutter
@@ -78,85 +78,85 @@ Velg tidsvinduet for metrikkevealuering:
 ### Pod-metrikker
 
 | Metrikk | Beskrivelse |
-|---------|-------------|
+|--------|-------------|
 | Pod CPU Usage | CPU-forbruk av pods |
 | Pod Memory Usage | Minneforbruk av pods |
-| Pod Filesystem Usage | Diskforbruk av pods |
+| Pod Filesystem Usage | Diskbruk av pods |
 | Pod Network Receive/Transmit | Nettverkstrafikk |
-| Pod Phase | Gjeldende pod-fase (Running, Pending, Failed, osv.) |
+| Pod Phase | Nåværende pod-fase (Running, Pending, Failed osv.) |
 
 ### Node-metrikker
 
 | Metrikk | Beskrivelse |
-|---------|-------------|
+|--------|-------------|
 | Node CPU Usage | CPU-utnyttelse per node |
 | Node Memory Usage | Minneutnyttelse per node |
-| Node Filesystem Usage | Diskforbruk per node |
+| Node Filesystem Usage | Diskbruk per node |
 | Node Disk I/O | Lese-/skriveoperasjoner |
 | Node Ready Condition | Om noden er klar |
 
 ### Container-metrikker
 
 | Metrikk | Beskrivelse |
-|---------|-------------|
+|--------|-------------|
 | Container Restarts | Antall container-omstarter |
 | Container CPU/Memory Limits | Ressursgrenser |
 | Container CPU/Memory Requests | Ressursforespørsler |
-| Container Ready Status | Om containere er klare |
+| Container Ready Status | Om containerne er klare |
 
-### Arbeidsmengde-metrikker
+### Arbeidsmengdemetrikker
 
 | Metrikk | Beskrivelse |
-|---------|-------------|
-| Deployment Available/Unavailable Replicas | Replikantall |
+|--------|-------------|
+| Deployment Available/Unavailable Replicas | Antall replikaer |
 | DaemonSet Misscheduled Nodes | Planleggingsproblemer |
 | StatefulSet Ready Replicas | Antall klare replikaer |
 | Job Active/Failed/Succeeded Pods | Jobbstatus |
 
 ## Overvåkingskriterier
 
-### Tilgjengelige kontrolltyper
+### Tilgjengelige sjekktyper
 
-| Kontrolltype | Beskrivelse |
-|-------------|-------------|
-| Metric Value | Verdien av den konfigurerte metrikk-spørringen eller formelen |
+| Sjekktype | Beskrivelse |
+|------------|-------------|
+| Metric Value | Verdien av den konfigurerte metrikkspørringen eller formelen |
 
 ### Aggregeringstyper
 
 | Aggregering | Beskrivelse |
 |-------------|-------------|
-| Average | Gjennomsnittlig verdi over tidsvinduet |
-| Sum | Sum av alle verdier |
+| Average | Gjennomsnittsverdi over tidsvinduet |
+| Sum | Summen av alle verdier |
 | Maximum Value | Høyeste verdi i tidsvinduet |
 | Minimum Value | Laveste verdi i tidsvinduet |
-| All Values | Alle verdier må samsvare med kriteriene |
-| Any Value | Minst én verdi må samsvare |
+| All Values | Alle verdier må matche kriteriet |
+| Any Value | Minst én verdi må matche |
 
 ### Filtertyper
 
 - **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
 
-## Forhåndsbygde varslingsmaler
+## Forhåndsbygde varselmaler
 
 OneUptime tilbyr maler for vanlige Kubernetes-overvåkingsscenarier:
 
 | Mal | Beskrivelse | Terskel |
-|-----|-------------|---------|
+|----------|-------------|-----------|
 | CrashLoopBackOff Detection | Antall container-omstarter | > 5 omstarter |
 | Pod Stuck in Pending | Pods i Pending-fase | > 0 pods |
-| Node Not Ready | Node-klarhetsvilkår | = 0 (ikke klar) |
-| High Node CPU | Node-CPU-utnyttelse | > 90 % |
-| High Node Memory | Node-minneutnyttelse | > 85 % |
+| Node Not Ready | Nodens klartilstand | = 0 (ikke klar) |
+| High Node CPU | Node CPU-utnyttelse | > 90 % |
+| High Node Memory | Node minneutnyttelse | > 85 % |
 | Deployment Replica Mismatch | Utilgjengelige replikaer | > 0 replikaer |
 | Job Failures | Mislykkede pods i en jobb | > 0 feil |
-| etcd No Leader | Manglende etcd-klyngeleder | = 0 (ingen leder) |
-| API Server Throttling | Forkastede API-forespørsler | > 0 forespørsler |
-| Scheduler Backlog | Ventende pods i planleggeren | > 0 pods |
-| High Node Disk Usage | Node-filsystembruk | > 90 % |
+| etcd No Leader | etcd-klyngens leder mangler | = 0 (ingen leder) |
+| API Server Throttling | Avslåtte API-forespørsler | > 0 forespørsler |
+| Scheduler Backlog | Ventende pods i scheduler | > 0 pods |
+| High Node Disk Usage | Node filsystembruk | > 90 % |
 | DaemonSet Unavailable | Feilplanlagte noder | > 0 noder |
 
-## Krav til oppsett
+## Oppsettskrav
 
-For å bruke Kubernetes-overvåking må du installere OneUptime Kubernetes-agenten i klyngen din. Agenten sender klyngemetrikker, hendelser og pod-logger til OneUptime over OTLP.
+For å bruke Kubernetes-overvåking må du installere OneUptime Kubernetes-agenten i klyngen din. Agenten sender klyngemetrikker, hendelser, pod-logger og — som standard — **applikasjonssporinger og HTTP RED-metrikker fanget via eBPF** til OneUptime over OTLP. Ingen kodeendringer eller per-app SDK-er er nødvendig for å se trafikk på tjenestenivå.
 
-Se guiden [Installere Kubernetes-agenten](/docs/monitor/kubernetes-agent) – den dekker den ett-kommandos Helm-installasjonen og `preset`-alternativet for å velge riktig konfigurasjon for klyngen din (standard, GKE Autopilot, EKS Fargate).
+Se veiledningen [Installere Kubernetes-agenten](/docs/monitor/kubernetes-agent) — den dekker Helm-installasjonen med én kommando, `preset`-valget for å velge riktig konfigurasjon for klyngen din (standard, GKE Autopilot, EKS Fargate), og bryterne `ebpf.features.*` for de individuelle signalfamiliene (HTTP RED-metrikker, tjenestegraf, nettverksflyt, TCP-statistikk).

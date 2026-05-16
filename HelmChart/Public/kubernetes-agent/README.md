@@ -182,6 +182,29 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --reuse-values
 ```
 
+> ⚠️ **`--reuse-values` skips defaults for newly added settings.** When the chart adds a new top-level field (e.g. `profiling.*` in v0.4.x, `ebpf.features.*` in v0.4.x), Helm's `--reuse-values` keeps your old value file as-is and does **not** merge the new defaults — so the new feature stays unset and renders as disabled in the templates.
+>
+> To pick up new defaults:
+>
+> - **Helm 3.14+**: use `--reset-then-reuse-values` instead of `--reuse-values`. This re-reads the chart's `values.yaml` for any keys you haven't overridden, while still keeping your `--set` values.
+>
+>   ```bash
+>   helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+>     --namespace oneuptime-kubernetes-agent --reset-then-reuse-values
+>   ```
+>
+> - **Helm 3.13 and earlier**: pass your original `--set` flags (or `-f values.yaml`) without `--reuse-values`. The new defaults apply automatically and your overrides override them.
+>
+>   ```bash
+>   helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+>     --namespace oneuptime-kubernetes-agent \
+>     --set oneuptime.url=<URL> \
+>     --set oneuptime.apiKey=<KEY> \
+>     --set clusterName=<NAME>
+>   ```
+>
+> If you don't see the new feature's pods (e.g. `kubernetes-agent-profiling-*`) after upgrading, it's almost certainly this. Run `helm get values <release>` to see what Helm actually has — fields missing from the output mean Helm didn't merge defaults for them.
+
 ## Uninstalling
 
 ```bash

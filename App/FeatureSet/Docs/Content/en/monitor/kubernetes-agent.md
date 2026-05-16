@@ -228,6 +228,20 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` keeps your existing configuration; pass any new `--set` overrides on top of it.
 
+> **Heads up: `--reuse-values` does not merge new defaults from the chart.** Helm reuses your previously rendered values verbatim — so any new top-level field added in a newer chart version (e.g. `profiling.*`, `ebpf.features.*`) stays unset on your existing release and the template renders as if you'd disabled it.
+>
+> **Helm 3.14+** — switch to `--reset-then-reuse-values`. It re-reads the chart defaults for keys you haven't overridden:
+>
+> ```bash
+> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+>   --namespace oneuptime-kubernetes-agent \
+>   --reset-then-reuse-values
+> ```
+>
+> **Helm 3.13 or earlier** — drop `--reuse-values` and pass your original `--set` flags (or `-f values.yaml`) explicitly. New chart defaults will apply for everything you don't override.
+>
+> If a new feature's pods (e.g. `kubernetes-agent-profiling-*`) don't show up after upgrading, this is almost always why. `helm get values <release>` shows what Helm actually has — fields missing from the output mean defaults weren't merged for them.
+
 ## Uninstalling
 
 ```bash
