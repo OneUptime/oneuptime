@@ -69,7 +69,7 @@ const AuditLogsEnterpriseUpgrade: FunctionComponent<ComponentProps> = (
   const ctaIcon: IconProp = isCloud ? IconProp.Billing : IconProp.Info;
   const ctaUrl: string = isCloud
     ? "https://oneuptime.com/pricing"
-    : "https://oneuptime.com/enterprise";
+    : "https://oneuptime.com/enterprise/overview";
 
   const pitchLine: string = isCloud
     ? "Audit Logs are available on the Enterprise plan. Upgrade to turn on audit logging for this project."
