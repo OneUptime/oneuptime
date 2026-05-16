@@ -20,6 +20,9 @@ import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import SnmpMonitorResponse, {
+  SnmpOidResponse,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
@@ -168,6 +171,22 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.ExceptionCount:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
+          input,
+        );
+      case CheckOn.SnmpIsOnline:
+        return MonitorCriteriaObservationBuilder.describeSnmpIsOnlineObservation(
+          input,
+        );
+      case CheckOn.SnmpResponseTime:
+        return MonitorCriteriaObservationBuilder.describeSnmpResponseTimeObservation(
+          input,
+        );
+      case CheckOn.SnmpOidExists:
+        return MonitorCriteriaObservationBuilder.describeSnmpOidExistsObservation(
+          input,
+        );
+      case CheckOn.SnmpOidValue:
+        return MonitorCriteriaObservationBuilder.describeSnmpOidValueObservation(
           input,
         );
       default:
