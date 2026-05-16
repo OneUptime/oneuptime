@@ -18,6 +18,9 @@ The agent is now collecting:
   - Pod logs from /var/log/pods (filelog DaemonSet)
 {{- end }}
 {{- end }}
+{{- if .Values.ebpf.enabled }}
+  - Application traces & HTTP request metrics from every pod on the cluster, via OpenTelemetry eBPF Instrumentation (DaemonSet, no code changes)
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
@@ -28,6 +31,14 @@ To verify the agent is running:
 
 To check collector logs:
   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "kubernetes-agent.name" . }} -c otel-collector
+{{- if .Values.ebpf.enabled }}
+
+To check the eBPF instrumentation logs:
+  kubectl logs -n {{ .Release.Namespace }} -l component=ebpf-instrument -c ebpf-instrument --tail=100
+
+To turn eBPF auto-instrumentation off:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set ebpf.enabled=false
+{{- end }}
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes

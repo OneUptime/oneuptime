@@ -278,6 +278,67 @@
       "type": "string",
       "description": "Collection interval for metrics (e.g., 30s, 1m)"
     },
+    "ebpf": {
+      "type": "object",
+      "description": "OpenTelemetry eBPF Instrumentation (OBI) — auto-captures HTTP/gRPC traces and request metrics from every pod on the node, no SDK required. Enabled by default. Requires Linux kernel 5.8+ and the ability to run privileged pods.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the OpenTelemetry eBPF Instrumentation DaemonSet. Default: true."
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "autoTargetExe": {
+          "type": "string",
+          "description": "Glob pattern of executable paths to auto-instrument (e.g., '*' for all, '*/python,*/java' to scope)."
+        },
+        "excludeExePaths": {
+          "type": "string",
+          "description": "Comma-separated glob list of executable paths to skip."
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"]
+        },
+        "printTraces": {
+          "type": "boolean",
+          "description": "Print spans to OBI pod stdout in addition to OTLP export. Useful for verifying traffic capture during install."
+        }
+      },
+      "additionalProperties": false
+    },
     "serviceMesh": {
       "type": "object",
       "description": "Service mesh observability (Istio / Linkerd sidecar metrics)",

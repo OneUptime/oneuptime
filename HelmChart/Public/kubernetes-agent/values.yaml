@@ -143,6 +143,54 @@ resourceSpecs:
 # Collection intervals
 collectionInterval: 30s
 
+# Application traces & HTTP request metrics via OpenTelemetry eBPF
+# Instrumentation (OBI — the upstream OpenTelemetry project that took over
+# Grafana Beyla).
+#
+# Runs as a DaemonSet (one pod per node) that loads eBPF programs into the
+# kernel and auto-instruments every supported runtime on the node — no code
+# changes, no SDK, no sidecar. Captures HTTP/HTTPS, gRPC, and SQL/Redis
+# calls from Go, .NET, Java, Node.js, Python, Ruby, and Rust workloads and
+# ships them to OneUptime as OTLP traces plus RED-style request metrics.
+#
+# **Enabled by default.** Turn off with `--set ebpf.enabled=false` if you
+# don't want auto-instrumentation, are already exporting traces via OTel
+# SDKs, or are running on a kernel that doesn't support eBPF.
+#
+# Requirements:
+#   - Linux kernel 5.8+ with BTF (default on Debian 11+, Ubuntu 20.10+,
+#     Fedora 34+, RHEL/Stream 9+). Kernel 4.18+ also works on RHEL-family
+#     distros with vendor backports.
+#   - The DaemonSet runs in privileged mode so it can load eBPF programs.
+#     If your cluster's Pod Security Standard rejects privileged pods (e.g.
+#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.
+ebpf:
+  enabled: true
+  image:
+    repository: otel/ebpf-instrument
+    tag: "v0.9.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  # Glob pattern of executable paths to instrument. "*" means "every process
+  # OBI can recognize". Set to a narrower pattern (e.g. "*/python,*/java") if
+  # you only want specific runtimes.
+  autoTargetExe: "*"
+  # Comma-separated globs of executables to skip. Defaults filter out
+  # shells, the kubelet, the container runtime, and the OBI/collector pods
+  # themselves so you don't see noise from cluster plumbing.
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi"
+  # OBI log level: debug, info, warn, error
+  logLevel: "info"
+  # Print spans to stdout in addition to OTLP export — useful for confirming
+  # OBI is seeing traffic before you go look at the OneUptime dashboard.
+  printTraces: false
+
 # Service mesh observability (Istio / Linkerd sidecar metrics)
 serviceMesh:
   enabled: false

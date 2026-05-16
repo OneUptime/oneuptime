@@ -1,6 +1,6 @@
 # Install the Kubernetes Agent
 
-The OneUptime Kubernetes agent collects cluster metrics, events, and pod logs from your Kubernetes cluster and ships them to OneUptime. It is distributed as a Helm chart.
+The OneUptime Kubernetes agent collects cluster metrics, events, pod logs, **and application traces (HTTP/gRPC requests captured via eBPF)** from your Kubernetes cluster and ships them to OneUptime. It is distributed as a Helm chart and installed with one command — eBPF auto-instrumentation is on by default, so you see service-level traces with no code changes.
 
 ## Quick start
 
@@ -88,6 +88,39 @@ If hostPath works, use DaemonSet. Everywhere else, use API mode. The `preset` se
 
 You can also disable log collection entirely with `--set logs.enabled=false` and ship application logs via OpenTelemetry SDKs instead. See the [OpenTelemetry](/docs/telemetry/open-telemetry) docs.
 
+## Application traces & HTTP requests via eBPF (on by default)
+
+The chart ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. OBI loads eBPF programs into the Linux kernel and watches socket-level traffic to reconstruct HTTP/HTTPS, gRPC, and SQL/Redis calls from every pod on the node — no code changes, no SDK, no sidecar. Captured traffic is exported as OTLP traces and request/latency metrics directly to OneUptime.
+
+After installing, your services start appearing under **Telemetry → Traces** and the service map within a minute or two, with `k8s.cluster.name` set to your `clusterName` so you can filter by cluster.
+
+### When to turn it off
+
+eBPF is **enabled by default**. You should disable it (`--set ebpf.enabled=false`) if:
+
+- You're installing on **GKE Autopilot** or **EKS Fargate**. Those platforms block privileged pods, and OBI needs privileged mode to load eBPF programs.
+- Your nodes run a kernel older than **Linux 5.8** without BTF backports. (Modern distros — Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+ — are fine.)
+- You're already shipping traces via the OpenTelemetry SDK from your apps and don't want duplicates.
+
+### Tuning
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `ebpf.enabled` | `true` | Master switch. Set to `false` to skip the eBPF DaemonSet entirely. |
+| `ebpf.image.tag` | `v0.9.0` | OBI image tag. OBI is pre-1.0; pin to a known-good version and re-test on bumps. |
+| `ebpf.autoTargetExe` | `*` | Glob of executables to instrument. Narrow this (e.g. `*/python,*/java`) if you want to scope auto-instrumentation. |
+| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself) | Comma-separated globs to skip. |
+| `ebpf.logLevel` | `info` | `debug`, `info`, `warn`, or `error`. Set to `debug` while troubleshooting. |
+| `ebpf.printTraces` | `false` | Print spans to OBI's stdout in addition to OTLP export — useful for verifying capture during install. |
+| `ebpf.resources.*` | `100m / 256Mi` requests, `1000m / 1Gi` limits | Bump for high-traffic clusters. |
+
+To check that OBI is running and seeing traffic:
+
+```bash
+kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+```
+
 ## Common options
 
 | Option | Default | Description |
@@ -101,6 +134,7 @@ You can also disable log collection entirely with `--set logs.enabled=false` and
 | `logs.enabled` | `true` | Turn log collection on or off. |
 | `logs.mode` | (derived from `preset`) | `daemonset`, `api`, or `disabled`. Overrides the preset. |
 | `logs.api.replicas` | `1` | Number of log-tailer Deployment replicas (only in API mode). |
+| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above. |
 | `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings (EKS/GKE/AKS) typically do not expose these endpoints. |
 
 See the [chart's `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) for the full list.
@@ -146,6 +180,20 @@ kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptim
 ```
 
 In API mode, the log-tailer pod exposes `/healthz` on port 13133 — hit it via `kubectl port-forward` for an export status snapshot.
+
+### The eBPF DaemonSet pod is `CrashLoopBackOff` or fails to start
+
+Check the OBI pod logs:
+
+```bash
+kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+```
+
+Common causes:
+
+- **Kernel too old or missing BTF.** OBI needs Linux 5.8+ with BTF. Check with `uname -r` on a node. If you can't upgrade, disable eBPF: `--set ebpf.enabled=false`.
+- **Privileged pods are blocked.** Some clusters reject privileged pods even outside Autopilot/Fargate. Disable eBPF.
+- **No traces in the dashboard but OBI is running.** Set `--set ebpf.printTraces=true` and check OBI's stdout — if you see spans there, the issue is OTLP delivery (check the `OTEL_EXPORTER_OTLP_ENDPOINT` and your OneUptime URL/API key). If you don't see spans, the traffic OBI is watching may all be encrypted by a TLS library OBI can't intercept (e.g. a statically linked TLS implementation it doesn't recognize).
 
 ### My cluster has too many pods for one log-tailer replica (API mode only)
 

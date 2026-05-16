@@ -12,6 +12,19 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
+      {{- if .Values.ebpf.enabled }}
+      # Accept OTLP traffic from the eBPF DaemonSet (and any other in-cluster
+      # OTLP senders). The eBPF DaemonSet ships its captured HTTP/gRPC/SQL
+      # spans here so the collector's k8sattributes processor can enrich them
+      # before they're forwarded to OneUptime.
+      otlp:
+        protocols:
+          http:
+            endpoint: "0.0.0.0:4318"
+          grpc:
+            endpoint: "0.0.0.0:4317"
+      {{- end }}
+
       # Collect cluster-level metrics from the Kubernetes API
       k8s_cluster:
         collection_interval: {{ .Values.collectionInterval }}
@@ -292,3 +305,20 @@ data:
             - batch
           exporters:
             - otlphttp
+        {{- if .Values.ebpf.enabled }}
+        # Traces pipeline: accept OTLP spans from the eBPF DaemonSet, enrich
+        # with k8s attributes, stamp cluster name, and forward to OneUptime.
+        # We deliberately omit the `resource` processor's service.name
+        # override here — OBI sets a per-process service.name from k8s
+        # workload metadata, and we want to preserve it so each app shows up
+        # under its own service in the dashboard.
+        traces:
+          receivers:
+            - otlp
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - batch
+          exporters:
+            - otlphttp
+        {{- end }}

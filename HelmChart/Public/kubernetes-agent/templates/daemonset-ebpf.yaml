@@ -1,0 +1,104 @@
+{{- if .Values.ebpf.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-ebpf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ebpf-instrument
+spec:
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: ebpf-instrument
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: ebpf-instrument
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      hostPID: true
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: ebpf-instrument
+          image: "{{ .Values.ebpf.image.repository }}:{{ .Values.ebpf.image.tag }}"
+          imagePullPolicy: {{ .Values.ebpf.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+            privileged: true
+            readOnlyRootFilesystem: true
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: KUBE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OBI auto-discovers every executable on the node and instruments
+            # the supported ones (Go, .NET, Java, Node.js, Python, Ruby, Rust,
+            # plus generic HTTP/HTTPS/gRPC via socket-level probes).
+            - name: OTEL_EBPF_AUTO_TARGET_EXE
+              value: {{ .Values.ebpf.autoTargetExe | quote }}
+            {{- if .Values.ebpf.excludeExePaths }}
+            - name: OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE
+              value: {{ .Values.ebpf.excludeExePaths | quote }}
+            {{- end }}
+            - name: OTEL_EBPF_KUBE_METADATA_ENABLE
+              value: "true"
+            # OBI emits a warning unless this is set explicitly — without it,
+            # k8s.cluster.name is missing from network metrics (it still
+            # makes it onto traces via OTEL_RESOURCE_ATTRIBUTES below).
+            - name: OTEL_EBPF_KUBE_CLUSTER_NAME
+              value: {{ .Values.clusterName | quote }}
+            - name: OTEL_EBPF_LOG_LEVEL
+              value: {{ .Values.ebpf.logLevel | quote }}
+            {{- if .Values.ebpf.printTraces }}
+            - name: OTEL_EBPF_TRACE_PRINTER
+              value: "text"
+            {{- end }}
+            # OTLP HTTP export to the in-cluster collector (the
+            # metrics-collector Deployment). The collector adds k8sattributes
+            # enrichment, batches, and forwards over OTLP HTTP to OneUptime.
+            # Single egress + retry path for everything the agent collects.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://{{ include "kubernetes-agent.fullname" . }}-otlp.{{ .Release.Namespace }}.svc.cluster.local:4318"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            # Cluster name is stamped on every span so traces from this
+            # cluster are filterable in the dashboard. Per-service
+            # service.name is set by OBI from pod / workload metadata, so we
+            # do NOT override it here.
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "k8s.cluster.name={{ .Values.clusterName }}"
+            {{- if .Values.namespaceFilters.include }}
+            - name: OTEL_EBPF_DISCOVERY_NAMESPACE
+              value: {{ join "," .Values.namespaceFilters.include | quote }}
+            {{- end }}
+            {{- if .Values.namespaceFilters.exclude }}
+            - name: OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE
+              value: {{ join "," .Values.namespaceFilters.exclude | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.ebpf.resources | nindent 12 }}
+          volumeMounts:
+            - name: var-run-obi
+              mountPath: /var/run/obi
+            # OBI pins eBPF maps to bpffs for features like log enrichment
+            # and profile correlation. Without this mount it falls back to
+            # in-memory maps with a warning.
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+              mountPropagation: HostToContainer
+      volumes:
+        - name: var-run-obi
+          emptyDir: {}
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+{{- end }}
