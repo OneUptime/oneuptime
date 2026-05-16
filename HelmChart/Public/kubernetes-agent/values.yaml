@@ -191,6 +191,52 @@ ebpf:
   # OBI is seeing traffic before you go look at the OneUptime dashboard.
   printTraces: false
 
+  # Which signals OBI extracts from the captured traffic. Each maps to an
+  # OBI "metrics feature" — disabling one drops that family of metrics but
+  # leaves traces and the other families intact. All on by default.
+  features:
+    # HTTP/gRPC RED metrics (request rate, latency, errors) per service.
+    # OBI emits `http.server.request.duration` and gRPC equivalents as
+    # OpenTelemetry histograms. Maps to feature: `application`.
+    httpMetrics: true
+    # Per-span metrics (request size, response size, span duration) keyed
+    # on span attributes. Useful for slicing traffic by URL path or DB
+    # operation. Maps to feature: `application_span`.
+    spanMetrics: true
+    # Service graph metrics — for every observed caller→callee edge OBI
+    # emits request rate and latency histograms, which power the service
+    # map view. Maps to feature: `application_service_graph`.
+    serviceGraph: true
+    # Per-host / per-process CPU and memory metrics for instrumented
+    # processes. Lighter-weight than running a separate profiler.
+    # Maps to feature: `application_host`.
+    hostMetrics: true
+    # Pod-to-pod TCP/UDP network flow metrics — byte and packet counts
+    # for every observed connection, with k8s pod/service/namespace
+    # attributes. Maps to feature: `network`.
+    networkMetrics: true
+    # Inter-zone variant of `networkMetrics` — emits an extra metric
+    # series keyed on k8s topology zone labels. Off by default: doubles
+    # network-flow metric cardinality and only useful if you actually
+    # use zone-based scheduling. Maps to feature: `network_inter_zone`.
+    networkInterZoneMetrics: false
+    # Node-level TCP statistics: RTT histograms, failed connection
+    # counts, and retransmits. Aggregated across all processes on the
+    # node, not per-service. Maps to feature: `stats`.
+    tcpStats: true
+
+  # Distributed trace context propagation. OBI injects W3C `traceparent`
+  # into outbound HTTP requests (and a custom TCP option for non-HTTP TCP)
+  # so a request crossing pod A → pod B shows up as ONE trace in the
+  # dashboard, no SDK changes in either app. Requires the privileged
+  # security context that the DaemonSet already runs with.
+  contextPropagation: true
+  # Track HTTP request headers in kernel for traceparent extraction on
+  # the receiving side via kprobes. Needed for propagation to work across
+  # plain (non-Go, non-TLS) HTTP servers. Only takes effect if
+  # `contextPropagation` is true.
+  trackRequestHeaders: true
+
 # Service mesh observability (Istio / Linkerd sidecar metrics)
 serviceMesh:
   enabled: false

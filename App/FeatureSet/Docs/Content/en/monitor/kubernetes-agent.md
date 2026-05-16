@@ -102,6 +102,27 @@ eBPF is **enabled by default**. You should disable it (`--set ebpf.enabled=false
 - Your nodes run a kernel older than **Linux 5.8** without BTF backports. (Modern distros — Debian 11+, Ubuntu 20.10+, Fedora 34+, RHEL/Stream 9+ — are fine.)
 - You're already shipping traces via the OpenTelemetry SDK from your apps and don't want duplicates.
 
+### What gets emitted
+
+OBI extracts several signal families from the captured traffic. All are on by default; each can be disabled independently with `--set ebpf.features.<key>=false`:
+
+| Signal | Default | What it adds |
+| --- | --- | --- |
+| `ebpf.features.httpMetrics` | on | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service. |
+| `ebpf.features.spanMetrics` | on | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation. |
+| `ebpf.features.serviceGraph` | on | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map. |
+| `ebpf.features.hostMetrics` | on | CPU and memory per instrumented process — saves running a separate profiler for basic capacity questions. |
+| `ebpf.features.networkMetrics` | on | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
+| `ebpf.features.networkInterZoneMetrics` | off | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling. |
+| `ebpf.features.tcpStats` | on | Node-level TCP statistics: RTT histograms, failed-connection counts, retransmits. |
+
+OBI also propagates trace context across service boundaries by default. When pod A makes an HTTP/gRPC request to pod B, OBI injects a W3C `traceparent` header into the outbound request — so the resulting span on pod B's side links into the same trace as pod A's outbound. No SDK changes needed in either app.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `ebpf.contextPropagation` | on | Inject W3C `traceparent` into outbound traffic (HTTP headers + custom TCP option). Set to `false` to keep each service's spans local. |
+| `ebpf.trackRequestHeaders` | on | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true. |
+
 ### Tuning
 
 | Option | Default | Description |

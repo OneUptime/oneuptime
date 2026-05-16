@@ -335,6 +335,49 @@
         "printTraces": {
           "type": "boolean",
           "description": "Print spans to OBI pod stdout in addition to OTLP export. Useful for verifying traffic capture during install."
+        },
+        "features": {
+          "type": "object",
+          "description": "Granular toggles for the metric families OBI extracts from the captured traffic. Each is independent — disabling one drops that family but leaves traces and other families intact.",
+          "properties": {
+            "httpMetrics": {
+              "type": "boolean",
+              "description": "HTTP/gRPC RED metrics per service (OBI `application`)."
+            },
+            "spanMetrics": {
+              "type": "boolean",
+              "description": "Per-span metrics keyed on span attributes (OBI `application_span`)."
+            },
+            "serviceGraph": {
+              "type": "boolean",
+              "description": "Service graph edge metrics, drives the service map (OBI `application_service_graph`)."
+            },
+            "hostMetrics": {
+              "type": "boolean",
+              "description": "Per-host / per-process CPU and memory (OBI `application_host`)."
+            },
+            "networkMetrics": {
+              "type": "boolean",
+              "description": "Pod-to-pod TCP/UDP flow bytes and packets (OBI `network`)."
+            },
+            "networkInterZoneMetrics": {
+              "type": "boolean",
+              "description": "Inter-zone variant of network metrics. Doubles cardinality; off by default (OBI `network_inter_zone`)."
+            },
+            "tcpStats": {
+              "type": "boolean",
+              "description": "Node-level TCP stats (RTT, failed connections, retransmits) (OBI `stats`)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "contextPropagation": {
+          "type": "boolean",
+          "description": "Inject W3C `traceparent` into outbound traffic so traces span services without SDK changes."
+        },
+        "trackRequestHeaders": {
+          "type": "boolean",
+          "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
         }
       },
       "additionalProperties": false

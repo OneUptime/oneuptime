@@ -61,6 +61,20 @@ spec:
             - name: OTEL_EBPF_TRACE_PRINTER
               value: "text"
             {{- end }}
+            # Which metric families OBI emits from the captured traffic.
+            # Built from .Values.ebpf.features.*; see values.yaml.
+            - name: OTEL_EBPF_METRICS_FEATURES
+              value: {{ include "kubernetes-agent.ebpfMetricsFeatures" . | quote }}
+            {{- if .Values.ebpf.contextPropagation }}
+            # Inject W3C `traceparent` into outbound traffic so traces
+            # link across services (HTTP headers + TCP options).
+            - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+              value: "all"
+            {{- if .Values.ebpf.trackRequestHeaders }}
+            - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+              value: "true"
+            {{- end }}
+            {{- end }}
             # OTLP HTTP export to the in-cluster collector (the
             # metrics-collector Deployment). The collector adds k8sattributes
             # enrichment, batches, and forwards over OTLP HTTP to OneUptime.
@@ -94,6 +108,18 @@ spec:
             - name: bpffs
               mountPath: /sys/fs/bpf
               mountPropagation: HostToContainer
+            # tracefs / debugfs are required by the `stats` feature
+            # (`OTEL_EBPF_METRICS_FEATURES` includes `stats`) so OBI can
+            # attach to kernel tracepoints like `sock/inet_sock_set_state`
+            # for TCP RTT, failed-connection, and retransmit metrics. The
+            # mounts are no-ops on hosts that don't expose these, so it's
+            # safe to always mount.
+            - name: tracefs
+              mountPath: /sys/kernel/tracing
+              readOnly: true
+            - name: debugfs
+              mountPath: /sys/kernel/debug
+              readOnly: true
       volumes:
         - name: var-run-obi
           emptyDir: {}
@@ -101,4 +127,10 @@ spec:
           hostPath:
             path: /sys/fs/bpf
             type: DirectoryOrCreate
+        - name: tracefs
+          hostPath:
+            path: /sys/kernel/tracing
+        - name: debugfs
+          hostPath:
+            path: /sys/kernel/debug
 {{- end }}

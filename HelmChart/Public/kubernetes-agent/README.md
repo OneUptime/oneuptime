@@ -112,6 +112,25 @@ Useful knobs:
 | `ebpf.printTraces` | `false` | Print spans to the OBI pod's stdout. Useful for confirming OBI is seeing traffic before checking the dashboard. |
 | `ebpf.resources.*` | `100m / 256Mi` requests, `1000m / 1Gi` limits | Tune for cluster size. |
 
+**Signal families** — all on by default, disable individually with `--set ebpf.features.<key>=false`:
+
+| Key | Default | What it adds |
+| --- | --- | --- |
+| `ebpf.features.httpMetrics` | `true` | HTTP/gRPC RED metrics (request rate, latency, errors) per service. |
+| `ebpf.features.spanMetrics` | `true` | Per-span request/response size and duration histograms. |
+| `ebpf.features.serviceGraph` | `true` | Caller → callee request edges; drives the service map view. |
+| `ebpf.features.hostMetrics` | `true` | CPU and memory per instrumented process. |
+| `ebpf.features.networkMetrics` | `true` | Pod-to-pod TCP/UDP byte and packet counters. |
+| `ebpf.features.networkInterZoneMetrics` | `false` | Inter-zone variant of `networkMetrics` (doubles cardinality). |
+| `ebpf.features.tcpStats` | `true` | Node-level TCP RTT, failed-connection, and retransmit counters. |
+
+**Cross-service trace linking** — also on by default:
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound HTTP/TCP so requests crossing service boundaries link into a single trace, no SDK required. |
+| `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
+
 ### API-mode log tailer (only when `logs.mode: api`)
 
 | Key | Default | Description |
