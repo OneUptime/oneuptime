@@ -123,6 +123,25 @@ OBI also propagates trace context across service boundaries by default. When pod
 | `ebpf.contextPropagation` | on | Inject W3C `traceparent` into outbound traffic (HTTP headers + custom TCP option). Set to `false` to keep each service's spans local. |
 | `ebpf.trackRequestHeaders` | on | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true. |
 
+### Log ↔ trace correlation
+
+Also on by default. OBI's log enricher intercepts pod stdout writes from instrumented processes and:
+
+- For **JSON-format logs**: injects `trace_id` and `span_id` fields into the line (any existing values in the log are preserved). The filelog DaemonSet then lifts those fields onto the LogRecord's native trace_id/span_id slots, so clicking a span in the trace view jumps to its logs in OneUptime — and clicking a log line jumps to its parent trace.
+- For **non-JSON logs**: the line is preserved unchanged — still collected, just not auto-linked.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `ebpf.logToTraceCorrelation` | on | Enable the OBI log enricher and the filelog pipeline's trace_id lift. Set to `false` to skip both. |
+
+Caveats:
+
+- **Logs must be JSON for trace_id to appear.** Switch your logger to a JSON formatter — `structlog`, `pino`, `winston`, `serilog`, `logback-json`, klog `--logging-format=json`, etc.
+- **Buffered stdout breaks the correlation** because the `write()` syscall fires on a different thread than the one that handled the request. Common fixes:
+  - **Python**: set `PYTHONUNBUFFERED=1` (the runtime block-buffers stdout when not a TTY).
+  - **.NET**: at startup, `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })`. Microsoft.Extensions.Logging `AddConsole()` and Serilog's async sinks won't work either — switch to a synchronous console writer (Serilog's default `WriteTo.Console()` is fine).
+- Greenlet / gevent, Tornado, and other custom async runtimes aren't covered.
+
 ### Tuning
 
 | Option | Default | Description |

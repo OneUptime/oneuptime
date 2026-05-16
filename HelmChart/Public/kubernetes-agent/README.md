@@ -130,6 +130,7 @@ Useful knobs:
 | --- | --- | --- |
 | `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound HTTP/TCP so requests crossing service boundaries link into a single trace, no SDK required. |
 | `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
+| `ebpf.logToTraceCorrelation` | `true` | OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged — to get trace_id, your app must log in JSON, and buffered runtimes need `PYTHONUNBUFFERED=1` (Python) or `Console.Out.AutoFlush = true` (.NET). |
 
 ### API-mode log tailer (only when `logs.mode: api`)
 

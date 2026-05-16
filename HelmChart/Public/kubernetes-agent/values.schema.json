@@ -378,6 +378,10 @@
         "trackRequestHeaders": {
           "type": "boolean",
           "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
+        },
+        "logToTraceCorrelation": {
+          "type": "boolean",
+          "description": "Inject trace_id / span_id into JSON log lines from instrumented processes (via OBI's log enricher) and lift them onto the LogRecord in the filelog pipeline so trace ↔ log click-through works. Non-JSON logs pass through unchanged. Default: true."
         }
       },
       "additionalProperties": false

@@ -80,7 +80,48 @@ data:
           - type: move
             from: attributes.log
             to: body
+          {{- if and .Values.ebpf.enabled .Values.ebpf.logToTraceCorrelation }}
+          # OBI's log enricher zeroes out the original stdout buffer with
+          # NULs (then re-emits the enriched line separately), so each
+          # intercepted write leaves a placeholder line of NULs/whitespace
+          # in the container log file. Drop those — the real enriched
+          # line still comes through.
+          - type: filter
+            id: drop-obi-nul-placeholder
+            expr: 'body matches "^[\\x00\\s]*$"'
+          # Log ↔ trace correlation. OBI re-emits enriched JSON log lines
+          # with `{"trace_id": "...", "span_id": "..."}` fields injected.
+          # Pre-filter on the substring so we only run JSON parse on lines
+          # that have a chance of containing trace context; the default
+          # branch skips straight to the next normal operator. We stash
+          # the parsed JSON under `attributes._obi`, lift trace_id /
+          # span_id onto the LogRecord, then drop the temp attribute.
+          - type: router
+            id: ebpf-trace-route
+            routes:
+              - output: parse-ebpf-trace-json
+                expr: 'body matches "\"trace_id\""'
+            default: move-stream
+          - type: json_parser
+            id: parse-ebpf-trace-json
+            parse_from: body
+            parse_to: attributes._obi
+            on_error: send
+            output: lift-obi-trace-context
+          - type: trace_parser
+            id: lift-obi-trace-context
+            trace_id:
+              parse_from: attributes._obi.trace_id
+            span_id:
+              parse_from: attributes._obi.span_id
+            output: cleanup-obi-attrs
+          - type: remove
+            id: cleanup-obi-attrs
+            field: attributes._obi
+            output: move-stream
+          {{- end }}
           - type: move
+            id: move-stream
             from: attributes.stream
             to: attributes["log.iostream"]
           - type: move

@@ -237,6 +237,26 @@ ebpf:
   # `contextPropagation` is true.
   trackRequestHeaders: true
 
+  # Log ↔ trace correlation. OBI's log enricher intercepts pod stdout
+  # writes, looks up the active trace/span for the writing thread, and:
+  #   - For JSON-format logs: re-emits the line with `trace_id` and
+  #     `span_id` fields injected (existing fields are preserved).
+  #   - For non-JSON logs: passes the line through unchanged.
+  #
+  # The filelog DaemonSet then lifts those fields onto the standard
+  # OpenTelemetry LogRecord TraceId/SpanId slots, so clicking a span in
+  # the trace view jumps to the logs from that request and vice versa.
+  #
+  # **JSON logs work out of the box; for trace_id to appear, your app
+  # must log in JSON.** Plain-text logs are still collected, just not
+  # auto-linked. Apps with buffered stdout (Python, .NET) need
+  # `PYTHONUNBUFFERED=1` / `Console.Out.AutoFlush = true`.
+  #
+  # Set to false to skip the OBI log enricher entirely (no kernel
+  # write-buffer interception, no NUL placeholder filter, no trace_id
+  # lift). The other eBPF features keep working.
+  logToTraceCorrelation: true
+
 # Service mesh observability (Istio / Linkerd sidecar metrics)
 serviceMesh:
   enabled: false
