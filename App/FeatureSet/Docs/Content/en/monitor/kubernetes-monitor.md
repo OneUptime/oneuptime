@@ -157,6 +157,6 @@ OneUptime provides templates for common Kubernetes monitoring scenarios:
 
 ## Setup Requirements
 
-To use Kubernetes monitoring, you need to install the OneUptime Kubernetes agent in your cluster. The agent ships cluster metrics, events, and pod logs to OneUptime over OTLP.
+To use Kubernetes monitoring, you need to install the OneUptime Kubernetes agent in your cluster. The agent ships cluster metrics, events, pod logs, and — by default — **application traces and HTTP RED metrics captured via eBPF** to OneUptime over OTLP. No code changes or per-app SDKs are required to see service-level traffic.
 
-See the [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent) guide — it covers the one-command Helm install and the `preset` option for picking the right configuration for your cluster (standard, GKE Autopilot, EKS Fargate).
+See the [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent) guide — it covers the one-command Helm install, the `preset` option for picking the right configuration for your cluster (standard, GKE Autopilot, EKS Fargate), and the `ebpf.features.*` toggles for the individual signal families (HTTP RED metrics, service graph, network flows, TCP stats).
