@@ -1,7 +1,9 @@
 import DatabaseConfig from "../DatabaseConfig";
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
@@ -23,6 +25,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
+import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Model from "../../Models/DatabaseModels/Incident";
@@ -46,10 +49,17 @@ import Metric, {
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger, { LogAttributes } from "../Utils/Logger";
+import NotEqual from "../../Types/BaseDatabase/NotEqual";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
+import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
+import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
+import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
+import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
+import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -103,6 +113,25 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentSelfPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentSelfPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
   }
 
   @CaptureSpan()
@@ -342,6 +371,15 @@ export class Service extends DatabaseService<Model> {
      * then change all of the monitors in this incident to the changeMonitorStatusToId.
      */
 
+    updateBy.query = applyIncidentSelfPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+
+    if (updateBy.data.isPrivate === true) {
+      updateBy.data.isVisibleOnStatusPage = false;
+    }
+
     const carryForward: UpdateCarryForward = {};
 
     if (
@@ -458,6 +496,12 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
+    }
+
+    if (createBy.data.isPrivate === true) {
+      createBy.data.isVisibleOnStatusPage = false;
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
+        false;
     }
 
     const projectId: ObjectID =
@@ -681,6 +725,26 @@ export class Service extends DatabaseService<Model> {
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
+        /*
+         * Apply privacy rules BEFORE workspace operations so the workspace
+         * channel is created with the correct privacy setting. This may set
+         * createdItem.isPrivate=true in memory.
+         */
+        try {
+          await IncidentPrivacyRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident privacy rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
         try {
           if (createdItem.projectId && createdItem.id) {
             return await this.handleIncidentWorkspaceOperationsAsync(
@@ -802,6 +866,75 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the incident.
+        try {
+          await IncidentOwnerRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply label rules: attach matched labels (and optionally inherited
+         * monitor / host labels) to the incident. Runs before the on-call
+         * fan-out so notifications can include the inherited labels.
+         */
+        try {
+          await IncidentLabelRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident label rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: match incident against IncidentOnCallRule rows
+         * and merge their on-call policies into createdItem.onCallDutyPolicies
+         * before the fan-out below picks up the merged list.
+         */
+        try {
+          await IncidentOnCallRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToIncident(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
         try {
           if (
             createdItem.onCallDutyPolicies?.length &&
@@ -900,6 +1033,7 @@ export class Service extends DatabaseService<Model> {
                 incidentNumberWithPrefix: createdItem.incidentNumberWithPrefix,
               }
             : {}),
+          isPrivate: createdItem.isPrivate === true,
         });
 
       if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
@@ -1511,6 +1645,54 @@ ${incident.remediationNotes || "No remediation notes provided."}
           }
         }
 
+        /*
+         * Sync isPublic on inline post-mortem images. The markdown
+         * editor uploads them as private; they must flip to public
+         * exactly when the post-mortem is shown on the status page so
+         * that anonymous status-page viewers can render the
+         * screenshots without exposing private artefacts.
+         */
+        const postmortemNoteChanged: boolean =
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemNote",
+          );
+        const postmortemVisibilityChanged: boolean =
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "showPostmortemOnStatusPage",
+          );
+
+        if (postmortemNoteChanged || postmortemVisibilityChanged) {
+          try {
+            const incidentForSync: Model | null = await this.findOneById({
+              id: incidentId,
+              select: {
+                postmortemNote: true,
+                showPostmortemOnStatusPage: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (incidentForSync) {
+              await setIsPublicForMarkdownImages(
+                incidentForSync.postmortemNote || "",
+                Boolean(incidentForSync.showPostmortemOnStatusPage),
+              );
+            }
+          } catch (syncError) {
+            logger.error(
+              `Failed to sync inline post-mortem image visibility: ${syncError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
@@ -2080,6 +2262,11 @@ ${incidentSeverity.name}
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyIncidentSelfPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+
     const incidents: Array<Model> = await this.findBy({
       query: deleteBy.query,
       limit: LIMIT_MAX,
@@ -2391,12 +2578,25 @@ ${incidentSeverity.name}
     const firstIncidentStateTimeline: IncidentStateTimeline | undefined =
       incidentStateTimelines[0];
 
-    // delete all the incident metrics with this incident id because it's a refresh.
-
+    /*
+     * Delete the existing metrics for this incident so the time-varying
+     * ones (TimeToAcknowledge / TimeToResolve / IncidentDuration /
+     * TimeInState) get rewritten with the latest state-timeline values
+     * on this refresh. IncidentCount is excluded from the delete: it is
+     * a constant `value = 1` keyed by `serviceId + bucketTime` that
+     * never changes. Re-emitting it across refreshes inflated the
+     * 1-minute aggregating materialized view (`MetricItemAggMV1m_mv`),
+     * because the MV trigger only fires on inserts — ALTER DELETE
+     * mutations don't roll back the previously-accumulated
+     * `sumState` / `countState`. That's why the Incident Dashboard
+     * sum-of-IncidentCount widget read ~33% higher than the actual
+     * unique-incident count.
+     */
     await MetricService.deleteBy({
       query: {
         projectId: incident.projectId,
         serviceId: data.incidentId,
+        name: new NotEqual<string>(IncidentMetricType.IncidentCount),
       },
       props: {
         isRoot: true,
@@ -2451,36 +2651,59 @@ ${incidentSeverity.name}
       ownerTeamNames: ownerTeamNames.join(", "),
     };
 
-    const incidentCountMetric: Metric = new Metric();
+    /*
+     * Only emit IncidentCount on the very first refresh (i.e. when no
+     * existing IncidentCount row is present for this serviceId). See
+     * the delete comment above — emitting it on every refresh would
+     * accumulate phantom `sumState` entries in the MV that ALTER
+     * DELETE can't undo. By keeping the original row alive and never
+     * re-emitting, the dashboard Sum stays equal to the true count of
+     * distinct incidents.
+     */
+    const existingIncidentCount: PositiveNumber = await MetricService.countBy({
+      query: {
+        projectId: incident.projectId,
+        serviceId: data.incidentId,
+        name: IncidentMetricType.IncidentCount,
+      },
+      skip: 0,
+      limit: 1,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    incidentCountMetric.projectId = incident.projectId;
-    incidentCountMetric.serviceId = incident.id!;
-    incidentCountMetric.serviceType = ServiceType.Incident;
-    incidentCountMetric.name = IncidentMetricType.IncidentCount;
-    incidentCountMetric.value = 1;
-    incidentCountMetric.attributes = { ...baseMetricAttributes };
-    incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-      incidentCountMetric.attributes,
-    );
+    if (existingIncidentCount.toNumber() === 0) {
+      const incidentCountMetric: Metric = new Metric();
 
-    incidentCountMetric.time = incidentStartsAt;
-    incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      incidentCountMetric.time,
-    );
-    incidentCountMetric.metricPointType = MetricPointType.Sum;
-    incidentCountMetric.retentionDate = incidentMetricRetentionDate;
+      incidentCountMetric.projectId = incident.projectId;
+      incidentCountMetric.serviceId = incident.id!;
+      incidentCountMetric.serviceType = ServiceType.Incident;
+      incidentCountMetric.name = IncidentMetricType.IncidentCount;
+      incidentCountMetric.value = 1;
+      incidentCountMetric.attributes = { ...baseMetricAttributes };
+      incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        incidentCountMetric.attributes,
+      );
 
-    itemsToSave.push(incidentCountMetric);
+      incidentCountMetric.time = incidentStartsAt;
+      incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        incidentCountMetric.time,
+      );
+      incidentCountMetric.metricPointType = MetricPointType.Sum;
+      incidentCountMetric.retentionDate = incidentMetricRetentionDate;
 
-    // add metric type for this to map.
+      itemsToSave.push(incidentCountMetric);
+    }
+
+    // Always register the metric type so it shows up in the type catalog.
     const metricType: MetricType = new MetricType();
-    metricType.name = incidentCountMetric.name;
+    metricType.name = IncidentMetricType.IncidentCount;
     metricType.description = "Number of incidents created";
     metricType.unit = "";
     metricType.services = [];
 
-    // add to map.
-    metricTypesMap[incidentCountMetric.name] = metricType;
+    metricTypesMap[IncidentMetricType.IncidentCount] = metricType;
 
     // is the incident acknowledged?
     const isIncidentAcknowledged: boolean = incidentStateTimelines.some(

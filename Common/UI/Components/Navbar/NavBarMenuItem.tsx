@@ -2,6 +2,7 @@ import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -16,6 +17,10 @@ export interface ComponentProps {
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedTitle: string = translateString(props.title) ?? props.title;
+  const translatedDescription: string =
+    translateString(props.description) ?? props.description;
   // Default to indigo if no color specified
   const colorName: string = props.iconColor || "indigo";
 
@@ -130,8 +135,8 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
           <Icon icon={props.icon} className="h-4 w-4 text-gray-600" />
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <p className="text-sm font-medium text-gray-900">{props.title}</p>
-          <p className="text-xs text-gray-500">{props.description}</p>
+          <p className="text-sm font-medium text-gray-900">{translatedTitle}</p>
+          <p className="text-xs text-gray-500">{translatedDescription}</p>
         </div>
       </Link>
     </div>

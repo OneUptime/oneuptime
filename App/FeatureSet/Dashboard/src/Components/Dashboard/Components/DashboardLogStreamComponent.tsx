@@ -24,6 +24,7 @@ import {
   queryStringToFilter,
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogStreamComponent;
@@ -113,15 +114,29 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         (query as Record<string, unknown>)["body"] = bodyContains.trim();
       }
 
+      let baseAttributes: Record<string, unknown> | undefined;
       if (attributeFilterQuery && attributeFilterQuery.trim() !== "") {
         const parsedFilter: LogFilter = queryStringToFilter(
           attributeFilterQuery.trim(),
         );
+        baseAttributes = parsedFilter.attributes;
+      }
 
-        if (parsedFilter.attributes) {
-          (query as Record<string, unknown>)["attributes"] =
-            parsedFilter.attributes;
-        }
+      /*
+       * Layer dashboard variable selections on top of any
+       * widget-configured attribute filters. A "cluster=$cluster"
+       * variable here narrows the log stream the same way it does the
+       * metric charts on the same dashboard.
+       */
+      const interpolatedAttributes: Record<string, unknown> =
+        DashboardVariableInterpolation.applyToAttributes(
+          baseAttributes,
+          props.variables,
+        );
+
+      if (Object.keys(interpolatedAttributes).length > 0) {
+        (query as Record<string, unknown>)["attributes"] =
+          interpolatedAttributes;
       }
 
       const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
@@ -157,6 +172,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
     bodyContains,
     attributeFilterQuery,
     maxRows,
+    props.variables,
   ]);
 
   useEffect(() => {

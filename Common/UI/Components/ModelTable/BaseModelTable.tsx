@@ -21,7 +21,9 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import { ButtonSize, ButtonStyleType } from "../Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import MoreMenu from "../MoreMenu/MoreMenu";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
   CardButtonSchema,
   ComponentProps as CardComponentProps,
@@ -40,6 +42,7 @@ import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import MarkdownViewer from "../Markdown.tsx/MarkdownViewer";
+import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
@@ -61,6 +64,7 @@ import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Search from "../../../Types/BaseDatabase/Search";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
   PlanType,
@@ -87,6 +91,7 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import TableViewElement from "./TableView";
@@ -244,6 +249,15 @@ export interface BaseTableProps<
     | ((showAdvancedFilters: boolean) => void);
 
   /*
+   * Fields to include in the inline search box above the table. When set, a
+   * search input renders in the card header and an ILIKE OR runs across all
+   * listed fields. Leave undefined to hide the search box entirely.
+   */
+  searchableFields?: Array<keyof TBaseModel> | undefined;
+
+  searchPlaceholder?: string | undefined;
+
+  /*
    * this key is used to save table user preferences in local storage.
    * If you provide this key, the table will save the user preferences in local storage.
    * If you do not provide this key, the table will not save the user preferences in local storage.
@@ -267,7 +281,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const { translateValue } = useTranslateValue();
+  const { translateValue, translateString } = useTranslateValue();
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -350,6 +367,189 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
+
+  const [searchText, setSearchText] = useState<string>("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    React.useRef<HTMLInputElement>(null!);
+
+  interface SearchLabelOption {
+    id: string;
+    name: string;
+    color: string;
+  }
+
+  const [availableLabels, setAvailableLabels] = useState<
+    Array<SearchLabelOption>
+  >([]);
+  const [selectedLabels, setSelectedLabels] = useState<
+    Array<SearchLabelOption>
+  >([]);
+  const [isLabelsLoading, setIsLabelsLoading] = useState<boolean>(false);
+  const [labelsFetched, setLabelsFetched] = useState<boolean>(false);
+  const [labelDropdownIndex, setLabelDropdownIndex] = useState<number>(0);
+
+  useEffect(() => {
+    const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [searchText]);
+
+  /*
+   * "/" focuses the search input — same affordance as GitHub / Linear.
+   * Skip while the user is typing in another input/textarea or has a modal open.
+   */
+  useEffect(() => {
+    if (!props.searchableFields || props.searchableFields.length === 0) {
+      return undefined;
+    }
+    const handleKey: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+      const target: HTMLElement | null = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      setIsSearchExpanded(true);
+      // Wait one frame so the input mounts/becomes visible before focusing.
+      requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+      });
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [props.searchableFields]);
+
+  /*
+   * Keep the search expanded whenever there is an active search term — so
+   * results stay visible alongside the box. Collapsing only happens when the
+   * user blurs an empty input.
+   */
+  useEffect(() => {
+    if (
+      (debouncedSearchText.trim().length > 0 || selectedLabels.length > 0) &&
+      !isSearchExpanded
+    ) {
+      setIsSearchExpanded(true);
+    }
+  }, [debouncedSearchText, selectedLabels]);
+
+  useEffect(() => {
+    // reset to first page whenever the active search term or labels change
+    setCurrentPageNumber(1);
+  }, [debouncedSearchText, selectedLabels]);
+
+  /*
+   * Auto-detect label support from the existing filters array. We look for
+   * the filter whose `filterEntityType` class name is "Label" and reuse its
+   * dropdown wiring (entity type, fetch query, label/value field names) so
+   * search inherits whatever scoping the filter popup already had.
+   */
+  type LabelFilterConfig = {
+    fieldKey: string;
+    entityType: any;
+    fetchQuery: any;
+    labelField: string;
+  };
+
+  const labelFilterConfig: LabelFilterConfig | null = useMemo(() => {
+    const filter: Filter<TBaseModel> | undefined = props.filters.find(
+      (f: Filter<TBaseModel>) => {
+        return (
+          f.filterEntityType &&
+          (f.filterEntityType as any).name === "Label" &&
+          f.field &&
+          f.filterDropdownField
+        );
+      },
+    );
+    if (!filter || !filter.field || !filter.filterDropdownField) {
+      return null;
+    }
+    const fieldKey: string | undefined = Object.keys(filter.field)[0];
+    if (!fieldKey) {
+      return null;
+    }
+    return {
+      fieldKey,
+      entityType: filter.filterEntityType,
+      fetchQuery: filter.filterQuery || {},
+      labelField: filter.filterDropdownField.label,
+    };
+  }, [props.filters]);
+
+  // Fetch labels on first search expansion if this resource supports them.
+  useEffect(() => {
+    if (!isSearchExpanded || !labelFilterConfig || labelsFetched) {
+      return;
+    }
+    let cancelled: boolean = false;
+    setIsLabelsLoading(true);
+    (async () => {
+      try {
+        const result: ListResult<TBaseModel> = await props.callbacks.getList({
+          modelType: labelFilterConfig.entityType,
+          query: labelFilterConfig.fetchQuery,
+          limit: 200,
+          skip: 0,
+          select: {
+            _id: true,
+            [labelFilterConfig.labelField]: true,
+            color: true,
+          } as any,
+          sort: { [labelFilterConfig.labelField]: SortOrder.Ascending } as any,
+        });
+        if (cancelled) {
+          return;
+        }
+        const mapped: Array<SearchLabelOption> = (result.data || [])
+          .map((item: any) => {
+            const raw: any = item;
+            const colorAny: any = raw["color"];
+            const colorHex: string =
+              (colorAny &&
+                (typeof colorAny === "string"
+                  ? colorAny
+                  : colorAny.value ||
+                    (colorAny.toString && colorAny.toString()))) ||
+              "#94a3b8";
+            return {
+              id: raw["_id"]?.toString() || "",
+              name: (raw[labelFilterConfig.labelField] as string) || "",
+              color: colorHex,
+            } as SearchLabelOption;
+          })
+          .filter((l: SearchLabelOption) => {
+            return l.id && l.name;
+          });
+        setAvailableLabels(mapped);
+        setLabelsFetched(true);
+      } catch {
+        // Silently fail — search still works without label suggestions.
+      } finally {
+        if (!cancelled) {
+          setIsLabelsLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSearchExpanded, labelFilterConfig, labelsFetched]);
 
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -606,7 +806,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     if (showActionsColumn) {
       columns.push({
-        title: "Actions",
+        title: tx("Actions"),
         type: FieldType.Actions,
       });
     }
@@ -841,6 +1041,64 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setIsFilterFetchLoading(false);
     };
 
+  type BuildSearchQueryFragmentFunction = () => Query<TBaseModel>;
+
+  const buildSearchQueryFragment: BuildSearchQueryFragmentFunction =
+    (): Query<TBaseModel> => {
+      const fragment: Query<TBaseModel> = {};
+      /*
+       * Strip the trailing @<prefix> mention before searching — that token
+       * is a label-autocomplete trigger, not part of the user's free-text
+       * query.
+       */
+      const stripTrailingMention: (v: string) => string = (
+        v: string,
+      ): string => {
+        const atIndex: number = v.lastIndexOf("@");
+        if (atIndex < 0) {
+          return v;
+        }
+        if (atIndex > 0) {
+          const prev: string = v[atIndex - 1] || "";
+          if (prev !== " " && prev !== "\t") {
+            return v;
+          }
+        }
+        const after: string = v.substring(atIndex + 1);
+        if (
+          after.includes(" ") ||
+          after.includes("\t") ||
+          after.includes("\n")
+        ) {
+          return v;
+        }
+        return v.substring(0, atIndex).trimEnd();
+      };
+
+      const effectiveSearch: string =
+        stripTrailingMention(debouncedSearchText).trim();
+      if (
+        effectiveSearch.length > 0 &&
+        props.searchableFields &&
+        props.searchableFields.length > 0
+      ) {
+        (fragment as any)._multiFieldSearch = new MultiSearch({
+          fields: props.searchableFields.map((f: keyof TBaseModel) => {
+            return f as string;
+          }),
+          value: effectiveSearch,
+        });
+      }
+      if (labelFilterConfig && selectedLabels.length > 0) {
+        (fragment as any)[labelFilterConfig.fieldKey] = new Includes(
+          selectedLabels.map((l: SearchLabelOption) => {
+            return l.id;
+          }),
+        );
+      }
+      return fragment;
+    };
+
   const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
@@ -853,6 +1111,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         query: {
           ...props.query,
           ...query,
+          ...buildSearchQueryFragment(),
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -892,6 +1151,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         query: {
           ...props.query,
           ...query,
+          ...buildSearchQueryFragment(),
         },
         groupBy: {
           ...props.groupBy,
@@ -1048,7 +1308,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // Add documentation link button first if provided
     if (props.documentationLink) {
       headerbuttons.push({
-        title: "View Documentation",
+        title: tx("View Documentation"),
         icon: IconProp.Book,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
@@ -1078,7 +1338,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // Add video link button if provided
     if (props.videoLink) {
       headerbuttons.push({
-        title: "Watch Demo",
+        title: tx("Watch Demo"),
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
         buttonSize: ButtonSize.Small,
@@ -1114,9 +1374,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       showAs !== ShowAs.OrderedStatesList
     ) {
       headerbuttons.push({
-        title: `${props.createVerb || "Create"} ${
-          props.singularName || model.singularName
-        }`,
+        title: `${tx(props.createVerb || "Create")} ${tx(
+          props.singularName || model.singularName || "",
+        )}`,
         buttonStyle: ButtonStyleType.NORMAL,
         buttonSize: ButtonSize.Normal,
         className: "",
@@ -1155,10 +1415,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    if (props.saveFilterProps) {
-      headerbuttons.push(getSaveFilterDropdown());
-    }
-
     setCardButtons(headerbuttons);
   };
 
@@ -1172,6 +1428,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     sortOrder,
     itemsOnPage,
     query,
+    debouncedSearchText,
+    selectedLabels,
     props.refreshToggle,
   ]);
 
@@ -1326,7 +1584,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     if (props.showViewIdButton) {
       actionsSchema.push({
-        title: "Show ID",
+        title: tx("Show ID"),
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
         onClick: async (
@@ -1358,9 +1616,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         (model.hasReadPermissions(permissions) || User.isMasterAdmin())
       ) {
         actionsSchema.push({
-          title:
-            props.viewButtonText ||
-            `View ${props.singularName || model.singularName}`,
+          title: props.viewButtonText
+            ? tx(props.viewButtonText)
+            : `${tx("View")} ${tx(props.singularName || model.singularName || "")}`,
           buttonStyleType: ButtonStyleType.NORMAL,
           onClick: async (
             item: TBaseModel,
@@ -1420,7 +1678,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         (model.hasUpdatePermissions(permissions) || User.isMasterAdmin())
       ) {
         actionsSchema.push({
-          title: props.editButtonText || "Edit",
+          title: tx(props.editButtonText || "Edit"),
           buttonStyleType: ButtonStyleType.OUTLINE,
           onClick: async (
             item: TBaseModel,
@@ -1449,7 +1707,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         (model.hasDeletePermissions(permissions) || User.isMasterAdmin())
       ) {
         actionsSchema.push({
-          title: props.deleteButtonText || "Delete",
+          title: tx(props.deleteButtonText || "Delete"),
           icon: IconProp.Trash,
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
           onClick: async (
@@ -1602,6 +1860,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       };
     };
 
+  /*
+   * When the load is driven by the search box, suppress the table-level
+   * loading state so existing rows stay visible and the only spinner is
+   * the one in the search bar. Sort / pagination / refresh loads still
+   * show the table loader because there is no other indicator for those.
+   */
+  type ShouldSuppressTableLoadingFunction = () => boolean;
+  const isSearchActive: ShouldSuppressTableLoadingFunction = (): boolean => {
+    return debouncedSearchText.trim().length > 0 || selectedLabels.length > 0;
+  };
+
+  const getTableLoadingState: () => boolean = (): boolean => {
+    return isSearchActive() ? false : isLoading;
+  };
+
   const getTable: GetReactElementFunction = (): ReactElement => {
     return (
       <Table
@@ -1738,7 +2011,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         pluralLabel={props.pluralName || model.pluralName || "Items"}
         error={error}
         currentPageNumber={currentPageNumber}
-        isLoading={isLoading}
+        isLoading={getTableLoadingState()}
         enableDragAndDrop={props.enableDragAndDrop}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
@@ -1897,7 +2170,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
-        isLoading={isLoading}
+        isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
         data={data}
         id={props.id}
@@ -1973,20 +2246,758 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     );
   };
 
+  type CollapseSearchFunction = () => void;
+
+  const collapseSearch: CollapseSearchFunction = (): void => {
+    setSearchText("");
+    setSelectedLabels([]);
+    setIsSearchExpanded(false);
+  };
+
+  /*
+   * Find the trailing `@<prefix>` mention in the input. A mention is only
+   * recognised when `@` is at the start of the value or follows whitespace,
+   * and only when there is no whitespace after it — matches typical chat
+   * mention semantics.
+   */
+  type MentionParseResult = {
+    hasMention: boolean;
+    prefix: string;
+    atIndex: number;
+  };
+
+  const parseLabelMention: (value: string) => MentionParseResult = (
+    value: string,
+  ): MentionParseResult => {
+    const atIndex: number = value.lastIndexOf("@");
+    if (atIndex < 0) {
+      return { hasMention: false, prefix: "", atIndex: -1 };
+    }
+    if (atIndex > 0) {
+      const prev: string = value[atIndex - 1] || "";
+      if (prev !== " " && prev !== "\t") {
+        return { hasMention: false, prefix: "", atIndex: -1 };
+      }
+    }
+    const after: string = value.substring(atIndex + 1);
+    if (after.includes(" ") || after.includes("\t") || after.includes("\n")) {
+      return { hasMention: false, prefix: "", atIndex: -1 };
+    }
+    return { hasMention: true, prefix: after, atIndex };
+  };
+
+  type AddLabelFunction = (label: SearchLabelOption) => void;
+
+  const addLabel: AddLabelFunction = (label: SearchLabelOption): void => {
+    setSelectedLabels((prev: Array<SearchLabelOption>) => {
+      if (
+        prev.find((l: SearchLabelOption) => {
+          return l.id === label.id;
+        })
+      ) {
+        return prev;
+      }
+      return [...prev, label];
+    });
+    // Strip the `@<prefix>` token from the input.
+    const mention: MentionParseResult = parseLabelMention(searchText);
+    if (mention.hasMention) {
+      const before: string = searchText.substring(0, mention.atIndex);
+      setSearchText(before.replace(/\s+$/, ""));
+    }
+    setLabelDropdownIndex(0);
+  };
+
+  type RemoveLabelFunction = (labelId: string) => void;
+
+  const removeLabel: RemoveLabelFunction = (labelId: string): void => {
+    setSelectedLabels((prev: Array<SearchLabelOption>) => {
+      return prev.filter((l: SearchLabelOption) => {
+        return l.id !== labelId;
+      });
+    });
+  };
+
+  const getSearchControl: GetReactElementFunction = (): ReactElement => {
+    if (!props.searchableFields || props.searchableFields.length === 0) {
+      return <></>;
+    }
+
+    const pluralLabel: string = (
+      props.pluralName ||
+      model.pluralName ||
+      "items"
+    ).toLowerCase();
+
+    const hasLabelSupport: boolean = Boolean(labelFilterConfig);
+
+    const defaultPlaceholder: string = hasLabelSupport
+      ? `Search ${pluralLabel}… (try @ for labels)`
+      : `Search ${pluralLabel} by name, description…`;
+    const placeholder: string = props.searchPlaceholder || defaultPlaceholder;
+
+    /*
+     * Effective search = input minus the trailing @<prefix> mention. The pill
+     * + result-count UI should reflect this so typing "@bug" doesn't claim
+     * "0 matches" before the user has actually committed the label.
+     */
+    const stripTrailingMentionForUi: (v: string) => string = (
+      v: string,
+    ): string => {
+      const m: MentionParseResult = parseLabelMention(v);
+      return m.hasMention ? v.substring(0, m.atIndex).trimEnd() : v;
+    };
+
+    const trimmedSearch: string = stripTrailingMentionForUi(searchText).trim();
+    const trimmedActive: string =
+      stripTrailingMentionForUi(debouncedSearchText).trim();
+    const hasActiveSearch: boolean = trimmedActive.length > 0;
+    const hasSelectedLabels: boolean = selectedLabels.length > 0;
+    /*
+     * "isSearching" covers both phases — typing-in-flight (before the
+     * debounce fires) AND the actual API request that follows. The table
+     * loader is suppressed during the latter, so this spinner is the only
+     * loading indicator the user sees during a search-driven fetch.
+     */
+    const isTypingInFlight: boolean =
+      trimmedSearch.length > 0 && trimmedSearch !== trimmedActive;
+    const isSearching: boolean =
+      isTypingInFlight || (isLoading && (hasActiveSearch || hasSelectedLabels));
+    const showMatchPill: boolean =
+      !isSearching && (hasActiveSearch || hasSelectedLabels);
+
+    const expanded: boolean =
+      isSearchExpanded || hasActiveSearch || hasSelectedLabels;
+
+    const mention: MentionParseResult = parseLabelMention(searchText);
+    const showLabelDropdown: boolean =
+      hasLabelSupport && isSearchFocused && mention.hasMention;
+
+    const lowerPrefix: string = mention.prefix.toLowerCase();
+    const dropdownLabels: Array<SearchLabelOption> = availableLabels
+      .filter((l: SearchLabelOption) => {
+        return !selectedLabels.find((s: SearchLabelOption) => {
+          return s.id === l.id;
+        });
+      })
+      .filter((l: SearchLabelOption) => {
+        return (
+          lowerPrefix.length === 0 || l.name.toLowerCase().includes(lowerPrefix)
+        );
+      })
+      .slice(0, 8);
+
+    const borderClass: string = isSearchFocused
+      ? "border-gray-400 ring-4 ring-gray-100 shadow-sm"
+      : hasActiveSearch || hasSelectedLabels
+        ? "border-gray-300 shadow-sm"
+        : "border-gray-200 shadow-sm";
+
+    const iconColorClass: string =
+      isSearchFocused || hasActiveSearch || hasSelectedLabels
+        ? "text-gray-700"
+        : "text-gray-400";
+
+    type SelectDropdownItemAtIndexFunction = (idx: number) => void;
+    const selectDropdownItemAt: SelectDropdownItemAtIndexFunction = (
+      idx: number,
+    ): void => {
+      const item: SearchLabelOption | undefined = dropdownLabels[idx];
+      if (item) {
+        addLabel(item);
+      }
+    };
+
+    return (
+      <div className="relative flex w-full items-center">
+        {/* Expanded input + dropdown — sized to the full title slot */}
+        <div className="relative flex w-full flex-col gap-1">
+          <div
+            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 transition-all duration-200 ${borderClass}`}
+            onClick={() => {
+              searchInputRef.current?.focus();
+            }}
+            role="presentation"
+          >
+            <Icon
+              icon={IconProp.Search}
+              className={`h-4 w-4 flex-none transition-colors duration-200 ${iconColorClass}`}
+            />
+            {/* Pills + input wrap row */}
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              {selectedLabels.map((label: SearchLabelOption) => {
+                return (
+                  <span
+                    key={label.id}
+                    className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
+                    title={`Label: ${label.name}`}
+                  >
+                    <span
+                      className="h-2 w-2 flex-none rounded-full"
+                      style={{ backgroundColor: label.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="max-w-[8rem] truncate">{label.name}</span>
+                    <button
+                      type="button"
+                      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                      }}
+                      onClick={() => {
+                        removeLabel(label.id);
+                      }}
+                      title="Remove label"
+                      aria-label={`Remove ${label.name}`}
+                      className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                    >
+                      <Icon icon={IconProp.Close} className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })}
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchText}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchText(e.target.value);
+                  setLabelDropdownIndex(0);
+                }}
+                onFocus={() => {
+                  setIsSearchFocused(true);
+                }}
+                onBlur={() => {
+                  setIsSearchFocused(false);
+                  /*
+                   * Collapse only when the user blurs with nothing active —
+                   * no text and no selected labels.
+                   */
+                  if (
+                    searchText.trim().length === 0 &&
+                    selectedLabels.length === 0
+                  ) {
+                    setIsSearchExpanded(false);
+                  }
+                }}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (showLabelDropdown && dropdownLabels.length > 0) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setLabelDropdownIndex((i: number) => {
+                        return Math.min(i + 1, dropdownLabels.length - 1);
+                      });
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setLabelDropdownIndex((i: number) => {
+                        return Math.max(i - 1, 0);
+                      });
+                      return;
+                    }
+                    if (e.key === "Enter" || e.key === "Tab") {
+                      e.preventDefault();
+                      selectDropdownItemAt(labelDropdownIndex);
+                      return;
+                    }
+                  }
+                  if (e.key === "Backspace" && searchText.length === 0) {
+                    // Pop last label when backspacing on empty input.
+                    if (selectedLabels.length > 0) {
+                      const last: SearchLabelOption | undefined =
+                        selectedLabels[selectedLabels.length - 1];
+                      if (last) {
+                        removeLabel(last.id);
+                      }
+                    }
+                    return;
+                  }
+                  if (e.key === "Escape") {
+                    if (showLabelDropdown) {
+                      // Just cancel the @ mention parse — clear @ prefix.
+                      const m: MentionParseResult =
+                        parseLabelMention(searchText);
+                      if (m.hasMention) {
+                        setSearchText(
+                          searchText
+                            .substring(0, m.atIndex)
+                            .replace(/\s+$/, ""),
+                        );
+                      }
+                      return;
+                    }
+                    if (searchText) {
+                      setSearchText("");
+                    } else if (selectedLabels.length > 0) {
+                      setSelectedLabels([]);
+                    } else {
+                      collapseSearch();
+                      searchInputRef.current?.blur();
+                    }
+                  }
+                }}
+                placeholder={
+                  selectedLabels.length === 0 ? placeholder : "Refine search…"
+                }
+                spellCheck={false}
+                autoComplete="off"
+                tabIndex={expanded ? 0 : -1}
+                className="min-w-[6rem] flex-1 bg-transparent text-sm leading-5 text-gray-900 placeholder-gray-400 outline-none"
+              />
+            </div>
+            {isSearching && (
+              <div className="flex-none text-gray-400" title="Searching…">
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-4 w-4 animate-spin"
+                />
+              </div>
+            )}
+            {showMatchPill && totalItemsCount >= 0 && (
+              <span
+                className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
+              >
+                {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+              </span>
+            )}
+            {searchText.length > 0 || selectedLabels.length > 0 ? (
+              <button
+                type="button"
+                onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                  e.preventDefault();
+                }}
+                onClick={() => {
+                  collapseSearch();
+                }}
+                title="Clear search (Esc Esc)"
+                aria-label="Clear search"
+                className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <kbd
+                className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+                title="Press / to focus search"
+              >
+                /
+              </kbd>
+            )}
+          </div>
+
+          {/* Label suggestion dropdown */}
+          {showLabelDropdown && (
+            <div
+              className="absolute left-0 right-0 top-full z-20 mt-1.5 origin-top overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 transition-all duration-150 animate-in fade-in slide-in-from-top-1"
+              onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+                // Prevent input blur on dropdown clicks.
+                e.preventDefault();
+              }}
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  {isLabelsLoading ? "Loading labels…" : "Filter by label"}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  <kbd className="font-mono">↑</kbd>
+                  <kbd className="ml-0.5 font-mono">↓</kbd>
+                  <span className="ml-1">to navigate</span>
+                  <span className="mx-1.5">·</span>
+                  <kbd className="font-mono">↵</kbd>
+                  <span className="ml-1">to select</span>
+                </span>
+              </div>
+              <div className="max-h-64 overflow-y-auto py-1">
+                {!isLabelsLoading && dropdownLabels.length === 0 && (
+                  <div className="px-3 py-3 text-sm text-gray-500">
+                    {availableLabels.length === 0
+                      ? "No labels available for this resource."
+                      : `No labels matching "${mention.prefix}"`}
+                  </div>
+                )}
+                {dropdownLabels.map((label: SearchLabelOption, idx: number) => {
+                  const isActive: boolean = idx === labelDropdownIndex;
+                  return (
+                    <button
+                      key={label.id}
+                      type="button"
+                      onMouseEnter={() => {
+                        setLabelDropdownIndex(idx);
+                      }}
+                      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                      }}
+                      onClick={() => {
+                        addLabel(label);
+                        searchInputRef.current?.focus();
+                      }}
+                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors ${
+                        isActive
+                          ? "bg-gray-100 text-gray-900"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 flex-none rounded-full ring-1 ring-inset ring-black/5"
+                        style={{ backgroundColor: label.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="flex-1 truncate">{label.name}</span>
+                      {isActive && (
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                          ↵
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  type GetHeaderButtonsFunction = () => Array<CardButtonSchema | ReactElement>;
+
+  /*
+   * Returns the buttons array passed to Card. When search support is enabled
+   * we add a standalone search-trigger icon to the end of the row. We do
+   * NOT collapse the other buttons here — the expanded search bar lives in
+   * the title slot (see getExpandedSearchTitle), so existing buttons like
+   * Refresh / Filter / Create remain accessible while searching.
+   */
+  /*
+   * The "primary" button is the one with NORMAL style and the Add icon — the
+   * Create button that BaseModelTable injects automatically. We surface it
+   * alongside the search bar and hide everything else behind a kebab menu.
+   * If the page has no such button we fall back to the first NORMAL- or
+   * PRIMARY-styled one. PRIMARY is treated as a main candidate because it
+   * explicitly marks a primary action (e.g. "Run Runbook") — hiding it in
+   * the overflow menu defeats the purpose of the style.
+   */
+  type FindMainButtonResult = {
+    main: CardButtonSchema | null;
+    rest: Array<CardButtonSchema | ReactElement>;
+  };
+
+  const splitButtonsForHeader: (
+    buttons: Array<CardButtonSchema | ReactElement>,
+  ) => FindMainButtonResult = (
+    buttons: Array<CardButtonSchema | ReactElement>,
+  ): FindMainButtonResult => {
+    let mainIndex: number = -1;
+    for (let i: number = 0; i < buttons.length; i++) {
+      const b: CardButtonSchema | ReactElement = buttons[i]!;
+      if (React.isValidElement(b)) {
+        continue;
+      }
+      const c: CardButtonSchema = b as CardButtonSchema;
+      if (c.buttonStyle === ButtonStyleType.NORMAL && c.icon === IconProp.Add) {
+        mainIndex = i;
+        break;
+      }
+    }
+    if (mainIndex < 0) {
+      for (let i: number = 0; i < buttons.length; i++) {
+        const b: CardButtonSchema | ReactElement = buttons[i]!;
+        if (React.isValidElement(b)) {
+          continue;
+        }
+        const style: ButtonStyleType | undefined = (b as CardButtonSchema)
+          .buttonStyle;
+        if (
+          style === ButtonStyleType.NORMAL ||
+          style === ButtonStyleType.PRIMARY
+        ) {
+          mainIndex = i;
+          break;
+        }
+      }
+    }
+    if (mainIndex < 0) {
+      return { main: null, rest: buttons };
+    }
+    const main: CardButtonSchema = buttons[mainIndex] as CardButtonSchema;
+    const rest: Array<CardButtonSchema | ReactElement> = [
+      ...buttons.slice(0, mainIndex),
+      ...buttons.slice(mainIndex + 1),
+    ];
+    return { main, rest };
+  };
+
+  const renderMainButton: (b: CardButtonSchema) => ReactElement = (
+    b: CardButtonSchema,
+  ): ReactElement => {
+    return (
+      <Button
+        key="model-table-main-action"
+        title={b.title}
+        buttonStyle={b.buttonStyle}
+        buttonSize={b.buttonSize}
+        className={b.className}
+        onClick={() => {
+          b.onClick?.();
+        }}
+        disabled={b.disabled}
+        icon={b.icon}
+        shortcutKey={b.shortcutKey}
+        dataTestId="card-button"
+        isLoading={b.isLoading}
+      />
+    );
+  };
+
+  /*
+   * Icon-only card buttons (Refresh, Filter, …) have empty titles, so derive
+   * a label from the icon for the More menu.
+   */
+  // Fallback labels for icon-only buttons (Refresh, Filter, ...) in the More menu.
+  const labelForIconButton: (icon: IconProp | undefined) => string = (
+    icon: IconProp | undefined,
+  ): string => {
+    switch (icon) {
+      case IconProp.Refresh:
+        return "Refresh";
+      case IconProp.Filter:
+        return "Filter";
+      case IconProp.Add:
+        return "Add";
+      case IconProp.Help:
+        return "Help";
+      case IconProp.Book:
+        return "Documentation";
+      case IconProp.Play:
+        return "Watch Demo";
+      case IconProp.Search:
+        return "Search";
+      default:
+        return "Action";
+    }
+  };
+
+  const renderMoreMenu: (
+    items: Array<CardButtonSchema | ReactElement>,
+  ) => ReactElement | null = (
+    items: Array<CardButtonSchema | ReactElement>,
+  ): ReactElement | null => {
+    if (items.length === 0) {
+      return null;
+    }
+    const children: Array<ReactElement> = items.map(
+      (item: CardButtonSchema | ReactElement, idx: number) => {
+        if (React.isValidElement(item)) {
+          return (
+            <div key={`more-${idx}`} className="px-2 py-1">
+              {item}
+            </div>
+          );
+        }
+        const b: CardButtonSchema = item as CardButtonSchema;
+        const label: string = b.title || labelForIconButton(b.icon);
+        return (
+          <MoreMenuItem
+            key={`more-${idx}`}
+            text={label}
+            icon={b.icon}
+            onClick={() => {
+              if (!b.disabled) {
+                b.onClick?.();
+              }
+            }}
+            className={b.disabled ? "opacity-40 pointer-events-none" : ""}
+          />
+        );
+      },
+    );
+
+    return (
+      <MoreMenu
+        key="model-table-more-menu"
+        menuIcon={IconProp.EllipsisHorizontal}
+        text=""
+      >
+        {children}
+      </MoreMenu>
+    );
+  };
+
+  /*
+   * Builds the right-hand side of the card header. All slots — search
+   * trigger/bar, saved views, main button, more menu — stay mounted at all
+   * times. State transitions are purely CSS so the inputs keep their focus,
+   * the dropdown keeps its open state, and there's no mount/unmount flicker.
+   *
+   * Layout when collapsed:  [🔍 trigger] [Saved Views] [main] [⋯]
+   * Layout when expanded:   [🔍 ━━━ wide search bar ━━━]
+   * Saved views + main button + more menu fade and collapse-to-zero-width
+   * when the search expands, freeing horizontal space for the bar.
+   */
+  const getHeaderButtonsWithSearch: GetHeaderButtonsFunction = (): Array<
+    CardButtonSchema | ReactElement
+  > => {
+    const hasSearch: boolean = Boolean(
+      props.searchableFields && props.searchableFields.length > 0,
+    );
+
+    /*
+     * Saved views get their own first-class slot in the header — never
+     * collapsed into the overflow ⋯ menu. Render fresh on every call so the
+     * inner TableViewElement always sees the current query / sort / itemsOnPage.
+     */
+    const savedViewsElement: ReactElement | null = props.saveFilterProps
+      ? getSaveFilterDropdown()
+      : null;
+
+    if (cardButtons.length === 0 && !hasSearch) {
+      return savedViewsElement ? [savedViewsElement] : cardButtons;
+    }
+
+    if (!hasSearch) {
+      // Without search, just split into [Saved Views] [main] [⋯]; no special wrapping.
+      const { main, rest }: FindMainButtonResult =
+        splitButtonsForHeader(cardButtons);
+      const composed: Array<ReactElement> = [];
+      if (savedViewsElement) {
+        composed.push(savedViewsElement);
+      }
+      if (main) {
+        composed.push(renderMainButton(main));
+      }
+      const moreMenu: ReactElement | null = renderMoreMenu(rest);
+      if (moreMenu) {
+        composed.push(moreMenu);
+      }
+      return composed;
+    }
+
+    const trimmedActive: string = debouncedSearchText.trim();
+    const isExpanded: boolean =
+      isSearchExpanded || trimmedActive.length > 0 || selectedLabels.length > 0;
+
+    const { main, rest }: FindMainButtonResult =
+      splitButtonsForHeader(cardButtons);
+    const moreMenu: ReactElement | null = renderMoreMenu(rest);
+
+    const wrapped: ReactElement = (
+      <div key="model-table-header-actions" className="flex items-center gap-3">
+        {/*
+         * Search slot — a compact pill showing "Search …    /" by default,
+         * grown into the full search bar when expanded. Always advertising
+         * itself (rather than starting as a tiny icon) reads as a more
+         * polished search affordance, in line with Stripe / Linear / GitHub.
+         */}
+        <div
+          className={`relative shrink-0 transition-[width] duration-300 ease-out ${
+            isExpanded ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]" : "w-44 sm:w-56"
+          }`}
+        >
+          {/* Trigger (collapsed state) */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchExpanded(true);
+              requestAnimationFrame(() => {
+                searchInputRef.current?.focus();
+              });
+            }}
+            title="Search (/)"
+            aria-label="Open search"
+            tabIndex={isExpanded ? -1 : 0}
+            className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
+              isExpanded
+                ? "pointer-events-none border-gray-200 opacity-0"
+                : "border-gray-200 opacity-100 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <Icon
+              icon={IconProp.Search}
+              className="h-4 w-4 flex-none text-gray-400"
+            />
+            <span className="flex-1 truncate text-left text-gray-400">
+              Search…
+            </span>
+            <kbd className="hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
+              /
+            </kbd>
+          </button>
+
+          {/* Expanded search bar */}
+          <div
+            className={`transition-opacity duration-200 ease-out ${
+              isExpanded
+                ? "opacity-100 delay-150"
+                : "pointer-events-none opacity-0"
+            }`}
+          >
+            {getSearchControl()}
+          </div>
+        </div>
+
+        {/*
+         * Buttons that collapse when the bar expands. We avoid
+         * `overflow-hidden` here — the MoreMenu dropdown is an absolutely
+         * positioned child of one of these buttons and would otherwise get
+         * clipped by an `overflow-hidden` ancestor, leaving the user with
+         * an apparent "no menu appears" bug when they click ⋯. The wrapper
+         * is hidden via opacity + pointer-events instead, and its width
+         * collapses by setting both `max-width` and `gap` to 0 so the
+         * search slot to the left can grow into the freed space.
+         */}
+        <div
+          className={`flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 ${
+            isExpanded
+              ? "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none"
+              : "max-w-[600px] gap-3 opacity-100"
+          }`}
+          aria-hidden={isExpanded}
+        >
+          {savedViewsElement}
+          {main && renderMainButton(main)}
+          {moreMenu}
+        </div>
+      </div>
+    );
+
+    return [wrapped];
+  };
+
+  /*
+   * Title slot stays unchanged — the search bar lives in the buttons row.
+   * The wrapping function is kept for symmetry / future styling but is a
+   * pass-through today.
+   */
+  type GetCardHeaderTitleFunction = (
+    originalTitle: ReactElement,
+  ) => ReactElement;
+
+  const getCardHeaderTitle: GetCardHeaderTitleFunction = (
+    originalTitle: ReactElement,
+  ): ReactElement => {
+    return originalTitle;
+  };
+
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
+    const headerButtons: Array<CardButtonSchema | ReactElement> =
+      getHeaderButtonsWithSearch();
+
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
       return (
         <div>
           {props.cardProps && (
             <Card
               {...props.cardProps}
-              buttons={cardButtons}
+              buttons={headerButtons}
               bodyClassName={
                 showAs === ShowAs.List
                   ? "-ml-6 -mr-6 bg-gray-50 border-top"
                   : ""
               }
-              title={getCardTitle(props.cardProps.title || "")}
+              title={getCardHeaderTitle(
+                getCardTitle(props.cardProps.title || ""),
+              )}
             >
               {tableColumns.length === 0 && props.columns.length > 0 ? (
                 <ErrorMessage
@@ -2011,6 +3022,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             </Card>
           )}
 
+          {/*
+           * For card-less tables we expose the search beside the table header
+           * via a thin right-aligned row.
+           */}
+          {!props.cardProps &&
+          (showAs === ShowAs.Table || showAs === ShowAs.List) &&
+          props.searchableFields &&
+          props.searchableFields.length > 0 ? (
+            <div className="mb-3 flex justify-end">{getSearchControl()}</div>
+          ) : (
+            <></>
+          )}
           {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
           {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
         </div>
@@ -2022,7 +3045,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         {props.cardProps && (
           <Card
             {...props.cardProps}
-            buttons={cardButtons}
+            buttons={headerButtons}
             title={getCardTitle(props.cardProps.title || "")}
           >
             {getOrderedStatesList()}

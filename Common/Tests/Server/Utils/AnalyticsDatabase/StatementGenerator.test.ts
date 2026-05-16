@@ -18,6 +18,7 @@ import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
 
@@ -322,6 +323,41 @@ describe("StatementGenerator", () => {
         expect(statement.query).toContain("arrayExists");
         expect(statement.query).toContain("lowerUTF8");
         expect(statement.query).toContain("ILIKE");
+      });
+
+      test("emits direct map subscript IN(...) for Includes wrapper", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: {
+            "k8s.cluster.name": new Includes(["prod-east", "prod-west"]),
+          },
+        } as any);
+        /*
+         * Multi-value dashboard variables emit Includes on a map column;
+         * the generator must produce an O(1) Map subscript followed by
+         * IN, matching the fast-path used for bare-value equality.
+         */
+        expect(statement.query).toBe(
+          "AND {p0:Identifier}[{p1:String}] IN {p2:Array(String)}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "attributes",
+          p1: "k8s.cluster.name",
+          p2: ["prod-east", "prod-west"],
+        });
+      });
+
+      test("drops empty Includes wrapper instead of producing IN ()", () => {
+        const statement: Statement = mapGenerator.toWhereStatement({
+          attributes: {
+            "k8s.cluster.name": new Includes([]),
+          },
+        } as any);
+        /*
+         * An empty multi-select is the user's "All" — must not emit
+         * `IN ()` (which ClickHouse treats as match-nothing).
+         */
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
       });
     });
   });

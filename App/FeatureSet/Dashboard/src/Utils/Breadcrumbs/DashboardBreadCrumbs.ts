@@ -5,6 +5,10 @@ import Link from "Common/Types/Link";
 
 export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS, [
+      "Project",
+      "Dashboards",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW, [
       "Project",
       "Dashboards",
@@ -34,6 +38,24 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "Dashboards",
       "View Dashboard",
       "Branding",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_OWNERS, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Dashboards",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Dashboards",
+      "Settings",
+      "Label Rules",
     ]),
   };
   return breadcrumpLinksMap[path];

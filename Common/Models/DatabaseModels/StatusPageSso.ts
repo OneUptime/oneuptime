@@ -6,6 +6,7 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -65,6 +66,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Lock,
   tableDescription: "Configure Status Page SSO",
 })
+@OwnedThrough("statusPageId", StatusPage)
 @Entity({
   name: "StatusPageSSO",
 })
@@ -143,7 +145,8 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSSO,
     ],
     read: [
@@ -151,7 +154,9 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSSO,
       Permission.ReadAllProjectResources,
     ],
@@ -184,7 +189,8 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
       Permission.CreateStatusPageSSO,
     ],
     read: [
@@ -192,7 +198,9 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.StatusPageManager,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
       Permission.ReadStatusPageSSO,
       Permission.ReadAllProjectResources,
     ],

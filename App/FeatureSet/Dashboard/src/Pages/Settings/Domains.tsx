@@ -107,6 +107,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
           domainVerificationText: true,
         }}
         showRefreshButton={true}
+        searchableFields={["domain"]}
         filters={[
           {
             field: {

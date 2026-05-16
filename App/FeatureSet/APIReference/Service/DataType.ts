@@ -2,6 +2,7 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -12,9 +13,10 @@ const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 
 export default class ServiceHandler {
   public static async executeResponse(
-    _req: ExpressRequest,
+    req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     const pageData: Dictionary<unknown> = {};
 
     pageData["selectCode"] = await LocalCache.getOrSetString(
@@ -150,13 +152,16 @@ export default class ServiceHandler {
     res.status(200);
     return res.render(`${ViewsPath}/pages/index`, {
       page: "data-types",
-      pageTitle: "Data Types",
+      pageTitle: ctx.t("pages.dataTypesGuide.metaTitle"),
       enableGoogleTagManager: IsBillingEnabled,
-      pageDescription:
-        "Data Types that can be used to interact with OneUptime API",
+      pageDescription: ctx.t("pages.dataTypesGuide.metaDescription"),
       resources: Resources,
       dataTypes: DataTypes,
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

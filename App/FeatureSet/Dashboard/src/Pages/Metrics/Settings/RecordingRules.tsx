@@ -143,6 +143,7 @@ const MetricRecordingRules: FunctionComponent<
         },
       ]}
       showRefreshButton={true}
+      searchableFields={["name", "description"]}
       showViewIdButton={true}
       filters={[
         {

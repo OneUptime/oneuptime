@@ -19,6 +19,8 @@ import DockerHostOwners from "../Pages/Docker/View/Owners";
 import DockerHostSettings from "../Pages/Docker/View/Settings";
 import DockerHostDelete from "../Pages/Docker/View/Delete";
 import DockerHostDocumentation from "../Pages/Docker/View/Documentation";
+import DockerSettingsOwnerRules from "../Pages/Docker/Settings/OwnerRules";
+import DockerSettingsLabelRules from "../Pages/Docker/Settings/LabelRules";
 
 const DockerRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -41,6 +43,24 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={DockerRoutePath[PageMap.DOCKER_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <DockerSettingsOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <DockerSettingsLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_SETTINGS_LABEL_RULES] as Route}
             />
           }
         />

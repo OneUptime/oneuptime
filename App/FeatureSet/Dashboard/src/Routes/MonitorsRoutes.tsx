@@ -58,6 +58,14 @@ import MonitorSettingsTemplates from "../Pages/Monitor/Settings/MonitorTemplates
 
 import MonitorSettingsTemplatesView from "../Pages/Monitor/Settings/MonitorTemplatesView";
 
+import MonitorSettingsOwnerRules from "../Pages/Monitor/Settings/MonitorOwnerRules";
+
+import MonitorSettingsLabelRules from "../Pages/Monitor/Settings/MonitorLabelRules";
+
+import MonitorSettingsProbes from "../Pages/Monitor/Settings/MonitorProbes";
+
+import MonitorSettingsProbeView from "../Pages/Monitor/Settings/MonitorProbeView";
+
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -218,6 +226,52 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <MonitorSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <MonitorSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBES] || ""}
+          element={
+            <MonitorSettingsProbes
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBE_VIEW] || ""}
+          element={
+            <MonitorSettingsProbeView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITORS_SETTINGS_PROBE_VIEW] as Route
               }
             />
           }

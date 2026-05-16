@@ -138,6 +138,44 @@ export default class QueryHelper {
     );
   }
 
+  /**
+   * Searches the provided entity property names with a single OR-joined ILIKE.
+   *
+   * IMPORTANT: emit unquoted `alias.propertyName` references and let
+   * TypeORM's `replacePropertyNamesForTheWholeQuery` post-processor escape
+   * the table alias and translate property names → DB column names. Pre-
+   * quoting (e.g. `Incident."title"`) bypasses that pass, which leaves an
+   * unquoted `Incident` in the final SQL — Postgres then lowercases it and
+   * fails with `missing FROM-clause entry for table "incident"`.
+   */
+  @CaptureSpan()
+  public static multiSearch(
+    entityPropertyNames: Array<string>,
+    value: string,
+  ): FindWhereProperty<any> {
+    const trimmed: string = value.toLowerCase().trim();
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        const tableAlias: string = alias.includes(".")
+          ? (alias.split(".")[0] as string)
+          : alias;
+
+        const orConditions: string = entityPropertyNames
+          .map((field: string) => {
+            return `(CAST(${tableAlias}.${field} AS TEXT) ILIKE :${rid})`;
+          })
+          .join(" OR ");
+
+        return `(${orConditions})`;
+      },
+      {
+        [rid]: `%${trimmed}%`,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static notContains(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();

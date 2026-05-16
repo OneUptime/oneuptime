@@ -39,6 +39,7 @@ export interface ComponentProps {
   modalWidth?: ModalWidth | undefined;
   rightElement?: ReactElement | undefined;
   closeButtonText?: string | undefined;
+  leftFooterElement?: ReactElement | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -241,6 +242,7 @@ const Modal: FunctionComponent<ComponentProps> = (
               disableSubmitButton={
                 props.isBodyLoading || props.disableSubmitButton
               }
+              leftFooterElement={props.leftFooterElement}
             />
           </div>
         </div>

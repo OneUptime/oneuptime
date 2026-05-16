@@ -492,6 +492,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={props.noItemsMessage || "No monitors found."}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.MONITORS]!,
         )}

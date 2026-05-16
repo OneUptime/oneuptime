@@ -65,7 +65,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     } else if (size === SizeProp.Five) {
       sizeClassName = "h-5 w-5";
     } else if (size === SizeProp.Regular) {
-      sizeClassName = "h4 w4";
+      sizeClassName = "h-4 w-4";
     }
   }
 

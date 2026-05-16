@@ -3,6 +3,12 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import CountBy from "../Types/Database/CountBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -12,6 +18,7 @@ import IncidentFeed, {
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
+import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<IncidentFeed> {
@@ -21,6 +28,50 @@ export class Service extends DatabaseService<IncidentFeed> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<IncidentFeed>,
+  ): Promise<OnFind<IncidentFeed>> {
+    findBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      findBy.query,
+      findBy.props,
+    );
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<IncidentFeed>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<IncidentFeed>,
+  ): Promise<OnUpdate<IncidentFeed>> {
+    updateBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<IncidentFeed>,
+  ): Promise<OnDelete<IncidentFeed>> {
+    deleteBy.query = applyIncidentRelatedRecordPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()

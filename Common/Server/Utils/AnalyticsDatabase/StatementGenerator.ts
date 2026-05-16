@@ -20,6 +20,7 @@ import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -29,6 +30,7 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -356,6 +358,57 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     let first: boolean = true;
     for (const key in query) {
       const value: any = query[key];
+
+      /*
+       * MultiSearch is a synthetic operator that fans out into an ILIKE OR
+       * across multiple columns — it does not correspond to `key` itself, so
+       * we resolve column metadata per field below.
+       */
+      if (value instanceof MultiSearch) {
+        const ms: MultiSearch = value;
+        if (!ms.value || ms.fields.length === 0) {
+          continue;
+        }
+
+        const resolvedColumns: Array<AnalyticsTableColumn> = [];
+        for (const field of ms.fields) {
+          const col: AnalyticsTableColumn | null =
+            this.model.getTableColumn(field);
+          if (col) {
+            resolvedColumns.push(col);
+          }
+        }
+
+        if (resolvedColumns.length === 0) {
+          continue;
+        }
+
+        if (first) {
+          first = false;
+          whereStatement.append(SQL`AND (`);
+        } else {
+          whereStatement.append(SQL` AND (`);
+        }
+
+        let isFirstCol: boolean = true;
+        for (const col of resolvedColumns) {
+          if (isFirstCol) {
+            isFirstCol = false;
+          } else {
+            whereStatement.append(SQL` OR `);
+          }
+          whereStatement.append(
+            SQL`${col.key} ILIKE ${{
+              value: new Search<string>(ms.value),
+              type: col.type,
+            }}`,
+          );
+        }
+
+        whereStatement.append(SQL`)`);
+        continue;
+      }
+
       const tableColumn: AnalyticsTableColumn | null =
         this.model.getTableColumn(key);
 
@@ -654,6 +707,34 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}]) <= ${{
                 value: Number((mapEntry as LessThanOrEqual<any>).value),
                 type: TableColumnType.Number,
+              }}`,
+            );
+            continue;
+          }
+
+          /*
+           * Multi-value selection (dashboard variables, ad-hoc filters):
+           * an empty `Includes` would expand to `IN ()`, which ClickHouse
+           * treats as "match nothing" and is never the user's intent
+           * here — skip the predicate instead so a cleared multi-select
+           * behaves like "All".
+           */
+          if (mapEntry instanceof Includes) {
+            const includesValues: Array<string> = (
+              (mapEntry as Includes).values || []
+            ).map((v: string | ObjectID | number) => {
+              return String(v);
+            });
+            if (includesValues.length === 0) {
+              continue;
+            }
+            whereStatement.append(
+              SQL`AND ${key}[${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}] IN ${{
+                value: new Includes(includesValues),
+                type: TableColumnType.Text,
               }}`,
             );
             continue;

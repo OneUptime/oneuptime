@@ -128,6 +128,19 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Secrets",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_PROBES, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Probes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_PROBE_VIEW, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Probes",
+      "View Probe",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

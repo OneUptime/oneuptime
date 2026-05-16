@@ -2,10 +2,10 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
 
-// Retrieve resources documentation
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 
@@ -14,26 +14,21 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    let pageTitle: string = "";
-    let pageDescription: string = "";
-
-    // Extract page parameter from request
-    const page: string | undefined = req.params["page"];
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     const pageData: Dictionary<unknown> = {};
 
-    // Set default page title and description for the authentication page
-    pageTitle = "Authentication";
-    pageDescription = "Learn how to authenticate requests with OneUptime API";
-
-    // Render the index page with the specified parameters
     return res.render(`${ViewsPath}/pages/index`, {
-      page: page,
+      page: "authentication",
       resources: Resources,
       dataTypes: DataTypes,
-      pageTitle: pageTitle,
+      pageTitle: ctx.t("pages.authentication.metaTitle"),
       enableGoogleTagManager: IsBillingEnabled,
-      pageDescription: pageDescription,
+      pageDescription: ctx.t("pages.authentication.metaDescription"),
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

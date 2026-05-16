@@ -147,6 +147,13 @@
       "managePrompt": "कृपया वह Microsoft Teams कार्यक्षेत्र का नाम दर्ज करें जिससे आपने सदस्यता ली है",
       "manageDescription": "हम इस कार्यक्षेत्र पर एक प्रबंधन लिंक भेजेंगे।"
     },
+    "webhook": {
+      "title": "वेबहुक के माध्यम से सदस्यता लें",
+      "description": "हमारे सभी अपडेट इस वेबहुक URL पर JSON POST अनुरोधों के रूप में भेजे जाएँगे।",
+      "webhookUrl": "वेबहुक URL",
+      "webhookUrlDescription": "प्रत्येक स्थिति पृष्ठ ईवेंट पर इस URL को एक JSON POST अनुरोध भेजा जाएगा।",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "सभी संसाधनों की सदस्यता लें",
       "allDescription": "यदि आप सभी संसाधनों की सदस्यता लेना चाहते हैं तो यह विकल्प चुनें।",

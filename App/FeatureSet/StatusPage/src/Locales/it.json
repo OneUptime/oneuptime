@@ -147,6 +147,13 @@
       "managePrompt": "Inserisci il nome dell'area di lavoro Microsoft Teams con cui ti sei iscritto",
       "manageDescription": "Ti invieremo un link per gestire l'iscrizione a quest'area di lavoro."
     },
+    "webhook": {
+      "title": "Iscriviti tramite webhook",
+      "description": "Tutti i nostri aggiornamenti saranno inviati come richieste JSON POST a questo URL webhook.",
+      "webhookUrl": "URL del webhook",
+      "webhookUrlDescription": "A ogni evento della pagina di stato verrà inviata una richiesta JSON POST a questo URL.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Iscriviti a tutte le risorse",
       "allDescription": "Seleziona questa opzione se desideri iscriverti a tutte le risorse.",

@@ -1,13 +1,16 @@
 import DatabaseService from "./DatabaseService";
+import HostLabelRuleEngineService from "./HostLabelRuleEngineService";
+import HostOwnerRuleEngineService from "./HostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Host";
 import Label from "../../Models/DatabaseModels/Label";
+import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
@@ -19,6 +22,37 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (createdItem.projectId && createdItem.id) {
+      /*
+       * Run label rule first so rule-added labels are persisted before
+       * owner rules run. Owner rules re-fetch labels, so this lets owner
+       * rules key on rule-added labels.
+       */
+      Promise.resolve()
+        .then(async () => {
+          await HostLabelRuleEngineService.applyRulesToHost(createdItem);
+        })
+        .then(async () => {
+          await HostOwnerRuleEngineService.applyRulesToHost(createdItem);
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying host rules in HostService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              hostId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   @CaptureSpan()

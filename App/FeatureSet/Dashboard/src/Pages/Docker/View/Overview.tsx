@@ -90,10 +90,6 @@ const DockerHostOverview: FunctionComponent<
           lastSeenAt: true,
           osType: true,
           osVersion: true,
-          labels: {
-            name: true,
-            color: true,
-          },
         },
       });
 
@@ -282,8 +278,6 @@ const DockerHostOverview: FunctionComponent<
     const hostIdentifier: string =
       (host.hostIdentifier as string | undefined) || "";
 
-    const labelList: Array<Label> = (host["labels"] as Array<Label>) || [];
-
     const specChips: Array<{
       icon: IconProp;
       label: string;
@@ -336,7 +330,10 @@ const DockerHostOverview: FunctionComponent<
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-4 min-w-0">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
-                  <Icon icon={IconProp.Cube} className="h-6 w-6 text-sky-600" />
+                  <Icon
+                    icon={IconProp.Docker}
+                    className="h-6 w-6 text-sky-600"
+                  />
                 </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -385,12 +382,6 @@ const DockerHostOverview: FunctionComponent<
                     );
                   },
                 )}
-              </div>
-            )}
-
-            {labelList.length > 0 && (
-              <div className="mt-3 border-t border-gray-100 pt-3">
-                <LabelsElement labels={labelList} />
               </div>
             )}
           </div>

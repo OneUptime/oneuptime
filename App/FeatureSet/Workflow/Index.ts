@@ -1,5 +1,6 @@
 import ComponentCodeAPI from "./API/ComponentCode";
 import ManualAPI from "./API/Manual";
+import ModelSchemaAPI from "./API/ModelSchema";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
 import { JSONObject } from "Common/Types/JSON";
@@ -24,6 +25,8 @@ const WorkflowFeatureSet: FeatureSet = {
       const app: ExpressApplication = Express.getExpressApp();
 
       app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
+
+      app.use(`/${APP_NAME}`, new ModelSchemaAPI().router);
 
       app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 

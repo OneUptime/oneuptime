@@ -62,6 +62,7 @@ export interface MonitorStepType {
 
   // this is used for API and Website monitor
   doNotFollowRedirects?: boolean | undefined;
+  allowSelfSignedCertificates?: boolean | undefined;
 
   // this is for port monitors.
   monitorDestinationPort?: Port | undefined;
@@ -120,6 +121,7 @@ export default class MonitorStep extends DatabaseProperty {
       id: ObjectID.generate().toString(),
       monitorDestination: undefined,
       doNotFollowRedirects: undefined,
+      allowSelfSignedCertificates: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: new MonitorCriteria(),
       requestType: HTTPMethod.GET,
@@ -157,6 +159,7 @@ export default class MonitorStep extends DatabaseProperty {
       id: ObjectID.generate().toString(),
       monitorDestination: undefined,
       doNotFollowRedirects: undefined,
+      allowSelfSignedCertificates: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
       requestType: HTTPMethod.GET,
@@ -218,6 +221,13 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setDoNotFollowRedirects(doNotFollowRedirects: boolean): MonitorStep {
     this.data!.doNotFollowRedirects = doNotFollowRedirects;
+    return this;
+  }
+
+  public setAllowSelfSignedCertificates(
+    allowSelfSignedCertificates: boolean,
+  ): MonitorStep {
+    this.data!.allowSelfSignedCertificates = allowSelfSignedCertificates;
     return this;
   }
 
@@ -329,6 +339,7 @@ export default class MonitorStep extends DatabaseProperty {
         id: ObjectID.generate().toString(),
         monitorDestination: undefined,
         doNotFollowRedirects: undefined,
+        allowSelfSignedCertificates: undefined,
         monitorDestinationPort: undefined,
         monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
         requestType: HTTPMethod.GET,
@@ -484,6 +495,8 @@ export default class MonitorStep extends DatabaseProperty {
           monitorDestination:
             this.data?.monitorDestination?.toJSON() || undefined,
           doNotFollowRedirects: this.data.doNotFollowRedirects || undefined,
+          allowSelfSignedCertificates:
+            this.data.allowSelfSignedCertificates || undefined,
           monitorDestinationPort:
             this.data?.monitorDestinationPort?.toJSON() || undefined,
           monitorCriteria: this.data.monitorCriteria.toJSON(),
@@ -619,6 +632,8 @@ export default class MonitorStep extends DatabaseProperty {
       id: json["id"] as string,
       monitorDestination: monitorDestination || undefined,
       doNotFollowRedirects: json["doNotFollowRedirects"] || undefined,
+      allowSelfSignedCertificates:
+        json["allowSelfSignedCertificates"] || undefined,
       monitorDestinationPort: monitorDestinationPort || undefined,
       monitorCriteria: MonitorCriteria.fromJSON(
         json["monitorCriteria"] as JSONObject,
@@ -681,6 +696,7 @@ export default class MonitorStep extends DatabaseProperty {
         requestHeaders: Zod.any().optional(),
         requestBody: Zod.string().optional(),
         doNotFollowRedirects: Zod.boolean().optional(),
+        allowSelfSignedCertificates: Zod.boolean().optional(),
         monitorDestinationPort: Zod.any().optional(),
         customCode: Zod.string().optional(),
         screenSizeTypes: Zod.any().optional(),

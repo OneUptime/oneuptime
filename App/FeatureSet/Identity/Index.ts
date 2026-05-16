@@ -1,9 +1,11 @@
 import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
 import SsoAPI from "./API/SSO";
+import OidcAPI from "./API/OIDC";
 import SCIMAPI from "./API/SCIM";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
+import StatusPageOidcAPI from "./API/StatusPageOIDC";
 import StatusPageSCIMAPI from "./API/StatusPageSCIM";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -21,11 +23,15 @@ const IdentityFeatureSet: FeatureSet = {
 
     app.use([`/${APP_NAME}`, "/"], SsoAPI);
 
+    app.use([`/${APP_NAME}`, "/"], OidcAPI);
+
     app.use([`/${APP_NAME}`, "/"], SCIMAPI);
 
     app.use([`/${APP_NAME}`, "/"], StatusPageSCIMAPI);
 
     app.use([`/${APP_NAME}`, "/"], StatusPageSsoAPI);
+
+    app.use([`/${APP_NAME}`, "/"], StatusPageOidcAPI);
 
     app.use(
       [`/${APP_NAME}/status-page`, "/status-page"],

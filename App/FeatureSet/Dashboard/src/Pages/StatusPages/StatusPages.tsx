@@ -64,6 +64,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: "all-status-pages-table",
         }}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {

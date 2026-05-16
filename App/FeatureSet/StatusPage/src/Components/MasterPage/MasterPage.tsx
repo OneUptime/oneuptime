@@ -44,6 +44,8 @@ export interface ComponentProps {
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
   enableSlackSubscribers?: boolean;
+  enableMicrosoftTeamsSubscribers?: boolean;
+  enableWebhookSubscribers?: boolean;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -311,6 +313,10 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             enableEmailSubscribers={props.enableEmailSubscribers}
             enableSMSSubscribers={props.enableSMSSubscribers}
             enableSlackSubscribers={props.enableSlackSubscribers || false}
+            enableMicrosoftTeamsSubscribers={
+              props.enableMicrosoftTeamsSubscribers || false
+            }
+            enableWebhookSubscribers={props.enableWebhookSubscribers || false}
             showIncidentsOnStatusPage={
               statusPage?.showIncidentsOnStatusPage || false
             }

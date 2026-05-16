@@ -94,7 +94,8 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasAdvancedOptions: boolean = Boolean(
     criteriaIncident.autoResolveIncident ||
       criteriaIncident.remediationNotes ||
-      criteriaIncident.showIncidentOnStatusPage === false,
+      criteriaIncident.showIncidentOnStatusPage === false ||
+      criteriaIncident.isPrivate === true,
   );
   const hasIncidentTeam: boolean = Boolean(
     criteriaIncident.incidentMemberRoles?.length,
@@ -545,6 +546,17 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               description="When disabled, this incident will not be visible on your public status pages"
               onChange={(value: boolean) => {
                 updateField("showIncidentOnStatusPage", value);
+              }}
+            />
+          </div>
+
+          <div>
+            <Checkbox
+              value={criteriaIncident.isPrivate === true}
+              title="Private Incident"
+              description="When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages."
+              onChange={(value: boolean) => {
+                updateField("isPrivate", value);
               }}
             />
           </div>

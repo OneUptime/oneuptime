@@ -12,6 +12,7 @@ export interface CriteriaAlert {
   labelIds?: Array<ObjectID> | undefined;
   ownerTeamIds?: Array<ObjectID> | undefined;
   ownerUserIds?: Array<ObjectID> | undefined;
+  isPrivate?: boolean | undefined;
 }
 
 export const CriteriaAlertSchema: ZodSchema = Zod.object({
@@ -25,4 +26,5 @@ export const CriteriaAlertSchema: ZodSchema = Zod.object({
   labelIds: Zod.array(Zod.any()).optional(),
   ownerTeamIds: Zod.array(Zod.any()).optional(),
   ownerUserIds: Zod.array(Zod.any()).optional(),
+  isPrivate: Zod.boolean().optional(),
 });

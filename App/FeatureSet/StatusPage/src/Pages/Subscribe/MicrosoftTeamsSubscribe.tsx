@@ -274,6 +274,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           enableMicrosoftTeamsSubscribers={
             props.enableMicrosoftTeamsSubscribers
           }
+          enableWebhookSubscribers={props.enableWebhookSubscribers}
         />
       }
     >

@@ -1,6 +1,7 @@
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import {
   PermissionGroup,
   PermissionHelper,
@@ -18,25 +19,14 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    // Initialize page title and description
-    let pageTitle: string = "";
-    let pageDescription: string = "";
-
-    // Get the requested page
-    const page: string | undefined = req.params["page"];
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     const pageData: Dictionary<unknown> = {};
 
-    // Set page title and description
-    pageTitle = "Permissions";
-    pageDescription = "Learn how permissions work with OneUptime";
-
-    // Filter permissions to only include those assignable to tenants
     const tenantPermissions: Array<PermissionProps> =
       PermissionHelper.getAllPermissionProps().filter((i: PermissionProps) => {
         return i.isAssignableToTenant;
       });
 
-    // Group permissions by PermissionGroup
     const permissionGroups: Array<{
       group: string;
       permissions: Array<PermissionProps>;
@@ -59,15 +49,18 @@ export default class ServiceHandler {
 
     pageData["permissionGroups"] = permissionGroups;
 
-    // Render the page
     return res.render(`${ViewsPath}/pages/index`, {
-      page: page,
+      page: "permissions",
       resources: Resources,
       dataTypes: DataTypes,
-      pageTitle: pageTitle,
+      pageTitle: ctx.t("pages.permissions.metaTitle"),
       enableGoogleTagManager: IsBillingEnabled,
-      pageDescription: pageDescription,
+      pageDescription: ctx.t("pages.permissions.metaDescription"),
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

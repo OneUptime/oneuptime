@@ -253,6 +253,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
         showRefreshButton={true}
+        searchableFields={["title", "description"]}
         showViewIdButton={true}
         saveFilterProps={props.saveFilterProps}
         viewPageRoute={RouteUtil.populateRouteParams(

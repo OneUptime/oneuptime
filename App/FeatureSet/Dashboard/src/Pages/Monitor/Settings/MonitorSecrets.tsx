@@ -128,6 +128,7 @@ const MonitorSecrets: FunctionComponent<
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         filters={[
           {
             field: {

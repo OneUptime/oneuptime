@@ -1,10 +1,12 @@
-<html lang="en" class="h-full antialiased light scroll-smooth"
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased light scroll-smooth"
     style="color-scheme: light;">
 
 <head>
     <%- include('./Partials/Head.ejs', {
         enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
-        link: typeof link !== 'undefined' ? link : null
+        link: typeof link !== 'undefined' ? link : null,
+        t: t,
+        lang: lang
     }) %>
     <style>
         /* Custom scrollbar for sidebar */
@@ -41,17 +43,22 @@
     <div id="scroll-progress" class="scroll-progress" style="width: 0%;"></div>
 
     <div class="flex w-full flex-col">
-        <%- include('./Partials/Header.ejs') %>
+        <%- include('./Partials/Header.ejs', {
+            t: t,
+            lang: lang,
+            supportedLanguages: supportedLanguages,
+            currentPath: typeof currentPath !== 'undefined' ? currentPath : ''
+        }) %>
 
         <!-- Mobile top bar with menu button -->
         <div class="flex items-center justify-between lg:hidden border-b border-slate-200/80 px-4 py-3 bg-slate-50/50">
-            <button aria-label="Open navigation"
+            <button aria-label="<%= t('ui.openNavigation') %>"
                     data-mobile-menu-open
                     class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 active:scale-[.98] transition-all">
                 <svg class="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                     <path d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
-                Menu
+                <%- t('ui.menu') %>
             </button>
             <h1 class="text-sm font-medium text-slate-600 truncate max-w-[200px]"><%- link.title %></h1>
         </div>
@@ -63,8 +70,8 @@
         <aside data-mobile-menu-drawer
                class="fixed inset-y-0 left-0 z-50 w-80 max-w-[calc(100vw-3rem)] overflow-y-auto bg-white px-6 py-6 shadow-2xl ring-1 ring-slate-900/10 lg:hidden transform transition-transform ease-out duration-300 -translate-x-full">
             <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
-                <span class="text-base font-semibold text-slate-900">Documentation</span>
-                <button aria-label="Close navigation"
+                <span class="text-base font-semibold text-slate-900"><%- t('ui.documentation') %></span>
+                <button aria-label="<%= t('ui.closeNavigation') %>"
                         data-mobile-menu-close
                         class="rounded-lg p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -72,7 +79,7 @@
                     </svg>
                 </button>
             </div>
-            <%- include('./Partials/Nav.ejs') %>
+            <%- include('./Partials/Nav.ejs', { nav: nav, category: category, link: link, t: t, lang: lang }) %>
         </aside>
 
         <!-- Main content area: 3-column layout on xl -->
@@ -81,20 +88,21 @@
             <div class="hidden lg:relative lg:block lg:flex-none">
                 <div class="absolute inset-y-0 right-0 w-[50vw] bg-gradient-to-r from-slate-50 to-slate-50/0"></div>
                 <div class="sticky top-[3.5rem] -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-8 xl:w-72 xl:pr-12 custom-scrollbar">
-                    <%- include('./Partials/Nav.ejs') %>
+                    <%- include('./Partials/Nav.ejs', { nav: nav, category: category, link: link, t: t, lang: lang }) %>
                 </div>
             </div>
 
             <!-- Article content (center) -->
             <div class="min-w-0 max-w-2xl flex-auto px-4 py-8 md:py-10 lg:py-12 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
-                <%- include('./Partials/Content.ejs', { category: category, link: link, content: content }) %>
+                <%- include('./Partials/Content.ejs', { category: category, link: link, content: content, t: t, lang: lang }) %>
 
                 <%- include('./Partials/Pagination.ejs', {
                     prevLink: typeof prevLink !== 'undefined' ? prevLink : null,
-                    nextLink: typeof nextLink !== 'undefined' ? nextLink : null
+                    nextLink: typeof nextLink !== 'undefined' ? nextLink : null,
+                    t: t
                 }) %>
 
-                <%- include('./Partials/OpenSourceCommitment.ejs', { githubPath: githubPath }) %>
+                <%- include('./Partials/OpenSourceCommitment.ejs', { githubPath: githubPath, t: t, lang: lang }) %>
 
                 <!-- Footer spacing -->
                 <div class="h-16"></div>
@@ -103,7 +111,7 @@
             <!-- TOC sidebar (right) - visible on xl only -->
             <div class="hidden xl:block xl:flex-none xl:w-56 2xl:w-64">
                 <div class="toc-sidebar py-12 pl-6" id="toc-sidebar">
-                    <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-900 mb-4">On This Page</h4>
+                    <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-900 mb-4"><%- t('ui.onThisPage') %></h4>
                     <ul id="toc-list" class="space-y-0.5">
                         <!-- Populated by JS -->
                     </ul>
@@ -119,17 +127,26 @@
             <svg class="h-5 w-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
-            <input id="search-input" type="text" placeholder="Search documentation..." class="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 placeholder-slate-400" autocomplete="off">
+            <input id="search-input" type="text" placeholder="<%= t('ui.searchPlaceholder') %>" class="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 placeholder-slate-400" autocomplete="off">
             <kbd class="hidden sm:inline-flex items-center rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">ESC</kbd>
         </div>
         <div id="search-results" class="search-results">
             <div id="search-empty" class="px-4 py-8 text-center text-sm text-slate-500">
-                Type to search documentation...
+                <%- t('ui.searchTypeToSearch') %>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
+    <script>
+        // Strings injected from server-side translations so the JS in this
+        // page does not need its own i18n bundle.
+        window.__docsI18n = {
+            typeToSearch: <%- JSON.stringify(t('ui.searchTypeToSearch')) %>,
+            noResultsPrefix: <%- JSON.stringify(t('ui.searchNoResults').split('{{')[0]) %>,
+            noResultsSuffix: <%- JSON.stringify(t('ui.searchNoResults').split('}}')[1] || '') %>
+        };
+    </script>
     <script>
         (function(){
             // === Mobile menu toggle ===
@@ -254,9 +271,9 @@
             <% for(var i=0; i<nav.length; i++) { %>
                 <% for(var j=0; j<nav[i].links.length; j++) { %>
                     searchIndex.push({
-                        title: '<%= nav[i].links[j].title.replace(/'/g, "\\'") %>',
-                        url: '<%= nav[i].links[j].url %>',
-                        category: '<%= nav[i].title.replace(/'/g, "\\'") %>'
+                        title: <%- JSON.stringify(nav[i].links[j].title) %>,
+                        url: <%- JSON.stringify(nav[i].links[j].url) %>,
+                        category: <%- JSON.stringify(nav[i].title) %>
                     });
                 <% } %>
             <% } %>
@@ -281,7 +298,7 @@
             function renderSearchResults(query){
                 var q = query.toLowerCase().trim();
                 if(!q){
-                    searchResults.innerHTML = '<div class="px-4 py-8 text-center text-sm text-slate-500">Type to search documentation...</div>';
+                    searchResults.innerHTML = '<div class="px-4 py-8 text-center text-sm text-slate-500">' + window.__docsI18n.typeToSearch + '</div>';
                     highlightedIndex = -1;
                     return;
                 }
@@ -289,7 +306,8 @@
                     return item.title.toLowerCase().indexOf(q) !== -1 || item.category.toLowerCase().indexOf(q) !== -1;
                 });
                 if(matches.length === 0){
-                    searchResults.innerHTML = '<div class="px-4 py-8 text-center text-sm text-slate-500">No results found for "' + q.replace(/</g,'&lt;') + '"</div>';
+                    var msg = window.__docsI18n.noResultsPrefix + '"' + q.replace(/</g,'&lt;') + '"' + window.__docsI18n.noResultsSuffix;
+                    searchResults.innerHTML = '<div class="px-4 py-8 text-center text-sm text-slate-500">' + msg + '</div>';
                     highlightedIndex = -1;
                     return;
                 }
@@ -396,6 +414,18 @@
             // Initial calls
             updateScrollProgress();
             updateHeaderScroll();
+
+            // === Language switcher ===
+            var langSwitcher = document.getElementById('docs-language-switcher');
+            if(langSwitcher){
+                langSwitcher.addEventListener('change', function(){
+                    var nextLang = langSwitcher.value;
+                    var currentPath = langSwitcher.getAttribute('data-current-path') || '';
+                    // Replace the language segment in /docs/<lang>/... with the new one.
+                    var rewritten = currentPath.replace(/^\/docs\/[^/]+/, '/docs/' + nextLang);
+                    window.location.href = rewritten;
+                });
+            }
         })();
     </script>
 </body>

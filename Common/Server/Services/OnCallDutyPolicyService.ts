@@ -35,6 +35,8 @@ import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessa
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Green500 } from "../../Types/BrandColors";
+import OnCallDutyPolicyLabelRuleEngineService from "./OnCallDutyPolicyLabelRuleEngineService";
+import OnCallDutyPolicyOwnerRuleEngineService from "./OnCallDutyPolicyOwnerRuleEngineService";
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
   public constructor() {
@@ -47,6 +49,25 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
   ): Promise<OnCallDutyPolicy> {
     if (!createdItem.id) {
       throw new BadDataException("On Call Policy id not found.");
+    }
+
+    if (createdItem.projectId) {
+      try {
+        await OnCallDutyPolicyLabelRuleEngineService.applyRulesToOnCallDutyPolicy(
+          createdItem,
+        );
+        await OnCallDutyPolicyOwnerRuleEngineService.applyRulesToOnCallDutyPolicy(
+          createdItem,
+        );
+      } catch (error) {
+        logger.error(
+          `Error applying on-call duty policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
+          {
+            projectId: createdItem.projectId?.toString(),
+            onCallDutyPolicyId: createdItem.id?.toString(),
+          } as LogAttributes,
+        );
+      }
     }
 
     const onCallPolicy: OnCallDutyPolicy | null = await this.findOneById({

@@ -375,6 +375,10 @@ export default class MonitorIncident {
             criteriaIncident.showIncidentOnStatusPage;
         }
 
+        if (criteriaIncident.isPrivate === true) {
+          incident.isPrivate = true;
+        }
+
         if (input.props.telemetryQuery) {
           incident.telemetryQuery = input.props.telemetryQuery;
         }

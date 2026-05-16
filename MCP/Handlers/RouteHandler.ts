@@ -101,6 +101,47 @@ function setupRoutesForPrefix(
 }
 
 /**
+ * Returns true if the JSON-RPC body (single message or batch) contains a
+ * message with method === "initialize".
+ */
+function containsInitializeMessage(body: unknown): boolean {
+  if (!body) {
+    return false;
+  }
+  const messages: Array<unknown> = Array.isArray(body) ? body : [body];
+  return messages.some((msg: unknown) => {
+    return (
+      typeof msg === "object" &&
+      msg !== null &&
+      (msg as Record<string, unknown>)["method"] === "initialize"
+    );
+  });
+}
+
+/**
+ * Returns true if every message in the JSON-RPC body is a notification.
+ * Notifications expect no response and can be safely accepted with HTTP 202
+ * even without a session ID — several MCP clients send
+ * `notifications/initialized` without the session header.
+ */
+function isNotificationOnly(body: unknown): boolean {
+  if (!body) {
+    return false;
+  }
+  const messages: Array<unknown> = Array.isArray(body) ? body : [body];
+  if (messages.length === 0) {
+    return false;
+  }
+  return messages.every((msg: unknown) => {
+    if (typeof msg !== "object" || msg === null) {
+      return false;
+    }
+    const method: unknown = (msg as Record<string, unknown>)["method"];
+    return typeof method === "string" && method.startsWith("notifications/");
+  });
+}
+
+/**
  * Create the main MCP request handler
  */
 function createMCPHandler(): McpHandlerFunction {
@@ -126,8 +167,43 @@ function createMCPHandler(): McpHandlerFunction {
         return;
       }
 
-      // Create new session for new connections
-      await handleNewSession(req, res, apiKey || "");
+      // Session ID provided but unknown - tell client to re-initialize.
+      if (sessionId) {
+        if (req.method === "DELETE") {
+          res.status(200).end();
+          return;
+        }
+        res.status(404).json({
+          error: "Not Found",
+          message:
+            "MCP session not found. Please re-initialize the connection.",
+        });
+        return;
+      }
+
+      // No session ID. Only accept POSTs that initialize or are notifications.
+      if (req.method === "POST") {
+        if (containsInitializeMessage(req.body)) {
+          await handleNewSession(req, res, apiKey || "");
+          return;
+        }
+        if (isNotificationOnly(req.body)) {
+          res.status(202).end();
+          return;
+        }
+      }
+
+      // For GET (SSE) and DELETE without session: nothing meaningful to do.
+      if (req.method === "GET" || req.method === "DELETE") {
+        await handleNewSession(req, res, apiKey || "");
+        return;
+      }
+
+      res.status(400).json({
+        error: "Bad Request",
+        message:
+          "Missing Mcp-Session-Id header. Initialize the connection before sending requests.",
+      });
     } catch (error) {
       next(error);
     }

@@ -147,6 +147,13 @@
       "managePrompt": "Please enter your Microsoft Teams workspace name you have subscribed with",
       "manageDescription": "We will send you a manage subscription link to this workspace."
     },
+    "webhook": {
+      "title": "Subscribe by Webhook",
+      "description": "All of our updates will be sent as JSON POST requests to this webhook URL.",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "A JSON POST request will be sent to this URL on each status page event.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "Subscribe to All Resources",
       "allDescription": "Select this option if you want to subscribe to all resources.",

@@ -1120,6 +1120,10 @@ const HomeFeatureSet: FeatureSet = {
       res.redirect("/product/workflows");
     });
 
+    app.get("/runbooks", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect("/product/runbooks");
+    });
+
     app.get("/on-call", (_req: ExpressRequest, res: ExpressResponse) => {
       res.redirect("/product/on-call");
     });
@@ -1160,6 +1164,20 @@ const HomeFeatureSet: FeatureSet = {
           res.locals["homeUrl"] as string,
         );
         res.render(`${ViewsPath}/workflows`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/runbooks",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/runbooks",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/runbooks`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
         });

@@ -1,3 +1,4 @@
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum TabType {
@@ -24,6 +25,9 @@ export interface ComponentProps {
 const TabElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translatedName: string =
+    translateString(props.tab.name) ?? props.tab.name;
   const backgroundColor: string = "bg-gray-100";
 
   const baseClasses: string =
@@ -55,7 +59,7 @@ const TabElement: FunctionComponent<ComponentProps> = (
         aria-selected={props.isSelected}
         aria-controls={props.tabPanelId}
       >
-        <div>{props.tab.name}</div>
+        <div>{translatedName}</div>
 
         {props.tab.countBadge && props.tab.countBadge > 0 ? (
           <span

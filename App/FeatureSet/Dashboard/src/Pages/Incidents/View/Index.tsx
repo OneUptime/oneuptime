@@ -6,7 +6,7 @@ import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolic
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black } from "Common/Types/BrandColors";
+import { Black, Red500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -14,6 +14,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -51,6 +52,7 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
+import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -78,6 +80,7 @@ const IncidentView: FunctionComponent<
   const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
     null,
   );
+  const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -125,6 +128,7 @@ const IncidentView: FunctionComponent<
         modelType: Incident,
         select: {
           telemetryQuery: true,
+          isPrivate: true,
         },
       });
 
@@ -136,6 +140,7 @@ const IncidentView: FunctionComponent<
         ) as any;
       }
 
+      setIsPrivate(incident?.isPrivate === true);
       setTelemetryQuery(telemetryQuery);
       setIncidentStates(incidentStates.data as IncidentState[]);
       setIncidentStateTimeline(
@@ -283,6 +288,25 @@ const IncidentView: FunctionComponent<
 
   return (
     <Fragment>
+      {isPrivate && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <Icon
+            icon={IconProp.Lock}
+            className="w-5 h-5 mt-0.5 text-red-600 shrink-0"
+          />
+          <div>
+            <div className="text-sm font-semibold text-red-800">
+              Private Incident
+            </div>
+            <div className="text-sm text-red-700">
+              Visible only to this incident&apos;s owner users, members of its
+              owner teams, project admins, and project owners. This incident is
+              hidden from all status pages and from other project members.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Incident View  */}
       <CardModelDetail<Incident>
         name="Incident Details"
@@ -532,6 +556,19 @@ const IncidentView: FunctionComponent<
             },
             {
               field: {
+                isPrivate: true,
+              },
+              title: "Visibility",
+              fieldType: FieldType.Element,
+              showIf: (item: Incident): boolean => {
+                return item.isPrivate === true;
+              },
+              getElement: (): ReactElement => {
+                return <Pill color={Red500} text="Private" />;
+              },
+            },
+            {
+              field: {
                 monitors: {
                   name: true,
                   _id: true,
@@ -740,6 +777,8 @@ const IncidentView: FunctionComponent<
         )}
 
       <IncidentAffectedResources incidentId={modelId} />
+
+      <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
 
       <IncidentFeedElement incidentId={modelId} />
     </Fragment>

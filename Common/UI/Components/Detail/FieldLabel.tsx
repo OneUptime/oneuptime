@@ -1,5 +1,6 @@
 import Link from "../Link/Link";
 import { DetailSideLink } from "./Field";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum Size {
@@ -20,26 +21,33 @@ export interface ComponentProps {
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString, translateValue } = useTranslateValue();
+  const translatedTitle: string | undefined = translateString(props.title);
+  const translatedDescription: string | ReactElement | undefined =
+    translateValue(props.description);
+  const translatedSideLinkText: string | undefined = translateString(
+    props.sideLink?.text,
+  );
   const isCardStyle: boolean = props.isCardStyle || false;
 
   return (
     <div className="space-y-1">
-      {props.title && (
+      {translatedTitle && (
         <label
           className={`${props.size || "text-xs"} font-semibold uppercase tracking-widest ${
             isCardStyle ? "text-gray-500" : "text-gray-500"
           } flex items-center gap-2`}
         >
           <span className={`${props.alignClassName} flex items-center gap-1.5`}>
-            {props.title}
+            {translatedTitle}
             <span className="w-1 h-1 rounded-full bg-gray-300"></span>
           </span>
-          {props.sideLink && props.sideLink?.text && props.sideLink?.url && (
+          {props.sideLink && translatedSideLinkText && props.sideLink?.url && (
             <Link
               to={props.sideLink?.url}
               className="inline-flex items-center gap-1 text-indigo-500 hover:text-indigo-600 transition-all duration-200 font-medium normal-case tracking-normal text-xs hover:underline underline-offset-2"
             >
-              {props.sideLink?.text}
+              {translatedSideLinkText}
               <svg
                 className="w-3 h-3"
                 fill="none"
@@ -57,11 +65,11 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
           )}
         </label>
       )}
-      {props.description && (
+      {translatedDescription && (
         <p
           className={`${props.alignClassName} text-xs text-gray-400 leading-relaxed mt-0.5`}
         >
-          {props.description}
+          {translatedDescription}
         </p>
       )}
     </div>

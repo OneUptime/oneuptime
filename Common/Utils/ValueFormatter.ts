@@ -189,6 +189,27 @@ function formatWithThresholds(
 ): FormattedValue {
   const absValue: number = Math.abs(value);
 
+  /*
+   * 0 is a tricky edge case for descending-threshold tables: the table
+   * always has a `threshold: 0` entry at the bottom (the smallest sub-
+   * unit — ns for seconds, B for bytes), and `0 >= 0` short-circuits the
+   * loop on that entry. The result is that a 0-value `seconds` metric
+   * renders as "0 ns" instead of "0 sec". Use the natural unit
+   * (divisor === 1) when the value is exactly 0 so the suffix matches
+   * the input scale.
+   */
+  if (absValue === 0) {
+    const natural: UnitThreshold =
+      thresholds.find((t: UnitThreshold) => {
+        return t.divisor === 1;
+      }) ?? (thresholds[thresholds.length - 1] as UnitThreshold);
+    return {
+      value: "0",
+      unit: natural.unit,
+      formatted: `0 ${natural.unit}`,
+    };
+  }
+
   for (const t of thresholds) {
     if (absValue >= t.threshold) {
       const scaled: number = value / t.divisor;
@@ -274,6 +295,18 @@ function formatNumber(value: number): string {
   return (Math.round(value * 100) / 100).toString();
 }
 
+/*
+ * Percent values always render with two decimal places. Trailing zeros are
+ * preserved (so 100 → "100.00", 2 → "2.00") to keep axis ticks and tooltips
+ * visually consistent across high- and low-utilization series.
+ */
+function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0.00";
+  }
+  return value.toFixed(2);
+}
+
 export default class ValueFormatter {
   /*
    * Format a value with a unit into a human-friendly string.
@@ -291,13 +324,16 @@ export default class ValueFormatter {
 
     /*
      * OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
-     * them as a percentage so chart axes / thresholds read 25% instead of 0.25.
+     * them as a percentage so chart axes / thresholds read 25.00% instead
+     * of 0.25. Percent values always render with two decimal places so
+     * low-utilization series (e.g. 2.04%) and exact values (e.g. 100.00%)
+     * read consistently across axis ticks and tooltips.
      */
     if (
       trimmedUnit === "1" &&
       ValueFormatter.isFractionMetric(options?.metricName)
     ) {
-      return `${formatNumber(value * 100)}%`;
+      return `${formatPercent(value * 100)}%`;
     }
 
     // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
@@ -307,10 +343,10 @@ export default class ValueFormatter {
 
     /*
      * "%" and its spelled-out / casual variants all render inline with no
-     * separating space — `25%`, never `25 Percent`.
+     * separating space — `25.00%`, never `25 Percent`.
      */
     if (ValueFormatter.isPercentUnit(trimmedUnit)) {
-      return `${formatNumber(value)}%`;
+      return `${formatPercent(value)}%`;
     }
 
     /*
@@ -397,6 +433,42 @@ export default class ValueFormatter {
     const fractionMetricSuffixRegex: RegExp =
       /[._](utilization|ratio|fraction|percent|percentage)$/i;
     return fractionMetricSuffixRegex.test(metricName);
+  }
+
+  /*
+   * Direction-of-goodness heuristic for trend coloring. Returns true when a
+   * rising value on this metric should be shown as bad (red ↑) and a falling
+   * value as good (green ↓) — the opposite of the default "up = good".
+   *
+   * Caller is responsible for the inversion; this method only classifies.
+   * Conservative by default: when the metric name carries no signal we
+   * return `false` so generic counters (request rate, network I/O, span
+   * count) keep the up = good colour scheme. Explicit "higher is better"
+   * tokens (uptime/availability/online/ready/healthy/available/success/
+   * passed) take precedence — without that allowlist `oneuptime.monitor.
+   * online` would match nothing and incorrectly fall through; the suffix
+   * test then catches incident counts, error rates, MTTR/MTTA, response
+   * times, CPU/memory usage, restarts, pressure, queue backlogs, etc.
+   *
+   * Adding a metric here is a single regex edit. If a dashboard widget
+   * really needs to override this for a specific case, callers can set
+   * `higherIsBetter` explicitly on the trend display.
+   */
+  public static isHigherWorseMetric(metricName: string | undefined): boolean {
+    if (!metricName) {
+      return false;
+    }
+    const lower: string = metricName.toLowerCase();
+
+    const higherIsBetter: RegExp =
+      /\b(uptime|availability|online|ready|healthy|available|success|passed|ok|alive|up)\b/;
+    if (higherIsBetter.test(lower)) {
+      return false;
+    }
+
+    const higherIsWorse: RegExp =
+      /(error|fail(?:ure|ed)?|incident|exception|crash|restart|timeout|dropped|aborted?|reject(?:ed)?|mttr|mtta|latenc(?:y|ies)|duration|[._-]time\b|time[._-]to[._-]|usage|utilization|pressure|unresolved|pending|backlog|lag|delay|saturation|throttl|stall|missed?)/;
+    return higherIsWorse.test(lower);
   }
 
   // Check if a unit is one we can auto-scale (bytes, seconds, etc.)

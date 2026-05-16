@@ -79,6 +79,7 @@ const OnCallDutyPage: FunctionComponent<
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {

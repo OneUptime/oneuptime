@@ -5,10 +5,12 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
+import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import CallRequest from "../../Types/Call/CallRequest";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
@@ -212,12 +214,20 @@ export class Service extends DatabaseService<Model> {
       ],
     };
 
-    // send verification sms.
-    CallService.makeCall(callRequest, {
-      projectId: item.projectId,
-      isSensitive: true,
-      userId: item.userId!,
-    }).catch((err: Error) => {
+    // send verification call.
+    (async () => {
+      const projectTwilioConfig: TwilioConfig | undefined =
+        await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          item.projectId,
+        );
+
+      await CallService.makeCall(callRequest, {
+        projectId: item.projectId,
+        customTwilioConfig: projectTwilioConfig,
+        isSensitive: true,
+        userId: item.userId!,
+      });
+    })().catch((err: Error) => {
       logger.error(err);
     });
   }

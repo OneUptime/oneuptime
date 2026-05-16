@@ -185,15 +185,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Probes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_PROBES] as Route,
-            ),
-          },
-          icon: IconProp.Signal,
-        },
-        {
-          link: {
             title: "Domains",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
@@ -229,6 +220,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             title: "SSO",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SSO] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
+            title: "OIDC",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_OIDC] as Route,
             ),
           },
           icon: IconProp.Lock,

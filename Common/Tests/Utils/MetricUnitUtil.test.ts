@@ -49,7 +49,19 @@ describe("MetricUnitUtil", () => {
     test("returns percent family for '%'", () => {
       const options: Array<{ value: string; label: string }> =
         MetricUnitUtil.getCompatibleUnits("%");
-      expect(options).toEqual([{ value: "%", label: "Percent (%)" }]);
+      expect(options).toEqual([
+        { value: "%", label: "Percent (%)" },
+        { value: "1", label: "Fraction (0-1)" },
+      ]);
+    });
+
+    test("returns percent family for UCUM '1' (dimensionless / ratio)", () => {
+      const options: Array<{ value: string; label: string }> =
+        MetricUnitUtil.getCompatibleUnits("1");
+      expect(options).toEqual([
+        { value: "%", label: "Percent (%)" },
+        { value: "1", label: "Fraction (0-1)" },
+      ]);
     });
 
     test("returns raw unit as sole option for unknown unit", () => {
@@ -67,6 +79,10 @@ describe("MetricUnitUtil", () => {
       expect(MetricUnitUtil.getCanonicalUnitValue("milliseconds")).toBe("ms");
       expect(MetricUnitUtil.getCanonicalUnitValue("second")).toBe("sec");
       expect(MetricUnitUtil.getCanonicalUnitValue("percent")).toBe("%");
+    });
+
+    test("returns '%' for UCUM dimensionless '1' so the threshold UI doesn't default to a literal '1'", () => {
+      expect(MetricUnitUtil.getCanonicalUnitValue("1")).toBe("%");
     });
 
     test("passes through unknown units", () => {
@@ -197,6 +213,26 @@ describe("MetricUnitUtil", () => {
         }),
       ).toBe(2e9);
     });
+
+    test("converts '%' to the fraction unit '1' by dividing by 100", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 50,
+          fromUnit: "%",
+          metricUnit: "1",
+        }),
+      ).toBe(0.5);
+    });
+
+    test("converts the fraction unit '1' to '%' by multiplying by 100", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 0.05,
+          fromUnit: "1",
+          metricUnit: "%",
+        }),
+      ).toBe(5);
+    });
   });
 
   describe("hasCompatibleUnitFamily", () => {
@@ -204,6 +240,7 @@ describe("MetricUnitUtil", () => {
       expect(MetricUnitUtil.hasCompatibleUnitFamily("bytes")).toBe(true);
       expect(MetricUnitUtil.hasCompatibleUnitFamily("ms")).toBe(true);
       expect(MetricUnitUtil.hasCompatibleUnitFamily("%")).toBe(true);
+      expect(MetricUnitUtil.hasCompatibleUnitFamily("1")).toBe(true);
       expect(MetricUnitUtil.hasCompatibleUnitFamily("GB")).toBe(true);
     });
 

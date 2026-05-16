@@ -62,6 +62,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         selectMoreFields={{
           color: true,
         }}

@@ -893,6 +893,19 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         })
       : undefined;
 
+  /*
+   * Re-serialise the native-units Map to a plain dictionary so it
+   * survives any cross-process boundary the response may cross (queue
+   * payloads, JSON serialization, etc). The criteria evaluator uses
+   * this as a fallback when the user didn't pick an explicit
+   * `legendUnit` — without it, a metric whose native unit is the OTel
+   * dimensionless "1" can't be compared against a "%" threshold.
+   */
+  const nativeUnitsByMetricNameDict: { [key: string]: string } = {};
+  for (const [name, unit] of nativeUnitsByMetricName.entries()) {
+    nativeUnitsByMetricNameDict[name] = unit;
+  }
+
   return {
     projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
@@ -900,6 +913,7 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     seriesBreakdown: seriesBreakdown,
+    nativeUnitsByMetricName: nativeUnitsByMetricNameDict,
   };
 };
 

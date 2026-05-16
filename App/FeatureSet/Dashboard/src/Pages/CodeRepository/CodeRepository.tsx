@@ -268,6 +268,7 @@ const CodeRepositoryPage: FunctionComponent<
           "No repositories connected. Use the buttons above to connect a repository."
         }
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {

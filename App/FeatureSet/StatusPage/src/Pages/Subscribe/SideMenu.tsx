@@ -13,6 +13,7 @@ export interface ComponentProps {
   enableSMSSubscribers: boolean;
   enableSlackSubscribers: boolean;
   enableMicrosoftTeamsSubscribers: boolean;
+  enableWebhookSubscribers: boolean;
 }
 
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
@@ -81,16 +82,21 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      {/* <SideMenuItem
-                link={{
-                    title: 'Webhooks',
-                    to: RouteUtil.populateRouteParams(
-                        props.isPreviewStatusPage ? RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS] as Route : RouteMap[PageMap.SUBSCRIBE_WEBHOOKS] as Route
-                    ),
-                }}
-                icon={IconProp.Globe}
-
-            /> */}
+      {props.enableWebhookSubscribers ? (
+        <SideMenuItem
+          link={{
+            title: t("subscribe.menu.webhooks"),
+            to: RouteUtil.populateRouteParams(
+              props.isPreviewStatusPage
+                ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS] as Route)
+                : (RouteMap[PageMap.SUBSCRIBE_WEBHOOKS] as Route),
+            ),
+          }}
+          icon={IconProp.Webhook}
+        />
+      ) : (
+        <></>
+      )}
     </SideMenu>
   );
 };

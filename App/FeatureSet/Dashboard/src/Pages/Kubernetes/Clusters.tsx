@@ -87,6 +87,7 @@ const KubernetesClusters: FunctionComponent<
         }}
         name="Kubernetes Clusters"
         isViewable={true}
+        searchableFields={["name", "description"]}
         filters={[]}
         cardProps={{
           title: "Kubernetes Clusters",
@@ -196,6 +197,13 @@ const KubernetesClusters: FunctionComponent<
             },
             title: "Pods",
             type: FieldType.Number,
+          },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen",
+            type: FieldType.DateTime,
           },
           {
             field: {

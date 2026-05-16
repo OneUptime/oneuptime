@@ -3,6 +3,7 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FieldType from "../Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import BooleanFilter from "./BooleanFilter";
 import DateFilter from "./DateFilter";
 import DropdownFilter from "./DropdownFilter";
@@ -53,6 +54,12 @@ type FiltersFormFunction = <T extends GenericObject>(
 const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const tx: (value: string | undefined) => string = (
+    value: string | undefined,
+  ): string => {
+    return translateString(value) ?? value ?? "";
+  };
   if (!props.showFilter) {
     return <></>;
   }
@@ -127,7 +134,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                 }`}
               >
                 <label className="text-sm font-medium text-gray-700 truncate">
-                  {filter.title}
+                  {tx(filter.title)}
                 </label>
               </div>
 
@@ -196,8 +203,8 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                       return clearFilter(filter.key as keyof T);
                     }}
                     className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                    aria-label={`Clear ${filter.title} filter`}
-                    title={`Clear ${filter.title}`}
+                    aria-label={`${tx("Clear")} ${tx(filter.title)} ${tx("filter")}`}
+                    title={`${tx("Clear")} ${tx(filter.title)}`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -240,9 +247,9 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
           icon={showMoreFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
-          title={
-            showMoreFilters ? "Hide Advanced Filters" : "Show Advanced Filters"
-          }
+          title={tx(
+            showMoreFilters ? "Hide Advanced Filters" : "Show Advanced Filters",
+          )}
           onClick={() => {
             setShowMoreFilters((currentValue: boolean) => {
               const newValue: boolean = !currentValue;

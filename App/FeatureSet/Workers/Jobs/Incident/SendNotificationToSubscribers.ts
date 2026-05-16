@@ -38,6 +38,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -289,49 +290,50 @@ RunCron(
             );
 
             // Fetch custom templates for this status page (if any)
-            const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
-              StatusPageSubscriberNotificationTemplate | null,
-              StatusPageSubscriberNotificationTemplate | null,
-              StatusPageSubscriberNotificationTemplate | null,
-              StatusPageSubscriberNotificationTemplate | null,
-            ] = await Promise.all([
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.Email,
-                },
-              ),
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.SMS,
-                },
-              ),
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.Slack,
-                },
-              ),
-              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
-                {
-                  statusPageId: statuspage.id!,
-                  eventType:
-                    StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-                  notificationMethod:
-                    StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-                },
-              ),
-            ]);
+            const [
+              emailTemplate,
+              smsTemplate,
+              slackTemplate,
+              teamsTemplate,
+            ]: Array<StatusPageSubscriberNotificationTemplate | null> =
+              await Promise.all([
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.Email,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.SMS,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.Slack,
+                  },
+                ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                  },
+                ),
+              ]);
 
             // Prepare template variables for custom templates
             const templateVariables: Record<string, string> = {
@@ -611,6 +613,38 @@ RunCron(
                   });
                   logger.debug(
                     `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
+                  );
+                }
+
+                if (subscriber.subscriberWebhook) {
+                  logger.debug(
+                    `Queueing webhook notification to subscriber ${subscriber._id}.`,
+                  );
+
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "IncidentCreated",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        incidentId: incident.id?.toString() || "",
+                        incidentNumber:
+                          incident.incidentNumber?.toString() || "",
+                        incidentTitle: incident.title || "",
+                        incidentDescription: incident.description || "",
+                        incidentSeverity: incident.incidentSeverity?.name || "",
+                        resourcesAffected: resourcesAffectedString,
+                        detailsUrl: incidentDetailsUrl,
+                      },
+                    },
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                  logger.debug(
+                    `Webhook notification queued for subscriber ${subscriber._id}.`,
                   );
                 }
               } catch (err) {

@@ -15,6 +15,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
@@ -142,20 +143,56 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       [Permission.ProjectOwner]: IconProp.ShieldCheck,
       [Permission.ProjectAdmin]: IconProp.User,
       [Permission.ProjectMember]: IconProp.Team,
-      [Permission.IncidentManager]: IconProp.Alert,
-      [Permission.AlertManager]: IconProp.BellAlert,
-      [Permission.MonitorManager]: IconProp.Activity,
-      [Permission.StatusPageManager]: IconProp.Globe,
-      [Permission.OnCallManager]: IconProp.Phone,
-      [Permission.ScheduledMaintenanceManager]: IconProp.Calendar,
-      [Permission.TelemetryManager]: IconProp.ChartBar,
-      [Permission.SettingsManager]: IconProp.Settings,
-      [Permission.BillingManager]: IconProp.CreditCard,
       [Permission.Viewer]: IconProp.Eye,
-      [Permission.WorkflowManager]: IconProp.Workflow,
+
+      [Permission.IncidentAdmin]: IconProp.Alert,
+      [Permission.IncidentMember]: IconProp.Alert,
+      [Permission.IncidentViewer]: IconProp.Alert,
+
+      [Permission.AlertAdmin]: IconProp.BellAlert,
+      [Permission.AlertMember]: IconProp.BellAlert,
+      [Permission.AlertViewer]: IconProp.BellAlert,
+
+      [Permission.MonitorAdmin]: IconProp.Activity,
+      [Permission.MonitorMember]: IconProp.Activity,
+      [Permission.MonitorViewer]: IconProp.Activity,
+
+      [Permission.StatusPageAdmin]: IconProp.Globe,
+      [Permission.StatusPageMember]: IconProp.Globe,
+      [Permission.StatusPageViewer]: IconProp.Globe,
+
+      [Permission.OnCallAdmin]: IconProp.Phone,
+      [Permission.OnCallMember]: IconProp.Phone,
+      [Permission.OnCallViewer]: IconProp.Phone,
+
+      [Permission.ScheduledMaintenanceAdmin]: IconProp.Calendar,
+      [Permission.ScheduledMaintenanceMember]: IconProp.Calendar,
+      [Permission.ScheduledMaintenanceViewer]: IconProp.Calendar,
+
+      [Permission.TelemetryAdmin]: IconProp.ChartBar,
+      [Permission.TelemetryMember]: IconProp.ChartBar,
+      [Permission.TelemetryViewer]: IconProp.ChartBar,
+
+      [Permission.SettingsAdmin]: IconProp.Settings,
+      [Permission.SettingsMember]: IconProp.Settings,
+      [Permission.SettingsViewer]: IconProp.Settings,
+
+      [Permission.BillingAdmin]: IconProp.CreditCard,
+      [Permission.BillingMember]: IconProp.CreditCard,
+      [Permission.BillingViewer]: IconProp.CreditCard,
+
+      [Permission.WorkflowAdmin]: IconProp.Workflow,
+      [Permission.WorkflowMember]: IconProp.Workflow,
+      [Permission.WorkflowViewer]: IconProp.Workflow,
+
+      [Permission.RunbookAdmin]: IconProp.PlayCircle,
+      [Permission.RunbookMember]: IconProp.PlayCircle,
+      [Permission.RunbookViewer]: IconProp.PlayCircle,
     };
 
+    const ownerRoles: Array<CardSelectOption> = [];
     const projectRoles: Array<CardSelectOption> = [];
+    const administrationRoles: Array<CardSelectOption> = [];
     const domainRoles: Array<CardSelectOption> = [];
 
     for (const p of PermissionHelper.getRolePermissionProps()) {
@@ -167,12 +204,33 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       };
 
       if (
+        /*
+         * Top-level project grants. Unconditional project-wide access;
+         * surfaced as scope-exempt (see PermissionHelper.isScopeApplicable).
+         */
         p.permission === Permission.ProjectOwner ||
-        p.permission === Permission.ProjectAdmin ||
+        p.permission === Permission.ProjectAdmin
+      ) {
+        ownerRoles.push(option);
+      } else if (
         p.permission === Permission.ProjectMember ||
         p.permission === Permission.Viewer
       ) {
         projectRoles.push(option);
+      } else if (
+        /*
+         * Project-wide admin roles — manage settings/billing, not
+         * resources. Grouped separately and surfaced as scope-exempt
+         * (see PermissionHelper.isScopeApplicable).
+         */
+        p.permission === Permission.SettingsAdmin ||
+        p.permission === Permission.SettingsMember ||
+        p.permission === Permission.SettingsViewer ||
+        p.permission === Permission.BillingAdmin ||
+        p.permission === Permission.BillingMember ||
+        p.permission === Permission.BillingViewer
+      ) {
+        administrationRoles.push(option);
       } else {
         domainRoles.push(option);
       }
@@ -182,8 +240,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       CardSelectOption | CardSelectOptionGroup
     > = [
       {
+        label: "Owner",
+        options: ownerRoles,
+      },
+      {
         label: "Project Roles",
         options: projectRoles,
+      },
+      {
+        label: "Administration",
+        options: administrationRoles,
       },
       {
         label: "Domain Roles",
@@ -259,6 +325,27 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   field: {
                     permission: true,
                   },
+                  onChange: async (value: any): Promise<void> => {
+                    await formRef.current.setFieldValue("labels", [], true);
+                    /*
+                     * For scope-exempt roles (Project Owner, Settings
+                     * Admin/Member/Viewer, Billing Admin/Member/Viewer)
+                     * force scope to All since these are unconditional
+                     * project-wide grants. The scope dropdown is hidden
+                     * in that case, so without this the form would submit
+                     * the default (Owned) and wrongly narrow the role.
+                     */
+                    if (
+                      value &&
+                      !PermissionHelper.isScopeApplicable(value as Permission)
+                    ) {
+                      await formRef.current.setFieldValue(
+                        "scope",
+                        PermissionScope.All,
+                        true,
+                      );
+                    }
+                  },
                   title: "Role",
                   description:
                     "Select a role to assign to this team. Roles provide a predefined set of permissions.",
@@ -267,14 +354,87 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                   required: true,
                   placeholder: "Select a role",
                 },
+                {
+                  field: {
+                    scope: true,
+                  },
+                  title: "Scope",
+                  description:
+                    "Which resources this role applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: [
+                    {
+                      value: PermissionScope.All,
+                      label: "All resources in the project",
+                    },
+                    {
+                      value: PermissionScope.Owned,
+                      label: "Owned by this team or its members",
+                    },
+                    {
+                      value: PermissionScope.Labels,
+                      label: "Restrict by labels (advanced)",
+                    },
+                  ],
+                  defaultValue: PermissionScope.All,
+                  required: true,
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    if (!values["permission"]) {
+                      return false;
+                    }
+                    return PermissionHelper.isScopeApplicable(
+                      values["permission"] as Permission,
+                    );
+                  },
+                },
+                {
+                  field: {
+                    labels: true,
+                  },
+                  title: "Restrict to Labels",
+                  description:
+                    "If you want to restrict this role to specific labels, you can select them here. Advanced.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    if (!values["permission"]) {
+                      return false;
+                    }
+                    const scope: PermissionScope | undefined = values[
+                      "scope"
+                    ] as PermissionScope | undefined;
+                    return scope === PermissionScope.Labels;
+                  },
+                  required: false,
+                  placeholder: "Labels",
+                },
               ]
             : [
                 {
                   field: {
                     permission: true,
                   },
-                  onChange: async (_value: any): Promise<void> => {
+                  onChange: async (value: any): Promise<void> => {
                     await formRef.current.setFieldValue("labels", [], true);
+                    /*
+                     * Match the role-flow behavior: force scope=All when
+                     * the user picks a scope-exempt permission so the
+                     * hidden scope dropdown can't submit Owned.
+                     */
+                    if (
+                      value &&
+                      !PermissionHelper.isScopeApplicable(value as Permission)
+                    ) {
+                      await formRef.current.setFieldValue(
+                        "scope",
+                        PermissionScope.All,
+                        true,
+                      );
+                    }
                   },
                   title: "Permission",
                   fieldType: FormFieldSchemaType.CustomComponent,
@@ -304,6 +464,56 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 },
                 {
                   field: {
+                    scope: true,
+                  },
+                  title: "Scope",
+                  description:
+                    "Which resources this permission applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: [
+                    {
+                      value: PermissionScope.All,
+                      label: "All resources in the project",
+                    },
+                    {
+                      value: PermissionScope.Owned,
+                      label: "Owned by this team or its members",
+                    },
+                    {
+                      value: PermissionScope.Labels,
+                      label: "Restrict by labels (advanced)",
+                    },
+                  ],
+                  defaultValue: PermissionScope.All,
+                  required: true,
+                  showIf: (values: FormValues<TeamPermission>): boolean => {
+                    if (!values["permission"]) {
+                      return false;
+                    }
+                    if (
+                      !PermissionHelper.isAccessControlPermission(
+                        values["permission"] as Permission,
+                      )
+                    ) {
+                      return false;
+                    }
+                    /*
+                     * Scope-exempt permissions (ProjectOwner, Settings
+                     * Admin/Member/Viewer, Billing Admin/Member/Viewer)
+                     * are unconditional grants.
+                     */
+                    if (
+                      !PermissionHelper.isScopeApplicable(
+                        values["permission"] as Permission,
+                      )
+                    ) {
+                      return false;
+                    }
+                    return true;
+                  },
+                },
+                {
+                  field: {
                     labels: true,
                   },
                   title: "Restrict to Labels",
@@ -326,6 +536,17 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         values["permission"] as Permission,
                       )
                     ) {
+                      return false;
+                    }
+
+                    /*
+                     * Labels apply only in Labels scope mode. Owned/All do
+                     * their filtering elsewhere and would ignore labels.
+                     */
+                    const scope: PermissionScope | undefined = values[
+                      "scope"
+                    ] as PermissionScope | undefined;
+                    if (scope && scope !== PermissionScope.Labels) {
                       return false;
                     }
 
@@ -353,7 +574,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               },
             },
             type: FieldType.EntityArray,
-            title: "Restrict to Labels",
+            title: "Labels",
             filterEntityType: Label,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
@@ -382,17 +603,28 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              scope: true,
               labels: {
                 name: true,
                 color: true,
               },
             },
-            title: "Restrict to Labels",
-            type: FieldType.EntityArray,
-
+            title: "Scope",
+            type: FieldType.Text,
             getElement: (item: TeamPermission): ReactElement => {
+              const scope: PermissionScope =
+                (item["scope"] as PermissionScope) || PermissionScope.Labels;
+
+              if (scope === PermissionScope.Owned) {
+                return <p>Owned by team or members</p>;
+              }
+
+              if (scope === PermissionScope.All) {
+                return <p>All resources in project</p>;
+              }
+
+              // scope === Labels — show the labels (or an explanation).
               if (
-                item &&
                 item["permission"] &&
                 !PermissionHelper.isAccessControlPermission(
                   item["permission"] as Permission,
@@ -400,18 +632,31 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               ) {
                 return (
                   <p>
-                    Restriction by labels cannot be applied to this permission.
+                    All resources{" "}
+                    <span className="text-gray-400">
+                      (labels don&apos;t apply to this permission)
+                    </span>
                   </p>
                 );
               }
 
-              if (!item["labels"] || item["labels"].length === 0) {
+              const labels: Array<Label> = (item["labels"] ||
+                []) as Array<Label>;
+              if (labels.length === 0) {
                 return (
-                  <p>No restrictions has been applied to this permission.</p>
+                  <p>
+                    All resources{" "}
+                    <span className="text-gray-400">(no labels selected)</span>
+                  </p>
                 );
               }
 
-              return <LabelsElement labels={item["labels"] || []} />;
+              return (
+                <div className="flex flex-col gap-1">
+                  <p className="text-gray-500">Restricted to labels:</p>
+                  <LabelsElement labels={labels} />
+                </div>
+              );
             },
           },
         ]}

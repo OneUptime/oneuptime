@@ -147,6 +147,13 @@
       "managePrompt": "購読時に使用したMicrosoft Teamsワークスペース名を入力してください",
       "manageDescription": "購読管理リンクをこのワークスペースに送信します。"
     },
+    "webhook": {
+      "title": "Webhookで購読",
+      "description": "すべての更新はJSON POSTリクエストとしてこのWebhook URLに送信されます。",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "ステータスページのイベントが発生するたびに、このURLにJSON POSTリクエストが送信されます。",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "すべてのリソースを購読する",
       "allDescription": "すべてのリソースを購読する場合は、このオプションを選択してください。",

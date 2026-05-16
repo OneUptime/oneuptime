@@ -43,6 +43,7 @@ import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/Incid
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -751,6 +752,32 @@ RunCron(
                 incidentEpisodeId: episode.id?.toString(),
               },
             );
+          }
+
+          if (subscriber.subscriberWebhook) {
+            StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+              webhookUrl: subscriber.subscriberWebhook,
+              payload: {
+                eventType: "EpisodeStateChanged",
+                statusPageId: statuspage.id!.toString(),
+                statusPageName: statusPageName,
+                statusPageUrl: statusPageURL,
+                unsubscribeUrl: unsubscribeUrl,
+                data: {
+                  episodeId: episode.id?.toString() || "",
+                  episodeTitle: episode.title || "",
+                  incidentSeverity: episode.incidentSeverity?.name || "",
+                  incidentState: episodeStateTimeline.incidentState?.name || "",
+                  resourcesAffected: resourcesAffected || "",
+                  detailsUrl: episodeDetailsUrl,
+                },
+              },
+            }).catch((err: Error) => {
+              logger.error(err, {
+                projectId: episode.projectId?.toString(),
+                incidentEpisodeId: episode.id?.toString(),
+              });
+            });
           }
         }
       }

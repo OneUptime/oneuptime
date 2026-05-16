@@ -17,6 +17,7 @@ import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
 import NotEqual from "./BaseDatabase/NotEqual";
 import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
+import MultiSearch from "./BaseDatabase/MultiSearch";
 import CallRequest from "./Call/CallRequest";
 import Color from "./Color";
 import { CompareType } from "./Database/CompareBase";
@@ -61,6 +62,7 @@ export enum ObjectType {
   URL = "URL",
   Permission = "Permission",
   Search = "Search",
+  MultiSearch = "MultiSearch",
   GreaterThan = "GreaterThan",
   GreaterThanOrEqual = "GreaterThanOrEqual",
   GreaterThanOrNull = "GreaterThanOrNull",
@@ -123,6 +125,7 @@ export type JSONValue =
   | FilterType
   | Array<FilterType>
   | Search<string>
+  | MultiSearch
   | Domain
   | Array<Domain>
   | Array<Search<string>>

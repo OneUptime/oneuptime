@@ -1,50 +1,50 @@
 <main class="py-16">
     <article class="prose ">
-        <h1>OneUptime OpenAPI Specification</h1>
-        <p class="lead">In this guide, we will look at how to import and work with the OneUptime OpenAPI specification. The OpenAPI spec provides a comprehensive reference for all available API endpoints.</p>
-        <p>The OneUptime API follows the OpenAPI 3.0 specification, which provides a standardized way to describe REST APIs. You can import our OpenAPI spec into various tools like Swagger Editor, Postman, or other API documentation tools to explore and test our endpoints.</p>
+        <h1><%= t('pages.openapi.title') %></h1>
+        <p class="lead"><%= t('pages.openapi.intro') %></p>
+        <p><%= t('pages.openapi.body') %></p>
         <h2 id="importing-spec" class="scroll-mt-24">
-            Importing the OpenAPI Spec
+            <%= t('pages.openapi.importing') %>
         </h2>
         <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10">
             <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                <p>To import the OneUptime OpenAPI specification into Swagger Editor, follow these simple steps:</p>
+                <p><%= t('pages.openapi.importingBody') %></p>
                 <div class="my-6">
                     <ol class="list-decimal pl-6">
-                        <li class="mb-2">Open <a href="https://editor.swagger.io" target="_blank" class="text-blue-600 hover:text-blue-800">editor.swagger.io</a> in your web browser</li>
-                        <li class="mb-2">Click on <strong>File</strong> in the menu bar</li>
-                        <li class="mb-2">Select <strong>Import URL</strong> from the dropdown menu</li>
-                        <li class="mb-2">Enter the URL: <code class="inline-code"><%= pageData.hostUrl  %>api/openapi/spec</code></li>
-                        <li class="mb-2">Click <strong>Import</strong> to load the specification</li>
+                        <li class="mb-2"><%- t('pages.openapi.step1') %></li>
+                        <li class="mb-2"><%- t('pages.openapi.step2') %></li>
+                        <li class="mb-2"><%- t('pages.openapi.step3') %></li>
+                        <li class="mb-2"><%- t('pages.openapi.step4Prefix') %><code class="inline-code"><%= pageData.hostUrl  %>api/openapi/spec</code></li>
+                        <li class="mb-2"><%- t('pages.openapi.step5') %></li>
                     </ol>
                 </div>
                 <h2 id="spec-url" class="scroll-mt-24">
-                    Specification URL
+                    <%= t('pages.openapi.specUrl') %>
                 </h2>
                 <div class="my-6">
                     <ul role="list"
                         class="m-0  list-none divide-y divide-zinc-900/5 p-0 ">
                         <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
                             <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                                <dt class="sr-only">Endpoint</dt>
+                                <dt class="sr-only"><%= t('ui.srEndpoint') %></dt>
                                 <dd><code class="inline-code"><%= pageData.hostUrl %>api/openapi/spec</code></dd>
-                                <dt class="sr-only">Description</dt>
+                                <dt class="sr-only"><%= t('ui.srDescription') %></dt>
                                 <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                                    <p>Complete OpenAPI 3.0 specification for the OneUptime API including all endpoints, request/response schemas, and authentication methods.</p>
+                                    <p><%= t('pages.openapi.specUrlDescription') %></p>
                                 </dd>
                             </dl>
                         </li>
                     </ul>
                 </div>
                 <h2 id="benefits" class="scroll-mt-24">
-                    Benefits of Using the OpenAPI Spec
+                    <%= t('pages.openapi.benefits') %>
                 </h2>
                 <div class="my-6">
                     <ul class="list-disc pl-6">
-                        <li class="mb-2"><strong>Interactive Documentation:</strong> Test API endpoints directly in Swagger Editor</li>
-                        <li class="mb-2"><strong>Code Generation:</strong> Generate client SDKs in multiple programming languages</li>
-                        <li class="mb-2"><strong>Validation:</strong> Ensure your requests match the expected schema</li>
-                        <li class="mb-2"><strong>Import to Tools:</strong> Use with Postman, Insomnia, or other API testing tools</li>
+                        <li class="mb-2"><strong><%= t('pages.openapi.benefit1Title') %></strong> <%= t('pages.openapi.benefit1Body') %></li>
+                        <li class="mb-2"><strong><%= t('pages.openapi.benefit2Title') %></strong> <%= t('pages.openapi.benefit2Body') %></li>
+                        <li class="mb-2"><strong><%= t('pages.openapi.benefit3Title') %></strong> <%= t('pages.openapi.benefit3Body') %></li>
+                        <li class="mb-2"><strong><%= t('pages.openapi.benefit4Title') %></strong> <%= t('pages.openapi.benefit4Body') %></li>
                     </ul>
                 </div>
             </div>

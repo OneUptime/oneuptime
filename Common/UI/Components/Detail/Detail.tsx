@@ -1,5 +1,6 @@
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
+import useTranslateValue from "../../Utils/Translation";
 import CodeBlock from "../CodeBlock/CodeBlock";
 import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
@@ -42,6 +43,7 @@ type DetailFunction = <T extends GenericObject>(
 const Detail: DetailFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -83,7 +85,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
   ): ReactElement => {
     if (!options) {
       return (
-        <span className="text-gray-400 italic text-sm">No options found</span>
+        <span className="text-gray-400 italic text-sm">
+          {translateString("No options found") ?? "No options found"}
+        </span>
       );
     }
 

@@ -1,4 +1,4 @@
-<html lang="en" class="h-full antialiased scroll-smooth" style="color-scheme: light;">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased scroll-smooth" style="color-scheme: light;">
 <%- include('../partials/head', {
    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
 }) -%>

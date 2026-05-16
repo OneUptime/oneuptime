@@ -4,6 +4,8 @@ import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
+import DashboardLabelRuleEngineService from "./DashboardLabelRuleEngineService";
+import DashboardOwnerRuleEngineService from "./DashboardOwnerRuleEngineService";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -92,6 +94,41 @@ export class Service extends DatabaseService<Model> {
     }
 
     return Promise.resolve({ createBy, carryForward: null });
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (createdItem.projectId && createdItem.id) {
+      /*
+       * Run label rule first so rule-added labels are persisted before
+       * owner rules run. Owner rules re-fetch labels, so this lets owner
+       * rules key on rule-added labels.
+       */
+      Promise.resolve()
+        .then(async () => {
+          await DashboardLabelRuleEngineService.applyRulesToDashboard(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await DashboardOwnerRuleEngineService.applyRulesToDashboard(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying dashboard rules in DashboardService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              dashboardId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   public async hasReadAccess(data: {

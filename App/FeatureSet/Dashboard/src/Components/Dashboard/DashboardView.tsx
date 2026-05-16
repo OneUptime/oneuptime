@@ -58,6 +58,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -85,10 +86,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     Array<DashboardVariable>
   >([]);
 
-  // Zoom stack for time range
-  const [timeRangeStack, setTimeRangeStack] = useState<
-    Array<RangeStartAndEndDateTime>
-  >([]);
   const autoRefreshTimerRef: React.MutableRefObject<ReturnType<
     typeof setInterval
   > | null> = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -108,17 +105,35 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [metricTypes, setMetricTypes] = useState<MetricType[]>([]);
 
   const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
-    const {
-      metricTypes,
-      telemetryAttributes,
-    }: {
-      metricTypes: Array<MetricType>;
-      telemetryAttributes: Array<string>;
-    } = await MetricUtil.loadAllMetricsTypes();
+    /*
+     * Telemetry attribute keys are only used by ArgumentsForm inside the edit
+     * Component Settings modal. Fetching them here would block the initial
+     * dashboard render on a 30-day DISTINCT-arrayJoin against the metrics
+     * table that can take 30s+ on busy projects. Load metric types only and
+     * lazy-load attributes in the background.
+     */
+    const { metricTypes }: { metricTypes: Array<MetricType> } =
+      await MetricUtil.loadAllMetricsTypes({ includeAttributes: false });
 
     setMetricTypes(metricTypes);
-    setTelemetryAttributes(telemetryAttributes);
   };
+
+  const telemetryAttributesRequestedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const loadTelemetryAttributesInBackground: VoidFunction = useCallback(() => {
+    if (telemetryAttributesRequestedRef.current) {
+      return;
+    }
+    telemetryAttributesRequestedRef.current = true;
+    MetricUtil.getTelemetryAttributes()
+      .then((attrs: Array<string>) => {
+        setTelemetryAttributes(attrs);
+      })
+      .catch(() => {
+        telemetryAttributesRequestedRef.current = false;
+      });
+  }, []);
 
   const [dashboardName, setDashboardName] = useState<string>("");
   const [dashboardDescription, setDashboardDescription] = useState<string>("");
@@ -159,14 +174,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [selectedComponentId, setSelectedComponentId] =
     useState<ObjectID | null>(null);
 
-  /*
-   * Component id we want to scroll into view. Set when a widget is added,
-   * cleared once the scroll has been performed. The scroll is driven by a
-   * useEffect rather than executed inline because adding a widget also
-   * opens the settings sidebar, which in turn triggers a resize and a
-   * canvas reflow — calling scrollIntoView before those settle scrolls
-   * to a stale Y coordinate.
-   */
   const [pendingScrollComponentId, setPendingScrollComponentId] =
     useState<ObjectID | null>(null);
 
@@ -217,9 +224,20 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         setAutoRefreshInterval(config.refreshInterval);
       }
 
-      // Restore saved variables
+      /*
+       * Restore saved variables, with URL overrides applied so shared
+       * links land with the same selection the sender had.
+       */
       if (config.variables) {
-        setDashboardVariables(config.variables);
+        const urlSelections: ReturnType<
+          typeof DashboardVariableUrlState.parseFromSearch
+        > = DashboardVariableUrlState.parseFromSearch(window.location.search);
+        const withUrl: Array<DashboardVariable> =
+          DashboardVariableUrlState.applyUrlToVariables(
+            config.variables,
+            urlSelections,
+          );
+        setDashboardVariables(withUrl);
       }
     };
 
@@ -227,13 +245,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
     setError(null);
     try {
-      await loadAllMetricsTypes();
-      await fetchDashboardViewConfig();
+      await Promise.all([loadAllMetricsTypes(), fetchDashboardViewConfig()]);
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
     setIsLoading(false);
+
+    // Warm the autocomplete suggestion cache without blocking the render.
+    loadTelemetryAttributesInBackground();
   };
 
   useEffect(() => {
@@ -286,47 +306,27 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
 
-  const sideBarWidth: number = isEditMode && selectedComponentId ? 650 : 0;
-
   useEffect(() => {
     handleResize();
-  }, [dashboardMode, selectedComponentId]);
+    if (dashboardMode === DashboardMode.Edit) {
+      loadTelemetryAttributesInBackground();
+    }
+  }, [dashboardMode, loadTelemetryAttributesInBackground]);
 
-  /*
-   * Scroll the most-recently added widget into view. Depends on
-   * dashboardTotalWidth so the scroll waits for the canvas to reflow
-   * after the settings sidebar opens (sidebar steals 650px from the
-   * canvas, which shrinks unitSize and shifts every widget's Y).
-   */
   useEffect(() => {
     if (!pendingScrollComponentId) {
       return undefined;
     }
     const id: string = `dashboard-component-${pendingScrollComponentId.toString()}`;
-    /*
-     * Scroll the widget into view in two passes. The settings sidebar
-     * opens (sidebar steals 650px from the canvas, which shrinks unitSize
-     * and shifts every widget's Y) and chart/list children render
-     * asynchronously, so the layout keeps drifting for a few hundred
-     * milliseconds. The first pass lands us close; the second corrects
-     * any drift that happened between the two passes.
-     */
-    const firstPass: ReturnType<typeof setTimeout> = setTimeout(() => {
-      const el: HTMLElement | null = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: "auto", block: "center" });
-      }
-    }, 100);
-    const secondPass: ReturnType<typeof setTimeout> = setTimeout(() => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
       const el: HTMLElement | null = document.getElementById(id);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       setPendingScrollComponentId(null);
-    }, 500);
+    }, 100);
     return () => {
-      clearTimeout(firstPass);
-      clearTimeout(secondPass);
+      clearTimeout(timer);
     };
   }, [pendingScrollComponentId]);
 
@@ -380,7 +380,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       className="min-h-screen"
       style={{
         minWidth: "1000px",
-        width: `calc(100% - ${sideBarWidth}px)`,
         background: isEditMode
           ? "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)"
           : "#f8f9fb",
@@ -423,20 +422,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardMode(DashboardMode.View);
         }}
         startAndEndDate={startAndEndDate}
-        canResetZoom={timeRangeStack.length > 0}
-        onResetZoom={() => {
-          if (timeRangeStack.length > 0) {
-            const previousRange: RangeStartAndEndDateTime =
-              timeRangeStack[timeRangeStack.length - 1]!;
-            setStartAndEndDate(previousRange);
-            setTimeRangeStack(timeRangeStack.slice(0, -1));
-          }
-        }}
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
-          // Push current range to zoom stack before changing
-          setTimeRangeStack([...timeRangeStack, startAndEndDate]);
           setStartAndEndDate(newStartAndEndDate);
         }}
         onCancelEditClick={async () => {
@@ -453,19 +441,71 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         isRefreshing={isRefreshing}
         variables={dashboardVariables}
-        onVariableValueChange={(variableId: string, value: string) => {
+        telemetryAttributeOptions={telemetryAttributes}
+        onVariableValueChange={(
+          variableId: string,
+          change: {
+            selectedValue?: string | undefined;
+            selectedValues?: Array<string> | undefined;
+          },
+        ) => {
           const updatedVariables: Array<DashboardVariable> =
             dashboardVariables.map((v: DashboardVariable) => {
               if (v.id === variableId) {
-                return { ...v, selectedValue: value };
+                /*
+                 * Multi-select selections overwrite both fields so the
+                 * stale scalar from a previous single-select doesn't
+                 * survive an "All" multi-select.
+                 */
+                if (change.selectedValues !== undefined) {
+                  return {
+                    ...v,
+                    selectedValues: change.selectedValues,
+                    selectedValue: undefined,
+                  };
+                }
+                return { ...v, selectedValue: change.selectedValue };
               }
               return v;
             });
           setDashboardVariables(updatedVariables);
+          DashboardVariableUrlState.writeToBrowserUrl(updatedVariables);
           // Trigger refresh when variable changes
           setRefreshTick((prev: number) => {
             return prev + 1;
           });
+        }}
+        onVariablesDefinitionChange={(updated: Array<DashboardVariable>) => {
+          /*
+           * Persist new variable definitions onto the dashboard config (so
+           * they survive a save) and reset the runtime selection state to
+           * mirror them. Preserve any prior selectedValue for variables
+           * that still exist by id so the user does not lose context when
+           * they tweak an unrelated variable.
+           */
+          const priorById: Map<string, DashboardVariable> = new Map(
+            dashboardVariables.map((v: DashboardVariable) => {
+              return [v.id, v];
+            }),
+          );
+          const next: Array<DashboardVariable> = updated.map(
+            (v: DashboardVariable) => {
+              const prior: DashboardVariable | undefined = priorById.get(v.id);
+              return {
+                ...v,
+                selectedValue: prior?.selectedValue,
+                selectedValues: prior?.selectedValues,
+              };
+            },
+          );
+          setDashboardVariables(next);
+          setDashboardViewConfig({
+            ...dashboardViewConfig,
+            variables: updated,
+          });
+          DashboardVariableUrlState.writeToBrowserUrl(next);
+          // Lazy-load telemetry attribute options for the autocomplete.
+          loadTelemetryAttributesInBackground();
         }}
         onAddComponentClick={(componentType: DashboardComponentType) => {
           let newComponent: DashboardBaseComponent | null = null;
@@ -612,12 +652,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             ) as DashboardViewConfig;
 
           setDashboardViewConfig(newDashboardConfig);
-          /*
-           * Open the settings panel for the freshly added component and
-           * queue a scroll-into-view. The scroll itself runs from a
-           * useEffect once dashboardTotalWidth has settled, so we scroll
-           * to the widget's final post-reflow position.
-           */
           setSelectedComponentId(newComponent.componentId);
           setPendingScrollComponentId(newComponent.componentId);
         }}
@@ -642,6 +676,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           currentTotalDashboardWidthInPx={dashboardTotalWidth}
           metrics={metricsBundle}
           refreshTick={refreshTick}
+          variables={dashboardVariables}
         />
       </div>
     </div>

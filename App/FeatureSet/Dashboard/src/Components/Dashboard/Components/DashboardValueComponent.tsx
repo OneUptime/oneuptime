@@ -13,7 +13,9 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
+import DashboardValueComponentType, {
+  DashboardValueTrendDirection,
+} from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -21,71 +23,177 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import ValueFormatter from "Common/Utils/ValueFormatter";
+import OneUptimeDate from "Common/Types/Date";
+
+/*
+ * Split a ValueFormatter output like "1.5 MB" / "25.00%" / "1.23K" into a
+ * numeric portion and a unit portion so the widget can render them with
+ * different font sizes (big number, small unit suffix).
+ */
+function splitFormattedValue(formatted: string): {
+  value: string;
+  unit: string;
+} {
+  if (formatted.endsWith("%")) {
+    return { value: formatted.slice(0, -1), unit: "%" };
+  }
+  const lastSpace: number = formatted.lastIndexOf(" ");
+  if (lastSpace > 0) {
+    return {
+      value: formatted.substring(0, lastSpace),
+      unit: formatted.substring(lastSpace + 1),
+    };
+  }
+  return { value: formatted, unit: "" };
+}
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
 }
 
-// Mini sparkline SVG component
+interface SparklinePoint {
+  value: number;
+  timestamp: Date;
+}
+
 interface SparklineProps {
-  data: Array<number>;
+  data: Array<SparklinePoint>;
   width: number;
   height: number;
   color: string;
   fillColor: string;
+  formatValue: (v: number) => string;
 }
 
 const Sparkline: FunctionComponent<SparklineProps> = (
   props: SparklineProps,
 ): ReactElement => {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const svgRef: React.RefObject<SVGSVGElement> = useRef<SVGSVGElement>(null);
+
   if (props.data.length < 2) {
     return <></>;
   }
 
-  const dataPoints: Array<number> = props.data;
-  const minVal: number = Math.min(...dataPoints);
-  const maxVal: number = Math.max(...dataPoints);
+  const dataPoints: Array<SparklinePoint> = props.data;
+  const values: Array<number> = dataPoints.map((p: SparklinePoint) => {
+    return p.value;
+  });
+  const minVal: number = Math.min(...values);
+  const maxVal: number = Math.max(...values);
   const range: number = maxVal - minVal || 1;
   const padding: number = 2;
 
+  const pointAt: (i: number) => [number, number] = (i: number) => {
+    const x: number =
+      padding + (i / (dataPoints.length - 1)) * (props.width - padding * 2);
+    const y: number =
+      props.height -
+      padding -
+      ((dataPoints[i]!.value - minVal) / range) * (props.height - padding * 2);
+    return [x, y];
+  };
+
   const points: string = dataPoints
-    .map((value: number, index: number) => {
-      const x: number =
-        padding +
-        (index / (dataPoints.length - 1)) * (props.width - padding * 2);
-      const y: number =
-        props.height -
-        padding -
-        ((value - minVal) / range) * (props.height - padding * 2);
+    .map((_p: SparklinePoint, index: number) => {
+      const [x, y] = pointAt(index);
       return `${x},${y}`;
     })
     .join(" ");
 
-  // Create fill area path
   const firstX: number = padding;
-  const lastX: number =
-    padding +
-    ((dataPoints.length - 1) / (dataPoints.length - 1)) *
-      (props.width - padding * 2);
+  const lastX: number = padding + (props.width - padding * 2);
   const fillPoints: string = `${firstX},${props.height} ${points} ${lastX},${props.height}`;
 
+  const onMove: (e: React.MouseEvent<SVGSVGElement>) => void = (
+    e: React.MouseEvent<SVGSVGElement>,
+  ) => {
+    const rect: DOMRect | undefined = svgRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+    const xPx: number = e.clientX - rect.left;
+    const usable: number = Math.max(rect.width - padding * 2, 1);
+    const ratio: number = Math.max(0, Math.min(1, (xPx - padding) / usable));
+    const idx: number = Math.round(ratio * (dataPoints.length - 1));
+    setHoverIndex(Math.max(0, Math.min(dataPoints.length - 1, idx)));
+  };
+
+  const onLeave: () => void = () => {
+    setHoverIndex(null);
+  };
+
+  const hoverPos: [number, number] | null =
+    hoverIndex !== null ? pointAt(hoverIndex) : null;
+  const hoverPoint: SparklinePoint | null =
+    hoverIndex !== null ? dataPoints[hoverIndex] ?? null : null;
+
   return (
-    <svg
-      width={props.width}
-      height={props.height}
-      viewBox={`0 0 ${props.width} ${props.height}`}
-      className="overflow-visible"
-    >
-      <polygon points={fillPoints} fill={props.fillColor} />
-      <polyline
-        points={points}
-        fill="none"
-        stroke={props.color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="relative inline-block">
+      <svg
+        ref={svgRef}
+        width={props.width}
+        height={props.height}
+        viewBox={`0 0 ${props.width} ${props.height}`}
+        className="overflow-visible cursor-crosshair"
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+      >
+        <polygon points={fillPoints} fill={props.fillColor} />
+        <polyline
+          points={points}
+          fill="none"
+          stroke={props.color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {hoverPos && (
+          <>
+            <line
+              x1={hoverPos[0]}
+              x2={hoverPos[0]}
+              y1={0}
+              y2={props.height}
+              stroke={props.color}
+              strokeOpacity={0.35}
+              strokeWidth={1}
+              strokeDasharray="2 2"
+            />
+            <circle
+              cx={hoverPos[0]}
+              cy={hoverPos[1]}
+              r={3.5}
+              fill="#ffffff"
+              stroke={props.color}
+              strokeWidth={2}
+            />
+          </>
+        )}
+      </svg>
+      {hoverPoint && hoverPos && (
+        <div
+          className="absolute pointer-events-none whitespace-nowrap rounded-md px-2 py-1 text-xs shadow-lg z-50"
+          style={{
+            background: "rgba(15, 23, 42, 0.94)",
+            backdropFilter: "blur(4px)",
+            color: "#fff",
+            left: `${hoverPos[0]}px`,
+            top: "-44px",
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="font-semibold tabular-nums leading-tight">
+            {props.formatValue(hoverPoint.value)}
+          </div>
+          <div className="text-[10px] opacity-70 font-normal leading-tight mt-0.5">
+            {OneUptimeDate.getDateAsLocalFormattedString(hoverPoint.timestamp)}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -101,8 +209,18 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const metricQueryConfig: MetricQueryConfigData | undefined =
+  const rawMetricQueryConfig: MetricQueryConfigData | undefined =
     props.component.arguments.metricQueryConfig;
+
+  const metricQueryConfig: MetricQueryConfigData | undefined = useMemo(() => {
+    if (!rawMetricQueryConfig) {
+      return undefined;
+    }
+    return DashboardVariableInterpolation.applyToQueryConfig(
+      rawMetricQueryConfig,
+      props.variables,
+    );
+  }, [rawMetricQueryConfig, props.variables]);
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -268,13 +386,16 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  // round to 2 decimal places
-  aggregatedValue = Math.round(aggregatedValue * 100) / 100;
-
-  // Sparkline data - take raw values in order
-  const sparklineData: Array<number> = allDataPoints.map(
+  // Sparkline data — preserve timestamp alongside value for hover tooltip
+  const sparklineData: Array<SparklinePoint> = allDataPoints.map(
     (item: AggregatedModel) => {
-      return item.value;
+      return {
+        value: item.value,
+        timestamp:
+          item.timestamp instanceof Date
+            ? item.timestamp
+            : new Date(item.timestamp as unknown as string),
+      };
     },
   );
 
@@ -283,13 +404,41 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const showSparkline: boolean =
     sparklineData.length >= 2 && props.dashboardComponentHeightInPx > 100;
 
-  const unit: string | undefined =
+  const metricName: string =
+    props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
+    "";
+
+  const rawUnit: string =
     props.metricTypes?.find((item: MetricType) => {
-      return (
-        item.name?.toString() ===
-        props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString()
-      );
+      return item.name?.toString() === metricName;
     })?.unit || "";
+
+  /*
+   * Run the raw aggregate through ValueFormatter so bytes scale to
+   * KB/MB/GB, OTel ratio metrics (unit "1" + `.utilization` name) render
+   * as percentages, and dimensionless counts (unit "1" with no fraction
+   * suffix) lose the meaningless "1" suffix. The big-number font is
+   * applied to the numeric portion and the unit suffix is rendered in a
+   * smaller gray span, so we split the formatted string here.
+   */
+  const formattedString: string = ValueFormatter.formatValue(
+    aggregatedValue,
+    rawUnit,
+    { metricName },
+  );
+  const { value: formattedValue, unit: displayUnit } =
+    splitFormattedValue(formattedString);
+
+  /*
+   * Threshold comparison uses the same scale as the displayed value.
+   * For fraction metrics arriving as [0, 1] we compare the percent (0-100)
+   * value so thresholds set in the natural percent scale work as expected.
+   */
+  const isFractionScale: boolean =
+    rawUnit.trim() === "1" && ValueFormatter.isFractionMetric(metricName);
+  const thresholdValue: number = isFractionScale
+    ? aggregatedValue * 100
+    : aggregatedValue;
 
   // Determine color based on thresholds
   let valueColorClass: string = "text-gray-900";
@@ -301,7 +450,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const criticalThreshold: number | undefined =
     props.component.arguments.criticalThreshold;
 
-  if (criticalThreshold !== undefined && aggregatedValue >= criticalThreshold) {
+  if (criticalThreshold !== undefined && thresholdValue >= criticalThreshold) {
     valueColorClass = "text-red-600";
     bgStyle = {
       background:
@@ -311,7 +460,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     sparklineFill = "rgba(239, 68, 68, 0.08)";
   } else if (
     warningThreshold !== undefined &&
-    aggregatedValue >= warningThreshold
+    thresholdValue >= warningThreshold
   ) {
     valueColorClass = "text-amber-600";
     bgStyle = {
@@ -327,9 +476,12 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   let trendDirection: "up" | "down" | "flat" = "flat";
 
   if (sparklineData.length >= 4) {
-    const midpoint: number = Math.floor(sparklineData.length / 2);
-    const firstHalf: Array<number> = sparklineData.slice(0, midpoint);
-    const secondHalf: Array<number> = sparklineData.slice(midpoint);
+    const rawValues: Array<number> = sparklineData.map((p: SparklinePoint) => {
+      return p.value;
+    });
+    const midpoint: number = Math.floor(rawValues.length / 2);
+    const firstHalf: Array<number> = rawValues.slice(0, midpoint);
+    const secondHalf: Array<number> = rawValues.slice(midpoint);
     const firstAvg: number =
       firstHalf.reduce((a: number, b: number) => {
         return a + b;
@@ -389,33 +541,59 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
           letterSpacing: "-0.03em",
         }}
       >
-        {aggregatedValue || "0"}
+        {formattedValue || "0"}
         <span
           className="text-gray-400 font-normal"
           style={{
             fontSize: valueHeightInPx > 0 ? `${valueHeightInPx * 0.3}px` : "",
           }}
         >
-          {unit ? ` ${unit}` : ""}
+          {displayUnit
+            ? displayUnit === "%"
+              ? displayUnit
+              : ` ${displayUnit}`
+            : ""}
         </span>
       </div>
 
-      {/* Trend indicator */}
-      {trendPercent !== null && trendDirection !== "flat" && (
-        <div
-          className={`flex items-center gap-0.5 mt-0.5 ${
-            trendDirection === "up" ? "text-emerald-500" : "text-red-500"
-          }`}
-          style={{
-            fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
-          }}
-        >
-          <span>{trendDirection === "up" ? "\u2191" : "\u2193"}</span>
-          <span className="font-medium tabular-nums">
-            {Math.abs(trendPercent)}%
-          </span>
-        </div>
-      )}
+      {/* Trend indicator \u2014 colour depends on whether a rising value is good
+          or bad for this metric. The widget config takes precedence; when it
+          says "Auto" (or is unset) we fall back to a metric-name heuristic
+          so legacy widgets get sensible defaults without re-saving. */}
+      {trendPercent !== null &&
+        trendDirection !== "flat" &&
+        (() => {
+          const configured: DashboardValueTrendDirection | undefined =
+            props.component.arguments.trendDirection;
+          let higherIsWorse: boolean;
+          if (configured === DashboardValueTrendDirection.HigherIsWorse) {
+            higherIsWorse = true;
+          } else if (
+            configured === DashboardValueTrendDirection.HigherIsBetter
+          ) {
+            higherIsWorse = false;
+          } else {
+            higherIsWorse = ValueFormatter.isHigherWorseMetric(metricName);
+          }
+          const trendIsGood: boolean = higherIsWorse
+            ? trendDirection === "down"
+            : trendDirection === "up";
+          return (
+            <div
+              className={`flex items-center gap-0.5 mt-0.5 ${
+                trendIsGood ? "text-emerald-500" : "text-red-500"
+              }`}
+              style={{
+                fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
+              }}
+            >
+              <span>{trendDirection === "up" ? "\u2191" : "\u2193"}</span>
+              <span className="font-medium tabular-nums">
+                {Math.abs(trendPercent)}%
+              </span>
+            </div>
+          );
+        })()}
 
       {/* Sparkline */}
       {showSparkline && (
@@ -426,6 +604,9 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
             height={sparklineHeight}
             color={sparklineColor}
             fillColor={sparklineFill}
+            formatValue={(v: number) => {
+              return ValueFormatter.formatValue(v, rawUnit, { metricName });
+            }}
           />
         </div>
       )}
@@ -457,6 +638,10 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
   if (
     !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
   ) {
+    return false;
+  }
+
+  if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
   }
 

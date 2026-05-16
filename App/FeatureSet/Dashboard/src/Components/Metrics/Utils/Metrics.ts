@@ -6,7 +6,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
@@ -18,6 +18,7 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ObjectID from "Common/Types/ObjectID";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -25,6 +26,7 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import Dictionary from "Common/Types/Dictionary";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -115,6 +117,37 @@ type SanitizeAttributeFiltersFunction = (
   attributes: Dictionary<DictionaryEntryValue> | undefined,
 ) => Dictionary<DictionaryEntryValue> | undefined;
 
+/*
+ * Recognize an Includes wrapper whether it arrived as a hydrated class
+ * instance or as the `{_type, value: [...]}` JSON shape (which is what
+ * round-tripping through the dashboard view config produces, since the
+ * server never rehydrates dashboard JSON into typed instances).
+ */
+function isIncludesValue(
+  value: unknown,
+): value is Includes | { _type: ObjectType.Includes; value: Array<unknown> } {
+  if (value instanceof Includes) {
+    return true;
+  }
+  if (
+    value &&
+    typeof value === "object" &&
+    (value as { _type?: string })._type === ObjectType.Includes
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function getIncludesValues(
+  value: Includes | { _type: ObjectType.Includes; value: Array<unknown> },
+): Array<unknown> {
+  if (value instanceof Includes) {
+    return value.values || [];
+  }
+  return (value.value as Array<unknown>) || [];
+}
+
 export const sanitizeAttributeFilters: SanitizeAttributeFiltersFunction = (
   attributes: Dictionary<DictionaryEntryValue> | undefined,
 ): Dictionary<DictionaryEntryValue> | undefined => {
@@ -124,6 +157,19 @@ export const sanitizeAttributeFilters: SanitizeAttributeFiltersFunction = (
   const result: Dictionary<DictionaryEntryValue> = {};
   for (const [key, value] of Object.entries(attributes)) {
     if (key.trim() === "" || value === undefined || value === null) {
+      continue;
+    }
+    /*
+     * Includes (multi-value) carries an array, not a scalar string. The
+     * generic operator detector below can't read it, so handle it here:
+     * drop if no values were picked ("All"), otherwise pass through.
+     */
+    if (isIncludesValue(value)) {
+      const includesValues: Array<unknown> = getIncludesValues(value);
+      if (includesValues.length === 0) {
+        continue;
+      }
+      result[key] = value as DictionaryEntryValue;
       continue;
     }
     const detected: {
@@ -250,14 +296,18 @@ export default class MetricUtil {
       });
 
     /*
-     * Round to two decimal places for display. The old code used plain
-     * Math.round, but after unit conversion (bytes → GB) the interesting
-     * precision lives in the decimals — so keep two places.
+     * Round to four decimal places to keep the JSON payload compact
+     * without clobbering sub-percent precision. Two decimals was too
+     * aggressive for fraction-scale metrics (system.*.utilization lives
+     * in [0, 1]): a real value of 0.0585 rounded to 0.06 and rendered as
+     * "6.00%" instead of "5.85%". Four decimals preserves percent-level
+     * precision for ratios and is more than enough for converted values
+     * like 13.9234 GB (which the formatter clips back to "13.9 GB").
      */
     for (const result of results) {
       for (const row of result.data as Array<AggregatedModel>) {
         if (typeof row.value === "number" && Number.isFinite(row.value)) {
-          row.value = Math.round(row.value * 100) / 100;
+          row.value = Math.round(row.value * 10000) / 10000;
         }
       }
     }
@@ -300,6 +350,71 @@ export default class MetricUtil {
     }
 
     return results;
+  }
+
+  /**
+   * Fetch backend-aggregated time series for many metric names in
+   * parallel. Used by the metrics list sparklines, which previously
+   * paged the raw `Metric` table with `limit: 5000` — fine for low-
+   * cardinality data but truncated to the first few minutes for hosts
+   * that emit per-attribute-combo rows (process.* and system.* metrics
+   * fan out to thousands of rows per scrape, easily exceeding 100k
+   * rows/hour for one host). Truncation made the right side of every
+   * sparkline flatline at 0.
+   *
+   * Switching to the aggregate API delegates the per-bucket Avg to
+   * ClickHouse — at most a few-dozen rows come back per metric, and
+   * for the canonical host page (only `resource.host.name` filter,
+   * no group-by) MetricService routes the read to the per-host MV.
+   * dedupedAggregate also makes the cache hot when the user clicks
+   * a row and the explorer immediately re-issues the same query.
+   */
+  public static async fetchSparklineAggregates(data: {
+    metricNames: Array<string>;
+    attributes?: Dictionary<DictionaryEntryValue> | undefined;
+    startAndEndDate: InBetween<Date>;
+  }): Promise<Map<string, AggregatedResult>> {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId || data.metricNames.length === 0) {
+      return new Map();
+    }
+
+    const startTimestamp: Date = data.startAndEndDate.startValue as Date;
+    const endTimestamp: Date = data.startAndEndDate.endValue as Date;
+
+    const sanitizedAttributes: Dictionary<DictionaryEntryValue> | undefined =
+      sanitizeAttributeFilters(data.attributes);
+
+    const results: Array<[string, AggregatedResult]> = await Promise.all(
+      data.metricNames.map(
+        async (name: string): Promise<[string, AggregatedResult]> => {
+          try {
+            const result: AggregatedResult = await dedupedAggregate({
+              query: {
+                projectId,
+                time: data.startAndEndDate,
+                name,
+                ...(sanitizedAttributes
+                  ? { attributes: sanitizedAttributes as any }
+                  : {}),
+              },
+              aggregationType: MetricsAggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              startTimestamp,
+              endTimestamp,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+            } as AggregateBy<Metric>);
+            return [name, result];
+          } catch {
+            return [name, { data: [] }];
+          }
+        },
+      ),
+    );
+
+    return new Map(results);
   }
 
   /**

@@ -1,0 +1,127 @@
+# External Status Page Monitor
+
+External Status Page monitoring आपको third-party status pages monitor करने और उन services से alert प्राप्त करने की अनुमति देता है जिन पर आप depend करते हैं जब वे outages या degraded performance का अनुभव करती हैं। OneUptime समय-समय पर external status pages (जैसे AWS, GCP, Azure, GitHub और अधिक) जांचता है और उनकी status evaluate करता है।
+
+## Overview
+
+External Status Page monitors उन services की health जांचते हैं जिन पर आप निर्भर हैं, उनके public status pages query करके। यह आपको सक्षम बनाता है:
+
+- आपके application जिन third-party services पर depend करता है उनकी availability monitor करें
+- upstream providers के outages का अनुभव होने पर alert प्राप्त करें
+- individual component statuses track करें (जैसे "AWS EC2 us-east-1")
+- degraded performance को आपके users को प्रभावित करने से पहले detect करें
+- upstream provider issues के साथ अपने incidents को correlate करें
+
+## समर्थित Providers
+
+OneUptime निम्नलिखित methods के माध्यम से status pages monitoring का समर्थन करता है:
+
+| Provider Type | विवरण |
+|---|---|
+| **Auto** (default) | status page format automatically detect करता है |
+| **Atlassian Statuspage** | Atlassian Statuspage (JSON API) द्वारा संचालित Status pages |
+| **RSS** | RSS feed प्रदान करने वाले Status pages |
+| **Atom** | Atom feed प्रदान करने वाले Status pages |
+
+### Auto-Detection
+
+**Auto** पर सेट होने पर, OneUptime status page format automatically detect करने की कोशिश करेगा:
+
+1. पहले, यह Atlassian Statuspage JSON API (`/api/v2/status.json` और `/api/v2/components.json`) आज़माता है
+2. यदि वह fail हो जाए, तो यह page को RSS या Atom feed के रूप में parse करने की कोशिश करता है
+3. final fallback के रूप में, यह basic HTTP reachability check करता है
+
+## External Status Page Monitor बनाना
+
+1. OneUptime Dashboard में **Monitors** पर जाएं
+2. **Create Monitor** पर क्लिक करें
+3. monitor type के रूप में **External Status Page** चुनें
+4. वह status page URL दर्ज करें जिसे आप monitor करना चाहते हैं
+5. वैकल्पिक रूप से एक specific provider type चुनें (या Auto के रूप में छोड़ दें)
+6. वैकल्पिक रूप से monitoring को एक specific component तक filter करने के लिए component name दर्ज करें
+7. आवश्यकतानुसार monitoring criteria configure करें
+
+## Configuration Options
+
+### Status Page URL
+
+वह external status page का URL दर्ज करें जिसे आप monitor करना चाहते हैं। Atlassian Statuspage-powered sites के लिए, यह आमतौर पर root URL है (जैसे `https://status.example.com`)। RSS/Atom feeds के लिए, feed URL directly दर्ज करें।
+
+### Provider Type
+
+status page के लिए provider type चुनें। format automatically detect करने के लिए **Auto** (default) उपयोग करें, या यदि आप जानते हैं तो specific provider type निर्दिष्ट करें।
+
+### Component Name Filter
+
+यदि status page कई components पर report करती है, तो आप वैकल्पिक रूप से केवल उस specific component को monitor करने के लिए component name निर्दिष्ट कर सकते हैं। उदाहरण के लिए, केवल us-east-1 में AWS EC2 monitor करने के लिए, आप `EC2 us-east-1` दर्ज करेंगे (status page पर दिखाई देने वाला exact component name)।
+
+जब कोई component name निर्दिष्ट नहीं होता, तो status page की overall status monitor होती है।
+
+### Advanced Options
+
+#### Timeout
+
+status page से response के लिए प्रतीक्षा करने का maximum time (milliseconds में)। Default 10000ms (10 seconds) है।
+
+#### Retries
+
+यदि request fail हो जाए तो retry करने की संख्या। Default 3 retries है।
+
+## Monitoring Criteria
+
+आप criteria configure कर सकते हैं जो निम्न के आधार पर यह निर्धारित करे कि external service online, degraded, या offline मानी जाए:
+
+- **Is Online** – status page reachable है और status data लौटा रही है
+- **Overall Status** – status page का overall status indicator (जैसे "operational", "major_outage")
+- **Component Status** – एक specific component की status (component name filter उपयोग करते समय)
+- **Active Incidents** – status page पर report किए गए currently active incidents की संख्या
+- **Response Time** – status page data fetch करने में कितना समय लगता है
+
+## लोकप्रिय Status Page URLs
+
+यहाँ उन लोकप्रिय service status page URLs की एक curated list है जिन्हें आप monitor कर सकते हैं:
+
+| Service | Status Page URL |
+|---|---|
+| AWS | `https://health.aws.amazon.com/health/status` |
+| Google Cloud Platform | `https://status.cloud.google.com` |
+| Microsoft Azure | `https://status.azure.com` |
+| GitHub | `https://www.githubstatus.com` |
+| Cloudflare | `https://www.cloudflarestatus.com` |
+| Datadog | `https://status.datadoghq.com` |
+| PagerDuty | `https://status.pagerduty.com` |
+| Twilio | `https://status.twilio.com` |
+| Stripe | `https://status.stripe.com` |
+| Slack | `https://status.slack.com` |
+| Atlassian (Jira, Confluence) | `https://status.atlassian.com` |
+| Vercel | `https://www.vercel-status.com` |
+| Netlify | `https://www.netlifystatus.com` |
+| DigitalOcean | `https://status.digitalocean.com` |
+| Heroku | `https://status.heroku.com` |
+| MongoDB Atlas | `https://status.cloud.mongodb.com` |
+| Fastly | `https://status.fastly.com` |
+| New Relic | `https://status.newrelic.com` |
+| Sentry | `https://status.sentry.io` |
+| CircleCI | `https://status.circleci.com` |
+
+> **नोट:** इनमें से कई Atlassian Statuspage उपयोग करते हैं, इसलिए **Auto** provider type उन्हें automatically detect कर लेगा।
+
+## Incident और Alert Templating
+
+External Status Page monitors से incidents या alerts बनाते समय, आप निम्नलिखित template variables उपयोग कर सकते हैं:
+
+| Variable | विवरण |
+|---|---|
+| `{{isOnline}}` | status page online है (true/false) |
+| `{{responseTimeInMs}}` | milliseconds में Response time |
+| `{{failureCause}}` | failure का कारण, यदि कोई है |
+| `{{overallStatus}}` | overall status indicator value |
+| `{{activeIncidentCount}}` | active incidents की संख्या |
+| `{{componentStatuses}}` | component statuses का JSON array |
+
+## सर्वोत्तम प्रथाएं
+
+- **Auto provider type उपयोग करें** जब तक आप exact format नहीं जानते — Auto detection अधिकांश status pages के लिए अच्छी तरह काम करता है
+- **specific components monitor करें** यदि आप केवल certain services पर depend करते हैं (जैसे एक specific AWS region)
+- **incident correlation सेट अप करें** — जब आपके monitors issues detect करें और upstream status page भी problems दिखाए, तो root causes तेजी से identify करने में मदद मिलती है
+- **अन्य monitors के साथ combine करें** — comprehensive visibility के लिए External Status Page monitors को अपने API/Website monitors के साथ pair करें

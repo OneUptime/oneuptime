@@ -1,14 +1,37 @@
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
-import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import File from "../../Models/DatabaseModels/File";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import crypto from "crypto";
+
+const generateImageAccessToken: () => string = (): string => {
+  return crypto.randomBytes(32).toString("hex");
+};
+
 export class Service extends DatabaseService<File> {
   public constructor() {
     super(File);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<File>,
+  ): Promise<OnCreate<File>> {
+    /*
+     * Always generate an unguessable access token server-side. The token
+     * is the only safe way to address an inline-uploaded image in
+     * markdown without exposing the enumerable ObjectID.
+     */
+    if (!createBy.data.imageAccessToken) {
+      createBy.data.imageAccessToken = generateImageAccessToken();
+    }
+
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()

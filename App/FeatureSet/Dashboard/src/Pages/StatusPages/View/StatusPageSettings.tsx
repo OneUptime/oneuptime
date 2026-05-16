@@ -352,6 +352,22 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
+          {
+            field: {
+              enableMicrosoftTeamsSubscribers: true,
+            },
+            title: "Enable Microsoft Teams Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              enableWebhookSubscribers: true,
+            },
+            title: "Enable Webhook Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -388,6 +404,22 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Enable Slack Subscribers",
+              placeholder: "No",
+            },
+            {
+              field: {
+                enableMicrosoftTeamsSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Microsoft Teams Subscribers",
+              placeholder: "No",
+            },
+            {
+              field: {
+                enableWebhookSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Webhook Subscribers",
               placeholder: "No",
             },
           ],

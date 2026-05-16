@@ -303,6 +303,39 @@ import { AddHostIpAddresses1778013317872 } from "./1778013317872-AddHostIpAddres
 import { WidenHostOsVersionToLongText1778066346303 } from "./1778066346303-WidenHostOsVersionToLongText";
 import { MigrationName1778070278986 } from "./1778070278986-MigrationName";
 import { DedupeServicesAndAddUniqueIndex1778100000000 } from "./1778100000000-DedupeServicesAndAddUniqueIndex";
+import { MigrationName1778269764550 } from "./1778269764550-MigrationName";
+import { MigrationName1778271406963 } from "./1778271406963-MigrationName";
+import { MigrationName1778274719786 } from "./1778274719786-MigrationName";
+import { AddIncidentIsPrivate1778359982682 } from "./1778359982682-AddIncidentIsPrivate";
+import { AddFileImageAccessToken1778361904715 } from "./1778361904715-AddFileImageAccessToken";
+import { AddOwnerRuleInheritFlags1778413144103 } from "./1778413144103-AddOwnerRuleInheritFlags";
+import { AddAlertIsPrivate1778438949454 } from "./1778438949454-AddAlertIsPrivate";
+import { AddPrivacyRules1778440665575 } from "./1778440665575-AddPrivacyRules";
+import { AddEpisodePrivacyRules1778442385970 } from "./1778442385970-AddEpisodePrivacyRules";
+import { AddProjectOIDC1778506655291 } from "./1778506655291-AddProjectOIDC";
+import { MigrationName1778514515756 } from "./1778514515756-MigrationName";
+import { MigrationName1778521361934 } from "./1778521361934-MigrationName";
+import { AddStatusPageOIDC1778522070962 } from "./1778522070962-AddStatusPageOIDC";
+import { MigrationName1778582583897 } from "./1778582583897-MigrationName";
+import { AddScheduledMaintenanceRules1778703414082 } from "./1778703414082-AddScheduledMaintenanceRules";
+import { MigrationName1778759476700 } from "./1778759476700-MigrationName";
+import { MigrationName1778761532493 } from "./1778761532493-MigrationName";
+import { MigrationName1778776830462 } from "./1778776830462-MigrationName";
+import { MigrationName1778777574869 } from "./1778777574869-MigrationName";
+import { MigrationName1778779608191 } from "./1778779608191-MigrationName";
+import { MigrationName1778782819382 } from "./1778782819382-AddMonitorAndStatusPageOwnerLabelRules";
+import { AddRunbookAgentJobStepType1778784000000 } from "./1778784000000-AddRunbookAgentJobStepType";
+import { MigrationName1778784396629 } from "./1778784396629-AddHostServiceDockerK8sOwnerLabelRules";
+import { MigrationName1778785741500 } from "./1778785741500-AddRunbookOwnerLabelRules";
+import { MigrationName1778791942334 } from "./1778791942334-AddDashboardWorkflowOwnerLabelRules";
+import { AddTeamPermissionScope1778800000000 } from "./1778800000000-AddTeamPermissionScope";
+import { SwitchRunbookAgentTagsToAgentId1778834788959 } from "./1778834788959-SwitchRunbookAgentTagsToAgentId";
+import { AddRunbookAgentOwnersAndLabels1778842348388 } from "./1778842348388-AddRunbookAgentOwnersAndLabels";
+import { AddRunbookSecret1778851431287 } from "./1778851431287-AddRunbookSecret";
+import { UpdateTeamPermissionScopeDefault1778877094014 } from "./1778877094014-UpdateTeamPermissionScopeDefault";
+import { MigrateLegacyManagerRolesToAdmin1778900000000 } from "./1778900000000-MigrateLegacyManagerRolesToAdmin";
+import { AddOnCallDutyPolicyScheduleOwners1778929624633 } from "./1778929624633-AddOnCallDutyPolicyScheduleOwners";
+import { AddOnCallIncomingCallOwnersAndRules1778931537020 } from "./1778931537020-AddOnCallIncomingCallOwnersAndRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -609,4 +642,37 @@ export default [
   WidenHostOsVersionToLongText1778066346303,
   MigrationName1778070278986,
   DedupeServicesAndAddUniqueIndex1778100000000,
+  MigrationName1778269764550,
+  MigrationName1778271406963,
+  MigrationName1778274719786,
+  AddIncidentIsPrivate1778359982682,
+  AddFileImageAccessToken1778361904715,
+  AddOwnerRuleInheritFlags1778413144103,
+  AddAlertIsPrivate1778438949454,
+  AddPrivacyRules1778440665575,
+  AddEpisodePrivacyRules1778442385970,
+  AddProjectOIDC1778506655291,
+  MigrationName1778514515756,
+  MigrationName1778521361934,
+  AddStatusPageOIDC1778522070962,
+  MigrationName1778582583897,
+  AddScheduledMaintenanceRules1778703414082,
+  MigrationName1778759476700,
+  MigrationName1778761532493,
+  MigrationName1778776830462,
+  MigrationName1778777574869,
+  MigrationName1778779608191,
+  MigrationName1778782819382,
+  AddRunbookAgentJobStepType1778784000000,
+  MigrationName1778784396629,
+  MigrationName1778785741500,
+  MigrationName1778791942334,
+  AddTeamPermissionScope1778800000000,
+  SwitchRunbookAgentTagsToAgentId1778834788959,
+  AddRunbookAgentOwnersAndLabels1778842348388,
+  AddRunbookSecret1778851431287,
+  UpdateTeamPermissionScopeDefault1778877094014,
+  MigrateLegacyManagerRolesToAdmin1778900000000,
+  AddOnCallDutyPolicyScheduleOwners1778929624633,
+  AddOnCallIncomingCallOwnersAndRules1778931537020,
 ];

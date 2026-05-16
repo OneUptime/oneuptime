@@ -10,10 +10,11 @@ import BlankDashboardUnitElement from "./BlankDashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
+import ComponentSettingsModal from "./ComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -29,6 +30,7 @@ export interface ComponentProps {
   };
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   refreshTick?: number | undefined;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -231,6 +233,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }}
         isSelected={isSelected}
         refreshTick={props.refreshTick}
+        variables={props.variables}
         onClick={() => {
           props.onComponentSelected(componentId);
         }}
@@ -256,7 +259,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     <div>
       {renderComponents()}
       {props.selectedComponentId && props.isEditMode && (
-        <ComponentSettingsSideOver
+        <ComponentSettingsModal
           title="Component Settings"
           description="Edit the settings of this component"
           dashboardViewConfig={props.dashboardViewConfig}
@@ -286,6 +289,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             updateComponent(updatedComponent);
           }}
           metrics={props.metrics}
+          dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+          totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         />
       )}
     </div>

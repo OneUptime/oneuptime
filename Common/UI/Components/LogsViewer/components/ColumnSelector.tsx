@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   DEFAULT_LOGS_TABLE_COLUMNS,
+  getLogsAttributeColumnId,
   LogsTableColumnOption,
   normalizeLogsTableColumns,
 } from "../types";
@@ -70,6 +71,23 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
       return column.label.toLowerCase().includes(normalizedSearchQuery);
     });
   }, [props.availableColumns, searchQuery, selectedColumnIds]);
+
+  const trimmedAttributeKey: string = searchQuery.trim();
+  const customAttributeColumnId: string = trimmedAttributeKey
+    ? getLogsAttributeColumnId(trimmedAttributeKey)
+    : "";
+  const isCustomAttributeAlreadySelected: boolean =
+    customAttributeColumnId !== "" &&
+    selectedColumnIds.includes(customAttributeColumnId);
+  const isCustomAttributeAlreadyAvailable: boolean = availableColumns.some(
+    (column: LogsTableColumnOption): boolean => {
+      return column.id === customAttributeColumnId;
+    },
+  );
+  const canAddCustomAttribute: boolean =
+    trimmedAttributeKey !== "" &&
+    !isCustomAttributeAlreadySelected &&
+    !isCustomAttributeAlreadyAvailable;
 
   const updateColumns: (columns: Array<string>) => void = (
     columns: Array<string>,
@@ -225,15 +243,51 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                 onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   setSearchQuery(event.target.value);
                 }}
-                placeholder="Search columns"
-                className="w-40 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                onKeyDown={(
+                  event: React.KeyboardEvent<HTMLInputElement>,
+                ): void => {
+                  if (event.key === "Enter" && canAddCustomAttribute) {
+                    event.preventDefault();
+                    addColumn(customAttributeColumnId);
+                    setSearchQuery("");
+                  }
+                }}
+                placeholder="Search or type attribute"
+                className="w-48 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
             </div>
 
             <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-              {availableColumns.length === 0 && (
+              {canAddCustomAttribute && (
+                <div className="flex items-center justify-between rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-gray-700">
+                      <span className="text-gray-500">Attribute: </span>
+                      <span className="font-mono">{trimmedAttributeKey}</span>
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      Add as a column to show this attribute&apos;s value.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="ml-3 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700"
+                    onClick={() => {
+                      addColumn(customAttributeColumnId);
+                      setSearchQuery("");
+                    }}
+                  >
+                    Add attribute
+                  </button>
+                </div>
+              )}
+
+              {availableColumns.length === 0 && !canAddCustomAttribute && (
                 <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-sm text-gray-500">
-                  No matching columns available.
+                  {trimmedAttributeKey
+                    ? "No matching columns available."
+                    : "Type an attribute name above to add it as a column."}
                 </div>
               )}
 

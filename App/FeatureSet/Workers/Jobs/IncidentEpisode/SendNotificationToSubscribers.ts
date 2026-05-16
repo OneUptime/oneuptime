@@ -41,6 +41,7 @@ import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/Incid
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
@@ -767,6 +768,32 @@ RunCron(
                       incidentEpisodeId: episode.id?.toString(),
                     },
                   );
+                }
+
+                if (subscriber.subscriberWebhook) {
+                  StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                    webhookUrl: subscriber.subscriberWebhook,
+                    payload: {
+                      eventType: "EpisodeCreated",
+                      statusPageId: statuspage.id!.toString(),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                      data: {
+                        episodeId: episode.id?.toString() || "",
+                        episodeTitle: episode.title || "",
+                        episodeDescription: episode.description || "",
+                        incidentSeverity: episode.incidentSeverity?.name || "",
+                        resourcesAffected: resourcesAffectedString,
+                        detailsUrl: episodeDetailsUrl,
+                      },
+                    },
+                  }).catch((err: Error) => {
+                    logger.error(err, {
+                      projectId: episode.projectId?.toString(),
+                      incidentEpisodeId: episode.id?.toString(),
+                    });
+                  });
                 }
               } catch (err) {
                 logger.error(err, {

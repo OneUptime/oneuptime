@@ -26,6 +26,7 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
+import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -81,6 +82,7 @@ import StatusPageHeaderLink from "../../Models/DatabaseModels/StatusPageHeaderLi
 import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "../../Models/DatabaseModels/StatusPageSso";
+import StatusPageOIDC from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
@@ -863,6 +865,7 @@ export default class StatusPageAPI extends BaseAPI<
             enableEmailSubscribers: true,
             enableSlackSubscribers: true,
             enableMicrosoftTeamsSubscribers: true,
+            enableWebhookSubscribers: true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             enableMasterPassword: true,
@@ -1087,6 +1090,46 @@ export default class StatusPageAPI extends BaseAPI<
             sso,
             new PositiveNumber(sso.length),
             StatusPageSSO,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/oidc/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const oidc: Array<StatusPageOIDC> =
+            await StatusPageOidcService.findBy({
+              query: {
+                statusPageId: objectId,
+                isEnabled: true,
+              },
+              select: {
+                name: true,
+                description: true,
+                _id: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          return Response.sendEntityArrayResponse(
+            req,
+            res,
+            oidc,
+            new PositiveNumber(oidc.length),
+            StatusPageOIDC,
           );
         } catch (err) {
           next(err);
@@ -1670,6 +1713,7 @@ export default class StatusPageAPI extends BaseAPI<
               await IncidentService.findBy({
                 query: {
                   monitors: monitorsOnStatusPage as any,
+                  isVisibleOnStatusPage: true,
                   projectId: statusPage.projectId!,
                 },
                 select: {
@@ -1816,6 +1860,7 @@ export default class StatusPageAPI extends BaseAPI<
                   memberIncidents = await IncidentService.findBy({
                     query: {
                       _id: QueryHelper.any(memberIncidentIds),
+                      isVisibleOnStatusPage: true,
                       projectId: statusPage.projectId!,
                     },
                     select: {
@@ -3144,6 +3189,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableEmailSubscribers: true,
         enableSlackSubscribers: true,
         enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
@@ -3537,6 +3583,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableSmsSubscribers: true,
         enableSlackSubscribers: true,
         enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
         showSubscriberPageOnStatusPage: true,
@@ -3621,17 +3668,32 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
-      !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackWorkspaceName"] &&
-      !req.body.data["microsoftTeamsWorkspaceName"]
+      req.body.data["subscriberWebhook"] &&
+      !statusPage.enableWebhookSubscribers
     ) {
       logger.debug(
-        `No email, phone, slack workspace name, or Microsoft Teams workspace name provided for subscription to status page with ID: ${objectId}`,
+        `Webhook subscribers not enabled for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
-        "Email, phone, slack workspace name, or Microsoft Teams workspace name is required to subscribe to this status page.",
+        "Webhook subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      !req.params["subscriberId"] &&
+      !req.body.data["subscriberEmail"] &&
+      !req.body.data["subscriberPhone"] &&
+      !req.body.data["slackWorkspaceName"] &&
+      !req.body.data["microsoftTeamsWorkspaceName"] &&
+      !req.body.data["subscriberWebhook"]
+    ) {
+      logger.debug(
+        `No email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL provided for subscription to status page with ID: ${objectId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Email, phone, slack workspace name, Microsoft Teams workspace name, or webhook URL is required to subscribe to this status page.",
       );
     }
 
@@ -3665,6 +3727,12 @@ export default class StatusPageAPI extends BaseAPI<
       "microsoftTeamsWorkspaceName"
     ]
       ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
+      : undefined;
+
+    const subscriberWebhookUrl: string | undefined = req.body.data[
+      "subscriberWebhook"
+    ]
+      ? (req.body.data["subscriberWebhook"] as string)
       : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
@@ -3757,6 +3825,15 @@ export default class StatusPageAPI extends BaseAPI<
       );
       statusPageSubscriber.microsoftTeamsWorkspaceName =
         microsoftTeamsWorkspaceName;
+    }
+
+    if (subscriberWebhookUrl) {
+      logger.debug(
+        `Setting subscriber webhook URL: ${subscriberWebhookUrl}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      statusPageSubscriber.subscriberWebhook =
+        URL.fromString(subscriberWebhookUrl);
     }
 
     if (
@@ -3997,6 +4074,7 @@ export default class StatusPageAPI extends BaseAPI<
         monitors: monitorsOnStatusPage as any,
         projectId: statusPage.projectId!,
         _id: incidentId.toString(),
+        isVisibleOnStatusPage: true,
       };
     }
 

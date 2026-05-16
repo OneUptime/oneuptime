@@ -9,6 +9,8 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Hosts from "../Pages/Host/Hosts";
 import HostDocumentation from "../Pages/Host/Documentation";
+import HostSettingsOwnerRules from "../Pages/Host/Settings/OwnerRules";
+import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostProcesses from "../Pages/Host/View/Processes";
@@ -38,6 +40,24 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.HOST_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <HostSettingsOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <HostSettingsLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_SETTINGS_LABEL_RULES] as Route}
             />
           }
         />

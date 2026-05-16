@@ -31,6 +31,7 @@ import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
 import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
 import StatusPageViewCustomFields from "../Pages/StatusPages/View/CustomFields";
 import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";
+import StatusPageViewOIDC from "../Pages/StatusPages/View/OIDC";
 import StatusPageViewSCIM from "../Pages/StatusPages/View/SCIM";
 import StatusPageViewPrivateUser from "../Pages/StatusPages/View/PrivateUser";
 import StatusPageViewOwners from "../Pages/StatusPages/View/Owners";
@@ -68,6 +69,10 @@ import StatusPagesSettingsSubscriberTemplates from "../Pages/StatusPages/Setting
 import StatusPagesSettingsSubscriberTemplatesView from "../Pages/StatusPages/Settings/SubscriberNotificationTemplateView";
 
 import StatusPagesSettingsCustomFields from "../Pages/StatusPages/Settings/StatusPageCustomFields";
+
+import StatusPagesSettingsOwnerRules from "../Pages/StatusPages/Settings/StatusPageOwnerRules";
+
+import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusPageLabelRules";
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -189,6 +194,36 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES] ||
+            ""
+          }
+          element={
+            <StatusPagesSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] ||
+            ""
+          }
+          element={
+            <StatusPagesSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] as Route
               }
             />
           }
@@ -369,6 +404,16 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageViewSSO
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_OIDC)}
+          element={
+            <StatusPageViewOIDC
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_OIDC] as Route}
             />
           }
         />

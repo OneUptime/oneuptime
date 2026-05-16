@@ -21,7 +21,9 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
+import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
@@ -31,6 +33,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
+import MetricUtil from "../../Metrics/Utils/Metrics";
+import API from "Common/UI/Utils/API/API";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
@@ -69,6 +73,167 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       "metricQueryConfigs"
     ] as unknown as Array<MetricQueryConfigData>) || [],
   );
+  const [multiFormulaConfigs, setMultiFormulaConfigs] = useState<
+    Array<MetricFormulaConfigData>
+  >(
+    ((props.component?.arguments as JSONObject)?.[
+      "metricFormulaConfigs"
+    ] as unknown as Array<MetricFormulaConfigData>) || [],
+  );
+
+  /*
+   * Per-metric attribute caches. The dashboard widget editor needs the same
+   * "select a metric → its attribute keys/values autocomplete" behavior as
+   * the Metrics Explorer (MetricView). The global telemetryAttributes list
+   * provided by the parent is not metric-scoped, so it can't supply value
+   * suggestions and shows attributes that don't belong to the chosen metric.
+   */
+  const [telemetryAttributesByMetric, setTelemetryAttributesByMetric] =
+    useState<Record<string, Array<string>>>({});
+  const [loadedMetricAttributes, setLoadedMetricAttributes] = useState<
+    Set<string>
+  >(new Set());
+  const [loadingMetricAttributes, setLoadingMetricAttributes] = useState<
+    Set<string>
+  >(new Set());
+  const [telemetryAttributesError, setTelemetryAttributesError] =
+    useState<string>("");
+
+  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
+    Record<string, Record<string, Array<string>>>
+  >({});
+  const loadedAttributeValuesRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
+  const [loadingAttributeValues, setLoadingAttributeValues] = useState<
+    Record<string, Set<string>>
+  >({});
+
+  type LoadMetricAttributesFunction = (metricName: string) => Promise<void>;
+
+  const loadTelemetryAttributesForMetric: LoadMetricAttributesFunction = async (
+    metricName: string,
+  ): Promise<void> => {
+    if (!metricName) {
+      return;
+    }
+
+    if (
+      loadingMetricAttributes.has(metricName) ||
+      loadedMetricAttributes.has(metricName)
+    ) {
+      return;
+    }
+
+    try {
+      setLoadingMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.add(metricName);
+        return next;
+      });
+      setTelemetryAttributesError("");
+
+      const attributes: Array<string> = await MetricUtil.getTelemetryAttributes(
+        { metricName },
+      );
+
+      setTelemetryAttributesByMetric((prev: Record<string, Array<string>>) => {
+        return { ...prev, [metricName]: attributes };
+      });
+      setLoadedMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.add(metricName);
+        return next;
+      });
+    } catch (err) {
+      setTelemetryAttributesError(
+        `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
+      );
+    } finally {
+      setLoadingMetricAttributes((prev: Set<string>) => {
+        const next: Set<string> = new Set(prev);
+        next.delete(metricName);
+        return next;
+      });
+    }
+  };
+
+  type LoadAttributeValuesFunction = (
+    metricName: string,
+    attributeKey: string,
+  ) => Promise<void>;
+
+  const loadAttributeValues: LoadAttributeValuesFunction = async (
+    metricName: string,
+    attributeKey: string,
+  ): Promise<void> => {
+    if (!metricName || !attributeKey) {
+      return;
+    }
+
+    const cacheKey: string = `${metricName}:${attributeKey}`;
+
+    if (loadedAttributeValuesRef.current.has(cacheKey)) {
+      return;
+    }
+
+    loadedAttributeValuesRef.current.add(cacheKey);
+
+    setLoadingAttributeValues(
+      (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+        const next: Set<string> = new Set(prev[metricName] || []);
+        next.add(attributeKey);
+        return { ...prev, [metricName]: next };
+      },
+    );
+
+    try {
+      const values: Array<string> =
+        await MetricUtil.getTelemetryAttributeValues({
+          attributeKey,
+          metricName,
+        });
+
+      setAttributeValueSuggestions(
+        (prev: Record<string, Record<string, Array<string>>>) => {
+          return {
+            ...prev,
+            [metricName]: {
+              ...(prev[metricName] || {}),
+              [attributeKey]: values,
+            },
+          };
+        },
+      );
+    } catch {
+      // Value suggestions are best-effort; allow a retry on next select.
+      loadedAttributeValuesRef.current.delete(cacheKey);
+    } finally {
+      setLoadingAttributeValues(
+        (prev: Record<string, Set<string>>): Record<string, Set<string>> => {
+          const next: Set<string> = new Set(prev[metricName] || []);
+          next.delete(attributeKey);
+          return { ...prev, [metricName]: next };
+        },
+      );
+    }
+  };
+
+  type RetryMetricAttributesFunction = (metricName: string) => void;
+
+  const retryLoadTelemetryAttributes: RetryMetricAttributesFunction = (
+    metricName: string,
+  ): void => {
+    if (!metricName) {
+      return;
+    }
+    setLoadedMetricAttributes((prev: Set<string>) => {
+      const next: Set<string> = new Set(prev);
+      next.delete(metricName);
+      return next;
+    });
+    void loadTelemetryAttributesForMetric(metricName);
+  };
 
   useEffect(() => {
     if (props.onHasFormValidationErrors) {
@@ -111,8 +276,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         [];
 
       for (const arg of componentArguments) {
-        // Skip MetricsQueryConfigs - we render it as a custom multi-query UI
-        if (arg.type === ComponentInputType.MetricsQueryConfigs) {
+        // Skip MetricsQueryConfigs and MetricsFormulaConfigs - rendered as custom multi UI below
+        if (
+          arg.type === ComponentInputType.MetricsQueryConfigs ||
+          arg.type === ComponentInputType.MetricsFormulaConfigs
+        ) {
           continue;
         }
 
@@ -172,6 +340,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       value: FormValues<JSONObject>,
       componentProps: CustomElementProps,
     ) => {
+      const queryData: MetricQueryConfigData = value[
+        arg.id
+      ] as MetricQueryConfigData;
+      const metricName: string =
+        queryData?.metricQueryData?.filterData?.metricName?.toString() || "";
+
       return (
         <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
           <div className="mb-2">
@@ -181,9 +355,33 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           </div>
           <MetricQueryConfig
             {...componentProps}
-            data={value[arg.id] as MetricQueryConfigData}
+            data={queryData}
             metricTypes={props.metrics.metricTypes}
-            telemetryAttributes={props.metrics.telemetryAttributes}
+            telemetryAttributes={telemetryAttributesByMetric[metricName] || []}
+            attributesLoading={loadingMetricAttributes.has(metricName)}
+            attributesError={telemetryAttributesError}
+            telemetryAttributeValueSuggestions={
+              attributeValueSuggestions[metricName] || {}
+            }
+            loadingAttributeValueKeys={Array.from(
+              loadingAttributeValues[metricName] || [],
+            )}
+            onMetricNameChanged={(nextMetricName: string) => {
+              void loadTelemetryAttributesForMetric(nextMetricName);
+            }}
+            onAttributeKeySelected={(attributeKey: string) => {
+              if (metricName && attributeKey) {
+                void loadAttributeValues(metricName, attributeKey);
+              }
+            }}
+            onAdvancedFiltersToggle={(show: boolean) => {
+              if (show && metricName) {
+                void loadTelemetryAttributesForMetric(metricName);
+              }
+            }}
+            onAttributesRetry={() => {
+              retryLoadTelemetryAttributes(metricName);
+            }}
             hideCard={true}
           />
         </div>
@@ -347,6 +545,52 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       },
     );
 
+  const hasMultiFormulaArg: boolean = componentArguments.some(
+    (arg: ComponentArgument<DashboardBaseComponent>) => {
+      return arg.type === ComponentInputType.MetricsFormulaConfigs;
+    },
+  );
+
+  /*
+   * The chart widget has a single primary query stored under "metricQueryConfig"
+   * (variable "a"), then any number of additional queries under "metricQueryConfigs"
+   * (b, c, …). Formula variables must not collide with any of those.
+   */
+  const primaryQueryConfig: MetricQueryConfigData | undefined = (
+    component?.arguments as JSONObject
+  )?.["metricQueryConfig"] as unknown as MetricQueryConfigData | undefined;
+
+  const getAllUsedVariables: () => Set<string> = (): Set<string> => {
+    const taken: Set<string> = new Set<string>();
+    const pushVar: (v: string | undefined) => void = (
+      v: string | undefined,
+    ): void => {
+      if (v) {
+        taken.add(v.toLowerCase());
+      }
+    };
+    pushVar(primaryQueryConfig?.metricAliasData?.metricVariable);
+    multiQueryConfigs.forEach((q: MetricQueryConfigData) => {
+      pushVar(q.metricAliasData?.metricVariable);
+    });
+    multiFormulaConfigs.forEach((f: MetricFormulaConfigData) => {
+      pushVar(f.metricAliasData?.metricVariable);
+    });
+    return taken;
+  };
+
+  const getNextUnusedVariableLetter: () => string = (): string => {
+    const taken: Set<string> = getAllUsedVariables();
+    for (let i: number = 0; i < 26; i++) {
+      const candidate: string = String.fromCharCode(97 + i);
+      if (!taken.has(candidate)) {
+        return candidate;
+      }
+    }
+    // Unlikely fallback when all 26 letters are taken
+    return `f${multiFormulaConfigs.length + 1}`;
+  };
+
   const renderMultiQuerySection: () => ReactElement | null =
     (): ReactElement | null => {
       if (!hasMultiQueryArg || !multiQueryArg) {
@@ -357,6 +601,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         <div className="mt-4">
           {multiQueryConfigs.map(
             (queryConfig: MetricQueryConfigData, index: number) => {
+              const metricName: string =
+                queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                "";
+
               return (
                 <div
                   key={index}
@@ -390,7 +638,33 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   <MetricQueryConfig
                     data={queryConfig}
                     metricTypes={props.metrics.metricTypes}
-                    telemetryAttributes={props.metrics.telemetryAttributes}
+                    telemetryAttributes={
+                      telemetryAttributesByMetric[metricName] || []
+                    }
+                    attributesLoading={loadingMetricAttributes.has(metricName)}
+                    attributesError={telemetryAttributesError}
+                    telemetryAttributeValueSuggestions={
+                      attributeValueSuggestions[metricName] || {}
+                    }
+                    loadingAttributeValueKeys={Array.from(
+                      loadingAttributeValues[metricName] || [],
+                    )}
+                    onMetricNameChanged={(nextMetricName: string) => {
+                      void loadTelemetryAttributesForMetric(nextMetricName);
+                    }}
+                    onAttributeKeySelected={(attributeKey: string) => {
+                      if (metricName && attributeKey) {
+                        void loadAttributeValues(metricName, attributeKey);
+                      }
+                    }}
+                    onAdvancedFiltersToggle={(show: boolean) => {
+                      if (show && metricName) {
+                        void loadTelemetryAttributesForMetric(metricName);
+                      }
+                    }}
+                    onAttributesRetry={() => {
+                      retryLoadTelemetryAttributes(metricName);
+                    }}
                     hideCard={true}
                     onChange={(data: MetricQueryConfigData) => {
                       const updated: Array<MetricQueryConfigData> = [
@@ -453,6 +727,129 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       );
     };
 
+  const renderMultiFormulaSection: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!hasMultiFormulaArg) {
+        return null;
+      }
+
+      const queryVariables: Array<string> = [
+        primaryQueryConfig?.metricAliasData?.metricVariable,
+        ...multiQueryConfigs.map((q: MetricQueryConfigData) => {
+          return q.metricAliasData?.metricVariable;
+        }),
+      ].filter((v: string | undefined): v is string => {
+        return Boolean(v);
+      });
+
+      return (
+        <div className="mt-4">
+          {multiFormulaConfigs.map(
+            (formulaConfig: MetricFormulaConfigData, index: number) => {
+              /*
+               * Formulas may reference any query variable plus any
+               * earlier formula variable; referencing a later formula
+               * would be a forward dependency the evaluator can't resolve.
+               */
+              const availableVariables: Array<string> = [
+                ...queryVariables,
+                ...multiFormulaConfigs
+                  .slice(0, index)
+                  .map((f: MetricFormulaConfigData) => {
+                    return f.metricAliasData?.metricVariable || "";
+                  })
+                  .filter((v: string) => {
+                    return v !== "";
+                  }),
+              ];
+
+              return (
+                <div
+                  key={index}
+                  className="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Formula{" "}
+                      {formulaConfig.metricAliasData?.metricVariable
+                        ? `(${formulaConfig.metricAliasData.metricVariable})`
+                        : index + 1}
+                    </span>
+                  </div>
+                  <MetricFormulaConfig
+                    data={formulaConfig}
+                    availableVariables={availableVariables}
+                    hideCard={true}
+                    onDataChanged={(data: MetricFormulaConfigData) => {
+                      const updated: Array<MetricFormulaConfigData> = [
+                        ...multiFormulaConfigs,
+                      ];
+                      updated[index] = data;
+                      setMultiFormulaConfigs(updated);
+                      commitComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          metricFormulaConfigs: updated as any,
+                        },
+                      });
+                    }}
+                    onRemove={() => {
+                      const updated: Array<MetricFormulaConfigData> = [
+                        ...multiFormulaConfigs,
+                      ];
+                      updated.splice(index, 1);
+                      setMultiFormulaConfigs(updated);
+                      commitComponent({
+                        ...component,
+                        arguments: {
+                          ...((component.arguments as JSONObject) || {}),
+                          metricFormulaConfigs: updated as any,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              );
+            },
+          )}
+
+          <Button
+            title="Add Formula"
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            icon={IconProp.Calculator}
+            onClick={() => {
+              const newFormula: MetricFormulaConfigData = {
+                metricAliasData: {
+                  metricVariable: getNextUnusedVariableLetter(),
+                  title: undefined,
+                  description: undefined,
+                  legend: undefined,
+                  legendUnit: undefined,
+                },
+                metricFormulaData: {
+                  metricFormula: "",
+                },
+              };
+              const updated: Array<MetricFormulaConfigData> = [
+                ...multiFormulaConfigs,
+                newFormula,
+              ];
+              setMultiFormulaConfigs(updated);
+              commitComponent({
+                ...component,
+                arguments: {
+                  ...((component.arguments as JSONObject) || {}),
+                  metricFormulaConfigs: updated as any,
+                },
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
   const sectionGroups: Array<SectionGroup> = groupArgumentsBySections();
 
   return (
@@ -475,19 +872,28 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             >
               <div>
                 {renderSectionForm(sectionGroup)}
-                {/* Render multi-query UI inside the Data Source section */}
-                {sectionGroup.section.name === "Data Source" &&
-                  renderMultiQuerySection()}
+                {/* Render multi-query and multi-formula UI inside Data Source */}
+                {sectionGroup.section.name === "Data Source" && (
+                  <>
+                    {renderMultiQuerySection()}
+                    {renderMultiFormulaSection()}
+                  </>
+                )}
               </div>
             </CollapsibleSection>
           </div>
         );
       })}
 
-      {/* If no Data Source section exists, render multi-query at end */}
+      {/* If no Data Source section exists, render multi-query/formula at end */}
       {!sectionGroups.some((g: SectionGroup) => {
         return g.section.name === "Data Source";
-      }) && renderMultiQuerySection()}
+      }) && (
+        <>
+          {renderMultiQuerySection()}
+          {renderMultiFormulaSection()}
+        </>
+      )}
     </div>
   );
 };

@@ -52,6 +52,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
+import RunbookSecretService from "./RunbookSecretService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -85,6 +86,7 @@ import ProfileSampleService from "./ProfileSampleService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
+import ProjectOidcService from "./ProjectOidcService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
@@ -129,6 +131,7 @@ import StatusPageResourceService from "./StatusPageResourceService";
 // Status Page
 import StatusPageService from "./StatusPageService";
 import StatusPageSsoService from "./StatusPageSsoService";
+import StatusPageOidcService from "./StatusPageOidcService";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
@@ -278,6 +281,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  RunbookSecretService,
   MonitorFeedService,
 
   NotificationService,
@@ -300,6 +304,7 @@ const services: Array<BaseService> = [
   AIAgentTaskLogService,
   AIAgentTaskPullRequestService,
   ProjectSsoService,
+  ProjectOidcService,
 
   ScheduledMaintenanceCustomFieldService,
   ScheduledMaintenanceInternalNoteService,
@@ -333,6 +338,7 @@ const services: Array<BaseService> = [
   StatusPageResourceService,
   StatusPageService,
   StatusPageSsoService,
+  StatusPageOidcService,
   StatusPageSubscriberService,
   StatusPageSubscriberNotificationTemplateService,
   StatusPageSubscriberNotificationTemplateStatusPageService,

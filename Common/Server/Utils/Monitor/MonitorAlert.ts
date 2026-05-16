@@ -324,6 +324,10 @@ export default class MonitorAlert {
 
         alert.isCreatedAutomatically = true;
 
+        if (criteriaAlert.isPrivate === true) {
+          alert.isPrivate = true;
+        }
+
         if (input.props.telemetryQuery) {
           alert.telemetryQuery = input.props.telemetryQuery;
         }

@@ -3,7 +3,9 @@ import {
   ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
-import DashboardValueComponent from "../../../Types/Dashboard/DashboardComponents/DashboardValueComponent";
+import DashboardValueComponent, {
+  DashboardValueTrendDirection,
+} from "../../../Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -15,10 +17,17 @@ const DataSourceSection: ComponentArgumentSection = {
   order: 1,
 };
 
+const DisplaySection: ComponentArgumentSection = {
+  name: "Display",
+  description: "Tune how the trend arrow is coloured",
+  order: 2,
+  defaultCollapsed: true,
+};
+
 const ThresholdsSection: ComponentArgumentSection = {
   name: "Thresholds",
   description: "Set warning and critical levels",
-  order: 2,
+  order: 3,
   defaultCollapsed: true,
 };
 
@@ -69,6 +78,31 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       type: ComponentInputType.MetricsQueryConfig,
       id: "metricQueryConfig",
       section: DataSourceSection,
+    });
+
+    componentArguments.push({
+      name: "Trend Direction",
+      description:
+        "How the trend arrow is coloured. Auto reads the metric name (e.g. 'error_count' and 'latency' are treated as 'higher is worse'). Pick a value to override.",
+      required: false,
+      type: ComponentInputType.Dropdown,
+      id: "trendDirection",
+      isAdvanced: true,
+      section: DisplaySection,
+      dropdownOptions: [
+        {
+          label: "Auto (detect from metric name)",
+          value: DashboardValueTrendDirection.Auto,
+        },
+        {
+          label: "Higher is better (↑ green)",
+          value: DashboardValueTrendDirection.HigherIsBetter,
+        },
+        {
+          label: "Higher is worse (↑ red)",
+          value: DashboardValueTrendDirection.HigherIsWorse,
+        },
+      ],
     });
 
     componentArguments.push({

@@ -84,6 +84,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         name="Docker Hosts"
         isViewable={true}
+        searchableFields={["name", "description"]}
         filters={[]}
         cardProps={{
           title: "Docker Hosts",

@@ -43,6 +43,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",
@@ -502,6 +503,36 @@ RunCron(
               MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
                 text: markdownMessage,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+
+            if (subscriber.subscriberWebhook) {
+              const resourcesAffectedStr: string =
+                statusPageToResources[statuspage._id!]
+                  ?.map((r: StatusPageResource) => {
+                    return r.displayName;
+                  })
+                  .join(", ") || "";
+
+              StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+                webhookUrl: subscriber.subscriberWebhook,
+                payload: {
+                  eventType: "ScheduledMaintenanceNoteCreated",
+                  statusPageId: statuspage.id!.toString(),
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  unsubscribeUrl: unsubscribeUrl,
+                  data: {
+                    scheduledMaintenanceId: event.id?.toString() || "",
+                    scheduledMaintenanceTitle: event.title || "",
+                    scheduledMaintenanceDescription: event.description || "",
+                    resourcesAffected: resourcesAffectedStr,
+                    note: publicNote.note || "",
+                    detailsUrl: scheduledEventDetailsUrl,
+                  },
+                },
               }).catch((err: Error) => {
                 logger.error(err);
               });

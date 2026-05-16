@@ -100,6 +100,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
         sortBy="priority"
         sortOrder={SortOrder.Ascending}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         selectMoreFields={{
           color: true,
           isOperationalState: true,

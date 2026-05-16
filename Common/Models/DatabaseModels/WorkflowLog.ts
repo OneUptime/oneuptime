@@ -4,6 +4,7 @@ import Workflow from "./Workflow";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -31,7 +32,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-    Permission.WorkflowManager,
+    Permission.WorkflowAdmin,
+    Permission.WorkflowMember,
+    Permission.WorkflowViewer,
     Permission.ReadWorkflowLog,
     Permission.ReadAllProjectResources,
   ],
@@ -47,6 +50,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   ],
 })
 @CrudApiEndpoint(new Route("/workflow-log"))
+@OwnedThrough("workflowId", Workflow)
 @Entity({
   name: "WorkflowLog",
 })
@@ -65,7 +69,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -99,7 +105,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -127,7 +135,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -161,7 +171,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -189,7 +201,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -214,7 +228,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -239,7 +255,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],
@@ -264,7 +282,9 @@ export default class WorkflowLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.WorkflowManager,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
       Permission.ReadWorkflowLog,
       Permission.ReadAllProjectResources,
     ],

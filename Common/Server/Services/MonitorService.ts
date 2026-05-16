@@ -8,6 +8,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
+import MonitorOwnerRuleEngineService from "./MonitorOwnerRuleEngineService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
@@ -729,6 +731,43 @@ ${createdItem.description?.trim() || "No description provided."}
           logger.error(error as Error);
           return Promise.resolve();
         }
+      })
+      .then(async () => {
+        /*
+         * Apply label rules first so rule-added labels are persisted before
+         * owner rules run. Owner rules re-fetch labels from the DB, so this
+         * lets owner rules key on rule-added labels.
+         */
+        try {
+          await MonitorLabelRuleEngineService.applyRulesToMonitor(createdItem);
+        } catch (error) {
+          logger.error(
+            "Apply monitor label rules failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+          return Promise.resolve();
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        try {
+          await MonitorOwnerRuleEngineService.applyRulesToMonitor(createdItem);
+        } catch (error) {
+          logger.error(
+            "Apply monitor owner rules failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+          return Promise.resolve();
+        }
+        return Promise.resolve();
       })
       .then(async () => {
         try {

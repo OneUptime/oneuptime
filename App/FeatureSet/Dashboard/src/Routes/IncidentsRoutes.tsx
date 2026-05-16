@@ -22,6 +22,7 @@ import IncidentViewNotificationLogs from "../Pages/Incidents/View/NotificationLo
 
 import IncidentViewAILogs from "../Pages/Incidents/View/AILogs";
 import IncidentViewAuditLogs from "../Pages/Incidents/View/AuditLogs";
+import IncidentViewRunbooks from "../Pages/Incidents/View/Runbooks";
 
 import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 
@@ -71,6 +72,15 @@ import IncidentSettingsPostmortemTemplatesView from "../Pages/Incidents/Settings
 import IncidentSettingsCustomFields from "../Pages/Incidents/Settings/IncidentCustomFields";
 
 import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentGroupingRules";
+
+import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnCallRules";
+
+import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
+import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
+
+import IncidentSettingsPrivacyRules from "../Pages/Incidents/Settings/IncidentPrivacyRules";
+
+import IncidentSettingsLabelRules from "../Pages/Incidents/Settings/IncidentLabelRules";
 
 import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
 
@@ -335,6 +345,76 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] || ""
+          }
+          element={
+            <IncidentSettingsOnCallRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <IncidentSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] || ""
+          }
+          element={
+            <IncidentSettingsRunbookRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] || ""
+          }
+          element={
+            <IncidentSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <IncidentSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route
               }
             />
           }
@@ -797,6 +877,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <IncidentViewAuditLogs
               {...props}
               pageRoute={RouteMap[PageMap.INCIDENT_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_RUNBOOKS)}
+          element={
+            <IncidentViewRunbooks
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_RUNBOOKS] as Route}
             />
           }
         />

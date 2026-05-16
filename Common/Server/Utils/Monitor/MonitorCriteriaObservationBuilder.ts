@@ -20,9 +20,16 @@ import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import SnmpMonitorResponse, {
+  SnmpOidResponse,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -164,6 +171,22 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.ExceptionCount:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
+          input,
+        );
+      case CheckOn.SnmpIsOnline:
+        return MonitorCriteriaObservationBuilder.describeSnmpIsOnlineObservation(
+          input,
+        );
+      case CheckOn.SnmpResponseTime:
+        return MonitorCriteriaObservationBuilder.describeSnmpResponseTimeObservation(
+          input,
+        );
+      case CheckOn.SnmpOidExists:
+        return MonitorCriteriaObservationBuilder.describeSnmpOidExistsObservation(
+          input,
+        );
+      case CheckOn.SnmpOidValue:
+        return MonitorCriteriaObservationBuilder.describeSnmpOidValueObservation(
           input,
         );
       default:
@@ -1127,10 +1150,26 @@ export default class MonitorCriteriaObservationBuilder {
       } returned no data points.`;
     }
 
+    /*
+     * Render the observation in the threshold's unit. The raw samples
+     * arrive in the metric's legendUnit (or its native unit when no
+     * legendUnit was set). If the user picked a different threshold
+     * unit — e.g. "%" against a ratio metric whose native unit is the
+     * dimensionless "1" — convert here so the message reads
+     * "latest 5.85% expected to equal 2" rather than the confusing
+     * "latest 0.0585 expected to equal 2".
+     */
+    const displayValues: Array<number> =
+      MonitorCriteriaObservationBuilder.convertMetricValuesToThresholdUnit({
+        values: metricValues.values,
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        alias: metricValues.alias,
+      });
+
     const summary: string | null =
-      MonitorCriteriaMessageFormatter.summarizeNumericSeries(
-        metricValues.values,
-      );
+      MonitorCriteriaMessageFormatter.summarizeNumericSeries(displayValues);
 
     if (!summary) {
       return null;
@@ -1139,5 +1178,227 @@ export default class MonitorCriteriaObservationBuilder {
     return `Metric Value${
       metricValues.alias ? ` (${metricValues.alias})` : ""
     } recorded ${summary}.`;
+  }
+
+  /*
+   * Best-effort unit conversion for observation text. Mirrors the
+   * sample→thresholdUnit conversion in MetricMonitorCriteria so the
+   * "recorded" message and the breach comparison speak the same unit.
+   * Returns the input array unchanged when units are missing or
+   * incompatible — never throws.
+   */
+  private static convertMetricValuesToThresholdUnit(input: {
+    values: Array<number>;
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    alias: string | null;
+  }): Array<number> {
+    const thresholdUnit: string | undefined =
+      input.criteriaFilter.metricMonitorOptions?.thresholdUnit;
+    if (!thresholdUnit) {
+      return input.values;
+    }
+
+    const metricResponse: MetricMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getMetricMonitorResponse(
+        input.dataToProcess,
+      );
+    if (!metricResponse) {
+      return input.values;
+    }
+
+    const queryConfigs: Array<MetricQueryConfigData> =
+      input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs ||
+      [];
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs ||
+      [];
+
+    const alias: string | null = input.alias;
+    const matchedQuery: MetricQueryConfigData | undefined = alias
+      ? queryConfigs.find((q: MetricQueryConfigData) => {
+          return q.metricAliasData?.metricVariable === alias;
+        })
+      : queryConfigs[0];
+    const matchedFormula: MetricFormulaConfigData | undefined =
+      !matchedQuery && alias
+        ? formulaConfigs.find((f: MetricFormulaConfigData) => {
+            return f.metricAliasData?.metricVariable === alias;
+          })
+        : undefined;
+
+    const rawMetricName: string | undefined =
+      (matchedQuery?.metricQueryData?.filterData?.metricName as
+        | string
+        | undefined) || undefined;
+    const nativeUnitFromMap: string | undefined = rawMetricName
+      ? metricResponse.nativeUnitsByMetricName?.[rawMetricName.toLowerCase()]
+      : undefined;
+
+    const sampleUnit: string | undefined =
+      (matchedQuery?.metricAliasData?.legendUnit as string | undefined) ||
+      (matchedFormula?.metricAliasData?.legendUnit as string | undefined) ||
+      nativeUnitFromMap ||
+      undefined;
+
+    if (!sampleUnit || sampleUnit === thresholdUnit) {
+      return input.values;
+    }
+
+    return input.values.map((v: number) => {
+      return MetricUnitUtil.convertToMetricUnit({
+        value: v,
+        fromUnit: sampleUnit,
+        metricUnit: thresholdUnit,
+      });
+    });
+  }
+
+  private static getSnmpResponse(input: {
+    dataToProcess: DataToProcess;
+  }): SnmpMonitorResponse | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    return probeResponse?.snmpResponse || null;
+  }
+
+  private static findSnmpOidResponse(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): {
+    snmpResponse: SnmpMonitorResponse | null;
+    oid: string | undefined;
+    oidResponse: SnmpOidResponse | undefined;
+  } {
+    const snmpResponse: SnmpMonitorResponse | null =
+      MonitorCriteriaObservationBuilder.getSnmpResponse({
+        dataToProcess: input.dataToProcess,
+      });
+
+    const oid: string | undefined =
+      input.criteriaFilter.snmpMonitorOptions?.oid;
+
+    const oidResponse: SnmpOidResponse | undefined = oid
+      ? snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
+          return response.oid === oid;
+        })
+      : undefined;
+
+    return { snmpResponse, oid, oidResponse };
+  }
+
+  private static describeSnmpIsOnlineObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const snmpResponse: SnmpMonitorResponse | null =
+      MonitorCriteriaObservationBuilder.getSnmpResponse(input);
+
+    if (!snmpResponse) {
+      return "SNMP response was unavailable.";
+    }
+
+    if (snmpResponse.isOnline) {
+      return "SNMP device is online.";
+    }
+
+    if (snmpResponse.failureCause) {
+      return `SNMP device is offline: ${snmpResponse.failureCause}`;
+    }
+
+    return "SNMP device is offline.";
+  }
+
+  private static describeSnmpResponseTimeObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const snmpResponse: SnmpMonitorResponse | null =
+      MonitorCriteriaObservationBuilder.getSnmpResponse(input);
+
+    if (
+      !snmpResponse ||
+      snmpResponse.responseTimeInMs === null ||
+      snmpResponse.responseTimeInMs === undefined
+    ) {
+      return "SNMP response time was not recorded.";
+    }
+
+    const formatted: string | null =
+      MonitorCriteriaMessageFormatter.formatNumber(
+        snmpResponse.responseTimeInMs,
+        { maximumFractionDigits: 2 },
+      );
+
+    return `SNMP response time was ${formatted ?? snmpResponse.responseTimeInMs}ms.`;
+  }
+
+  private static describeSnmpOidExistsObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const { snmpResponse, oid, oidResponse } =
+      MonitorCriteriaObservationBuilder.findSnmpOidResponse(input);
+
+    if (!oid) {
+      return "No OID is configured on this criteria.";
+    }
+
+    if (!snmpResponse) {
+      return `SNMP response for OID ${oid} was unavailable.`;
+    }
+
+    if (!oidResponse || oidResponse.value === null) {
+      return `SNMP OID ${oid} did not return a value.`;
+    }
+
+    return `SNMP OID ${oid} returned ${MonitorCriteriaObservationBuilder.formatSnmpValue(
+      oidResponse.value,
+    )} (${oidResponse.type}).`;
+  }
+
+  private static describeSnmpOidValueObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const { snmpResponse, oid, oidResponse } =
+      MonitorCriteriaObservationBuilder.findSnmpOidResponse(input);
+
+    if (!oid) {
+      return "No OID is configured on this criteria. Pick one from the OID dropdown in the criteria editor.";
+    }
+
+    if (!snmpResponse) {
+      return `SNMP response for OID ${oid} was unavailable.`;
+    }
+
+    if (!oidResponse) {
+      return `SNMP OID ${oid} was not returned by the device.`;
+    }
+
+    if (oidResponse.value === null) {
+      return `SNMP OID ${oid} returned no value (${oidResponse.type}).`;
+    }
+
+    const formattedValue: string =
+      MonitorCriteriaObservationBuilder.formatSnmpValue(oidResponse.value);
+
+    const label: string = oidResponse.name
+      ? `${oidResponse.name} (${oid})`
+      : oid;
+
+    return `SNMP OID ${label} value was ${formattedValue} (${oidResponse.type})`;
+  }
+
+  private static formatSnmpValue(value: string | number): string {
+    if (typeof value === Typeof.Number) {
+      const formatted: string | null =
+        MonitorCriteriaMessageFormatter.formatNumber(value as number, {
+          maximumFractionDigits: 2,
+        });
+      return formatted ?? String(value);
+    }
+
+    return String(value);
   }
 }

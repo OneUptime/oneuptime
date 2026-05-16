@@ -181,6 +181,10 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     });
   };
 
+  const hasActiveFilters: boolean =
+    Boolean(props.currentQuery) &&
+    Object.keys(props.currentQuery as Record<string, unknown>).length > 0;
+
   const getMenuContents: GetReactElementArrayFunction =
     (): Array<ReactElement> => {
       if (isLoading) {
@@ -197,18 +201,20 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         );
       }
 
-      elements.push(
-        <MoreMenuItem
-          key={"save-new-view"}
-          text="Save as New View"
-          className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 font-medium -mt-2"
-          icon={IconProp.Add}
-          iconClassName=""
-          onClick={() => {
-            setShowCreateNewViewModel(true);
-          }}
-        ></MoreMenuItem>,
-      );
+      if (hasActiveFilters) {
+        elements.push(
+          <MoreMenuItem
+            key={"save-new-view"}
+            text="Save as New View"
+            className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 font-medium -mt-2"
+            icon={IconProp.Add}
+            iconClassName=""
+            onClick={() => {
+              setShowCreateNewViewModel(true);
+            }}
+          ></MoreMenuItem>,
+        );
+      }
 
       return elements;
     };
@@ -342,39 +348,77 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     );
   }
 
-  type GetElementToBeShownInsteadOfButtonFunction = () =>
-    | ReactElement
-    | undefined;
+  type GetElementToBeShownInsteadOfButtonFunction = () => ReactElement;
 
   const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction =
-    (): ReactElement | undefined => {
-      if (!currentlySelectedView) {
-        return undefined;
+    (): ReactElement => {
+      /*
+       * Shared shape so the trigger lines up with the search bar + Create button
+       * (text-sm font-medium + px-3 py-2 + 1px border → ~38px tall).
+       */
+      const triggerBase: string =
+        "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition-colors";
+
+      if (currentlySelectedView) {
+        return (
+          <div
+            className={`${triggerBase} border-indigo-300 bg-indigo-50 text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100`}
+            title={`Saved view: ${currentlySelectedView.name}`}
+          >
+            <Icon
+              icon={IconProp.Window}
+              className="h-4 w-4 flex-none text-indigo-500"
+            />
+            <span className="max-w-[12rem] truncate">
+              {currentlySelectedView.name}
+            </span>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Clear saved view"
+              title="Clear saved view"
+              className="-mr-1 ml-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-indigo-100 text-indigo-600 ring-1 ring-inset ring-indigo-300 hover:bg-indigo-200 hover:text-indigo-900 hover:ring-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+                event.stopPropagation();
+                setCurrentlySelectedView(null);
+                props.onViewChange?.(null);
+                closeDropdownMenu();
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setCurrentlySelectedView(null);
+                  props.onViewChange?.(null);
+                  closeDropdownMenu();
+                }
+              }}
+            >
+              <Icon
+                icon={IconProp.Close}
+                size={SizeProp.Small}
+                thick={ThickProp.Thick}
+              />
+            </div>
+          </div>
+        );
       }
 
       return (
-        <div className="ml-2 mt-1 cursor-pointer font-semibold flex rounded-full border-2 border-gray-600 text-gray-600 text-xs p-1 pl-2 pr-2">
-          <div
-            onClick={() => {
-              flipDropdown();
-            }}
-          >
-            {currentlySelectedView.name}
-          </div>
-          <div
-            className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1"
-            onClick={() => {
-              setCurrentlySelectedView(null);
-              props.onViewChange?.(null);
-              closeDropdownMenu();
-            }}
-          >
-            <Icon
-              icon={IconProp.Close}
-              size={SizeProp.Regular}
-              thick={ThickProp.Thick}
-            />
-          </div>
+        <div
+          className={`${triggerBase} border-gray-300 bg-white text-gray-700 hover:bg-gray-50`}
+          title="Saved Views"
+        >
+          <Icon
+            icon={IconProp.Window}
+            className="h-4 w-4 flex-none text-gray-500"
+          />
+          <span>Saved Views</span>
+          {allTableViews.length > 0 && (
+            <span className="text-gray-400">
+              {allTableViews.length.toLocaleString()}
+            </span>
+          )}
         </div>
       );
     };
@@ -385,11 +429,14 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     }
   };
 
-  const flipDropdown: VoidFunction = (): void => {
-    if (moreMenuRef.current) {
-      (moreMenuRef.current as any).flipDropdown();
-    }
-  };
+  if (
+    !isLoading &&
+    allTableViews.length === 0 &&
+    !hasActiveFilters &&
+    !currentlySelectedView
+  ) {
+    return <></>;
+  }
 
   return (
     <MoreMenu

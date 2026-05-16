@@ -32,6 +32,7 @@ import AlertInternalNote from "../Pages/Alerts/View/InternalNote";
 import UnresolvedAlerts from "../Pages/Alerts/Unresolved";
 import AlertViewCustomFields from "../Pages/Alerts/View/CustomFields";
 import AlertViewOwner from "../Pages/Alerts/View/Owners";
+import AlertViewRunbooks from "../Pages/Alerts/View/Runbooks";
 
 import AlertViewRootCause from "../Pages/Alerts/View/RootCause";
 
@@ -51,6 +52,15 @@ import AlertSettingsNoteTemplatesView from "../Pages/Alerts/Settings/AlertNoteTe
 import AlertSettingsCustomFields from "../Pages/Alerts/Settings/AlertCustomFields";
 
 import AlertSettingsGroupingRules from "../Pages/Alerts/Settings/AlertGroupingRules";
+
+import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules";
+
+import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
+import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
+
+import AlertSettingsPrivacyRules from "../Pages/Alerts/Settings/AlertPrivacyRules";
+
+import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
 
@@ -230,6 +240,62 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES] || ""}
+          element={
+            <AlertSettingsOnCallRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <AlertSettingsOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES] || ""}
+          element={
+            <AlertSettingsRunbookRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_PRIVACY_RULES] || ""}
+          element={
+            <AlertSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_PRIVACY_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <AlertSettingsLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE] || ""}
           element={
             <AlertSettingsMore
@@ -403,6 +469,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertViewDelete
               {...props}
               pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_RUNBOOKS)}
+          element={
+            <AlertViewRunbooks
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_RUNBOOKS] as Route}
             />
           }
         />

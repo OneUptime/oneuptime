@@ -69,6 +69,7 @@ import ObjectID from "Common/Types/ObjectID";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface DashboardBaseComponentProps {
   componentId: ObjectID;
@@ -87,6 +88,7 @@ export interface DashboardBaseComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   metricTypes: Array<MetricType>;
   refreshTick?: number | undefined;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {

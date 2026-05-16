@@ -30,6 +30,16 @@ const IncidentDelete: FunctionComponent<
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
         },
+        {
+          field: {
+            isPrivate: true,
+          },
+          title: "Private Incident",
+          description:
+            "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
       ]}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,
@@ -41,6 +51,15 @@ const IncidentDelete: FunctionComponent<
               isVisibleOnStatusPage: true,
             },
             title: "Visible on Status Page",
+            fieldType: FieldType.Boolean,
+          },
+          {
+            field: {
+              isPrivate: true,
+            },
+            title: "Private Incident",
+            description:
+              "Visible only to owners (users + members of owner teams), project admins, and project owners. Hidden from status pages.",
             fieldType: FieldType.Boolean,
           },
         ],

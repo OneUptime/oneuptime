@@ -9,8 +9,6 @@ import OsVersionDisplay, {
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Label from "Common/Models/DatabaseModels/Label";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -34,11 +32,29 @@ import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import {
+  XAxis as ChartXAxis,
+  XAxisAggregateType,
+} from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import YAxis, {
+  YAxisPrecision,
+} from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalInMs,
+  getAutoRefreshIntervalLabel,
+} from "Common/Types/Dashboard/DashboardViewConfig";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -48,6 +64,15 @@ interface OverviewStats {
   filesystemPercent: number | null;
   load1m: number | null;
   runningProcessCount: number | null;
+}
+
+interface MountInfo {
+  mountpoint: string;
+  device: string | null;
+  type: string | null;
+  totalBytes: number;
+  usedBytes: number;
+  utilizationPercent: number;
 }
 
 const formatPercent: (value: number | null) => string = (
@@ -182,6 +207,25 @@ const MetricTile: FunctionComponent<MetricTileProps> = (
   );
 };
 
+/*
+ * Window we pull bucketed metric data over for the charts. The
+ * ClickHouse aggregator picks bucket granularity from the window
+ * (<=3h → 1-minute buckets), so 30 minutes yields up to 30 points —
+ * enough resolution for the overview charts without dragging in
+ * older history users would scroll past anyway.
+ */
+const CHART_WINDOW_MINUTES: number = 30;
+
+/*
+ * The tile values stay at the recent-mean semantics they had before
+ * charts arrived. We derive them from the last 5 minutes of the same
+ * bucketed result so the page only issues one set of queries per
+ * refresh instead of one for tiles + one for charts.
+ */
+const TILE_WINDOW_MINUTES: number = 5;
+
+const REFRESH_STORAGE_KEY: string = "host-overview-auto-refresh-interval";
+
 const HostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -189,11 +233,43 @@ const HostOverview: FunctionComponent<
 
   const [host, setHost] = useState<Host | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
+  const [mounts, setMounts] = useState<Array<MountInfo> | null>(null);
+  const [cpuSeries, setCpuSeries] = useState<Array<SeriesPoint>>([]);
+  const [memorySeries, setMemorySeries] = useState<Array<SeriesPoint>>([]);
+  const [diskSeries, setDiskSeries] = useState<Array<SeriesPoint>>([]);
+  const [chartWindow, setChartWindow] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
+  /*
+   * Initial-load flag drives the full-page skeleton. Refresh ticks
+   * (auto + manual) keep this `false` so the rendered tiles, charts,
+   * and tables stay mounted and just swap in new numbers — no
+   * flicker between refreshes. The button spinner uses `isRefreshing`
+   * instead so users still see something is happening on click.
+   */
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string>("");
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [autoRefreshInterval, setAutoRefreshInterval] =
+    useState<AutoRefreshInterval>(() => {
+      if (typeof window === "undefined") {
+        return AutoRefreshInterval.THIRTY_SECONDS;
+      }
+      const stored: string | null =
+        window.localStorage?.getItem(REFRESH_STORAGE_KEY) ?? null;
+      if (
+        stored &&
+        (Object.values(AutoRefreshInterval) as Array<string>).includes(stored)
+      ) {
+        return stored as AutoRefreshInterval;
+      }
+      return AutoRefreshInterval.THIRTY_SECONDS;
+    });
 
   const fetchStats: PromiseVoidFunction = async (): Promise<void> => {
-    setIsStatsLoading(true);
+    setIsRefreshing(true);
     setStatsError("");
     try {
       const item: Host | null = await ModelAPI.getItem({
@@ -216,23 +292,27 @@ const HostOverview: FunctionComponent<
           hostArch: true,
           hostType: true,
           hostIpAddresses: true,
-          labels: {
-            name: true,
-            color: true,
-          },
         },
       });
 
       if (!item?.hostIdentifier) {
         setStatsError("Host not found.");
-        setIsStatsLoading(false);
+        setIsRefreshing(false);
+        setIsInitialLoading(false);
         return;
       }
 
       setHost(item);
 
       const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);
+      const startDate: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -CHART_WINDOW_MINUTES,
+      );
+      const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -TILE_WINDOW_MINUTES,
+      );
       const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
 
       /*
@@ -308,6 +388,21 @@ const HostOverview: FunctionComponent<
        * The total (sum of all statuses) lives on
        * `host.processCount`, surfaced as a sublabel for context.
        */
+      /*
+       * `system.filesystem.usage` is per-(mountpoint, device, state)
+       * with state ∈ {used, free, reserved}. Pulling it grouped by
+       * attributes lets us list every mount the host reports, sum
+       * the per-state values to recover total capacity, and derive
+       * a utilization that matches the bytes the user sees in `df`.
+       */
+      const fsUsageAggregate: AggregateBy<Metric> = buildAggregateBy(
+        "system.filesystem.usage",
+        AggregationType.Avg,
+      );
+      fsUsageAggregate.groupBy = {
+        attributes: true,
+      };
+
       const [
         cpuUserResult,
         cpuSystemResult,
@@ -315,7 +410,9 @@ const HostOverview: FunctionComponent<
         fsResult,
         loadResult,
         runningProcResult,
+        fsUsageResult,
       ]: [
+        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -370,7 +467,31 @@ const HostOverview: FunctionComponent<
             { status: "running" },
           ),
         }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: fsUsageAggregate,
+        }),
       ]);
+
+      const getBucketTimestamp: (p: AggregatedModel) => number = (
+        p: AggregatedModel,
+      ): number => {
+        /*
+         * AggregatedModel exposes the bucket timestamp on `timestamp`.
+         * The MV statement aliases its time column to `time`, so
+         * depending on the path either field may be populated — read
+         * whichever is present so we never silently drop rows.
+         */
+        const raw: unknown =
+          p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
+        if (raw instanceof Date) {
+          return raw.getTime();
+        }
+        if (typeof raw === "string" || typeof raw === "number") {
+          return new Date(raw).getTime();
+        }
+        return NaN;
+      };
 
       const meanFromBuckets: (
         result: AggregatedResult,
@@ -383,23 +504,39 @@ const HostOverview: FunctionComponent<
         if (points.length === 0) {
           return null;
         }
+        const tileWindowStartMs: number = tileWindowStart.getTime();
         let sum: number = 0;
         let count: number = 0;
         for (const p of points) {
           /*
-           * Each bucket already holds an Avg over its 1-minute
-           * window. Averaging those with equal weight is a
-           * reasonable approximation of the 5-minute mean for
-           * the dashboard tile (the windows are uniform). For
-           * exact weighted means we'd need bucket sample counts;
-           * the tile UX doesn't justify that precision.
+           * The chart query pulls CHART_WINDOW_MINUTES of buckets but
+           * the tile should still reflect the recent-window mean
+           * (TILE_WINDOW_MINUTES). Filter older buckets out here so
+           * the displayed tile value matches what users saw before
+           * charts were added. Fall back to the full window if no
+           * bucket is recent enough — rare but keeps the tile from
+           * going blank for hosts emitting slow.
            */
+          const t: number = getBucketTimestamp(p);
+          if (Number.isFinite(t) && t < tileWindowStartMs) {
+            continue;
+          }
           const v: number = Number(p["value"]);
           if (!Number.isFinite(v)) {
             continue;
           }
           sum += v;
           count++;
+        }
+        if (count === 0) {
+          for (const p of points) {
+            const v: number = Number(p["value"]);
+            if (!Number.isFinite(v)) {
+              continue;
+            }
+            sum += v;
+            count++;
+          }
         }
         if (count === 0) {
           return null;
@@ -418,25 +555,70 @@ const HostOverview: FunctionComponent<
           if (!Number.isFinite(v)) {
             continue;
           }
-          /*
-           * AggregatedModel exposes the bucket timestamp on
-           * `timestamp`. The MV statement aliases its time column to
-           * `time`, so depending on the path either field may be
-           * populated — read whichever is present rather than locking
-           * to one and silently dropping every row.
-           */
-          const tRaw: unknown =
-            p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
-          const t: number =
-            tRaw instanceof Date
-              ? tRaw.getTime()
-              : new Date(tRaw as string).getTime();
+          const t: number = getBucketTimestamp(p);
           if (Number.isFinite(t) && t > latestTime) {
             latestTime = t;
             latestVal = v;
           }
         }
         return latestVal;
+      };
+
+      type TimeValuePoint = { x: Date; y: number };
+
+      const seriesFromBuckets: (
+        result: AggregatedResult,
+        scale: number,
+      ) => Array<TimeValuePoint> = (
+        result: AggregatedResult,
+        scale: number,
+      ): Array<TimeValuePoint> => {
+        const out: Array<TimeValuePoint> = [];
+        for (const p of (result.data || []) as Array<AggregatedModel>) {
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          out.push({ x: new Date(t), y: v * scale });
+        }
+        out.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
+        return out;
+      };
+
+      const sumSeriesByTimestamp: (
+        seriesA: Array<TimeValuePoint>,
+        seriesB: Array<TimeValuePoint>,
+      ) => Array<TimeValuePoint> = (
+        seriesA: Array<TimeValuePoint>,
+        seriesB: Array<TimeValuePoint>,
+      ): Array<TimeValuePoint> => {
+        /*
+         * CPU% on the tile is `user + system`. For the chart we want
+         * the same combined series. Each side is already on the same
+         * 1-min bucket grid (the aggregator uses uniform intervals),
+         * but a state may be missing from a bucket on a slow host —
+         * merge by timestamp instead of zipping by index so a
+         * missing system or user point doesn't shift the rest of the
+         * line by one slot.
+         */
+        const byTime: Map<number, number> = new Map<number, number>();
+        for (const p of seriesA) {
+          byTime.set(p.x.getTime(), (byTime.get(p.x.getTime()) || 0) + p.y);
+        }
+        for (const p of seriesB) {
+          byTime.set(p.x.getTime(), (byTime.get(p.x.getTime()) || 0) + p.y);
+        }
+        const merged: Array<TimeValuePoint> = [];
+        for (const [t, y] of byTime.entries()) {
+          merged.push({ x: new Date(t), y: y });
+        }
+        merged.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
+        return merged;
       };
 
       /*
@@ -460,17 +642,191 @@ const HostOverview: FunctionComponent<
         load1m: latestFromBuckets(loadResult),
         runningProcessCount: latestFromBuckets(runningProcResult),
       });
+
+      /*
+       * `system.filesystem.usage` rows come back as one entry per
+       * (time bucket × mountpoint × device × state). Average each
+       * (mountpoint, state) across buckets — a 5-min window of a
+       * gauge is essentially flat, so the avg matches what `df`
+       * reports right now. Total capacity is used + free + reserved;
+       * any mount missing both used and free is dropped (typically
+       * pseudo-fs the OS reports without size, e.g. `tmpfs` of 0 B).
+       */
+      type StateBucket = { sum: number; count: number };
+      const mountAggregation: Map<
+        string,
+        {
+          device: string | null;
+          type: string | null;
+          byState: Map<string, StateBucket>;
+        }
+      > = new Map();
+
+      for (const point of fsUsageResult.data || []) {
+        const attrs: Record<string, unknown> =
+          (point["attributes"] as Record<string, unknown>) || {};
+        const mountpoint: string = (attrs["mountpoint"] as string) || "";
+        const state: string = (attrs["state"] as string) || "";
+        const value: number = Number(point["value"]);
+
+        if (!mountpoint || !state || !Number.isFinite(value)) {
+          continue;
+        }
+
+        let entry:
+          | {
+              device: string | null;
+              type: string | null;
+              byState: Map<string, StateBucket>;
+            }
+          | undefined = mountAggregation.get(mountpoint);
+
+        if (!entry) {
+          entry = {
+            device: (attrs["device"] as string) || null,
+            type: (attrs["type"] as string) || null,
+            byState: new Map<string, StateBucket>(),
+          };
+          mountAggregation.set(mountpoint, entry);
+        }
+
+        let bucket: StateBucket | undefined = entry.byState.get(state);
+        if (!bucket) {
+          bucket = { sum: 0, count: 0 };
+          entry.byState.set(state, bucket);
+        }
+        bucket.sum += value;
+        bucket.count += 1;
+      }
+
+      const avgFor: (
+        byState: Map<string, StateBucket>,
+        state: string,
+      ) => number = (
+        byState: Map<string, StateBucket>,
+        state: string,
+      ): number => {
+        const acc: StateBucket | undefined = byState.get(state);
+        if (!acc || acc.count === 0) {
+          return 0;
+        }
+        return acc.sum / acc.count;
+      };
+
+      const mountList: Array<MountInfo> = [];
+      for (const [mountpoint, info] of mountAggregation.entries()) {
+        const used: number = avgFor(info.byState, "used");
+        const free: number = avgFor(info.byState, "free");
+        const reserved: number = avgFor(info.byState, "reserved");
+        const total: number = used + free + reserved;
+        if (total <= 0) {
+          continue;
+        }
+        mountList.push({
+          mountpoint: mountpoint,
+          device: info.device,
+          type: info.type,
+          totalBytes: total,
+          usedBytes: used,
+          utilizationPercent: (used / total) * 100,
+        });
+      }
+      mountList.sort((a: MountInfo, b: MountInfo): number => {
+        return b.totalBytes - a.totalBytes;
+      });
+      setMounts(mountList);
+
+      const cpuUserSeries: Array<TimeValuePoint> = seriesFromBuckets(
+        cpuUserResult,
+        100,
+      );
+      const cpuSystemSeries: Array<TimeValuePoint> = seriesFromBuckets(
+        cpuSystemResult,
+        100,
+      );
+      const cpuTotalSeries: Array<TimeValuePoint> = sumSeriesByTimestamp(
+        cpuUserSeries,
+        cpuSystemSeries,
+      );
+      const memoryUsedSeries: Array<TimeValuePoint> = seriesFromBuckets(
+        memResult,
+        100,
+      );
+      const fsRootSeries: Array<TimeValuePoint> = seriesFromBuckets(
+        fsResult,
+        100,
+      );
+
+      setCpuSeries(
+        cpuTotalSeries.length > 0
+          ? [{ seriesName: "CPU %", data: cpuTotalSeries }]
+          : [],
+      );
+      setMemorySeries(
+        memoryUsedSeries.length > 0
+          ? [{ seriesName: "Memory %", data: memoryUsedSeries }]
+          : [],
+      );
+      setDiskSeries(
+        fsRootSeries.length > 0
+          ? [{ seriesName: "Disk %", data: fsRootSeries }]
+          : [],
+      );
+      setChartWindow({ start: startDate, end: endDate });
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
       setStatsError(API.getFriendlyMessage(err));
     }
-    setIsStatsLoading(false);
+    setIsRefreshing(false);
+    setIsInitialLoading(false);
   };
 
+  /*
+   * Keep a stable ref to fetchStats. The interval re-arms whenever
+   * `autoRefreshInterval` changes, so without the ref the timer would
+   * fire the original closure with a stale state setter and rebuilt
+   * dependencies. The ref pattern lets us swap intervals without
+   * tearing down/refetching on every render.
+   */
+  const fetchStatsRef: React.MutableRefObject<PromiseVoidFunction> =
+    useRef<PromiseVoidFunction>(fetchStats);
+  fetchStatsRef.current = fetchStats;
+
   useEffect(() => {
-    fetchStats().catch((err: Error) => {
+    fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  useEffect(() => {
+    const ms: number | null = getAutoRefreshIntervalInMs(autoRefreshInterval);
+    if (ms === null) {
+      return undefined;
+    }
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      fetchStatsRef.current().catch((err: Error) => {
+        setStatsError(API.getFriendlyMessage(err));
+      });
+    }, ms);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [autoRefreshInterval]);
+
+  const onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void = (
+    interval: AutoRefreshInterval,
+  ): void => {
+    setAutoRefreshInterval(interval);
+    if (typeof window !== "undefined") {
+      window.localStorage?.setItem(REFRESH_STORAGE_KEY, interval);
+    }
+  };
+
+  const onManualRefresh: () => void = (): void => {
+    fetchStatsRef.current().catch((err: Error) => {
+      setStatsError(API.getFriendlyMessage(err));
+    });
+  };
 
   const renderHero: () => ReactElement | null = (): ReactElement | null => {
     if (!host) {
@@ -493,8 +849,6 @@ const HostOverview: FunctionComponent<
 
     const hostIdentifier: string =
       (host.hostIdentifier as string | undefined) || "";
-
-    const labelList: Array<Label> = (host["labels"] as Array<Label>) || [];
 
     const specChips: Array<{
       icon: IconProp;
@@ -596,6 +950,9 @@ const HostOverview: FunctionComponent<
                   </div>
                 </div>
               </div>
+              <div className="flex-shrink-0 md:self-start">
+                {renderRefreshControl()}
+              </div>
             </div>
 
             {specChips.length > 0 && (
@@ -621,12 +978,6 @@ const HostOverview: FunctionComponent<
                 )}
               </div>
             )}
-
-            {labelList.length > 0 && (
-              <div className="mt-3 border-t border-gray-100 pt-3">
-                <LabelsElement labels={labelList} />
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -634,7 +985,7 @@ const HostOverview: FunctionComponent<
   };
 
   const renderSummaryCards: () => ReactElement = (): ReactElement => {
-    if (isStatsLoading) {
+    if (isInitialLoading) {
       return (
         <div className="mb-6">
           <PageLoader isVisible={true} />
@@ -813,6 +1164,320 @@ const HostOverview: FunctionComponent<
     );
   };
 
+  const renderMounts: () => ReactElement = (): ReactElement => {
+    if (isInitialLoading) {
+      return <Fragment />;
+    }
+
+    if (statsError) {
+      return <Fragment />;
+    }
+
+    const mountList: Array<MountInfo> = mounts || [];
+    if (mountList.length === 0) {
+      return <Fragment />;
+    }
+
+    return (
+      <div className="mb-6">
+        <Card
+          title="Filesystems"
+          description="Mount points reported by the host with capacity and utilization."
+        >
+          <div className="border-t border-gray-200 -m-6 -mt-2">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Mount
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Type
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Device
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      Used / Total
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
+                    >
+                      Utilization
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {mountList.map((m: MountInfo): ReactElement => {
+                    const pct: number = Math.min(
+                      100,
+                      Math.max(0, m.utilizationPercent),
+                    );
+                    const barColor: string =
+                      pct >= 90
+                        ? "bg-red-500"
+                        : pct >= 75
+                          ? "bg-amber-500"
+                          : "bg-emerald-500";
+                    return (
+                      <tr key={m.mountpoint}>
+                        <td className="px-4 py-3 text-sm font-mono text-gray-900 break-all">
+                          {m.mountpoint}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {m.type ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-xs font-medium ring-1 ring-inset ring-slate-200">
+                              {m.type}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-mono text-gray-700 break-all">
+                          {m.device || <span className="text-gray-400">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-gray-700 whitespace-nowrap tabular-nums">
+                          <span className="text-gray-900 font-medium">
+                            {formatMemoryBytes(m.usedBytes)}
+                          </span>
+                          <span className="text-gray-400 mx-1">/</span>
+                          <span>{formatMemoryBytes(m.totalBytes)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 bg-gray-100 rounded-full h-1.5 min-w-[60px]">
+                              <div
+                                className={`${barColor} h-1.5 rounded-full transition-all`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600 w-12 text-right tabular-nums">
+                              {pct.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderChartCard: (params: {
+    title: string;
+    icon: IconProp;
+    iconColor: "blue" | "violet" | "amber";
+    data: Array<SeriesPoint>;
+  }) => ReactElement = (params: {
+    title: string;
+    icon: IconProp;
+    iconColor: "blue" | "violet" | "amber";
+    data: Array<SeriesPoint>;
+  }): ReactElement => {
+    const colors: { bg: string; ring: string; text: string } =
+      colorClasses[params.iconColor];
+
+    if (!chartWindow) {
+      return (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {params.title}
+            </span>
+            <div
+              className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+            >
+              <Icon
+                icon={params.icon}
+                className={`h-3.5 w-3.5 ${colors.text}`}
+              />
+            </div>
+          </div>
+          <div className="h-48 animate-pulse rounded-md bg-gray-50" />
+        </div>
+      );
+    }
+
+    const xAxis: ChartXAxis = {
+      legend: "Time",
+      options: {
+        type: XAxisType.Time,
+        min: chartWindow.start,
+        max: chartWindow.end,
+        aggregateType: XAxisAggregateType.Average,
+      },
+    };
+    const yAxis: YAxis = {
+      legend: "%",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: 100,
+        formatter: (value: number): string => {
+          return `${Math.round(value)}%`;
+        },
+        precision: YAxisPrecision.NoDecimals,
+      },
+    };
+
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {params.title}
+          </span>
+          <div
+            className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+          >
+            <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+          </div>
+        </div>
+        <LineChartElement
+          data={params.data}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          curve={ChartCurve.MONOTONE}
+          sync={true}
+          syncid={`host-overview-${modelId.toString()}`}
+          heightInPx={180}
+          showLegend={false}
+        />
+      </div>
+    );
+  };
+
+  const renderCharts: () => ReactElement = (): ReactElement => {
+    if (statsError) {
+      return <Fragment />;
+    }
+
+    return (
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">
+              Resource usage
+            </h2>
+            <p className="text-xs text-gray-500">
+              Last {CHART_WINDOW_MINUTES} minutes · per-minute buckets
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {renderChartCard({
+            title: "CPU",
+            icon: IconProp.ChartBar,
+            iconColor: "blue",
+            data: cpuSeries,
+          })}
+          {renderChartCard({
+            title: "Memory",
+            icon: IconProp.SquareStack,
+            iconColor: "violet",
+            data: memorySeries,
+          })}
+          {renderChartCard({
+            title: "Disk space",
+            icon: IconProp.Cube,
+            iconColor: "amber",
+            data: diskSeries,
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderRefreshControl: () => ReactElement = (): ReactElement => {
+    const intervals: Array<AutoRefreshInterval> = [
+      AutoRefreshInterval.OFF,
+      AutoRefreshInterval.THIRTY_SECONDS,
+      AutoRefreshInterval.ONE_MINUTE,
+      AutoRefreshInterval.FIVE_MINUTES,
+      AutoRefreshInterval.FIFTEEN_MINUTES,
+    ];
+
+    const lastRefreshedLabel: string = lastRefreshedAt
+      ? `Updated ${OneUptimeDate.fromNow(lastRefreshedAt)}`
+      : "Not refreshed yet";
+
+    const isOff: boolean = autoRefreshInterval === AutoRefreshInterval.OFF;
+
+    return (
+      <div className="flex flex-col items-end gap-1.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onManualRefresh}
+            disabled={isRefreshing}
+            title="Refresh now"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon
+              icon={IconProp.Refresh}
+              className={`h-3.5 w-3.5 ${
+                isRefreshing ? "animate-spin text-gray-400" : "text-gray-500"
+              }`}
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="hidden sm:inline">Auto-refresh</span>
+            <select
+              value={autoRefreshInterval}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
+                onAutoRefreshIntervalChange(
+                  e.target.value as AutoRefreshInterval,
+                );
+              }}
+              className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            >
+              {intervals.map((interval: AutoRefreshInterval): ReactElement => {
+                return (
+                  <option key={interval} value={interval}>
+                    {interval === AutoRefreshInterval.OFF
+                      ? "Off"
+                      : `Every ${getAutoRefreshIntervalLabel(interval)}`}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              isRefreshing
+                ? "bg-amber-500 animate-pulse"
+                : isOff
+                  ? "bg-gray-300"
+                  : "bg-emerald-500"
+            }`}
+          />
+          <span>{lastRefreshedLabel}</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderOsTypeChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
@@ -853,7 +1518,9 @@ const HostOverview: FunctionComponent<
     <Fragment>
       {renderHero()}
       {renderSummaryCards()}
+      {renderCharts()}
       <div className="mb-6">{renderCrossLinks()}</div>
+      {renderMounts()}
 
       {host && (
         <div className="flex flex-col gap-x-6 lg:flex-row lg:items-start">

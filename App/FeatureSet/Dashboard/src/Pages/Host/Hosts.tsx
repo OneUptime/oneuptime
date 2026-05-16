@@ -105,6 +105,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
+        searchableFields={["name", "description"]}
         bulkActions={{
           buttons: [...labelBulkActions],
         }}
@@ -385,25 +386,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     </div>
                   )}
                 </div>
-              );
-            },
-          },
-          {
-            field: {
-              containerRuntime: true,
-            },
-            title: "Runtime",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const runtime: string = (item.containerRuntime as string) || "";
-              if (!runtime) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
-                  {runtime}
-                </span>
               );
             },
           },

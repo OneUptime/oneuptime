@@ -147,6 +147,13 @@
       "managePrompt": "请输入您订阅时使用的 Microsoft Teams 工作区名称",
       "manageDescription": "我们将把订阅管理链接发送到此工作区。"
     },
+    "webhook": {
+      "title": "通过 Webhook 订阅",
+      "description": "我们所有的更新都将作为 JSON POST 请求发送到此 Webhook URL。",
+      "webhookUrl": "Webhook URL",
+      "webhookUrlDescription": "每次状态页事件发生时，都会向此 URL 发送 JSON POST 请求。",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
     "resources": {
       "all": "订阅所有资源",
       "allDescription": "如果您希望订阅所有资源，请选择此选项。",

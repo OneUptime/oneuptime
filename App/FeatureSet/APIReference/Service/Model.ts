@@ -4,6 +4,7 @@ import CodeExampleGenerator, {
 } from "../Utils/CodeExampleGenerator";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import { buildRenderContext } from "../Utils/RenderContext";
 import PageNotFoundServiceHandler from "./PageNotFound";
 import { AppApiRoute } from "Common/ServiceRoute";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -333,6 +334,7 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
     let pageTitle: string = "";
     let pageDescription: string = "";
     let page: string | undefined = req.params["page"];
@@ -623,6 +625,10 @@ export default class ServiceHandler {
       enableGoogleTagManager: IsBillingEnabled,
       pageDescription: pageDescription,
       pageData: pageData,
+      lang: ctx.lang,
+      t: ctx.t,
+      supportedLanguages: ctx.supportedLanguages,
+      currentPath: ctx.currentPath,
     });
   }
 }

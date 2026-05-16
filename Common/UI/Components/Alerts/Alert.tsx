@@ -1,6 +1,7 @@
 import Icon from "../Icon/Icon";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum AlertType {
@@ -35,6 +36,16 @@ export interface ComponentProps {
 const Alert: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString, translateValue } = useTranslateValue();
+  const translatedStrongTitle: string | undefined = translateString(
+    props.strongTitle,
+  );
+  const translatedTitle: string | ReactElement | undefined = translateValue(
+    props.title,
+  );
+  const translatedTextOnRight: string | undefined = translateString(
+    props.textOnRight,
+  );
   const type: AlertType = props.type || AlertType.INFO;
 
   const typeClassNames: {
@@ -122,12 +133,12 @@ const Alert: FunctionComponent<ComponentProps> = (
           >
             <div>
               <span className="font-medium">
-                {props.strongTitle}{" "}
-                {props.title && props.strongTitle ? "- " : ""}
+                {translatedStrongTitle}{" "}
+                {translatedTitle && translatedStrongTitle ? "- " : ""}
               </span>
-              {props.title}
+              {translatedTitle}
             </div>
-            {props.textOnRight && <div>{props.textOnRight}</div>}
+            {translatedTextOnRight && <div>{translatedTextOnRight}</div>}
           </div>
           {props.onClose && (
             <p className="alert-close mt-3 text-sm md:mt-0 md:ml-6">

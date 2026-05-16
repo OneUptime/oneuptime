@@ -17,6 +17,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -293,6 +294,59 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
+
+        {criteriaFilter?.checkOn &&
+          (criteriaFilter.checkOn === CheckOn.SnmpOidValue ||
+            criteriaFilter.checkOn === CheckOn.SnmpOidExists) &&
+          (() => {
+            const configuredOids: Array<SnmpOid> =
+              props.monitorStep.data?.snmpMonitor?.oids || [];
+
+            const oidOptions: Array<DropdownOption> = configuredOids.map(
+              (oid: SnmpOid) => {
+                return {
+                  value: oid.oid,
+                  label: oid.name ? `${oid.name} (${oid.oid})` : oid.oid,
+                };
+              },
+            );
+
+            const selectedOidOption: DropdownOption | undefined =
+              oidOptions.find((option: DropdownOption) => {
+                return option.value === criteriaFilter?.snmpMonitorOptions?.oid;
+              });
+
+            return (
+              <div className="mt-1">
+                <FieldLabelElement
+                  title="OID"
+                  description="Which OID configured on this monitor should this criteria evaluate?"
+                />
+                {oidOptions.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    Add an OID to the monitor configuration above before
+                    creating this criteria.
+                  </p>
+                ) : (
+                  <Dropdown
+                    value={selectedOidOption}
+                    options={oidOptions}
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      props.onChange?.({
+                        ...criteriaFilter,
+                        snmpMonitorOptions: {
+                          ...criteriaFilter?.snmpMonitorOptions,
+                          oid: value?.toString(),
+                        },
+                      });
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })()}
 
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (

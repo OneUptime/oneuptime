@@ -41,4 +41,12 @@ export default interface MetricMonitorResponse {
    * `metricResult` as before.
    */
   seriesBreakdown?: Array<MetricSeriesResult> | undefined;
+  /**
+   * Native units (UCUM / OTel) per referenced metric name, lowercased.
+   * Loaded once when the monitor data is fetched. The criteria
+   * evaluator falls back to this when the query alias has no explicit
+   * `legendUnit` so threshold unit conversion (e.g. % vs the
+   * dimensionless "1" used by ratio metrics) still works.
+   */
+  nativeUnitsByMetricName?: Dictionary<string> | undefined;
 }

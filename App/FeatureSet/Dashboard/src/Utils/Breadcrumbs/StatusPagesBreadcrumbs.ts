@@ -138,6 +138,12 @@ export function getStatusPagesBreadcrumbs(
       "View Status Page",
       "SSO",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_OIDC, [
+      "Project",
+      "Status Pages",
+      "View Status Page",
+      "OIDC",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS,
       [

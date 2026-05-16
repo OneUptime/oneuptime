@@ -2,6 +2,8 @@ import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
+import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
@@ -45,6 +47,34 @@ export class Service extends DatabaseService<Model> {
       });
 
       createdItem.webhookSecretKey = secretKey;
+    }
+
+    if (createdItem.projectId && createdItem.id) {
+      /*
+       * Run label rule first so rule-added labels are persisted before
+       * owner rules run. Owner rules re-fetch labels, so this lets owner
+       * rules key on rule-added labels.
+       */
+      Promise.resolve()
+        .then(async () => {
+          await WorkflowLabelRuleEngineService.applyRulesToWorkflow(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await WorkflowOwnerRuleEngineService.applyRulesToWorkflow(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying workflow rules in WorkflowService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              workflowId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
     }
 
     return createdItem;

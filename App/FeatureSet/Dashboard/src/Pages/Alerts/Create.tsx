@@ -362,6 +362,18 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   "Describe the remediation steps here",
                 ),
               },
+              {
+                field: {
+                  isPrivate: true,
+                },
+                title: "Private Alert",
+                stepId: "more",
+                description:
+                  "If checked, only the alert's owner users and the members of its owner teams (plus project admins and owners) can view this alert.",
+                fieldType: FormFieldSchemaType.Checkbox,
+                defaultValue: false,
+                required: false,
+              },
             ]}
             steps={[
               {

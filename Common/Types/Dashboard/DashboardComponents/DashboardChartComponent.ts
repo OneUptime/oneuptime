@@ -1,3 +1,4 @@
+import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import ObjectID from "../../ObjectID";
 import DashboardComponentType from "../DashboardComponentType";
@@ -10,6 +11,7 @@ export default interface DashboardChartComponent extends BaseComponent {
   arguments: {
     metricQueryConfig?: MetricQueryConfigData | undefined;
     metricQueryConfigs?: Array<MetricQueryConfigData> | undefined;
+    metricFormulaConfigs?: Array<MetricFormulaConfigData> | undefined;
     chartTitle?: string | undefined;
     chartDescription?: string | undefined;
     chartType?: DashboardChartType | undefined;

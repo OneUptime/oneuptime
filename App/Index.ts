@@ -9,6 +9,7 @@ import NotificationRoutes from "./FeatureSet/Notification/Index";
 import WorkersRoutes from "./FeatureSet/Workers/Index";
 import TelemetryRoutes from "./FeatureSet/Telemetry/Index";
 import WorkflowRoutes from "./FeatureSet/Workflow/Index";
+import RunbookRoutes from "./FeatureSet/Runbook/Index";
 import AppMetricsAPI from "./API/Metrics";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -120,6 +121,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await WorkersRoutes.init();
     await TelemetryRoutes.init();
     await WorkflowRoutes.init();
+    await RunbookRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

@@ -2,19 +2,25 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
+import ServiceLabelRuleEngineService from "./ServiceLabelRuleEngineService";
+import ServiceOwnerRuleEngineService from "./ServiceOwnerRuleEngineService";
 import ArrayUtil from "../../Utils/Array";
 import { BrightColors } from "../../Types/BrandColors";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/Service";
 import Label from "../../Models/DatabaseModels/Label";
 import Project from "../../Models/DatabaseModels/Project";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
 const DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
+
+const LAST_SEEN_CACHE_NAMESPACE: string = "service-last-seen";
+const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "service-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
@@ -35,6 +41,32 @@ export class Service extends DatabaseService<Model> {
       carryForward: null,
       createBy: createBy,
     };
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await ServiceLabelRuleEngineService.applyRulesToService(createdItem);
+        })
+        .then(async () => {
+          await ServiceOwnerRuleEngineService.applyRulesToService(createdItem);
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying service rules in ServiceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              serviceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -78,6 +110,39 @@ export class Service extends DatabaseService<Model> {
     }
 
     return DEFAULT_TELEMETRY_RETENTION_IN_DAYS;
+  }
+
+  /*
+   * Refresh `lastSeenAt` for a service. Throttled per-service so the
+   * steady-state telemetry firehose (every metric/log/trace batch
+   * re-resolves the same serviceId) costs one in-memory cache lookup
+   * per batch instead of a DB write.
+   */
+  @CaptureSpan()
+  public async updateLastSeen(serviceId: ObjectID): Promise<void> {
+    const cacheKey: string = serviceId.toString();
+    const cached: string | null = await GlobalCache.getString(
+      LAST_SEEN_CACHE_NAMESPACE,
+      cacheKey,
+    );
+
+    if (cached) {
+      return;
+    }
+
+    await GlobalCache.setString(LAST_SEEN_CACHE_NAMESPACE, cacheKey, "1", {
+      expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
+    });
+
+    await this.updateOneById({
+      id: serviceId,
+      data: {
+        lastSeenAt: OneUptimeDate.getCurrentDate(),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /**

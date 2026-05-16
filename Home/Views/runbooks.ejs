@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Runbooks — Automated Incident Response Procedures. </title>
+  <meta name="description"
+    content="Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, and bash steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+  <main id="main-content">
+  <!-- Hero Section -->
+  <div class="relative isolate overflow-hidden bg-white" id="runbooks-hero-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+    <!-- Grid glow effect that follows cursor - teal color -->
+    <div id="runbooks-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(20, 184, 166, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(20, 184, 166, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+    <div class="py-20 sm:py-28 lg:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Minimal badge -->
+          <p class="text-sm font-medium text-teal-600 mb-4">Response procedures that run themselves</p>
+
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Runbooks that run themselves
+          </h1>
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            Codify your response. Mix manual checklists with sandboxed JavaScript, HTTP, and bash. Attach them to incidents, alerts, or maintenance — they fire automatically when something matches.
+          </p>
+
+          <div class="mt-10 flex items-center justify-center gap-x-6">
+            <a href="/accounts/register"
+              class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+              Get started
+            </a>
+            <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+              Request demo <span aria-hidden="true">&rarr;</span>
+            </a>
+          </div>
+
+          <!-- Subtle feature list -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+            <span>Manual checklists</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>JavaScript &amp; bash</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>HTTP calls</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Auto-trigger on events</span>
+          </div>
+        </div>
+
+        <!-- Hero Mockup: Runbook Execution -->
+        <div class="mt-16 sm:mt-20">
+          <div class="relative mx-auto max-w-5xl">
+            <div class="absolute -inset-4 bg-teal-100/30 rounded-3xl blur-3xl"></div>
+            <div class="relative rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+              <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                <!-- Window chrome -->
+                <div class="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2.5">
+                  <div class="flex items-center gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  <div class="text-xs text-gray-500 font-medium">Database Failover · Execution</div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Running
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Runbook header -->
+                <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-teal-50/50 to-transparent">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <h3 class="text-base font-semibold text-gray-900">Database Failover Runbook</h3>
+                      <p class="text-xs text-gray-500 mt-0.5">Triggered by incident <span class="font-mono text-teal-700">#INC-4821</span> · "db-primary connection timeout"</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-gray-400">Started 2m 14s ago</div>
+                      <div class="text-xs font-medium text-gray-700">Step 3 of 5</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="divide-y divide-gray-100">
+                  <!-- Step 1 - Manual completed -->
+                  <div class="px-6 py-3.5 flex items-start gap-4">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 flex-shrink-0 mt-0.5">
+                      <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-900">Notify on-call DBA in #db-incidents</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">Manual</span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-0.5">Checked by Sarah Chen · 2m 12s ago</p>
+                    </div>
+                  </div>
+
+                  <!-- Step 2 - JS completed -->
+                  <div class="px-6 py-3.5 flex items-start gap-4">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 flex-shrink-0 mt-0.5">
+                      <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-900">Check replica lag</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">JavaScript</span>
+                      </div>
+                      <div class="mt-1.5 bg-gray-900 rounded px-3 py-1.5 font-mono text-[11px] text-green-300">
+                        <span class="text-gray-500">→</span> replica_lag_ms: <span class="text-emerald-300">412</span> · within threshold
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 3 - HTTP running -->
+                  <div class="px-6 py-3.5 flex items-start gap-4 bg-teal-50/30">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full bg-teal-500 flex-shrink-0 mt-0.5">
+                      <svg class="h-3.5 w-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-900">Promote standby to primary</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-100 text-sky-700">HTTP</span>
+                      </div>
+                      <div class="mt-1.5 bg-gray-900 rounded px-3 py-1.5 font-mono text-[11px] text-gray-400">
+                        <span class="text-sky-400">POST</span> https://db-admin/api/promote
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 4 - Pending -->
+                  <div class="px-6 py-3.5 flex items-start gap-4 opacity-50">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-gray-300 flex-shrink-0 mt-0.5">
+                      <span class="text-[10px] font-semibold text-gray-400">4</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700">Update DNS to point at new primary</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-100 text-rose-700">Bash</span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-0.5">Pending</p>
+                    </div>
+                  </div>
+
+                  <!-- Step 5 - Pending Manual -->
+                  <div class="px-6 py-3.5 flex items-start gap-4 opacity-50">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-gray-300 flex-shrink-0 mt-0.5">
+                      <span class="text-[10px] font-semibold text-gray-400">5</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700">Verify application health and post update to status page</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">Manual</span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-0.5">Pending</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('logo-roll') -%>
+
+  <!-- How It Works Section -->
+  <div class="relative bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <p class="text-sm font-medium text-teal-600 uppercase tracking-wide mb-3">How It Works</p>
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          From an idea in your head to a runnable response
+        </h2>
+        <p class="mt-4 text-lg text-gray-600">
+          Write the steps once. Hook them to events. The runbook fires the moment something matches, and your team picks up where automation leaves off.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-5xl">
+        <!-- Connecting line for desktop -->
+        <div class="hidden lg:block relative">
+          <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-teal-200"></div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <!-- Step 1 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">1</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Author the steps</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Mix manual checklists with JavaScript, HTTP calls, and bash — in any order.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4 6m0-6l4 6" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">2</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Add a rule</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Match incidents, alerts, or maintenance by title or description regex.</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">3</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-trigger</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">When a matching event is created, the runbook starts on its own — no clicks.</p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">4</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Respond &amp; track</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Automated steps run inline. Manual steps wait. Every output is captured.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why OneUptime Section -->
+  <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="mx-auto max-w-2xl text-center mb-20">
+        <div class="inline-flex items-center gap-2 rounded-full bg-teal-50 px-4 py-1.5 text-sm font-medium text-teal-700 ring-1 ring-inset ring-teal-600/20 mb-6">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Why OneUptime Runbooks
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+          A real incident response engine — not a checklist costume
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Most "runbook" tools are wikis with checkboxes. OneUptime Runbooks combine human steps with sandboxed code execution, fire automatically on the events you already track, and capture every output so you can write a postmortem from the data.
+        </p>
+      </div>
+
+      <!-- Feature Blocks -->
+      <div class="space-y-24 lg:space-y-32">
+
+        <!-- Feature 1: Mix manual + automated steps -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
+                <svg class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-teal-600 uppercase tracking-wide">Four step types</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Manual checklists and code, side by side</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Author manual checklist items, sandboxed JavaScript (via isolated-vm), HTTP requests, or bash — and mix them in any order. The same recipe can be ticked off by a human, executed by a script, or both — interleaved.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Manual checklist for human tasks
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Sandboxed JavaScript with isolated-vm
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                HTTP &amp; bash escape hatches
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Step types mockup -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-teal-50 px-4 py-3 border-b border-teal-100">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                    </svg>
+                    <span class="text-gray-800 text-sm font-semibold">Add a step</span>
+                  </div>
+                </div>
+
+                <div class="p-4 space-y-2.5">
+                  <div class="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-md bg-white border border-slate-200 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">Manual</div>
+                        <div class="text-xs text-gray-500">Tick off a checklist item</div>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-medium text-slate-500 px-1.5 py-0.5 bg-white rounded border border-slate-200">Human</span>
+                  </div>
+
+                  <div class="flex items-center justify-between px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-lg hover:border-amber-300 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-md bg-white border border-amber-200 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">JavaScript</div>
+                        <div class="text-xs text-gray-500">Run in an isolated VM</div>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-medium text-amber-700 px-1.5 py-0.5 bg-white rounded border border-amber-200">Sandboxed</span>
+                  </div>
+
+                  <div class="flex items-center justify-between px-3.5 py-2.5 bg-sky-50 border border-sky-200 rounded-lg hover:border-sky-300 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-md bg-white border border-sky-200 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">HTTP request</div>
+                        <div class="text-xs text-gray-500">GET / POST / PUT / DELETE</div>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-medium text-sky-700 px-1.5 py-0.5 bg-white rounded border border-sky-200">Network</span>
+                  </div>
+
+                  <div class="flex items-center justify-between px-3.5 py-2.5 bg-rose-50 border border-rose-200 rounded-lg hover:border-rose-300 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-md bg-white border border-rose-200 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">Bash</div>
+                        <div class="text-xs text-gray-500">Shell commands when needed</div>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-medium text-rose-700 px-1.5 py-0.5 bg-white rounded border border-rose-200">Gated</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 2: Pattern-based rules -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Rule mockup -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-violet-50 px-4 py-3 border-b border-violet-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                      </svg>
+                      <span class="text-gray-800 text-sm font-semibold">Runbook Rule</span>
+                    </div>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Active</span>
+                  </div>
+                </div>
+
+                <div class="p-4 space-y-3">
+                  <div>
+                    <label class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">When</label>
+                    <div class="mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md flex items-center gap-2">
+                      <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      <span class="text-sm text-gray-700 font-medium">Incident is created</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Title matches</label>
+                    <div class="mt-1 px-3 py-2 bg-gray-900 border border-gray-200 rounded-md font-mono text-xs text-emerald-300">
+                      /^db-(primary|replica)/i
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Run runbook</label>
+                    <div class="mt-1 px-3 py-2 bg-teal-50 border border-teal-200 rounded-md flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span class="text-sm text-gray-800 font-medium">Database Failover</span>
+                      </div>
+                      <span class="text-[10px] text-teal-700 font-medium">5 steps</span>
+                    </div>
+                  </div>
+
+                  <div class="pt-2 border-t border-gray-100">
+                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                      <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Fires automatically · no clicks
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-violet-600 uppercase tracking-wide">Pattern-Based Rules</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Auto-trigger on the events you already track</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Create a Runbook Rule on incidents, alerts, or scheduled maintenance. Match by title or description regex — "anything matching <code class="text-sm bg-gray-100 px-1 py-0.5 rounded text-violet-700">db-</code> runs the DB failover runbook." Skip the pattern to match everything.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Regex on title or description
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                One rule per entity type
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                "Run Runbook" button for manual override
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Feature 3: Snapshot on start -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-amber-600 uppercase tracking-wide">Immutable Executions</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Snapshot on start — postmortems stay accurate</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              When a runbook starts, its steps are snapshotted onto the execution. Editing the template afterwards never mutates an in-flight run. The execution is a frozen record of what actually happened — perfect for incident review.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Each run is independent
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Template changes never affect in-flight runs
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Audit-grade history per event
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Snapshot timeline -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span class="text-gray-800 text-sm font-semibold">Past executions</span>
+                    </div>
+                    <span class="text-xs text-gray-500">DB Failover</span>
+                  </div>
+                </div>
+
+                <div class="divide-y divide-gray-100">
+                  <div class="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-900 truncate">INC-4821 · db-primary timeout</span>
+                        <span class="text-xs text-gray-400">2m ago</span>
+                      </div>
+                      <p class="text-xs text-emerald-600 mt-0.5">5 / 5 steps · 3m 41s</p>
+                    </div>
+                  </div>
+                  <div class="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-900 truncate">INC-4719 · db-replica lag</span>
+                        <span class="text-xs text-gray-400">3 days ago</span>
+                      </div>
+                      <p class="text-xs text-emerald-600 mt-0.5">5 / 5 steps · 4m 02s</p>
+                    </div>
+                  </div>
+                  <div class="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer">
+                    <div class="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-900 truncate">INC-4612 · db-primary failover</span>
+                        <span class="text-xs text-gray-400">12 days ago</span>
+                      </div>
+                      <p class="text-xs text-rose-600 mt-0.5">Step 3 failed · 1m 18s</p>
+                    </div>
+                  </div>
+                  <div class="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-900 truncate">INC-4508 · db-primary slow</span>
+                        <span class="text-xs text-gray-400">1 mo ago</span>
+                      </div>
+                      <p class="text-xs text-emerald-600 mt-0.5">5 / 5 steps · 5m 17s</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-gray-50 px-4 py-2 border-t border-gray-100 text-center">
+                  <span class="text-xs text-gray-500">Each execution is a frozen snapshot of the runbook at start time</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4: Captured output -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Output mockup -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-gray-800 text-sm font-semibold">Step output</span>
+                    <span class="ml-auto text-xs text-gray-500">Step 3 · HTTP</span>
+                  </div>
+                </div>
+
+                <div class="p-4 space-y-3">
+                  <div>
+                    <label class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Request</label>
+                    <div class="mt-1 bg-gray-900 rounded-md p-3 font-mono text-[11px] space-y-0.5">
+                      <div><span class="text-sky-400">POST</span> <span class="text-gray-300">https://db-admin/api/promote</span></div>
+                      <div class="text-gray-500">Content-Type: application/json</div>
+                      <div class="text-gray-500">Authorization: Bearer ••••••</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Response · 200 OK · 412ms</label>
+                    <div class="mt-1 bg-gray-900 rounded-md p-3 font-mono text-[11px] text-emerald-300 whitespace-pre-wrap">{
+  "status": "promoted",
+  "new_primary": "db-2",
+  "lsn": "0/3B8F2C00"
+}</div>
+                  </div>
+
+                  <div class="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span class="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                      Step succeeded
+                    </span>
+                    <span class="text-gray-500">Retained forever</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Captured Output</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Every output captured, on the event page</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Stdout, return values, HTTP responses, error messages — all retained on the execution. No more "what did that script actually print?" The next responder can scroll through history and see exactly what fired.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Full request &amp; response capture
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Per-step success / failure status
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Linked to the originating event
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- More Features Section -->
+  <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Section header -->
+      <div class="mx-auto max-w-2xl text-center">
+        <div class="inline-flex items-center gap-2 rounded-full bg-teal-50 px-4 py-1.5 text-sm font-medium text-teal-700 ring-1 ring-inset ring-teal-600/20 mb-6">
+          <svg class="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span class="text-sm font-medium text-teal-700">More capabilities</span>
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          Everything you need to operationalize response
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Built for real incident response — not a workflow engine wearing a checklist costume.
+        </p>
+      </div>
+
+      <!-- Feature cards grid -->
+      <div class="mx-auto mt-16 max-w-7xl">
+        <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+          <!-- Card 1: Manual override -->
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-teal-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
+                <svg class="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Manual override</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">"Run Runbook" button on every incident, alert, and maintenance event. Pick a runbook and go — no rule required.</p>
+            </div>
+          </div>
+
+          <!-- Card 2: Incidents, alerts, maintenance -->
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Three event sources</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Trigger from incidents, alerts, or scheduled maintenance. Each runbook can be scoped to one entity type with its own rule.</p>
+            </div>
+          </div>
+
+          <!-- Card 3: Sandboxed JS -->
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Sandboxed JavaScript</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">JS steps run in an isolated VM with memory and CPU limits. Bring helpers; the host stays safe.</p>
+            </div>
+          </div>
+
+          <!-- Card 4: HTTP escape hatch -->
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">HTTP escape hatch</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">GET, POST, PUT, DELETE — any auth header. Talk to your internal admin APIs, cloud control planes, or third-party services.</p>
+            </div>
+          </div>
+
+          <!-- Card 5: API access -->
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Full API access</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Build, run, and inspect runbooks programmatically. CRUD endpoints, execution queries, and webhook-friendly responses.</p>
+            </div>
+          </div>
+
+          <!-- Card 6: Open source -->
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Open source</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Self-host or use the cloud. Audit the execution engine, extend the step types, contribute back. Apache-2.0 licensed.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./Partials/enterprise-ready') -%>
+  <%- include('features-table') -%>
+  <%- include('cta') -%>
+  </main>
+  <%- include('footer') -%>
+
+  <script>
+    // Grid glow effect for runbooks hero section
+    (function() {
+      const heroSection = document.getElementById('runbooks-hero-section');
+      const gridGlow = document.getElementById('runbooks-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          gridGlow.style.setProperty('--mouse-x', `${x}px`);
+          gridGlow.style.setProperty('--mouse-y', `${y}px`);
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

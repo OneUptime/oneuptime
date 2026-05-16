@@ -140,4 +140,12 @@ export default interface Field<TEntity> {
 
   // If true, this field will span the full row in multi-column layouts.
   spanFullRow?: boolean | undefined;
+
+  /*
+   * Optional section header rendered above this field. Use to group related
+   * fields together within a single form step. Renders a small heading and
+   * an optional description, separated from the previous fields by a divider.
+   */
+  sectionTitle?: string | undefined;
+  sectionDescription?: string | ReactElement | undefined;
 }

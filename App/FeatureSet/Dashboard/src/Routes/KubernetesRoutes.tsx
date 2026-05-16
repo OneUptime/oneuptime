@@ -37,6 +37,7 @@ import KubernetesClusterViewHPADetail from "../Pages/Kubernetes/View/HPADetail";
 import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
+import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
 import KubernetesClusterViewOwners from "../Pages/Kubernetes/View/Owners";
@@ -44,6 +45,8 @@ import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
 import KubernetesDocumentation from "../Pages/Kubernetes/Documentation";
+import KubernetesSettingsOwnerRules from "../Pages/Kubernetes/Settings/OwnerRules";
+import KubernetesSettingsLabelRules from "../Pages/Kubernetes/Settings/LabelRules";
 
 const KubernetesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,6 +69,32 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <KubernetesSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_OWNER_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <KubernetesSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_SETTINGS_LABEL_RULES] as Route
+              }
             />
           }
         />
@@ -495,6 +524,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Insights */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS,
+          )}
+          element={
+            <KubernetesClusterViewInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS] as Route
               }
             />
           }
