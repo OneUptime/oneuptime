@@ -21,6 +21,21 @@ The agent is now collecting:
 {{- if .Values.ebpf.enabled }}
   - Application traces & HTTP request metrics from every pod on the cluster, via OpenTelemetry eBPF Instrumentation (DaemonSet, no code changes)
 {{- end }}
+{{- if .Values.profiling.enabled }}
+  - Continuous CPU flame graphs from every process on every node, via the OpenTelemetry eBPF Profiler (DaemonSet, samples stacks at {{ .Values.profiling.samplesPerSecond }}Hz)
+{{- end }}
+{{- if .Values.hostMetrics.enabled }}
+  - Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average)
+{{- end }}
+{{- if .Values.auditLogs.enabled }}
+  - Kubernetes API server audit logs (self-managed clusters)
+{{- end }}
+{{- if .Values.csi.enabled }}
+  - CSI driver metrics (volume attach/detach latency, provisioning, IOPS — depends on the driver)
+{{- end }}
+{{- if .Values.coreDns.enabled }}
+  - CoreDNS metrics (query rate, latency, cache hits, errors)
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}

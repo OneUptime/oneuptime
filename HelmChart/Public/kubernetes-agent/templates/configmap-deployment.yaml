@@ -94,8 +94,9 @@ data:
           {{- end }}
           {{- end }}
 
-      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
-      # Scrape metrics via Prometheus endpoints (control plane and/or service mesh)
+      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled }}
+      # Scrape metrics via Prometheus endpoints (control plane, service
+      # mesh, CSI drivers, CoreDNS)
       prometheus:
         config:
           scrape_configs:
@@ -179,6 +180,64 @@ data:
                   regex: linkerd-admin
                 - action: labelmap
                   regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod_name
+            {{- end }}
+            {{- if .Values.csi.enabled }}
+            # CSI (storage driver) metrics. Most drivers expose a
+            # `metrics` port on the driver pods themselves. Match on
+            # the canonical label conventions: `app=csi-driver` or
+            # `app.kubernetes.io/component=csi-driver`. If your driver
+            # uses a different convention, override this job via the
+            # values file.
+            - job_name: csi-drivers
+              scrape_interval: {{ .Values.csi.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels:
+                    - __meta_kubernetes_pod_label_app
+                    - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                  action: keep
+                  regex: (csi-driver|.*csi-driver.*)
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: (metrics|http-metrics|csi-metrics)
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod_name
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  action: replace
+                  target_label: container_name
+            {{- end }}
+            {{- if .Values.coreDns.enabled }}
+            # CoreDNS metrics. By default CoreDNS exposes a Prometheus
+            # endpoint on port 9153 — exposes query rate, latency, cache
+            # hits, error rates. Useful for catching DNS-induced P99
+            # latency.
+            - job_name: coredns
+              scrape_interval: {{ .Values.coreDns.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names:
+                      - {{ .Values.coreDns.namespace }}
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+                  action: keep
+                  regex: {{ .Values.coreDns.service }}
+                - source_labels: [__meta_kubernetes_pod_container_port_number]
+                  action: keep
+                  regex: "{{ .Values.coreDns.port }}"
                 - source_labels: [__meta_kubernetes_namespace]
                   action: replace
                   target_label: namespace

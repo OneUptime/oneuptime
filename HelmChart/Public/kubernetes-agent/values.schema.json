@@ -386,6 +386,86 @@
       },
       "additionalProperties": false
     },
+    "profiling": {
+      "type": "object",
+      "description": "Continuous CPU profiling via OpenTelemetry eBPF Profiler. Runs as a DaemonSet, samples stacks across all languages without SDKs, ships OTLP profiles directly to OneUptime. Default: enabled.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "samplesPerSecond": { "type": "integer", "minimum": 1 },
+        "reporterInterval": { "type": "string" },
+        "offCpuThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tracers": { "type": "string" },
+        "obiProcessContext": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "hostMetrics": {
+      "type": "object",
+      "description": "Per-node OS metrics (disk I/O, inodes, NIC errors, load average, paging) via the OTel hostmetrics receiver.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "collectionInterval": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "auditLogs": {
+      "type": "object",
+      "description": "Kubernetes API server audit logs. Off by default; managed K8s usually doesn't expose them as files.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "csi": {
+      "type": "object",
+      "description": "Scrape Prometheus metrics from CSI (storage) driver pods. Off by default.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "scrapeInterval": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "coreDns": {
+      "type": "object",
+      "description": "Scrape Prometheus metrics from the cluster CoreDNS service. Off by default.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "namespace": { "type": "string" },
+        "service": { "type": "string" },
+        "port": { "type": "integer" },
+        "scrapeInterval": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "serviceMesh": {
       "type": "object",
       "description": "Service mesh observability (Istio / Linkerd sidecar metrics)",

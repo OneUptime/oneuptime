@@ -1,6 +1,6 @@
 # Install the Kubernetes Agent
 
-The OneUptime Kubernetes agent collects cluster metrics, events, pod logs, **and application traces (HTTP/gRPC requests captured via eBPF)** from your Kubernetes cluster and ships them to OneUptime. It is distributed as a Helm chart and installed with one command — eBPF auto-instrumentation is on by default, so you see service-level traces with no code changes.
+The OneUptime Kubernetes agent collects cluster metrics, events, pod logs, **application traces (HTTP/gRPC via eBPF)**, **continuous CPU flame graphs (eBPF profiler)**, and **OS-level node metrics** from your Kubernetes cluster and ships them to OneUptime. It is distributed as a Helm chart and installed with one command — eBPF auto-instrumentation and profiling are both on by default, so you see service-level traces, RED metrics, and flame graphs with no code changes.
 
 ## Quick start
 
@@ -161,6 +161,39 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
+## Continuous CPU profiling (on by default)
+
+A separate DaemonSet runs the [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — packaged as the `otel/opentelemetry-collector-ebpf-profiler` image. It samples on-CPU stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) and ships OTLP profiles to OneUptime, where they appear under **Telemetry → Performance Profiles** and as flame graphs linked from individual trace spans.
+
+When eBPF auto-instrumentation is also on (`ebpf.enabled: true`, the default), each CPU sample is correlated with OBI's trace context via a shared bpffs map — so flame graphs carry trace_id/span_id and the OneUptime UI can show you a per-span flame graph.
+
+Requirements:
+
+- **Linux kernel 5.10+** (slightly newer than the 5.8 OBI needs).
+- Privileged pod with hostPID — same constraints as the eBPF auto-instrumentation DaemonSet. Disable on GKE Autopilot, EKS Fargate, and locked-down environments: `--set profiling.enabled=false`.
+
+Tuning:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `profiling.enabled` | `true` | Master switch. |
+| `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. The profiler is pre-1.0; pin to a known-good version. |
+| `profiling.samplesPerSecond` | `19` | Sampling frequency in Hz. Upstream default; avoids accidentally aliasing with common timer frequencies. |
+| `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling — diagnoses lock contention and blocking I/O. Off by default because it adds tracepoint overhead. |
+| `profiling.tracers` | `""` *(all runtimes)* | Comma-separated list of language tracers to load. |
+| `profiling.obiProcessContext` | `true` | Correlate samples with OBI's trace context for trace ↔ profile linking. |
+
+## Other data collection (host metrics, audit logs, CSI, CoreDNS)
+
+The chart can also collect:
+
+| `<key>.enabled` | Default | What it adds |
+| --- | --- | --- |
+| `hostMetrics` | on | Per-node OS metrics from `/proc` and `/sys` — disk I/O queue depth, filesystem inode usage, NIC error counters, paging stats, load average. Lives inside the log-collector DaemonSet (no extra pods). |
+| `auditLogs` | off | Tail `/var/log/kubernetes/audit.log` from the host. Captures every Kubernetes API request — who did what to which resource. Self-managed clusters only — managed K8s (EKS, GKE, AKS, DOKS) route audit logs to the cloud provider's sink. |
+| `csi` | off | Auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their Prometheus `metrics` port — volume attach/detach latency, provisioning failures, IOPS. |
+| `coreDns` | off | Scrapes the cluster CoreDNS service on `:9153/metrics`. Surfaces query rate, latency, cache hit rate, error counts — common P99 latency culprits. |
+
 ## Common options
 
 | Option | Default | Description |
@@ -175,6 +208,11 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `logs.mode` | (derived from `preset`) | `daemonset`, `api`, or `disabled`. Overrides the preset. |
 | `logs.api.replicas` | `1` | Number of log-tailer Deployment replicas (only in API mode). |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above. |
+| `profiling.enabled` | `true` | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. See section above. |
+| `hostMetrics.enabled` | `true` | Per-node OS metrics. |
+| `auditLogs.enabled` | `false` | Kubernetes audit log collection (self-managed clusters). |
+| `csi.enabled` | `false` | CSI driver Prometheus metrics. |
+| `coreDns.enabled` | `false` | CoreDNS Prometheus metrics. |
 | `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager. Self-managed clusters only — managed offerings (EKS/GKE/AKS) typically do not expose these endpoints. |
 
 See the [chart's `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) for the full list.

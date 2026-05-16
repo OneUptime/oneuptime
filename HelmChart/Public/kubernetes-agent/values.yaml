@@ -257,6 +257,121 @@ ebpf:
   # lift). The other eBPF features keep working.
   logToTraceCorrelation: true
 
+# Continuous profiling via the OpenTelemetry eBPF Profiler.
+#
+# Runs as a DaemonSet (one pod per node) using a dedicated build of the
+# OTel Collector — `otel/opentelemetry-collector-ebpf-profiler` — that
+# bundles the official OpenTelemetry eBPF Profiler receiver. It samples
+# CPU stacks on the host via perf events at ~19Hz, unwinds them for
+# every supported runtime (Go, Java, .NET, Python, Ruby, Node, PHP,
+# Perl, C/C++, Rust), and ships them as OTLP profiles directly to
+# OneUptime. Click a slow trace → jump to the flame graph for that pod.
+#
+# Sent direct to OneUptime (not via the in-cluster collector) — the
+# OneUptime-side collector that handles k8s metrics/logs/traces is on
+# an older OTel Collector version that predates the OTLP profiles
+# signal. The profiler image is 0.152.0 and exports natively.
+#
+# Requirements:
+#   - Linux kernel 5.10+ (newer than the 5.8 OBI needs).
+#   - Privileged pod with hostPID — same constraints as the eBPF
+#     auto-instrumentation DaemonSet, so it lights up on the same
+#     clusters and fails on the same ones (GKE Autopilot, EKS Fargate).
+profiling:
+  enabled: true
+  image:
+    repository: otel/opentelemetry-collector-ebpf-profiler
+    tag: "0.152.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  # Sampling frequency in Hz. 19 is the upstream default — picked
+  # because it doesn't align with common timer frequencies (avoids
+  # accidentally sampling only one phase of a loop). Raise for more
+  # detail at the cost of CPU; lower if the profiler itself shows up
+  # heavy on the flame graphs.
+  samplesPerSecond: 19
+  # How often (seconds) batches of profiles are reported. 5s is the
+  # upstream default.
+  reporterInterval: "5s"
+  # Off-CPU profiling threshold. 0 disables; values in (0, 1] enable
+  # off-CPU profiling at the given sampling probability — useful for
+  # diagnosing lock contention and blocking I/O, but adds tracepoint
+  # overhead. Default off.
+  offCpuThreshold: 0
+  # Which language-specific tracers to load. Empty string means "all".
+  # Narrow this (e.g. "go,python") if you only want specific runtimes.
+  tracers: ""
+  # If true, the profiler correlates CPU samples with OBI's trace
+  # context via the shared bpffs map (`traces_ctx_v1`) — so flame
+  # graphs carry trace_id/span_id and individual spans get their own
+  # flame graph in the OneUptime UI. Requires `ebpf.enabled: true`.
+  obiProcessContext: true
+
+# Per-node OS-level metrics. The Kubernetes-aware `kubeletstats`
+# receiver covers what Kubernetes itself knows (per-pod / per-container
+# CPU, memory, network, filesystem), but it misses things that matter
+# in production: disk I/O queue depth, filesystem inode usage, NIC
+# error counters, paging, load average, etc. The OTel `hostmetrics`
+# receiver fills those gaps by reading /proc and /sys directly.
+#
+# Runs inside the existing log-collector DaemonSet (which already has
+# hostPath access to /var/log/pods on every node), so no extra pods.
+hostMetrics:
+  enabled: true
+  collectionInterval: 30s
+
+# Kubernetes API server audit logs. Captures every API request — who
+# did what to which resource. Useful for security audits and
+# "who deleted this StatefulSet at 3am" investigations.
+#
+# **Off by default.** Most managed Kubernetes platforms (EKS, GKE,
+# AKS, DOKS) route the audit log to a cloud-provider sink, not to a
+# file the agent can read. Enable on self-managed clusters where you
+# control the API server config and have set `--audit-log-path` to a
+# file under /var/log/kubernetes/.
+auditLogs:
+  enabled: false
+  # File globs to tail. Defaults match the kubeadm convention.
+  paths:
+    - /var/log/kubernetes/audit.log
+    - /var/log/kubernetes/audit-*.log
+
+# CSI (storage driver) metrics. Most CSI drivers expose Prometheus
+# metrics on a `:metrics` port (volume attach/detach latency,
+# provisioning failures, IOPS, etc.) but each driver names the port
+# differently. The chart auto-discovers driver pods labeled with
+# `app.kubernetes.io/component: csi-driver` or `app: csi-driver` and
+# scrapes their `metrics` port via the prometheus receiver's
+# kubernetes_sd_configs.
+#
+# **Off by default.** Enable if you've installed a CSI driver that
+# exposes Prometheus metrics. Most cloud-provider CSI drivers do.
+csi:
+  enabled: false
+  scrapeInterval: 30s
+
+# CoreDNS metrics. CoreDNS exposes Prometheus metrics on
+# `:9153/metrics` by default (DNS query rate, latency, cache hits,
+# error rates). Useful for diagnosing slow DNS resolution — a common
+# silent killer of P99 latency.
+#
+# **Off by default** because you need to know the Service name; with
+# the default settings it scrapes the kube-system/kube-dns Service
+# which is the standard convention. Override if your cluster names
+# its CoreDNS Service differently.
+coreDns:
+  enabled: false
+  namespace: kube-system
+  service: kube-dns
+  port: 9153
+  scrapeInterval: 30s
+
 # Service mesh observability (Istio / Linkerd sidecar metrics)
 serviceMesh:
   enabled: false

@@ -28,6 +28,58 @@ data:
         k8s_api_config:
           auth_type: serviceAccount
 
+      {{- if .Values.hostMetrics.enabled }}
+      # OS-level metrics that kubeletstats doesn't surface: disk I/O
+      # queue depth, filesystem inode usage, NIC error counters, load
+      # average, paging stats. Reads /proc and /sys directly (mounted
+      # under /host).
+      hostmetrics:
+        collection_interval: {{ .Values.hostMetrics.collectionInterval }}
+        root_path: /host
+        scrapers:
+          cpu:
+          load:
+          memory:
+          disk:
+          filesystem:
+            include_fs_types:
+              fs_types: [ext4, ext3, ext2, xfs, btrfs, zfs]
+              match_type: strict
+          network:
+          paging:
+          processes:
+      {{- end }}
+
+      {{- if .Values.auditLogs.enabled }}
+      # Kubernetes API server audit log. Self-managed clusters only;
+      # managed K8s (EKS / GKE / AKS / DOKS) routes audit logs to the
+      # cloud provider's sink instead of writing them to a file.
+      filelog/audit:
+        include:
+          {{- range .Values.auditLogs.paths }}
+          - {{ . | quote }}
+          {{- end }}
+        start_at: end
+        include_file_path: true
+        operators:
+          - type: json_parser
+            id: parse-audit-json
+            on_error: send
+          - type: severity_parser
+            parse_from: attributes.level
+            mapping:
+              warn: warning
+              error: ["panic", "error"]
+              info: ["request", "requestresponse", "metadata"]
+              debug: ["none"]
+          - type: add
+            field: resource["k8s.cluster.name"]
+            value: {{ .Values.clusterName | quote }}
+          - type: add
+            field: resource["service.name"]
+            value: "kubernetes-audit"
+      {{- end }}
+
       # Collect pod logs from /var/log/pods
       filelog:
         include:
@@ -261,6 +313,9 @@ data:
         metrics:
           receivers:
             - kubeletstats
+            {{- if .Values.hostMetrics.enabled }}
+            - hostmetrics
+            {{- end }}
           processors:
             - memory_limiter
             - k8sattributes
@@ -272,6 +327,9 @@ data:
         logs:
           receivers:
             - filelog
+            {{- if .Values.auditLogs.enabled }}
+            - filelog/audit
+            {{- end }}
           processors:
             - memory_limiter
             - k8sattributes

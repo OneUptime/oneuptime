@@ -52,6 +52,31 @@ spec:
             - name: varlogpods
               mountPath: /var/log/pods
               readOnly: true
+            {{- if .Values.hostMetrics.enabled }}
+            # /host/proc and /host/sys are what the OTel `hostmetrics`
+            # receiver reads from. `root_path: /host` tells it to look
+            # under this prefix instead of /proc and /sys (which inside
+            # the container are the namespaced view).
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: host-sys
+              mountPath: /host/sys
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: host-root
+              mountPath: /host/
+              readOnly: true
+              mountPropagation: HostToContainer
+            {{- end }}
+            {{- if .Values.auditLogs.enabled }}
+            # Read-only mount of the kube audit log directory. Default
+            # path matches the kubeadm convention.
+            - name: audit-logs
+              mountPath: /var/log/kubernetes
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
@@ -59,4 +84,21 @@ spec:
         - name: varlogpods
           hostPath:
             path: /var/log/pods
+        {{- if .Values.hostMetrics.enabled }}
+        - name: host-proc
+          hostPath:
+            path: /proc
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: host-root
+          hostPath:
+            path: /
+        {{- end }}
+        {{- if .Values.auditLogs.enabled }}
+        - name: audit-logs
+          hostPath:
+            path: /var/log/kubernetes
+            type: DirectoryOrCreate
+        {{- end }}
 {{- end }}

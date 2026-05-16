@@ -1,0 +1,93 @@
+{{- if .Values.profiling.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-profiling
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: "0.0.0.0:13134"
+
+    receivers:
+      # OpenTelemetry eBPF Profiler. Samples CPU stacks on the host via
+      # perf events, unwinds them for every supported runtime, and emits
+      # OTLP profile records. Lives in the otelcol-ebpf-profiler
+      # distribution — the standard contrib collector doesn't include
+      # this receiver yet.
+      profiling:
+        samples_per_second: {{ .Values.profiling.samplesPerSecond }}
+        reporter_interval: {{ .Values.profiling.reporterInterval | quote }}
+        off_cpu_threshold: {{ .Values.profiling.offCpuThreshold }}
+        {{- if .Values.profiling.tracers }}
+        tracers: {{ .Values.profiling.tracers | quote }}
+        {{- end }}
+        # Correlate samples with OBI's trace context via the shared
+        # bpffs map, so flame graphs are linkable from spans. Has no
+        # effect when the eBPF auto-instrumentation DaemonSet isn't
+        # running.
+        obi_process_ctx: {{ .Values.profiling.obiProcessContext }}
+        # Don't fail collector startup if the eBPF program can't load
+        # (e.g. wrong kernel) — log and keep the rest of the pipeline
+        # alive so the user can see the warning instead of a crashloop.
+        error_mode: ignore
+
+    processors:
+      # Stamp every profile with cluster + k8s metadata so they're
+      # filterable in the dashboard. We keep this minimal: the OTLP
+      # profile signal in v0.152.0 of the otelcol-ebpf-profiler
+      # distribution is alpha, and several processors (batch,
+      # memory_limiter) don't yet implement the profiles consumer
+      # interface — leaving them in the pipeline crashes the collector
+      # at startup. The profiler's `reporter_interval` handles batching
+      # at the receiver, so a downstream batch processor is redundant.
+      resource:
+        attributes:
+          - key: k8s.cluster.name
+            value: {{ .Values.clusterName | quote }}
+            action: insert
+          - key: k8s.node.name
+            value: "${env:NODE_NAME}"
+            action: insert
+
+    exporters:
+      # Direct to OneUptime — bypassing the in-cluster collector
+      # because that collector is on v0.96.0 which predates the OTLP
+      # profiles signal. The profiler image is v0.152.0 and knows how
+      # to serialize profiles natively.
+      #
+      # Override profiles_endpoint explicitly: the OTLP profiles signal
+      # is still in development upstream, so otlphttp builds URLs
+      # against `/v1development/profiles` by default. OneUptime's
+      # ingest route is the stable `/otlp/v1/profiles` path.
+      otlp_http/oneuptime:
+        endpoint: "{{ .Values.oneuptime.url }}/otlp"
+        profiles_endpoint: "{{ .Values.oneuptime.url }}/otlp/v1/profiles"
+        encoding: proto
+        headers:
+          x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
+        sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 1000
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 60s
+          max_elapsed_time: 300s
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        profiles:
+          receivers:
+            - profiling
+          processors:
+            - resource
+          exporters:
+            - otlp_http/oneuptime
+{{- end }}
