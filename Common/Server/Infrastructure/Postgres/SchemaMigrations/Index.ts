@@ -334,6 +334,8 @@ import { AddRunbookAgentOwnersAndLabels1778842348388 } from "./1778842348388-Add
 import { AddRunbookSecret1778851431287 } from "./1778851431287-AddRunbookSecret";
 import { UpdateTeamPermissionScopeDefault1778877094014 } from "./1778877094014-UpdateTeamPermissionScopeDefault";
 import { MigrateLegacyManagerRolesToAdmin1778900000000 } from "./1778900000000-MigrateLegacyManagerRolesToAdmin";
+import { AddOnCallDutyPolicyScheduleOwners1778929624633 } from "./1778929624633-AddOnCallDutyPolicyScheduleOwners";
+import { AddOnCallIncomingCallOwnersAndRules1778931537020 } from "./1778931537020-AddOnCallIncomingCallOwnersAndRules";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -671,4 +673,6 @@ export default [
   AddRunbookSecret1778851431287,
   UpdateTeamPermissionScopeDefault1778877094014,
   MigrateLegacyManagerRolesToAdmin1778900000000,
+  AddOnCallDutyPolicyScheduleOwners1778929624633,
+  AddOnCallIncomingCallOwnersAndRules1778931537020,
 ];

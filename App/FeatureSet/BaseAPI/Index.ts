@@ -1004,6 +1004,56 @@ import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPo
 import OnCallDutyPolicyOwnerUserService, {
   Service as OnCallDutyPolicyOwnerUserServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyOwnerUserService";
+
+import OnCallDutyPolicyScheduleOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
+import OnCallDutyPolicyScheduleOwnerTeamService, {
+  Service as OnCallDutyPolicyScheduleOwnerTeamServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerTeamService";
+
+import OnCallDutyPolicyScheduleOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerUser";
+import OnCallDutyPolicyScheduleOwnerUserService, {
+  Service as OnCallDutyPolicyScheduleOwnerUserServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerUserService";
+
+import OnCallDutyPolicyLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyLabelRule";
+import OnCallDutyPolicyLabelRuleService, {
+  Service as OnCallDutyPolicyLabelRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyLabelRuleService";
+
+import OnCallDutyPolicyOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerRule";
+import OnCallDutyPolicyOwnerRuleService, {
+  Service as OnCallDutyPolicyOwnerRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyOwnerRuleService";
+
+import OnCallDutyPolicyScheduleLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
+import OnCallDutyPolicyScheduleLabelRuleService, {
+  Service as OnCallDutyPolicyScheduleLabelRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleLabelRuleService";
+
+import OnCallDutyPolicyScheduleOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerRule";
+import OnCallDutyPolicyScheduleOwnerRuleService, {
+  Service as OnCallDutyPolicyScheduleOwnerRuleServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleOwnerRuleService";
+
+import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerTeamService, {
+  Service as IncomingCallPolicyOwnerTeamServiceType,
+} from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
+
+import IncomingCallPolicyOwnerUser from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerUser";
+import IncomingCallPolicyOwnerUserService, {
+  Service as IncomingCallPolicyOwnerUserServiceType,
+} from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
+
+import IncomingCallPolicyLabelRule from "Common/Models/DatabaseModels/IncomingCallPolicyLabelRule";
+import IncomingCallPolicyLabelRuleService, {
+  Service as IncomingCallPolicyLabelRuleServiceType,
+} from "Common/Server/Services/IncomingCallPolicyLabelRuleService";
+
+import IncomingCallPolicyOwnerRule from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerRule";
+import IncomingCallPolicyOwnerRuleService, {
+  Service as IncomingCallPolicyOwnerRuleServiceType,
+} from "Common/Server/Services/IncomingCallPolicyOwnerRuleService";
 import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
 import MonitorLogService, {
   Service as MonitorLogServiceType,
@@ -1161,6 +1211,126 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         OnCallDutyPolicyOwnerTeam,
         OnCallDutyPolicyOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // on-call schedule owner user.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleOwnerUser,
+        OnCallDutyPolicyScheduleOwnerUserServiceType
+      >(
+        OnCallDutyPolicyScheduleOwnerUser,
+        OnCallDutyPolicyScheduleOwnerUserService,
+      ).getRouter(),
+    );
+
+    // on-call schedule owner team.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleOwnerTeam,
+        OnCallDutyPolicyScheduleOwnerTeamServiceType
+      >(
+        OnCallDutyPolicyScheduleOwnerTeam,
+        OnCallDutyPolicyScheduleOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // on-call policy label rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyLabelRule,
+        OnCallDutyPolicyLabelRuleServiceType
+      >(
+        OnCallDutyPolicyLabelRule,
+        OnCallDutyPolicyLabelRuleService,
+      ).getRouter(),
+    );
+
+    // on-call policy owner rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyOwnerRule,
+        OnCallDutyPolicyOwnerRuleServiceType
+      >(
+        OnCallDutyPolicyOwnerRule,
+        OnCallDutyPolicyOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // on-call schedule label rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleLabelRule,
+        OnCallDutyPolicyScheduleLabelRuleServiceType
+      >(
+        OnCallDutyPolicyScheduleLabelRule,
+        OnCallDutyPolicyScheduleLabelRuleService,
+      ).getRouter(),
+    );
+
+    // on-call schedule owner rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleOwnerRule,
+        OnCallDutyPolicyScheduleOwnerRuleServiceType
+      >(
+        OnCallDutyPolicyScheduleOwnerRule,
+        OnCallDutyPolicyScheduleOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // incoming call policy owner user.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyOwnerUser,
+        IncomingCallPolicyOwnerUserServiceType
+      >(
+        IncomingCallPolicyOwnerUser,
+        IncomingCallPolicyOwnerUserService,
+      ).getRouter(),
+    );
+
+    // incoming call policy owner team.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyOwnerTeam,
+        IncomingCallPolicyOwnerTeamServiceType
+      >(
+        IncomingCallPolicyOwnerTeam,
+        IncomingCallPolicyOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // incoming call policy label rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyLabelRule,
+        IncomingCallPolicyLabelRuleServiceType
+      >(
+        IncomingCallPolicyLabelRule,
+        IncomingCallPolicyLabelRuleService,
+      ).getRouter(),
+    );
+
+    // incoming call policy owner rule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyOwnerRule,
+        IncomingCallPolicyOwnerRuleServiceType
+      >(
+        IncomingCallPolicyOwnerRule,
+        IncomingCallPolicyOwnerRuleService,
       ).getRouter(),
     );
 

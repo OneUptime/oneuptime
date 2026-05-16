@@ -499,10 +499,13 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
 
   // On-Call Duty Settings
   [PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]: `schedules/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: `schedules/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: `schedules/${RouteParams.ModelID}/layers`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]: `schedules/${RouteParams.ModelID}/notification-logs`,
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS]: `schedules/${RouteParams.ModelID}/owners`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: `schedules/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
@@ -531,6 +534,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: `incoming-call-policies/${RouteParams.ModelID}/escalation`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/logs`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW]: `incoming-call-policies/${RouteParams.ModelID}/logs/${RouteParams.SubModelID}`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS]: `incoming-call-policies/${RouteParams.ModelID}/owners`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS]: `incoming-call-policies/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: `incoming-call-policies/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: `incoming-call-policies/${RouteParams.ModelID}/docs`,
@@ -2596,6 +2600,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]
@@ -2705,6 +2715,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
   // Incoming Call Policy Routes
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
@@ -2737,6 +2759,12 @@ const RouteMap: Dictionary<Route> = {
       OnCallDutyRoutePath[
         PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW
       ]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS]
     }`,
   ),
 

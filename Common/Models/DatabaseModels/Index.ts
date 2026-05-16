@@ -94,6 +94,20 @@ import OnCallDutyPolicyFeed from "./OnCallDutyPolicyFeed";
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyScheduleOwnerTeam from "./OnCallDutyPolicyScheduleOwnerTeam";
+import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUser";
+
+// On-Call Duty Label and Owner Rules
+import OnCallDutyPolicyLabelRule from "./OnCallDutyPolicyLabelRule";
+import OnCallDutyPolicyOwnerRule from "./OnCallDutyPolicyOwnerRule";
+import OnCallDutyPolicyScheduleLabelRule from "./OnCallDutyPolicyScheduleLabelRule";
+import OnCallDutyPolicyScheduleOwnerRule from "./OnCallDutyPolicyScheduleOwnerRule";
+
+// Incoming Call Policy Owners and Rules
+import IncomingCallPolicyOwnerTeam from "./IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerUser from "./IncomingCallPolicyOwnerUser";
+import IncomingCallPolicyLabelRule from "./IncomingCallPolicyLabelRule";
+import IncomingCallPolicyOwnerRule from "./IncomingCallPolicyOwnerRule";
 import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 
 // Incoming Call Policy
@@ -577,9 +591,19 @@ const AllModelTypes: Array<{
   OnCallDutyPolicySchedule,
   OnCallDutyPolicyScheduleLayer,
   OnCallDutyPolicyScheduleLayerUser,
+  OnCallDutyPolicyScheduleOwnerTeam,
+  OnCallDutyPolicyScheduleOwnerUser,
   OnCallDutyPolicyFeed,
   OnCallDutyPolicyOwnerTeam,
   OnCallDutyPolicyOwnerUser,
+  OnCallDutyPolicyLabelRule,
+  OnCallDutyPolicyOwnerRule,
+  OnCallDutyPolicyScheduleLabelRule,
+  OnCallDutyPolicyScheduleOwnerRule,
+  IncomingCallPolicyOwnerTeam,
+  IncomingCallPolicyOwnerUser,
+  IncomingCallPolicyLabelRule,
+  IncomingCallPolicyOwnerRule,
   OnCallDutyPolicyEscalationRuleSchedule,
 
   UsageBilling,

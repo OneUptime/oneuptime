@@ -586,6 +586,16 @@ enum Permission {
   EditOnCallDutyPolicyOwnerUser = "EditOnCallDutyPolicyOwnerUser",
   ReadOnCallDutyPolicyOwnerUser = "ReadOnCallDutyPolicyOwnerUser",
 
+  CreateOnCallDutyPolicyScheduleOwnerTeam = "CreateOnCallDutyPolicyScheduleOwnerTeam",
+  DeleteOnCallDutyPolicyScheduleOwnerTeam = "DeleteOnCallDutyPolicyScheduleOwnerTeam",
+  EditOnCallDutyPolicyScheduleOwnerTeam = "EditOnCallDutyPolicyScheduleOwnerTeam",
+  ReadOnCallDutyPolicyScheduleOwnerTeam = "ReadOnCallDutyPolicyScheduleOwnerTeam",
+
+  CreateOnCallDutyPolicyScheduleOwnerUser = "CreateOnCallDutyPolicyScheduleOwnerUser",
+  DeleteOnCallDutyPolicyScheduleOwnerUser = "DeleteOnCallDutyPolicyScheduleOwnerUser",
+  EditOnCallDutyPolicyScheduleOwnerUser = "EditOnCallDutyPolicyScheduleOwnerUser",
+  ReadOnCallDutyPolicyScheduleOwnerUser = "ReadOnCallDutyPolicyScheduleOwnerUser",
+
   CreateMonitorGroupOwnerTeam = "CreateMonitorGroupOwnerTeam",
   DeleteMonitorGroupOwnerTeam = "DeleteMonitorGroupOwnerTeam",
   EditMonitorGroupOwnerTeam = "EditMonitorGroupOwnerTeam",
@@ -988,6 +998,53 @@ enum Permission {
   EditProjectIncomingCallPolicyEscalationRule = "EditProjectIncomingCallPolicyEscalationRule",
   DeleteProjectIncomingCallPolicyEscalationRule = "DeleteProjectIncomingCallPolicyEscalationRule",
   ReadProjectIncomingCallPolicyEscalationRule = "ReadProjectIncomingCallPolicyEscalationRule",
+
+  // Incoming Call Policy Owner Permissions
+  CreateIncomingCallPolicyOwnerTeam = "CreateIncomingCallPolicyOwnerTeam",
+  DeleteIncomingCallPolicyOwnerTeam = "DeleteIncomingCallPolicyOwnerTeam",
+  EditIncomingCallPolicyOwnerTeam = "EditIncomingCallPolicyOwnerTeam",
+  ReadIncomingCallPolicyOwnerTeam = "ReadIncomingCallPolicyOwnerTeam",
+
+  CreateIncomingCallPolicyOwnerUser = "CreateIncomingCallPolicyOwnerUser",
+  DeleteIncomingCallPolicyOwnerUser = "DeleteIncomingCallPolicyOwnerUser",
+  EditIncomingCallPolicyOwnerUser = "EditIncomingCallPolicyOwnerUser",
+  ReadIncomingCallPolicyOwnerUser = "ReadIncomingCallPolicyOwnerUser",
+
+  // On-Call Duty Policy Label Rule Permissions
+  CreateOnCallDutyPolicyLabelRule = "CreateOnCallDutyPolicyLabelRule",
+  DeleteOnCallDutyPolicyLabelRule = "DeleteOnCallDutyPolicyLabelRule",
+  EditOnCallDutyPolicyLabelRule = "EditOnCallDutyPolicyLabelRule",
+  ReadOnCallDutyPolicyLabelRule = "ReadOnCallDutyPolicyLabelRule",
+
+  // On-Call Duty Policy Owner Rule Permissions
+  CreateOnCallDutyPolicyOwnerRule = "CreateOnCallDutyPolicyOwnerRule",
+  DeleteOnCallDutyPolicyOwnerRule = "DeleteOnCallDutyPolicyOwnerRule",
+  EditOnCallDutyPolicyOwnerRule = "EditOnCallDutyPolicyOwnerRule",
+  ReadOnCallDutyPolicyOwnerRule = "ReadOnCallDutyPolicyOwnerRule",
+
+  // On-Call Duty Schedule Label Rule Permissions
+  CreateOnCallDutyPolicyScheduleLabelRule = "CreateOnCallDutyPolicyScheduleLabelRule",
+  DeleteOnCallDutyPolicyScheduleLabelRule = "DeleteOnCallDutyPolicyScheduleLabelRule",
+  EditOnCallDutyPolicyScheduleLabelRule = "EditOnCallDutyPolicyScheduleLabelRule",
+  ReadOnCallDutyPolicyScheduleLabelRule = "ReadOnCallDutyPolicyScheduleLabelRule",
+
+  // On-Call Duty Schedule Owner Rule Permissions
+  CreateOnCallDutyPolicyScheduleOwnerRule = "CreateOnCallDutyPolicyScheduleOwnerRule",
+  DeleteOnCallDutyPolicyScheduleOwnerRule = "DeleteOnCallDutyPolicyScheduleOwnerRule",
+  EditOnCallDutyPolicyScheduleOwnerRule = "EditOnCallDutyPolicyScheduleOwnerRule",
+  ReadOnCallDutyPolicyScheduleOwnerRule = "ReadOnCallDutyPolicyScheduleOwnerRule",
+
+  // Incoming Call Policy Label Rule Permissions
+  CreateIncomingCallPolicyLabelRule = "CreateIncomingCallPolicyLabelRule",
+  DeleteIncomingCallPolicyLabelRule = "DeleteIncomingCallPolicyLabelRule",
+  EditIncomingCallPolicyLabelRule = "EditIncomingCallPolicyLabelRule",
+  ReadIncomingCallPolicyLabelRule = "ReadIncomingCallPolicyLabelRule",
+
+  // Incoming Call Policy Owner Rule Permissions
+  CreateIncomingCallPolicyOwnerRule = "CreateIncomingCallPolicyOwnerRule",
+  DeleteIncomingCallPolicyOwnerRule = "DeleteIncomingCallPolicyOwnerRule",
+  EditIncomingCallPolicyOwnerRule = "EditIncomingCallPolicyOwnerRule",
+  ReadIncomingCallPolicyOwnerRule = "ReadIncomingCallPolicyOwnerRule",
 
   // Incoming Call Log Permissions
   ReadProjectIncomingCallLog = "ReadProjectIncomingCallLog",
@@ -4932,6 +4989,342 @@ export class PermissionHelper {
         title: "Read Incoming Call Policy Escalation Rule",
         description:
           "This permission can read incoming call policy escalation rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // Incoming Call Policy Owner User Permissions
+      {
+        permission: Permission.CreateIncomingCallPolicyOwnerUser,
+        title: "Create Incoming Call Policy User Owner",
+        description:
+          "This permission can create Incoming Call Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteIncomingCallPolicyOwnerUser,
+        title: "Delete Incoming Call Policy User Owner",
+        description:
+          "This permission can delete Incoming Call Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditIncomingCallPolicyOwnerUser,
+        title: "Edit Incoming Call Policy User Owner",
+        description:
+          "This permission can edit Incoming Call Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadIncomingCallPolicyOwnerUser,
+        title: "Read Incoming Call Policy User Owner",
+        description:
+          "This permission can read Incoming Call Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // Incoming Call Policy Owner Team Permissions
+      {
+        permission: Permission.CreateIncomingCallPolicyOwnerTeam,
+        title: "Create Incoming Call Policy Team Owner",
+        description:
+          "This permission can create Incoming Call Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteIncomingCallPolicyOwnerTeam,
+        title: "Delete Incoming Call Policy Team Owner",
+        description:
+          "This permission can delete Incoming Call Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditIncomingCallPolicyOwnerTeam,
+        title: "Edit Incoming Call Policy Team Owner",
+        description:
+          "This permission can edit Incoming Call Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadIncomingCallPolicyOwnerTeam,
+        title: "Read Incoming Call Policy Team Owner",
+        description:
+          "This permission can read Incoming Call Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // On-Call Duty Policy Label Rule Permissions
+      {
+        permission: Permission.CreateOnCallDutyPolicyLabelRule,
+        title: "Create On-Call Duty Policy Label Rule",
+        description:
+          "This permission can create On-Call Duty Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyLabelRule,
+        title: "Delete On-Call Duty Policy Label Rule",
+        description:
+          "This permission can delete On-Call Duty Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyLabelRule,
+        title: "Edit On-Call Duty Policy Label Rule",
+        description:
+          "This permission can edit On-Call Duty Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyLabelRule,
+        title: "Read On-Call Duty Policy Label Rule",
+        description:
+          "This permission can read On-Call Duty Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // On-Call Duty Policy Owner Rule Permissions
+      {
+        permission: Permission.CreateOnCallDutyPolicyOwnerRule,
+        title: "Create On-Call Duty Policy Owner Rule",
+        description:
+          "This permission can create On-Call Duty Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyOwnerRule,
+        title: "Delete On-Call Duty Policy Owner Rule",
+        description:
+          "This permission can delete On-Call Duty Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyOwnerRule,
+        title: "Edit On-Call Duty Policy Owner Rule",
+        description:
+          "This permission can edit On-Call Duty Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyOwnerRule,
+        title: "Read On-Call Duty Policy Owner Rule",
+        description:
+          "This permission can read On-Call Duty Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // On-Call Duty Schedule Label Rule Permissions
+      {
+        permission: Permission.CreateOnCallDutyPolicyScheduleLabelRule,
+        title: "Create On-Call Schedule Label Rule",
+        description:
+          "This permission can create On-Call Schedule Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyScheduleLabelRule,
+        title: "Delete On-Call Schedule Label Rule",
+        description:
+          "This permission can delete On-Call Schedule Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyScheduleLabelRule,
+        title: "Edit On-Call Schedule Label Rule",
+        description:
+          "This permission can edit On-Call Schedule Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyScheduleLabelRule,
+        title: "Read On-Call Schedule Label Rule",
+        description:
+          "This permission can read On-Call Schedule Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // On-Call Duty Schedule Owner Rule Permissions
+      {
+        permission: Permission.CreateOnCallDutyPolicyScheduleOwnerRule,
+        title: "Create On-Call Schedule Owner Rule",
+        description:
+          "This permission can create On-Call Schedule Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyScheduleOwnerRule,
+        title: "Delete On-Call Schedule Owner Rule",
+        description:
+          "This permission can delete On-Call Schedule Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyScheduleOwnerRule,
+        title: "Edit On-Call Schedule Owner Rule",
+        description:
+          "This permission can edit On-Call Schedule Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyScheduleOwnerRule,
+        title: "Read On-Call Schedule Owner Rule",
+        description:
+          "This permission can read On-Call Schedule Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // Incoming Call Policy Label Rule Permissions
+      {
+        permission: Permission.CreateIncomingCallPolicyLabelRule,
+        title: "Create Incoming Call Policy Label Rule",
+        description:
+          "This permission can create Incoming Call Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteIncomingCallPolicyLabelRule,
+        title: "Delete Incoming Call Policy Label Rule",
+        description:
+          "This permission can delete Incoming Call Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditIncomingCallPolicyLabelRule,
+        title: "Edit Incoming Call Policy Label Rule",
+        description:
+          "This permission can edit Incoming Call Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadIncomingCallPolicyLabelRule,
+        title: "Read Incoming Call Policy Label Rule",
+        description:
+          "This permission can read Incoming Call Policy Label Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      // Incoming Call Policy Owner Rule Permissions
+      {
+        permission: Permission.CreateIncomingCallPolicyOwnerRule,
+        title: "Create Incoming Call Policy Owner Rule",
+        description:
+          "This permission can create Incoming Call Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteIncomingCallPolicyOwnerRule,
+        title: "Delete Incoming Call Policy Owner Rule",
+        description:
+          "This permission can delete Incoming Call Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditIncomingCallPolicyOwnerRule,
+        title: "Edit Incoming Call Policy Owner Rule",
+        description:
+          "This permission can edit Incoming Call Policy Owner Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadIncomingCallPolicyOwnerRule,
+        title: "Read Incoming Call Policy Owner Rule",
+        description:
+          "This permission can read Incoming Call Policy Owner Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9159,6 +9552,88 @@ export class PermissionHelper {
         title: "Read On Call Duty Policy Team Owner",
         description:
           "This permission can read On Call Duty Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      {
+        permission: Permission.CreateOnCallDutyPolicyScheduleOwnerUser,
+        title: "Create On Call Duty Schedule User Owner",
+        description:
+          "This permission can create On Call Duty Schedule User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyScheduleOwnerUser,
+        title: "Delete On Call Duty Schedule User Owner",
+        description:
+          "This permission can delete On Call Duty Schedule User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyScheduleOwnerUser,
+        title: "Edit On Call Duty Schedule User Owner",
+        description:
+          "This permission can edit On Call Duty Schedule User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyScheduleOwnerUser,
+        title: "Read On Call Duty Schedule User Owner",
+        description:
+          "This permission can read On Call Duty Schedule User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      {
+        permission: Permission.CreateOnCallDutyPolicyScheduleOwnerTeam,
+        title: "Create On Call Duty Schedule Team Owner",
+        description:
+          "This permission can create On Call Duty Schedule Team Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyScheduleOwnerTeam,
+        title: "Delete On Call Duty Schedule Team Owner",
+        description:
+          "This permission can delete On Call Duty Schedule Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyScheduleOwnerTeam,
+        title: "Edit On Call Duty Schedule Team Owner",
+        description:
+          "This permission can edit On Call Duty Schedule Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyScheduleOwnerTeam,
+        title: "Read On Call Duty Schedule Team Owner",
+        description:
+          "This permission can read On Call Duty Schedule Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

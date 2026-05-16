@@ -38,8 +38,10 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Green500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OnCallDutyPolicyScheduleLabelRuleEngineService from "./OnCallDutyPolicyScheduleLabelRuleEngineService";
+import OnCallDutyPolicyScheduleOwnerRuleEngineService from "./OnCallDutyPolicyScheduleOwnerRuleEngineService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -50,6 +52,35 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
   public constructor() {
     super(OnCallDutyPolicySchedule);
+  }
+
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<OnCallDutyPolicySchedule>,
+    createdItem: OnCallDutyPolicySchedule,
+  ): Promise<OnCallDutyPolicySchedule> {
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await OnCallDutyPolicyScheduleLabelRuleEngineService.applyRulesToSchedule(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await OnCallDutyPolicyScheduleOwnerRuleEngineService.applyRulesToSchedule(
+            createdItem,
+          );
+        })
+        .catch((error: Error) => {
+          logger.error(
+            `Error applying on-call schedule rules in OnCallDutyPolicyScheduleService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              onCallDutyPolicyScheduleId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        });
+    }
+    return createdItem;
   }
 
   protected override async onBeforeDelete(

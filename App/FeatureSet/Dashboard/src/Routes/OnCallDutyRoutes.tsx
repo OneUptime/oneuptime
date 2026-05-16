@@ -34,6 +34,7 @@ import OnCallDutyScheduleViewDelete from "../Pages/OnCallDuty/OnCallDutySchedule
 import OnCallDutyScheduleViewLayers from "../Pages/OnCallDuty/OnCallDutySchedule/Layers";
 
 import OnCallDutyScheduleViewNotificationLogs from "../Pages/OnCallDuty/OnCallDutySchedule/NotificationLogs";
+import OnCallDutyScheduleViewOwners from "../Pages/OnCallDuty/OnCallDutySchedule/Owners";
 import OnCallDutyScheduleViewSettings from "../Pages/OnCallDuty/OnCallDutySchedule/Settings";
 
 // slack
@@ -47,6 +48,8 @@ import OnCallDutyUserTimeLogs from "../Pages/OnCallDuty/OnCallDutyUserTimeLogs";
 
 // Settings Pages
 import OnCallDutySettingsCustomFields from "../Pages/OnCallDuty/Settings/OnCallDutyPolicyCustomFields";
+import OnCallDutySettingsLabelRules from "../Pages/OnCallDuty/Settings/LabelRules";
+import OnCallDutySettingsOwnerRules from "../Pages/OnCallDuty/Settings/OwnerRules";
 
 // Incoming Call Policies
 import IncomingCallPoliciesPage from "../Pages/OnCallDuty/IncomingCallPolicies";
@@ -62,6 +65,8 @@ import IncomingCallPolicyViewLogs from "../Pages/OnCallDuty/IncomingCallPolicy/L
 import IncomingCallPolicyViewLogView from "../Pages/OnCallDuty/IncomingCallPolicy/LogView";
 
 import IncomingCallPolicyViewDelete from "../Pages/OnCallDuty/IncomingCallPolicy/Delete";
+
+import IncomingCallPolicyViewOwners from "../Pages/OnCallDuty/IncomingCallPolicy/Owners";
 
 import IncomingCallPolicyViewSettings from "../Pages/OnCallDuty/IncomingCallPolicy/Settings";
 
@@ -199,6 +204,34 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES] || ""
+          }
+          element={
+            <OnCallDutySettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES] || ""
+          }
+          element={
+            <OnCallDutySettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_OWNER_RULES] as Route
               }
             />
           }
@@ -418,6 +451,20 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS,
+          )}
+          element={
+            <OnCallDutyScheduleViewOwners
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS,
           )}
           element={
@@ -463,6 +510,22 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS,
+          )}
+          element={
+            <IncomingCallPolicyViewOwners
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS
                 ] as Route
               }
             />
