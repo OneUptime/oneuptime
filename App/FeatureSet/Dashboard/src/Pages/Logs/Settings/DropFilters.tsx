@@ -116,6 +116,14 @@ const LogDropFilters: FunctionComponent<
         samplePercentage: true,
       }}
       viewPageRoute={Navigation.getCurrentRoute()}
+      createInitialValues={{
+        isEnabled: true,
+        action: "drop",
+      }}
+      onBeforeCreate={async (item: LogDropFilter) => {
+        item.sortOrder = 1;
+        return item;
+      }}
       formFields={[
         {
           field: {
@@ -137,6 +145,46 @@ const LogDropFilters: FunctionComponent<
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this filter does.",
+        },
+        {
+          field: {
+            filterQuery: true,
+          },
+          title: "Filter Query",
+          description:
+            "Filter expression that identifies which logs to drop or sample. You can refine this with the visual builder after creation.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: true,
+          placeholder: "e.g. severityText = 'DEBUG'",
+        },
+        {
+          field: {
+            action: true,
+          },
+          title: "Action",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: true,
+          dropdownOptions: [
+            {
+              label: "Drop — Discard all matching logs",
+              value: "drop",
+            },
+            {
+              label: "Sample — Keep a percentage of matching logs",
+              value: "sample",
+            },
+          ],
+        },
+        {
+          field: {
+            samplePercentage: true,
+          },
+          title: "Sample Percentage",
+          description:
+            "Only applies when Action is Sample. Percentage of matching logs to keep (e.g. 10 = keep 10%, discard 90%).",
+          fieldType: FormFieldSchemaType.Number,
+          required: false,
+          placeholder: "e.g. 10",
         },
       ]}
       showRefreshButton={true}
