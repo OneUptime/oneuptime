@@ -39,6 +39,42 @@ type ParsedUnixNano = {
   date: Date;
 };
 
+/*
+ * Schema-agnostic projection of one entry from
+ * `ScopeProfiles.profiles[]`. v1development moved the per-profile string /
+ * function / location / mapping / link / stack / attribute tables up to a
+ * top-level `ProfilesDictionary`, replaced the `ProfileContainer` wrapper
+ * with a bare `Profile`, flipped `sample_type` to singular, renamed
+ * `sample` -> `samples`, replaced `startTimeUnixNano` + `endTimeUnixNano`
+ * with `timeUnixNano` + `durationNano`, and switched container attributes
+ * from inline `KeyValue[]` to `attributeIndices[]` into a global
+ * `KeyValueAndUnit[]` table.
+ *
+ * We normalise both shapes into this struct so the inner sample loop
+ * (stack resolution, label extraction, trace correlation, row building)
+ * stays unchanged.
+ */
+type NormalizedProfileFrame = {
+  profileId: string | undefined;
+  startTimeUnixNano: string | number | undefined;
+  endTimeUnixNano: string | number | undefined;
+  attributes: JSONArray;
+  originalPayloadFormat: string;
+  profile: {
+    stringTable: Array<string>;
+    functionTable: JSONArray;
+    locationTable: JSONArray;
+    mappingTable: JSONArray;
+    linkTable: JSONArray;
+    stackTable: JSONArray;
+    attributeTable: JSONArray;
+    sampleType: JSONArray;
+    periodType: JSONObject | undefined;
+    period: number;
+    sample: JSONArray;
+  };
+};
+
 export default class OtelProfilesIngestService extends OtelIngestBaseService {
   private static async flushProfilesBuffer(
     profiles: Array<JSONObject>,
@@ -133,6 +169,17 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceProfiles format");
       }
 
+      /*
+       * v1development OTLP profiles carry one shared `ProfilesDictionary`
+       * at the request root. When absent we are talking to an older
+       * collector that still emits per-profile tables inside a
+       * `ProfileContainer` wrapper -- detection happens per-profile via
+       * `normalizeProfileItem` below.
+       */
+      const globalDictionary: JSONObject | undefined = req.body[
+        "dictionary"
+      ] as JSONObject | undefined;
+
       const dbProfiles: Array<JSONObject> = [];
       const dbSamples: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
@@ -215,7 +262,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               }
 
               let profileCounter: number = 0;
-              for (const profileContainer of profileContainers) {
+              for (const profileItem of profileContainers) {
                 try {
                   if (profileCounter % 100 === 0) {
                     await Promise.resolve();
@@ -229,44 +276,46 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   const dataRetentionInDays: number =
                     serviceDictionary[serviceName]!.dataRententionInDays;
 
+                  const frame: NormalizedProfileFrame =
+                    this.normalizeProfileItem(
+                      profileItem as JSONObject,
+                      globalDictionary,
+                    );
+
                   const profileId: string =
-                    this.convertBase64ToHexSafe(
-                      (profileContainer as JSONObject)["profileId"] as
-                        | string
-                        | undefined,
-                    ) || ObjectID.generate().toString();
+                    this.convertBase64ToHexSafe(frame.profileId) ||
+                    ObjectID.generate().toString();
 
                   const startTime: ParsedUnixNano = this.safeParseUnixNano(
-                    (profileContainer as JSONObject)["startTimeUnixNano"] as
-                      | string
-                      | number
-                      | undefined,
+                    frame.startTimeUnixNano,
                     "profile startTimeUnixNano",
                   );
 
-                  const endTime: ParsedUnixNano = this.safeParseUnixNano(
-                    (profileContainer as JSONObject)["endTimeUnixNano"] as
-                      | string
-                      | number
-                      | undefined,
-                    "profile endTimeUnixNano",
-                  );
+                  /*
+                   * v1development gives us `time_unix_nano` + `duration_nano`
+                   * so `endTimeUnixNano` is computed during normalisation. If
+                   * neither is present (e.g. a degenerate instant profile)
+                   * fall back to the parsed start time so durationNano = 0.
+                   */
+                  const endTime: ParsedUnixNano =
+                    frame.endTimeUnixNano !== undefined
+                      ? this.safeParseUnixNano(
+                          frame.endTimeUnixNano,
+                          "profile endTimeUnixNano",
+                        )
+                      : startTime;
 
                   const durationNano: number = Math.max(
                     0,
                     Math.trunc(endTime.unixNano - startTime.unixNano),
                   );
 
-                  // Container-level attributes
                   const containerAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
                   > = {
                     ...resourceAttributes,
                     ...TelemetryUtil.getAttributes({
-                      items:
-                        ((profileContainer as JSONObject)[
-                          "attributes"
-                        ] as JSONArray) || [],
+                      items: frame.attributes,
                       prefixKeysWithString: "",
                     }),
                   };
@@ -288,326 +337,326 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   const attributeKeys: Array<string> =
                     TelemetryUtil.getAttributeKeys(containerAttributes);
 
-                  const profile: JSONObject | undefined = (
-                    profileContainer as JSONObject
-                  )["profile"] as JSONObject | undefined;
-
+                  const profile: NormalizedProfileFrame["profile"] =
+                    frame.profile;
                   const originalPayloadFormat: string =
-                    ((profileContainer as JSONObject)[
-                      "originalPayloadFormat"
-                    ] as string) || "";
+                    frame.originalPayloadFormat;
 
-                  // Extract sample types from the profile
                   let profileType: string = "unknown";
                   let unit: string = "unknown";
                   let periodType: string = "";
                   let period: number = 0;
                   let sampleCount: number = 0;
 
-                  if (profile) {
-                    const stringTable: Array<string> =
-                      (profile["stringTable"] as Array<string>) || [];
+                  const stringTable: Array<string> = profile.stringTable;
 
-                    // Extract sample type from first sample_type entry
-                    const sampleTypes: JSONArray =
-                      (profile["sampleType"] as JSONArray) || [];
-                    if (sampleTypes.length > 0) {
-                      const firstSampleType: JSONObject =
-                        sampleTypes[0] as JSONObject;
-                      const typeIndex: number =
-                        (firstSampleType["type"] as number) || 0;
-                      const unitIndex: number =
-                        (firstSampleType["unit"] as number) || 0;
+                  const sampleTypes: JSONArray = profile.sampleType;
+                  if (sampleTypes.length > 0) {
+                    const firstSampleType: JSONObject =
+                      sampleTypes[0] as JSONObject;
+                    const typeIndex: number =
+                      (firstSampleType["type"] as number) || 0;
+                    const unitIndex: number =
+                      (firstSampleType["unit"] as number) || 0;
 
-                      if (stringTable[typeIndex]) {
-                        profileType = stringTable[typeIndex]!;
-                      }
-                      if (stringTable[unitIndex]) {
-                        unit = stringTable[unitIndex]!;
-                      }
+                    if (stringTable[typeIndex]) {
+                      profileType = stringTable[typeIndex]!;
                     }
-
-                    // Extract period type
-                    const periodTypeObj: JSONObject | undefined = profile[
-                      "periodType"
-                    ] as JSONObject | undefined;
-                    if (periodTypeObj) {
-                      const periodTypeIndex: number =
-                        (periodTypeObj["type"] as number) || 0;
-                      if (stringTable[periodTypeIndex]) {
-                        periodType = stringTable[periodTypeIndex]!;
-                      }
+                    if (stringTable[unitIndex]) {
+                      unit = stringTable[unitIndex]!;
                     }
-                    period = (profile["period"] as number) || 0;
+                  }
 
-                    // Process samples
-                    const samples: JSONArray =
-                      (profile["sample"] as JSONArray) || [];
-                    sampleCount = samples.length;
+                  const periodTypeObj: JSONObject | undefined =
+                    profile.periodType;
+                  if (periodTypeObj) {
+                    const periodTypeIndex: number =
+                      (periodTypeObj["type"] as number) || 0;
+                    if (stringTable[periodTypeIndex]) {
+                      periodType = stringTable[periodTypeIndex]!;
+                    }
+                  }
+                  period = profile.period;
 
-                    // Build dictionary tables for denormalization
-                    const functionTable: JSONArray =
-                      (profile["functionTable"] as JSONArray) || [];
-                    const locationTable: JSONArray =
-                      (profile["locationTable"] as JSONArray) || [];
-                    const linkTable: JSONArray =
-                      (profile["linkTable"] as JSONArray) || [];
-                    const stackTable: JSONArray =
-                      (profile["stackTable"] as JSONArray) || [];
-                    const attributeTable: JSONArray =
-                      (profile["attributeTable"] as JSONArray) || [];
+                  const samples: JSONArray = profile.sample;
+                  sampleCount = samples.length;
 
-                    let firstSampleTraceId: string = "";
-                    let firstSampleSpanId: string = "";
+                  const functionTable: JSONArray = profile.functionTable;
+                  const locationTable: JSONArray = profile.locationTable;
+                  const linkTable: JSONArray = profile.linkTable;
+                  const stackTable: JSONArray = profile.stackTable;
+                  const attributeTable: JSONArray = profile.attributeTable;
 
-                    let sampleCounter: number = 0;
-                    for (const sample of samples) {
-                      try {
-                        if (sampleCounter % 200 === 0) {
-                          await Promise.resolve();
-                        }
-                        sampleCounter++;
+                  let firstSampleTraceId: string = "";
+                  let firstSampleSpanId: string = "";
 
-                        const sampleObj: JSONObject = sample as JSONObject;
+                  let sampleCounter: number = 0;
+                  for (const sample of samples) {
+                    try {
+                      if (sampleCounter % 200 === 0) {
+                        await Promise.resolve();
+                      }
+                      sampleCounter++;
 
-                        // Resolve the stack frames
-                        const resolvedStack: {
-                          frames: Array<string>;
-                          frameTypes: Array<string>;
-                        } = this.resolveStackFrames({
-                          sample: sampleObj,
-                          stackTable: stackTable,
-                          locationTable: locationTable,
-                          functionTable: functionTable,
-                          stringTable: stringTable,
-                          attributeTable: attributeTable,
-                        });
+                      const sampleObj: JSONObject = sample as JSONObject;
 
-                        // Compute stacktrace hash
-                        const stacktraceHash: string = crypto
-                          .createHash("sha256")
-                          .update(resolvedStack.frames.join("|"))
-                          .digest("hex");
+                      const resolvedStack: {
+                        frames: Array<string>;
+                        frameTypes: Array<string>;
+                      } = this.resolveStackFrames({
+                        sample: sampleObj,
+                        stackTable: stackTable,
+                        locationTable: locationTable,
+                        functionTable: functionTable,
+                        stringTable: stringTable,
+                        attributeTable: attributeTable,
+                      });
 
-                        /*
-                         * Resolve trace/span correlation from link table.
-                         * Per OTLP profiles convention, linkTable[0] is a
-                         * sentinel empty link. We only honour linkIndex when
-                         * it is explicitly set on the sample.
-                         */
-                        let traceId: string = "";
-                        let spanId: string = "";
-                        const linkIndexRaw: unknown = sampleObj["linkIndex"];
+                      const stacktraceHash: string = crypto
+                        .createHash("sha256")
+                        .update(resolvedStack.frames.join("|"))
+                        .digest("hex");
+
+                      /*
+                       * Resolve trace/span correlation from link table.
+                       * Per OTLP profiles convention, linkTable[0] is a
+                       * sentinel empty link. We only honour linkIndex when
+                       * it is explicitly set on the sample.
+                       */
+                      let traceId: string = "";
+                      let spanId: string = "";
+                      const linkIndexRaw: unknown = sampleObj["linkIndex"];
+                      if (linkIndexRaw !== undefined && linkIndexRaw !== null) {
+                        const linkIndex: number = Number(linkIndexRaw);
                         if (
-                          linkIndexRaw !== undefined &&
-                          linkIndexRaw !== null
+                          Number.isFinite(linkIndex) &&
+                          linkIndex > 0 &&
+                          linkIndex < linkTable.length
                         ) {
-                          const linkIndex: number = Number(linkIndexRaw);
-                          if (
-                            Number.isFinite(linkIndex) &&
-                            linkIndex > 0 &&
-                            linkIndex < linkTable.length
-                          ) {
-                            const link: JSONObject = linkTable[
-                              linkIndex
-                            ] as JSONObject;
-                            traceId = this.convertBase64ToHexSafe(
-                              link["traceId"] as string | undefined,
-                            );
-                            spanId = this.convertBase64ToHexSafe(
-                              link["spanId"] as string | undefined,
-                            );
-                            if (this.isEmptyHexId(traceId)) {
-                              traceId = "";
-                            }
-                            if (this.isEmptyHexId(spanId)) {
-                              spanId = "";
-                            }
-                          }
-                        }
-
-                        // Extract sample value (first value from values array)
-                        const values: Array<number | string> =
-                          (sampleObj["value"] as Array<number | string>) || [];
-                        let sampleValue: number = 0;
-                        if (values.length > 0) {
-                          sampleValue =
-                            typeof values[0] === "string"
-                              ? parseInt(values[0]!, 10) || 0
-                              : (values[0] as number) || 0;
-                        }
-
-                        // Extract sample timestamp
-                        const timestamps: Array<number | string> =
-                          (sampleObj["timestampsUnixNano"] as Array<
-                            number | string
-                          >) || [];
-                        let sampleTime: ParsedUnixNano = startTime;
-                        if (timestamps.length > 0) {
-                          sampleTime = this.safeParseUnixNano(
-                            timestamps[0] as string | number,
-                            "sample timestampsUnixNano",
-                          );
-                        }
-
-                        // Resolve sample-level labels from attribute_indices
-                        const sampleLabels: Dictionary<string> = {};
-                        const sampleAttributeIndices: Array<number> =
-                          (sampleObj["attributeIndices"] as Array<number>) ||
-                          [];
-                        for (const attrIdx of sampleAttributeIndices) {
-                          if (attrIdx >= 0 && attrIdx < attributeTable.length) {
-                            const attr: JSONObject = attributeTable[
-                              attrIdx
-                            ] as JSONObject;
-                            const key: string = (attr["key"] as string) || "";
-                            const val: JSONObject =
-                              (attr["value"] as JSONObject) || {};
-                            sampleLabels[key] =
-                              (val["stringValue"] as string) ||
-                              (val["intValue"]?.toString() as string) ||
-                              (val["doubleValue"]?.toString() as string) ||
-                              (val["boolValue"]?.toString() as string) ||
-                              "";
-                          }
-                        }
-
-                        /*
-                         * Fallback: some agents (Pyroscope-style) attach
-                         * trace_id / span_id as sample labels instead of via
-                         * the link table.
-                         */
-                        if (!traceId) {
-                          traceId = this.findCorrelationValue(
-                            sampleLabels,
-                            OtelProfilesIngestService.TRACE_ID_KEYS,
-                          );
-                        }
-                        if (!spanId) {
-                          spanId = this.findCorrelationValue(
-                            sampleLabels,
-                            OtelProfilesIngestService.SPAN_ID_KEYS,
-                          );
-                        }
-
-                        if (traceId && !firstSampleTraceId) {
-                          firstSampleTraceId = traceId;
-                          firstSampleSpanId = spanId;
-                        }
-
-                        const sampleRow: JSONObject = this.buildSampleRow({
-                          projectId: projectId,
-                          serviceId: serviceId,
-                          profileId: profileId,
-                          traceId: traceId,
-                          spanId: spanId,
-                          time: sampleTime,
-                          stacktrace: resolvedStack.frames,
-                          stacktraceHash: stacktraceHash,
-                          frameTypes: resolvedStack.frameTypes,
-                          value: sampleValue,
-                          profileType: profileType,
-                          labels: sampleLabels,
-                          dataRetentionInDays: dataRetentionInDays,
-                        });
-
-                        dbSamples.push(sampleRow);
-
-                        if (
-                          dbSamples.length >=
-                          TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE
-                        ) {
-                          await this.flushSamplesBuffer(dbSamples);
-                        }
-                      } catch (sampleError) {
-                        logger.error("Error processing individual sample:");
-                        logger.error(sampleError);
-                      }
-                    }
-
-                    /*
-                     * Resolve the profile-level trace/span correlation.
-                     * Precedence: any sample that carried one (most reliable) ->
-                     * first non-sentinel entry in the link table ->
-                     * container/resource attributes (e.g. trace.id set by the
-                     * agent on the profile envelope).
-                     */
-                    let profileTraceId: string = firstSampleTraceId;
-                    let profileSpanId: string = firstSampleSpanId;
-
-                    if (!profileTraceId) {
-                      for (
-                        let linkIdx: number = 1;
-                        linkIdx < linkTable.length;
-                        linkIdx++
-                      ) {
-                        const link: JSONObject = linkTable[
-                          linkIdx
-                        ] as JSONObject;
-                        const candidateTraceId: string =
-                          this.convertBase64ToHexSafe(
+                          const link: JSONObject = linkTable[
+                            linkIndex
+                          ] as JSONObject;
+                          traceId = this.convertBase64ToHexSafe(
                             link["traceId"] as string | undefined,
                           );
-                        const candidateSpanId: string =
-                          this.convertBase64ToHexSafe(
+                          spanId = this.convertBase64ToHexSafe(
                             link["spanId"] as string | undefined,
                           );
-                        if (
-                          !this.isEmptyHexId(candidateTraceId) ||
-                          !this.isEmptyHexId(candidateSpanId)
-                        ) {
-                          profileTraceId = this.isEmptyHexId(candidateTraceId)
-                            ? ""
-                            : candidateTraceId;
-                          profileSpanId = this.isEmptyHexId(candidateSpanId)
-                            ? ""
-                            : candidateSpanId;
-                          break;
+                          if (this.isEmptyHexId(traceId)) {
+                            traceId = "";
+                          }
+                          if (this.isEmptyHexId(spanId)) {
+                            spanId = "";
+                          }
                         }
                       }
+
+                      /*
+                       * v1development renamed `Sample.value` to
+                       * `Sample.values`. Accept either spelling so a mixed-
+                       * version fleet keeps working during rollout.
+                       */
+                      const values: Array<number | string> =
+                        (sampleObj["values"] as Array<number | string>) ||
+                        (sampleObj["value"] as Array<number | string>) ||
+                        [];
+
+                      const timestamps: Array<number | string> =
+                        (sampleObj["timestampsUnixNano"] as Array<
+                          number | string
+                        >) || [];
+
+                      /*
+                       * Weight the sample. Spec rules
+                       * (opentelemetry-proto profiles v1development):
+                       *   values:[v]                  -> v          (aggregated count)
+                       *   values:[],  timestamps:[..] -> timestamps.length (one event per timestamp, weight 1 each)
+                       *   values:[],  timestamps:[]   -> 1          (single hit; pre-spec convention used by the OTel
+                       *                                              eBPF profiler when it emits one Sample per stack)
+                       * Falling back to 0 here collapses every flame
+                       * graph rectangle to zero width, which is what
+                       * made the dashboard look empty even after
+                       * samples landed.
+                       */
+                      let sampleValue: number = 0;
+                      if (values.length > 0) {
+                        const first: number | string = values[0]!;
+                        sampleValue =
+                          typeof first === "string"
+                            ? parseInt(first, 10) || 0
+                            : Number(first) || 0;
+                      } else if (timestamps.length > 0) {
+                        sampleValue = timestamps.length;
+                      } else {
+                        sampleValue = 1;
+                      }
+
+                      let sampleTime: ParsedUnixNano = startTime;
+                      if (timestamps.length > 0) {
+                        sampleTime = this.safeParseUnixNano(
+                          timestamps[0] as string | number,
+                          "sample timestampsUnixNano",
+                        );
+                      }
+
+                      const sampleLabels: Dictionary<string> = {};
+                      const sampleAttributeIndices: Array<number> =
+                        (sampleObj["attributeIndices"] as Array<number>) || [];
+                      for (const attrIdx of sampleAttributeIndices) {
+                        /*
+                         * Index 0 is the dictionary sentinel (KeyValue with
+                         * empty key) -- skip it explicitly.
+                         */
+                        if (attrIdx > 0 && attrIdx < attributeTable.length) {
+                          const attr: JSONObject = attributeTable[
+                            attrIdx
+                          ] as JSONObject;
+                          const key: string = (attr["key"] as string) || "";
+                          if (!key) {
+                            continue;
+                          }
+                          const val: JSONObject =
+                            (attr["value"] as JSONObject) || {};
+                          sampleLabels[key] =
+                            (val["stringValue"] as string) ||
+                            (val["intValue"]?.toString() as string) ||
+                            (val["doubleValue"]?.toString() as string) ||
+                            (val["boolValue"]?.toString() as string) ||
+                            "";
+                        }
+                      }
+
+                      /*
+                       * Fallback: some agents (Pyroscope-style) attach
+                       * trace_id / span_id as sample labels instead of via
+                       * the link table.
+                       */
+                      if (!traceId) {
+                        traceId = this.findCorrelationValue(
+                          sampleLabels,
+                          OtelProfilesIngestService.TRACE_ID_KEYS,
+                        );
+                      }
+                      if (!spanId) {
+                        spanId = this.findCorrelationValue(
+                          sampleLabels,
+                          OtelProfilesIngestService.SPAN_ID_KEYS,
+                        );
+                      }
+
+                      if (traceId && !firstSampleTraceId) {
+                        firstSampleTraceId = traceId;
+                        firstSampleSpanId = spanId;
+                      }
+
+                      const sampleRow: JSONObject = this.buildSampleRow({
+                        projectId: projectId,
+                        serviceId: serviceId,
+                        profileId: profileId,
+                        traceId: traceId,
+                        spanId: spanId,
+                        time: sampleTime,
+                        stacktrace: resolvedStack.frames,
+                        stacktraceHash: stacktraceHash,
+                        frameTypes: resolvedStack.frameTypes,
+                        value: sampleValue,
+                        profileType: profileType,
+                        labels: sampleLabels,
+                        dataRetentionInDays: dataRetentionInDays,
+                      });
+
+                      dbSamples.push(sampleRow);
+
+                      if (
+                        dbSamples.length >=
+                        TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE
+                      ) {
+                        await this.flushSamplesBuffer(dbSamples);
+                      }
+                    } catch (sampleError) {
+                      logger.error("Error processing individual sample:");
+                      logger.error(sampleError);
                     }
+                  }
 
-                    if (!profileTraceId) {
-                      profileTraceId = this.findCorrelationValue(
-                        containerAttributes,
-                        OtelProfilesIngestService.TRACE_ID_KEYS,
-                      );
-                    }
-                    if (!profileSpanId) {
-                      profileSpanId = this.findCorrelationValue(
-                        containerAttributes,
-                        OtelProfilesIngestService.SPAN_ID_KEYS,
-                      );
-                    }
+                  /*
+                   * Resolve the profile-level trace/span correlation.
+                   * Precedence: any sample that carried one (most reliable) ->
+                   * first non-sentinel entry in the link table ->
+                   * container/resource attributes (e.g. trace.id set by the
+                   * agent on the profile envelope).
+                   */
+                  let profileTraceId: string = firstSampleTraceId;
+                  let profileSpanId: string = firstSampleSpanId;
 
-                    const profileRow: JSONObject = this.buildProfileRow({
-                      projectId: projectId,
-                      serviceId: serviceId,
-                      profileId: profileId,
-                      traceId: profileTraceId,
-                      spanId: profileSpanId,
-                      startTime: startTime,
-                      endTime: endTime,
-                      durationNano: durationNano,
-                      profileType: profileType,
-                      unit: unit,
-                      periodType: periodType,
-                      period: period,
-                      attributes: containerAttributes,
-                      attributeKeys: attributeKeys,
-                      sampleCount: sampleCount,
-                      originalPayloadFormat: originalPayloadFormat,
-                      dataRetentionInDays: dataRetentionInDays,
-                    });
-
-                    dbProfiles.push(profileRow);
-                    totalProfilesProcessed++;
-
-                    if (
-                      dbProfiles.length >= TELEMETRY_PROFILE_FLUSH_BATCH_SIZE
+                  if (!profileTraceId) {
+                    for (
+                      let linkIdx: number = 1;
+                      linkIdx < linkTable.length;
+                      linkIdx++
                     ) {
-                      await this.flushProfilesBuffer(dbProfiles);
+                      const link: JSONObject = linkTable[linkIdx] as JSONObject;
+                      const candidateTraceId: string =
+                        this.convertBase64ToHexSafe(
+                          link["traceId"] as string | undefined,
+                        );
+                      const candidateSpanId: string =
+                        this.convertBase64ToHexSafe(
+                          link["spanId"] as string | undefined,
+                        );
+                      if (
+                        !this.isEmptyHexId(candidateTraceId) ||
+                        !this.isEmptyHexId(candidateSpanId)
+                      ) {
+                        profileTraceId = this.isEmptyHexId(candidateTraceId)
+                          ? ""
+                          : candidateTraceId;
+                        profileSpanId = this.isEmptyHexId(candidateSpanId)
+                          ? ""
+                          : candidateSpanId;
+                        break;
+                      }
                     }
+                  }
+
+                  if (!profileTraceId) {
+                    profileTraceId = this.findCorrelationValue(
+                      containerAttributes,
+                      OtelProfilesIngestService.TRACE_ID_KEYS,
+                    );
+                  }
+                  if (!profileSpanId) {
+                    profileSpanId = this.findCorrelationValue(
+                      containerAttributes,
+                      OtelProfilesIngestService.SPAN_ID_KEYS,
+                    );
+                  }
+
+                  const profileRow: JSONObject = this.buildProfileRow({
+                    projectId: projectId,
+                    serviceId: serviceId,
+                    profileId: profileId,
+                    traceId: profileTraceId,
+                    spanId: profileSpanId,
+                    startTime: startTime,
+                    endTime: endTime,
+                    durationNano: durationNano,
+                    profileType: profileType,
+                    unit: unit,
+                    periodType: periodType,
+                    period: period,
+                    attributes: containerAttributes,
+                    attributeKeys: attributeKeys,
+                    sampleCount: sampleCount,
+                    originalPayloadFormat: originalPayloadFormat,
+                    dataRetentionInDays: dataRetentionInDays,
+                  });
+
+                  dbProfiles.push(profileRow);
+                  totalProfilesProcessed++;
+
+                  if (dbProfiles.length >= TELEMETRY_PROFILE_FLUSH_BATCH_SIZE) {
+                    await this.flushProfilesBuffer(dbProfiles);
                   }
                 } catch (profileError) {
                   logger.error("Error processing individual profile:");
@@ -706,16 +755,55 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       const location: JSONObject = data.locationTable[
         locationIndex
       ] as JSONObject;
-      const lines: JSONArray = (location["line"] as JSONArray) || [];
 
-      // Resolve frame type from location type_index
+      /*
+       * v1development renamed `Location.line` (repeated Line) to
+       * `Location.lines`. Accept either spelling.
+       */
+      const lines: JSONArray =
+        (location["lines"] as JSONArray) ||
+        (location["line"] as JSONArray) ||
+        [];
+
+      /*
+       * Frame type resolution differs by schema:
+       *   - v1development drops `type_index` and instead lets a Location
+       *     reference attribute_table entries with key=`profile.frame.type`
+       *     via `attribute_indices`.
+       *   - The older schema put that index directly on the location as
+       *     `type_index`, pointing at an attribute_table entry whose value
+       *     is the frame-type string.
+       * Try the new shape first, fall back to the old.
+       */
       let locFrameType: string = "unknown";
-      const typeIndex: number | undefined = location["typeIndex"] as
-        | number
-        | undefined;
-      if (typeIndex !== undefined && typeIndex >= 0) {
-        // type_index refers to attribute_table entry with key "profile.frame.type"
-        if (typeIndex < data.attributeTable.length) {
+
+      const locAttrIndices: Array<number> =
+        (location["attributeIndices"] as Array<number>) || [];
+      for (const aIdx of locAttrIndices) {
+        if (aIdx <= 0 || aIdx >= data.attributeTable.length) {
+          continue;
+        }
+        const attr: JSONObject = data.attributeTable[aIdx] as JSONObject;
+        if (attr["key"] !== "profile.frame.type") {
+          continue;
+        }
+        const val: JSONObject = (attr["value"] as JSONObject) || {};
+        const sv: unknown = val["stringValue"];
+        if (typeof sv === "string" && sv.length > 0) {
+          locFrameType = sv;
+        }
+        break;
+      }
+
+      if (locFrameType === "unknown") {
+        const typeIndex: number | undefined = location["typeIndex"] as
+          | number
+          | undefined;
+        if (
+          typeIndex !== undefined &&
+          typeIndex >= 0 &&
+          typeIndex < data.attributeTable.length
+        ) {
           const attr: JSONObject = data.attributeTable[typeIndex] as JSONObject;
           const val: JSONObject = (attr["value"] as JSONObject) || {};
           locFrameType = (val["stringValue"] as string) || "unknown";
@@ -742,8 +830,19 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
             const func: JSONObject = data.functionTable[
               functionIndex
             ] as JSONObject;
-            const nameIndex: number = (func["name"] as number) || 0;
-            const fileIndex: number = (func["filename"] as number) || 0;
+            /*
+             * v1development renamed Function.name -> name_strindex,
+             * Function.filename -> filename_strindex (likewise for
+             * system_name). Accept either spelling.
+             */
+            const nameIndex: number =
+              ((func["nameStrindex"] as number | undefined) ??
+                (func["name"] as number | undefined)) ||
+              0;
+            const fileIndex: number =
+              ((func["filenameStrindex"] as number | undefined) ??
+                (func["filename"] as number | undefined)) ||
+              0;
 
             if (nameIndex >= 0 && nameIndex < data.stringTable.length) {
               functionName = data.stringTable[nameIndex] || "<unknown>";
@@ -867,6 +966,259 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       labels: data.labels,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
+  }
+
+  /**
+   * Collapse a `ScopeProfiles.profiles[i]` entry into a schema-agnostic
+   * `NormalizedProfileFrame` so the rest of the pipeline does not need to
+   * know which OTLP profiles version produced the payload.
+   *
+   * Detection rule: presence of a top-level `ProfilesDictionary` on the
+   * request, OR a `timeUnixNano` / `samples` field on the item itself,
+   * means v1development. Otherwise we treat the item as an old-schema
+   * `ProfileContainer` whose `profile` sub-object carries the tables.
+   */
+  private static normalizeProfileItem(
+    profileItem: JSONObject,
+    globalDictionary: JSONObject | undefined,
+  ): NormalizedProfileFrame {
+    const isNewSchema: boolean =
+      globalDictionary !== undefined ||
+      profileItem["timeUnixNano"] !== undefined ||
+      profileItem["samples"] !== undefined ||
+      profileItem["durationNano"] !== undefined;
+
+    if (!isNewSchema) {
+      const oldProfile: JSONObject =
+        (profileItem["profile"] as JSONObject) || {};
+      const stringTable: Array<string> =
+        (oldProfile["stringTable"] as Array<string>) || [];
+      return {
+        profileId: profileItem["profileId"] as string | undefined,
+        startTimeUnixNano: profileItem["startTimeUnixNano"] as
+          | string
+          | number
+          | undefined,
+        endTimeUnixNano: profileItem["endTimeUnixNano"] as
+          | string
+          | number
+          | undefined,
+        attributes: (profileItem["attributes"] as JSONArray) || [],
+        originalPayloadFormat:
+          (profileItem["originalPayloadFormat"] as string) || "",
+        profile: {
+          stringTable: stringTable,
+          functionTable: (oldProfile["functionTable"] as JSONArray) || [],
+          locationTable: (oldProfile["locationTable"] as JSONArray) || [],
+          mappingTable: (oldProfile["mappingTable"] as JSONArray) || [],
+          linkTable: (oldProfile["linkTable"] as JSONArray) || [],
+          stackTable: (oldProfile["stackTable"] as JSONArray) || [],
+          attributeTable: (oldProfile["attributeTable"] as JSONArray) || [],
+          sampleType: (oldProfile["sampleType"] as JSONArray) || [],
+          periodType: oldProfile["periodType"] as JSONObject | undefined,
+          period: (oldProfile["period"] as number) || 0,
+          sample: (oldProfile["sample"] as JSONArray) || [],
+        },
+      };
+    }
+
+    const dict: JSONObject = globalDictionary || {};
+    const stringTable: Array<string> =
+      (dict["stringTable"] as Array<string>) || [];
+
+    /*
+     * The dictionary table stores `KeyValueAndUnit` (key as an index into
+     * stringTable, plus an optional unit_strindex). Re-shape it into the
+     * familiar OTel KeyValue form so the existing sample-label and
+     * attribute-extraction code can consume it unchanged.
+     */
+    const attributeTable: JSONArray = this.normalizeAttributeTable(
+      (dict["attributeTable"] as JSONArray) || [],
+      stringTable,
+    );
+
+    const containerAttributes: JSONArray = this.attributesFromIndices(
+      (profileItem["attributeIndices"] as Array<number>) || [],
+      attributeTable,
+    );
+
+    const startNanoRaw: string | number | undefined = profileItem[
+      "timeUnixNano"
+    ] as string | number | undefined;
+    const durationRaw: string | number | undefined = profileItem[
+      "durationNano"
+    ] as string | number | undefined;
+    const endNanoRaw: string | undefined = this.addUnixNanoStrings(
+      startNanoRaw,
+      durationRaw,
+    );
+
+    const newSampleType: JSONObject | undefined = profileItem["sampleType"] as
+      | JSONObject
+      | undefined;
+    const sampleTypeArray: JSONArray = newSampleType
+      ? [this.normalizeValueType(newSampleType)]
+      : [];
+
+    const newPeriodType: JSONObject | undefined = profileItem["periodType"] as
+      | JSONObject
+      | undefined;
+    const normalizedPeriodType: JSONObject | undefined = newPeriodType
+      ? this.normalizeValueType(newPeriodType)
+      : undefined;
+
+    const periodRaw: unknown = profileItem["period"];
+    const period: number =
+      typeof periodRaw === "number"
+        ? periodRaw
+        : typeof periodRaw === "string"
+          ? parseInt(periodRaw, 10) || 0
+          : 0;
+
+    return {
+      profileId: profileItem["profileId"] as string | undefined,
+      startTimeUnixNano: startNanoRaw,
+      endTimeUnixNano: endNanoRaw,
+      attributes: containerAttributes,
+      originalPayloadFormat:
+        (profileItem["originalPayloadFormat"] as string) || "",
+      profile: {
+        stringTable: stringTable,
+        functionTable: (dict["functionTable"] as JSONArray) || [],
+        locationTable: (dict["locationTable"] as JSONArray) || [],
+        mappingTable: (dict["mappingTable"] as JSONArray) || [],
+        linkTable: (dict["linkTable"] as JSONArray) || [],
+        stackTable: (dict["stackTable"] as JSONArray) || [],
+        attributeTable: attributeTable,
+        sampleType: sampleTypeArray,
+        periodType: normalizedPeriodType,
+        period: period,
+        sample: (profileItem["samples"] as JSONArray) || [],
+      },
+    };
+  }
+
+  /**
+   * Convert a v1development `repeated KeyValueAndUnit` attribute table
+   * into the OTel `KeyValue` shape (`{ key: string, value: AnyValue }`)
+   * by resolving each `key_strindex` against the shared string table.
+   * Unit is dropped — nothing downstream consumes it today.
+   */
+  private static normalizeAttributeTable(
+    table: JSONArray,
+    stringTable: Array<string>,
+  ): JSONArray {
+    if (!Array.isArray(table) || table.length === 0) {
+      return [];
+    }
+    const out: JSONArray = [];
+    for (const entry of table) {
+      const e: JSONObject = (entry as JSONObject) || {};
+      // Old-schema KeyValue entries already have `key` as a string.
+      if (typeof e["key"] === "string") {
+        out.push(e);
+        continue;
+      }
+      const idxRaw: unknown = e["keyStrindex"];
+      let keyStrindex: number = 0;
+      if (typeof idxRaw === "number") {
+        keyStrindex = idxRaw;
+      } else if (typeof idxRaw === "string") {
+        keyStrindex = parseInt(idxRaw, 10) || 0;
+      }
+      const key: string =
+        keyStrindex > 0 && keyStrindex < stringTable.length
+          ? stringTable[keyStrindex] || ""
+          : "";
+      out.push({
+        key: key,
+        value: (e["value"] as JSONObject) || {},
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Materialise the OTel KeyValue entries pointed at by `attribute_indices`.
+   * The first table entry is the dictionary sentinel (empty key), so we
+   * silently drop index 0 and any indices that resolve to an entry with
+   * no key.
+   */
+  private static attributesFromIndices(
+    indices: Array<number> | undefined,
+    attributeTable: JSONArray,
+  ): JSONArray {
+    if (!indices || indices.length === 0 || attributeTable.length === 0) {
+      return [];
+    }
+    const out: JSONArray = [];
+    for (const idxRaw of indices) {
+      const idx: number = Number(idxRaw);
+      if (!Number.isFinite(idx) || idx <= 0 || idx >= attributeTable.length) {
+        continue;
+      }
+      const attr: JSONObject = attributeTable[idx] as JSONObject;
+      const key: unknown = attr["key"];
+      if (typeof key === "string" && key.length > 0) {
+        out.push(attr);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Translate a v1development `ValueType` (`type_strindex`/`unit_strindex`)
+   * into the legacy `{ type, unit }` shape that the rest of the pipeline
+   * expects. Tolerates the old field names so a mixed-version batch still
+   * round-trips.
+   */
+  private static normalizeValueType(vt: JSONObject): JSONObject {
+    const typeIdx: number =
+      ((vt["type"] as number | undefined) ??
+        (vt["typeStrindex"] as number | undefined)) ||
+      0;
+    const unitIdx: number =
+      ((vt["unit"] as number | undefined) ??
+        (vt["unitStrindex"] as number | undefined)) ||
+      0;
+    return { type: typeIdx, unit: unitIdx };
+  }
+
+  /**
+   * Sum two UnixNano values (start + duration) and return the result as a
+   * numeric string. Inputs may arrive as numbers, decimal strings, or
+   * already-bigint-shaped strings (protobufjs serialises uint64 / fixed64
+   * as strings). Returns undefined when neither input is set.
+   */
+  private static addUnixNanoStrings(
+    start: string | number | undefined,
+    duration: string | number | undefined,
+  ): string | undefined {
+    if (start === undefined && duration === undefined) {
+      return undefined;
+    }
+    const ZERO: bigint = BigInt(0);
+    const toBig: (v: string | number | undefined) => bigint = (
+      v: string | number | undefined,
+    ): bigint => {
+      if (v === undefined || v === null) {
+        return ZERO;
+      }
+      if (typeof v === "number") {
+        if (!Number.isFinite(v)) {
+          return ZERO;
+        }
+        return BigInt(Math.trunc(v));
+      }
+      const s: string = typeof v === "string" ? v : String(v);
+      const cleaned: string = s.includes(".") ? s.split(".")[0] || "0" : s;
+      try {
+        return BigInt(cleaned || "0");
+      } catch {
+        return ZERO;
+      }
+    };
+    return (toBig(start) + toBig(duration)).toString();
   }
 
   private static safeParseUnixNano(
