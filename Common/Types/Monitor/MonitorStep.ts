@@ -64,6 +64,14 @@ export interface MonitorStepType {
   doNotFollowRedirects?: boolean | undefined;
   allowSelfSignedCertificates?: boolean | undefined;
 
+  /*
+   * mTLS / client certificate authentication (API and Website monitors).
+   * Values can be raw PEM strings or {{monitorSecrets.name}} references.
+   */
+  tlsClientCertificate?: string | undefined;
+  tlsClientKey?: string | undefined;
+  tlsClientKeyPassphrase?: string | undefined;
+
   // this is for port monitors.
   monitorDestinationPort?: Port | undefined;
 
@@ -122,6 +130,9 @@ export default class MonitorStep extends DatabaseProperty {
       monitorDestination: undefined,
       doNotFollowRedirects: undefined,
       allowSelfSignedCertificates: undefined,
+      tlsClientCertificate: undefined,
+      tlsClientKey: undefined,
+      tlsClientKeyPassphrase: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: new MonitorCriteria(),
       requestType: HTTPMethod.GET,
@@ -160,6 +171,9 @@ export default class MonitorStep extends DatabaseProperty {
       monitorDestination: undefined,
       doNotFollowRedirects: undefined,
       allowSelfSignedCertificates: undefined,
+      tlsClientCertificate: undefined,
+      tlsClientKey: undefined,
+      tlsClientKeyPassphrase: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
       requestType: HTTPMethod.GET,
@@ -228,6 +242,25 @@ export default class MonitorStep extends DatabaseProperty {
     allowSelfSignedCertificates: boolean,
   ): MonitorStep {
     this.data!.allowSelfSignedCertificates = allowSelfSignedCertificates;
+    return this;
+  }
+
+  public setTlsClientCertificate(
+    tlsClientCertificate: string | undefined,
+  ): MonitorStep {
+    this.data!.tlsClientCertificate = tlsClientCertificate || undefined;
+    return this;
+  }
+
+  public setTlsClientKey(tlsClientKey: string | undefined): MonitorStep {
+    this.data!.tlsClientKey = tlsClientKey || undefined;
+    return this;
+  }
+
+  public setTlsClientKeyPassphrase(
+    tlsClientKeyPassphrase: string | undefined,
+  ): MonitorStep {
+    this.data!.tlsClientKeyPassphrase = tlsClientKeyPassphrase || undefined;
     return this;
   }
 
@@ -340,6 +373,9 @@ export default class MonitorStep extends DatabaseProperty {
         monitorDestination: undefined,
         doNotFollowRedirects: undefined,
         allowSelfSignedCertificates: undefined,
+        tlsClientCertificate: undefined,
+        tlsClientKey: undefined,
+        tlsClientKeyPassphrase: undefined,
         monitorDestinationPort: undefined,
         monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
         requestType: HTTPMethod.GET,
@@ -497,6 +533,9 @@ export default class MonitorStep extends DatabaseProperty {
           doNotFollowRedirects: this.data.doNotFollowRedirects || undefined,
           allowSelfSignedCertificates:
             this.data.allowSelfSignedCertificates || undefined,
+          tlsClientCertificate: this.data.tlsClientCertificate || undefined,
+          tlsClientKey: this.data.tlsClientKey || undefined,
+          tlsClientKeyPassphrase: this.data.tlsClientKeyPassphrase || undefined,
           monitorDestinationPort:
             this.data?.monitorDestinationPort?.toJSON() || undefined,
           monitorCriteria: this.data.monitorCriteria.toJSON(),
@@ -634,6 +673,11 @@ export default class MonitorStep extends DatabaseProperty {
       doNotFollowRedirects: json["doNotFollowRedirects"] || undefined,
       allowSelfSignedCertificates:
         json["allowSelfSignedCertificates"] || undefined,
+      tlsClientCertificate:
+        (json["tlsClientCertificate"] as string) || undefined,
+      tlsClientKey: (json["tlsClientKey"] as string) || undefined,
+      tlsClientKeyPassphrase:
+        (json["tlsClientKeyPassphrase"] as string) || undefined,
       monitorDestinationPort: monitorDestinationPort || undefined,
       monitorCriteria: MonitorCriteria.fromJSON(
         json["monitorCriteria"] as JSONObject,
@@ -697,6 +741,9 @@ export default class MonitorStep extends DatabaseProperty {
         requestBody: Zod.string().optional(),
         doNotFollowRedirects: Zod.boolean().optional(),
         allowSelfSignedCertificates: Zod.boolean().optional(),
+        tlsClientCertificate: Zod.string().optional(),
+        tlsClientKey: Zod.string().optional(),
+        tlsClientKeyPassphrase: Zod.string().optional(),
         monitorDestinationPort: Zod.any().optional(),
         customCode: Zod.string().optional(),
         screenSizeTypes: Zod.any().optional(),

@@ -475,6 +475,11 @@ export default class MonitorUtil {
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
           allowSelfSignedCertificates:
             monitorStep.data?.allowSelfSignedCertificates || false,
+          tlsClientCertificate:
+            monitorStep.data?.tlsClientCertificate || undefined,
+          tlsClientKey: monitorStep.data?.tlsClientKey || undefined,
+          tlsClientKeyPassphrase:
+            monitorStep.data?.tlsClientKeyPassphrase || undefined,
         },
       );
 
@@ -523,6 +528,11 @@ export default class MonitorUtil {
         doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
         allowSelfSignedCertificates:
           monitorStep.data?.allowSelfSignedCertificates || false,
+        tlsClientCertificate:
+          monitorStep.data?.tlsClientCertificate || undefined,
+        tlsClientKey: monitorStep.data?.tlsClientKey || undefined,
+        tlsClientKeyPassphrase:
+          monitorStep.data?.tlsClientKeyPassphrase || undefined,
       });
 
       if (!response) {
