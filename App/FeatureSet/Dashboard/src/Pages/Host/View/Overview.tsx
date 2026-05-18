@@ -1155,12 +1155,21 @@ const HostOverview: FunctionComponent<
         : "Disconnected";
 
     return (
-      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="relative">
+      <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/*
+         * `overflow-hidden` belongs on the gradient layer, not the
+         * card itself — the time-range picker dropdown renders out
+         * of the hero and would otherwise get clipped by the card's
+         * rounded bounds. Clipping only the gradient layer keeps the
+         * rounded corners crisp without trapping floating menus.
+         */}
+        <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
           <div
             className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-indigo-50 via-white to-white"
             aria-hidden="true"
           />
+        </div>
+        <div className="relative">
           <div className="relative px-6 py-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-4 min-w-0">
