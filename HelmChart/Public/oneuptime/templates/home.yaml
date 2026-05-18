@@ -76,6 +76,8 @@ spec:
               port: {{ $.Values.home.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
+            timeoutSeconds: 10
+            initialDelaySeconds: 30
           {{- end }}
           {{- if $.Values.livenessProbe.enabled }}
           # Liveness probe
