@@ -87,6 +87,26 @@ https://api.example.com/health?nocache={{random}}
 
 默认情况下，OneUptime 跟随 HTTP 重定向（301、302 等）。如果您想监控重定向响应本身而非最终目标，请启用此选项。
 
+#### Allow Self-Signed Certificates
+
+Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+
+#### Client Certificate (mTLS)
+
+If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+
+- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
+- **Client Private Key (PEM)** — the matching PEM-encoded private key.
+- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+
+This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+
+```bash
+curl --cert client.crt --key client.key https://api.example.com/health
+```
+
+For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+
 ## 监控标准
 
 您可以配置标准来判断 API 何时处于在线、降级或离线状态，基于以下条件：

@@ -65,6 +65,26 @@ https://example.com/health?nocache={{random}}
 
 По умолчанию OneUptime следует HTTP-перенаправлениям (301, 302 и др.). Включите этот параметр, если хотите отслеживать сам ответ перенаправления, а не конечный адрес.
 
+#### Allow Self-Signed Certificates
+
+Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+
+#### Client Certificate (mTLS)
+
+If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+
+- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
+- **Client Private Key (PEM)** — the matching PEM-encoded private key.
+- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+
+This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+
+```bash
+curl --cert client.crt --key client.key https://api.example.com/health
+```
+
+For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+
 ## Критерии мониторинга
 
 Можно настроить критерии, определяющие, считается ли сайт доступным, деградированным или недоступным, на основе:

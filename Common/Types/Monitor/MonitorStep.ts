@@ -446,6 +446,25 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     if (
+      monitorType === MonitorType.API ||
+      monitorType === MonitorType.Website
+    ) {
+      const hasCert: boolean = Boolean(
+        value.data.tlsClientCertificate &&
+          value.data.tlsClientCertificate.trim(),
+      );
+      const hasKey: boolean = Boolean(
+        value.data.tlsClientKey && value.data.tlsClientKey.trim(),
+      );
+      if (hasCert && !hasKey) {
+        return "Client private key is required when a client certificate is provided";
+      }
+      if (hasKey && !hasCert) {
+        return "Client certificate is required when a client private key is provided";
+      }
+    }
+
+    if (
       monitorType === MonitorType.Port &&
       !value.data.monitorDestinationPort
     ) {

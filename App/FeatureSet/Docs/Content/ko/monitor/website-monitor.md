@@ -65,6 +65,26 @@ https://example.com/health?nocache={{random}}
 
 기본적으로 OneUptime은 HTTP 리디렉션(301, 302 등)을 따릅니다. 최종 목적지가 아닌 리디렉션 응답 자체를 모니터링하려면 이 옵션을 활성화합니다.
 
+#### Allow Self-Signed Certificates
+
+Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+
+#### Client Certificate (mTLS)
+
+If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+
+- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
+- **Client Private Key (PEM)** — the matching PEM-encoded private key.
+- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+
+This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+
+```bash
+curl --cert client.crt --key client.key https://api.example.com/health
+```
+
+For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+
 ## 모니터링 기준
 
 다음을 기반으로 웹사이트가 온라인, 저하 또는 오프라인으로 간주되는 시점을 결정하는 기준을 구성할 수 있습니다:

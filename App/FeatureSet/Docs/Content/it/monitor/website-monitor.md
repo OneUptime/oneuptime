@@ -65,6 +65,26 @@ https://example.com/health?nocache={{random}}
 
 Per impostazione predefinita, OneUptime segue i redirect HTTP (301, 302, ecc.). Abilitare questa opzione se si vuole monitorare la risposta di redirect stessa piuttosto che la destinazione finale.
 
+#### Allow Self-Signed Certificates
+
+Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+
+#### Client Certificate (mTLS)
+
+If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+
+- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
+- **Client Private Key (PEM)** — the matching PEM-encoded private key.
+- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+
+This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+
+```bash
+curl --cert client.crt --key client.key https://api.example.com/health
+```
+
+For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+
 ## Criteri di Monitoraggio
 
 È possibile configurare criteri per determinare quando il sito web è considerato online, degradato o offline in base a:
