@@ -14,6 +14,7 @@ import * as path from "path";
 import { execFileSync } from "child_process";
 import { AddressInfo } from "net";
 import * as https from "https";
+import { IncomingMessage, ServerResponse } from "http";
 
 interface CertSet {
   caCertPath: string;
@@ -66,34 +67,39 @@ function generateCerts(workDir: string): CertSet {
     "/CN=oneuptime-test-ca",
   ]);
 
-  const issueLeaf: (cn: string, ext: string) => { cert: string; key: string } =
-    (cn: string, ext: string): { cert: string; key: string } => {
-      const key: string = path.join(workDir, `${cn}.key`);
-      const csr: string = path.join(workDir, `${cn}.csr`);
-      const cert: string = path.join(workDir, `${cn}.crt`);
-      openssl(["genrsa", "-out", key, "2048"]);
-      openssl(["req", "-new", "-key", key, "-out", csr, "-subj", `/CN=${cn}`]);
-      openssl([
-        "x509",
-        "-req",
-        "-in",
-        csr,
-        "-CA",
-        caCert,
-        "-CAkey",
-        caKey,
-        "-CAcreateserial",
-        "-out",
-        cert,
-        "-days",
-        "1",
-        "-extfile",
-        opensslConfigPath,
-        "-extensions",
-        ext,
-      ]);
-      return { cert, key };
-    };
+  const issueLeaf: (
+    cn: string,
+    ext: string,
+  ) => { cert: string; key: string } = (
+    cn: string,
+    ext: string,
+  ): { cert: string; key: string } => {
+    const key: string = path.join(workDir, `${cn}.key`);
+    const csr: string = path.join(workDir, `${cn}.csr`);
+    const cert: string = path.join(workDir, `${cn}.crt`);
+    openssl(["genrsa", "-out", key, "2048"]);
+    openssl(["req", "-new", "-key", key, "-out", csr, "-subj", `/CN=${cn}`]);
+    openssl([
+      "x509",
+      "-req",
+      "-in",
+      csr,
+      "-CA",
+      caCert,
+      "-CAkey",
+      caKey,
+      "-CAcreateserial",
+      "-out",
+      cert,
+      "-days",
+      "1",
+      "-extfile",
+      opensslConfigPath,
+      "-extensions",
+      ext,
+    ]);
+    return { cert, key };
+  };
 
   const server: { cert: string; key: string } = issueLeaf(
     "server",
@@ -184,7 +190,7 @@ describe("ApiMonitor mTLS (client certificate)", () => {
         requestCert: true,
         rejectUnauthorized: true,
       },
-      (req, res) => {
+      (req: IncomingMessage, res: ServerResponse) => {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify({ ok: true, path: req.url }));
