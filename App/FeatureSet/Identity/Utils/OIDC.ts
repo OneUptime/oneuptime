@@ -71,7 +71,7 @@ export default class OIDCUtil {
   public static async exchangeCodeAndValidate(data: {
     client: Client;
     redirectUri: URL;
-    expectedIssuer: URL;
+    expectedIssuer: string;
     expectedNonce: string;
     expectedState: string;
     codeVerifier: string;
@@ -91,9 +91,9 @@ export default class OIDCUtil {
 
     const claims: JSONObject = tokenSet.claims() as JSONObject;
 
-    if (claims["iss"] !== data.expectedIssuer.toString()) {
+    if (claims["iss"] !== data.expectedIssuer?.toString()) {
       throw new BadRequestException(
-        `OIDC issuer mismatch. Expected ${data.expectedIssuer.toString()} but got ${claims["iss"]}`,
+        `OIDC issuer mismatch. Expected ${data.expectedIssuer?.toString()} but got ${claims["iss"]}`,
       );
     }
 

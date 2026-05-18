@@ -336,6 +336,7 @@ import { UpdateTeamPermissionScopeDefault1778877094014 } from "./1778877094014-U
 import { MigrateLegacyManagerRolesToAdmin1778900000000 } from "./1778900000000-MigrateLegacyManagerRolesToAdmin";
 import { AddOnCallDutyPolicyScheduleOwners1778929624633 } from "./1778929624633-AddOnCallDutyPolicyScheduleOwners";
 import { AddOnCallIncomingCallOwnersAndRules1778931537020 } from "./1778931537020-AddOnCallIncomingCallOwnersAndRules";
+import { IncreaseSmtpUsernameLength1779125489830 } from "./1779125489830-IncreaseSmtpUsernameLength";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -675,4 +676,5 @@ export default [
   MigrateLegacyManagerRolesToAdmin1778900000000,
   AddOnCallDutyPolicyScheduleOwners1778929624633,
   AddOnCallIncomingCallOwnersAndRules1778931537020,
+  IncreaseSmtpUsernameLength1779125489830,
 ];

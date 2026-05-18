@@ -416,16 +416,15 @@ export default class ProjectSSO extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.LongURL,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     example: "https://sso.example.com",
   })
   @Column({
     nullable: false,
-    type: ColumnType.LongURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.VeryLongText,
   })
-  public issuerURL?: URL = undefined;
+  public issuerURL?: string = undefined;
 
   @ColumnAccessControl({
     create: [

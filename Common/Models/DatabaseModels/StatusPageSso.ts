@@ -408,16 +408,15 @@ export default class StatusPageSSO extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.LongURL,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     example: "https://idp.example.com/saml/metadata",
   })
   @Column({
     nullable: false,
-    type: ColumnType.LongURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.VeryLongText,
   })
-  public issuerURL?: URL = undefined;
+  public issuerURL?: string = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -292,7 +292,7 @@ export default class ProjectOIDC extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.LongURL,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     description:
       "Expected OIDC issuer URL. Must match the 'iss' claim in the ID token returned by the identity provider.",
@@ -300,10 +300,9 @@ export default class ProjectOIDC extends BaseModel {
   })
   @Column({
     nullable: false,
-    type: ColumnType.LongURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.VeryLongText,
   })
-  public issuerURL?: URL = undefined;
+  public issuerURL?: string = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -427,13 +427,13 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     example: "smtp-user@example.com",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public username?: string = undefined;
 
