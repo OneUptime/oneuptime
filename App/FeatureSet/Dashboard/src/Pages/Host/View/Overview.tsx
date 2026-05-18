@@ -49,6 +49,12 @@ import {
   getAutoRefreshIntervalInMs,
   getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 import React, {
   Fragment,
   FunctionComponent,
@@ -208,21 +214,17 @@ const MetricTile: FunctionComponent<MetricTileProps> = (
 };
 
 /*
- * Window we pull bucketed metric data over for the charts. The
- * ClickHouse aggregator picks bucket granularity from the window
- * (<=3h → 1-minute buckets), so 30 minutes yields up to 30 points —
- * enough resolution for the overview charts without dragging in
- * older history users would scroll past anyway.
- */
-const CHART_WINDOW_MINUTES: number = 30;
-
-/*
- * The tile values stay at the recent-mean semantics they had before
- * charts arrived. We derive them from the last 5 minutes of the same
- * bucketed result so the page only issues one set of queries per
- * refresh instead of one for tiles + one for charts.
+ * Tile values use a short recent-window mean regardless of how wide
+ * the chart window is — "what's the host doing right now" is what
+ * the numbers in the tiles answer, even when the chart is showing a
+ * month. `meanFromBuckets` falls back to the full window if no
+ * bucket is recent enough so tiles never go blank on slow hosts.
  */
 const TILE_WINDOW_MINUTES: number = 5;
+
+const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.PAST_THIRTY_MINS,
+};
 
 const REFRESH_STORAGE_KEY: string = "host-overview-auto-refresh-interval";
 
@@ -237,6 +239,9 @@ const HostOverview: FunctionComponent<
   const [cpuSeries, setCpuSeries] = useState<Array<SeriesPoint>>([]);
   const [memorySeries, setMemorySeries] = useState<Array<SeriesPoint>>([]);
   const [diskSeries, setDiskSeries] = useState<Array<SeriesPoint>>([]);
+  const [networkSeries, setNetworkSeries] = useState<Array<SeriesPoint>>([]);
+  const [timeRange, setTimeRange] =
+    useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;
@@ -304,11 +309,10 @@ const HostOverview: FunctionComponent<
 
       setHost(item);
 
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveMinutes(
-        endDate,
-        -CHART_WINDOW_MINUTES,
-      );
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const startDate: Date = dateRange.startValue;
+      const endDate: Date = dateRange.endValue;
       const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
         endDate,
         -TILE_WINDOW_MINUTES,
@@ -403,15 +407,55 @@ const HostOverview: FunctionComponent<
         attributes: true,
       };
 
+      /*
+       * `system.network.io` is a cumulative counter per (device,
+       * direction). Pull the max value per bucket so the in-bucket
+       * datapoint count doesn't smear the cumulative value — we
+       * convert to a rate (B/s) client-side by taking deltas between
+       * consecutive buckets per (device, direction), clamping
+       * negatives to 0 to absorb counter resets.
+       */
+      const networkAggregate: AggregateBy<Metric> = buildAggregateBy(
+        "system.network.io",
+        AggregationType.Max,
+      );
+      networkAggregate.groupBy = {
+        attributes: true,
+      };
+
+      /*
+       * `process.cpu.utilization` aggregated by attributes gives one
+       * datapoint per active process — used as the Windows fallback
+       * for the Processes tile because the `processes` hostmetrics
+       * scraper that emits `system.processes.count` is Linux-only.
+       * The query window is the tile window (last 5 min) so the
+       * distinct-PID count reflects "what's running now", not
+       * everything seen over the chart window.
+       */
+      const processFallbackAggregate: AggregateBy<Metric> = buildAggregateBy(
+        "process.cpu.utilization",
+        AggregationType.Avg,
+      );
+      processFallbackAggregate.groupBy = {
+        attributes: true,
+      };
+      processFallbackAggregate.query.time = new InBetween<Date>(
+        tileWindowStart,
+        endDate,
+      );
+      processFallbackAggregate.startTimestamp = tileWindowStart;
+
       const [
         cpuUserResult,
         cpuSystemResult,
         memResult,
-        fsResult,
         loadResult,
         runningProcResult,
         fsUsageResult,
+        networkResult,
+        processFallbackResult,
       ]: [
+        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -447,14 +491,6 @@ const HostOverview: FunctionComponent<
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
           aggregateBy: buildAggregateBy(
-            "system.filesystem.utilization",
-            AggregationType.Avg,
-            { mountpoint: "/" },
-          ),
-        }),
-        AnalyticsModelAPI.aggregate<Metric>({
-          modelType: Metric,
-          aggregateBy: buildAggregateBy(
             "system.cpu.load_average.1m",
             AggregationType.Avg,
           ),
@@ -470,6 +506,14 @@ const HostOverview: FunctionComponent<
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
           aggregateBy: fsUsageAggregate,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: networkAggregate,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: processFallbackAggregate,
         }),
       ]);
 
@@ -622,28 +666,6 @@ const HostOverview: FunctionComponent<
       };
 
       /*
-       * CPU busy fraction = user + system. Each piece is itself an
-       * average of per-cpu/per-state datapoints over the 5-min
-       * window, so summing two means is fine; the alternative
-       * (`1 - idle`) would also work but breaks if `idle` ever
-       * stops being emitted.
-       */
-      const cpuUserPct: number | null = meanFromBuckets(cpuUserResult, 100);
-      const cpuSystemPct: number | null = meanFromBuckets(cpuSystemResult, 100);
-      const cpuPct: number | null =
-        cpuUserPct === null && cpuSystemPct === null
-          ? null
-          : (cpuUserPct ?? 0) + (cpuSystemPct ?? 0);
-
-      setStats({
-        cpuPercent: cpuPct,
-        memoryPercent: meanFromBuckets(memResult, 100),
-        filesystemPercent: meanFromBuckets(fsResult, 100),
-        load1m: latestFromBuckets(loadResult),
-        runningProcessCount: latestFromBuckets(runningProcResult),
-      });
-
-      /*
        * `system.filesystem.usage` rows come back as one entry per
        * (time bucket × mountpoint × device × state). Average each
        * (mountpoint, state) across buckets — a 5-min window of a
@@ -736,6 +758,69 @@ const HostOverview: FunctionComponent<
       });
       setMounts(mountList);
 
+      /*
+       * Filesystem tile reads from the largest mount by capacity
+       * (mountList is sorted desc on totalBytes), so the tile works
+       * regardless of OS — Linux hosts get `/`, Windows hosts get
+       * `C:`. The previous hardcoded `mountpoint=/` filter left the
+       * tile blank on Windows even though the Filesystems table
+       * below it rendered fine. `null` when no mount produced a
+       * non-zero capacity.
+       */
+      const largestMount: MountInfo | undefined = mountList[0];
+      const filesystemPercent: number | null = largestMount
+        ? largestMount.utilizationPercent
+        : null;
+
+      /*
+       * CPU busy fraction = user + system. Each piece is itself an
+       * average of per-cpu/per-state datapoints over the 5-min
+       * window, so summing two means is fine; the alternative
+       * (`1 - idle`) would also work but breaks if `idle` ever
+       * stops being emitted.
+       */
+      const cpuUserPct: number | null = meanFromBuckets(cpuUserResult, 100);
+      const cpuSystemPct: number | null = meanFromBuckets(cpuSystemResult, 100);
+      const cpuPct: number | null =
+        cpuUserPct === null && cpuSystemPct === null
+          ? null
+          : (cpuUserPct ?? 0) + (cpuSystemPct ?? 0);
+
+      /*
+       * `system.processes.count` only fires from the `processes`
+       * hostmetrics scraper, which is Linux-only. On Windows the
+       * `process` scraper still emits per-process metrics, so we
+       * fall back to counting distinct PIDs from
+       * `process.cpu.utilization` over the tile window. The
+       * fallback gives total active processes rather than just
+       * `running` — Windows doesn't expose the state breakdown —
+       * which is still useful and labelled the same way.
+       */
+      let runningProcessCount: number | null =
+        latestFromBuckets(runningProcResult);
+      if (runningProcessCount === null) {
+        const pids: Set<string> = new Set<string>();
+        for (const p of processFallbackResult.data || []) {
+          const attrs: Record<string, unknown> =
+            (p["attributes"] as Record<string, unknown>) || {};
+          const pid: unknown = attrs["resource.process.pid"];
+          if (pid !== undefined && pid !== null && String(pid) !== "") {
+            pids.add(String(pid));
+          }
+        }
+        if (pids.size > 0) {
+          runningProcessCount = pids.size;
+        }
+      }
+
+      setStats({
+        cpuPercent: cpuPct,
+        memoryPercent: meanFromBuckets(memResult, 100),
+        filesystemPercent: filesystemPercent,
+        load1m: latestFromBuckets(loadResult),
+        runningProcessCount: runningProcessCount,
+      });
+
       const cpuUserSeries: Array<TimeValuePoint> = seriesFromBuckets(
         cpuUserResult,
         100,
@@ -752,10 +837,150 @@ const HostOverview: FunctionComponent<
         memResult,
         100,
       );
-      const fsRootSeries: Array<TimeValuePoint> = seriesFromBuckets(
-        fsResult,
-        100,
-      );
+
+      /*
+       * Disk-utilization chart series tracks the same mount the tile
+       * shows (largest by capacity). We walk fsUsageResult bucket by
+       * bucket for that mountpoint, summing used + free + reserved
+       * per bucket to recover total capacity at that moment, then
+       * divide used by total. Doing this in the client avoids a
+       * second mountpoint-specific query — the per-mount data is
+       * already in fsUsageResult thanks to groupBy attributes.
+       */
+      const largestMountSeries: Array<TimeValuePoint> = (() => {
+        if (!largestMount) {
+          return [];
+        }
+        const buckets: Map<number, Map<string, number>> = new Map();
+        for (const p of fsUsageResult.data || []) {
+          const attrs: Record<string, unknown> =
+            (p["attributes"] as Record<string, unknown>) || {};
+          if (attrs["mountpoint"] !== largestMount.mountpoint) {
+            continue;
+          }
+          const state: string = (attrs["state"] as string) || "";
+          if (!state) {
+            continue;
+          }
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          let perState: Map<string, number> | undefined = buckets.get(t);
+          if (!perState) {
+            perState = new Map<string, number>();
+            buckets.set(t, perState);
+          }
+          perState.set(state, (perState.get(state) || 0) + v);
+        }
+        const out: Array<TimeValuePoint> = [];
+        for (const [t, perState] of buckets.entries()) {
+          const used: number = perState.get("used") || 0;
+          const free: number = perState.get("free") || 0;
+          const reserved: number = perState.get("reserved") || 0;
+          const total: number = used + free + reserved;
+          if (total <= 0) {
+            continue;
+          }
+          out.push({ x: new Date(t), y: (used / total) * 100 });
+        }
+        out.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
+        return out;
+      })();
+
+      /*
+       * `system.network.io` is a cumulative byte counter per (device,
+       * direction). Convert to a per-bucket rate by computing deltas
+       * between consecutive bucket values per device + direction,
+       * clamping negative deltas to 0 (handles counter resets when
+       * the agent restarts or a NIC re-attaches), then summing the
+       * positive deltas across devices per direction per bucket. The
+       * result is bytes/sec aggregated across all NICs — one "In"
+       * line and one "Out" line on the chart.
+       */
+      const networkSeriesByDirection: {
+        receive: Map<number, number>;
+        transmit: Map<number, number>;
+      } = {
+        receive: new Map<number, number>(),
+        transmit: new Map<number, number>(),
+      };
+      const perDeviceDirection: Map<
+        string,
+        Array<{ t: number; v: number }>
+      > = new Map();
+      for (const p of networkResult.data || []) {
+        const attrs: Record<string, unknown> =
+          (p["attributes"] as Record<string, unknown>) || {};
+        const device: string = (attrs["device"] as string) || "";
+        const direction: string = (attrs["direction"] as string) || "";
+        if (!device || (direction !== "receive" && direction !== "transmit")) {
+          continue;
+        }
+        const t: number = getBucketTimestamp(p);
+        const v: number = Number(p["value"]);
+        if (!Number.isFinite(t) || !Number.isFinite(v)) {
+          continue;
+        }
+        const key: string = `${device}|${direction}`;
+        let arr: Array<{ t: number; v: number }> | undefined =
+          perDeviceDirection.get(key);
+        if (!arr) {
+          arr = [];
+          perDeviceDirection.set(key, arr);
+        }
+        arr.push({ t, v });
+      }
+      for (const [key, arr] of perDeviceDirection.entries()) {
+        const direction: "receive" | "transmit" = key.endsWith("|transmit")
+          ? "transmit"
+          : "receive";
+        arr.sort(
+          (
+            a: { t: number; v: number },
+            b: { t: number; v: number },
+          ): number => {
+            return a.t - b.t;
+          },
+        );
+        for (let i: number = 1; i < arr.length; i++) {
+          const prev: { t: number; v: number } = arr[i - 1]!;
+          const cur: { t: number; v: number } = arr[i]!;
+          const dtSec: number = (cur.t - prev.t) / 1000;
+          if (dtSec <= 0) {
+            continue;
+          }
+          const dv: number = cur.v - prev.v;
+          if (!Number.isFinite(dv)) {
+            continue;
+          }
+          const rate: number = Math.max(0, dv) / dtSec;
+          const bucket: Map<number, number> =
+            networkSeriesByDirection[direction];
+          bucket.set(cur.t, (bucket.get(cur.t) || 0) + rate);
+        }
+      }
+      const networkInPoints: Array<TimeValuePoint> = Array.from(
+        networkSeriesByDirection.receive.entries(),
+      )
+        .map(([t, v]: [number, number]): TimeValuePoint => {
+          return { x: new Date(t), y: v };
+        })
+        .sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
+      const networkOutPoints: Array<TimeValuePoint> = Array.from(
+        networkSeriesByDirection.transmit.entries(),
+      )
+        .map(([t, v]: [number, number]): TimeValuePoint => {
+          return { x: new Date(t), y: v };
+        })
+        .sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
 
       setCpuSeries(
         cpuTotalSeries.length > 0
@@ -768,9 +993,21 @@ const HostOverview: FunctionComponent<
           : [],
       );
       setDiskSeries(
-        fsRootSeries.length > 0
-          ? [{ seriesName: "Disk %", data: fsRootSeries }]
+        largestMountSeries.length > 0
+          ? [{ seriesName: "Disk %", data: largestMountSeries }]
           : [],
+      );
+      setNetworkSeries(
+        [
+          networkInPoints.length > 0
+            ? { seriesName: "In", data: networkInPoints }
+            : null,
+          networkOutPoints.length > 0
+            ? { seriesName: "Out", data: networkOutPoints }
+            : null,
+        ].filter((s: SeriesPoint | null): s is SeriesPoint => {
+          return s !== null;
+        }),
       );
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
@@ -796,7 +1033,14 @@ const HostOverview: FunctionComponent<
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
     });
-  }, []);
+    /*
+     * Re-fetch whenever the user picks a different time range. The
+     * picker hands a fresh object each click so React's identity
+     * compare always triggers; CUSTOM ranges still re-fetch when the
+     * user tweaks the start/end inputs because that also yields a
+     * new object reference.
+     */
+  }, [timeRange]);
 
   useEffect(() => {
     const ms: number | null = getAutoRefreshIntervalInMs(autoRefreshInterval);
@@ -1285,13 +1529,17 @@ const HostOverview: FunctionComponent<
   const renderChartCard: (params: {
     title: string;
     icon: IconProp;
-    iconColor: "blue" | "violet" | "amber";
+    iconColor: "blue" | "violet" | "amber" | "emerald";
     data: Array<SeriesPoint>;
+    yAxis?: YAxis;
+    showLegend?: boolean;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
-    iconColor: "blue" | "violet" | "amber";
+    iconColor: "blue" | "violet" | "amber" | "emerald";
     data: Array<SeriesPoint>;
+    yAxis?: YAxis;
+    showLegend?: boolean;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       colorClasses[params.iconColor];
@@ -1326,7 +1574,7 @@ const HostOverview: FunctionComponent<
         aggregateType: XAxisAggregateType.Average,
       },
     };
-    const yAxis: YAxis = {
+    const yAxis: YAxis = params.yAxis ?? {
       legend: "%",
       options: {
         type: YAxisType.Number,
@@ -1359,7 +1607,7 @@ const HostOverview: FunctionComponent<
           sync={true}
           syncid={`host-overview-${modelId.toString()}`}
           heightInPx={180}
-          showLegend={false}
+          showLegend={params.showLegend ?? false}
         />
       </div>
     );
@@ -1370,6 +1618,25 @@ const HostOverview: FunctionComponent<
       return <Fragment />;
     }
 
+    /*
+     * Bytes/sec formatter is shared between the y-axis ticks and the
+     * tooltip — using ValueFormatter keeps the scaled unit consistent
+     * with what Metrics tab and dashboards display (e.g. "1.5 MB/s"
+     * instead of raw byte counts).
+     */
+    const networkYAxis: YAxis = {
+      legend: "B/s",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: "auto",
+        precision: YAxisPrecision.NoDecimals,
+        formatter: (value: number): string => {
+          return ValueFormatter.formatValue(value, "By/s");
+        },
+      },
+    };
+
     return (
       <div className="mb-6">
         <div className="mb-3 flex items-center justify-between">
@@ -1378,11 +1645,11 @@ const HostOverview: FunctionComponent<
               Resource usage
             </h2>
             <p className="text-xs text-gray-500">
-              Last {CHART_WINDOW_MINUTES} minutes · per-minute buckets
+              Aggregated over the selected time range
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {renderChartCard({
             title: "CPU",
             icon: IconProp.ChartBar,
@@ -1400,6 +1667,14 @@ const HostOverview: FunctionComponent<
             icon: IconProp.Cube,
             iconColor: "amber",
             data: diskSeries,
+          })}
+          {renderChartCard({
+            title: "Network",
+            icon: IconProp.Wifi,
+            iconColor: "emerald",
+            data: networkSeries,
+            yAxis: networkYAxis,
+            showLegend: networkSeries.length > 1,
           })}
         </div>
       </div>
@@ -1424,6 +1699,12 @@ const HostOverview: FunctionComponent<
     return (
       <div className="flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
+          <TelemetryTimeRangePicker
+            value={timeRange}
+            onChange={(value: RangeStartAndEndDateTime): void => {
+              setTimeRange(value);
+            }}
+          />
           <button
             type="button"
             onClick={onManualRefresh}

@@ -138,6 +138,7 @@ const HostProcesses: FunctionComponent<
         select: {
           hostIdentifier: true,
           name: true,
+          totalMemoryBytes: true,
         },
       });
 
@@ -182,8 +183,16 @@ const HostProcesses: FunctionComponent<
         };
       };
 
-      const [cpuResult, memBytesResult, memPctResult]: [
-        ListResult<Metric>,
+      /*
+       * We derive memory % client-side from `process.memory.usage`
+       * (RSS bytes) and `host.totalMemoryBytes` instead of trusting
+       * `process.memory.utilization`. Windows OTel emits that metric
+       * in percent (0–100) while the spec — and Linux —  emits it as
+       * a fraction (0–1), so a single `* 100` scaling can't be right
+       * for both. The usage / total ratio is OS-agnostic and stays
+       * consistent with the bytes column the user sees alongside.
+       */
+      const [cpuResult, memBytesResult]: [
         ListResult<Metric>,
         ListResult<Metric>,
       ] = await Promise.all([
@@ -191,20 +200,22 @@ const HostProcesses: FunctionComponent<
           buildQuery("process.cpu.utilization"),
         ),
         AnalyticsModelAPI.getList<Metric>(buildQuery("process.memory.usage")),
-        AnalyticsModelAPI.getList<Metric>(
-          buildQuery("process.memory.utilization"),
-        ),
       ]);
+
+      const totalMemoryBytes: number | null =
+        item.totalMemoryBytes !== undefined && item.totalMemoryBytes !== null
+          ? Number(item.totalMemoryBytes)
+          : null;
 
       const byKey: Map<string, ProcessRow> = new Map();
       let newestSample: Date | null = null;
 
       const upsert: (
         result: ListResult<Metric>,
-        field: "cpuPercent" | "memoryBytes" | "memoryPercent",
+        field: "cpuPercent" | "memoryBytes",
       ) => void = (
         result: ListResult<Metric>,
-        field: "cpuPercent" | "memoryBytes" | "memoryPercent",
+        field: "cpuPercent" | "memoryBytes",
       ): void => {
         for (const m of result.data) {
           if (m.time) {
@@ -251,8 +262,6 @@ const HostProcesses: FunctionComponent<
           }
           if (field === "cpuPercent") {
             row.cpuPercent = Number(m.value) * 100;
-          } else if (field === "memoryPercent") {
-            row.memoryPercent = Number(m.value) * 100;
           } else {
             row.memoryBytes = Number(m.value);
           }
@@ -261,7 +270,14 @@ const HostProcesses: FunctionComponent<
 
       upsert(cpuResult, "cpuPercent");
       upsert(memBytesResult, "memoryBytes");
-      upsert(memPctResult, "memoryPercent");
+
+      if (totalMemoryBytes !== null && totalMemoryBytes > 0) {
+        for (const row of byKey.values()) {
+          if (row.memoryBytes !== null) {
+            row.memoryPercent = (row.memoryBytes / totalMemoryBytes) * 100;
+          }
+        }
+      }
 
       const sorted: Array<ProcessRow> = Array.from(byKey.values()).sort(
         (a: ProcessRow, b: ProcessRow) => {
