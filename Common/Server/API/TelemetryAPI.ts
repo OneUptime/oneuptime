@@ -40,6 +40,8 @@ import ProfileAggregationService, {
   ProfileFlamegraphNode,
   DiffFlamegraphRequest,
   DiffFlamegraphNode,
+  ServiceActivityRequest,
+  ServiceActivityItem,
 } from "../Services/ProfileAggregationService";
 import PprofEncoder, {
   PprofProfile,
@@ -1353,6 +1355,73 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         functions: functions as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Service Activity Endpoint ---
+
+router.post(
+  "/telemetry/profiles/service-activity",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const profileType: string | undefined = body["profileType"]
+        ? (body["profileType"] as string)
+        : undefined;
+
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
+      const request: ServiceActivityRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        ...(profileType !== undefined && { profileType }),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
+      };
+
+      const activity: Array<ServiceActivityItem> =
+        await ProfileAggregationService.getServiceActivity(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        activity: activity as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);
