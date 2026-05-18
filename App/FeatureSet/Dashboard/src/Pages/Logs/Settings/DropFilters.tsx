@@ -186,6 +186,14 @@ const LogDropFilters: FunctionComponent<
           required: false,
           placeholder: "e.g. 10",
         },
+        {
+          field: {
+            isEnabled: true,
+          },
+          title: "Enabled",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
       ]}
       showRefreshButton={true}
       showViewIdButton={true}
