@@ -1,6 +1,6 @@
 # Kubernetes एजेंट इंस्टॉल करें
 
-OneUptime Kubernetes एजेंट आपके Kubernetes क्लस्टर से क्लस्टर मेट्रिक्स, ईवेंट्स, पॉड लॉग्स, **एप्लिकेशन ट्रेस (eBPF के माध्यम से HTTP/gRPC)**, **निरंतर CPU फ्लेम ग्राफ़ (eBPF प्रोफाइलर)**, और **OS-स्तर के नोड मेट्रिक्स** एकत्र करता है और उन्हें OneUptime में भेजता है। यह एक Helm chart के रूप में वितरित किया जाता है और एक ही कमांड से इंस्टॉल किया जाता है — eBPF ऑटो-इंस्ट्रुमेंटेशन और प्रोफाइलिंग दोनों डिफ़ॉल्ट रूप से चालू होते हैं, इसलिए आप बिना किसी कोड परिवर्तन के सर्विस-स्तर के ट्रेस, RED मेट्रिक्स, और फ्लेम ग्राफ़ देख सकते हैं।
+OneUptime Kubernetes एजेंट आपके Kubernetes क्लस्टर से क्लस्टर मेट्रिक्स, ईवेंट्स, पॉड लॉग्स, **एप्लिकेशन ट्रेस (eBPF के माध्यम से HTTP/gRPC)**, और **OS-स्तर के नोड मेट्रिक्स** एकत्र करता है और उन्हें OneUptime में भेजता है। यह एक Helm chart के रूप में वितरित किया जाता है और एक ही कमांड से इंस्टॉल किया जाता है — eBPF ऑटो-इंस्ट्रुमेंटेशन डिफ़ॉल्ट रूप से चालू होता है, इसलिए आप बिना किसी कोड परिवर्तन के सर्विस-स्तर के ट्रेस और RED मेट्रिक्स देख सकते हैं। **निरंतर CPU फ्लेम ग्राफ़ (eBPF प्रोफाइलर)** भी उपलब्ध हैं — जब आप अधिक टेलीमेट्री चाहें तो `--set profiling.enabled=true` के साथ ऑप्ट इन करें।
 
 ## त्वरित प्रारंभ
 
@@ -161,22 +161,24 @@ kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
 ```
 
-## निरंतर CPU प्रोफाइलिंग (डिफ़ॉल्ट रूप से चालू)
+## निरंतर CPU प्रोफाइलिंग (डिफ़ॉल्ट रूप से बंद)
 
 एक अलग DaemonSet [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) चलाता है — जो `otel/opentelemetry-collector-ebpf-profiler` इमेज के रूप में पैक किया गया है। यह प्रत्येक समर्थित रनटाइम (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) में 19Hz पर on-CPU स्टैक्स को सैंपल करता है और OneUptime को OTLP प्रोफ़ाइल भेजता है, जहाँ वे **Telemetry → Performance Profiles** के तहत और व्यक्तिगत ट्रेस spans से लिंक किए गए फ्लेम ग्राफ़ के रूप में दिखाई देते हैं।
+
+प्रोफाइलिंग **डिफ़ॉल्ट रूप से बंद** है — यह OBI ऑटो-इंस्ट्रुमेंटेशन की तुलना में भारी है (प्रति नोड अधिक CPU, बड़ा मेमोरी फ़ुटप्रिंट) और हर क्लस्टर हमेशा-चालू फ्लेम ग्राफ़ नहीं चाहता। जब आप समृद्ध टेलीमेट्री चाहें तो इसे सक्षम करें: `--set profiling.enabled=true`।
 
 जब eBPF ऑटो-इंस्ट्रुमेंटेशन भी चालू होता है (`ebpf.enabled: true`, डिफ़ॉल्ट), प्रत्येक CPU सैंपल एक साझा bpffs मैप के माध्यम से OBI के ट्रेस कॉन्टेक्स्ट से सहसंबंधित होता है — ताकि फ्लेम ग्राफ़ trace_id/span_id ले जाएँ और OneUptime UI आपको प्रति-span फ्लेम ग्राफ़ दिखा सके।
 
 आवश्यकताएँ:
 
 - **Linux कर्नेल 5.10+** (OBI के लिए आवश्यक 5.8 से थोड़ा नया)।
-- hostPID के साथ privileged पॉड — eBPF ऑटो-इंस्ट्रुमेंटेशन DaemonSet के समान बाधाएँ। GKE Autopilot, EKS Fargate, और लॉक-डाउन वातावरण पर अक्षम करें: `--set profiling.enabled=false`।
+- hostPID के साथ privileged पॉड — eBPF ऑटो-इंस्ट्रुमेंटेशन DaemonSet के समान बाधाएँ। GKE Autopilot, EKS Fargate, या अन्य लॉक-डाउन वातावरण पर नहीं चल सकता।
 
 ट्यूनिंग:
 
 | विकल्प | डिफ़ॉल्ट | विवरण |
 | --- | --- | --- |
-| `profiling.enabled` | `true` | मास्टर स्विच। |
+| `profiling.enabled` | `false` | मास्टर स्विच। डिफ़ॉल्ट रूप से बंद; निरंतर CPU फ्लेम ग्राफ़ के लिए ऑप्ट इन करें। |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` इमेज टैग। प्रोफाइलर प्री-1.0 है; ज्ञात-अच्छे संस्करण पर पिन करें। |
 | `profiling.samplesPerSecond` | `19` | Hz में सैंपलिंग आवृत्ति। अपस्ट्रीम डिफ़ॉल्ट; सामान्य टाइमर आवृत्तियों के साथ आकस्मिक एलियासिंग से बचाता है। |
 | `profiling.offCpuThreshold` | `0` | (0–1] off-CPU प्रोफाइलिंग को सक्षम करता है — लॉक कंटेंशन और ब्लॉकिंग I/O का निदान करता है। डिफ़ॉल्ट रूप से बंद क्योंकि यह ट्रेसपॉइंट ओवरहेड जोड़ता है। |
@@ -208,7 +210,7 @@ Chart निम्नलिखित भी एकत्र कर सकता 
 | `logs.mode` | (`preset` से व्युत्पन्न) | `daemonset`, `api`, या `disabled`। प्रीसेट को ओवरराइड करता है। |
 | `logs.api.replicas` | `1` | log-tailer Deployment रेप्लिका की संख्या (केवल API मोड में)। |
 | `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation के माध्यम से प्रत्येक पॉड से HTTP/gRPC ट्रेस ऑटो-कैप्चर करें। ऊपर का सेक्शन देखें। |
-| `profiling.enabled` | `true` | OpenTelemetry eBPF Profiler के माध्यम से निरंतर CPU फ्लेम ग्राफ़। ऊपर का सेक्शन देखें। |
+| `profiling.enabled` | `false` | OpenTelemetry eBPF Profiler के माध्यम से निरंतर CPU फ्लेम ग्राफ़। डिफ़ॉल्ट रूप से बंद; अधिक टेलीमेट्री के लिए ऑप्ट इन करें। ऊपर का सेक्शन देखें। |
 | `hostMetrics.enabled` | `true` | प्रति-नोड OS मेट्रिक्स। |
 | `auditLogs.enabled` | `false` | Kubernetes ऑडिट लॉग संग्रहण (सेल्फ-मैनेज्ड क्लस्टर्स)। |
 | `csi.enabled` | `false` | CSI ड्राइवर Prometheus मेट्रिक्स। |

@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageFooterLink,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -105,7 +104,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,7 +146,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,7 +183,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,7 +226,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,7 +262,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -310,7 +304,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -354,7 +347,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -398,7 +390,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -427,7 +418,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -472,7 +462,6 @@ export default class StatusPageFooterLink extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageFooterLink,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

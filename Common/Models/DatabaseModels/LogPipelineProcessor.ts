@@ -56,7 +56,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.ReadProjectLogPipelineProcessor,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -85,7 +84,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -126,7 +124,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -160,7 +157,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -200,7 +196,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -234,7 +229,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -271,7 +265,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -309,7 +302,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -349,7 +341,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -388,7 +379,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -423,7 +413,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -460,7 +449,6 @@ export default class LogPipelineProcessor extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectLogPipelineProcessor,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

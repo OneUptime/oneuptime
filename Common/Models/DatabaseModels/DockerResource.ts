@@ -48,7 +48,6 @@ const READ_PERMISSIONS: Array<Permission> = [
   Permission.SettingsMember,
   Permission.SettingsViewer,
   Permission.ReadDockerHost,
-  Permission.ReadAllProjectResources,
 ];
 
 @TenantColumn("projectId")

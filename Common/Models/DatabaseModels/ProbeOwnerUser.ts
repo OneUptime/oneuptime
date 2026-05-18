@@ -46,7 +46,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProbeOwnerUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -101,7 +100,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,7 +143,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +180,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -228,7 +224,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -266,7 +261,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -310,7 +304,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -348,7 +341,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,7 +385,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -422,7 +413,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -461,7 +451,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -490,7 +479,6 @@ export default class ProbeOwnerUser extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProbeOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

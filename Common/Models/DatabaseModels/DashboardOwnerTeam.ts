@@ -34,7 +34,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadDashboardOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -81,7 +80,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -119,7 +117,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -151,7 +148,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -190,7 +186,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -222,7 +217,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -260,7 +254,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -292,7 +285,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -331,7 +323,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -356,7 +347,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -391,7 +381,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -416,7 +405,6 @@ export default class DashboardOwnerTeam extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

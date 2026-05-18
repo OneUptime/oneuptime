@@ -54,7 +54,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -105,7 +104,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -147,7 +145,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +180,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -225,7 +221,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -258,7 +253,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -300,7 +294,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -333,7 +326,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -396,7 +388,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -437,7 +428,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -489,7 +479,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -526,7 +515,6 @@ export default class TeamPermission extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

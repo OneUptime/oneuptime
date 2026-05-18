@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadStatusPageSSO,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -82,7 +81,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -119,7 +117,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -150,7 +147,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,7 +184,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,7 +213,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -253,7 +247,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -284,7 +277,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -317,7 +309,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -351,7 +342,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -381,7 +371,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -419,7 +408,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -444,7 +432,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -479,7 +466,6 @@ export default class StatusPageSCIM extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

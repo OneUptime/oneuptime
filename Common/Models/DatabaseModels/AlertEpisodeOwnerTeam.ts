@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertEpisodeOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -95,7 +94,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -138,7 +136,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -175,7 +172,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -219,7 +215,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -256,7 +251,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -300,7 +294,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -338,7 +331,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -382,7 +374,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -410,7 +401,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -448,7 +438,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -483,7 +472,6 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertEpisodeOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -62,7 +62,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadService,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -135,7 +134,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +181,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -226,7 +223,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -269,7 +265,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,7 +306,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -361,7 +355,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -410,7 +403,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -444,7 +436,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -487,7 +478,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -528,7 +518,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -589,7 +578,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -653,7 +641,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -701,7 +688,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -743,7 +729,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -786,7 +771,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -822,7 +806,6 @@ export default class Service extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadService,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

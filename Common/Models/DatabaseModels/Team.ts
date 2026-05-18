@@ -50,7 +50,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -101,7 +100,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -141,7 +139,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,7 +173,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -215,7 +211,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -250,7 +245,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -285,7 +279,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -326,7 +319,6 @@ export default class Team extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -403,7 +395,6 @@ export default class Team extends BaseModel {
       Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -433,7 +424,6 @@ export default class Team extends BaseModel {
       Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -463,7 +453,6 @@ export default class Team extends BaseModel {
       Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -493,7 +482,6 @@ export default class Team extends BaseModel {
       Permission.SettingsViewer,
       Permission.EditProjectTeam,
       Permission.EditProjectTeamPermissions,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -54,7 +54,6 @@ import Service from "./Service";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadServiceDependency,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -116,7 +115,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -165,7 +163,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -208,7 +205,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -257,7 +253,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -300,7 +295,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,7 +343,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -392,7 +385,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -442,7 +434,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -476,7 +467,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -520,7 +510,6 @@ export default class ServiceDependency extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceDependency,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

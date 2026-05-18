@@ -40,7 +40,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadSmsLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -71,7 +70,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -105,7 +103,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -133,7 +130,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -162,7 +158,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -191,7 +186,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,7 +212,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -245,7 +238,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -272,7 +264,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -303,7 +294,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,7 +327,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -365,7 +354,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -399,7 +387,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -427,7 +414,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -461,7 +447,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -489,7 +474,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -523,7 +507,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -551,7 +534,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -585,7 +567,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -614,7 +595,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -648,7 +628,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -676,7 +655,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -710,7 +688,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -739,7 +716,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -773,7 +749,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -801,7 +776,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -837,7 +811,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -866,7 +839,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -901,7 +873,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -930,7 +901,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -964,7 +934,6 @@ export default class SmsLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadSmsLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

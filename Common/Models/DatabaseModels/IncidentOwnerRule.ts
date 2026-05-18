@@ -47,7 +47,6 @@ import {
     Permission.IncidentMember,
     Permission.IncidentViewer,
     Permission.ReadIncidentOwnerRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -94,7 +93,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -134,7 +132,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -168,7 +165,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -206,7 +202,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -242,7 +237,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -281,7 +275,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -322,7 +315,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -372,7 +364,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -422,7 +413,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -472,7 +462,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -522,7 +511,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -559,7 +547,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -596,7 +583,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -633,7 +619,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -672,7 +657,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -722,7 +706,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -772,7 +755,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -811,7 +793,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -850,7 +831,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -891,7 +871,6 @@ export default class IncidentOwnerRule extends BaseModel {
       Permission.IncidentMember,
       Permission.IncidentViewer,
       Permission.ReadIncidentOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

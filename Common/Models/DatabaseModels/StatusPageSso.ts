@@ -45,7 +45,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.Public,
     Permission.ProjectAdmin,
     Permission.ReadStatusPageSSO,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -83,7 +82,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,7 +118,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,7 +155,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -202,7 +198,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -233,7 +228,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -269,7 +263,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -300,7 +293,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -332,7 +324,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -365,7 +356,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ReadStatusPageSSO,
       Permission.ProjectUser,
       Permission.Public,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -398,7 +388,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -429,7 +418,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -461,7 +449,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -498,7 +485,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -523,7 +509,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -557,7 +542,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -587,7 +571,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectUser,
       Permission.Public,
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -619,7 +602,6 @@ export default class StatusPageSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadStatusPageSSO,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

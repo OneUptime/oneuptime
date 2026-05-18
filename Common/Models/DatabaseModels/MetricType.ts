@@ -49,7 +49,6 @@ import Service from "./Service";
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.ReadTelemetryServiceMetrics,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -99,7 +98,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -142,7 +140,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectIncident,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -194,7 +191,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -228,7 +224,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -267,7 +262,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -303,7 +297,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -340,7 +333,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -381,7 +373,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -409,7 +400,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -447,7 +437,6 @@ export default class MetricType extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryServiceMetrics,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

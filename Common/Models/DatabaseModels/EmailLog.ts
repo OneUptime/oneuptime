@@ -41,7 +41,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadEmailLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -72,7 +71,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -106,7 +104,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -134,7 +131,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -163,7 +159,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -192,7 +187,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -219,7 +213,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -246,7 +239,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -273,7 +265,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -308,7 +299,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -338,7 +328,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -372,7 +361,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,7 +388,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -434,7 +421,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -462,7 +448,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -496,7 +481,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -524,7 +508,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -558,7 +541,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -586,7 +568,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -620,7 +601,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -649,7 +629,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -683,7 +662,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -711,7 +689,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -745,7 +722,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -774,7 +750,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -808,7 +783,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -837,7 +811,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -873,7 +846,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -902,7 +874,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -937,7 +908,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -966,7 +936,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1000,7 +969,6 @@ export default class EmailLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadEmailLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

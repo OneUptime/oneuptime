@@ -101,13 +101,10 @@ export default class TablePermission {
    * Resolves the model's enumerated permissions plus any wildcards that should
    * grant access. See Internal/Docs/PermissionsSimplification.md.
    *
-   * - Runtime equivalence: anywhere ReadAllProjectResources is accepted,
-   *   ReadAllOperationalResources is too (and vice versa for operational reads). No DB
-   *   migration is performed; this is the only place the alias lives.
-   * - Operational-resource wildcard: models marked @OperationalResource also
-   *   accept the matching *AllOperationalResources wildcard (ReadAllOperationalResources for read,
-   *   EditAllOperationalResources for update, etc.). Scope (All/Owned/Labels) on the
-   *   permission row is evaluated in a later step, not here.
+   * Operational-resource wildcard: models marked @OperationalResource also
+   * accept the matching *AllOperationalResources wildcard (ReadAllOperationalResources for read,
+   * EditAllOperationalResources for update, etc.). Scope (All/Owned/Labels) on the
+   * permission row is evaluated in a later step, not here.
    */
   private static getEffectiveModelPermissions(
     modelType: DatabaseBaseModelType,
@@ -116,25 +113,12 @@ export default class TablePermission {
   ): Array<Permission> {
     const effective: Array<Permission> = [...modelPermissions];
 
-    if (
-      effective.includes(Permission.ReadAllProjectResources) &&
-      !effective.includes(Permission.ReadAllOperationalResources)
-    ) {
-      effective.push(Permission.ReadAllOperationalResources);
-    }
-
     const model: BaseModel = new modelType();
     if (model.isOperationalResource) {
       const wildcard: Permission | null =
         TablePermission.getWildcardPermissionForOperation(type);
       if (wildcard && !effective.includes(wildcard)) {
         effective.push(wildcard);
-      }
-      if (
-        type === DatabaseRequestType.Read &&
-        !effective.includes(Permission.ReadAllProjectResources)
-      ) {
-        effective.push(Permission.ReadAllProjectResources);
       }
     }
 

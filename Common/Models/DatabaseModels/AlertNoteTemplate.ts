@@ -46,7 +46,6 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertNoteTemplate,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -101,7 +100,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,7 +143,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +180,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -228,7 +224,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -272,7 +267,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -317,7 +311,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -362,7 +355,6 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertNoteTemplate,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

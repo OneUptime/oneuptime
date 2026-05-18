@@ -70,7 +70,6 @@ export enum RunbookAgentConnectionStatus {
     Permission.RunbookMember,
     Permission.RunbookViewer,
     Permission.ReadRunbookAgent,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -104,7 +103,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -147,7 +145,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -184,7 +181,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -227,7 +223,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -261,7 +256,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -295,7 +289,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -330,7 +323,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -360,7 +352,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -388,7 +379,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -417,7 +407,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -452,7 +441,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -496,7 +484,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -577,7 +564,6 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

@@ -52,7 +52,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadHost,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -103,7 +102,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -146,7 +144,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,7 +180,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -221,7 +217,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -258,7 +253,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -302,7 +296,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -342,7 +335,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -378,7 +370,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -410,7 +401,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -444,7 +434,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -478,7 +467,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -513,7 +501,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -547,7 +534,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -582,7 +568,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -617,7 +602,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -650,7 +634,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -697,7 +680,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -729,7 +711,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -764,7 +745,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -801,7 +781,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -829,7 +808,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -866,7 +844,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -901,7 +878,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -945,7 +921,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -973,7 +948,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1011,7 +985,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1046,7 +1019,6 @@ export default class Host extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadHost,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

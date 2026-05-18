@@ -49,7 +49,6 @@ import {
     Permission.ProjectAdmin,
 
     Permission.ReadRunbookSecret,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -92,7 +91,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,7 +127,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -161,7 +158,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -198,7 +194,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -259,7 +254,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -305,7 +299,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -343,7 +336,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -368,7 +360,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -403,7 +394,6 @@ export default class RunbookSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadRunbookSecret,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

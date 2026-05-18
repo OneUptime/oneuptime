@@ -66,7 +66,6 @@ export interface AlertGroupingRuleGroupByFields {
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertGroupingRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -113,7 +112,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,7 +151,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -187,7 +184,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -225,7 +221,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -261,7 +256,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -301,7 +295,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -340,7 +333,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -378,7 +370,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -428,7 +419,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -478,7 +468,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -528,7 +517,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -578,7 +566,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -615,7 +602,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -652,7 +638,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -689,7 +674,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -728,7 +712,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -767,7 +750,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -806,7 +788,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -845,7 +826,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -884,7 +864,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -923,7 +902,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -962,7 +940,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -998,7 +975,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1034,7 +1010,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1070,7 +1045,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1109,7 +1083,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1148,7 +1121,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1187,7 +1159,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1226,7 +1197,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1265,7 +1235,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1304,7 +1273,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1354,7 +1322,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1398,7 +1365,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1435,7 +1401,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1479,7 +1444,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1518,7 +1482,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1568,7 +1531,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1618,7 +1580,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1668,7 +1629,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1709,7 +1669,6 @@ export default class AlertGroupingRule extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertGroupingRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

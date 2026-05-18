@@ -47,7 +47,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectSMTPConfig,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -88,7 +87,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,7 +127,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,7 +161,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -197,7 +193,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -232,7 +227,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -270,7 +264,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -312,7 +305,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -341,7 +333,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -380,7 +371,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -417,7 +407,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -447,7 +436,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -482,7 +470,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -518,7 +505,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -553,7 +539,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -589,7 +574,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -624,7 +608,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -662,7 +645,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -702,7 +684,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -735,7 +716,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -772,7 +752,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -810,7 +789,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -848,7 +826,6 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectSMTPConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

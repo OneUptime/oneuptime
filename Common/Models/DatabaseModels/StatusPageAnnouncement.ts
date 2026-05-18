@@ -61,7 +61,6 @@ import {
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageAnnouncement,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -117,7 +116,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -160,7 +158,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -198,7 +195,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -253,7 +249,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -309,7 +304,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -358,7 +352,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -399,7 +392,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -434,7 +426,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -477,7 +468,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -534,7 +524,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -578,7 +567,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -607,7 +595,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -670,7 +657,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -713,7 +699,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -755,7 +740,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -790,7 +774,6 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageAnnouncement,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

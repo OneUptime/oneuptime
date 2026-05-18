@@ -50,7 +50,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadKubernetesCluster,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -108,7 +107,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -151,7 +149,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,7 +185,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -226,7 +222,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -263,7 +258,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -307,7 +301,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -354,7 +347,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -393,7 +385,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -429,7 +420,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -461,7 +451,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -492,7 +481,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -523,7 +511,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -561,7 +548,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -605,7 +591,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -633,7 +618,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -671,7 +655,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -706,7 +689,6 @@ export default class KubernetesCluster extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadKubernetesCluster,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

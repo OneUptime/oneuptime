@@ -37,7 +37,6 @@ import Service from "./Service";
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.ReadTelemetryException,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -79,7 +78,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,7 +118,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -155,7 +152,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -200,7 +196,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -238,7 +233,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -275,7 +269,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -314,7 +307,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -353,7 +345,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -392,7 +383,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -434,7 +424,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -467,7 +456,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -514,7 +502,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -551,7 +538,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -588,7 +574,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -625,7 +610,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -662,7 +646,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -700,7 +683,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -746,7 +728,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -785,7 +766,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -831,7 +811,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -869,7 +848,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -916,7 +894,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -954,7 +931,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1000,7 +976,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1036,7 +1011,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1076,7 +1050,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1116,7 +1089,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1156,7 +1128,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1195,7 +1166,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1234,7 +1204,6 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

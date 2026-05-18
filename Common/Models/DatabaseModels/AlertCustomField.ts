@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.AlertMember,
     Permission.AlertViewer,
     Permission.ReadAlertCustomField,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -84,7 +83,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,7 +122,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,7 +156,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -198,7 +194,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -237,7 +232,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -270,7 +264,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,7 +304,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -340,7 +332,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -378,7 +369,6 @@ export default class AlertCustomField extends BaseModel {
       Permission.AlertMember,
       Permission.AlertViewer,
       Permission.ReadAlertCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

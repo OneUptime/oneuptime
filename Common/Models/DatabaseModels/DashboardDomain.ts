@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadDashboardDomain,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -100,7 +99,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -143,7 +141,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,7 +178,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -222,7 +218,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -257,7 +252,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -300,7 +294,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,7 +330,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -375,7 +367,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -413,7 +404,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -457,7 +447,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -486,7 +475,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -543,7 +531,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -581,7 +568,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -620,7 +606,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -677,7 +662,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -714,7 +698,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -752,7 +735,6 @@ export default class DashboardDomain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDashboardDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

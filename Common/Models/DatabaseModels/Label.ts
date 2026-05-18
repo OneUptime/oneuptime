@@ -48,7 +48,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectLabel,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -97,7 +96,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -137,7 +135,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -172,7 +169,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -208,7 +204,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -242,7 +237,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -279,7 +273,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -320,7 +313,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,7 +341,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -387,7 +378,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -420,7 +410,6 @@ export default class Label extends AccessControlModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectLabel,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.RunbookMember,
     Permission.RunbookViewer,
     Permission.ReadRunbookAgentOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -95,7 +94,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -138,7 +136,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -174,7 +171,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,7 +214,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,7 +250,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -299,7 +293,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,7 +328,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -379,7 +371,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -407,7 +398,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -445,7 +435,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -473,7 +462,6 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
       Permission.RunbookMember,
       Permission.RunbookViewer,
       Permission.ReadRunbookAgentOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

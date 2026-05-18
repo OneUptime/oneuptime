@@ -46,7 +46,6 @@ import AnalyticsBaseModel from "../AnalyticsModels/AnalyticsBaseModel/AnalyticsB
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadTableView,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -93,7 +92,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -134,7 +132,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -169,7 +166,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -207,7 +203,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -245,7 +240,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -282,7 +276,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -324,7 +317,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -353,7 +345,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -392,7 +383,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -425,7 +415,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -464,7 +453,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -503,7 +491,6 @@ export default class TableView extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadTableView,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

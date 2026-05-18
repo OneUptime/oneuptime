@@ -42,7 +42,6 @@ import {
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadHostOwnerRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -86,7 +85,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -123,7 +121,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,7 +151,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -189,7 +185,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -222,7 +217,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -258,7 +252,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -296,7 +289,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -343,7 +335,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -377,7 +368,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -413,7 +403,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -459,7 +448,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -505,7 +493,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -543,7 +530,6 @@ export default class HostOwnerRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadHostOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

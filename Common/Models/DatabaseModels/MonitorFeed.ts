@@ -57,7 +57,6 @@ export enum MonitorFeedEventType {
     Permission.MonitorMember,
     Permission.MonitorViewer,
     Permission.ReadMonitorFeed,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -100,7 +99,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,7 +142,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -182,7 +179,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -226,7 +222,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -263,7 +258,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -308,7 +302,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -392,7 +385,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -429,7 +421,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -466,7 +457,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -502,7 +492,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadMonitorFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -540,7 +529,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -585,7 +573,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -621,7 +608,6 @@ export default class MonitorFeed extends BaseModel {
       Permission.MonitorMember,
       Permission.MonitorViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

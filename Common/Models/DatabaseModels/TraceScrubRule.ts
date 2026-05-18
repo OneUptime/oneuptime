@@ -54,7 +54,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.TelemetryMember,
     Permission.TelemetryViewer,
     Permission.ReadProjectTraceScrubRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -83,7 +82,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -123,7 +121,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -157,7 +154,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -194,7 +190,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -231,7 +226,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -269,7 +263,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -307,7 +300,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -346,7 +338,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -385,7 +376,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -424,7 +414,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -459,7 +448,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -495,7 +483,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -522,7 +509,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -558,7 +544,6 @@ export default class TraceScrubRule extends BaseModel {
       Permission.TelemetryMember,
       Permission.TelemetryViewer,
       Permission.ReadProjectTraceScrubRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

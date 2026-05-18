@@ -46,7 +46,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.OnCallMember,
     Permission.OnCallViewer,
     Permission.ReadIncomingCallPolicyOwnerUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -102,7 +101,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,7 +143,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -182,7 +179,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -226,7 +222,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -263,7 +258,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -307,7 +301,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -345,7 +338,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -389,7 +381,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -417,7 +408,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -455,7 +445,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -483,7 +472,6 @@ export default class IncomingCallPolicyOwnerUser extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadIncomingCallPolicyOwnerUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

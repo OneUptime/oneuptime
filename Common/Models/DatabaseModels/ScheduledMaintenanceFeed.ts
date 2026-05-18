@@ -64,7 +64,6 @@ export enum ScheduledMaintenanceFeedEventType {
     Permission.ScheduledMaintenanceMember,
     Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceFeed,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -107,7 +106,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -151,7 +149,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -189,7 +186,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -234,7 +230,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -272,7 +267,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -317,7 +311,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -401,7 +394,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -439,7 +431,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -476,7 +467,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -513,7 +503,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -552,7 +541,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -597,7 +585,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -633,7 +620,6 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceFeed,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -52,7 +52,6 @@ import {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectOIDC,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -95,7 +94,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -139,7 +137,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -177,7 +174,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -219,7 +215,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -249,7 +244,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -282,7 +276,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -314,7 +307,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -346,7 +338,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -378,7 +369,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -411,7 +401,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -444,7 +433,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -482,7 +470,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -530,7 +517,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -572,7 +558,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -601,7 +586,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -640,7 +624,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -675,7 +658,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -710,7 +692,6 @@ export default class ProjectOIDC extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectOIDC,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

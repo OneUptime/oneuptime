@@ -39,7 +39,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadDockerHostOwnerTeam,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -94,7 +93,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -137,7 +135,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -174,7 +171,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,7 +214,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,7 +250,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -299,7 +293,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,7 +330,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -381,7 +373,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -409,7 +400,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -447,7 +437,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -475,7 +464,6 @@ export default class DockerHostOwnerTeam extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadDockerHostOwnerTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

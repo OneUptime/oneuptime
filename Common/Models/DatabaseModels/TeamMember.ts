@@ -245,7 +245,6 @@ export default class TeamMember extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -448,7 +447,6 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectTeam,
-      Permission.ReadAllProjectResources,
     ],
     update: [Permission.CurrentUser],
   })

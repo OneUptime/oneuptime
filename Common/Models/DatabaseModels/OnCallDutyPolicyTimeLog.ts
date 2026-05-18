@@ -52,7 +52,6 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.OnCallMember,
     Permission.OnCallViewer,
     Permission.ReadOnCallDutyPolicyTimeLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -100,7 +99,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -143,7 +141,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -180,7 +177,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,7 +214,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -256,7 +251,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -294,7 +288,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -332,7 +325,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -368,7 +360,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -412,7 +403,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -447,7 +437,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -491,7 +480,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -533,7 +521,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -567,7 +554,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyTimeLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

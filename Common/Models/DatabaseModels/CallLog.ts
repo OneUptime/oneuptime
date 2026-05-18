@@ -40,7 +40,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadCallLog,
-    Permission.ReadAllProjectResources,
   ],
   delete: [],
   update: [],
@@ -71,7 +70,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -105,7 +103,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -133,7 +130,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -162,7 +158,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -191,7 +186,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -217,7 +211,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -244,7 +237,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -271,7 +263,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -302,7 +293,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -336,7 +326,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -364,7 +353,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -398,7 +386,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -426,7 +413,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -460,7 +446,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -488,7 +473,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -522,7 +506,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -550,7 +533,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -584,7 +566,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -613,7 +594,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -647,7 +627,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -675,7 +654,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -709,7 +687,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -738,7 +715,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -772,7 +748,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -800,7 +775,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -836,7 +810,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -865,7 +838,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -900,7 +872,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -929,7 +900,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -963,7 +933,6 @@ export default class CallLog extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadCallLog,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

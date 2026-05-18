@@ -45,7 +45,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.WorkflowMember,
     Permission.WorkflowViewer,
     Permission.ReadWorkflowVariable,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -87,7 +86,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -127,7 +125,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -161,7 +158,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -202,7 +198,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -237,7 +232,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -275,7 +269,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -332,7 +325,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -366,7 +358,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -407,7 +398,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -435,7 +425,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -473,7 +462,6 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowMember,
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

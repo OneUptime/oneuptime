@@ -272,13 +272,18 @@ ebpf:
 # an older OTel Collector version that predates the OTLP profiles
 # signal. The profiler image is 0.152.0 and exports natively.
 #
+# **Disabled by default.** Continuous profiling is heavier than the
+# OBI auto-instrumentation (more CPU per node, larger memory footprint)
+# and not everyone wants always-on flame graphs. Opt in with
+# `--set profiling.enabled=true` when you want more telemetry.
+#
 # Requirements:
 #   - Linux kernel 5.10+ (newer than the 5.8 OBI needs).
 #   - Privileged pod with hostPID — same constraints as the eBPF
 #     auto-instrumentation DaemonSet, so it lights up on the same
 #     clusters and fails on the same ones (GKE Autopilot, EKS Fargate).
 profiling:
-  enabled: true
+  enabled: false
   image:
     repository: otel/opentelemetry-collector-ebpf-profiler
     tag: "0.152.0"

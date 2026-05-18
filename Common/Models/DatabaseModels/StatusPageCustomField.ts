@@ -44,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageCustomField,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -84,7 +83,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,7 +122,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,7 +155,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -196,7 +192,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -233,7 +228,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -265,7 +259,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -306,7 +299,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -334,7 +326,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -372,7 +363,6 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPageCustomField,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

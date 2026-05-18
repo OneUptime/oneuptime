@@ -51,7 +51,6 @@ import CodeRepositoryImprovementAction from "../../Types/Service/CodeRepositoryI
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadServiceCodeRepository,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -108,7 +107,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -152,7 +150,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -190,7 +187,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -234,7 +230,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -272,7 +267,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -316,7 +310,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -354,7 +347,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -397,7 +389,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -442,7 +433,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -471,7 +461,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -510,7 +499,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -546,7 +534,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -590,7 +577,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -634,7 +620,6 @@ export default class ServiceCodeRepository extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadServiceCodeRepository,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

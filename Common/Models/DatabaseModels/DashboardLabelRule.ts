@@ -41,7 +41,6 @@ import {
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadDashboardLabelRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -85,7 +84,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,7 +120,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,7 +150,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -188,7 +184,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -221,7 +216,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -259,7 +253,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -306,7 +299,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -340,7 +332,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -376,7 +367,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -423,7 +413,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -461,7 +450,6 @@ export default class DashboardLabelRule extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadDashboardLabelRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -46,7 +46,6 @@ import {
     Permission.ScheduledMaintenanceMember,
     Permission.ScheduledMaintenanceViewer,
     Permission.ReadScheduledMaintenanceOwnerRule,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -93,7 +92,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -133,7 +131,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -167,7 +164,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -205,7 +201,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -241,7 +236,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -280,7 +274,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -321,7 +314,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -371,7 +363,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -421,7 +412,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -471,7 +461,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -508,7 +497,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -545,7 +533,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -582,7 +569,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -621,7 +607,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -671,7 +656,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -721,7 +705,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -760,7 +743,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -801,7 +783,6 @@ export default class ScheduledMaintenanceOwnerRule extends BaseModel {
       Permission.ScheduledMaintenanceMember,
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceOwnerRule,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -48,7 +48,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.OnCallMember,
     Permission.OnCallViewer,
     Permission.ReadOnCallDutyPolicyScheduleLayer,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -91,7 +90,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -134,7 +132,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -171,7 +168,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -215,7 +211,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -253,7 +248,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -293,7 +287,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -333,7 +326,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -377,7 +369,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -405,7 +396,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -443,7 +433,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -478,7 +467,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -526,7 +514,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -568,7 +555,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -612,7 +598,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -653,7 +638,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.OnCallMember,
       Permission.OnCallViewer,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

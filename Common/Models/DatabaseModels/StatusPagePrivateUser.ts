@@ -53,7 +53,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPagePrivateUser,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -110,7 +109,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,7 +151,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -190,7 +187,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -234,7 +230,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -270,7 +265,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -312,7 +306,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -397,7 +390,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -441,7 +433,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -469,7 +460,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -514,7 +504,6 @@ export default class StatusPagePrivateUser extends BaseModel {
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
       Permission.ReadStatusPagePrivateUser,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

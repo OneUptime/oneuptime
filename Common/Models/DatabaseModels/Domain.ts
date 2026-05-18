@@ -37,7 +37,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectDomain,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -78,7 +77,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -118,7 +116,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,7 +150,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -189,7 +185,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -223,7 +218,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -264,7 +258,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -293,7 +286,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -331,7 +323,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -367,7 +358,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -403,7 +393,6 @@ export default class Domain extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectDomain,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

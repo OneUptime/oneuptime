@@ -43,7 +43,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadProjectCallSMSConfig,
-    Permission.ReadAllProjectResources,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -84,7 +83,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -125,7 +123,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -160,7 +157,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -193,7 +189,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -228,7 +223,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -265,7 +259,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -307,7 +300,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -336,7 +328,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -375,7 +366,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -410,7 +400,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -447,7 +436,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -484,7 +472,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -522,7 +509,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -559,7 +545,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.SettingsMember,
       Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
-      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
