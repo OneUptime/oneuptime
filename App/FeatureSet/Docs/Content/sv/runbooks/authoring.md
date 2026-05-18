@@ -1,31 +1,37 @@
 # Skriva ett runbook
 
-Skapa ett runbook under **Runbooks → Skapa runbook**, öppna det och gå till fliken **Steg**.
+Skapa ett runbook under **Runbooks → Skapa runbook**, öppna det och gå till fliken **Steps**.
 
-## Anatomi av ett steg
+## Anatomin av ett steg
 
 Varje steg har:
 
 | Fält | Syfte |
 | --- | --- |
-| **Titel** | Kort etikett i checklist-gränssnittet. Obligatorisk. |
-| **Beskrivning** | Frivillig kontext för respondern. Markdown-text. |
-| **Fortsätt vid fel** | Om på, stoppar inte ett misslyckat steg körningen — nästa steg körs ändå. |
-| **Typspecifik konfiguration** | Skript, URL osv. — se nedan. |
+| **Titel** | Kort etikett som visas i checklist-UI:t. Obligatoriskt. |
+| **Beskrivning** | Valfri kontext för svararen. Markdown-säker text. |
+| **Fortsätt vid fel** | Om på stoppar ett misslyckat steg inte körningen — nästa steg körs ändå. |
+| **Kräver godkännande** | Om på pausar runbooket efter detta steg och väntar tills en användare godkänner innan nästa steg körs. |
+| **Typspecifik konfiguration** | Skript, URL, agent, etc. — se nedan. |
 
-Steg körs **i ordning**. Omordna med upp-/nedpilarna i steg-editorn.
+Steg körs **i ordning**. Omordna dem med upp/ned-pilarna i Steps-editorn.
 
 ## Stegtyper
 
 ### Manuell
 
-En ruta som respondern bockar av. Körningen pausas vid ett manuellt steg och stannar i `WaitingForManualStep` tills någon markerar det som klart (eller hoppar över).
+En kryssruta som svararen bockar av. Runbook-körningen pausar när den når ett Manuellt steg och stannar i `WaitingForManualStep` tills någon markerar det som klart (eller hoppar över det).
 
-Använd för sådant bara en människa kan verifiera: "Trafik flyttad till sekundär region enligt load balancer-dashboarden — bekräftat."
+Använd detta för saker bara en människa kan verifiera: "Bekräftade att trafik har flyttats till sekundära regionen i load balancer-dashboarden."
 
 ### JavaScript
 
-Ett JavaScript-utdrag som körs i en `isolated-vm`-sandlåda (inget filsystem, inget nätverk om du inte själv bär med dig ett API) — men sandlådan lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, inte på OneUptime-Worker'n. Konfigurera en **Agent Tag** på steget som pekar på agenten/agenterna som ska köra det. Om ingen agent med den taggen är online väntar steget tills **claim timeout** (standard 2 minuter) och misslyckas sedan.
+En snutt JavaScript som körs i en `isolated-vm`-sandlåda. Sandlådan lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur — inte på OneUptime-Worker'n.
+
+Konfigurera två saker på ett JavaScript-steg:
+
+- **Runbook-agent** — välj agenten som ska köra detta steg från dropdownen. Bara den valda agenten får claim:a jobbet.
+- **Skript** — JavaScript som ska köras.
 
 ```js
 const start = Date.now();
@@ -33,41 +39,41 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Returvärdet sparas på steg-körningen. `console.log`-utdata fångas som loggrader. Standardtimeout: 30 sekunder.
+Returvärdet fångas på stegkörningen. `console.log`-utdata fångas som loggrader. Standard körnings-timeout: 30 sekunder. Standard claim-timeout (hur länge Worker'n väntar på att agenten plockar upp jobbet): 2 minuter.
 
-### HTTP-begäran
+### HTTP-förfrågan
 
-Ett utgående HTTP-anrop. Konfigurera metod (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valfria JSON-headers och valfri body. Status, headers och body i svaret sparas (totalt högst 50 KB).
+Gör ett utgående HTTP-anrop. Konfigurera metod (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valfria JSON-headers och valfri body. Svarsstatus, headers och body fångas (begränsat till 50KB totalt).
 
-Användbart för: öppna en PagerDuty-incident, posta på Slack, anropa ditt eget admin-API osv.
+Användbart för: att sparka igång en PagerDuty-incident, posta till Slack, anropa din egen admin-API, osv. HTTP-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
 
 ### Bash
 
-Ett bash-skript som körs på en [Runbook-agent](/docs/runbooks/agents) — en liten process du installerar på en värd i din egen infrastruktur. Bash-steg körs aldrig på OneUptime-Worker'n.
+Ett bash-skript (`bash -c <skript>`) som körs på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash körs aldrig på OneUptime-Worker'n.
 
 Konfigurera två saker på ett Bash-steg:
 
-- **Agent Tag** — taggen som identifierar vilken eller vilka agent(er) som ska köra detta steg. Vilken som helst frisk agent i projektet som bär taggen kommer att claim:a och köra jobbet.
-- **Skript** — det bash som ska köras. Utdata (stdout + stderr) fångas upp till 50 KB; processen dödas vid timeout.
+- **Runbook-agent** — välj agenten som ska köra detta steg från dropdownen. Bara den valda agenten får claim:a jobbet.
+- **Skript** — bash:en som ska köras. Utdata (stdout + stderr) fångas upp till 50 KB; processen dödas vid timeout.
 
-Om ingen agent med vald tag är online när runbooket når detta steg, väntar steget till **claim timeout** (standard 2 minuter) och misslyckas sedan. Lägg till en agent under **Runbooks → Agents** innan du förlitar dig på ett Bash-steg.
+Om den valda agenten är offline när runbooket når detta steg väntar steget upp till **claim-timeouten** (standard 2 minuter) och misslyckas sedan med `TimedOut`. Lägg till en agent under **Runbooks → Settings → Agents** innan du lutar dig mot ett Bash-steg.
 
-## Spara och redigera
+## Sparande och redigering
 
-Tryck **Spara steg** för att spara. Pågående körningar av äldre versioner av runbooken påverkas inte — de fortsätter med sin snapshot.
+Tryck **Spara steg** för att persistera. Pågående körningar av äldre versioner av runbooket påverkas inte — de fortsätter använda sitt snapshot.
 
 ## Flera steg och felhantering
 
-Som standard stoppar ett misslyckat steg körningen och markerar den `Failed`. Slår du på **Fortsätt vid fel** på ett steg registreras felet, men nästa steg körs ändå. Användbart för mönstren "prova de här tre sakerna, meddela sedan".
+Som standard stoppar ett misslyckat steg körningen och markerar körningen som `Failed`. Om du sätter **Fortsätt vid fel** på ett steg registreras ett fel men nästa steg körs. Detta är användbart för "prova dessa tre saker, sedan notifiera"-mönster.
 
 ## Ett genomarbetat exempel
 
-Ett enkelt runbook för "Primär DB onåbar":
+Ett enkelt runbook för "DB-primary onåbar":
 
-1. **JavaScript** — hämta nuvarande primärvärd från konfig-tjänsten och logga den.
-2. **Manuell** — "Replikationsfördröjning på sekundär under 5 sekunder — bekräftat."
-3. **HTTP-begäran** — POST till failover-orkestratorns API.
-4. **Manuell** — "Skrivningar går till nya primary — bekräftat."
-5. **HTTP-begäran** — POST till Slack med "allt klart"-meddelande.
+1. **JavaScript** — hämta nuvarande primary-värd från din konfigurationstjänst och logga den.
+2. **Manuellt** — "Bekräfta att replikationslaggen i sekundären är under 5 sekunder."
+3. **HTTP-förfrågan** — POST till din failover-orchestrators API.
+4. **Manuellt** — "Verifiera att skrivningar nu går till den nya primary."
+5. **HTTP-förfrågan** — POST till Slack med ett "klart"-meddelande.
 
-Respondern ser ett automatiserat steg köra, kryssar i ett manuellt, ser nästa automatiserade osv. Varje stegs utdata sparas till postmortem.
+Svararen ser ett automatiserat steg köra, bockar av ett manuellt, ser nästa automatiserade steg köra, och så vidare. Varje stegs utdata fångas för post-mortemen.

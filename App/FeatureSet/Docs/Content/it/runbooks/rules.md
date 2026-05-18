@@ -6,58 +6,58 @@ Le regole di runbook collegano automaticamente i runbook quando viene creato un 
 - Allarmi → Impostazioni → **Regole di runbook**
 - Manutenzione programmata → Impostazioni → **Regole di runbook**
 
-Tutte e tre le pagine modificano lo stesso modello di regola sottostante — sono semplicemente filtrate per mostrare solo le regole del tipo di entità corrispondente.
+Le tre pagine modificano lo stesso modello di regole sottostante — sono solo filtrate per mostrare le regole di quel tipo di entità.
 
 ## Anatomia di una regola
 
-| Campo | Funzione |
+| Campo | Scopo |
 | --- | --- |
 | **Nome** | Etichetta breve e leggibile. Compare nei log di audit. |
-| **Descrizione** | Contesto facoltativo per il team. |
-| **Abilitata** | Interruttore per sospendere una regola senza cancellarla. |
-| **Pattern titolo** | Regex case-insensitive confrontata con il titolo dell'entità. Vuoto = qualsiasi titolo corrisponde. |
-| **Pattern descrizione** | Regex case-insensitive confrontata con la descrizione dell'entità. Vuoto = qualsiasi descrizione corrisponde. |
+| **Descrizione** | Contesto opzionale per i colleghi. |
+| **Abilitata** | Toggle per sospendere una regola senza cancellarla. |
+| **Title Pattern** | Regex case-insensitive confrontata col titolo dell'entità. Vuoto = qualsiasi titolo. |
+| **Description Pattern** | Regex case-insensitive confrontata con la descrizione dell'entità. Vuoto = qualsiasi descrizione. |
 | **Runbook da avviare** | Uno o più runbook da lanciare quando la regola scatta. |
 
-## Semantica della corrispondenza
+## Semantica del matching
 
-Una regola corrisponde quando **tutti i criteri specificati sono soddisfatti**. I criteri vuoti vengono saltati:
+Una regola corrisponde quando **tutti i criteri specificati passano**. I criteri vuoti vengono saltati, quindi:
 
-- Una regola senza pattern si applica a ogni evento del suo tipo (regola globale "esegui sempre").
-- Una regola con solo un pattern di titolo scatta per gli eventi il cui titolo corrisponde alla regex.
-- Più regole possono corrispondere allo stesso evento — ogni corrispondenza scatta e si esegue l'unione dei loro runbook (ogni runbook ottiene la sua esecuzione).
+- Una regola senza pattern impostati gira su ogni evento del suo tipo (una regola globale "esegui sempre").
+- Una regola con solo un pattern di titolo scatta su eventi il cui titolo combacia con quella regex.
+- Più regole possono corrispondere allo stesso evento — ogni match scatta, e l'unione dei loro runbook viene eseguita (ogni runbook ottiene la propria esecuzione).
 
-## Esempio: failover DB per incidenti di base dati
-
-```
-Nome:              Avvia failover DB per incidenti DB
-Trigger:           Incidente
-Pattern titolo:    (?:^|\b)(db|database|postgres|mysql|mongo)
-Runbook:           [Playbook failover DB, Avvisa team DBA]
-```
-
-Crea due esecuzioni di runbook ogni volta che viene creato un incidente con "db", "database", "postgres", ecc. nel titolo.
-
-## Esempio: regola di igiene sempre attiva
+## Esempio: failover DB per incidenti di database
 
 ```
-Nome:                       Controllo pre-volo a ogni incidente
-Trigger:                    Incidente
-Pattern titolo:             (vuoto)
-Pattern descrizione:        (vuoto)
-Runbook:                    [Cattura stato pre-incidente]
+Name:           Start DB failover for DB incidents
+Trigger:        Incident
+Title Pattern:  (?:^|\b)(db|database|postgres|mysql|mongo)
+Runbooks:       [DB failover playbook, Notify DBA team]
 ```
 
-Scatta a ogni incidente — utile per catturare snapshot dello stato di sistema, metriche di pagina ecc.
+Questo creerà due esecuzioni di runbook ogni volta che viene creato un incidente con "db", "database", "postgres", ecc. nel titolo.
+
+## Esempio: regola di igiene "esegui sempre"
+
+```
+Name:                 Always-run pre-flight check
+Trigger:              Incident
+Title Pattern:        (empty)
+Description Pattern:  (empty)
+Runbooks:             [Capture pre-incident state]
+```
+
+Scatta su ogni incidente — utile per catturare snapshot dello stato del sistema, metriche di pagina, ecc.
 
 ## Cosa succede quando una regola scatta
 
 1. Il runbook viene caricato.
-2. I suoi passi vengono copiati come **snapshot** in una nuova esecuzione di runbook.
-3. L'esecuzione viene messa in coda sul worker Runbook.
-4. L'esecuzione è collegata all'entità d'origine — appare sulla pagina dell'incidente, dell'allarme o della manutenzione e nell'elenco delle esecuzioni del runbook.
+2. I suoi passi vengono **snapshottati** su una nuova esecuzione di runbook.
+3. L'esecuzione viene messa in coda al worker della coda Runbook.
+4. L'esecuzione viene legata all'entità sorgente — appare sulla pagina dell'incidente, allarme o manutenzione programmata e nell'elenco Esecuzioni del runbook.
 
-Vedi tutti i lanci scatenati da regole in **Runbook → Esecuzioni**, filtrabili per stato, runbook o data.
+Puoi vedere tutte le esecuzioni scatenate da regole in **Runbook → Esecuzioni**, filtrate per stato, runbook o data.
 
 ## Runbook disabilitati
 
@@ -65,4 +65,4 @@ Se una regola fa riferimento a un runbook con `isEnabled = false`, la regola cor
 
 ## Testare una regola
 
-Prima di fare affidamento su una regola in produzione, crea un incidente (o allarme) di test con un titolo che corrisponde al pattern e verifica che i runbook attesi scattino. Le regole sono valutate al momento della creazione — modificare in seguito il titolo di un incidente non riattiva le regole.
+Prima di affidarti a una regola in produzione, crea un incidente (o allarme) di test con un titolo che corrisponde al pattern e conferma che partano i runbook attesi. Le regole sono valutate al momento della creazione — modificare il titolo di un incidente in seguito non riattiva le regole.

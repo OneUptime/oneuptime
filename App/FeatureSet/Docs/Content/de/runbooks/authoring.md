@@ -1,31 +1,37 @@
 # Ein Runbook verfassen
 
-Erstellen Sie ein Runbook unter **Runbooks → Runbook erstellen**, öffnen Sie es und gehen Sie zur Registerkarte **Schritte**.
+Erstellen Sie ein Runbook unter **Runbooks → Runbook erstellen**, öffnen Sie es dann und gehen Sie zum **Steps**-Tab.
 
 ## Aufbau eines Schritts
 
-Jeder Schritt besitzt:
+Jeder Schritt hat:
 
 | Feld | Zweck |
 | --- | --- |
-| **Titel** | Kurze Bezeichnung in der Checklisten-UI. Pflichtfeld. |
-| **Beschreibung** | Optionaler Kontext für den Bearbeiter. Markdown-tauglicher Text. |
-| **Bei Fehler fortfahren** | Wenn aktiv, hält ein fehlgeschlagener Schritt den Lauf nicht an — der nächste Schritt wird trotzdem ausgeführt. |
-| **Typspezifische Konfiguration** | Skript, URL usw. — siehe unten. |
+| **Titel** | Kurze Bezeichnung, die in der Checklisten-UI angezeigt wird. Erforderlich. |
+| **Beschreibung** | Optionaler Kontext für die reagierende Person. Markdown-sicherer Text. |
+| **Bei Fehler fortfahren** | Wenn an, stoppt ein fehlgeschlagener Schritt den Lauf nicht — der nächste Schritt wird trotzdem ausgeführt. |
+| **Freigabe erforderlich** | Wenn an, pausiert das Runbook nach diesem Schritt und wartet, bis ein Benutzer freigibt, bevor der nächste Schritt läuft. |
+| **Typspezifische Konfiguration** | Skript, URL, Agent usw. — siehe unten. |
 
-Schritte laufen **in der angegebenen Reihenfolge**. Mit den Auf/Ab-Pfeilen im Schritt-Editor können Sie sie umordnen.
+Schritte laufen **der Reihe nach**. Sortieren Sie sie mit den Pfeilen Auf/Ab im Steps-Editor um.
 
 ## Schritttypen
 
 ### Manuell
 
-Ein Kontrollkästchen, das der Bearbeiter abhakt. Die Ausführung pausiert beim Erreichen eines manuellen Schritts und bleibt im Zustand `WaitingForManualStep`, bis jemand ihn als erledigt markiert (oder überspringt).
+Ein Häkchen, das die reagierende Person abhakt. Die Runbook-Ausführung pausiert, wenn sie einen manuellen Schritt erreicht, und bleibt in `WaitingForManualStep`, bis jemand sie als abgeschlossen markiert (oder überspringt).
 
-Verwenden Sie dies für Dinge, die nur ein Mensch bestätigen kann: „Verkehr wurde laut Load-Balancer-Dashboard in die sekundäre Region verschoben — bestätigt."
+Verwenden Sie dies für Dinge, die nur ein Mensch verifizieren kann: „Bestätigt, dass der Traffic im Load-Balancer-Dashboard auf die sekundäre Region umgeschwenkt ist."
 
 ### JavaScript
 
-Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox läuft (kein Dateisystem, kein Netzwerk, außer Sie bringen eine API mit) — die Sandbox lebt jedoch auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur und nicht auf dem OneUptime-Worker. Konfigurieren Sie einen **Agent Tag** am Schritt, der auf den/die Agent(s) zeigt, die ihn ausführen sollen. Ist kein Agent mit diesem Tag online, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann fehl.
+Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox läuft. Die Sandbox lebt auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur — nicht auf dem OneUptime-Worker.
+
+Konfigurieren Sie zwei Dinge an einem JavaScript-Schritt:
+
+- **Runbook-Agent** — wählen Sie aus dem Dropdown den Agent aus, der diesen Schritt ausführen soll. Nur der ausgewählte Agent darf den Job beanspruchen.
+- **Skript** — das auszuführende JavaScript.
 
 ```js
 const start = Date.now();
@@ -33,41 +39,41 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Der Rückgabewert wird in der Schritt-Ausführung erfasst. `console.log`-Ausgaben werden als Logzeilen festgehalten. Standard-Timeout: 30 Sekunden.
+Der Rückgabewert wird auf der Schrittausführung festgehalten. `console.log`-Ausgaben werden als Logzeilen festgehalten. Standard-Ausführungs-Timeout: 30 Sekunden. Standard-Claim-Timeout (wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt): 2 Minuten.
 
 ### HTTP-Anfrage
 
-Ausgehender HTTP-Aufruf. Methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionale JSON-Header und optionaler Body konfigurieren. Statuscode, Header und Body der Antwort werden erfasst (insgesamt auf 50 KB begrenzt).
+Einen ausgehenden HTTP-Aufruf machen. Konfigurieren Sie Methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionale JSON-Header und optionalen Body. Response-Status, -Header und -Body werden festgehalten (insgesamt auf 50 KB begrenzt).
 
-Nützlich für: einen PagerDuty-Vorfall starten, in Slack posten, die eigene Admin-API aufrufen usw.
+Nützlich für: einen PagerDuty-Vorfall anstoßen, in Slack posten, Ihr eigenes Admin-API aufrufen usw. HTTP-Schritte laufen direkt auf dem OneUptime-Worker; kein Agent nötig.
 
 ### Bash
 
-Ein Bash-Skript, das auf einem [Runbook-Agent](/docs/runbooks/agents) ausgeführt wird — einem kleinen Prozess, den Sie auf einem Host in Ihrer eigenen Infrastruktur installieren. Bash-Schritte laufen nie auf dem OneUptime-Worker.
+Ein Bash-Skript (`bash -c <Skript>`), das auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur läuft. Bash wird niemals auf dem OneUptime-Worker ausgeführt.
 
-Bei einem Bash-Schritt konfigurieren Sie zwei Dinge:
+Konfigurieren Sie zwei Dinge an einem Bash-Schritt:
 
-- **Agent Tag** — der Tag, der angibt, welche(r) Agent(s) diesen Schritt ausführen soll(en). Jeder gesunde Agent im Projekt, der diesen Tag trägt, beansprucht und führt den Job aus.
-- **Skript** — das auszuführende Bash. Ausgabe (stdout + stderr) wird bis 50 KB erfasst; bei Timeout wird der Prozess beendet.
+- **Runbook-Agent** — wählen Sie aus dem Dropdown den Agent aus, der diesen Schritt ausführen soll. Nur der ausgewählte Agent darf den Job beanspruchen.
+- **Skript** — die auszuführende Bash. Ausgaben (stdout + stderr) werden bis zu 50 KB festgehalten; der Prozess wird beim Timeout beendet.
 
-Ist beim Erreichen dieses Schritts kein Agent mit dem gewählten Tag online, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann fehl. Legen Sie einen Agent unter **Runbooks → Agents** an, bevor Sie sich auf einen Bash-Schritt verlassen.
+Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Runbooks → Settings → Agents** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
 
-## Speichern und bearbeiten
+## Speichern und Bearbeiten
 
-Klicken Sie auf **Schritte speichern**, um zu persistieren. Laufende Ausführungen älterer Versionen des Runbooks sind nicht betroffen — sie verwenden weiterhin ihren Snapshot.
+Drücken Sie **Schritte speichern**, um zu persistieren. Laufende Ausführungen älterer Versionen des Runbooks sind nicht betroffen — sie verwenden weiter ihren Snapshot.
 
 ## Mehrere Schritte und Fehlerbehandlung
 
-Standardmäßig hält ein fehlgeschlagener Schritt den Lauf an und markiert die Ausführung als `Failed`. Wenn Sie **Bei Fehler fortfahren** an einem Schritt aktivieren, wird ein Fehler protokolliert, der nächste Schritt aber trotzdem ausgeführt. Hilfreich für Muster nach dem Schema „diese drei Dinge versuchen, dann benachrichtigen".
+Standardmäßig stoppt ein fehlgeschlagener Schritt den Lauf und markiert die Ausführung als `Failed`. Wenn Sie **Bei Fehler fortfahren** an einem Schritt setzen, wird ein Fehler protokolliert, aber der nächste Schritt läuft. Das ist nützlich für „diese drei Dinge probieren, dann benachrichtigen"-Muster.
 
 ## Ein durchgespieltes Beispiel
 
-Ein einfaches Runbook für „Primäre Datenbank nicht erreichbar":
+Ein einfaches Runbook für „DB-Primary nicht erreichbar":
 
-1. **JavaScript** — den aktuellen Primary-Host vom Konfigurationsdienst holen und loggen.
-2. **Manuell** — „Replikationsverzögerung der Sekundärinstanz liegt unter 5 Sekunden — bestätigt."
-3. **HTTP-Anfrage** — POST an die API Ihres Failover-Orchestrators.
-4. **Manuell** — „Schreibvorgänge gehen jetzt an den neuen Primary — bestätigt."
-5. **HTTP-Anfrage** — POST an Slack mit einer „Alles klar"-Nachricht.
+1. **JavaScript** — den aktuellen Primary-Host aus Ihrem Config-Service holen und loggen.
+2. **Manuell** — „Bestätigen, dass das Replikations-Lag im Secondary unter 5 Sekunden liegt."
+3. **HTTP-Anfrage** — POST an das API Ihres Failover-Orchestrators.
+4. **Manuell** — „Bestätigen, dass Writes nun an den neuen Primary gehen."
+5. **HTTP-Anfrage** — POST an Slack mit einer „Entwarnung"-Nachricht.
 
-Der Bearbeiter sieht einem automatisierten Schritt zu, hakt einen manuellen ab, sieht dem nächsten automatisierten zu und so weiter. Die Ausgabe jedes Schritts wird für das Post-Mortem festgehalten.
+Die reagierende Person sieht einen automatisierten Schritt laufen, hakt einen manuellen ab, sieht den nächsten automatisierten Schritt laufen, und so weiter. Die Ausgabe jedes Schritts wird fürs Post-Mortem festgehalten.

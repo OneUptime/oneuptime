@@ -1,10 +1,10 @@
-# Agents de Runbook
+# Agents de runbook
 
-Un **Agent de Runbook** est un petit processus auto-hébergé qui exécute les étapes Bash *et* JavaScript de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts — il les met en file d'attente, et un Agent de Runbook que vous avez installé dans votre environnement les récupère, les exécute et renvoie le résultat.
+Un **Agent de runbook** est un petit processus auto-hébergé qui exécute les étapes Bash *et* JavaScript de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts — il les met en file d'attente, et l'Agent de runbook que l'auteur de l'étape a choisi les réclame, les exécute et renvoie le résultat.
 
 JavaScript tourne toujours dans un bac à sable `isolated-vm` ; la différence est que ce bac à sable vit sur votre hôte agent et non sur le nôtre.
 
-Cette page explique comment installer un agent, y router des étapes Bash et JavaScript et l'exploiter au quotidien.
+Cette page explique comment installer un agent, y diriger des étapes Bash et JavaScript et l'exploiter au quotidien.
 
 ## Pourquoi les agents existent
 
@@ -13,16 +13,16 @@ Les versions précédentes d'OneUptime exécutaient les étapes Bash et JavaScri
 - **Frontière de confiance.** Quiconque pouvait écrire un runbook pouvait exécuter du code sur le Worker, avec accès aux variables d'environnement et au système de fichiers du Worker. Le bac à sable JavaScript bloquait l'évident mais ne pouvait pas empêcher un utilisateur déterminé de sonder ce qui était accessible depuis notre réseau.
 - **Portée.** La plupart des étapes utiles veulent agir sur l'infrastructure du *client* (« redémarrer ce service », « kubectl sur notre cluster », « rechercher un enregistrement dans notre BDD interne ») — pas sur celle d'OneUptime.
 
-Les Agents de Runbook inversent ce schéma. Les étapes Bash et JavaScript ne tournent pas chez nous. Elles tournent sur un hôte que vous contrôlez, et c'est vous qui décidez ce que cet hôte peut faire.
+Les Agents de runbook inversent ce schéma. Les étapes Bash et JavaScript ne tournent pas chez nous. Elles tournent sur un hôte que vous contrôlez, et c'est vous qui décidez ce que cet hôte peut faire.
 
 ## Comment ça marche
 
-1. Vous créez un Agent de Runbook dans OneUptime. OneUptime génère un ID et une clé secrète.
+1. Vous créez un Agent de runbook dans OneUptime. OneUptime génère un ID et une clé secrète.
 2. Vous lancez le conteneur de l'agent sur un hôte de votre infrastructure avec cet ID/clé et votre URL OneUptime.
 3. L'agent demande à OneUptime toutes les quelques secondes : « du travail pour moi ? »
-4. Quand une étape Bash ou JavaScript s'exécute, le Worker insère une ligne de job marquée du **Tag d'Agent** de l'étape et d'un type d'étape (Bash ou JavaScript), et son statut passe à `Pending`.
-5. N'importe quel agent en bonne santé du même projet portant ce tag réclame le job (de façon atomique — jamais deux agents n'exécutent le même job), l'exécute localement — `bash -c <script>` pour Bash, un bac à sable `isolated-vm` pour JavaScript — capture le résultat et le renvoie.
-6. Le Worker reprend le runbook avec le résultat.
+4. Lorsque vous rédigez une étape Bash ou JavaScript, vous choisissez l'agent dans un menu déroulant — l'étape est liée à cet agent spécifique.
+5. Quand l'étape s'exécute, le Worker insère une ligne de job avec `targetAgentId` défini sur cet agent. Seul cet agent peut la réclamer.
+6. L'agent exécute le script localement — `bash -c <script>` pour Bash, un bac à sable `isolated-vm` pour JavaScript — capture le résultat et le renvoie. Le Worker reprend le runbook avec le résultat.
 
 L'agent n'a besoin que de **HTTPS sortant** vers votre instance OneUptime. Il n'accepte aucune connexion entrante.
 
@@ -30,13 +30,12 @@ L'agent n'a besoin que de **HTTPS sortant** vers votre instance OneUptime. Il n'
 
 ### 1. Créer l'enregistrement de l'agent
 
-Allez dans **Runbooks → Agents → Créer**. Remplissez :
+Allez dans **Runbooks → Paramètres → Agents** et créez un nouvel agent. Remplissez :
 
 | Champ | Notes |
 | --- | --- |
-| **Nom** | Un nom parlant — souvent `où-il-tourne-et-ce-qu-il-peut-faire`, par ex. `prod-eu-west-1`. |
+| **Nom** | Un nom parlant — souvent `où-il-tourne-et-ce-qu-il-peut-faire`, par ex. `prod-eu-west-1`. C'est ce qui apparaît dans le menu déroulant lors de la rédaction d'une étape. |
 | **Description** | Optionnel. Une phrase sur ce que cet hôte peut atteindre. Votre vous futur vous remerciera. |
-| **Tags** | Séparés par des virgules. Les étapes Bash et JavaScript ciblent un tag ; tout agent du projet avec ce tag peut les exécuter. Motifs courants : `prod`, `staging`, `eu-west-1`, `db-host`. |
 
 ### 2. Copier la commande d'installation
 
@@ -47,7 +46,7 @@ Après création, cliquez sur **Afficher les instructions d'installation** dans 
 Lancez la commande Docker sur n'importe quel hôte de votre environnement qui peut :
 
 - atteindre votre instance OneUptime en HTTPS, et
-- faire ce que vous voulez que vos étapes Bash fassent (SSH vers d'autres hôtes, `kubectl`, accès base de données, etc.).
+- faire ce que vous voulez que vos étapes Bash/JavaScript fassent (SSH vers d'autres hôtes, `kubectl`, accès base de données, etc.).
 
 ```bash
 docker run --name oneuptime-runbook-agent --restart unless-stopped \
@@ -59,31 +58,22 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 
 ### 4. Vérifier que l'agent est connecté
 
-Retournez à **Runbooks → Agents**. En environ 60 secondes, la ligne de l'agent doit passer à `Connected` avec un horodatage **Last seen** récent. Si elle reste `Disconnected` :
+Retournez à **Runbooks → Paramètres → Agents**. En environ 60 secondes, la ligne de l'agent doit passer à `Connected` avec un horodatage **Last seen** récent. Si elle reste `Disconnected` :
 
 - Vérifiez les logs du conteneur (`docker logs oneuptime-runbook-agent`) pour des erreurs d'auth ou de réseau.
 - Vérifiez que l'hôte atteint votre URL OneUptime avec `curl`.
 - Vérifiez que l'ID et la clé ont été copiés sans espaces.
 
-## Tags et routage
+## Diriger une étape vers un agent
 
-Les tags sont la façon dont une étape Bash ou JavaScript trouve un agent. Quelques motifs :
+Dans votre runbook, ajoutez une étape Bash ou JavaScript. Le formulaire propose un menu déroulant **Agent de runbook** qui liste chaque agent du projet courant (avec un indicateur connecté/déconnecté) :
 
-- **Un tag par environnement.** Taggez l'agent prod `prod`, celui de staging `staging`. Les étapes Bash ciblant `prod` ne tournent que sur prod.
-- **Un tag par région.** `eu-west-1`, `us-east-1`. Utile quand une étape doit tourner près de la ressource qu'elle touche.
-- **Plusieurs agents, même tag.** Lancez deux agents tous deux taggés `prod`. L'un ou l'autre peut réclamer un job — vous obtenez de la haute dispo et pouvez faire des redémarrages glissants sans casser les runbooks.
-- **Plusieurs tags par agent.** Un agent dans votre cluster prod EU pourrait porter `prod`, `eu-west-1` et `kubernetes`. Les étapes Bash peuvent cibler n'importe lequel.
-
-Les étapes Bash et JavaScript **doivent** chacune spécifier exactement un tag d'agent. Le ciblage multi-tag (tourner sur tout agent ayant `prod` AND `db`) est sur la feuille de route, pas dans cette version.
-
-## Pointer une étape vers un agent
-
-Dans votre runbook, ajoutez une étape Bash ou JavaScript. Le formulaire vous demande un **Agent Tag** :
-
-- Saisissez le tag correspondant aux agent(s) sur lesquels la faire tourner.
+- Choisissez l'agent qui doit exécuter cette étape.
 - Écrivez votre script dans l'éditeur en dessous.
 
-Quand le runbook tourne et atteint l'étape, le Worker met en file un job avec ce tag et ce type d'étape. S'il existe au moins un agent sain portant ce tag, le job est réclamé en quelques secondes et exécuté. Bash est exécuté via `bash -c` ; JavaScript tourne dans un bac à sable `isolated-vm` sur l'agent (pas de système de fichiers, pas de réseau, pas de `Function`/`eval`).
+Quand le runbook tourne et atteint l'étape, le Worker met en file un job ciblé sur l'ID de cet agent. Seul cet agent peut le réclamer. Bash est exécuté via `bash -c` ; JavaScript tourne dans un bac à sable `isolated-vm` sur l'agent (pas de système de fichiers, pas de réseau, pas de `Function`/`eval`).
+
+Besoin de plus d'un agent ? Créez-les, puis pointez les étapes individuelles vers celui qui convient. Si vous voulez de la redondance, vous pouvez écrire deux runbooks (un par agent) ou répartir les étapes entre agents.
 
 ## Notes opérationnelles
 
@@ -93,7 +83,7 @@ Deux timeouts s'appliquent à chaque étape Bash ou JavaScript :
 
 | Timeout | Défaut | Effet |
 | --- | --- | --- |
-| **Claim timeout** | 2 minutes | Combien de temps le Worker attend qu'*un* agent réclame le job. Si personne ne le prend à temps, l'étape échoue avec `TimedOut` et le runbook continue (ou s'arrête, selon **Continuer en cas d'échec**). |
+| **Claim timeout** | 2 minutes | Combien de temps le Worker attend que l'agent sélectionné réclame le job. Si l'agent ne le prend pas à temps, l'étape échoue avec `TimedOut` et le runbook continue (ou s'arrête, selon **Continuer en cas d'échec**). |
 | **Execution timeout** | 30 secondes | Combien de temps l'agent laisse tourner le script avant de le terminer. Configurable par étape. (Bash reçoit `SIGKILL` ; l'isolate JavaScript est démantelé.) |
 
 La fenêtre d'attente totale du Worker est `claim timeout + execution timeout + quelques secondes de marge`. Choisissez des valeurs qui correspondent à l'étape.
@@ -106,7 +96,7 @@ Les processus fils Bash ne sont **pas** annulés automatiquement quand le lease 
 
 ### Aucun agent en ligne
 
-Si aucun agent sain portant le tag de l'étape n'est en ligne au moment où elle s'exécute, le job reste `Pending` jusqu'à l'expiration du claim timeout, puis échoue avec un message clair (« no agent claimed the job »). La page Agents est l'endroit où vous confirmez votre couverture avant de lancer un runbook pour de vrai.
+Si l'agent sélectionné est hors ligne au moment où l'étape s'exécute, le job reste `Pending` jusqu'à l'expiration du claim timeout, puis échoue avec un message clair (« no agent claimed the job »). La page Agents est l'endroit où vous confirmez votre couverture avant de lancer un runbook pour de vrai.
 
 ### Plafond de sortie
 
@@ -114,7 +104,7 @@ stdout + stderr combinés sont plafonnés à **50 Ko** par étape. Une sortie pl
 
 ### Annulation
 
-Annuler une exécution de runbook (depuis la vue d'exécution ou l'API) marque immédiatement tous ses jobs Bash `Pending`/`Claimed`/`Running` comme `Cancelled`. Un agent déjà au milieu du script terminera son travail, mais son résultat ne sera pas accepté par le serveur.
+Annuler une exécution de runbook (depuis la vue d'exécution ou l'API) marque immédiatement tous ses jobs Bash et JavaScript `Pending`/`Claimed`/`Running` comme `Cancelled`. Un agent déjà au milieu du script terminera son travail, mais son résultat ne sera pas accepté par le serveur.
 
 ### Concurrence
 
@@ -143,9 +133,9 @@ Si une clé fuite, ouvrez l'agent dans OneUptime et réinitialisez sa clé. L'an
 La gestion des agents vit sous le groupe de permissions Runbooks existant :
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gérer les enregistrements d'agents.
-- `RunbookAdmin` (rôle) — regroupe tout ce qui précède.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — à attribuer à une équipe pour accorder respectivement le contrôle total, l'usage quotidien ou un accès en lecture seule. `RunbookAdmin` regroupe toutes les permissions granulaires ci-dessus.
 
-Les permissions pour *déclencher* un runbook (et donc dispatcher des étapes Bash) restent `CreateRunbookExecution` / `EditRunbookExecution`.
+Les permissions pour *déclencher* un runbook (et donc dispatcher des étapes Bash et JavaScript) restent `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## API exposée aux agents
 
@@ -154,7 +144,7 @@ Pour les curieux — l'agent utilise ces endpoints, montés sous `/runbook-agent
 | Endpoint | Rôle |
 | --- | --- |
 | `POST /heartbeat` | Vivacité ; met à jour `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`. |
-| `POST /claim-next-job` | Réclame atomiquement le plus ancien job `Pending` dont le tag correspond à l'un des tags de cet agent. Retourne `{ job: null }` si rien à faire. |
+| `POST /claim-next-job` | Réclame atomiquement le plus ancien job `Pending` ciblé sur l'ID de cet agent. Retourne `{ job: null }` si rien à faire. |
 | `POST /job/:jobId/heartbeat` | Renouvelle le lease du job. Retourne 404 dès que le lease a expiré ou que le job est terminal. |
 | `POST /job/:jobId/result` | Soumet le résultat final. Ignoré si le lease est déjà passé à un autre. |
 

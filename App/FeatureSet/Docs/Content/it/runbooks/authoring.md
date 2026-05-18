@@ -1,31 +1,37 @@
 # Scrivere un runbook
 
-Crea un runbook da **Runbook → Crea runbook**, poi aprilo e vai alla scheda **Passi**.
+Crea un runbook in **Runbook → Crea Runbook**, poi aprilo e vai sulla scheda **Passi**.
 
 ## Anatomia di un passo
 
 Ogni passo ha:
 
-| Campo | Funzione |
+| Campo | Scopo |
 | --- | --- |
-| **Titolo** | Etichetta breve mostrata nella checklist. Obbligatorio. |
-| **Descrizione** | Contesto facoltativo per chi risponde. Testo Markdown. |
-| **Continua in caso di errore** | Se attivo, un passo fallito non blocca l'esecuzione — il successivo parte comunque. |
-| **Configurazione specifica del tipo** | Script, URL, ecc. — vedi sotto. |
+| **Titolo** | Etichetta breve mostrata nella UI checklist. Obbligatoria. |
+| **Descrizione** | Contesto opzionale per chi risponde. Testo Markdown-safe. |
+| **Continua in caso di errore** | Se attivo, un passo fallito non interrompe l'esecuzione — il passo successivo parte comunque. |
+| **Richiede approvazione** | Se attivo, il runbook si mette in pausa dopo questo passo e aspetta che un utente approvi prima di eseguire il successivo. |
+| **Config specifica del tipo** | Script, URL, agente, ecc. — vedi sotto. |
 
-I passi vengono eseguiti **in ordine**. Riordinali con le frecce su/giù nell'editor dei passi.
+I passi vengono eseguiti **in ordine**. Riordinali con le frecce su/giù nell'editor dei Passi.
 
 ## Tipi di passo
 
 ### Manuale
 
-Una casella che chi risponde spunta. L'esecuzione si mette in pausa al raggiungimento di un passo manuale e resta in `WaitingForManualStep` finché qualcuno non lo segna come completato (o lo salta).
+Una checkbox che chi risponde spunta. L'esecuzione del runbook si mette in pausa quando arriva a un passo Manuale e resta in `WaitingForManualStep` finché qualcuno non lo segna come completato (o lo salta).
 
-Usalo per ciò che solo un umano può verificare: "Il traffico è stato spostato sulla regione secondaria secondo la dashboard del load balancer — confermato."
+Usalo per cose che solo un umano può verificare: "Confermato che il traffico è passato alla regione secondaria nel dashboard del load balancer."
 
 ### JavaScript
 
-Uno snippet JavaScript eseguito in una sandbox `isolated-vm` (niente filesystem, niente rete se non porti tu un'API) — ma la sandbox vive su un [Agente Runbook](/docs/runbooks/agents) nella tua infrastruttura, non sul Worker di OneUptime. Configura un **Agent Tag** sullo step che punta all'agente o agli agenti che devono eseguirlo. Se nessun agente con quel tag è online, lo step aspetta fino al **claim timeout** (predefinito 2 minuti) e poi fallisce.
+Uno snippet di JavaScript eseguito in un sandbox `isolated-vm`. Il sandbox vive su un [Agente Runbook](/docs/runbooks/agents) nella tua infrastruttura — non sul Worker OneUptime.
+
+Configura due cose in un passo JavaScript:
+
+- **Agente Runbook** — scegli dal dropdown l'agente che deve eseguire questo passo. Solo l'agente selezionato può reclamare il job.
+- **Script** — il JavaScript da eseguire.
 
 ```js
 const start = Date.now();
@@ -33,41 +39,41 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Il valore restituito viene registrato nell'esecuzione del passo. L'output di `console.log` viene catturato come righe di log. Timeout predefinito: 30 secondi.
+Il valore restituito viene catturato sull'esecuzione del passo. L'output di `console.log` è catturato come righe di log. Timeout di esecuzione predefinito: 30 secondi. Claim timeout predefinito (quanto il Worker aspetta che l'agente prenda il job): 2 minuti.
 
 ### Richiesta HTTP
 
-Una chiamata HTTP in uscita. Configura il metodo (GET/POST/PUT/PATCH/DELETE/HEAD), URL, header JSON opzionali e body opzionale. Stato, header e body della risposta vengono registrati (limitati a 50 KB totali).
+Effettua una chiamata HTTP in uscita. Configura metodo (GET/POST/PUT/PATCH/DELETE/HEAD), URL, header JSON opzionali e body opzionale. Status, header e body della risposta sono catturati (fino a 50KB complessivi).
 
-Utile per: aprire un incident PagerDuty, postare su Slack, chiamare la tua API admin, ecc.
+Utile per: aprire un incidente PagerDuty, pubblicare su Slack, chiamare la tua API admin, ecc. I passi HTTP girano direttamente sul Worker OneUptime; non serve alcun agente.
 
 ### Bash
 
-Uno script bash che gira su un [Agente Runbook](/docs/runbooks/agents) — un piccolo processo che installi su un host della tua infrastruttura. I passi Bash non vengono mai eseguiti sul Worker di OneUptime.
+Uno script bash (`bash -c <script>`) eseguito su un [Agente Runbook](/docs/runbooks/agents) nella tua infrastruttura. Bash non viene mai eseguito sul Worker OneUptime.
 
-Configura due cose su un passo Bash:
+Configura due cose in un passo Bash:
 
-- **Agent Tag** — il tag che identifica quale/i agente/i deve eseguire questo passo. Qualsiasi agente sano del progetto che porti quel tag rivendicherà ed eseguirà il job.
-- **Script** — il bash da eseguire. L'output (stdout + stderr) viene catturato fino a 50 KB; il processo viene terminato al timeout.
+- **Agente Runbook** — scegli dal dropdown l'agente che deve eseguire questo passo. Solo l'agente selezionato può reclamare il job.
+- **Script** — il bash da eseguire. L'output (stdout + stderr) è catturato fino a 50&nbsp;KB; il processo viene ucciso allo scadere del timeout.
 
-Se nessun agente con il tag scelto è online quando il runbook raggiunge questo passo, il passo aspetta fino al **claim timeout** (predefinito 2 minuti) e poi fallisce. Aggiungi un agente in **Runbooks → Agents** prima di dipendere da un passo Bash.
+Se l'agente selezionato è offline quando il runbook arriva a questo passo, il passo attende fino al **claim timeout** (default 2 minuti) e poi fallisce con `TimedOut`. Aggiungi un agente in **Runbook → Impostazioni → Agenti** prima di affidarti a un passo Bash.
 
 ## Salvare e modificare
 
-Premi **Salva passi** per persistere. Le esecuzioni in corso di versioni precedenti del runbook non sono toccate — continuano con il loro snapshot.
+Clicca **Salva passi** per persistere. Le esecuzioni in corso di versioni precedenti del runbook non vengono toccate — continuano a usare il loro snapshot.
 
-## Passi multipli e gestione degli errori
+## Più passi e gestione degli errori
 
-Per impostazione predefinita un passo fallito ferma l'esecuzione e la marca `Failed`. Se imposti **Continua in caso di errore** su un passo, l'errore viene registrato ma il passo successivo parte comunque. Utile per schemi tipo "prova queste tre cose, poi notifica".
+Di default, un passo fallito ferma l'esecuzione e la marca come `Failed`. Se imposti **Continua in caso di errore** su un passo, l'errore viene registrato ma il passo successivo viene eseguito. Utile per pattern del tipo "prova queste tre cose, poi notifica".
 
-## Un esempio completo
+## Un esempio concreto
 
-Un runbook semplice per "DB primario irraggiungibile":
+Un runbook semplice per "DB primary irraggiungibile":
 
-1. **JavaScript** — recupera l'host primario attuale dal servizio di configurazione e lo registra.
-2. **Manuale** — "Lag di replica del secondario inferiore a 5 secondi — confermato."
+1. **JavaScript** — recupera l'host primary attuale dal tuo servizio di configurazione e loggalo.
+2. **Manuale** — "Confermare che il lag di replica sulla secondaria sia sotto i 5 secondi."
 3. **Richiesta HTTP** — POST all'API del tuo orchestratore di failover.
-4. **Manuale** — "Le scritture vanno al nuovo primario — confermato."
-5. **Richiesta HTTP** — POST su Slack con un messaggio "tutto a posto".
+4. **Manuale** — "Verificare che le scritture stiano andando al nuovo primary."
+5. **Richiesta HTTP** — POST a Slack con un messaggio "tutto a posto".
 
-Chi risponde guarda partire un passo automatizzato, spunta uno manuale, guarda il successivo, e così via. L'output di ciascun passo viene conservato per il post-mortem.
+Chi risponde guarda un passo automatizzato partire, spunta uno manuale, guarda il successivo automatizzato partire e così via. L'output di ogni passo viene catturato per il postmortem.

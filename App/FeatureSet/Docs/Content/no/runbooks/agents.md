@@ -1,6 +1,6 @@
 # Runbook-agenter
 
-En **Runbook-agent** er en liten selvhostet prosess som kjører Bash- *og* JavaScript-stegene i runbookene dine **inne i din egen infrastruktur**. OneUptime-Worker'en kjører aldri skriptene dine selv — den setter dem i kø, og en Runbook-agent du har installert i miljøet ditt henter dem, kjører dem og sender resultatet tilbake.
+En **Runbook-agent** er en liten selvhostet prosess som kjører Bash- *og* JavaScript-stegene i runbookene dine **inne i din egen infrastruktur**. OneUptime-Worker'en kjører aldri skriptene dine selv — den setter dem i kø, og Runbook-agenten som stegforfatteren har valgt henter dem, kjører dem og sender resultatet tilbake.
 
 JavaScript kjører fortsatt i en `isolated-vm`-sandkasse; forskjellen er at den sandkassen lever på din agent-vert i stedet for hos oss.
 
@@ -20,9 +20,9 @@ Runbook-agenter snur dette på hodet. Bash- og JavaScript-steg kjører ikke hos 
 1. Du oppretter en Runbook-agent i OneUptime. OneUptime genererer en ID og en hemmelig nøkkel.
 2. Du kjører agentcontaineren på en vert i infrastrukturen din med den ID-en/nøkkelen pluss OneUptime-URL-en din.
 3. Agenten spør OneUptime hvert par sekund: "noe arbeid til meg?"
-4. Når et Bash- eller JavaScript-steg kjører, setter Worker'en inn en jobrad merket med stegets **Agent Tag** og en stegtype (Bash eller JavaScript), og setter statusen til `Pending`.
-5. Hvilken som helst sunn agent i samme prosjekt som bærer den taggen claimer jobben (atomisk — aldri to agenter på samme jobb), kjører den lokalt — `bash -c <skript>` for Bash, en `isolated-vm`-sandkasse for JavaScript — fanger resultatet og sender det tilbake.
-6. Worker'en gjenopptar runbooket med resultatet.
+4. Når du skriver et Bash- eller JavaScript-steg, velger du agenten fra en nedtrekksmeny — steget er bundet til den spesifikke agenten.
+5. Når steget kjøres, setter Worker'en inn en jobrad med `targetAgentId` satt til den agenten. Bare den agenten kan claime den.
+6. Agenten kjører skriptet lokalt — `bash -c <skript>` for Bash, en `isolated-vm`-sandkasse for JavaScript — fanger resultatet og sender det tilbake. Worker'en gjenopptar runbooket med resultatet.
 
 Agenten trenger bare **utgående HTTPS** til OneUptime-instansen din. Den aksepterer ingen innkommende tilkoblinger.
 
@@ -30,13 +30,12 @@ Agenten trenger bare **utgående HTTPS** til OneUptime-instansen din. Den aksept
 
 ### 1. Opprett agent-oppføringen
 
-Gå til **Runbooks → Agents → Opprett ny**. Fyll ut:
+Gå til **Runbooks → Innstillinger → Agents** og opprett en ny agent. Fyll ut:
 
 | Felt | Notater |
 | --- | --- |
-| **Navn** | Et talende navn — typisk `hvor-den-kjører-og-hva-den-kan`, f.eks. `prod-eu-west-1`. |
+| **Navn** | Et talende navn — typisk `hvor-den-kjører-og-hva-den-kan`, f.eks. `prod-eu-west-1`. Det er det som vises i nedtrekksmenyen når du skriver et steg. |
 | **Beskrivelse** | Valgfritt. En setning om hva denne verten kan nå. Ditt fremtidige jeg vil takke deg. |
-| **Tags** | Komma-separerte. Bash- og JavaScript-steg sikter etter en tag; enhver agent i prosjektet med den taggen får kjøre dem. Vanlige mønstre: `prod`, `staging`, `eu-west-1`, `db-host`. |
 
 ### 2. Kopier installasjonskommandoen
 
@@ -47,7 +46,7 @@ Etter oppretting, klikk **Vis oppsettinstruksjoner** på agentens rad. Du ser en
 Kjør Docker-kommandoen på en hvilken som helst vert i miljøet ditt som kan:
 
 - nå OneUptime-instansen din over HTTPS, og
-- gjøre det du vil Bash-stegene skal gjøre (f.eks. SSH til andre verter, `kubectl`, snakke med en database).
+- gjøre det du vil Bash/JavaScript-stegene skal gjøre (f.eks. SSH til andre verter, `kubectl`, snakke med en database).
 
 ```bash
 docker run --name oneuptime-runbook-agent --restart unless-stopped \
@@ -59,31 +58,22 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 
 ### 4. Verifiser at agenten er tilkoblet
 
-Gå tilbake til **Runbooks → Agents**. Innen ca. 60 sekunder skal agentens rad bytte til `Connected` med et ferskt **Last seen**-tidsstempel. Hvis den blir værende `Disconnected`:
+Gå tilbake til **Runbooks → Innstillinger → Agents**. Innen ca. 60 sekunder skal agentens rad bytte til `Connected` med et ferskt **Last seen**-tidsstempel. Hvis den blir værende `Disconnected`:
 
 - Sjekk container-loggene (`docker logs oneuptime-runbook-agent`) for auth- eller nettverksfeil.
 - Verifiser at verten når OneUptime-URL-en med `curl`.
 - Verifiser at ID og nøkkel ble kopiert uten mellomrom.
 
-## Tagger og ruting
-
-Tagger er måten et Bash- eller JavaScript-steg finner en agent på. Noen mønstre:
-
-- **Én tag per miljø.** Tagg prod-agenten `prod`, staging-agenten `staging`. Bash-steg som sikter på `prod` kjører bare på prod.
-- **Én tag per region.** `eu-west-1`, `us-east-1`. Nyttig når et steg må kjøre nær ressursen det rører.
-- **Flere agenter, samme tag.** Kjør to agenter begge tagget `prod`. Hvem som helst kan claime en jobb — gir høy tilgjengelighet og lar deg gjøre rullende omstarter uten å bryte runbooks.
-- **Flere tagger per agent.** En agent i prod-EU-clusteret kan bære `prod`, `eu-west-1` og `kubernetes`. Bash-steg kan sikte på hvilken som helst av dem.
-
-Bash- og JavaScript-steg **må** hver især spesifisere nøyaktig én agent-tag. Multi-tag-ruting (kjør på enhver agent som har `prod` AND `db`) står på roadmap'en, men er ikke i denne releasen.
-
 ## Pek et steg mot en agent
 
-Legg til et Bash- eller JavaScript-steg i runbook'et ditt. Skjemaet spør om en **Agent Tag**:
+Legg til et Bash- eller JavaScript-steg i runbook'et ditt. Skjemaet har en **Runbook-agent**-nedtrekksmeny som lister hver agent i det gjeldende prosjektet (med en connected/disconnected-indikator):
 
-- Skriv inn taggen som matcher agenten/agentene du vil ha det til å kjøre på.
+- Velg agenten som skal kjøre dette steget.
 - Skriv skriptet ditt i editoren under.
 
-Når runbook'et kjører og når steget, køer Worker'en en jobb med den taggen og stegtypen. Hvis minst én sunn agent med den taggen er online, blir jobben claimet innen få sekunder og kjørt. Bash kjøres via `bash -c`; JavaScript kjører inne i en `isolated-vm`-sandkasse på agenten (intet filsystem, intet nettverk, ingen `Function`/`eval`).
+Når runbook'et kjører og når steget, køer Worker'en en jobb rettet mot den agentens ID. Bare den agenten kan claime den. Bash kjøres via `bash -c`; JavaScript kjører inne i en `isolated-vm`-sandkasse på agenten (intet filsystem, intet nettverk, ingen `Function`/`eval`).
+
+Trenger du mer enn én agent? Opprett dem, og pek så individuelle steg mot den som passer. Vil du ha redundans, kan du skrive to runbooks (én per agent) eller fordele steg mellom agenter.
 
 ## Driftsmerknader
 
@@ -93,7 +83,7 @@ To timeouts gjelder for hvert Bash- eller JavaScript-steg:
 
 | Timeout | Standard | Hva det styrer |
 | --- | --- | --- |
-| **Claim timeout** | 2 minutter | Hvor lenge Worker'en venter på at *en* agent claimer jobben. Hvis ingen tar den i tide, feiler steget med `TimedOut` og runbook'et fortsetter (eller stopper, avhengig av **Fortsett ved feil**). |
+| **Claim timeout** | 2 minutter | Hvor lenge Worker'en venter på at den valgte agenten claimer jobben. Hvis agenten ikke tar den i tide, feiler steget med `TimedOut` og runbook'et fortsetter (eller stopper, avhengig av **Fortsett ved feil**). |
 | **Execution timeout** | 30 sekunder | Hvor lenge agenten lar skriptet kjøre før den avslutter det. Konfigurerbar per steg. (Bash får `SIGKILL`; JavaScript-isolaten rives ned.) |
 
 Worker'ens totale ventevindu er `claim timeout + execution timeout + et par sekunders margin`. Velg tall som passer steget.
@@ -106,7 +96,7 @@ Bash-barneprosesser avbrytes **ikke** automatisk når lease'en utløper (en Java
 
 ### Ingen agent online
 
-Hvis ingen sunn agent med stegets tag er online på utførelsestidspunktet, blir jobben `Pending` til claim timeout går ut og feiler så med en klar melding ("no agent claimed the job"). Agents-siden er der du bekrefter dekning før du kjører et runbook for alvor.
+Hvis den valgte agenten er offline i det øyeblikket steget kjører, blir jobben værende `Pending` til claim timeout går ut og feiler så med en klar melding ("no agent claimed the job"). Agents-siden er der du bekrefter dekning før du kjører et runbook for alvor.
 
 ### Output-tak
 
@@ -114,7 +104,7 @@ Kombinert stdout + stderr er begrenset til **50 KB** per steg. Større output ku
 
 ### Avbrytelse
 
-Å avbryte en runbook-eksekvering (fra eksekveringsvisningen eller API-et) markerer øyeblikkelig alle dens `Pending`/`Claimed`/`Running` Bash-jobber som `Cancelled`. En agent som allerede er midt i skriptet, fullfører arbeidet, men resultatet blir ikke akseptert av serveren.
+Å avbryte en runbook-eksekvering (fra eksekveringsvisningen eller API-et) markerer øyeblikkelig alle dens `Pending`/`Claimed`/`Running` Bash- og JavaScript-jobber som `Cancelled`. En agent som allerede er midt i skriptet, fullfører arbeidet, men resultatet blir ikke akseptert av serveren.
 
 ### Samtidighet
 
@@ -143,9 +133,9 @@ Hvis en nøkkel lekker, åpne agenten i OneUptime og resett nøkkelen. Den gamle
 Håndtering av agenter ligger under den eksisterende Runbooks-rettighetsgruppen:
 
 - `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — administrer agent-oppføringer.
-- `RunbookAdmin` (rolle) — bundler alle de ovennevnte.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tildel et team for å gi henholdsvis full kontroll, daglig bruk eller lesetilgang. `RunbookAdmin` samler alle de granulære rettighetene over.
 
-Rettigheter til å *utløse* et runbook (og dermed sende Bash-steg) er fortsatt `CreateRunbookExecution` / `EditRunbookExecution`.
+Rettigheter til å *utløse* et runbook (og dermed sende Bash- og JavaScript-steg) er fortsatt `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-API
 
@@ -154,7 +144,7 @@ For de nysgjerrige — agenten bruker disse endepunktene, montert under `/runboo
 | Endepunkt | Formål |
 | --- | --- |
 | `POST /heartbeat` | Liveness; oppdaterer `lastAlive`, `connectionStatus`, `hostInfo`, `agentVersion`. |
-| `POST /claim-next-job` | Claimer atomisk den eldste `Pending`-jobben hvis tag matcher en av denne agentens tagger. Returnerer `{ job: null }` når det ikke er noe å gjøre. |
+| `POST /claim-next-job` | Claimer atomisk den eldste `Pending`-jobben rettet mot denne agentens ID. Returnerer `{ job: null }` når det ikke er noe å gjøre. |
 | `POST /job/:jobId/heartbeat` | Fornyer jobbens lease. Returnerer 404 så snart lease'en er utgått eller jobben er terminal. |
 | `POST /job/:jobId/result` | Sender inn det endelige resultatet. Ignoreres hvis lease'en allerede har gått videre. |
 

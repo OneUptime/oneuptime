@@ -11,7 +11,8 @@ Hvert trinn har:
 | **Tittel** | Kort betegnelse i sjekkliste-UI-en. Påkrevd. |
 | **Beskrivelse** | Valgfri kontekst til responderen. Markdown-tekst. |
 | **Fortsett ved feil** | Hvis på, stopper et feilet trinn ikke kjøringen — neste trinn kjører likevel. |
-| **Typespesifikk konfigurasjon** | Skript, URL osv. — se nedenfor. |
+| **Krev godkjenning** | Hvis på, pauser runbook'et etter dette trinnet og venter på at en bruker godkjenner før neste trinn kjøres. |
+| **Typespesifikk konfigurasjon** | Skript, URL, agent osv. — se nedenfor. |
 
 Trinn kjører **i rekkefølge**. Omorganiser med pilene opp/ned i trinn-editoren.
 
@@ -25,7 +26,12 @@ Bruk det for noe bare et menneske kan verifisere: "Trafikken er flyttet til seku
 
 ### JavaScript
 
-En JavaScript-snutt som kjøres i en `isolated-vm`-sandkasse (ingen filsystem, ingen nettverk med mindre du tar med en API) — men sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, ikke på OneUptime-Worker'en. Konfigurer en **Agent Tag** på trinnet som peker på agenten(e) som skal kjøre det. Er ingen agent med den taggen online, venter trinnet til **claim timeout** (standard 2 minutter) og feiler så.
+En JavaScript-snutt som kjøres i en `isolated-vm`-sandkasse. Sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur — ikke på OneUptime-Worker'en.
+
+Konfigurer to ting på et JavaScript-trinn:
+
+- **Runbook-agent** — velg agenten som skal kjøre dette trinnet, fra nedtrekksmenyen. Bare den valgte agenten kan claime jobben.
+- **Skript** — JavaScript-koden som skal kjøres.
 
 ```js
 const start = Date.now();
@@ -33,24 +39,24 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Returverdien lagres på trinn-kjøringen. `console.log`-output fanges som loglinjer. Standard timeout: 30 sekunder.
+Returverdien lagres på trinn-kjøringen. `console.log`-output fanges som loglinjer. Standard execution timeout: 30 sekunder. Standard claim timeout (hvor lenge Worker'en venter på at agenten plukker opp jobben): 2 minutter.
 
 ### HTTP-forespørsel
 
 Et utgående HTTP-kall. Konfigurer metode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valgfrie JSON-headere og valgfri body. Status, headere og body på svaret lagres (totalt opp til 50 KB).
 
-Nyttig for: åpne en PagerDuty-hendelse, poste på Slack, kalle din egen admin-API osv.
+Nyttig for: åpne en PagerDuty-hendelse, poste på Slack, kalle din egen admin-API osv. HTTP-trinn kjører direkte på OneUptime-Worker'en; ingen agent påkrevd.
 
 ### Bash
 
-Et bash-skript som kjører på en [Runbook-agent](/docs/runbooks/agents) — en liten prosess du installerer på en vert i din egen infrastruktur. Bash-trinn kjøres aldri på OneUptime-Worker'en.
+Et bash-skript (`bash -c <skript>`) som kjøres på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash kjøres aldri på OneUptime-Worker'en.
 
 Konfigurer to ting på et Bash-trinn:
 
-- **Agent Tag** — tag'en som identifiserer hvilke(n) agent(er) som skal kjøre dette trinnet. Enhver sunn agent i prosjektet som bærer tag'en vil claime og kjøre jobben.
+- **Runbook-agent** — velg agenten som skal kjøre dette trinnet, fra nedtrekksmenyen. Bare den valgte agenten kan claime jobben.
 - **Skript** — bash'en som skal kjøres. Output (stdout + stderr) fanges opp til 50 KB; prosessen drepes ved timeout.
 
-Hvis ingen agent med valgt tag er online når runbook'et når dette trinnet, venter trinnet til **claim timeout** (standard 2 minutter) og feiler så. Legg til en agent under **Runbooks → Agents** før du baserer deg på et Bash-trinn.
+Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter trinnet opp til **claim timeout** (standard 2 minutter) og feiler så med `TimedOut`. Legg til en agent under **Runbooks → Innstillinger → Agents** før du baserer deg på et Bash-trinn.
 
 ## Lagre og redigere
 

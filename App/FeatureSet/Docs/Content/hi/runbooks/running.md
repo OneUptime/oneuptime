@@ -3,14 +3,14 @@
 Runbook execution बनने के तीन तरीके हैं:
 
 1. **नियम के माध्यम से स्वचालित रूप से** — [Runbook नियम](/docs/runbooks/rules) देखें।
-2. **Runbook पेज से मैन्युअल रूप से** — Runbook के अवलोकन पर **Run Now** क्लिक करें। यह किसी incident, alert या maintenance से बंधा नहीं है।
+2. **Runbook पेज से मैन्युअल रूप से** — Runbook के अवलोकन पर **Run Now** क्लिक करें। यह किसी incident, alert या निर्धारित रखरखाव इवेंट से बंधा नहीं है।
 3. **एंटिटी फ़ीड से मैन्युअल रूप से** — incident, alert या निर्धारित रखरखाव इवेंट पर **Run Runbook** क्लिक करें। execution उस एंटिटी से जुड़ता है।
 
 ## execution दृश्य
 
 execution खोलकर उसका चेकलिस्ट UI देखें। प्रत्येक चरण दिखाता है:
 
-- **स्थिति बैज** — Pending, Running, आपका इंतज़ार, Done, Skipped, Failed.
+- **स्थिति बैज** — Pending, Running, आपका इंतज़ार, Done, Skipped, Failed।
 - **शीर्षक और विवरण** — execution के समय Runbook से कॉपी।
 - **आउटपुट** (समेटा जा सकता है) — stdout, return मान, HTTP प्रतिक्रियाएँ।
 - **त्रुटि संदेश** यदि चरण असफल हुआ।
@@ -40,8 +40,8 @@ execution पेज पर **Cancel Execution** क्लिक करें। 
 
 ## Runbook दोबारा चलाना
 
-execution एक एकल, अपरिवर्तनीय रिकॉर्ड है। दोबारा चलाने के लिए फिर से **Run Now** क्लिक करें — यह Runbook के मौजूदा चरणों के ताज़ा स्नैपशॉट के साथ नया execution बनाता है। मूल execution ऑडिट के लिए अछूता रहता है।
+Runbook execution एक एकल, अपरिवर्तनीय रिकॉर्ड है। दोबारा चलाने के लिए फिर से **Run Now** क्लिक करें — यह Runbook के मौजूदा चरणों के ताज़ा स्नैपशॉट के साथ नया execution बनाता है। मूल execution ऑडिट के लिए अछूता रहता है।
 
 ## पुराने executions ढूँढना
 
-प्रत्येक Runbook का **Executions** टैब इसकी सभी runs को स्थिति, तारीख सीमा और स्रोत एंटिटी फ़िल्टर के साथ सूचीबद्ध करता है। incident, alert या maintenance पर **Runbooks** टैब उस एंटिटी से जुड़े runs दिखाता है।
+प्रत्येक Runbook का **Executions** टैब इसकी सभी runs को स्थिति, तारीख सीमा और स्रोत एंटिटी फ़िल्टर के साथ सूचीबद्ध करता है। incident, alert या निर्धारित रखरखाव इवेंट पर **Runbooks** टैब उस एंटिटी से जुड़े runs दिखाता है।
