@@ -9,6 +9,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
 import Columns from "../../../../Types/Database/Columns";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -153,6 +154,41 @@ export default class QueryPermission {
 
     for (const key in query) {
       if (excludedColumnNames.includes(key)) {
+        continue;
+      }
+
+      /*
+       * MultiSearch is a synthetic operator: the key itself is not a column,
+       * but the operator carries the list of fields it will ILIKE against
+       * (QueryUtil.serializeQuery expands it into an OR over those fields).
+       * Validate each inner field the same way we validate any other queried
+       * column so a client can't search across columns the user can't read.
+       */
+      if (query[key] instanceof MultiSearch) {
+        const multiSearch: MultiSearch = query[key] as unknown as MultiSearch;
+
+        for (const field of multiSearch.fields) {
+          if (excludedColumnNames.includes(field)) {
+            continue;
+          }
+
+          if (!tableColumns.includes(field)) {
+            throw new BadDataException(
+              `Invalid column on ${model.singularName} - ${field}. Column does not exist.`,
+            );
+          }
+
+          if (!canReadOnTheseColumns.columns.includes(field)) {
+            throw new NotAuthorizedException(
+              `You do not have permissions to query on - ${field}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                model.getColumnAccessControlFor(field)
+                  ? model.getColumnAccessControlFor(field)!.read
+                  : [],
+              ).join(", ")}`,
+            );
+          }
+        }
+
         continue;
       }
 
