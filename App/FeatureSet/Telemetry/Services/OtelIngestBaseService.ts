@@ -64,12 +64,42 @@ export default abstract class OtelIngestBaseService {
     }
 
     /*
+     * Per-process fallback: the OTel eBPF profiler (and any
+     * per-process collector that scans the kernel rather than relying
+     * on an application SDK) emits one ResourceProfile per process
+     * with `process.executable.name` on the resource — but no
+     * `service.name`, because mapping a PID back to a k8s
+     * workload/pod is out of scope for the profiler. Use the
+     * executable name so each process gets its own service row
+     * ("kubelet", "cilium-agent", "containerd", "otelcol-ebpf-
+     * profiler") and the *same* executable across nodes collapses
+     * into one service — same as how `cilium` already appears once
+     * for the whole cluster instead of once per node.
+     *
+     * Gated on the same hasHostResourceSignal check as the host
+     * fallback below so that an application SDK happening to set
+     * `process.executable.name` (some Go and .NET SDKs do) without
+     * any host/k8s/container signal can't create phantom executable-
+     * name services.
+     */
+    if (this.hasHostResourceSignal(attributes)) {
+      const processExecutableName: string | null = this.getStringAttribute(
+        attributes,
+        "process.executable.name",
+      );
+      if (processExecutableName) {
+        return processExecutableName;
+      }
+    }
+
+    /*
      * Host-aware fallback: when telemetry arrives from a host (OTel
      * hostmetrics receiver, infrastructure agent over OTLP, or a k8s
-     * node) without an explicit service.name, synthesize a per-host
-     * service name so each host's metrics, logs and traces show up as
-     * their own service in the Telemetry Services list instead of
-     * every host collapsing into "Unknown Service".
+     * node) without an explicit service.name or process executable
+     * name, synthesize a per-host service name so each host's metrics,
+     * logs and traces show up as their own service in the Telemetry
+     * Services list instead of every host collapsing into "Unknown
+     * Service".
      *
      * Phantom-service gate: only synthesize when the resource carries
      * a strong host signal (os.type from the system resourcedetector,
