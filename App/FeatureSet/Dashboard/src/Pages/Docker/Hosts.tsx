@@ -22,6 +22,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DockerDocumentationCard from "../../Components/Docker/DocumentationCard";
+import AppLink from "../../Components/AppLink/AppLink";
+import ObjectID from "Common/Types/ObjectID";
 
 const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hostCount, setHostCount] = useState<number | null>(null);
@@ -145,7 +147,23 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
             },
             title: "Name",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: DockerHost): ReactElement => {
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DOCKER_HOST_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item._id as string),
+                },
+              );
+              return (
+                <AppLink
+                  to={route}
+                  className="text-sm font-medium text-gray-900 hover:underline"
+                >
+                  {(item.name as string) || "—"}
+                </AppLink>
+              );
+            },
           },
           {
             field: {

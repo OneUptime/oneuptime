@@ -22,6 +22,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
+import AppLink from "../../Components/AppLink/AppLink";
+import ObjectID from "Common/Types/ObjectID";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
@@ -148,7 +150,23 @@ const KubernetesClusters: FunctionComponent<
               name: true,
             },
             title: "Name",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item._id as string),
+                },
+              );
+              return (
+                <AppLink
+                  to={route}
+                  className="text-sm font-medium text-gray-900 hover:underline"
+                >
+                  {(item.name as string) || "—"}
+                </AppLink>
+              );
+            },
           },
           {
             field: {

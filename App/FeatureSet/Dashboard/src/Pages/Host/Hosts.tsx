@@ -25,6 +25,8 @@ import HostDocumentationCard from "../../Components/Host/DocumentationCard";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import ProjectUtil from "Common/UI/Utils/Project";
+import AppLink from "../../Components/AppLink/AppLink";
+import ObjectID from "Common/Types/ObjectID";
 
 interface ResourceSummary {
   cores: number | undefined;
@@ -274,11 +276,20 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               const id: string = (item.hostIdentifier as string) || "";
               const name: string = (item.name as string) || "";
               const showId: boolean = id !== "" && id !== name;
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item._id as string),
+                },
+              );
               return (
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
+                  <AppLink
+                    to={route}
+                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                  >
                     {name || "—"}
-                  </div>
+                  </AppLink>
                   {showId && (
                     <div className="text-xs text-gray-500 font-mono truncate">
                       {id}
