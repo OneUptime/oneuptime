@@ -59,6 +59,7 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
 import MonitorTestForm from "./MonitorTest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
@@ -132,6 +133,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
     useState<boolean>(false);
+
+  const [useTlsClientCertificate, setUseTlsClientCertificate] =
+    useState<boolean>(
+      Boolean(
+        props.value?.data?.tlsClientCertificate ||
+          props.value?.data?.tlsClientKey ||
+          props.value?.data?.tlsClientKeyPassphrase,
+      ),
+    );
 
   const [
     showSyntheticMonitorAdvancedOptions,
@@ -375,7 +385,9 @@ return {
     ) ||
     Boolean(monitorStep.data?.requestBody) ||
     Boolean(monitorStep.data?.doNotFollowRedirects) ||
-    Boolean(monitorStep.data?.allowSelfSignedCertificates);
+    Boolean(monitorStep.data?.allowSelfSignedCertificates) ||
+    Boolean(monitorStep.data?.tlsClientCertificate) ||
+    Boolean(monitorStep.data?.tlsClientKey);
 
   return (
     <div className="mt-5 space-y-6">
@@ -709,6 +721,120 @@ return {
                 }}
               />
             </div>
+
+            <div>
+              <CheckboxElement
+                initialValue={useTlsClientCertificate}
+                title={"Use client certificate (mTLS)"}
+                description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
+                onChange={(value: boolean) => {
+                  setUseTlsClientCertificate(value);
+                  if (!value) {
+                    monitorStep.setTlsClientCertificate(undefined);
+                    monitorStep.setTlsClientKey(undefined);
+                    monitorStep.setTlsClientKeyPassphrase(undefined);
+                    if (props.onChange) {
+                      props.onChange(MonitorStep.clone(monitorStep));
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            {useTlsClientCertificate && (
+              <>
+                <div>
+                  <FieldLabelElement
+                    title={"Client Certificate (PEM)"}
+                    description={
+                      <p>
+                        Client certificate (mTLS). Paste the PEM-encoded
+                        certificate, or reference a monitor secret with{" "}
+                        <code className="bg-gray-100 px-1 rounded">
+                          {"{{monitorSecrets.name}}"}
+                        </code>
+                        .{" "}
+                        <Link
+                          className="underline"
+                          openInNewTab={true}
+                          to={URL.fromString(
+                            DOCS_URL.toString() + "/monitor/monitor-secrets",
+                          )}
+                        >
+                          Learn more about secrets.
+                        </Link>
+                      </p>
+                    }
+                    required={true}
+                  />
+                  <TextArea
+                    initialValue={monitorStep.data?.tlsClientCertificate || ""}
+                    disableSpellCheck={true}
+                    placeholder={
+                      "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----"
+                    }
+                    onChange={(value: string) => {
+                      monitorStep.setTlsClientCertificate(value);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabelElement
+                    title={"Client Private Key (PEM)"}
+                    description={
+                      <p>
+                        Private key paired with the client certificate above.
+                        Reference a monitor secret with{" "}
+                        <code className="bg-gray-100 px-1 rounded">
+                          {"{{monitorSecrets.name}}"}
+                        </code>{" "}
+                        to keep the key encrypted at rest.
+                      </p>
+                    }
+                    required={true}
+                  />
+                  <TextArea
+                    initialValue={monitorStep.data?.tlsClientKey || ""}
+                    disableSpellCheck={true}
+                    placeholder={
+                      "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
+                    }
+                    onChange={(value: string) => {
+                      monitorStep.setTlsClientKey(value);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabelElement
+                    title={"Client Private Key Passphrase"}
+                    description={
+                      "Optional passphrase if the private key above is encrypted."
+                    }
+                    required={false}
+                  />
+                  <Input
+                    initialValue={
+                      monitorStep.data?.tlsClientKeyPassphrase || ""
+                    }
+                    onChange={(value: string) => {
+                      monitorStep.setTlsClientKeyPassphrase(value);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                    placeholder="Leave blank if the key is not encrypted"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </CollapsibleSection>
       )}
@@ -720,7 +846,9 @@ return {
           description="Redirect and TLS settings"
           badge={
             monitorStep.data?.doNotFollowRedirects ||
-            monitorStep.data?.allowSelfSignedCertificates
+            monitorStep.data?.allowSelfSignedCertificates ||
+            monitorStep.data?.tlsClientCertificate ||
+            monitorStep.data?.tlsClientKey
               ? "Configured"
               : undefined
           }
@@ -728,6 +856,8 @@ return {
           defaultCollapsed={
             !monitorStep.data?.doNotFollowRedirects &&
             !monitorStep.data?.allowSelfSignedCertificates &&
+            !monitorStep.data?.tlsClientCertificate &&
+            !monitorStep.data?.tlsClientKey &&
             !showDoNotFollowRedirects
           }
           onToggle={(isCollapsed: boolean) => {
@@ -766,6 +896,120 @@ return {
                 }}
               />
             </div>
+
+            <div>
+              <CheckboxElement
+                initialValue={useTlsClientCertificate}
+                title={"Use client certificate (mTLS)"}
+                description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
+                onChange={(value: boolean) => {
+                  setUseTlsClientCertificate(value);
+                  if (!value) {
+                    monitorStep.setTlsClientCertificate(undefined);
+                    monitorStep.setTlsClientKey(undefined);
+                    monitorStep.setTlsClientKeyPassphrase(undefined);
+                    if (props.onChange) {
+                      props.onChange(MonitorStep.clone(monitorStep));
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            {useTlsClientCertificate && (
+              <>
+                <div>
+                  <FieldLabelElement
+                    title={"Client Certificate (PEM)"}
+                    description={
+                      <p>
+                        Client certificate (mTLS). Paste the PEM-encoded
+                        certificate, or reference a monitor secret with{" "}
+                        <code className="bg-gray-100 px-1 rounded">
+                          {"{{monitorSecrets.name}}"}
+                        </code>
+                        .{" "}
+                        <Link
+                          className="underline"
+                          openInNewTab={true}
+                          to={URL.fromString(
+                            DOCS_URL.toString() + "/monitor/monitor-secrets",
+                          )}
+                        >
+                          Learn more about secrets.
+                        </Link>
+                      </p>
+                    }
+                    required={true}
+                  />
+                  <TextArea
+                    initialValue={monitorStep.data?.tlsClientCertificate || ""}
+                    disableSpellCheck={true}
+                    placeholder={
+                      "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----"
+                    }
+                    onChange={(value: string) => {
+                      monitorStep.setTlsClientCertificate(value);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabelElement
+                    title={"Client Private Key (PEM)"}
+                    description={
+                      <p>
+                        Private key paired with the client certificate above.
+                        Reference a monitor secret with{" "}
+                        <code className="bg-gray-100 px-1 rounded">
+                          {"{{monitorSecrets.name}}"}
+                        </code>{" "}
+                        to keep the key encrypted at rest.
+                      </p>
+                    }
+                    required={true}
+                  />
+                  <TextArea
+                    initialValue={monitorStep.data?.tlsClientKey || ""}
+                    disableSpellCheck={true}
+                    placeholder={
+                      "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
+                    }
+                    onChange={(value: string) => {
+                      monitorStep.setTlsClientKey(value);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabelElement
+                    title={"Client Private Key Passphrase"}
+                    description={
+                      "Optional passphrase if the private key above is encrypted."
+                    }
+                    required={false}
+                  />
+                  <Input
+                    initialValue={
+                      monitorStep.data?.tlsClientKeyPassphrase || ""
+                    }
+                    onChange={(value: string) => {
+                      monitorStep.setTlsClientKeyPassphrase(value);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                    placeholder="Leave blank if the key is not encrypted"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </CollapsibleSection>
       )}

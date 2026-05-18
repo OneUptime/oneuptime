@@ -59,6 +59,30 @@ export interface FunctionListRequest {
   sortBy?: "selfValue" | "totalValue" | "sampleCount";
 }
 
+export interface ServiceActivityRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  /**
+   * Single profile type to filter on. Kept for backwards compat. When
+   * `profileTypes` is also supplied, `profileTypes` wins.
+   */
+  profileType?: string;
+  /**
+   * Multiple raw profile-type strings to OR together. The UI maps a
+   * user-facing category (e.g. "CPU") to all the raw type strings real
+   * agents actually emit (e.g. ["cpu", "samples"]).
+   */
+  profileTypes?: Array<string>;
+}
+
+export interface ServiceActivityItem {
+  serviceId: string;
+  sampleCount: number;
+  profileCount: number;
+  totalValue: number;
+}
+
 export interface DiffFlamegraphRequest {
   projectId: ObjectID;
   baselineStartTime: Date;
@@ -417,6 +441,42 @@ export class ProfileAggregationService {
     return node;
   }
 
+  /**
+   * Aggregate sample / profile counts per serviceId for a time window.
+   * Drives the "loudest services first" sort on the Profiles dashboard
+   * so a developer opening the page lands on the workloads that are
+   * actually doing work rather than scrolling past kernel-thread noise.
+   */
+  @CaptureSpan()
+  public static async getServiceActivity(
+    request: ServiceActivityRequest,
+  ): Promise<Array<ServiceActivityItem>> {
+    const statement: Statement =
+      ProfileAggregationService.buildServiceActivityQuery(request);
+
+    const dbResult: Results =
+      await ProfileSampleDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+    const out: Array<ServiceActivityItem> = [];
+    for (const row of rows) {
+      const serviceId: string = String(row["serviceId"] || "");
+      if (!serviceId) {
+        continue;
+      }
+      out.push({
+        serviceId,
+        sampleCount: Number(row["sampleCount"] || 0),
+        profileCount: Number(row["profileCount"] || 0),
+        totalValue: Number(row["totalValue"] || 0),
+      });
+    }
+    return out;
+  }
+
   // --- Query builders ---
 
   private static buildFlamegraphQuery(request: FlamegraphRequest): Statement {
@@ -501,6 +561,65 @@ export class ProfileAggregationService {
         type: TableColumnType.Number,
         value: ProfileAggregationService.MAX_SAMPLE_FETCH,
       }}`,
+    );
+
+    return statement;
+  }
+
+  private static buildServiceActivityQuery(
+    request: ServiceActivityRequest,
+  ): Statement {
+    /*
+     * sum(value) directly — value is stored as Int128 in ClickHouse, so
+     * toFloat64OrZero would fail ("Illegal type Int128"); a plain sum is
+     * the right idiom here, and we coerce to Number when serialising in
+     * getServiceActivity.
+     */
+    const statement: Statement = SQL`
+      SELECT
+        toString(serviceId) AS serviceId,
+        count() AS sampleCount,
+        uniqExact(profileId) AS profileCount,
+        toFloat64(sum(value)) AS totalValue
+      FROM ${ProfileAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `;
+
+    /*
+     * profileTypes (array) wins over profileType (single) so the UI
+     * can OR together every raw type string in a category.
+     */
+    if (request.profileTypes && request.profileTypes.length > 0) {
+      statement.append(
+        SQL` AND profileType IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.profileTypes),
+        }})`,
+      );
+    } else if (request.profileType) {
+      statement.append(
+        SQL` AND profileType = ${{
+          type: TableColumnType.Text,
+          value: request.profileType,
+        }}`,
+      );
+    }
+
+    statement.append(
+      SQL` GROUP BY serviceId
+           ORDER BY sampleCount DESC
+           LIMIT 10000`,
     );
 
     return statement;

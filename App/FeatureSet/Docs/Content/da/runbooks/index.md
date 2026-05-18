@@ -1,6 +1,6 @@
 # Runbooks – Oversigt
 
-Runbooks er genbrugelige svarprocedurer — ordnede lister af manuelle eller automatiserede trin — som du knytter til hændelser, alarmer eller planlagte vedligeholdelser. De forvandler ad hoc Slack-tråde af typen "hvad gør vi nu?" til noget, en kollega kan tage op fra bunden klokken 3 om natten.
+Runbooks er genbrugelige svarprocedurer — ordnede lister af manuelle eller automatiserede trin — som du knytter til hændelser, alarmer eller planlagt vedligehold. De forvandler ad hoc Slack-tråde af typen "hvad gør vi nu?" til noget, en kollega kan tage op fra bunden klokken 3 om natten.
 
 ## I et hurtigt overblik
 

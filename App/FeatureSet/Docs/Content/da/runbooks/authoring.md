@@ -1,17 +1,18 @@
 # Skriv et runbook
 
-Opret et runbook under **Runbooks → Opret runbook**, åbn det og gå til fanen **Trin**.
+Opret et runbook under **Runbooks → Opret runbook**, åbn det derefter og gå til **Trin**-fanen.
 
-## Anatomien af et trin
+## Anatomi af et trin
 
 Hvert trin har:
 
 | Felt | Formål |
 | --- | --- |
-| **Titel** | Kort betegnelse i tjekliste-UI'en. Påkrævet. |
-| **Beskrivelse** | Valgfri kontekst til responderen. Markdown-tekst. |
-| **Fortsæt ved fejl** | Hvis aktiv, stopper et fejlet trin ikke kørslen — det næste trin kører alligevel. |
-| **Typespecifik konfiguration** | Script, URL osv. — se nedenfor. |
+| **Titel** | Kort label vist i tjeklisten i UI'en. Påkrævet. |
+| **Beskrivelse** | Valgfri kontekst til responderen. Markdown-sikker tekst. |
+| **Fortsæt ved fejl** | Hvis aktiveret stopper et fejlende trin ikke kørslen — næste trin udføres alligevel. |
+| **Kræv godkendelse** | Hvis aktiveret pauser runbook'et efter dette trin og venter på, at en bruger godkender, før næste trin køres. |
+| **Typespecifik konfiguration** | Script, URL, agent osv. — se nedenfor. |
 
 Trin kører **i rækkefølge**. Omarranger dem med op/ned-pilene i trin-editoren.
 
@@ -19,13 +20,18 @@ Trin kører **i rækkefølge**. Omarranger dem med op/ned-pilene i trin-editoren
 
 ### Manuel
 
-En boks, responderen tikker af. Kørslen sættes på pause ved et manuelt trin og forbliver i `WaitingForManualStep`, indtil nogen markerer det som færdigt (eller springer det over).
+Et afkrydsningsfelt, responderen tikker af. Runbook-kørslen pauser, når den når et manuelt trin og forbliver i `WaitingForManualStep`, indtil nogen markerer den som færdig (eller springer den over).
 
-Brug det til ting, kun et menneske kan verificere: "Trafikken er flyttet til sekundær region ifølge load balancer-dashboardet — bekræftet."
+Brug det til ting kun et menneske kan verificere: "Bekræftet at trafik er flyttet til sekundær region i load balancer-dashboardet."
 
 ### JavaScript
 
-Et JavaScript-uddrag, der køres i en `isolated-vm`-sandkasse (intet filsystem, intet netværk medmindre du selv medbringer en API) — men sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, ikke på OneUptime-Worker'en. Konfigurer et **Agent Tag** på trinet, der peger på den/de agent(er), der skal udføre det. Er ingen agent med det tag online, venter trinet indtil **claim timeout** (standard 2 minutter) og fejler så.
+Et stykke JavaScript kørt i en `isolated-vm`-sandkasse. Sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur — ikke på OneUptime Worker'en.
+
+Konfigurer to ting på et JavaScript-trin:
+
+- **Runbook-agent** — vælg den agent, der skal køre dette trin, fra dropdownen. Kun den valgte agent må claime jobbet.
+- **Script** — det JavaScript, der skal køres.
 
 ```js
 const start = Date.now();
@@ -33,41 +39,41 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Den returnerede værdi gemmes på trin-kørslen. `console.log`-output fanges som logrækker. Standardtimeout: 30 sekunder.
+Den returnerede værdi fanges på trin-eksekveringen. `console.log`-output fanges som loglinjer. Standard execution timeout: 30 sekunder. Standard claim timeout (hvor længe Worker'en venter på, at agenten samler jobbet op): 2 minutter.
 
 ### HTTP-anmodning
 
-Et udgående HTTP-kald. Konfigurér metode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valgfri JSON-headers og valgfri body. Status, headers og body i svaret gemmes (begrænset til 50 KB i alt).
+Foretag et udgående HTTP-kald. Konfigurer metode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valgfrie JSON-headere og valgfrit body. Responsens status, headere og body fanges (begrænset til 50 KB i alt).
 
-Nyttigt til: åbne en PagerDuty-hændelse, poste på Slack, kalde din egen admin-API osv.
+Nyttig til: at starte en PagerDuty-hændelse, poste til Slack, kalde din egen admin-API osv. HTTP-trin kører på OneUptime Worker'en direkte; ingen agent påkrævet.
 
 ### Bash
 
-Et bash-script, der kører på en [Runbook-agent](/docs/runbooks/agents) — en lille proces, du installerer på en vært i din egen infrastruktur. Bash-trin udføres aldrig på OneUptime-Worker'en.
+Et bash-script (`bash -c <script>`) kørt på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash kører aldrig på OneUptime Worker'en.
 
-Konfigurér to ting på et Bash-trin:
+Konfigurer to ting på et Bash-trin:
 
-- **Agent Tag** — det tag, der identificerer hvilke(n) agent(er) der skal udføre dette trin. Enhver sund agent i projektet, der bærer det tag, vil claime og køre jobbet.
-- **Script** — det bash, der skal køres. Output (stdout + stderr) fanges op til 50 KB; processen dræbes ved timeout.
+- **Runbook-agent** — vælg den agent, der skal køre dette trin, fra dropdownen. Kun den valgte agent må claime jobbet.
+- **Script** — bash'en der skal køres. Output (stdout + stderr) fanges op til 50 KB; processen dræbes ved timeout.
 
-Er ingen agent med det valgte tag online, når runbook'et når dette trin, venter trinnet indtil **claim timeout** (standard 2 minutter) og fejler så. Tilføj en agent under **Runbooks → Agents**, før du regner med et Bash-trin.
+Hvis den valgte agent er offline, når runbook'et når dette trin, venter trinnet op til **claim timeout** (standard 2 minutter) og fejler så med `TimedOut`. Tilføj en agent under **Runbooks → Indstillinger → Agents**, før du regner med et Bash-trin.
 
-## Gem og redigér
+## Gem og rediger
 
-Tryk **Gem trin** for at gemme. Igangværende kørsler af ældre versioner af runbook'et er upåvirket — de fortsætter med deres snapshot.
+Tryk på **Gem trin** for at persistere. Igangværende kørsler af ældre versioner af runbook'et er upåvirkede — de bruger fortsat deres snapshot.
 
 ## Flere trin og fejlhåndtering
 
-Som standard stopper et fejlet trin kørslen og markerer kørslen `Failed`. Slår du **Fortsæt ved fejl** til på et trin, registreres fejlen, men næste trin kører alligevel. Nyttigt til mønstre som "prøv disse tre ting, og giv så besked".
+Som standard stopper et fejlende trin kørslen og markerer eksekveringen som `Failed`. Hvis du slår **Fortsæt ved fejl** til på et trin, registreres en fejl, men næste trin kører. Det er nyttigt til "prøv disse tre ting, og giv så besked"-mønstre.
 
 ## Et gennemarbejdet eksempel
 
-Et simpelt runbook for "Primær DB uopnåelig":
+Et simpelt runbook for "DB primary unreachable":
 
-1. **JavaScript** — hent aktuel primær host fra konfigurationstjenesten og log den.
-2. **Manuel** — "Replikationslag på sekundær under 5 sekunder — bekræftet."
+1. **JavaScript** — hent den nuværende primary host fra din config-tjeneste og log den.
+2. **Manuel** — "Bekræft replikationslag på sekundær er under 5 sekunder."
 3. **HTTP-anmodning** — POST til din failover-orchestrators API.
-4. **Manuel** — "Skrivninger går til den nye primary — bekræftet."
-5. **HTTP-anmodning** — POST til Slack med "alt klart"-besked.
+4. **Manuel** — "Verificér at skrivninger nu går til den nye primary."
+5. **HTTP-anmodning** — POST til Slack med en "alt klart"-besked.
 
-Responderen ser et automatiseret trin køre, tikker et manuelt af, ser det næste køre osv. Hvert trins output gemmes til postmortem.
+Responderen følger med, mens et automatiseret trin kører, tikker et manuelt af, ser næste automatiserede trin køre, og så videre. Hvert trins output fanges til post-mortem.

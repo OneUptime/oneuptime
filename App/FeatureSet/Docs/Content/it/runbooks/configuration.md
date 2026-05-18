@@ -1,42 +1,56 @@
 # Configurazione e sicurezza dei runbook
 
-## Limiti di output
+## Come girano davvero Bash e JavaScript
 
-- Output per passo: **50 KB**. Output più grandi vengono troncati con un marcatore.
-- Timeout per passo predefinito: **30 secondi** per JavaScript, Bash e HTTP. Configurabile per passo.
-- **Claim timeout** predefinito per i passi Bash e JavaScript: **2 minuti** — quanto il Worker aspetta che un Agente Runbook prenda il job prima di farlo fallire.
+I passi Bash e JavaScript **non vengono mai eseguiti sul Worker OneUptime**. Vengono dispacciati come job a uno specifico [Agente Runbook](/docs/runbooks/agents) — un piccolo processo che installi su un host nella tua infrastruttura.
+
+Il modello di dispatch:
+
+1. L'autore del passo del runbook sceglie un Agente Runbook dal dropdown mentre scrive il passo.
+2. Quando il passo viene eseguito, il Worker inserisce una riga in `RunbookAgentJob` con `targetAgentId` impostato sull'ID di quell'agente e status `Pending`.
+3. Quello specifico agente (e solo quello) reclama atomicamente il job, esegue lo script localmente — Bash via `bash -c <script>`, JavaScript dentro un sandbox `isolated-vm` — e restituisce il risultato.
+4. Il Worker riprende il runbook con il risultato.
+
+Non esiste più alcun flag d'ambiente `RUNBOOK_BASH_ENABLED`. Se i passi Bash o JavaScript funzionino in un deployment dipende interamente dal fatto che esista almeno un Agente Runbook connesso nel progetto.
+
+## Limiti di output e timeout
+
+- Output per passo: **50&nbsp;KB**. Output più grande viene troncato con un marcatore.
+- Timeout di esecuzione predefinito per passo: **30 secondi** per JavaScript, Bash e HTTP. Configurabile per passo.
+- **Claim timeout** per passo per Bash e JavaScript: **2 minuti** — quanto il Worker aspetta che l'agente selezionato prenda il job prima di farlo fallire.
 
 ## Permessi
 
-I permessi dei runbook vivono nel gruppo di permessi `Runbook`:
+I permessi runbook vivono nel gruppo di permessi `Runbook`:
 
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — gestire i modelli di runbook.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — avviare, spuntare e leggere le esecuzioni.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gestire le regole di auto-trigger.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gestire gli Agenti Runbook che eseguono i passi Bash nella tua infrastruttura.
-- `RunbookAdmin` (ruolo) — racchiude tutto quanto sopra; assegnalo a un team per dargli pieno accesso ai runbook.
+- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gestire gli Agenti Runbook che eseguono i passi Bash e JavaScript nella tua infrastruttura.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — assegnabili a un team per concedere controllo totale, uso quotidiano o accesso in sola lettura. `RunbookAdmin` raggruppa tutti i permessi granulari sopra.
 
 ## Coda e worker
 
-Le esecuzioni di runbook girano sulla coda BullMQ `Runbook`. La concorrenza del worker è 25 — regolala nel tuo deploy se hai molte esecuzioni simultanee.
+Le esecuzioni runbook girano sulla coda BullMQ `Runbook`. La concorrenza del worker è 25 — regolala nel tuo deployment se hai molte esecuzioni simultanee.
 
-Quando un passo manuale viene spuntato via API, l'esecuzione viene rimessa in coda per continuare al passo successivo. Così il worker resta caldo per il resto del runbook.
+Quando un passo manuale viene spuntato via API, l'esecuzione viene re-inserita in coda per continuare dal passo successivo. Questo tiene caldo il worker per il resto del runbook.
 
 ## Note di hardening
 
-- I **passi Bash e JavaScript** non girano mai sul Worker di OneUptime. Vengono inviati come job a un [Agente Runbook](/docs/runbooks/agents) che hai installato nella tua infrastruttura. Il Worker mette in coda il job con l'**Agent Tag** e il tipo di passo, un agente lo rivendica atomicamente, lo esegue localmente — Bash via `bash -c <script>`, JavaScript dentro una sandbox `isolated-vm` con il solito preambolo (taglia le catene dei prototype, rimuove `Function` ed `eval`, congela i prototype nativi) — e restituisce il risultato. Il processo Worker stesso non esegue script dei clienti.
-- I **passi HTTP** usano un validatore di stato permissivo, quindi una risposta 4xx o 5xx viene registrata come passo fallito invece che lanciata. Così l'output catturato riflette ciò che la controparte ha realmente restituito.
+- **JavaScript e Bash** girano su un host Agente Runbook che controlli tu, non sul Worker OneUptime. JavaScript è racchiuso in un sandbox `isolated-vm` con il prelude consueto (interrompe le catene di prototipi, rimuove `Function`/`eval`, congela i prototipi built-in). Bash gira via `bash -c` con applicazione del timeout sull'agente.
+- **I passi HTTP** usano un validatore di status permissivo, quindi una risposta 4xx o 5xx viene registrata come passo fallito invece di essere lanciata come eccezione. Così l'output catturato riflette ciò che l'upstream ha effettivamente restituito.
+- **L'autenticazione dell'agente** avviene tramite ID + chiave segreta, impostati sul container dell'agente come variabili d'ambiente. Lato server, l'identità autoritativa dell'agente proviene dalla riga DB indicizzata dall'ID/chiave presentati — i client non possono impersonare un altro agente nemmeno con una chiave compromessa.
 
-## Tabelle del database
+## Tabelle database
 
 - `Runbook` — modello (nome, slug, descrizione, isEnabled, JSON dei passi).
-- `RunbookExecution` — una riga per esecuzione, con chiavi esterne nullable `incidentId`, `alertId` e `scheduledMaintenanceId` e un array JSON `stepExecutions` che fa snapshot di passi e stato per passo.
-- `RunbookRule` — regole di auto-trigger con discriminatore `triggerEntityType` (Incident, Alert, ScheduledMaintenance) e una relazione many-to-many ai runbook da avviare.
-- `RunbookAgent` — una riga per agente installato: nome, tag, chiave segreta, `lastAlive`, `connectionStatus`, info host.
-- `RunbookAgentJob` — una riga per passo Bash o JavaScript dispatchato: tag richiesto, tipo di passo, script, stato (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled), claim deadline, lease, output, exit code.
+- `RunbookExecution` — una riga per esecuzione, con foreign key nullable `incidentId`, `alertId` e `scheduledMaintenanceId` e un array JSON `stepExecutions` che cattura i passi e lo stato per passo.
+- `RunbookRule` — regole di auto-trigger con un discriminatore `triggerEntityType` (Incident, Alert, ScheduledMaintenance) e una relazione molti-a-molti con i runbook da avviare.
+- `RunbookAgent` — una riga per agente installato: nome, chiave segreta, `lastAlive`, `connectionStatus`, info host.
+- `RunbookAgentJob` — una riga per passo Bash o JavaScript dispacciato: `targetAgentId` (l'agente scelto dall'autore del passo), tipo di passo, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), deadline del claim, lease, output, exit code.
 
 ## Consigli operativi
 
-- **Esegui almeno un agente per ogni tag che usi**, idealmente due per alta disponibilità. Con due agenti dello stesso tag, l'uno o l'altro può rivendicare un job — puoi fare riavvii a rotazione senza rompere i runbook.
-- **Cattura URL, non blob.** Se un passo genera più di qualche KB, scrivilo su S3 o nel tuo stack di log e restituisci l'URL.
-- **L'idempotenza conta.** I passi automatizzati (HTTP, JavaScript, Bash) possono girare più di una volta se il worker si riavvia a metà passo o se il lease di un agente scade mentre uno script è in esecuzione; progettali in modo che il retry sia sicuro.
+- **Assicurati che l'agente scelto su un passo sia in salute.** Se ti serve ridondanza, esegui un secondo agente e dividi i passi fra loro, o tieni un runbook di backup che punta all'altro agente.
+- **Cattura URL, non blob.** Se un passo genera più di qualche KB di output, scrivilo su S3 o sul tuo stack di logging e restituisci l'URL.
+- **L'idempotenza conta.** I passi automatizzati (HTTP, JavaScript, Bash) possono essere eseguiti più di una volta se il worker si riavvia a metà passo o se il lease dell'agente scade mentre uno script è ancora in esecuzione; progettali per essere sicuri da rieseguire.

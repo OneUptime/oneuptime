@@ -1,162 +1,162 @@
-# Kubernetes Monitor
+# Kubernetes मॉनिटर
 
-Kubernetes monitoring आपको अपने Kubernetes clusters की health और performance monitor करने की अनुमति देता है, जिसमें nodes, pods, workloads और control plane components शामिल हैं। OneUptime आपके cluster से metrics एकत्र करता है और उन्हें आपके configured criteria के विरुद्ध evaluate करता है।
+Kubernetes मॉनिटरिंग आपको अपने Kubernetes क्लस्टरों के स्वास्थ्य और प्रदर्शन की निगरानी करने की अनुमति देती है, जिसमें नोड्स, पॉड्स, वर्कलोड्स, और control plane घटक शामिल हैं। OneUptime आपके क्लस्टर से मेट्रिक्स एकत्र करता है और उन्हें आपके कॉन्फ़िगर किए गए मानदंडों के विरुद्ध मूल्यांकित करता है।
 
-## Overview
+## अवलोकन
 
-Kubernetes monitors आपके cluster के metrics का उपयोग करके आपके infrastructure में deep visibility प्रदान करते हैं। यह आपको सक्षम बनाता है:
+Kubernetes मॉनिटर आपके इंफ्रास्ट्रक्चर में गहरी दृश्यता प्रदान करने के लिए आपके क्लस्टर से मेट्रिक्स का उपयोग करते हैं। यह आपको निम्न करने में सक्षम बनाता है:
 
-- cluster, namespace, workload, node और pod health monitor करें
-- resources में CPU, memory, disk और network usage track करें
-- pod crashes, restarts और scheduling failures detect करें
-- deployment replica availability monitor करें
-- control plane issues (etcd, API server, scheduler) पर alert करें
-- resource requests और limits track करें
+- क्लस्टर, नेमस्पेस, वर्कलोड, नोड, और पॉड स्वास्थ्य की निगरानी करें
+- संसाधनों में CPU, मेमोरी, डिस्क, और नेटवर्क उपयोग को ट्रैक करें
+- पॉड क्रैश, रीस्टार्ट, और शेड्यूलिंग विफलताओं का पता लगाएँ
+- Deployment रेप्लिका उपलब्धता की निगरानी करें
+- Control plane समस्याओं पर अलर्ट करें (etcd, API server, scheduler)
+- संसाधन रिक्वेस्ट और लिमिट ट्रैक करें
 
-## Kubernetes Monitor बनाना
+## Kubernetes मॉनिटर बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
+1. OneUptime डैशबोर्ड में **Monitors** पर जाएँ
 2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Kubernetes** चुनें
-4. monitor करने के लिए cluster और resource scope चुनें
-5. resource filters और metric queries configure करें
-6. आवश्यकतानुसार monitoring criteria configure करें
+3. मॉनिटर प्रकार के रूप में **Kubernetes** चुनें
+4. निगरानी करने के लिए क्लस्टर और संसाधन स्कोप चुनें
+5. संसाधन फ़िल्टर्स और मेट्रिक क्वेरीज़ कॉन्फ़िगर करें
+6. आवश्यकतानुसार मॉनिटरिंग मानदंड कॉन्फ़िगर करें
 
-## Configuration Options
+## कॉन्फ़िगरेशन विकल्प
 
-### Cluster
+### क्लस्टर
 
-monitor करने के लिए Kubernetes cluster चुनें। Clusters को OpenTelemetry के माध्यम से OneUptime के साथ integrate किया जाना चाहिए।
+निगरानी करने के लिए Kubernetes क्लस्टर चुनें। क्लस्टरों को OpenTelemetry के माध्यम से OneUptime के साथ इंटीग्रेट किया जाना चाहिए।
 
-### Resource Scope
+### संसाधन स्कोप
 
-resources monitor करने के level को चुनें:
+संसाधनों की निगरानी करने का स्तर चुनें:
 
-| Scope | विवरण |
-|-------|-------|
-| Cluster | पूरे cluster को monitor करें |
-| Namespace | एक specific namespace के भीतर resources monitor करें |
-| Workload | एक specific deployment, statefulset, daemonset, job, या cronjob monitor करें |
-| Node | एक specific cluster node monitor करें |
-| Pod | एक specific pod monitor करें |
+| स्कोप | विवरण |
+|-------|-------------|
+| Cluster | संपूर्ण क्लस्टर की निगरानी करें |
+| Namespace | किसी विशिष्ट नेमस्पेस के भीतर संसाधनों की निगरानी करें |
+| Workload | किसी विशिष्ट deployment, statefulset, daemonset, job, या cronjob की निगरानी करें |
+| Node | किसी विशिष्ट क्लस्टर नोड की निगरानी करें |
+| Pod | किसी विशिष्ट पॉड की निगरानी करें |
 
-### Resource Filters
+### संसाधन फ़िल्टर्स
 
-वैकल्पिक filters के साथ scope narrow करें:
+वैकल्पिक फ़िल्टर्स के साथ स्कोप को संकीर्ण करें:
 
-| Filter | विवरण | लागू Scopes |
-|--------|-------|------------|
-| Namespace | Kubernetes namespace | Namespace, Workload, Pod |
+| फ़िल्टर | विवरण | लागू स्कोप |
+|--------|-------------|-------------------|
+| Namespace | Kubernetes नेमस्पेस | Namespace, Workload, Pod |
 | Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workload Name | workload का नाम | Workload |
-| Node Name | node का नाम | Node |
-| Pod Name | pod का नाम | Pod |
+| Workload Name | वर्कलोड का नाम | Workload |
+| Node Name | नोड का नाम | Node |
+| Pod Name | पॉड का नाम | Pod |
 
-### Metric Queries
+### मेट्रिक क्वेरीज़
 
-evaluate करने के लिए एक या अधिक metric queries configure करें। प्रत्येक query निर्दिष्ट करती है:
+मूल्यांकन करने के लिए एक या अधिक मेट्रिक क्वेरीज़ कॉन्फ़िगर करें। प्रत्येक क्वेरी निर्दिष्ट करती है:
 
-- **Metric name** — query करने के लिए Kubernetes metric
-- **Aggregation** — metric values को कैसे aggregate करें
-- **Filters** — additional attribute-based filtering
+- **Metric name** — क्वेरी करने के लिए Kubernetes मेट्रिक
+- **Aggregation** — मेट्रिक मानों को कैसे एग्रीगेट करें
+- **Filters** — अतिरिक्त एट्रिब्यूट-आधारित फ़िल्टरिंग
 
-आप **formulas** भी बना सकते हैं जो mathematical expressions का उपयोग करके कई metric queries को combine करती हैं।
+आप **formulas** भी बना सकते हैं जो गणितीय अभिव्यक्तियों का उपयोग करके कई मेट्रिक क्वेरीज़ को संयोजित करते हैं।
 
-### Rolling Time Window
+### रोलिंग समय विंडो
 
-metric evaluation के लिए time window चुनें:
+मेट्रिक मूल्यांकन के लिए समय विंडो चुनें:
 
-- Past 1 Minute
-- Past 5 Minutes
-- Past 10 Minutes
-- Past 15 Minutes
-- Past 30 Minutes
-- Past 60 Minutes
+- पिछला 1 मिनट
+- पिछले 5 मिनट
+- पिछले 10 मिनट
+- पिछले 15 मिनट
+- पिछले 30 मिनट
+- पिछले 60 मिनट
 
-## सामान्य Kubernetes Metrics
+## सामान्य Kubernetes मेट्रिक्स
 
-### Pod Metrics
+### पॉड मेट्रिक्स
 
-| Metric | विवरण |
-|--------|-------|
-| Pod CPU Usage | pods द्वारा CPU consumption |
-| Pod Memory Usage | pods द्वारा Memory consumption |
-| Pod Filesystem Usage | pods द्वारा Disk usage |
-| Pod Network Receive/Transmit | Network traffic |
-| Pod Phase | वर्तमान pod phase (Running, Pending, Failed, आदि) |
+| मेट्रिक | विवरण |
+|--------|-------------|
+| Pod CPU Usage | पॉड्स द्वारा CPU खपत |
+| Pod Memory Usage | पॉड्स द्वारा मेमोरी खपत |
+| Pod Filesystem Usage | पॉड्स द्वारा डिस्क उपयोग |
+| Pod Network Receive/Transmit | नेटवर्क ट्रैफ़िक |
+| Pod Phase | वर्तमान पॉड चरण (Running, Pending, Failed, आदि) |
 
-### Node Metrics
+### नोड मेट्रिक्स
 
-| Metric | विवरण |
-|--------|-------|
-| Node CPU Usage | प्रति node CPU utilization |
-| Node Memory Usage | प्रति node Memory utilization |
-| Node Filesystem Usage | प्रति node Disk usage |
-| Node Disk I/O | Read/write operations |
-| Node Ready Condition | node ready है या नहीं |
+| मेट्रिक | विवरण |
+|--------|-------------|
+| Node CPU Usage | प्रति नोड CPU उपयोग |
+| Node Memory Usage | प्रति नोड मेमोरी उपयोग |
+| Node Filesystem Usage | प्रति नोड डिस्क उपयोग |
+| Node Disk I/O | पठन/लेखन ऑपरेशन्स |
+| Node Ready Condition | क्या नोड तैयार है |
 
-### Container Metrics
+### कंटेनर मेट्रिक्स
 
-| Metric | विवरण |
-|--------|-------|
-| Container Restarts | container restarts की संख्या |
-| Container CPU/Memory Limits | Resource limits |
-| Container CPU/Memory Requests | Resource requests |
-| Container Ready Status | containers ready हैं या नहीं |
+| मेट्रिक | विवरण |
+|--------|-------------|
+| Container Restarts | कंटेनर रीस्टार्ट की संख्या |
+| Container CPU/Memory Limits | संसाधन लिमिट |
+| Container CPU/Memory Requests | संसाधन रिक्वेस्ट |
+| Container Ready Status | क्या कंटेनर तैयार हैं |
 
-### Workload Metrics
+### वर्कलोड मेट्रिक्स
 
-| Metric | विवरण |
-|--------|-------|
-| Deployment Available/Unavailable Replicas | Replica counts |
-| DaemonSet Misscheduled Nodes | Scheduling issues |
-| StatefulSet Ready Replicas | Ready replica count |
-| Job Active/Failed/Succeeded Pods | Job status |
+| मेट्रिक | विवरण |
+|--------|-------------|
+| Deployment Available/Unavailable Replicas | रेप्लिका काउंट |
+| DaemonSet Misscheduled Nodes | शेड्यूलिंग समस्याएँ |
+| StatefulSet Ready Replicas | तैयार रेप्लिका काउंट |
+| Job Active/Failed/Succeeded Pods | Job स्थिति |
 
-## Monitoring Criteria
+## मॉनिटरिंग मानदंड
 
-### उपलब्ध Check Types
+### उपलब्ध चेक प्रकार
 
-| Check Type | विवरण |
-|------------|-------|
-| Metric Value | configured metric query या formula का value |
+| चेक प्रकार | विवरण |
+|------------|-------------|
+| Metric Value | कॉन्फ़िगर की गई मेट्रिक क्वेरी या फ़ॉर्मूला का मान |
 
-### Aggregation Types
+### एग्रीगेशन प्रकार
 
-| Aggregation | विवरण |
-|-------------|-------|
-| Average | time window पर average value |
-| Sum | सभी values का sum |
-| Maximum Value | time window में highest value |
-| Minimum Value | time window में lowest value |
-| All Values | सभी values criteria से match होनी चाहिए |
-| Any Value | कम से कम एक value match होनी चाहिए |
+| एग्रीगेशन | विवरण |
+|-------------|-------------|
+| Average | समय विंडो में औसत मान |
+| Sum | सभी मानों का योग |
+| Maximum Value | समय विंडो में उच्चतम मान |
+| Minimum Value | समय विंडो में न्यूनतम मान |
+| All Values | सभी मानों को मानदंडों से मेल खाना चाहिए |
+| Any Value | कम से कम एक मान को मेल खाना चाहिए |
 
-### Filter Types
+### फ़िल्टर प्रकार
 
 - **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
 
-## Pre-built Alert Templates
+## पूर्व-निर्मित अलर्ट टेम्पलेट्स
 
-OneUptime सामान्य Kubernetes monitoring scenarios के लिए templates प्रदान करता है:
+OneUptime सामान्य Kubernetes मॉनिटरिंग परिदृश्यों के लिए टेम्पलेट्स प्रदान करता है:
 
-| Template | विवरण | Threshold |
-|----------|-------|-----------|
-| CrashLoopBackOff Detection | Container restart count | > 5 restarts |
-| Pod Stuck in Pending | Pending phase में Pods | > 0 pods |
-| Node Not Ready | Node readiness condition | = 0 (not ready) |
-| High Node CPU | Node CPU utilization | > 90% |
-| High Node Memory | Node memory utilization | > 85% |
-| Deployment Replica Mismatch | Unavailable replicas | > 0 replicas |
-| Job Failures | एक job में Failed pods | > 0 failures |
-| etcd No Leader | etcd cluster leader missing | = 0 (no leader) |
-| API Server Throttling | Dropped API requests | > 0 requests |
-| Scheduler Backlog | scheduler में Pending pods | > 0 pods |
-| High Node Disk Usage | Node filesystem usage | > 90% |
-| DaemonSet Unavailable | Misscheduled nodes | > 0 nodes |
+| टेम्पलेट | विवरण | थ्रेशोल्ड |
+|----------|-------------|-----------|
+| CrashLoopBackOff Detection | कंटेनर रीस्टार्ट काउंट | > 5 restarts |
+| Pod Stuck in Pending | Pending चरण में पॉड्स | > 0 pods |
+| Node Not Ready | नोड रेडीनेस स्थिति | = 0 (not ready) |
+| High Node CPU | नोड CPU उपयोग | > 90% |
+| High Node Memory | नोड मेमोरी उपयोग | > 85% |
+| Deployment Replica Mismatch | अनुपलब्ध रेप्लिका | > 0 replicas |
+| Job Failures | किसी job में विफल पॉड्स | > 0 failures |
+| etcd No Leader | etcd क्लस्टर लीडर गुम | = 0 (no leader) |
+| API Server Throttling | छोड़े गए API रिक्वेस्ट | > 0 requests |
+| Scheduler Backlog | scheduler में पेंडिंग पॉड्स | > 0 pods |
+| High Node Disk Usage | नोड फ़ाइलसिस्टम उपयोग | > 90% |
+| DaemonSet Unavailable | गलत शेड्यूल किए गए नोड्स | > 0 nodes |
 
-## Setup Requirements
+## सेटअप आवश्यकताएँ
 
-Kubernetes monitoring उपयोग करने के लिए, आपको अपने cluster में OneUptime Kubernetes agent install करना होगा। Agent OTLP पर OneUptime को cluster metrics, events और pod logs ship करता है।
+Kubernetes मॉनिटरिंग का उपयोग करने के लिए, आपको अपने क्लस्टर में OneUptime Kubernetes एजेंट इंस्टॉल करना होगा। एजेंट क्लस्टर मेट्रिक्स, ईवेंट्स, पॉड लॉग्स, और — डिफ़ॉल्ट रूप से — **eBPF के माध्यम से कैप्चर किए गए एप्लिकेशन ट्रेस और HTTP RED मेट्रिक्स** को OTLP पर OneUptime को भेजता है। सर्विस-स्तर के ट्रैफ़िक को देखने के लिए कोई कोड परिवर्तन या प्रति-ऐप SDKs की आवश्यकता नहीं है।
 
-[Install the Kubernetes Agent](/docs/monitor/kubernetes-agent) guide देखें — यह one-command Helm install और आपके cluster के लिए सही configuration चुनने के लिए `preset` option cover करता है (standard, GKE Autopilot, EKS Fargate)।
+[Install the Kubernetes Agent](/docs/monitor/kubernetes-agent) गाइड देखें — यह एक-कमांड Helm इंस्टॉल, आपके क्लस्टर के लिए सही कॉन्फ़िगरेशन (standard, GKE Autopilot, EKS Fargate) चुनने के लिए `preset` विकल्प, और व्यक्तिगत सिग्नल परिवारों (HTTP RED मेट्रिक्स, सर्विस ग्राफ़, नेटवर्क फ्लो, TCP स्टैट्स) के लिए `ebpf.features.*` टॉगल्स को कवर करता है।

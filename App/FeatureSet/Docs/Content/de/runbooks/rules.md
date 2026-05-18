@@ -1,68 +1,68 @@
 # Runbook-Regeln
 
-Runbook-Regeln hängen Runbooks automatisch an, wenn ein **Vorfall**, eine **Warnmeldung** oder ein **geplantes Wartungsereignis** erstellt wird. Sie werden im Einstellungsmenü der jeweiligen Entität verwaltet:
+Runbook-Regeln hängen Runbooks automatisch an, wenn ein **Vorfall**, eine **Warnmeldung** oder ein **geplantes Wartungsereignis** erstellt wird. Sie werden über das Settings-Menü jeder Entität verwaltet:
 
-- Vorfälle → Einstellungen → **Runbook-Regeln**
-- Warnmeldungen → Einstellungen → **Runbook-Regeln**
-- Geplante Wartung → Einstellungen → **Runbook-Regeln**
+- Incidents → Settings → **Runbook Rules**
+- Alerts → Settings → **Runbook Rules**
+- Scheduled Maintenance → Settings → **Runbook Rules**
 
-Alle drei Seiten bearbeiten dasselbe zugrunde liegende Regelmodell — sie sind lediglich gefiltert, sodass nur Regeln für den jeweiligen Entitätstyp angezeigt werden.
+Alle drei Seiten bearbeiten dasselbe zugrunde liegende Regelmodell — sie sind nur so gefiltert, dass jeweils nur Regeln für diesen Entitätstyp angezeigt werden.
 
 ## Aufbau einer Regel
 
 | Feld | Zweck |
 | --- | --- |
-| **Name** | Kurze, menschenlesbare Bezeichnung. Erscheint in Audit-Logs. |
-| **Beschreibung** | Optionaler Kontext für Teammitglieder. |
-| **Aktiviert** | Schalter, um eine Regel zu pausieren, ohne sie zu löschen. |
-| **Titelmuster** | Groß-/Kleinschreibung-unabhängiger Regex gegen den Entitätstitel. Leer = jeder Titel passt. |
-| **Beschreibungsmuster** | Groß-/Kleinschreibung-unabhängiger Regex gegen die Entitätsbeschreibung. Leer = jede Beschreibung passt. |
-| **Zu startende Runbooks** | Ein oder mehrere Runbooks, die beim Auslösen der Regel gestartet werden. |
+| **Name** | Kurzer, menschenlesbarer Name. Wird in Audit-Logs angezeigt. |
+| **Beschreibung** | Optionaler Kontext für Teamkollegen. |
+| **Aktiviert** | Umschalter, um eine Regel zu pausieren, ohne sie zu löschen. |
+| **Titelmuster** | Case-insensitiver Regex, der gegen den Titel der Entität geprüft wird. Leer = jeder Titel passt. |
+| **Beschreibungsmuster** | Case-insensitiver Regex, der gegen die Beschreibung der Entität geprüft wird. Leer = jede Beschreibung passt. |
+| **Zu startende Runbooks** | Ein oder mehrere Runbooks, die gestartet werden, wenn die Regel feuert. |
 
-## Übereinstimmungssemantik
+## Matching-Semantik
 
-Eine Regel passt, wenn **alle angegebenen Kriterien erfüllt sind**. Leere Kriterien werden übersprungen:
+Eine Regel passt, wenn **alle angegebenen Kriterien zutreffen**. Leere Kriterien werden übersprungen, also:
 
-- Eine Regel ohne Muster läuft bei jedem Ereignis ihres Typs (eine globale „Immer-Ausführen"-Regel).
-- Eine Regel mit nur einem Titelmuster wird bei Ereignissen ausgelöst, deren Titel zum Regex passt.
-- Mehrere Regeln können auf dasselbe Ereignis passen — jede Übereinstimmung wird ausgelöst, und die Vereinigung ihrer Runbooks läuft (jedes Runbook bekommt eine eigene Ausführung).
+- Eine Regel ohne gesetzte Muster läuft bei jedem Ereignis ihres Typs (eine globale „immer ausführen"-Regel).
+- Eine Regel nur mit einem Titelmuster feuert bei Ereignissen, deren Titel diesem Regex entspricht.
+- Mehrere Regeln können auf dasselbe Ereignis passen — jede passende Regel feuert, und die Vereinigung ihrer Runbooks läuft (jedes Runbook bekommt seine eigene Ausführung).
 
 ## Beispiel: DB-Failover für Datenbankvorfälle
 
 ```
-Name:            DB-Failover bei DB-Vorfällen starten
-Auslöser:        Vorfall
-Titelmuster:     (?:^|\b)(db|database|postgres|mysql|mongo)
-Runbooks:        [DB-Failover-Playbook, DBA-Team benachrichtigen]
+Name:           DB-Failover für DB-Vorfälle starten
+Trigger:        Incident
+Title Pattern:  (?:^|\b)(db|database|postgres|mysql|mongo)
+Runbooks:       [DB-Failover-Playbook, DBA-Team benachrichtigen]
 ```
 
-Dies erzeugt zwei Runbook-Ausführungen, sobald ein Vorfall mit „db", „database", „postgres" usw. im Titel erstellt wird.
+Das wird jedes Mal zwei Runbook-Ausführungen erzeugen, wenn ein Vorfall mit „db", „database", „postgres" usw. im Titel erstellt wird.
 
-## Beispiel: Immer-Ausführen-Hygiene-Regel
+## Beispiel: Always-Run-Hygieneregel
 
 ```
-Name:                    Vorab-Prüfung bei jedem Vorfall
-Auslöser:                Vorfall
-Titelmuster:             (leer)
-Beschreibungsmuster:     (leer)
-Runbooks:                [Vor-Vorfall-Zustand erfassen]
+Name:                 Pre-Flight-Check immer ausführen
+Trigger:              Incident
+Title Pattern:        (leer)
+Description Pattern:  (leer)
+Runbooks:             [Vor-Vorfall-Zustand erfassen]
 ```
 
-Wird bei jedem Vorfall ausgelöst — hilfreich, um Systemzustand, Seitenmetriken usw. festzuhalten.
+Feuert bei jedem Vorfall — nützlich, um Snapshots des Systemzustands, Seitenmetriken usw. zu erfassen.
 
-## Was passiert, wenn eine Regel auslöst
+## Was passiert, wenn eine Regel feuert
 
 1. Das Runbook wird geladen.
-2. Seine Schritte werden in eine neue Runbook-Ausführung **als Snapshot** kopiert.
-3. Die Ausführung wird in die Runbook-Queue gestellt.
-4. Die Ausführung wird mit der Quell-Entität verknüpft — sie erscheint auf der Seite des Vorfalls/der Warnmeldung/des Wartungsereignisses und in der Ausführungsliste des Runbooks.
+2. Seine Schritte werden auf eine neue Runbook-Ausführung **gesnapshottet**.
+3. Die Ausführung wird in die Queue des Runbook-Workers gestellt.
+4. Die Ausführung wird mit der Quell-Entität verknüpft — sie erscheint auf der Seite des Vorfalls, der Warnmeldung oder des geplanten Wartungsereignisses und in der Executions-Liste des Runbooks.
 
-Alle regelausgelösten Läufe sehen Sie unter **Runbooks → Ausführungen**, gefiltert nach Status, Runbook oder Datum.
+Alle regelgesteuerten Läufe sehen Sie unter **Runbooks → Executions**, gefiltert nach Status, Runbook oder Datum.
 
 ## Deaktivierte Runbooks
 
-Verweist eine Regel auf ein Runbook mit `isEnabled = false`, passt die Regel zwar weiter, die Ausführung wird jedoch übersprungen. Aktivieren Sie das Runbook wieder, um den Betrieb fortzusetzen.
+Wenn eine Regel auf ein Runbook mit `isEnabled = false` verweist, passt die Regel zwar weiterhin, aber die Runbook-Ausführung wird übersprungen. Aktivieren Sie das Runbook erneut, um fortzufahren.
 
 ## Eine Regel testen
 
-Bevor Sie sich in der Produktion auf eine Regel verlassen, erstellen Sie einen Testvorfall (oder eine Test-Warnmeldung) mit einem Titel, der zum Muster passt, und prüfen, ob die erwarteten Runbooks laufen. Regeln werden im Moment der Erstellung ausgewertet — das nachträgliche Bearbeiten eines Vorfall-Titels löst die Regeln nicht erneut aus.
+Bevor Sie sich in der Produktion auf eine Regel verlassen, erstellen Sie einen Testvorfall (oder eine Test-Warnmeldung) mit einem Titel, der dem Muster entspricht, und bestätigen Sie, dass die erwarteten Runbooks feuern. Regeln werden im Moment der Erstellung ausgewertet — das spätere Bearbeiten des Vorfallstitels löst Regeln nicht erneut aus.

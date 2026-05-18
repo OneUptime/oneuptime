@@ -87,6 +87,26 @@ Para requisições POST, PUT e PATCH, você pode especificar um corpo de requisi
 
 Por padrão, o OneUptime segue redirecionamentos HTTP (301, 302, etc.). Habilite esta opção se quiser monitorar a própria resposta de redirecionamento em vez do destino final.
 
+#### Allow Self-Signed Certificates
+
+Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+
+#### Client Certificate (mTLS)
+
+If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+
+- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
+- **Client Private Key (PEM)** — the matching PEM-encoded private key.
+- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+
+This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+
+```bash
+curl --cert client.crt --key client.key https://api.example.com/health
+```
+
+For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+
 ## Critérios de Monitoramento
 
 Você pode configurar critérios para determinar quando sua API é considerada online, degradada ou offline com base em:

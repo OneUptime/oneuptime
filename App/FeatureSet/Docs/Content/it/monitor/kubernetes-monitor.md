@@ -1,162 +1,162 @@
 # Monitor Kubernetes
 
-Il monitoraggio Kubernetes consente di monitorare la salute e le prestazioni dei propri cluster Kubernetes, inclusi nodi, pod, workload e componenti del piano di controllo. OneUptime raccoglie metriche dal cluster e le valuta in base ai criteri configurati.
+Il monitoring Kubernetes vi consente di monitorare lo stato di salute e le prestazioni dei vostri cluster Kubernetes, inclusi nodi, pod, workload e componenti del control plane. OneUptime raccoglie metriche dal vostro cluster e le valuta in base ai criteri configurati.
 
 ## Panoramica
 
-I monitor Kubernetes usano le metriche del cluster per fornire visibilità approfondita dell'infrastruttura. Questo consente di:
+I monitor Kubernetes usano le metriche del vostro cluster per fornire una visibilità approfondita sulla vostra infrastruttura. Questo vi permette di:
 
-- Monitorare la salute di cluster, namespace, workload, nodi e pod
-- Tracciare l'utilizzo di CPU, memoria, disco e rete per le risorse
-- Rilevare crash, riavvii e fallimenti di scheduling dei pod
-- Monitorare la disponibilità delle repliche dei deployment
-- Ricevere avvisi sui problemi del piano di controllo (etcd, server API, scheduler)
-- Tracciare le richieste e i limiti delle risorse
+- Monitorare lo stato di salute di cluster, namespace, workload, nodi e pod
+- Tracciare l'utilizzo di CPU, memoria, disco e rete attraverso le risorse
+- Rilevare crash dei pod, riavvii e fallimenti di pianificazione
+- Monitorare la disponibilità delle repliche di deployment
+- Generare alert su problemi del control plane (etcd, API server, scheduler)
+- Tracciare richieste e limiti di risorse
 
-## Creazione di un Monitor Kubernetes
+## Creare un monitor Kubernetes
 
-1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
-3. Selezionare **Kubernetes** come tipo di monitor
-4. Selezionare il cluster e l'ambito della risorsa da monitorare
-5. Configurare i filtri delle risorse e le query metriche
-6. Configurare i criteri di monitoraggio secondo necessità
+1. Andate su **Monitors** nella Dashboard di OneUptime
+2. Cliccate su **Create Monitor**
+3. Selezionate **Kubernetes** come tipo di monitor
+4. Selezionate il cluster e l'ambito delle risorse da monitorare
+5. Configurate filtri delle risorse e query delle metriche
+6. Configurate i criteri di monitoring secondo necessità
 
-## Opzioni di Configurazione
+## Opzioni di configurazione
 
 ### Cluster
 
-Selezionare il cluster Kubernetes da monitorare. I cluster devono essere integrati con OneUptime tramite OpenTelemetry.
+Selezionate il cluster Kubernetes da monitorare. I cluster devono essere integrati con OneUptime tramite OpenTelemetry.
 
-### Ambito delle Risorse
+### Ambito delle risorse
 
-Scegliere il livello al quale monitorare le risorse:
+Scegliete il livello al quale monitorare le risorse:
 
 | Ambito | Descrizione |
 |-------|-------------|
-| Cluster | Monitorare l'intero cluster |
-| Namespace | Monitorare le risorse all'interno di un namespace specifico |
-| Workload | Monitorare un deployment, statefulset, daemonset, job o cronjob specifico |
-| Nodo | Monitorare un nodo specifico del cluster |
-| Pod | Monitorare un pod specifico |
+| Cluster | Monitora l'intero cluster |
+| Namespace | Monitora le risorse all'interno di uno specifico namespace |
+| Workload | Monitora uno specifico deployment, statefulset, daemonset, job o cronjob |
+| Node | Monitora uno specifico nodo del cluster |
+| Pod | Monitora uno specifico pod |
 
-### Filtri delle Risorse
+### Filtri delle risorse
 
-Restringere l'ambito con filtri opzionali:
+Restringete l'ambito con filtri opzionali:
 
-| Filtro | Descrizione | Ambiti Applicabili |
+| Filtro | Descrizione | Ambiti applicabili |
 |--------|-------------|-------------------|
 | Namespace | Namespace Kubernetes | Namespace, Workload, Pod |
-| Tipo Workload | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Nome Workload | Nome del workload | Workload |
-| Nome Nodo | Nome del nodo | Nodo |
-| Nome Pod | Nome del pod | Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
+| Workload Name | Nome del workload | Workload |
+| Node Name | Nome del nodo | Node |
+| Pod Name | Nome del pod | Pod |
 
-### Query Metriche
+### Query delle metriche
 
-Configurare una o più query metriche da valutare. Ogni query specifica:
+Configurate una o più query delle metriche da valutare. Ciascuna query specifica:
 
-- **Nome metrica** — La metrica Kubernetes da interrogare
-- **Aggregazione** — Come aggregare i valori della metrica
-- **Filtri** — Filtraggio aggiuntivo basato sugli attributi
+- **Metric name** — La metrica Kubernetes da interrogare
+- **Aggregation** — Come aggregare i valori della metrica
+- **Filters** — Filtraggio aggiuntivo basato su attributi
 
-È anche possibile creare **formule** che combinano più query metriche usando espressioni matematiche.
+Potete anche creare **formule** che combinano più query di metriche utilizzando espressioni matematiche.
 
-### Finestra Temporale Mobile
+### Finestra temporale scorrevole
 
-Selezionare la finestra temporale per la valutazione delle metriche:
+Selezionate la finestra temporale per la valutazione della metrica:
 
-- Ultimi 1 Minuto
-- Ultimi 5 Minuti
-- Ultimi 10 Minuti
-- Ultimi 15 Minuti
-- Ultimi 30 Minuti
-- Ultimi 60 Minuti
+- Ultimo 1 minuto
+- Ultimi 5 minuti
+- Ultimi 10 minuti
+- Ultimi 15 minuti
+- Ultimi 30 minuti
+- Ultimi 60 minuti
 
-## Metriche Kubernetes Comuni
+## Metriche Kubernetes comuni
 
-### Metriche Pod
-
-| Metrica | Descrizione |
-|--------|-------------|
-| Utilizzo CPU Pod | Consumo CPU dei pod |
-| Utilizzo Memoria Pod | Consumo memoria dei pod |
-| Utilizzo Filesystem Pod | Utilizzo disco dei pod |
-| Ricezione/Trasmissione Rete Pod | Traffico di rete |
-| Fase Pod | Fase corrente del pod (Running, Pending, Failed, ecc.) |
-
-### Metriche Nodo
+### Metriche dei pod
 
 | Metrica | Descrizione |
 |--------|-------------|
-| Utilizzo CPU Nodo | Utilizzo CPU per nodo |
-| Utilizzo Memoria Nodo | Utilizzo memoria per nodo |
-| Utilizzo Filesystem Nodo | Utilizzo disco per nodo |
-| I/O Disco Nodo | Operazioni di lettura/scrittura |
-| Condizione Pronto Nodo | Se il nodo è pronto |
+| Pod CPU Usage | Consumo CPU da parte dei pod |
+| Pod Memory Usage | Consumo di memoria da parte dei pod |
+| Pod Filesystem Usage | Utilizzo del disco da parte dei pod |
+| Pod Network Receive/Transmit | Traffico di rete |
+| Pod Phase | Fase corrente del pod (Running, Pending, Failed, ecc.) |
 
-### Metriche Container
-
-| Metrica | Descrizione |
-|--------|-------------|
-| Riavvii Container | Numero di riavvii del container |
-| Limiti CPU/Memoria Container | Limiti delle risorse |
-| Richieste CPU/Memoria Container | Richieste delle risorse |
-| Stato Pronto Container | Se i container sono pronti |
-
-### Metriche Workload
+### Metriche dei nodi
 
 | Metrica | Descrizione |
 |--------|-------------|
-| Repliche Disponibili/Non Disponibili Deployment | Conteggi delle repliche |
-| Nodi Mal Pianificati DaemonSet | Problemi di scheduling |
-| Repliche Pronte StatefulSet | Conteggio repliche pronte |
-| Pod Attivi/Falliti/Completati Job | Stato del job |
+| Node CPU Usage | Utilizzo CPU per nodo |
+| Node Memory Usage | Utilizzo memoria per nodo |
+| Node Filesystem Usage | Utilizzo disco per nodo |
+| Node Disk I/O | Operazioni di lettura/scrittura |
+| Node Ready Condition | Indica se il nodo è pronto |
 
-## Criteri di Monitoraggio
+### Metriche dei container
 
-### Tipi di Controllo Disponibili
+| Metrica | Descrizione |
+|--------|-------------|
+| Container Restarts | Numero di riavvii del container |
+| Container CPU/Memory Limits | Limiti di risorse |
+| Container CPU/Memory Requests | Richieste di risorse |
+| Container Ready Status | Indica se i container sono pronti |
 
-| Tipo di Controllo | Descrizione |
+### Metriche dei workload
+
+| Metrica | Descrizione |
+|--------|-------------|
+| Deployment Available/Unavailable Replicas | Conteggio delle repliche |
+| DaemonSet Misscheduled Nodes | Problemi di pianificazione |
+| StatefulSet Ready Replicas | Conteggio delle repliche pronte |
+| Job Active/Failed/Succeeded Pods | Stato del job |
+
+## Criteri di monitoring
+
+### Tipi di controlli disponibili
+
+| Tipo di controllo | Descrizione |
 |------------|-------------|
-| Valore Metrica | Il valore della query metrica o formula configurata |
+| Metric Value | Il valore della query di metrica o formula configurata |
 
-### Tipi di Aggregazione
+### Tipi di aggregazione
 
 | Aggregazione | Descrizione |
 |-------------|-------------|
-| Media | Valore medio nella finestra temporale |
-| Somma | Somma di tutti i valori |
-| Valore Massimo | Valore più alto nella finestra temporale |
-| Valore Minimo | Valore più basso nella finestra temporale |
-| Tutti i Valori | Tutti i valori devono soddisfare il criterio |
-| Qualsiasi Valore | Almeno un valore deve soddisfare il criterio |
+| Average | Valore medio sulla finestra temporale |
+| Sum | Somma di tutti i valori |
+| Maximum Value | Valore più alto nella finestra temporale |
+| Minimum Value | Valore più basso nella finestra temporale |
+| All Values | Tutti i valori devono corrispondere ai criteri |
+| Any Value | Almeno un valore deve corrispondere |
 
-### Tipi di Filtro
+### Tipi di filtri
 
-- **Maggiore Di**, **Minore Di**, **Maggiore o Uguale a**, **Minore o Uguale a**, **Uguale a**, **Diverso da**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
 
-## Template di Avviso Predefiniti
+## Template di alert predefiniti
 
-OneUptime fornisce template per scenari comuni di monitoraggio Kubernetes:
+OneUptime fornisce template per scenari comuni di monitoring Kubernetes:
 
 | Template | Descrizione | Soglia |
 |----------|-------------|-----------|
-| Rilevamento CrashLoopBackOff | Conteggio riavvii container | > 5 riavvii |
-| Pod Bloccato in Pending | Pod in fase Pending | > 0 pod |
-| Nodo Non Pronto | Condizione di prontezza nodo | = 0 (non pronto) |
-| Alta CPU Nodo | Utilizzo CPU nodo | > 90% |
-| Alta Memoria Nodo | Utilizzo memoria nodo | > 85% |
-| Mancata Corrispondenza Repliche Deployment | Repliche non disponibili | > 0 repliche |
-| Fallimenti Job | Pod falliti in un job | > 0 fallimenti |
-| etcd Senza Leader | Leader del cluster etcd mancante | = 0 (nessun leader) |
-| Throttling Server API | Richieste API eliminate | > 0 richieste |
-| Backlog Scheduler | Pod in attesa nello scheduler | > 0 pod |
-| Alto Utilizzo Disco Nodo | Utilizzo filesystem nodo | > 90% |
-| DaemonSet Non Disponibile | Nodi mal pianificati | > 0 nodi |
+| CrashLoopBackOff Detection | Conteggio dei riavvii del container | > 5 riavvii |
+| Pod Stuck in Pending | Pod nella fase Pending | > 0 pod |
+| Node Not Ready | Condizione di readiness del nodo | = 0 (non pronto) |
+| High Node CPU | Utilizzo CPU del nodo | > 90% |
+| High Node Memory | Utilizzo memoria del nodo | > 85% |
+| Deployment Replica Mismatch | Repliche non disponibili | > 0 repliche |
+| Job Failures | Pod falliti in un job | > 0 fallimenti |
+| etcd No Leader | Leader del cluster etcd mancante | = 0 (nessun leader) |
+| API Server Throttling | Richieste API scartate | > 0 richieste |
+| Scheduler Backlog | Pod in attesa nello scheduler | > 0 pod |
+| High Node Disk Usage | Utilizzo del filesystem del nodo | > 90% |
+| DaemonSet Unavailable | Nodi con pianificazione errata | > 0 nodi |
 
-## Requisiti di Configurazione
+## Requisiti di configurazione
 
-Per usare il monitoraggio Kubernetes, è necessario installare l'agente Kubernetes di OneUptime nel proprio cluster. L'agente invia metriche, eventi e log dei pod del cluster a OneUptime tramite OTLP.
+Per utilizzare il monitoring Kubernetes, dovete installare l'agente Kubernetes di OneUptime nel vostro cluster. L'agente invia metriche del cluster, eventi, log dei pod e — per impostazione predefinita — **trace delle applicazioni e metriche RED HTTP catturate tramite eBPF** a OneUptime via OTLP. Non sono necessarie modifiche al codice o SDK per applicazione per vedere il traffico a livello di servizio.
 
-Vedere la guida [Installare l'Agente Kubernetes](/docs/monitor/kubernetes-agent) — include l'installazione con un singolo comando Helm e l'opzione `preset` per scegliere la configurazione giusta per il proprio cluster (standard, GKE Autopilot, EKS Fargate).
+Consultate la guida [Installare l'agente Kubernetes](/docs/monitor/kubernetes-agent) — copre l'installazione Helm con un solo comando, l'opzione `preset` per scegliere la configurazione giusta per il vostro cluster (standard, GKE Autopilot, EKS Fargate) e i toggle `ebpf.features.*` per le singole famiglie di segnali (metriche RED HTTP, service graph, flussi di rete, statistiche TCP).

@@ -1,6 +1,6 @@
 # Runbook-regler
 
-Runbook-regler kobler automatisk runbooks til når en **hendelse**, **varsel** eller **planlagt vedlikeholdshendelse** opprettes. De styres fra Innstillinger-menyen på hver entitet:
+Runbook-regler kobler automatisk runbooks til når en **hendelse**, et **varsel** eller en **planlagt vedlikeholdshendelse** opprettes. De styres fra Innstillinger-menyen på hver entitet:
 
 - Hendelser → Innstillinger → **Runbook-regler**
 - Varsler → Innstillinger → **Runbook-regler**

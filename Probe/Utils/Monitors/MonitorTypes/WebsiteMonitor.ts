@@ -41,6 +41,9 @@ export default class WebsiteMonitor {
       timeout?: PositiveNumber; // timeout in milliseconds
       doNotFollowRedirects?: boolean | undefined;
       allowSelfSignedCertificates?: boolean | undefined;
+      tlsClientCertificate?: string | undefined;
+      tlsClientKey?: string | undefined;
+      tlsClientKeyPassphrase?: string | undefined;
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -61,20 +64,57 @@ export default class WebsiteMonitor {
       options.allowSelfSignedCertificates,
     );
 
+    const tlsClientCertificate: string | undefined =
+      options.tlsClientCertificate
+        ? options.tlsClientCertificate.trim() || undefined
+        : undefined;
+    const tlsClientKey: string | undefined = options.tlsClientKey
+      ? options.tlsClientKey.trim() || undefined
+      : undefined;
+    const hasClientCert: boolean = Boolean(
+      tlsClientCertificate && tlsClientKey,
+    );
+    const tlsClientKeyPassphrase: string | undefined =
+      options.tlsClientKeyPassphrase || undefined;
+
     const buildAgents: () => ProxyAgents = (): ProxyAgents => {
+      const proxyOptions: {
+        rejectUnauthorized?: boolean;
+        cert?: string;
+        key?: string;
+        passphrase?: string;
+      } = {};
+      if (allowSelfSignedCertificates) {
+        proxyOptions.rejectUnauthorized = false;
+      }
+      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
+        proxyOptions.cert = tlsClientCertificate;
+        proxyOptions.key = tlsClientKey;
+        if (tlsClientKeyPassphrase) {
+          proxyOptions.passphrase = tlsClientKeyPassphrase;
+        }
+      }
+
       const proxyAgents: ProxyAgents = {
-        ...ProxyConfig.getRequestProxyAgents(
-          url,
-          allowSelfSignedCertificates
-            ? { rejectUnauthorized: false }
-            : undefined,
-        ),
+        ...ProxyConfig.getRequestProxyAgents(url, proxyOptions),
       };
 
-      if (allowSelfSignedCertificates && !proxyAgents.httpsAgent) {
-        proxyAgents.httpsAgent = new https.Agent({
-          rejectUnauthorized: false,
-        });
+      if (
+        (allowSelfSignedCertificates || hasClientCert) &&
+        !proxyAgents.httpsAgent
+      ) {
+        const agentOptions: https.AgentOptions = {};
+        if (allowSelfSignedCertificates) {
+          agentOptions.rejectUnauthorized = false;
+        }
+        if (hasClientCert && tlsClientCertificate && tlsClientKey) {
+          agentOptions.cert = tlsClientCertificate;
+          agentOptions.key = tlsClientKey;
+          if (tlsClientKeyPassphrase) {
+            agentOptions.passphrase = tlsClientKeyPassphrase;
+          }
+        }
+        proxyAgents.httpsAgent = new https.Agent(agentOptions);
       }
 
       return proxyAgents;

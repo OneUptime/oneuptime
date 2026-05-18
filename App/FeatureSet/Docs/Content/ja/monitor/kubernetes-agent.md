@@ -1,6 +1,6 @@
-# Kubernetesエージェントのインストール
+# Kubernetes エージェントのインストール
 
-OneUptime Kubernetesエージェントは、Kubernetesクラスターからクラスターメトリクス、イベント、Podログを収集し、OneUptimeに送信します。Helmチャートとして配布されています。
+OneUptime Kubernetes エージェントは、クラスターメトリクス、イベント、Pod ログ、**アプリケーショントレース(eBPF による HTTP/gRPC)**、**連続的な CPU フレームグラフ(eBPF プロファイラー)**、および **OS レベルのノードメトリクス**を Kubernetes クラスターから収集し、OneUptime へ送信します。Helm chart として配布されており、ワンコマンドでインストールできます。eBPF 自動計装とプロファイリングはデフォルトで有効化されているため、コード変更なしでサービスレベルのトレース、RED メトリクス、フレームグラフを確認できます。
 
 ## クイックスタート
 
@@ -16,23 +16,23 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
 ```
 
-数分後にOneUptimeにクラスターが表示されます。
+数分以内にクラスターが OneUptime に表示されます。
 
 ## クラスターに適したプリセットの選択
 
-Kubernetesのディストリビューションによって制約が異なります。特に `hostPath` ボリュームをマウントできるかどうかが重要です。セキュリティのドキュメントを読む手間を省くため、チャートはトップレベルのオプション `preset` を一つ提供しています。
+Kubernetes のディストリビューションごとに制約が異なります。最も顕著なのは、ワークロードが `hostPath` ボリュームをマウントできるかどうかです。セキュリティドキュメントを読まずに済むよう、chart には単一のトップレベルオプションとして `preset` が用意されています。
 
-| プリセット | 使用用途 | ログ収集 | 備考 |
+| プリセット | 用途 | ログ収集 | 備考 |
 | --- | --- | --- | --- |
-| `standard`（デフォルト） | セルフマネージド、**EC2上のEKS**、**GKE Standard**、**AKS**、minikube、kind、k3s | hostPathを介して `/var/log/pods` を読み取るDaemonSet | 最小オーバーヘッド。これらのプラットフォームではhostPathが利用可能。 |
-| `gke-autopilot` | **GKE Autopilot** | Kubernetes APIテイラー（Deployment） | AutopilotではhostPathがブロックされます。AutopilotのPodセキュリティ標準に合格した強化されたセキュリティコンテキストを設定します。 |
-| `eks-fargate` | **EKS Fargate** | Kubernetes APIテイラー（Deployment） | `gke-autopilot` と同じ。FargateはhostPathとDaemonSetをブロックします。 |
+| `standard`(デフォルト) | セルフマネージド、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | hostPath 経由で `/var/log/pods` を読み取る DaemonSet | オーバーヘッドが最も低い構成です。これらのプラットフォームでは hostPath を利用できます。 |
+| `gke-autopilot` | **GKE Autopilot** | Kubernetes API テイラー(Deployment) | Autopilot では hostPath がブロックされます。Autopilot の Pod Security Standards を通過する強化されたセキュリティコンテキストを設定します。 |
+| `eks-fargate` | **EKS Fargate** | Kubernetes API テイラー(Deployment) | `gke-autopilot` と同じです。Fargate は hostPath と DaemonSet をブロックします。 |
 
-不明な場合は `preset` を未設定のままにしてください。`standard` のデフォルトが使用されます。`hostPath` に関するPodセキュリティポリシーエラーが発生した場合は、`gke-autopilot`（またはEKS Fargateの場合は `eks-fargate`）に切り替えて再インストールしてください。
+どれを選べばよいか分からない場合は、`preset` を設定しないままにしてください。`standard` のデフォルト設定が適用されます。クラスターが `hostPath` に言及する Pod Security ポリシーエラーでインストールを拒否した場合は、`gke-autopilot`(または EKS Fargate の場合は `eks-fargate`)に切り替えて再インストールしてください。
 
-### 使用例
+### 例
 
-**GKE Standard、EC2上のEKS、セルフマネージド、またはAKS：**
+**GKE Standard、EKS on EC2、セルフマネージド、または AKS:**
 
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
@@ -42,7 +42,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set clusterName=prod
 ```
 
-**GKE Autopilot：**
+**GKE Autopilot:**
 
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
@@ -53,7 +53,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set preset=gke-autopilot
 ```
 
-**EKS Fargate：**
+**EKS Fargate:**
 
 ```bash
 helm install oneuptime-agent oneuptime/kubernetes-agent \
@@ -64,46 +64,158 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set preset=eks-fargate
 ```
 
-## 2つのログ収集モードの違い
+## 2 つのログ収集モードの違い
 
-`preset` は内部的に `logs.mode` を設定します。プリセットのデフォルトを上書きする必要がある場合は、直接設定することもできます。
+内部的には、`preset` が `logs.mode` を設定します。プリセットのデフォルトを上書きする必要がある場合は、これを直接設定することもできます。
 
-### DaemonSetモード（`logs.mode: daemonset`）
+### DaemonSet モード(`logs.mode: daemonset`)
 
-DaemonSetはノードごとに1つのOpenTelemetryコレクターPodを実行します。hostPathボリュームを介して `/var/log/pods/` 以下のログファイルを追跡し、OTLPで転送します。
+DaemonSet がノードごとに 1 つの OpenTelemetry Collector pod を実行します。hostPath ボリューム経由で `/var/log/pods/` 配下のログファイルをテイルし、OTLP で転送します。
 
-- **利点：** 最小オーバーヘッド、ノード数に応じた線形スケーリング、Kubernetes APIサーバーへの負荷なし、ログローテーションの処理。
-- **欠点：** hostPathが必要で、DaemonSetをスケジュールできる必要があります。GKE AutopilotとEKS Fargateではいずれも利用できません。
+- **長所:** オーバーヘッドが最も低く、ノード数に対して線形にスケールし、Kubernetes API サーバーに負荷をかけず、ログローテーションに対応します。
+- **短所:** hostPath が必要で、DaemonSet をスケジュールできる必要があります。これらは GKE Autopilot と EKS Fargate では利用できません。
 
-### APIモード（`logs.mode: api`）
+### API モード(`logs.mode: api`)
 
-単一レプリカのDeployment（`oneuptime/kubernetes-log-tailer` イメージ）がKubernetes APIを使用してコンテナログをストリーミングします。`kubectl logs -f` が使用するのと同じエンドポイントです。hostPathなし、ホストアクセスなし、DaemonSetなし。
+シングルレプリカの Deployment(`oneuptime/kubernetes-log-tailer` イメージ)が Kubernetes API を使用してコンテナログをストリーミングします。これは `kubectl logs -f` が使用するのと同じエンドポイントです。hostPath、ホストアクセス、DaemonSet はいずれも不要です。
 
-- **利点：** GKE Autopilot、EKS Fargate、hostPathをブロックするまたは `restricted` PodセキュリティStandardを適用するクラスターで機能します。
-- **欠点：** すべてのコンテナストリームが `kube-apiserver` への長期接続になります。実際には1つのレプリカで数千のコンテナを問題なく処理できます。非常に大規模なクラスターの場合は、各レプリカで `logs.api.replicas` と `namespaceFilters.include` を使ってネームスペース単位でシャーディングしてください。
+- **長所:** GKE Autopilot、EKS Fargate、および hostPath をブロックしたり `restricted` Pod Security Standard を強制したりするあらゆるクラスターで動作します。
+- **短所:** すべてのコンテナストリームが `kube-apiserver` への長時間接続になります。実際には、1 つのレプリカで数千個のコンテナを問題なく処理できます。非常に大規模なクラスターでは、`logs.api.replicas` と各レプリカの `namespaceFilters.include` を組み合わせて namespace でシャーディングしてください。
 
-### どちらを使うべきか
+### どちらを使うべきか?
 
-hostPathが機能する場合はDaemonSetを使用してください。それ以外の場合はAPIモードを使用してください。`preset` 設定が適切なものを選択します。
+hostPath が利用可能であれば、DaemonSet を使用してください。それ以外の場合は、API モードを使用してください。`preset` 設定により、適切なモードが自動的に選択されます。
 
-`--set logs.enabled=false` でログ収集を完全に無効にし、代わりにOpenTelemetry SDKでアプリケーションログを送信することもできます。[OpenTelemetry](/docs/telemetry/open-telemetry)のドキュメントを参照してください。
+`--set logs.enabled=false` でログ収集を完全に無効化し、代わりに OpenTelemetry SDK 経由でアプリケーションログを送信することもできます。[OpenTelemetry](/docs/telemetry/open-telemetry) ドキュメントを参照してください。
+
+## eBPF によるアプリケーショントレースおよび HTTP リクエスト(デフォルトで有効)
+
+chart には、すべてのノードで [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) を実行する DaemonSet が含まれています。OBI は eBPF プログラムを Linux カーネルにロードし、ソケットレベルのトラフィックを監視して、ノード上のすべての pod から HTTP/HTTPS、gRPC、SQL/Redis 呼び出しを再構築します。コード変更、SDK、サイドカーは一切不要です。キャプチャされたトラフィックは、OTLP トレースおよびリクエスト/レイテンシメトリクスとして OneUptime に直接エクスポートされます。
+
+インストール後、数分以内にサービスが **Telemetry → Traces** とサービスマップに表示され始めます。`k8s.cluster.name` が `clusterName` に設定されるため、クラスター単位でフィルタリングできます。
+
+### 無効化すべきタイミング
+
+eBPF は**デフォルトで有効**です。以下に該当する場合は無効化(`--set ebpf.enabled=false`)してください:
+
+- **GKE Autopilot** または **EKS Fargate** にインストールしている場合。これらのプラットフォームは特権 pod をブロックしますが、OBI は eBPF プログラムをロードするために特権モードを必要とします。
+- ノードが BTF バックポートのない **Linux 5.8** より古いカーネルで動作している場合。(Debian 11+、Ubuntu 20.10+、Fedora 34+、RHEL/Stream 9+ などのモダンなディストリビューションでは問題ありません。)
+- すでにアプリから OpenTelemetry SDK 経由でトレースを送信しており、重複を避けたい場合。
+
+### 出力されるデータ
+
+OBI は、キャプチャされたトラフィックから複数のシグナルファミリーを抽出します。すべてデフォルトで有効化されており、`--set ebpf.features.<key>=false` で個別に無効化できます:
+
+| シグナル | デフォルト | 追加される情報 |
+| --- | --- | --- |
+| `ebpf.features.httpMetrics` | on | サービスごとの HTTP/gRPC RED メトリクス — リクエストレート、レイテンシヒストグラム、エラー数。 |
+| `ebpf.features.spanMetrics` | on | スパン属性をキーとするメトリクス: ルート/オペレーションごとに分類されたリクエストサイズ、レスポンスサイズ、所要時間。 |
+| `ebpf.features.serviceGraph` | on | サービス間のエッジメトリクス(呼び出し元 → 呼び出し先のリクエストレートとレイテンシ)。サービスマップを支える機能です。 |
+| `ebpf.features.hostMetrics` | on | 計装された各プロセスの CPU とメモリ。基本的なキャパシティの確認のために別途プロファイラーを動かす手間を省きます。 |
+| `ebpf.features.networkMetrics` | on | k8s メタデータ付きの pod 間 TCP/UDP フローのバイト数とパケット数のカウンター。OBI が解析できないプロトコルで動作するものを含め、通信するすべての pod ペアを可視化します。 |
+| `ebpf.features.networkInterZoneMetrics` | off | ネットワークメトリクスのゾーン間バリアント。カーディナリティが倍になるため、ゾーンベースのスケジューリングを実際に利用している場合のみ有効化する価値があります。 |
+| `ebpf.features.tcpStats` | on | ノードレベルの TCP 統計: RTT ヒストグラム、接続失敗数、再送回数。 |
+
+OBI はデフォルトで、サービス境界をまたいでトレースコンテキストを伝播します。pod A が pod B に HTTP/gRPC リクエストを送信すると、OBI は W3C `traceparent` ヘッダーを送信リクエストに挿入します。これにより、pod B 側で生成されるスパンは pod A の送信トレースと同じトレースにリンクされます。どちらのアプリでも SDK の変更は不要です。
+
+| オプション | デフォルト | 説明 |
+| --- | --- | --- |
+| `ebpf.contextPropagation` | on | 送信トラフィックに W3C `traceparent` を挿入(HTTP ヘッダー + カスタム TCP オプション)。各サービスのスパンをローカルに保ちたい場合は `false` に設定してください。 |
+| `ebpf.trackRequestHeaders` | on | プレーン HTTP サーバー(非 Go、非 TLS)でも伝播が動作するようにするためのカーネル側のリクエストヘッダー追跡。`contextPropagation` が true の場合のみ有効化されます。 |
+
+### ログとトレースの相関付け
+
+これもデフォルトで有効です。OBI のログエンリッチャーは、計装されたプロセスからの pod 標準出力への書き込みをインターセプトし、以下を行います:
+
+- **JSON 形式のログの場合:** 行に `trace_id` と `span_id` フィールドを挿入します(ログ内の既存の値は保持されます)。次に filelog DaemonSet がそれらのフィールドを LogRecord のネイティブな trace_id/span_id スロットに引き上げます。これにより、トレースビューでスパンをクリックすると OneUptime 内のログにジャンプし、ログ行をクリックすると親トレースにジャンプできます。
+- **JSON 以外のログの場合:** 行はそのまま保持されます。収集はされますが、自動リンクは行われません。
+
+| オプション | デフォルト | 説明 |
+| --- | --- | --- |
+| `ebpf.logToTraceCorrelation` | on | OBI ログエンリッチャーと filelog パイプラインの trace_id 引き上げを有効化します。両方をスキップする場合は `false` に設定してください。 |
+
+注意事項:
+
+- **trace_id を表示するにはログが JSON 形式である必要があります。** ロガーを JSON フォーマッターに切り替えてください。例えば `structlog`、`pino`、`winston`、`serilog`、`logback-json`、klog の `--logging-format=json` などです。
+- **標準出力のバッファリングは相関付けを破壊します。** これは、`write()` システムコールがリクエストを処理したスレッドとは別のスレッドで発火するためです。一般的な対処方法:
+  - **Python:** `PYTHONUNBUFFERED=1` を設定してください(ランタイムは TTY 以外の場合に標準出力をブロックバッファリングします)。
+  - **.NET:** 起動時に `Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true })` を実行してください。Microsoft.Extensions.Logging の `AddConsole()` と Serilog の非同期シンクも動作しません。同期型のコンソールライターに切り替えてください(Serilog のデフォルトの `WriteTo.Console()` で問題ありません)。
+- Greenlet / gevent、Tornado、その他のカスタム非同期ランタイムには対応していません。
+
+### チューニング
+
+| オプション | デフォルト | 説明 |
+| --- | --- | --- |
+| `ebpf.enabled` | `true` | マスタースイッチ。eBPF DaemonSet をまるごとスキップする場合は `false` に設定してください。 |
+| `ebpf.image.tag` | `v0.9.0` | OBI イメージタグ。OBI は 1.0 リリース前です。動作確認済みのバージョンに固定し、バージョンアップ時には再テストしてください。 |
+| `ebpf.autoTargetExe` | `*` | 計装対象の実行ファイルの glob。自動計装の範囲を限定したい場合は絞り込んでください(例: `*/python,*/java`)。 |
+| `ebpf.excludeExePaths` | (シェル、kubelet、runc、containerd、otelcol、OBI 自身) | スキップする glob のカンマ区切りリスト。 |
+| `ebpf.logLevel` | `info` | `debug`、`info`、`warn`、または `error`。トラブルシューティング時は `debug` に設定してください。 |
+| `ebpf.printTraces` | `false` | OTLP エクスポートに加えて、OBI の標準出力にスパンを表示します。インストール時にキャプチャを確認するのに便利です。 |
+| `ebpf.resources.*` | requests `100m / 256Mi`、limits `1000m / 1Gi` | トラフィックの多いクラスターでは増やしてください。 |
+
+OBI が動作しトラフィックを認識していることを確認するには:
+
+```bash
+kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+```
+
+## 連続的な CPU プロファイリング(デフォルトで有効)
+
+別の DaemonSet が [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)(`otel/opentelemetry-collector-ebpf-profiler` イメージとしてパッケージ化されたもの)を実行します。サポートされるすべてのランタイム(Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust)で、オン CPU スタックを 19Hz でサンプリングし、OTLP プロファイルを OneUptime に送信します。これらは **Telemetry → Performance Profiles** に表示され、また個々のトレーススパンからリンクされたフレームグラフとしても確認できます。
+
+eBPF 自動計装も有効化されている場合(`ebpf.enabled: true`、デフォルト)、各 CPU サンプルは共有 bpffs マップを介して OBI のトレースコンテキストと相関付けされます。これにより、フレームグラフは trace_id/span_id を保持し、OneUptime UI でスパンごとのフレームグラフを表示できます。
+
+要件:
+
+- **Linux カーネル 5.10+**(OBI が必要とする 5.8 より少し新しいバージョン)。
+- hostPID を持つ特権 pod。eBPF 自動計装 DaemonSet と同じ制約です。GKE Autopilot、EKS Fargate、およびロックダウンされた環境では無効化してください: `--set profiling.enabled=false`。
+
+チューニング:
+
+| オプション | デフォルト | 説明 |
+| --- | --- | --- |
+| `profiling.enabled` | `true` | マスタースイッチ。 |
+| `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` イメージタグ。プロファイラーは 1.0 リリース前です。動作確認済みのバージョンに固定してください。 |
+| `profiling.samplesPerSecond` | `19` | サンプリング頻度(Hz)。アップストリームのデフォルト値で、一般的なタイマー周波数との偶発的なエイリアシングを回避します。 |
+| `profiling.offCpuThreshold` | `0` | (0–1] でオフ CPU プロファイリングを有効化します。ロック競合やブロッキング I/O を診断できます。トレースポイントのオーバーヘッドを追加するため、デフォルトでは無効化されています。 |
+| `profiling.tracers` | `""` *(全ランタイム)* | ロードする言語トレーサーのカンマ区切りリスト。 |
+| `profiling.obiProcessContext` | `true` | トレースとプロファイルのリンクのために、サンプルを OBI のトレースコンテキストと相関付けます。 |
+
+## その他のデータ収集(ホストメトリクス、監査ログ、CSI、CoreDNS)
+
+chart は以下のデータも収集できます:
+
+| `<key>.enabled` | デフォルト | 追加される情報 |
+| --- | --- | --- |
+| `hostMetrics` | on | `/proc` および `/sys` からのノードごとの OS メトリクス — ディスク I/O キューの深さ、ファイルシステムの inode 使用量、NIC エラーカウンター、ページング統計、ロードアベレージ。ログコレクター DaemonSet 内に同居します(追加の pod はありません)。 |
+| `auditLogs` | off | ホストから `/var/log/kubernetes/audit.log` をテイルします。すべての Kubernetes API リクエストをキャプチャします — 誰がどのリソースに対して何を行ったかが記録されます。セルフマネージドクラスターのみ対応 — マネージド Kubernetes(EKS、GKE、AKS、DOKS)は監査ログをクラウドプロバイダーのシンクにルーティングします。 |
+| `csi` | off | `app=csi-driver`(または `app.kubernetes.io/component=csi-driver`)というラベルが付けられた pod を自動検出し、Prometheus の `metrics` ポートをスクレイプします — ボリュームのアタッチ/デタッチのレイテンシ、プロビジョニング失敗、IOPS など。 |
+| `coreDns` | off | クラスター CoreDNS サービスの `:9153/metrics` をスクレイプします。クエリレート、レイテンシ、キャッシュヒット率、エラー数を可視化します — P99 レイテンシの一般的な原因となる項目です。 |
 
 ## 共通オプション
 
 | オプション | デフォルト | 説明 |
 | --- | --- | --- |
-| `preset` | （空 — `standard` として扱われる） | 上記の表を参照。 |
-| `oneuptime.url` | *（必須）* | OneUptimeインスタンスのURL。 |
-| `oneuptime.apiKey` | *（必須）* | プロジェクトAPIキー（設定 → APIキー）。 |
-| `clusterName` | *（必須）* | このクラスターの一意の名前。すべてのレコードに `k8s.cluster.name` として刻印されます。 |
-| `namespaceFilters.include` | `[]` | 設定した場合、これらのネームスペースのみが監視されます。 |
-| `namespaceFilters.exclude` | `["kube-system"]` | スキップするネームスペース。 |
-| `logs.enabled` | `true` | ログ収集のオン/オフ。 |
-| `logs.mode` | （`preset` から導出） | `daemonset`、`api`、または `disabled`。プリセットを上書きします。 |
-| `logs.api.replicas` | `1` | ログテイラーDeploymentのレプリカ数（APIモードのみ）。 |
-| `controlPlane.enabled` | `false` | etcd/api-server/scheduler/controller-managerをスクレイプします。セルフマネージドクラスターのみ — マネージドサービス（EKS/GKE/AKS）は通常これらのエンドポイントを公開していません。 |
+| `preset` | (空 — `standard` として扱われます) | 上記のテーブルを参照してください。 |
+| `oneuptime.url` | *(必須)* | OneUptime インスタンスの URL。 |
+| `oneuptime.apiKey` | *(必須)* | プロジェクトの API キー(Settings → API Keys)。 |
+| `clusterName` | *(必須)* | このクラスターの一意の名前。すべてのレコードに `k8s.cluster.name` として刻印されます。 |
+| `namespaceFilters.include` | `[]` | 設定された場合、これらの namespace のみが監視されます。 |
+| `namespaceFilters.exclude` | `["kube-system"]` | スキップする namespace。 |
+| `logs.enabled` | `true` | ログ収集を有効化または無効化します。 |
+| `logs.mode` | (`preset` から導出) | `daemonset`、`api`、または `disabled`。プリセットを上書きします。 |
+| `logs.api.replicas` | `1` | ログテイラー Deployment のレプリカ数(API モードのみ)。 |
+| `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation により、すべての pod から HTTP/gRPC トレースを自動キャプチャします。上記のセクションを参照してください。 |
+| `profiling.enabled` | `true` | OpenTelemetry eBPF Profiler による連続的な CPU フレームグラフ。上記のセクションを参照してください。 |
+| `hostMetrics.enabled` | `true` | ノードごとの OS メトリクス。 |
+| `auditLogs.enabled` | `false` | Kubernetes 監査ログ収集(セルフマネージドクラスター)。 |
+| `csi.enabled` | `false` | CSI ドライバーの Prometheus メトリクス。 |
+| `coreDns.enabled` | `false` | CoreDNS の Prometheus メトリクス。 |
+| `controlPlane.enabled` | `false` | etcd / api-server / scheduler / controller-manager をスクレイプします。セルフマネージドクラスターのみ対応 — マネージド版(EKS/GKE/AKS)は通常これらのエンドポイントを公開していません。 |
 
-完全なリストは[チャートの `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) を参照してください。
+完全なリストについては、[chart の `values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) を参照してください。
 
 ## アップグレード
 
@@ -114,7 +226,21 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --reuse-values
 ```
 
-`--reuse-values` は既存の設定を維持します。新しい `--set` オプションを追加して上書きできます。
+`--reuse-values` は既存の構成を保持します。新しい `--set` の上書きはその上に追加で渡すことができます。
+
+> ⚠️ **注意: `--reuse-values` は chart からの新しいデフォルト値をマージしません。** Helm は以前にレンダリングされた値をそのまま再利用するため、新しいバージョンの chart で追加されたトップレベルフィールド(例: `profiling.*`、`ebpf.features.*`)は既存のリリースでは未設定のままになり、テンプレートはそれを無効化したかのようにレンダリングします。
+>
+> **Helm 3.14+** — `--reset-then-reuse-values` に切り替えてください。これは上書きしていないキーについて chart のデフォルトを再読み込みします:
+>
+> ```bash
+> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+>   --namespace oneuptime-kubernetes-agent \
+>   --reset-then-reuse-values
+> ```
+>
+> **Helm 3.13 以前** — `--reuse-values` を外し、元の `--set` フラグ(または `-f values.yaml`)を明示的に渡してください。上書きしないものすべてに新しい chart のデフォルトが適用されます。
+>
+> アップグレード後に新機能の pod(例: `kubernetes-agent-profiling-*`)が表示されない場合、ほとんどの場合これが原因です。`helm get values <release>` を実行すると Helm が実際に保持している値が表示されます。出力にフィールドがない場合は、そのフィールドのデフォルトがマージされていないことを意味します。
 
 ## アンインストール
 
@@ -125,31 +251,45 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ## トラブルシューティング
 
-### インストールが「hostPath volumes are not allowed」で失敗する場合
+### "hostPath volumes are not allowed" でインストールが失敗する
 
-クラスターがhostPathをブロックしています。APIモードのプリセットに切り替えてください。
+クラスターが hostPath をブロックしています。API モードのプリセットに切り替えてください:
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
   --reuse-values \
-  --set preset=gke-autopilot   # またはeks-fargate
+  --set preset=gke-autopilot   # または eks-fargate
 ```
 
-### OneUptimeにログが表示されない場合
+### OneUptime にログが表示されない
 
-エージェントのPodを確認してください。
+エージェント pod を確認してください:
 
 ```bash
 kubectl get pods -n oneuptime-kubernetes-agent
 kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
-APIモードでは、ログテイラーPodがポート13133で `/healthz` を公開しています。`kubectl port-forward` を介してアクセスし、エクスポートステータスのスナップショットを取得できます。
+API モードでは、ログテイラー pod がポート 13133 で `/healthz` を公開しています。`kubectl port-forward` 経由でアクセスすると、エクスポートステータスのスナップショットを確認できます。
 
-### 1つのログテイラーレプリカに対してPod数が多すぎる場合（APIモードのみ）
+### eBPF DaemonSet pod が `CrashLoopBackOff` になる、または起動に失敗する
 
-ネームスペースをシャーディングして水平スケールしてください。ネームスペースグループごとに1回デプロイします。
+OBI pod のログを確認してください:
+
+```bash
+kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+```
+
+よくある原因:
+
+- **カーネルが古すぎる、または BTF がない。** OBI は BTF を備えた Linux 5.8+ を必要とします。ノードで `uname -r` を実行して確認してください。アップグレードできない場合は、eBPF を無効化してください: `--set ebpf.enabled=false`。
+- **特権 pod がブロックされている。** 一部のクラスターでは、Autopilot/Fargate 以外でも特権 pod が拒否されます。eBPF を無効化してください。
+- **ダッシュボードにトレースが表示されないが OBI は動作している。** `--set ebpf.printTraces=true` を設定して OBI の標準出力を確認してください。そこにスパンが表示される場合、問題は OTLP の配信です(`OTEL_EXPORTER_OTLP_ENDPOINT` と OneUptime の URL/API キーを確認してください)。スパンが表示されない場合、OBI が監視しているトラフィックがすべて、OBI が傍受できない TLS ライブラリ(例: 認識できない静的リンクされた TLS 実装)で暗号化されている可能性があります。
+
+### クラスターの pod 数が 1 つのログテイラーレプリカに対して多すぎる(API モードのみ)
+
+namespace でシャーディングして水平方向にスケールしてください。namespace グループごとに 1 回ずつデプロイします:
 
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
@@ -158,4 +298,4 @@ helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   ...
 ```
 
-または `logs.api.replicas` を増やすこともできますが、各レプリカが許可されたすべてのネームスペースを処理するため、重複排除のためにはやはりネームスペースシャーディングが必要です。
+別の方法として、`logs.api.replicas` を増やすこともできます。ただし、各レプリカは許可されたすべての namespace を処理するため、重複排除のためには namespace シャーディングが必要です。

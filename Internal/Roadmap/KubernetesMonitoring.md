@@ -31,6 +31,7 @@ This plan proposes a phased implementation to deliver first-class Kubernetes mon
 - **Phase 2.2: Kubernetes-Aware Alert Templates** - 12 alert templates (CrashLoopBackOff, Pod Pending, Node NotReady, High CPU/Memory/Disk, Replica Mismatch, Job Failures, etcd No Leader, API Server Throttling, Scheduler Backlog, DaemonSet Unavailable) with template picker UI and metric catalog
 - **Phase 2.3: HPA and VPA Monitoring** - HPA and VPA list and detail pages, Helm chart config for HPA/VPA metrics collection via k8s_cluster receiver, metrics in KubernetesMetricCatalog
 - **Phase 3.1: Service Mesh Observability** - Service mesh dashboard with Istio and Linkerd support, Prometheus scrape configs for service mesh metrics in kubernetes-agent Helm chart
+- **Phase 3.4: eBPF Auto-Instrumentation (default on)** - DaemonSet running OpenTelemetry eBPF Instrumentation (OBI / `otel/ebpf-instrument`) captures HTTP/gRPC/SQL/Redis traces from every pod without SDKs and routes them through the in-cluster collector to OneUptime. Per-feature toggles (`ebpf.features.*`) expose HTTP RED metrics, span metrics, service-graph edge metrics (drives the service map), per-process host metrics, pod-to-pod network flow counters, and node-level TCP stats (RTT, failed connections, retransmits). Cross-service trace context propagation (W3C `traceparent` injection) is on by default so requests crossing pod A → pod B link into a single trace, no SDK required.
 
 ---
 

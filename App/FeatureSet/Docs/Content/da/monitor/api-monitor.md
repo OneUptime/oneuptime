@@ -87,6 +87,26 @@ Til POST-, PUT- og PATCH-anmodninger kan du angive et JSON-anmodningsindhold. Du
 
 Som standard følger OneUptime HTTP-omdirigeringer (301, 302 osv.). Aktiver denne indstilling, hvis du vil overvåge omdirigeringssvaret selv frem for den endelige destination.
 
+#### Allow Self-Signed Certificates
+
+Enable this option to skip TLS certificate validation. Useful when the target server uses a self-signed or otherwise untrusted TLS certificate (for example, an internal staging environment).
+
+#### Client Certificate (mTLS)
+
+If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+
+- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
+- **Client Private Key (PEM)** — the matching PEM-encoded private key.
+- **Client Private Key Passphrase** *(optional)* — required only if the private key is encrypted.
+
+This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
+
+```bash
+curl --cert client.crt --key client.key https://api.example.com/health
+```
+
+For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
+
 ## Overvågningskriterier
 
 Du kan konfigurere kriterier til at afgøre, hvornår din API betragtes som online, forringet eller offline baseret på:

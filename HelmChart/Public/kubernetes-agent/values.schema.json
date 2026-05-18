@@ -278,6 +278,194 @@
       "type": "string",
       "description": "Collection interval for metrics (e.g., 30s, 1m)"
     },
+    "ebpf": {
+      "type": "object",
+      "description": "OpenTelemetry eBPF Instrumentation (OBI) — auto-captures HTTP/gRPC traces and request metrics from every pod on the node, no SDK required. Enabled by default. Requires Linux kernel 5.8+ and the ability to run privileged pods.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the OpenTelemetry eBPF Instrumentation DaemonSet. Default: true."
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "autoTargetExe": {
+          "type": "string",
+          "description": "Glob pattern of executable paths to auto-instrument (e.g., '*' for all, '*/python,*/java' to scope)."
+        },
+        "excludeExePaths": {
+          "type": "string",
+          "description": "Comma-separated glob list of executable paths to skip."
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"]
+        },
+        "printTraces": {
+          "type": "boolean",
+          "description": "Print spans to OBI pod stdout in addition to OTLP export. Useful for verifying traffic capture during install."
+        },
+        "features": {
+          "type": "object",
+          "description": "Granular toggles for the metric families OBI extracts from the captured traffic. Each is independent — disabling one drops that family but leaves traces and other families intact.",
+          "properties": {
+            "httpMetrics": {
+              "type": "boolean",
+              "description": "HTTP/gRPC RED metrics per service (OBI `application`)."
+            },
+            "spanMetrics": {
+              "type": "boolean",
+              "description": "Per-span metrics keyed on span attributes (OBI `application_span`)."
+            },
+            "serviceGraph": {
+              "type": "boolean",
+              "description": "Service graph edge metrics, drives the service map (OBI `application_service_graph`)."
+            },
+            "hostMetrics": {
+              "type": "boolean",
+              "description": "Per-host / per-process CPU and memory (OBI `application_host`)."
+            },
+            "networkMetrics": {
+              "type": "boolean",
+              "description": "Pod-to-pod TCP/UDP flow bytes and packets (OBI `network`)."
+            },
+            "networkInterZoneMetrics": {
+              "type": "boolean",
+              "description": "Inter-zone variant of network metrics. Doubles cardinality; off by default (OBI `network_inter_zone`)."
+            },
+            "tcpStats": {
+              "type": "boolean",
+              "description": "Node-level TCP stats (RTT, failed connections, retransmits) (OBI `stats`)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "contextPropagation": {
+          "type": "boolean",
+          "description": "Inject W3C `traceparent` into outbound traffic so traces span services without SDK changes."
+        },
+        "trackRequestHeaders": {
+          "type": "boolean",
+          "description": "Track HTTP request headers in kernel for traceparent extraction. Only effective if `contextPropagation` is true."
+        },
+        "logToTraceCorrelation": {
+          "type": "boolean",
+          "description": "Inject trace_id / span_id into JSON log lines from instrumented processes (via OBI's log enricher) and lift them onto the LogRecord in the filelog pipeline so trace ↔ log click-through works. Non-JSON logs pass through unchanged. Default: true."
+        }
+      },
+      "additionalProperties": false
+    },
+    "profiling": {
+      "type": "object",
+      "description": "Continuous CPU profiling via OpenTelemetry eBPF Profiler. Runs as a DaemonSet, samples stacks across all languages without SDKs, ships OTLP profiles directly to OneUptime. Default: enabled.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "samplesPerSecond": { "type": "integer", "minimum": 1 },
+        "reporterInterval": { "type": "string" },
+        "offCpuThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tracers": { "type": "string" },
+        "obiProcessContext": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "hostMetrics": {
+      "type": "object",
+      "description": "Per-node OS metrics (disk I/O, inodes, NIC errors, load average, paging) via the OTel hostmetrics receiver.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "collectionInterval": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "auditLogs": {
+      "type": "object",
+      "description": "Kubernetes API server audit logs. Off by default; managed K8s usually doesn't expose them as files.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "csi": {
+      "type": "object",
+      "description": "Scrape Prometheus metrics from CSI (storage) driver pods. Off by default.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "scrapeInterval": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "coreDns": {
+      "type": "object",
+      "description": "Scrape Prometheus metrics from the cluster CoreDNS service. Off by default.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "namespace": { "type": "string" },
+        "service": { "type": "string" },
+        "port": { "type": "integer" },
+        "scrapeInterval": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "serviceMesh": {
       "type": "object",
       "description": "Service mesh observability (Istio / Linkerd sidecar metrics)",

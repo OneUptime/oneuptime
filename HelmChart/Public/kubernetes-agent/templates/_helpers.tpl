@@ -59,6 +59,23 @@ Service account name
 {{- end }}
 
 {{/*
+Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
+toggles. Returns a comma-separated string of the OBI feature names that are
+currently enabled. Empty list -> empty string (OBI then exports no metrics).
+*/}}
+{{- define "kubernetes-agent.ebpfMetricsFeatures" -}}
+{{- $features := list -}}
+{{- if .Values.ebpf.features.httpMetrics -}}{{- $features = append $features "application" -}}{{- end -}}
+{{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span" -}}{{- end -}}
+{{- if .Values.ebpf.features.serviceGraph -}}{{- $features = append $features "application_service_graph" -}}{{- end -}}
+{{- if .Values.ebpf.features.hostMetrics -}}{{- $features = append $features "application_host" -}}{{- end -}}
+{{- if .Values.ebpf.features.networkMetrics -}}{{- $features = append $features "network" -}}{{- end -}}
+{{- if .Values.ebpf.features.networkInterZoneMetrics -}}{{- $features = append $features "network_inter_zone" -}}{{- end -}}
+{{- if .Values.ebpf.features.tcpStats -}}{{- $features = append $features "stats" -}}{{- end -}}
+{{- join "," $features -}}
+{{- end }}
+
+{{/*
 Effective log collection mode.
 
 Resolution order:

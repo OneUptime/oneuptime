@@ -31,6 +31,12 @@ import AppLink from "../AppLink/AppLink";
 import ServiceElement from "../Service/ServiceElement";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  ProfileServiceCategory,
+  categorizeProfileService,
+  profileServiceCategoryLabel,
+  profileServiceCategoryOrder,
+} from "../../Utils/ProfileServiceCategory";
 
 /** Each time-range chip on the home page. */
 interface TimeRange {
@@ -67,6 +73,41 @@ interface TopFunction {
  *   5. Services-being-profiled grid
  *   6. Footer link to the raw list of individual profiles
  */
+/*
+ * Persisted UI prefs. Activity-first sort matches a developer's
+ * usual question ("what's hot?"), so we default new users to it. A-Z
+ * stays available for people who like a stable alphabetical list.
+ */
+type ProfileSortMode = "activity" | "alpha";
+const SORT_MODE_STORAGE_KEY: string = "oneuptime.profiles.serviceSort";
+const SHOW_KERNEL_STORAGE_KEY: string = "oneuptime.profiles.showKernel";
+
+function readStoredSortMode(): ProfileSortMode {
+  try {
+    const v: string | null = window.localStorage.getItem(SORT_MODE_STORAGE_KEY);
+    if (v === "activity" || v === "alpha") {
+      return v;
+    }
+  } catch {
+    // localStorage may be unavailable (private mode, SSR) — fall through.
+  }
+  return "activity";
+}
+
+function readStoredShowKernel(): boolean {
+  try {
+    const v: string | null = window.localStorage.getItem(
+      SHOW_KERNEL_STORAGE_KEY,
+    );
+    if (v === "true") {
+      return true;
+    }
+  } catch {
+    // localStorage may be unavailable — fall through.
+  }
+  return false;
+}
+
 const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   const [services, setServices] = useState<Array<Service>>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<
@@ -81,6 +122,15 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
   const [servicesWithProfiles, setServicesWithProfiles] = useState<Set<string>>(
     new Set(),
   );
+  const [sortMode, setSortMode] = useState<ProfileSortMode>(() => {
+    return readStoredSortMode();
+  });
+  const [showKernel, setShowKernel] = useState<boolean>(() => {
+    return readStoredShowKernel();
+  });
+  const [serviceActivity, setServiceActivity] = useState<
+    Record<string, number>
+  >({});
 
   /*
    * Stable time window. We want a single (startTime, endTime) pair
@@ -227,6 +277,183 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
       : "all",
   ]);
 
+  /*
+   * Per-service sample-count fetch. Drives the "Activity" sort and the
+   * sample-count badges on the service cards. We refresh whenever the
+   * time window or selected profile-type changes — the answer to
+   * "what's hot right now?" is window-dependent.
+   *
+   * Note: this is intentionally NOT keyed on `selectedServiceId`. The
+   * dropdown should reflect cluster-wide activity so the user can pivot
+   * to whichever service is loudest, not just the currently-filtered one.
+   */
+  useEffect(() => {
+    let cancelled: boolean = false;
+    void (async (): Promise<void> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/profiles/service-activity",
+            ),
+            data: {
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              profileType,
+              profileTypes:
+                ProfileUtil.getRawProfileTypesForCategory(profileType),
+            },
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+
+        if (cancelled) {
+          return;
+        }
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+        const rows: Array<{
+          serviceId: string;
+          sampleCount: number;
+        }> = (response.data["activity"] || []) as unknown as Array<{
+          serviceId: string;
+          sampleCount: number;
+        }>;
+        const next: Record<string, number> = {};
+        for (const r of rows) {
+          if (r && r.serviceId) {
+            next[r.serviceId] = Number(r.sampleCount) || 0;
+          }
+        }
+        setServiceActivity(next);
+      } catch {
+        if (!cancelled) {
+          setServiceActivity({});
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [startTime.getTime(), endTime.getTime(), profileType]);
+
+  // Persist sort + kernel-visibility prefs.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SORT_MODE_STORAGE_KEY, sortMode);
+    } catch {
+      // localStorage may be unavailable — silently skip.
+    }
+  }, [sortMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        SHOW_KERNEL_STORAGE_KEY,
+        showKernel ? "true" : "false",
+      );
+    } catch {
+      // localStorage may be unavailable — silently skip.
+    }
+  }, [showKernel]);
+
+  /*
+   * Group + sort services for display. Categories run top-to-bottom in
+   * a fixed order (Application -> System -> Host -> Kernel); within
+   * each category the chosen sort mode applies. Kernel threads are
+   * hidden entirely unless the user opts in.
+   */
+  const groupedServices: Array<{
+    category: ProfileServiceCategory;
+    services: Array<Service>;
+  }> = useMemo(() => {
+    type Bucket = {
+      category: ProfileServiceCategory;
+      services: Array<Service>;
+    };
+    const buckets: Map<ProfileServiceCategory, Bucket> = new Map();
+
+    for (const svc of services) {
+      const name: string = svc.name || "";
+      const category: ProfileServiceCategory = categorizeProfileService(name);
+      let bucket: Bucket | undefined = buckets.get(category);
+      if (!bucket) {
+        bucket = { category, services: [] };
+        buckets.set(category, bucket);
+      }
+      bucket.services.push(svc);
+    }
+
+    const list: Array<Bucket> = Array.from(buckets.values());
+
+    const compareByActivity: (a: Service, b: Service) => number = (
+      a: Service,
+      b: Service,
+    ): number => {
+      const aId: string = a.id?.toString() || "";
+      const bId: string = b.id?.toString() || "";
+      const aCount: number = serviceActivity[aId] || 0;
+      const bCount: number = serviceActivity[bId] || 0;
+      if (aCount !== bCount) {
+        return bCount - aCount;
+      }
+      // Tie-break: alphabetical so zero-activity tails stay stable.
+      return (a.name || "").localeCompare(b.name || "");
+    };
+    const compareByName: (a: Service, b: Service) => number = (
+      a: Service,
+      b: Service,
+    ): number => {
+      return (a.name || "").localeCompare(b.name || "");
+    };
+
+    for (const b of list) {
+      b.services.sort(
+        sortMode === "activity" ? compareByActivity : compareByName,
+      );
+    }
+
+    list.sort((a: Bucket, b: Bucket) => {
+      return (
+        profileServiceCategoryOrder(a.category) -
+        profileServiceCategoryOrder(b.category)
+      );
+    });
+
+    return list;
+  }, [services, serviceActivity, sortMode]);
+
+  const visibleGroups: Array<{
+    category: ProfileServiceCategory;
+    services: Array<Service>;
+  }> = useMemo(() => {
+    if (showKernel) {
+      return groupedServices;
+    }
+    return groupedServices.filter(
+      (g: {
+        category: ProfileServiceCategory;
+        services: Array<Service>;
+      }): boolean => {
+        return g.category !== ProfileServiceCategory.Kernel;
+      },
+    );
+  }, [groupedServices, showKernel]);
+
+  const kernelCount: number = useMemo(() => {
+    const k: { services: Array<Service> } | undefined = groupedServices.find(
+      (g: {
+        category: ProfileServiceCategory;
+        services: Array<Service>;
+      }): boolean => {
+        return g.category === ProfileServiceCategory.Kernel;
+      },
+    );
+    return k ? k.services.length : 0;
+  }, [groupedServices]);
+
   const selectedServiceName: string = useMemo(() => {
     if (!selectedServiceId || selectedServiceId === "all") {
       return "all services";
@@ -271,14 +498,65 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
               }}
             >
               <option value="all">All services</option>
-              {services.map((s: Service) => {
-                return (
-                  <option key={s.id?.toString()} value={s.id?.toString()}>
-                    {s.name}
-                  </option>
-                );
-              })}
+              {visibleGroups.map(
+                (group: {
+                  category: ProfileServiceCategory;
+                  services: Array<Service>;
+                }) => {
+                  return (
+                    <optgroup
+                      key={group.category}
+                      label={profileServiceCategoryLabel(group.category)}
+                    >
+                      {group.services.map((s: Service) => {
+                        const id: string = s.id?.toString() || "";
+                        const count: number = serviceActivity[id] || 0;
+                        const suffix: string =
+                          sortMode === "activity" && count > 0
+                            ? `  (${count.toLocaleString()})`
+                            : "";
+                        return (
+                          <option key={id} value={id}>
+                            {s.name}
+                            {suffix}
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  );
+                },
+              )}
             </select>
+            <div className="mt-1.5 inline-flex items-center rounded-md border border-gray-200 bg-gray-50 p-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setSortMode("activity");
+                }}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                  sortMode === "activity"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                title="Sort by sample count in the current window"
+              >
+                Activity
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSortMode("alpha");
+                }}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                  sortMode === "alpha"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                title="Sort alphabetically"
+              >
+                A-Z
+              </button>
+            </div>
           </div>
 
           <div>
@@ -401,38 +679,81 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
           <h3 className="text-sm font-semibold text-gray-900">
             Services being profiled
           </h3>
+          {kernelCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowKernel((v: boolean) => {
+                  return !v;
+                });
+              }}
+              className="text-[11px] text-gray-500 hover:text-gray-800 inline-flex items-center gap-1"
+              title={
+                showKernel
+                  ? "Hide kernel-thread services"
+                  : "Show kernel-thread services"
+              }
+            >
+              <Icon
+                icon={showKernel ? IconProp.Eye : IconProp.EyeSlash}
+                className="h-3 w-3"
+              />
+              {showKernel ? "Hide" : "Show"} {kernelCount} kernel{" "}
+              {kernelCount === 1 ? "thread" : "threads"}
+            </button>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {services.map((s: Service) => {
-            const hasProfiles: boolean = servicesWithProfiles.has(
-              s.id?.toString() || "",
-            );
+        {visibleGroups.map(
+          (group: {
+            category: ProfileServiceCategory;
+            services: Array<Service>;
+          }) => {
             return (
-              <button
-                key={s.id?.toString()}
-                type="button"
-                onClick={() => {
-                  setSelectedServiceId(s.id?.toString() || "all");
-                }}
-                className={`text-left block rounded-lg border p-3 hover:border-indigo-300 hover:shadow-sm transition-all ${
-                  selectedServiceId === s.id?.toString()
-                    ? "border-indigo-400 bg-indigo-50/40"
-                    : "border-gray-200 bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <ServiceElement service={s} />
-                  {hasProfiles && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                      Active
-                    </span>
-                  )}
+              <div key={group.category} className="mb-5 last:mb-0">
+                <div className="mb-2 text-[10px] uppercase tracking-wider text-gray-400">
+                  {profileServiceCategoryLabel(group.category)}{" "}
+                  <span className="text-gray-300 normal-case">
+                    · {group.services.length}
+                  </span>
                 </div>
-              </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {group.services.map((s: Service) => {
+                    const id: string = s.id?.toString() || "";
+                    const sampleCount: number = serviceActivity[id] || 0;
+                    const hasProfiles: boolean =
+                      sampleCount > 0 || servicesWithProfiles.has(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedServiceId(id || "all");
+                        }}
+                        className={`text-left block rounded-lg border p-3 hover:border-indigo-300 hover:shadow-sm transition-all ${
+                          selectedServiceId === id
+                            ? "border-indigo-400 bg-indigo-50/40"
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <ServiceElement service={s} />
+                          {hasProfiles && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                              {sampleCount > 0
+                                ? `${sampleCount.toLocaleString()} samples`
+                                : "Active"}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
-          })}
-        </div>
+          },
+        )}
       </div>
     </Fragment>
   );

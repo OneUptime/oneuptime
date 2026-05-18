@@ -1,43 +1,56 @@
 # Runbook の設定と安全性
 
-## 出力上限
+## Bash と JavaScript の実際の動き方
 
-- ステップごとの出力: **50KB**。これを超えるとマーカー付きで切り詰められます。
-- ステップごとの既定タイムアウト: JavaScript、Bash、HTTP すべて **30 秒**。ステップごとに設定可能。
-- Bash ステップの **Claim タイムアウト** 既定値: **2 分** — Runbook エージェントがジョブを取得するまで Worker が待つ最大時間。これを超えるとステップは失敗します。
+Bash と JavaScript ステップは **OneUptime ワーカー上で実行されません**。これらは特定の [Runbook エージェント](/docs/runbooks/agents) — お客様自身のインフラ内のホストにインストールする小さなプロセス — にジョブとしてディスパッチされます。
+
+ディスパッチモデル:
+
+1. Runbook ステップの作成者がステップを書くときにドロップダウンから Runbook エージェントを選択します。
+2. ステップが動くとき、ワーカーは `RunbookAgentJob` に `targetAgentId` をそのエージェントの ID にし、ステータスを `Pending` にした行を挿入します。
+3. その特定のエージェント (そしてそのエージェントだけ) がジョブを原子的に取得し、スクリプトをローカルで実行 — Bash は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス内 — 結果を返します。
+4. ワーカーは結果を持って Runbook を再開します。
+
+`RUNBOOK_BASH_ENABLED` 環境変数フラグはもうありません。デプロイで Bash や JavaScript ステップが動くかどうかは、そのプロジェクトに少なくとも 1 つの接続済み Runbook エージェントがあるかどうかだけで決まります。
+
+## 出力上限とタイムアウト
+
+- ステップあたりの出力: **50&nbsp;KB**。それより大きい出力はマーカー付きで切り詰められます。
+- ステップあたりの実行タイムアウトのデフォルト: JavaScript、Bash、HTTP で **30 秒**。ステップごとに設定可能。
+- Bash と JavaScript ステップの**取得タイムアウト**: **2 分** — 選択されたエージェントがジョブを取得するまでワーカーが失敗扱いにせずに待つ時間。
 
 ## 権限
 
-Runbook の権限は `Runbook` 権限グループに属します:
+Runbook の権限は `Runbook` 権限グループにあります:
 
 - `CreateRunbook`、`EditRunbook`、`DeleteRunbook`、`ReadRunbook` — Runbook テンプレートを管理。
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution` — 実行の開始、チェック、閲覧。
-- `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule` — 自動トリガールールを管理。
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — お客様のインフラ内で Bash ステップを実行する Runbook エージェントを管理。
-- `RunbookAdmin` (ロール) — 上記をまとめたもの。チームに割り当てれば Runbook 全体を扱えます。
+- `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule` — 自動トリガールールの管理。
+- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — Bash と JavaScript ステップをお客様自身のインフラで実行する Runbook エージェントの管理。
+- `RunbookAdmin`、`RunbookMember`、`RunbookViewer` (ロール) — チームに割り当ててそれぞれフル制御・日常利用・読み取り専用を付与。`RunbookAdmin` は上記の細粒度権限をすべて束ねたもの。
 
-## キューとワーカー
+## キュー & ワーカー
 
-Runbook 実行は BullMQ の `Runbook` キューで処理されます。ワーカーの並列度は 25 — 大規模な同時実行があるデプロイでは調整してください。
+Runbook の実行は `Runbook` BullMQ キューで動きます。ワーカーの並行数は 25 — 同時実行が多ければデプロイで調整してください。
 
-API 経由で Manual ステップがチェックされると、実行は次のステップから続行するためキューに戻されます。これにより Runbook の残りを引き続き処理できる状態を保ちます。
+API で Manual ステップにチェックが入ると、実行は次のステップから続行するためにキューに再投入されます。残りの Runbook のためにワーカーを温かく保ちます。
 
-## ハードニングのメモ
+## ハードニングについての注意
 
-- **JavaScript ステップ**は `isolated-vm` 上でサンドボックスハードニングのプリアンブル付きで動作します (プロトタイプチェーンを切断、`Function` と `eval` を削除、組み込みプロトタイプを凍結)。
-- **Bash ステップ**は OneUptime Worker 上では決して実行されません。お客様自身のインフラに設置した [Runbook エージェント](/docs/runbooks/agents) にジョブとして送られます。Worker はステップの **Agent Tag** を付けてジョブをキューに入れ、エージェントがアトミックに取得し、ローカルで `bash -c <スクリプト>` を実行し、結果を送り返します。Worker プロセス自身はお客様の環境にシェルアクセスを持ちません。
-- **HTTP ステップ**は寛容なステータスバリデータを使うため、4xx / 5xx レスポンスは投げられずに失敗ステップとして記録されます。これにより取り込まれた出力は実際に相手が返した内容を反映します。
+- **JavaScript と Bash** はお客様が制御する Runbook エージェントホスト上で動き、OneUptime ワーカー上では動きません。JavaScript は通常のプリリュード付きの `isolated-vm` サンドボックスでラップされます (プロトタイプチェーンを切断、`Function`/`eval` を削除、組み込みプロトタイプを凍結)。Bash はエージェント上でタイムアウト強制つきの `bash -c` で動きます。
+- **HTTP ステップ** は緩いステータスバリデータを使うので、4xx や 5xx のレスポンスは例外ではなく失敗ステップとして記録されます。これにより記録された出力が上流が実際に返したものを反映します。
+- **エージェント認証** はエージェントコンテナの環境変数として設定する ID + シークレットキーで行います。サーバー側では、提示された ID/キーをキーに DB 行から正規のエージェントアイデンティティを取り出します — キーが漏れてもクライアントは別のエージェントを偽装できません。
 
 ## データベーステーブル
 
-- `Runbook` — テンプレート (name、slug、description、isEnabled、ステップ JSON)。
-- `RunbookExecution` — 1 走行ごとの行。null 許容の `incidentId`、`alertId`、`scheduledMaintenanceId` 外部キーと、ステップおよびステップごとの状態をスナップショットする JSON 配列 `stepExecutions` を持つ。
-- `RunbookRule` — `triggerEntityType` ディスクリミネータ (Incident、Alert、ScheduledMaintenance) と起動する Runbook への many-to-many 関連を持つ自動トリガールール。
-- `RunbookAgent` — インストールされたエージェントごとに 1 行: 名前、タグ、秘密鍵、`lastAlive`、`connectionStatus`、ホスト情報。
-- `RunbookAgentJob` — ディスパッチされた Bash ステップごとに 1 行: 必要タグ、スクリプト、状態 (Pending → Claimed → Running → Succeeded/Failed/TimedOut/Cancelled)、claim 期限、リース、出力、終了コード。
+- `Runbook` — テンプレート (name、slug、description、isEnabled、steps JSON)。
+- `RunbookExecution` — 1 回の実行ごとに 1 行。`incidentId`、`alertId`、`scheduledMaintenanceId` のいずれかが入る (nullable) 外部キーと、ステップとステップごとの状態をスナップショットした JSON `stepExecutions` 配列を持つ。
+- `RunbookRule` — 自動トリガールール。`triggerEntityType` の識別子 (Incident、Alert、ScheduledMaintenance) と、起動する Runbook への多対多のリレーションを持つ。
+- `RunbookAgent` — インストール済みエージェントごとに 1 行: name、secret key、`lastAlive`、`connectionStatus`、ホスト情報。
+- `RunbookAgentJob` — ディスパッチされた Bash または JavaScript ステップごとに 1 行: `targetAgentId` (ステップの作成者が選んだエージェント)、ステップ種別、スクリプト、ステータス (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`)、取得期限、リース、出力、終了コード。
 
 ## 運用のヒント
 
-- **狙うタグごとに最低 1 つのエージェントを動かす**、高可用性なら 2 つ。同じタグの 2 つのエージェントがあれば、どちらでもジョブを取得できる — Runbook を壊さずにローリング再起動ができます。
-- **blob ではなく URL を取り込む。** 数 KB を超える出力を生成するステップでは、S3 やログスタックに書き出し、URL を返してください。
-- **冪等性が重要。** 自動ステップ (HTTP、JavaScript、Bash) はワーカーが途中で再起動した場合、またはスクリプト実行中にエージェントのリースが切れた場合に複数回走ることがあります。リトライしても安全になるよう設計してください。
+- **ステップで選ぶエージェントが健全であることを確認しましょう。** 冗長性が必要なら 2 つ目のエージェントを動かしてステップを分けるか、別エージェントを対象とするバックアップ Runbook を用意してください。
+- **ブロブではなく URL を捕捉しましょう。** ステップが数 KB 以上を出力するなら、S3 やログスタックに書いて URL を返します。
+- **冪等性が重要。** 自動ステップ (HTTP、JavaScript、Bash) はワーカーがステップ途中で再起動したり、スクリプトが動いている間にエージェントのリースが切れると、複数回実行される可能性があります。再試行しても安全なように設計してください。

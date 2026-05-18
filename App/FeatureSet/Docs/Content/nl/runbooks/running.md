@@ -1,47 +1,47 @@
 # Een runbook uitvoeren
 
-Er zijn drie manieren waarop een runbook-uitvoering ontstaat:
+Er zijn drie manieren waarop een runbook-uitvoering wordt aangemaakt:
 
 1. **Automatisch via een regel** — zie [Runbook-regels](/docs/runbooks/rules).
-2. **Handmatig vanaf de runbook-pagina** — klik **Nu uitvoeren** op het overzicht van een runbook. Niet gekoppeld aan een incident, alert of onderhoud.
-3. **Handmatig vanaf een entiteits-feed** — klik **Runbook uitvoeren** op een incident, alert of gepland onderhoudsevent. De uitvoering is aan die entiteit gekoppeld.
+2. **Handmatig vanuit de runbook-pagina** — klik op **Nu uitvoeren** op de overzichtspagina van een runbook. Niet gekoppeld aan enig incident, alert of gepland onderhoudsevent.
+3. **Handmatig vanuit een entiteitsfeed** — klik op **Runbook uitvoeren** op een incident, alert of gepland onderhoudsevent. De uitvoering wordt aan die entiteit gekoppeld.
 
 ## De uitvoeringsweergave
 
-Open een uitvoering om de checklist-UI te zien. Elke stap toont:
+Open een willekeurige uitvoering om de checklist-UI te zien. Elke stap toont:
 
-- **Status** — In wacht, Bezig, Wacht op jou, Klaar, Overgeslagen, Mislukt.
-- **Titel en beschrijving** — gekopieerd uit het runbook op het moment van uitvoering.
-- **Uitvoer** (in te klappen) — stdout, retourwaarden, HTTP-responsen.
-- **Foutmelding** als de stap mislukt is.
-- Voor handmatige stappen in `WaitingForUser`: knoppen **Markeer als klaar** en **Overslaan**.
+- **Statuslabel** — Pending, Running, Wacht op jou, Done, Skipped, Failed.
+- **Titel en beschrijving** — bij uitvoering gekopieerd uit het runbook.
+- **Output** (inklapbaar) — stdout, returnwaarden, HTTP-responses.
+- **Foutmelding** als de stap faalde.
+- Voor handmatige stappen in `WaitingForUser`: **Markeer als voltooid**- en **Overslaan**-knoppen.
 
-Zolang de uitvoering niet terminaal is, ververst de pagina elke 3 seconden, dus zie je geautomatiseerde stappen vrijwel realtime afronden.
+De pagina pollt elke 3 seconden zolang de uitvoering niet terminal is, dus je ziet geautomatiseerde stappen bijna real-time afronden.
 
-## Handmatige en geautomatiseerde stappen mengen
+## Handmatige en geautomatiseerde stappen afwisselen
 
 De klassieke flow:
 
-1. **Script-stap**: systeemtoestand vastleggen, naar S3 schrijven.
-2. **Handmatige stap**: "Klanten via de statuspagina-banner informeren." Responder vinkt af.
-3. **HTTP-stap**: DBA piepen via PagerDuty.
-4. **Handmatige stap**: "Bevestig dat de secundaire DB primary is." Responder vinkt af.
-5. **Script-stap**: "alles weer veilig"-bericht in Slack sturen.
+1. **Scriptstap**: systeemstatus vastleggen, naar S3 schrijven.
+2. **Handmatige stap**: "Klanten informeren via de statuspagina-banner." Responder vinkt af.
+3. **HTTP-stap**: DBA pagen via PagerDuty.
+4. **Handmatige stap**: "Bevestig dat de secundaire DB nu primary is." Responder vinkt af.
+5. **Scriptstap**: stuur het all-clear-Slack-bericht.
 
-Stappen 2 en 4 pauzeren de uitvoering tot het afvinken. Stappen 1, 3, 5 draaien automatisch. De hele run is één uitvoering, één tijdlijn, één bron van waarheid.
+Stappen 2 en 4 pauzeren de uitvoering tot ze afgevinkt zijn. Stappen 1, 3, 5 draaien automatisch. De hele run is één uitvoering, één tijdlijn, één bron van waarheid.
 
-## Een uitvoering annuleren
+## Een run annuleren
 
-Klik **Uitvoering annuleren** op de pagina. De huidige stap (indien aanwezig) wordt afgerond; volgende stappen starten niet. De status wordt `Cancelled`.
+Klik op **Uitvoering annuleren** op de uitvoeringspagina. De huidige stap (indien aanwezig) maakt af; volgende stappen starten niet. Status wordt `Cancelled`.
 
-## Behoud van uitvoer
+## Output-retentie
 
-De uitvoer per stap is gelimiteerd op **50 KB** om te voorkomen dat op hol geslagen scripts de database opblazen. Heb je grotere artefacten nodig, schrijf ze dan vanuit het script naar S3 of een logger en bewaar de URL in de retourwaarde.
+Output per stap is beperkt tot **50KB** om te voorkomen dan op hol geslagen scripts de database opblazen. Heb je grotere artefacten nodig, schrijf ze dan vanuit het script naar S3 of een logger en sla de URL op in de returnwaarde.
 
 ## Een runbook opnieuw uitvoeren
 
-Een uitvoering is een eenmalig, onveranderlijk record. Voor een herhaling klik je nogmaals **Nu uitvoeren** — dat maakt een verse uitvoering met een nieuwe snapshot van de huidige stappen. De oorspronkelijke uitvoering blijft intact voor het auditspoor.
+Een runbook-uitvoering is een eenmalig, onveranderlijk record. Om opnieuw uit te voeren, klik opnieuw op **Nu uitvoeren** — dat maakt een verse uitvoering aan met een verse snapshot van de huidige stappen van het runbook. De originele uitvoering blijft intact voor het audit-spoor.
 
-## Eerdere uitvoeringen vinden
+## Vroegere uitvoeringen vinden
 
-Elk runbook heeft een tabblad **Uitvoeringen** met al zijn runs, te filteren op status, datumbereik en bron-entiteit. Op een incident, alert of onderhoud toont het **Runbooks**-tabblad de runs die aan die entiteit hangen.
+Elk runbook heeft een **Executions**-tabblad met al zijn runs, met filters voor status, datumbereik en bronentiteit. Op een incident, alert of gepland onderhoudsevent toont het **Runbooks**-tabblad de runs die aan die entiteit gekoppeld zijn.

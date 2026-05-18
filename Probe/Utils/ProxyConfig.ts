@@ -101,7 +101,12 @@ export default class ProxyConfig {
 
   public static getRequestProxyAgents(
     targetUrl: TargetUrl,
-    options?: { rejectUnauthorized?: boolean },
+    options?: {
+      rejectUnauthorized?: boolean;
+      cert?: string;
+      key?: string;
+      passphrase?: string;
+    },
   ): Readonly<ProxyAgents> {
     if (this.shouldBypassProxy(targetUrl)) {
       return {};
@@ -111,24 +116,53 @@ export default class ProxyConfig {
       return {};
     }
 
+    const hasClientCert: boolean = Boolean(options?.cert && options?.key);
+
     /*
      * When the caller explicitly opts in to accepting self-signed/untrusted
-     * certificates we cannot reuse the cached proxy agents because their TLS
-     * options were fixed at construction. Build per-request agents instead.
+     * certificates or supplies a client certificate we cannot reuse the cached
+     * proxy agents (their TLS options were fixed at construction). Build
+     * per-request agents instead.
      */
-    if (options?.rejectUnauthorized === false) {
+    if (options?.rejectUnauthorized === false || hasClientCert) {
       const perRequestAgents: ProxyAgents = {};
 
+      const httpsTlsOptions: {
+        rejectUnauthorized?: boolean;
+        cert?: string;
+        key?: string;
+        passphrase?: string;
+      } = {};
+
+      if (options?.rejectUnauthorized === false) {
+        httpsTlsOptions.rejectUnauthorized = false;
+      }
+      if (hasClientCert && options?.cert && options?.key) {
+        httpsTlsOptions.cert = options.cert;
+        httpsTlsOptions.key = options.key;
+        if (options.passphrase) {
+          httpsTlsOptions.passphrase = options.passphrase;
+        }
+      }
+
       if (HTTP_PROXY_URL) {
-        perRequestAgents.httpAgent = new HttpProxyAgent(HTTP_PROXY_URL, {
-          rejectUnauthorized: false,
-        });
+        /*
+         * HttpProxyAgent only honors rejectUnauthorized; client certs are not
+         * meaningful for plain-HTTP targets.
+         */
+        perRequestAgents.httpAgent = new HttpProxyAgent(
+          HTTP_PROXY_URL,
+          options?.rejectUnauthorized === false
+            ? { rejectUnauthorized: false }
+            : {},
+        );
       }
 
       if (HTTPS_PROXY_URL) {
-        perRequestAgents.httpsAgent = new HttpsProxyAgent(HTTPS_PROXY_URL, {
-          rejectUnauthorized: false,
-        });
+        perRequestAgents.httpsAgent = new HttpsProxyAgent(
+          HTTPS_PROXY_URL,
+          httpsTlsOptions,
+        );
       }
 
       return perRequestAgents;

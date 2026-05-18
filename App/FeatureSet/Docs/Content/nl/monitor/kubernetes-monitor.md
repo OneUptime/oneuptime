@@ -1,70 +1,70 @@
-# Kubernetes Monitor
+# Kubernetes-monitor
 
-Kubernetes-monitoring stelt u in staat de gezondheid en prestaties van uw Kubernetes-clusters te bewaken, inclusief nodes, pods, workloads en controlplane-componenten. OneUptime verzamelt metrics van uw cluster en evalueert deze aan de hand van uw geconfigureerde criteria.
+Met Kubernetes-monitoring kunt u de gezondheid en prestaties van uw Kubernetes-clusters monitoren, inclusief nodes, pods, workloads en control plane-componenten. OneUptime verzamelt metrics uit uw cluster en evalueert deze aan de hand van uw geconfigureerde criteria.
 
 ## Overzicht
 
-Kubernetes-monitors gebruiken metrics van uw cluster om diep inzicht te bieden in uw infrastructuur. Hiermee kunt u:
+Kubernetes-monitors gebruiken metrics uit uw cluster om diepgaande zichtbaarheid in uw infrastructuur te bieden. Dit stelt u in staat om:
 
-- Cluster-, namespace-, workload-, node- en pod-gezondheid bewaken
-- CPU-, geheugen-, schijf- en netwerkgebruik bijhouden over resources
-- Pod-crashes, herstarts en planningsfouten detecteren
-- Beschikbaarheid van deployment-replica's bewaken
-- Meldingen ontvangen bij controlplane-problemen (etcd, API-server, scheduler)
-- Resource-verzoeken en -limieten bijhouden
+- De gezondheid van cluster, namespace, workload, node en pod te monitoren
+- CPU-, geheugen-, schijf- en netwerkgebruik over resources te volgen
+- Pod-crashes, herstarts en planningsfouten te detecteren
+- De beschikbaarheid van deployment-replicas te monitoren
+- Te waarschuwen bij problemen met het control plane (etcd, API-server, scheduler)
+- Resource-requests en -limits te volgen
 
-## Een Kubernetes Monitor aanmaken
+## Een Kubernetes-monitor aanmaken
 
 1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+2. Klik op **Create Monitor**
 3. Selecteer **Kubernetes** als het monitortype
-4. Selecteer het cluster en resourcebereik dat u wilt bewaken
-5. Configureer resourcefilters en metriekopvragen
-6. Configureer monitoringcriteria naar wens
+4. Selecteer het cluster en de resource-scope om te monitoren
+5. Configureer resource-filters en metric-queries
+6. Configureer monitoring-criteria naar behoefte
 
-## Configuratie-opties
+## Configuratieopties
 
 ### Cluster
 
-Selecteer het te bewaken Kubernetes-cluster. Clusters moeten via OpenTelemetry zijn geïntegreerd met OneUptime.
+Selecteer het Kubernetes-cluster om te monitoren. Clusters moeten via OpenTelemetry zijn geïntegreerd met OneUptime.
 
-### Resourcebereik
+### Resource-scope
 
-Kies het niveau waarop u resources wilt bewaken:
+Kies het niveau waarop u resources wilt monitoren:
 
-| Bereik | Beschrijving |
+| Scope | Beschrijving |
 |-------|-------------|
-| Cluster | Het gehele cluster bewaken |
-| Namespace | Resources bewaken binnen een specifieke namespace |
-| Workload | Een specifiek deployment, statefulset, daemonset, job of cronjob bewaken |
-| Node | Een specifieke clusternode bewaken |
-| Pod | Een specifieke pod bewaken |
+| Cluster | Monitor het hele cluster |
+| Namespace | Monitor resources binnen een specifieke namespace |
+| Workload | Monitor een specifieke deployment, statefulset, daemonset, job of cronjob |
+| Node | Monitor een specifieke cluster-node |
+| Pod | Monitor een specifieke pod |
 
-### Resourcefilters
+### Resource-filters
 
-Verklein het bereik met optionele filters:
+Versmal de scope met optionele filters:
 
-| Filter | Beschrijving | Van toepassing op bereiken |
+| Filter | Beschrijving | Toepasselijke scopes |
 |--------|-------------|-------------------|
 | Namespace | Kubernetes-namespace | Namespace, Workload, Pod |
-| Workloadtype | deployment, statefulset, daemonset, job, cronjob | Workload |
-| Workloadnaam | Naam van de workload | Workload |
-| Nodenaam | Naam van de node | Node |
-| Podnaam | Naam van de pod | Pod |
+| Workload Type | deployment, statefulset, daemonset, job, cronjob | Workload |
+| Workload Name | Naam van de workload | Workload |
+| Node Name | Naam van de node | Node |
+| Pod Name | Naam van de pod | Pod |
 
-### Metriekopvragen
+### Metric-queries
 
-Configureer een of meer metriekopvragen om te evalueren. Elke opvraag specificeert:
+Configureer een of meer metric-queries om te evalueren. Elke query specificeert:
 
-- **Metrieknaam** — De te bevragen Kubernetes-metriek
-- **Aggregatie** — Hoe metriekwaarden te aggregeren
-- **Filters** — Aanvullende attribuutgebaseerde filtering
+- **Metric name** — De Kubernetes-metric om te bevragen
+- **Aggregation** — Hoe metric-waarden moeten worden geaggregeerd
+- **Filters** — Aanvullende filtering op basis van attributen
 
-U kunt ook **formules** maken die meerdere metriekopvragen combineren met wiskundige expressies.
+U kunt ook **formules** maken die meerdere metric-queries combineren met behulp van wiskundige expressies.
 
-### Voortschrijdend tijdvenster
+### Rollend tijdvenster
 
-Selecteer het tijdvenster voor metriekverhoogde evaluatie:
+Selecteer het tijdvenster voor metric-evaluatie:
 
 - Afgelopen 1 minuut
 - Afgelopen 5 minuten
@@ -73,90 +73,90 @@ Selecteer het tijdvenster voor metriekverhoogde evaluatie:
 - Afgelopen 30 minuten
 - Afgelopen 60 minuten
 
-## Veelgebruikte Kubernetes-metrics
+## Veelvoorkomende Kubernetes-metrics
 
 ### Pod-metrics
 
-| Metriek | Beschrijving |
+| Metric | Beschrijving |
 |--------|-------------|
-| Pod CPU-gebruik | CPU-verbruik door pods |
-| Pod-geheugengebruik | Geheugenverbruik door pods |
-| Pod-bestandssysteemgebruik | Schijfgebruik door pods |
-| Pod-netwerk ontvangen/verzenden | Netwerkverkeer |
-| Pod-fase | Huidige pod-fase (Actief, In behandeling, Mislukt, enz.) |
+| Pod CPU Usage | CPU-verbruik door pods |
+| Pod Memory Usage | Geheugenverbruik door pods |
+| Pod Filesystem Usage | Schijfgebruik door pods |
+| Pod Network Receive/Transmit | Netwerkverkeer |
+| Pod Phase | Huidige pod-fase (Running, Pending, Failed, etc.) |
 
 ### Node-metrics
 
-| Metriek | Beschrijving |
+| Metric | Beschrijving |
 |--------|-------------|
-| Node CPU-gebruik | CPU-gebruik per node |
-| Node-geheugengebruik | Geheugengebruik per node |
-| Node-bestandssysteemgebruik | Schijfgebruik per node |
-| Node schijf-I/O | Lees-/schrijfbewerkingen |
-| Node gereed conditie | Of de node gereed is |
+| Node CPU Usage | CPU-benutting per node |
+| Node Memory Usage | Geheugenbenutting per node |
+| Node Filesystem Usage | Schijfgebruik per node |
+| Node Disk I/O | Lees-/schrijfbewerkingen |
+| Node Ready Condition | Of de node gereed is |
 
 ### Container-metrics
 
-| Metriek | Beschrijving |
+| Metric | Beschrijving |
 |--------|-------------|
-| Container-herstarts | Aantal container-herstarts |
-| Container CPU/geheugen limieten | Resourcelimieten |
-| Container CPU/geheugen verzoeken | Resourceverzoeken |
-| Container gereed status | Of containers gereed zijn |
+| Container Restarts | Aantal container-herstarts |
+| Container CPU/Memory Limits | Resource-limits |
+| Container CPU/Memory Requests | Resource-requests |
+| Container Ready Status | Of containers gereed zijn |
 
 ### Workload-metrics
 
-| Metriek | Beschrijving |
+| Metric | Beschrijving |
 |--------|-------------|
-| Deployment beschikbare/niet-beschikbare replica's | Replica-tellingen |
-| DaemonSet verkeerd geplande nodes | Planningsproblemen |
-| StatefulSet gereed replica's | Gereed replica-telling |
-| Job actieve/mislukte/geslaagde pods | Taakstatus |
+| Deployment Available/Unavailable Replicas | Aantal replicas |
+| DaemonSet Misscheduled Nodes | Planningsproblemen |
+| StatefulSet Ready Replicas | Aantal gereede replicas |
+| Job Active/Failed/Succeeded Pods | Job-status |
 
-## Monitoringcriteria
+## Monitoring-criteria
 
-### Beschikbare controletypen
+### Beschikbare check-types
 
-| Controletype | Beschrijving |
+| Check Type | Beschrijving |
 |------------|-------------|
-| Metriekwaarde | De waarde van de geconfigureerde metriekopvraag of formule |
+| Metric Value | De waarde van de geconfigureerde metric-query of formule |
 
-### Aggregatietypen
+### Aggregatietypes
 
-| Aggregatie | Beschrijving |
+| Aggregation | Beschrijving |
 |-------------|-------------|
-| Gemiddelde | Gemiddelde waarde over het tijdvenster |
-| Som | Som van alle waarden |
-| Maximumwaarde | Hoogste waarde in het tijdvenster |
-| Minimumwaarde | Laagste waarde in het tijdvenster |
-| Alle waarden | Alle waarden moeten voldoen aan de criteria |
-| Elke waarde | Ten minste één waarde moet voldoen |
+| Average | Gemiddelde waarde over het tijdvenster |
+| Sum | Som van alle waarden |
+| Maximum Value | Hoogste waarde in het tijdvenster |
+| Minimum Value | Laagste waarde in het tijdvenster |
+| All Values | Alle waarden moeten aan de criteria voldoen |
+| Any Value | Ten minste één waarde moet overeenkomen |
 
-### Filtertypen
+### Filtertypes
 
-- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan**, **Niet gelijk aan**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
 
-## Voorgebouwde meldingssjablonen
+## Vooraf gebouwde alert-templates
 
-OneUptime biedt sjablonen voor veelgebruikte Kubernetes-monitoringscenario's:
+OneUptime biedt templates voor veelvoorkomende Kubernetes-monitoring-scenario's:
 
-| Sjabloon | Beschrijving | Drempelwaarde |
+| Template | Beschrijving | Drempel |
 |----------|-------------|-----------|
-| CrashLoopBackOff-detectie | Aantal container-herstarts | > 5 herstarts |
-| Pod vastgelopen in In behandeling | Pods in In behandeling-fase | > 0 pods |
-| Node niet gereed | Node-gereedheidconditie | = 0 (niet gereed) |
-| Hoog node-CPU | Node CPU-gebruik | > 90% |
-| Hoog nodegeheugen | Node-geheugengebruik | > 85% |
-| Deployment replica-mismatch | Niet-beschikbare replica's | > 0 replica's |
-| Taakfouten | Mislukte pods in een taak | > 0 fouten |
-| etcd Geen leider | etcd-clusterleider ontbreekt | = 0 (geen leider) |
-| API-server beperking | Verwijderde API-verzoeken | > 0 verzoeken |
-| Scheduler-backlog | Pods in behandeling in scheduler | > 0 pods |
-| Hoog node-schijfgebruik | Node-bestandssysteemgebruik | > 90% |
-| DaemonSet niet beschikbaar | Verkeerd geplande nodes | > 0 nodes |
+| CrashLoopBackOff Detection | Aantal container-herstarts | > 5 herstarts |
+| Pod Stuck in Pending | Pods in Pending-fase | > 0 pods |
+| Node Not Ready | Node-gereedheidsstatus | = 0 (niet gereed) |
+| High Node CPU | CPU-benutting van node | > 90% |
+| High Node Memory | Geheugenbenutting van node | > 85% |
+| Deployment Replica Mismatch | Niet-beschikbare replicas | > 0 replicas |
+| Job Failures | Mislukte pods in een job | > 0 mislukkingen |
+| etcd No Leader | etcd-cluster-leader ontbreekt | = 0 (geen leider) |
+| API Server Throttling | Afgewezen API-verzoeken | > 0 verzoeken |
+| Scheduler Backlog | Pods in afwachting in scheduler | > 0 pods |
+| High Node Disk Usage | Bestandssysteemgebruik van node | > 90% |
+| DaemonSet Unavailable | Verkeerd geplande nodes | > 0 nodes |
 
 ## Installatievereisten
 
-Voor Kubernetes-monitoring moet u de OneUptime Kubernetes-agent in uw cluster installeren. De agent stuurt cluster-metrics, events en pod-logboeken via OTLP naar OneUptime.
+Om Kubernetes-monitoring te gebruiken, moet u de OneUptime Kubernetes-agent installeren in uw cluster. De agent stuurt cluster-metrics, events, pod-logboeken en — standaard — **applicatie-traces en HTTP RED-metrics vastgelegd via eBPF** naar OneUptime via OTLP. Geen codewijzigingen of per-app SDKs zijn vereist om service-niveau verkeer te zien.
 
-Zie de gids [De Kubernetes Agent installeren](/docs/monitor/kubernetes-agent) — deze behandelt de ééncommando Helm-installatie en de `preset`-optie voor het kiezen van de juiste configuratie voor uw cluster (standaard, GKE Autopilot, EKS Fargate).
+Zie de [De Kubernetes-agent installeren](/docs/monitor/kubernetes-agent)-handleiding — deze behandelt de Helm-installatie met één commando, de `preset`-optie voor het kiezen van de juiste configuratie voor uw cluster (standard, GKE Autopilot, EKS Fargate) en de `ebpf.features.*`-schakelaars voor de individuele signaal-families (HTTP RED-metrics, service-graph, netwerk-flows, TCP-statistieken).

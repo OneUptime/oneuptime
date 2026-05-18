@@ -1,68 +1,68 @@
 # Runbook-regler
 
-Runbook-regler kopplar automatiskt runbooks när en **incident**, ett **larm** eller en **planerad underhållshändelse** skapas. De hanteras från Inställningar-menyn på varje entitet:
+Runbook-regler kopplar runbooks automatiskt när en **incident**, ett **larm** eller en **planerad underhållshändelse** skapas. De hanteras från Settings-menyn på varje entitet:
 
-- Incidenter → Inställningar → **Runbook-regler**
-- Larm → Inställningar → **Runbook-regler**
-- Planerat underhåll → Inställningar → **Runbook-regler**
+- Incidents → Settings → **Runbook Rules**
+- Alerts → Settings → **Runbook Rules**
+- Scheduled Maintenance → Settings → **Runbook Rules**
 
-Alla tre sidor redigerar samma underliggande regelmodell — de är bara filtrerade så att endast regler för respektive entitetstyp visas.
+Alla tre sidorna redigerar samma underliggande regelmodell — de är bara filtrerade för att visa endast regler för den entitetstypen.
 
-## Anatomi av en regel
+## Anatomin av en regel
 
 | Fält | Syfte |
 | --- | --- |
-| **Namn** | Kort, läsbar etikett. Visas i revisionsloggar. |
-| **Beskrivning** | Frivillig kontext för kollegor. |
-| **Aktiverad** | Brytare för att pausa en regel utan att ta bort den. |
-| **Titelmönster** | Versalokänslig regex mot entitetens titel. Tomt = alla titlar matchar. |
-| **Beskrivningsmönster** | Versalokänslig regex mot entitetens beskrivning. Tomt = alla beskrivningar matchar. |
+| **Namn** | Kort, mänsklig etikett. Visas i audit-loggar. |
+| **Beskrivning** | Valfri kontext för kollegor. |
+| **Aktiverad** | Växel för att pausa en regel utan att radera den. |
+| **Titelmönster** | Skiftlägesokänslig regex som matchas mot entitetens titel. Tom = matchar vilken titel som helst. |
+| **Beskrivningsmönster** | Skiftlägesokänslig regex som matchas mot entitetens beskrivning. Tom = matchar vilken beskrivning som helst. |
 | **Runbooks att starta** | Ett eller flera runbooks som lanseras när regeln utlöses. |
 
-## Match-semantik
+## Matchningssemantik
 
-En regel matchar när **alla angivna kriterier uppfylls**. Tomma kriterier hoppas över:
+En regel matchar när **alla angivna kriterier passar**. Tomma kriterier hoppas över, så:
 
-- En regel utan mönster körs på varje händelse av sin typ (global "kör alltid"-regel).
-- En regel med enbart titelmönster utlöses på händelser där titeln matchar regex'et.
-- Flera regler kan matcha samma händelse — varje match utlöses, och unionen av deras runbooks körs (varje runbook får sin egen körning).
+- En regel utan satta mönster körs på varje event av sin typ (en global "kör alltid"-regel).
+- En regel med bara ett titelmönster utlöses på event vars titel matchar den regexen.
+- Flera regler kan matcha samma event — varje match utlöses, och unionen av deras runbooks körs (varje runbook får sin egen körning).
 
-## Exempel: DB-failover vid databasincidenter
-
-```
-Namn:            Starta DB-failover vid DB-incidenter
-Utlösare:        Incident
-Titelmönster:    (?:^|\b)(db|database|postgres|mysql|mongo)
-Runbooks:        [DB-failover playbook, Meddela DBA-team]
-```
-
-Detta skapar två runbook-körningar varje gång en incident med "db", "database", "postgres" osv. i titeln skapas.
-
-## Exempel: always-on hygienregel
+## Exempel: DB-failover för databasincidenter
 
 ```
-Namn:                  Pre-flight vid varje incident
-Utlösare:              Incident
-Titelmönster:          (tomt)
-Beskrivningsmönster:   (tomt)
-Runbooks:              [Fånga förincident-tillstånd]
+Name:           Starta DB-failover för DB-incidenter
+Trigger:        Incident
+Title Pattern:  (?:^|\b)(db|database|postgres|mysql|mongo)
+Runbooks:       [DB-failover playbook, Notifiera DBA-team]
 ```
 
-Utlöses vid varje incident — användbart för att fånga systemtillstånd, sidmätvärden osv.
+Detta kommer att skapa två runbook-körningar varje gång en incident med "db", "database", "postgres", etc. i titeln skapas.
 
-## Vad händer när en regel utlöses
+## Exempel: Always-run-hygienregel
 
-1. Runbooken laddas.
-2. Stegen kopieras som **snapshot** in i en ny runbook-körning.
-3. Körningen läggs i Runbook-workerns kö.
-4. Körningen kopplas till källentiteten — den syns på sidan för incidenten, larmet eller underhållet och i runbookens körningslista.
+```
+Name:                 Always-run pre-flight check
+Trigger:              Incident
+Title Pattern:        (tomt)
+Description Pattern:  (tomt)
+Runbooks:             [Fånga pre-incident-tillstånd]
+```
 
-Du ser alla regelutlösta körningar under **Runbooks → Körningar**, filtrerbara på status, runbook eller datum.
+Utlöses på varje incident — användbart för att fånga snapshots av systemtillstånd, sidmätvärden, etc.
+
+## Vad som händer när en regel utlöses
+
+1. Runbooket laddas.
+2. Dess steg **snapshot:as** in på en ny runbook-körning.
+3. Körningen läggs i Runbook-köns worker.
+4. Körningen länkas till käll-entiteten — den dyker upp på incidentens, larmets eller den planerade underhållshändelsens sida och på runbookets Executions-lista.
+
+Du kan se alla regelutlösta körningar under **Runbooks → Executions**, filtrerade efter status, runbook eller datum.
 
 ## Inaktiverade runbooks
 
-Om en regel refererar ett runbook med `isEnabled = false` matchar regeln fortfarande, men körningen hoppas över. Aktivera runbooken igen för att återuppta.
+Om en regel refererar till ett runbook med `isEnabled = false` matchar regeln fortfarande, men runbook-körningen hoppas över. Återaktivera runbooket för att återuppta.
 
 ## Testa en regel
 
-Innan du förlitar dig på en regel i produktion skapar du en testincident (eller test-larm) med en titel som matchar mönstret och bekräftar att förväntade runbooks utlöses. Regler utvärderas vid skapandet — att redigera en incidents titel senare återutlöser inte regler.
+Innan du lutar dig mot en regel i produktion, skapa en testincident (eller ett testlarm) med en titel som matchar mönstret och bekräfta att de förväntade runbooks:en utlöses. Regler utvärderas i ögonblicket de skapas — att redigera en incidents titel senare triggar inte om regler.

@@ -43,6 +43,14 @@ spec:
             - name: health
               containerPort: 13133
               protocol: TCP
+            {{- if .Values.ebpf.enabled }}
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /

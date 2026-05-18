@@ -1,6 +1,6 @@
 # Een runbook schrijven
 
-Maak een runbook via **Runbooks → Runbook aanmaken**, open het daarna en ga naar het tabblad **Stappen**.
+Maak een runbook via **Runbooks → Runbook aanmaken**, open het daarna en ga naar het tabblad **Steps**.
 
 ## Anatomie van een stap
 
@@ -8,24 +8,30 @@ Elke stap heeft:
 
 | Veld | Doel |
 | --- | --- |
-| **Titel** | Korte aanduiding in de checklist-UI. Verplicht. |
-| **Beschrijving** | Optionele context voor de responder. Markdown-tekst. |
-| **Doorgaan bij fout** | Indien aan, stopt een mislukte stap de run niet — de volgende stap draait toch. |
-| **Typespecifieke configuratie** | Script, URL, enz. — zie hieronder. |
+| **Titel** | Kort label dat in de checklist-UI wordt getoond. Verplicht. |
+| **Beschrijving** | Optionele context voor de responder. Markdown-veilige tekst. |
+| **Doorgaan bij fout** | Indien aan stopt een falende stap de run niet — de volgende stap draait gewoon. |
+| **Goedkeuring vereist** | Indien aan pauzeert het runbook na deze stap en wacht tot een gebruiker goedkeurt voordat de volgende stap draait. |
+| **Typespecifieke configuratie** | Script, URL, agent, enz. — zie hieronder. |
 
-Stappen draaien **op volgorde**. Herorden ze met de op/neer-pijltjes in de stappeneditor.
+Stappen draaien **op volgorde**. Herorden ze met de pijltjes omhoog/omlaag in de Steps-editor.
 
-## Staptypen
+## Staptypes
 
 ### Handmatig
 
-Een vakje dat de responder afvinkt. De uitvoering pauzeert bij een handmatige stap en blijft in `WaitingForManualStep` totdat iemand hem afvinkt (of overslaat).
+Een vinkje dat de responder afvinkt. De runbook-uitvoering pauzeert wanneer hij een Handmatige stap bereikt en blijft in `WaitingForManualStep` totdat iemand hem als voltooid markeert (of overslaat).
 
-Gebruik dit voor wat alleen een mens kan verifiëren: "Verkeer is volgens het load balancer-dashboard naar de secundaire regio gegaan — bevestigd."
+Gebruik dit voor dingen die alleen een mens kan verifiëren: "Bevestigd dat het verkeer in het load-balancer-dashboard naar de secundaire regio is verplaatst."
 
 ### JavaScript
 
-Een stukje JavaScript dat draait in een `isolated-vm`-sandbox (geen filesystem, geen netwerk tenzij je zelf een API meebrengt) — maar de sandbox leeft op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur, niet op de OneUptime Worker. Stel een **Agent Tag** in op de stap die wijst naar de agent(s) die hem moeten uitvoeren. Is er geen agent met die tag online, dan wacht de stap tot de **claim timeout** (standaard 2 minuten) en faalt vervolgens.
+Een snippet JavaScript dat in een `isolated-vm`-sandbox draait. De sandbox leeft op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur — niet op de OneUptime Worker.
+
+Configureer twee dingen op een JavaScript-stap:
+
+- **Runbook-agent** — kies uit de dropdown de agent die deze stap moet uitvoeren. Alleen de gekozen agent mag de job claimen.
+- **Script** — het uit te voeren JavaScript.
 
 ```js
 const start = Date.now();
@@ -33,41 +39,41 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-De geretourneerde waarde wordt vastgelegd op de stap. `console.log`-uitvoer wordt als logregels bewaard. Standaard timeout: 30 seconden.
+De teruggegeven waarde wordt vastgelegd op de stapuitvoering. `console.log`-output wordt vastgelegd als logregels. Standaard uitvoer-timeout: 30 seconden. Standaard claim-timeout (hoe lang de Worker wacht tot de agent de job oppakt): 2 minuten.
 
 ### HTTP-verzoek
 
-Een uitgaande HTTP-aanroep. Stel methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionele JSON-headers en optionele body in. Statuscode, headers en body van de respons worden vastgelegd (samen maximaal 50 KB).
+Een uitgaande HTTP-aanroep doen. Configureer methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionele JSON-headers en optionele body. Responsstatus, -headers en -body worden vastgelegd (totaal beperkt tot 50KB).
 
-Handig voor: een PagerDuty-incident openen, in Slack plaatsen, je eigen admin-API aanroepen, enz.
+Handig voor: een PagerDuty-incident triggeren, naar Slack posten, je eigen admin-API aanroepen, enz. HTTP-stappen draaien rechtstreeks op de OneUptime Worker; geen agent nodig.
 
 ### Bash
 
-Een bash-script dat draait op een [Runbook-agent](/docs/runbooks/agents) — een klein proces dat je installeert op een host in je eigen infrastructuur. Bash-stappen worden nooit uitgevoerd op de OneUptime Worker.
+Een bash-script (`bash -c <script>`) dat draait op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur. Bash draait nooit op de OneUptime Worker.
 
 Configureer twee dingen op een Bash-stap:
 
-- **Agent Tag** — de tag die aangeeft welke agent(s) deze stap moet(en) uitvoeren. Elke gezonde agent in het project met die tag claimt en draait de job.
-- **Script** — het bash dat moet draaien. Uitvoer (stdout + stderr) wordt tot 50 KB vastgelegd; het proces wordt bij een timeout gestopt.
+- **Runbook-agent** — kies uit de dropdown de agent die deze stap moet uitvoeren. Alleen de gekozen agent mag de job claimen.
+- **Script** — de uit te voeren bash. Output (stdout + stderr) wordt tot 50 KB vastgelegd; het proces wordt bij timeout afgebroken.
 
-Is er geen agent met de gekozen tag online wanneer het runbook deze stap bereikt, dan wacht de stap tot de **claim timeout** (standaard 2 minuten) en faalt dan. Voeg een agent toe via **Runbooks → Agents** voordat je op een Bash-stap leunt.
+Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Runbooks → Settings → Agents** voordat je op een Bash-stap leunt.
 
 ## Opslaan en bewerken
 
-Druk op **Stappen opslaan** om vast te leggen. Lopende uitvoeringen van oudere versies van het runbook zijn niet beïnvloed — die blijven hun snapshot gebruiken.
+Druk op **Stappen opslaan** om te persisteren. Lopende uitvoeringen van oudere versies van het runbook worden niet beïnvloed — ze blijven hun snapshot gebruiken.
 
 ## Meerdere stappen en foutafhandeling
 
-Standaard stopt een mislukte stap de run en wordt de uitvoering `Failed`. Zet je **Doorgaan bij fout** aan op een stap, dan wordt de fout geregistreerd maar draait de volgende stap toch. Handig voor patronen als "probeer deze drie dingen, dan informeren".
+Standaard stopt een falende stap de run en wordt de uitvoering gemarkeerd als `Failed`. Als je **Doorgaan bij fout** op een stap zet, wordt een fout vastgelegd maar draait de volgende stap. Dit is handig voor "probeer deze drie dingen, dan melden"-patronen.
 
 ## Een uitgewerkt voorbeeld
 
-Een eenvoudig runbook voor "Primaire DB onbereikbaar":
+Een eenvoudig runbook voor "DB-primary onbereikbaar":
 
-1. **JavaScript** — huidige primaire host ophalen bij de config-service en loggen.
-2. **Handmatig** — "Replicatievertraging op de secundaire onder 5 seconden — bevestigd."
+1. **JavaScript** — haal de huidige primary-host op uit je configservice en log hem.
+2. **Handmatig** — "Bevestig dat de replicatie-lag in de secundaire onder 5 seconden ligt."
 3. **HTTP-verzoek** — POST naar de API van je failover-orchestrator.
-4. **Handmatig** — "Schrijfacties gaan naar de nieuwe primary — bevestigd."
-5. **HTTP-verzoek** — POST naar Slack met "alles weer veilig".
+4. **Handmatig** — "Verifieer dat writes nu naar de nieuwe primary gaan."
+5. **HTTP-verzoek** — POST naar Slack met een "all clear"-bericht.
 
-De responder ziet een geautomatiseerde stap draaien, vinkt een handmatige af, ziet de volgende geautomatiseerde, enzovoort. De uitvoer van elke stap wordt bewaard voor de postmortem.
+De responder ziet een geautomatiseerde stap draaien, vinkt een handmatige af, ziet de volgende geautomatiseerde stap draaien, enzovoort. De output van elke stap wordt vastgelegd voor de post-mortem.

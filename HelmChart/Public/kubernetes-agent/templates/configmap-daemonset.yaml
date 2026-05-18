@@ -28,6 +28,58 @@ data:
         k8s_api_config:
           auth_type: serviceAccount
 
+      {{- if .Values.hostMetrics.enabled }}
+      # OS-level metrics that kubeletstats doesn't surface: disk I/O
+      # queue depth, filesystem inode usage, NIC error counters, load
+      # average, paging stats. Reads /proc and /sys directly (mounted
+      # under /host).
+      hostmetrics:
+        collection_interval: {{ .Values.hostMetrics.collectionInterval }}
+        root_path: /host
+        scrapers:
+          cpu:
+          load:
+          memory:
+          disk:
+          filesystem:
+            include_fs_types:
+              fs_types: [ext4, ext3, ext2, xfs, btrfs, zfs]
+              match_type: strict
+          network:
+          paging:
+          processes:
+      {{- end }}
+
+      {{- if .Values.auditLogs.enabled }}
+      # Kubernetes API server audit log. Self-managed clusters only;
+      # managed K8s (EKS / GKE / AKS / DOKS) routes audit logs to the
+      # cloud provider's sink instead of writing them to a file.
+      filelog/audit:
+        include:
+          {{- range .Values.auditLogs.paths }}
+          - {{ . | quote }}
+          {{- end }}
+        start_at: end
+        include_file_path: true
+        operators:
+          - type: json_parser
+            id: parse-audit-json
+            on_error: send
+          - type: severity_parser
+            parse_from: attributes.level
+            mapping:
+              warn: warning
+              error: ["panic", "error"]
+              info: ["request", "requestresponse", "metadata"]
+              debug: ["none"]
+          - type: add
+            field: resource["k8s.cluster.name"]
+            value: {{ .Values.clusterName | quote }}
+          - type: add
+            field: resource["service.name"]
+            value: "kubernetes-audit"
+      {{- end }}
+
       # Collect pod logs from /var/log/pods
       filelog:
         include:
@@ -80,7 +132,48 @@ data:
           - type: move
             from: attributes.log
             to: body
+          {{- if and .Values.ebpf.enabled .Values.ebpf.logToTraceCorrelation }}
+          # OBI's log enricher zeroes out the original stdout buffer with
+          # NULs (then re-emits the enriched line separately), so each
+          # intercepted write leaves a placeholder line of NULs/whitespace
+          # in the container log file. Drop those — the real enriched
+          # line still comes through.
+          - type: filter
+            id: drop-obi-nul-placeholder
+            expr: 'body matches "^[\\x00\\s]*$"'
+          # Log ↔ trace correlation. OBI re-emits enriched JSON log lines
+          # with `{"trace_id": "...", "span_id": "..."}` fields injected.
+          # Pre-filter on the substring so we only run JSON parse on lines
+          # that have a chance of containing trace context; the default
+          # branch skips straight to the next normal operator. We stash
+          # the parsed JSON under `attributes._obi`, lift trace_id /
+          # span_id onto the LogRecord, then drop the temp attribute.
+          - type: router
+            id: ebpf-trace-route
+            routes:
+              - output: parse-ebpf-trace-json
+                expr: 'body matches "\"trace_id\""'
+            default: move-stream
+          - type: json_parser
+            id: parse-ebpf-trace-json
+            parse_from: body
+            parse_to: attributes._obi
+            on_error: send
+            output: lift-obi-trace-context
+          - type: trace_parser
+            id: lift-obi-trace-context
+            trace_id:
+              parse_from: attributes._obi.trace_id
+            span_id:
+              parse_from: attributes._obi.span_id
+            output: cleanup-obi-attrs
+          - type: remove
+            id: cleanup-obi-attrs
+            field: attributes._obi
+            output: move-stream
+          {{- end }}
           - type: move
+            id: move-stream
             from: attributes.stream
             to: attributes["log.iostream"]
           - type: move
@@ -220,6 +313,9 @@ data:
         metrics:
           receivers:
             - kubeletstats
+            {{- if .Values.hostMetrics.enabled }}
+            - hostmetrics
+            {{- end }}
           processors:
             - memory_limiter
             - k8sattributes
@@ -231,6 +327,9 @@ data:
         logs:
           receivers:
             - filelog
+            {{- if .Values.auditLogs.enabled }}
+            - filelog/audit
+            {{- end }}
           processors:
             - memory_limiter
             - k8sattributes

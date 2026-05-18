@@ -65,17 +65,23 @@ export default abstract class OtelIngestBaseService {
 
     /*
      * Host-aware fallback: when telemetry arrives from a host (OTel
-     * hostmetrics receiver, infrastructure agent over OTLP, or a k8s
-     * node) without an explicit service.name, synthesize a per-host
-     * service name so each host's metrics, logs and traces show up as
-     * their own service in the Telemetry Services list instead of
-     * every host collapsing into "Unknown Service".
+     * hostmetrics receiver, infrastructure agent over OTLP, a k8s
+     * node, or the eBPF profiler scanning per-process activity)
+     * without an explicit service.name, synthesize a per-host
+     * service name so every signal originating on that host — host
+     * metrics, syslog/journald lines, kernel threads, system
+     * daemons, per-process profiles — rolls up under a single
+     * `host/<name>` entry in the Telemetry Services list. The
+     * underlying `process.executable.name` is still preserved on
+     * each row as an attribute, so per-process drill-down inside
+     * the host is available without polluting the services list.
      *
-     * Phantom-service gate: only synthesize when the resource carries
-     * a strong host signal (os.type from the system resourcedetector,
-     * a container runtime, or a k8s cluster name). host.name alone is
-     * not enough — application SDKs auto-detect hostname inside pods,
-     * and trusting that would create a phantom service per pod.
+     * Phantom-service gate: only synthesize when the resource
+     * carries a strong host signal (os.type from the system
+     * resourcedetector, a container runtime, or a k8s cluster
+     * name). host.name alone is not enough — application SDKs
+     * auto-detect hostname inside pods, and trusting that would
+     * create a phantom service per pod.
      */
     const hostName: string | null = this.getHostNameFromAttributes(attributes);
     if (hostName && this.hasHostResourceSignal(attributes)) {
@@ -350,7 +356,22 @@ export default abstract class OtelIngestBaseService {
   protected static getHostNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
-    return this.getStringAttribute(attributes, "host.name");
+    /*
+     * Fall back to k8s.node.name when host.name is absent. The OTel
+     * eBPF profiler (and any DaemonSet-style collector relying on the
+     * k8sattributes processor for resource detection) labels its
+     * resource with k8s.node.name instead of host.name, which left
+     * every profile from a k8s node collapsing into "Unknown Service"
+     * because the host-name service-name fallback in
+     * getServiceNameFromAttributes missed entirely. A k8s node IS a
+     * host, so reusing the same synthesised "host/{name}" identity
+     * keeps profiles, metrics, logs and traces from the same node
+     * grouped together.
+     */
+    return (
+      this.getStringAttribute(attributes, "host.name") ||
+      this.getStringAttribute(attributes, "k8s.node.name")
+    );
   }
 
   @CaptureSpan()

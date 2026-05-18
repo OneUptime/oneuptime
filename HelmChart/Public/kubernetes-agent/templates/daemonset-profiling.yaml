@@ -1,0 +1,119 @@
+{{- if .Values.profiling.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-profiling
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: profiling
+spec:
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: profiling
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: profiling
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-profiling.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      hostPID: true
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: profiler
+          image: "{{ .Values.profiling.image.repository }}:{{ .Values.profiling.image.tag }}"
+          imagePullPolicy: {{ .Values.profiling.image.pullPolicy }}
+          # The profiles signal is still in alpha — the collector needs
+          # this feature gate flag to wire up the profiles pipeline.
+          args:
+            - "--config=/etc/profiler/config.yaml"
+            - "--feature-gates=+service.profilesSupport"
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: ONEUPTIME_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubernetes-agent.fullname" . }}
+                  key: api-key
+          ports:
+            - name: health
+              containerPort: 13134
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.profiling.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/profiler
+              readOnly: true
+            # Profiler needs read access to host /proc and /sys to
+            # unwind stacks across language runtimes and resolve
+            # symbols from the on-disk binaries.
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: host-sys
+              mountPath: /host/sys
+              readOnly: true
+              mountPropagation: HostToContainer
+            # Shared bpffs so the profiler can read OBI's
+            # `traces_ctx_v1` map when `obi_process_ctx` is true.
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+              mountPropagation: HostToContainer
+            # tracefs/debugfs are required for the kernel tracepoints
+            # the profiler attaches to (notably `sched/sched_process_free`
+            # which it uses to clean up per-PID state). Without these
+            # mounts the receiver logs "neither debugfs nor tracefs are
+            # mounted" and bails out (silently, because error_mode is
+            # ignore).
+            - name: tracefs
+              mountPath: /sys/kernel/tracing
+              readOnly: true
+            - name: debugfs
+              mountPath: /sys/kernel/debug
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "kubernetes-agent.fullname" . }}-profiling
+        - name: host-proc
+          hostPath:
+            path: /proc
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        - name: tracefs
+          hostPath:
+            path: /sys/kernel/tracing
+        - name: debugfs
+          hostPath:
+            path: /sys/kernel/debug
+{{- end }}
