@@ -240,6 +240,10 @@ const HostOverview: FunctionComponent<
   const [memorySeries, setMemorySeries] = useState<Array<SeriesPoint>>([]);
   const [diskSeries, setDiskSeries] = useState<Array<SeriesPoint>>([]);
   const [networkSeries, setNetworkSeries] = useState<Array<SeriesPoint>>([]);
+  const [availabilitySeries, setAvailabilitySeries] = useState<
+    Array<SeriesPoint>
+  >([]);
+  const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [chartWindow, setChartWindow] = useState<{
@@ -445,6 +449,18 @@ const HostOverview: FunctionComponent<
       );
       processFallbackAggregate.startTimestamp = tileWindowStart;
 
+      /*
+       * `oneuptime.host.heartbeat` is the per-collector liveness
+       * ping. Count per bucket lets us tell "alive at any point in
+       * this bucket" from "completely silent" — a missing row means
+       * the host emitted zero heartbeats during that bucket, which
+       * we render as a downtime gap on the availability chart.
+       */
+      const heartbeatAggregate: AggregateBy<Metric> = buildAggregateBy(
+        "oneuptime.host.heartbeat",
+        AggregationType.Count,
+      );
+
       const [
         cpuUserResult,
         cpuSystemResult,
@@ -454,7 +470,9 @@ const HostOverview: FunctionComponent<
         fsUsageResult,
         networkResult,
         processFallbackResult,
+        heartbeatResult,
       ]: [
+        AggregatedResult,
         AggregatedResult,
         AggregatedResult,
         AggregatedResult,
@@ -514,6 +532,10 @@ const HostOverview: FunctionComponent<
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
           aggregateBy: processFallbackAggregate,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: heartbeatAggregate,
         }),
       ]);
 
@@ -1009,6 +1031,87 @@ const HostOverview: FunctionComponent<
           return s !== null;
         }),
       );
+
+      /*
+       * Availability is a step series at 100% when the bucket
+       * contains any heartbeat and 0% when it doesn't. ClickHouse
+       * returns rows only for buckets with data, so we have to
+       * synthesize the zero-buckets ourselves — infer the bucket
+       * size from the smallest gap between present buckets (defaults
+       * to 60s, matching the aggregator's <=3h grid), align the grid
+       * to a present bucket so the present points sit exactly on the
+       * grid, then walk start→end filling in 0 wherever the bucket
+       * is missing. The overall uptime % we surface in the card
+       * header is the fraction of grid buckets that had heartbeats.
+       */
+      const heartbeatRows: Array<{ t: number; count: number }> = [];
+      for (const p of heartbeatResult.data || []) {
+        const t: number = getBucketTimestamp(p);
+        const c: number = Number(p["value"]);
+        if (Number.isFinite(t) && Number.isFinite(c) && c > 0) {
+          heartbeatRows.push({ t, count: c });
+        }
+      }
+      heartbeatRows.sort(
+        (
+          a: { t: number; count: number },
+          b: { t: number; count: number },
+        ): number => {
+          return a.t - b.t;
+        },
+      );
+
+      let bucketMs: number = 60_000;
+      if (heartbeatRows.length >= 2) {
+        let smallest: number = Number.POSITIVE_INFINITY;
+        for (let i: number = 1; i < heartbeatRows.length; i++) {
+          const d: number = heartbeatRows[i]!.t - heartbeatRows[i - 1]!.t;
+          if (d > 0 && d < smallest) {
+            smallest = d;
+          }
+        }
+        if (Number.isFinite(smallest)) {
+          bucketMs = smallest;
+        }
+      }
+
+      const presentBuckets: Set<number> = new Set<number>(
+        heartbeatRows.map((r: { t: number; count: number }): number => {
+          return r.t;
+        }),
+      );
+      const windowStartMs: number = startDate.getTime();
+      const windowEndMs: number = endDate.getTime();
+      const anchorMs: number =
+        heartbeatRows.length > 0 ? heartbeatRows[0]!.t : windowStartMs;
+      const stepsBack: number = Math.ceil(
+        (anchorMs - windowStartMs) / bucketMs,
+      );
+      const gridStartMs: number = anchorMs - stepsBack * bucketMs;
+
+      const availabilityPoints: Array<TimeValuePoint> = [];
+      let presentCount: number = 0;
+      let totalCount: number = 0;
+      for (let t: number = gridStartMs; t <= windowEndMs; t += bucketMs) {
+        if (t < windowStartMs) {
+          continue;
+        }
+        const up: boolean = presentBuckets.has(t);
+        availabilityPoints.push({ x: new Date(t), y: up ? 100 : 0 });
+        if (up) {
+          presentCount++;
+        }
+        totalCount++;
+      }
+      setAvailabilitySeries(
+        availabilityPoints.length > 0
+          ? [{ seriesName: "Up", data: availabilityPoints }]
+          : [],
+      );
+      setAvailabilityPct(
+        totalCount > 0 ? (presentCount / totalCount) * 100 : null,
+      );
+
       setChartWindow({ start: startDate, end: endDate });
       setLastRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
@@ -1542,6 +1645,8 @@ const HostOverview: FunctionComponent<
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
+    curve?: ChartCurve;
+    headerExtra?: ReactElement;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1549,6 +1654,8 @@ const HostOverview: FunctionComponent<
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
+    curve?: ChartCurve;
+    headerExtra?: ReactElement;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       colorClasses[params.iconColor];
@@ -1599,9 +1706,12 @@ const HostOverview: FunctionComponent<
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {params.title}
+            </span>
+            {params.headerExtra ?? null}
+          </div>
           <div
             className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
           >
@@ -1612,7 +1722,7 @@ const HostOverview: FunctionComponent<
           data={params.data}
           xAxis={xAxis}
           yAxis={yAxis}
-          curve={ChartCurve.MONOTONE}
+          curve={params.curve ?? ChartCurve.MONOTONE}
           sync={true}
           syncid={`host-overview-${modelId.toString()}`}
           heightInPx={180}
@@ -1646,47 +1756,113 @@ const HostOverview: FunctionComponent<
       },
     };
 
+    /*
+     * Availability y-axis is binary — 0% (silent) or 100% (alive).
+     * The Up/Down labels read more naturally on a step chart than
+     * the percentages, and we still surface the numeric uptime % in
+     * the card header for users who want a single-number summary.
+     */
+    const availabilityYAxis: YAxis = {
+      legend: "",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: 100,
+        precision: YAxisPrecision.NoDecimals,
+        formatter: (value: number): string => {
+          if (value >= 100) {
+            return "Up";
+          }
+          if (value <= 0) {
+            return "Down";
+          }
+          return `${Math.round(value)}%`;
+        },
+      },
+    };
+
+    const availabilityBadge: ReactElement =
+      availabilityPct === null ? (
+        <Fragment />
+      ) : (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+            availabilityPct >= 99
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+              : availabilityPct >= 90
+                ? "bg-amber-50 text-amber-700 ring-amber-200"
+                : "bg-red-50 text-red-700 ring-red-200"
+          }`}
+        >
+          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+        </span>
+      );
+
     return (
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900">
-              Resource usage
-            </h2>
-            <p className="text-xs text-gray-500">
-              Aggregated over the selected time range
-            </p>
+      <Fragment>
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                Availability
+              </h2>
+              <p className="text-xs text-gray-500">
+                Per-bucket presence of host heartbeats over the selected time
+                range
+              </p>
+            </div>
+          </div>
+          {renderChartCard({
+            title: "Availability",
+            icon: IconProp.Heartbeat,
+            iconColor: "emerald",
+            data: availabilitySeries,
+            yAxis: availabilityYAxis,
+            curve: ChartCurve.STEP,
+            headerExtra: availabilityBadge,
+          })}
+        </div>
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                Resource usage
+              </h2>
+              <p className="text-xs text-gray-500">
+                Aggregated over the selected time range
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {renderChartCard({
+              title: "CPU",
+              icon: IconProp.ChartBar,
+              iconColor: "blue",
+              data: cpuSeries,
+            })}
+            {renderChartCard({
+              title: "Memory",
+              icon: IconProp.SquareStack,
+              iconColor: "violet",
+              data: memorySeries,
+            })}
+            {renderChartCard({
+              title: "Disk space",
+              icon: IconProp.Cube,
+              iconColor: "amber",
+              data: diskSeries,
+            })}
+            {renderChartCard({
+              title: "Network",
+              icon: IconProp.Wifi,
+              iconColor: "emerald",
+              data: networkSeries,
+              yAxis: networkYAxis,
+              showLegend: networkSeries.length > 1,
+            })}
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {renderChartCard({
-            title: "CPU",
-            icon: IconProp.ChartBar,
-            iconColor: "blue",
-            data: cpuSeries,
-          })}
-          {renderChartCard({
-            title: "Memory",
-            icon: IconProp.SquareStack,
-            iconColor: "violet",
-            data: memorySeries,
-          })}
-          {renderChartCard({
-            title: "Disk space",
-            icon: IconProp.Cube,
-            iconColor: "amber",
-            data: diskSeries,
-          })}
-          {renderChartCard({
-            title: "Network",
-            icon: IconProp.Wifi,
-            iconColor: "emerald",
-            data: networkSeries,
-            yAxis: networkYAxis,
-            showLegend: networkSeries.length > 1,
-          })}
-        </div>
-      </div>
+      </Fragment>
     );
   };
 
