@@ -21,6 +21,14 @@ export class RangeStartAndEndDateTimeUtil {
       );
     }
 
+    // 15 mins.
+    if (dashboardStartAndEndDate.range === TimeRange.PAST_FIFTEEN_MINS) {
+      return new InBetween<Date>(
+        OneUptimeDate.addRemoveMinutes(currentDate, -15),
+        currentDate,
+      );
+    }
+
     // 30 mins.
     if (dashboardStartAndEndDate.range === TimeRange.PAST_THIRTY_MINS) {
       return new InBetween<Date>(
