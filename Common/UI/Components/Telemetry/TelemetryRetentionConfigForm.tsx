@@ -11,7 +11,6 @@ import FieldLabelElement from "../Detail/FieldLabel";
 import Input, { InputType } from "../Input/Input";
 
 export interface ComponentProps {
-  error?: string | undefined;
   onChange?: ((value: TelemetryRetentionConfig | null) => void) | undefined;
   value?: TelemetryRetentionConfig | undefined;
   initialValue?: TelemetryRetentionConfig | undefined;

@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddTelemetryRetentionConfig1779199346010
   implements MigrationInterface
 {
-  name = "AddTelemetryRetentionConfig1779199346010";
+  public name: string = "AddTelemetryRetentionConfig1779199346010";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
