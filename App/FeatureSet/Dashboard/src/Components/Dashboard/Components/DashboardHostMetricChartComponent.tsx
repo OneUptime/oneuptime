@@ -251,13 +251,9 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
     fetchAggregatedResults();
   }, [startAndEndDate, queryConfig, props.refreshTick, fetchAggregatedResults]);
 
-  const hasWidgetHeader: boolean = Boolean(args.title || args.description);
-  const widgetHeaderHeight: number = hasWidgetHeader ? 50 : 0;
   const perChartOverhead: number = 80;
   let heightOfChart: number | undefined =
-    (props.dashboardComponentHeightInPx || 0) -
-    widgetHeaderHeight -
-    perChartOverhead;
+    (props.dashboardComponentHeightInPx || 0) - perChartOverhead;
   if (heightOfChart < 50) {
     heightOfChart = undefined;
   }
@@ -305,18 +301,6 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
         transition: "opacity 0.2s ease-in-out",
       }}
     >
-      {hasWidgetHeader && (
-        <div className="px-2 pt-2 pb-1 flex-shrink-0">
-          {args.title && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
-              {args.title}
-            </h3>
-          )}
-          {args.description && (
-            <p className="mt-0.5 text-xs text-gray-400">{args.description}</p>
-          )}
-        </div>
-      )}
       <div className="flex-1 min-h-0 overflow-hidden">
         <MetricCharts
           metricResults={metricResults}
