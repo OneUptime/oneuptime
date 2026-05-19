@@ -686,52 +686,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const isPercentChart: boolean =
         isFractionScale || ValueFormatter.isPercentUnit(unit);
       const yAxisLegend: string = isPercentChart ? "%" : unit;
-      /*
-       * Soft 0–100% range. Default to the full percent scale so 25% reads
-       * like 25% of the axis (not a peak). If a series exceeds 100% — e.g.
-       * summed-across-cores or mis-tagged data — expand to fit so nothing
-       * clips. If the series sits well below 100% — e.g. a near-empty
-       * 120 GB disk at ~2% — auto-fit to the data so the line is visible
-       * instead of hugging the bottom. Negative values pull the floor below 0.
-       * The baseline differs by data scale: utilization metrics live in
-       * [0, 1], explicit percent units live in [0, 100].
-       */
       let yAxisMin: YScaleMaxMin = "auto";
       let yAxisMax: YScaleMaxMin = "auto";
-      if (isPercentChart) {
-        const baseline: number = isFractionScale ? 1 : 100;
-        let observedMax: number = Number.NEGATIVE_INFINITY;
-        let observedMin: number = 0;
-        let hasFinitePoint: boolean = false;
-        for (const series of chartSeries) {
-          for (const point of series.data) {
-            if (typeof point.y === "number" && Number.isFinite(point.y)) {
-              hasFinitePoint = true;
-              if (point.y > observedMax) {
-                observedMax = point.y;
-              }
-              if (point.y < observedMin) {
-                observedMin = point.y;
-              }
-            }
-          }
-        }
-        if (!hasFinitePoint) {
-          yAxisMax = baseline;
-          yAxisMin = 0;
-        } else if (observedMax < baseline * 0.25) {
-          /*
-           * Data is well below the full scale — auto-fit with 25% headroom
-           * so a 2% line is clearly visible rather than flat at the bottom.
-           */
-          const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
-          yAxisMax = observedMax + headroom;
-          yAxisMin = observedMin;
-        } else {
-          yAxisMax = Math.max(observedMax, baseline);
-          yAxisMin = observedMin;
-        }
-      }
 
       // Build reference lines from thresholds
       const referenceLines: Array<ChartReferenceLineProps> = [];
@@ -897,6 +853,51 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               chartType,
             })
           : undefined;
+
+      /*
+       * Soft 0–100% range computed from the currently visible series, so
+       * hiding the dominant series via the legend rescales the axis to
+       * what's actually on screen instead of staying anchored to the
+       * peak of a hidden line. Default to the full percent scale so 25%
+       * reads like 25% of the axis (not a peak). If a visible series
+       * exceeds 100% — e.g. summed-across-cores or mis-tagged data —
+       * expand to fit so nothing clips. If the visible data sits well
+       * below 100% — e.g. a near-empty 120 GB disk at ~2% — auto-fit
+       * to the data so the line is visible instead of hugging the bottom.
+       * Negative values pull the floor below 0. The baseline differs by
+       * data scale: utilization metrics live in [0, 1], explicit percent
+       * units live in [0, 100].
+       */
+      if (isPercentChart) {
+        const baseline: number = isFractionScale ? 1 : 100;
+        let observedMax: number = Number.NEGATIVE_INFINITY;
+        let observedMin: number = 0;
+        let hasFinitePoint: boolean = false;
+        for (const series of displayableSeries) {
+          for (const point of series.data) {
+            if (typeof point.y === "number" && Number.isFinite(point.y)) {
+              hasFinitePoint = true;
+              if (point.y > observedMax) {
+                observedMax = point.y;
+              }
+              if (point.y < observedMin) {
+                observedMin = point.y;
+              }
+            }
+          }
+        }
+        if (!hasFinitePoint) {
+          yAxisMax = baseline;
+          yAxisMin = 0;
+        } else if (observedMax < baseline * 0.25) {
+          const headroom: number = observedMax > 0 ? observedMax * 0.25 : 0;
+          yAxisMax = observedMax + headroom;
+          yAxisMin = observedMin;
+        } else {
+          yAxisMax = Math.max(observedMax, baseline);
+          yAxisMin = observedMin;
+        }
+      }
 
       const chart: Chart = {
         id: chartId,
