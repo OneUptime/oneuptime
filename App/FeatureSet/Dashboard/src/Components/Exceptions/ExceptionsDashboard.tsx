@@ -58,9 +58,9 @@ const severityFromUnresolved: (count: number) => Severity = (
   return "info";
 };
 
-const exceptionDetailRoute: (
+const exceptionDetailRoute: (exception: TelemetryException) => Route = (
   exception: TelemetryException,
-) => Route = (exception: TelemetryException): Route => {
+): Route => {
   if (exception.id) {
     return new Route(
       RouteUtil.populateRouteParams(
@@ -327,9 +327,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
               )}
             </div>
             <div className="min-w-0">
-              <p
-                className={`text-sm font-semibold ${hero.title} truncate`}
-              >
+              <p className={`text-sm font-semibold ${hero.title} truncate`}>
                 {heroTitle}
               </p>
               <p className={`text-xs mt-0.5 ${hero.subtitle}`}>
@@ -483,7 +481,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                 )}
                                 {exception.lastSeenAt && (
                                   <span className="text-gray-400">
-                                    · {OneUptimeDate.fromNow(
+                                    ·{" "}
+                                    {OneUptimeDate.fromNow(
                                       new Date(exception.lastSeenAt),
                                     )}
                                   </span>
@@ -594,9 +593,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                   {recentExceptions.map(
                     (exception: TelemetryException, index: number) => {
                       return (
-                        <li
-                          key={exception.id?.toString() || index.toString()}
-                        >
+                        <li key={exception.id?.toString() || index.toString()}>
                           <AppLink
                             className="block px-4 py-3 hover:bg-gray-50/70 transition-colors"
                             to={exceptionDetailRoute(exception)}
@@ -622,7 +619,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               )}
                               {exception.lastSeenAt && (
                                 <span className="text-gray-400">
-                                  · {OneUptimeDate.fromNow(
+                                  ·{" "}
+                                  {OneUptimeDate.fromNow(
                                     new Date(exception.lastSeenAt),
                                   )}
                                 </span>
