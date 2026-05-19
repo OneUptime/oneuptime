@@ -178,7 +178,7 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
         <FieldLabelElement title={label} description={description} />
         <Input
           type={InputType.NUMBER}
-          placeholder="Inherit umbrella default"
+          placeholder="Use default retention"
           value={numberToString(
             (config[pillar] as { default?: number | null } | undefined)
               ?.default,
@@ -198,13 +198,13 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
           Logs
         </h3>
         <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-          Retention in days for log records. Per-severity values override the
-          logs default; leave blank to inherit.
+          Retention in days for log records. Per-severity values take precedence
+          over the logs default; leave any field blank to fall back.
         </p>
         {renderPillarDefault(
           "logs",
           "Logs default (days)",
-          "Applies to log records whose severity has no specific override.",
+          "Applies to every log record unless its severity has a specific override below.",
         )}
         <div className="border-t border-gray-100 dark:border-slate-800 pt-3 mt-2">
           <p className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -217,7 +217,7 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
                   <FieldLabelElement title={severity} />
                   <Input
                     type={InputType.NUMBER}
-                    placeholder="Inherit logs default"
+                    placeholder="Use logs default"
                     value={numberToString(config.logs?.bySeverity?.[severity])}
                     onChange={(raw: string) => {
                       setLogSeverityValue(severity, parsePositiveOrNull(raw));
@@ -235,13 +235,13 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
           Traces
         </h3>
         <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-          Retention in days for spans (and the exceptions captured on them).
-          Per-status values override the traces default.
+          Retention in days for spans and the exceptions captured on them.
+          Per-status values take precedence over the traces default.
         </p>
         {renderPillarDefault(
           "traces",
           "Traces default (days)",
-          "Applies to spans whose status has no specific override.",
+          "Applies to every span unless its status has a specific override below.",
         )}
         <div className="border-t border-gray-100 dark:border-slate-800 pt-3 mt-2">
           <p className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -255,7 +255,7 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement title={entry.label} />
                     <Input
                       type={InputType.NUMBER}
-                      placeholder="Inherit traces default"
+                      placeholder="Use traces default"
                       value={numberToString(
                         config.traces?.byStatus?.[entry.status],
                       )}
@@ -284,7 +284,7 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
         {renderPillarDefault(
           "metrics",
           "Metrics default (days)",
-          "Applies to all metric points. Leave blank to inherit the umbrella default.",
+          "Applies to all metric points. Leave blank to use the default retention.",
         )}
       </div>
 
@@ -298,7 +298,7 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
         {renderPillarDefault(
           "profiles",
           "Profiles default (days)",
-          "Applies to all profile samples. Leave blank to inherit the umbrella default.",
+          "Applies to all profile samples. Leave blank to use the default retention.",
         )}
       </div>
     </div>

@@ -788,9 +788,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       pillar: "traces",
       bucketKey: data.statusCode,
       serviceConfig: data.serviceMetadata.serviceRetentionConfig,
-      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
       projectConfig: data.serviceMetadata.projectRetentionConfig,
-      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
@@ -834,9 +834,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       pillar: "traces",
       bucketKey: data.spanStatusCode,
       serviceConfig: data.serviceMetadata.serviceRetentionConfig,
-      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
       projectConfig: data.serviceMetadata.projectRetentionConfig,
-      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,

@@ -829,7 +829,7 @@ export default class Service extends BaseModel {
     required: false,
     title: "Telemetry Data Retention Overrides",
     description:
-      "Per-pillar retention overrides for this service (logs by severity, traces by status, metrics, profiles). Unset fields inherit the project-level config and umbrella default.",
+      "Per-pillar retention overrides for this service (logs by severity, traces by status, metrics, profiles). Unset fields fall back to the service default, then the project's retention settings.",
   })
   @Column({
     type: ColumnType.JSON,

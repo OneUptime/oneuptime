@@ -23,7 +23,7 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Telemetry Data Retention",
           description:
-            "Umbrella default for how long telemetry data is retained. Used when neither the per-pillar config nor a service override applies.",
+            "Project-wide default retention for telemetry data. Used whenever no per-type or per-service override applies.",
         }}
         isEditable={true}
         editButtonText="Edit Retention Settings"
@@ -63,7 +63,7 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Per-Pillar Retention Overrides",
           description:
-            "Override retention per telemetry pillar (logs, traces, metrics, profiles), and customize logs by severity or traces by span status. Anything left blank falls back to the umbrella default above.",
+            "Override retention for specific telemetry types (logs, traces, metrics, profiles), with optional finer-grained rules for log severity and trace status. Any field left blank uses the default retention above.",
         }}
         isEditable={true}
         editButtonText="Edit Overrides"

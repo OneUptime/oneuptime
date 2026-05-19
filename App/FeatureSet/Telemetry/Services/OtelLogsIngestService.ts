@@ -543,11 +543,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       pillar: "logs",
                       bucketKey: severityText,
                       serviceConfig: serviceMetadata.serviceRetentionConfig,
-                      serviceUmbrellaInDays:
-                        serviceMetadata.serviceUmbrellaInDays,
+                      serviceRetentionInDays:
+                        serviceMetadata.serviceRetentionInDays,
                       projectConfig: serviceMetadata.projectRetentionConfig,
-                      projectUmbrellaInDays:
-                        serviceMetadata.projectUmbrellaInDays,
+                      projectRetentionInDays:
+                        serviceMetadata.projectRetentionInDays,
                     },
                   );
                   const retentionDate: Date = OneUptimeDate.addRemoveDays(

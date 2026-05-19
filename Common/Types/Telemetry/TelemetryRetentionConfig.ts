@@ -8,10 +8,10 @@ import { SpanStatus } from "../../Models/AnalyticsModels/Span";
  * When a row is ingested, retention falls through, narrowest-first:
  *   1. service[pillar].byX[bucketKey]
  *   2. service[pillar].default
- *   3. service.retainTelemetryDataForDays               (umbrella)
+ *   3. service.retainTelemetryDataForDays            (service default)
  *   4. project[pillar].byX[bucketKey]
  *   5. project[pillar].default
- *   6. project.defaultTelemetryRetentionInDays           (umbrella)
+ *   6. project.defaultTelemetryRetentionInDays       (project default)
  *   7. HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS
  */
 export default interface TelemetryRetentionConfig {
@@ -74,26 +74,26 @@ export function resolveTelemetryRetentionInDays(input: {
   pillar: TelemetryPillar;
   bucketKey?: LogSeverity | SpanStatus | null;
   serviceConfig?: TelemetryRetentionConfig | null;
-  serviceUmbrellaInDays?: number | null;
+  serviceRetentionInDays?: number | null;
   projectConfig?: TelemetryRetentionConfig | null;
-  projectUmbrellaInDays?: number | null;
+  projectRetentionInDays?: number | null;
 }): number {
   const {
     pillar,
     bucketKey,
     serviceConfig,
-    serviceUmbrellaInDays,
+    serviceRetentionInDays,
     projectConfig,
-    projectUmbrellaInDays,
+    projectRetentionInDays,
   } = input;
 
   const candidates: Array<number | null> = [
     getBucketValue(serviceConfig, pillar, bucketKey),
     getPillarDefault(serviceConfig, pillar),
-    pickPositive(serviceUmbrellaInDays),
+    pickPositive(serviceRetentionInDays),
     getBucketValue(projectConfig, pillar, bucketKey),
     getPillarDefault(projectConfig, pillar),
-    pickPositive(projectUmbrellaInDays),
+    pickPositive(projectRetentionInDays),
   ];
 
   for (const value of candidates) {

@@ -59,7 +59,7 @@ const ServiceSettings: FunctionComponent<
             },
             title: "Retain Telemetry Data For (Days)",
             description:
-              "Umbrella retention for this service. Used when neither the per-pillar overrides below nor the project config applies. Leave blank to inherit the project default.",
+              "Default retention for this service. Used when no per-type override below applies. Leave blank to use the project's default.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "Use project default",
@@ -95,7 +95,7 @@ const ServiceSettings: FunctionComponent<
               },
               title: "Retain Telemetry Data For (Days)",
               description:
-                "Umbrella retention for this service. Falls back to the project-wide default when not set.",
+                "Default retention for this service. Falls back to the project's default when not set.",
               fieldType: FieldType.Number,
               placeholder: "Using project default",
             },
@@ -108,7 +108,7 @@ const ServiceSettings: FunctionComponent<
         cardProps={{
           title: "Per-Pillar Retention Overrides",
           description:
-            "Override retention per telemetry pillar (logs, traces, metrics, profiles) for this service. Anything left blank inherits the service umbrella, then the project config, then the project umbrella.",
+            "Override retention for specific telemetry types in this service. Any field left blank falls back to the service default, then the project's settings.",
         }}
         isEditable={true}
         editButtonText="Edit Overrides"

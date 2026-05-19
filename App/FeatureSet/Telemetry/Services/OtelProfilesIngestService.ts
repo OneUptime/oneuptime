@@ -888,9 +888,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     const retentionDays: number = resolveTelemetryRetentionInDays({
       pillar: "profiles",
       serviceConfig: data.serviceMetadata.serviceRetentionConfig,
-      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
       projectConfig: data.serviceMetadata.projectRetentionConfig,
-      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
@@ -944,9 +944,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     const retentionDays: number = resolveTelemetryRetentionInDays({
       pillar: "profiles",
       serviceConfig: data.serviceMetadata.serviceRetentionConfig,
-      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
       projectConfig: data.serviceMetadata.projectRetentionConfig,
-      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,

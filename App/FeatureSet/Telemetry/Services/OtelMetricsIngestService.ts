@@ -1555,9 +1555,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     const retentionDays: number = resolveTelemetryRetentionInDays({
       pillar: "metrics",
       serviceConfig: data.serviceMetadata.serviceRetentionConfig,
-      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
       projectConfig: data.serviceMetadata.projectRetentionConfig,
-      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,

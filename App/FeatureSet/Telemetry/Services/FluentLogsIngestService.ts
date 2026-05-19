@@ -219,9 +219,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             pillar: "logs",
             bucketKey: severityInfo.text,
             serviceConfig: serviceMetadata.serviceRetentionConfig,
-            serviceUmbrellaInDays: serviceMetadata.serviceUmbrellaInDays,
+            serviceRetentionInDays: serviceMetadata.serviceRetentionInDays,
             projectConfig: serviceMetadata.projectRetentionConfig,
-            projectUmbrellaInDays: serviceMetadata.projectUmbrellaInDays,
+            projectRetentionInDays: serviceMetadata.projectRetentionInDays,
           });
           const retentionDate: Date = OneUptimeDate.addRemoveDays(
             ingestionDate,

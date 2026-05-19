@@ -27,14 +27,14 @@ export interface TelemetryServiceMetadata {
   serviceId: ObjectID;
   dataRententionInDays: number;
   serviceRetentionConfig: TelemetryRetentionConfig | null;
-  serviceUmbrellaInDays: number | null;
+  serviceRetentionInDays: number | null;
   projectRetentionConfig: TelemetryRetentionConfig | null;
-  projectUmbrellaInDays: number;
+  projectRetentionInDays: number;
 }
 
 interface ProjectRetentionContext {
   projectRetentionConfig: TelemetryRetentionConfig | null;
-  projectUmbrellaInDays: number;
+  projectRetentionInDays: number;
 }
 
 export default class OTelIngestService {
@@ -55,7 +55,7 @@ export default class OTelIngestService {
 
     return {
       projectRetentionConfig: project?.telemetryRetentionConfig ?? null,
-      projectUmbrellaInDays:
+      projectRetentionInDays:
         project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS,
     };
   }
@@ -161,17 +161,17 @@ export default class OTelIngestService {
     const buildMetadata: (svc: Service) => TelemetryServiceMetadata = (
       svc: Service,
     ): TelemetryServiceMetadata => {
-      const serviceUmbrella: number | null =
+      const serviceLevelRetention: number | null =
         svc.retainTelemetryDataForDays ?? null;
       return {
         serviceName: data.serviceName,
         serviceId: svc.id!,
         dataRententionInDays:
-          serviceUmbrella || projectContext.projectUmbrellaInDays,
+          serviceLevelRetention || projectContext.projectRetentionInDays,
         serviceRetentionConfig: svc.telemetryRetentionConfig ?? null,
-        serviceUmbrellaInDays: serviceUmbrella,
+        serviceRetentionInDays: serviceLevelRetention,
         projectRetentionConfig: projectContext.projectRetentionConfig,
-        projectUmbrellaInDays: projectContext.projectUmbrellaInDays,
+        projectRetentionInDays: projectContext.projectRetentionInDays,
       };
     };
 
