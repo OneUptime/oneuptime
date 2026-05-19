@@ -64,7 +64,13 @@ interface SparklineProps {
   height: number;
   color: string;
   fillColor: string;
-  formatValue: (v: number) => string;
+  /*
+   * Fires while the cursor moves over the chart with the data point
+   * under the cursor; fires with `null` when the cursor leaves. The
+   * parent uses this to swap the big number for the hovered value and
+   * surface its timestamp inline (no on-chart tooltip).
+   */
+  onHoverPoint?: ((point: SparklinePoint | null) => void) | undefined;
 }
 
 const Sparkline: FunctionComponent<SparklineProps> = (
@@ -107,6 +113,8 @@ const Sparkline: FunctionComponent<SparklineProps> = (
   const lastX: number = padding + (props.width - padding * 2);
   const fillPoints: string = `${firstX},${props.height} ${points} ${lastX},${props.height}`;
 
+  const { onHoverPoint } = props;
+
   const onMove: (e: React.MouseEvent<SVGSVGElement>) => void = (
     e: React.MouseEvent<SVGSVGElement>,
   ) => {
@@ -118,17 +126,25 @@ const Sparkline: FunctionComponent<SparklineProps> = (
     const usable: number = Math.max(rect.width - padding * 2, 1);
     const ratio: number = Math.max(0, Math.min(1, (xPx - padding) / usable));
     const idx: number = Math.round(ratio * (dataPoints.length - 1));
-    setHoverIndex(Math.max(0, Math.min(dataPoints.length - 1, idx)));
+    const clampedIdx: number = Math.max(
+      0,
+      Math.min(dataPoints.length - 1, idx),
+    );
+    setHoverIndex(clampedIdx);
+    if (onHoverPoint) {
+      onHoverPoint(dataPoints[clampedIdx] ?? null);
+    }
   };
 
   const onLeave: () => void = () => {
     setHoverIndex(null);
+    if (onHoverPoint) {
+      onHoverPoint(null);
+    }
   };
 
   const hoverPos: [number, number] | null =
     hoverIndex !== null ? pointAt(hoverIndex) : null;
-  const hoverPoint: SparklinePoint | null =
-    hoverIndex !== null ? dataPoints[hoverIndex] ?? null : null;
 
   return (
     <div className="relative inline-block">
@@ -173,26 +189,6 @@ const Sparkline: FunctionComponent<SparklineProps> = (
           </>
         )}
       </svg>
-      {hoverPoint && hoverPos && (
-        <div
-          className="absolute pointer-events-none whitespace-nowrap rounded-md px-2 py-1 text-xs shadow-lg z-50"
-          style={{
-            background: "rgba(15, 23, 42, 0.94)",
-            backdropFilter: "blur(4px)",
-            color: "#fff",
-            left: `${hoverPos[0]}px`,
-            top: "-44px",
-            transform: "translateX(-50%)",
-          }}
-        >
-          <div className="font-semibold tabular-nums leading-tight">
-            {props.formatValue(hoverPoint.value)}
-          </div>
-          <div className="text-[10px] opacity-70 font-normal leading-tight mt-0.5">
-            {OneUptimeDate.getDateAsLocalFormattedString(hoverPoint.timestamp)}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -208,6 +204,20 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * While the cursor is over the sparkline, swap the big aggregated
+   * number for the hovered data point's value and render its timestamp
+   * inline (in place of the trend indicator). Reset to null on mouse-out
+   * to fall back to the aggregated value.
+   */
+  const [hoveredPoint, setHoveredPoint] = useState<SparklinePoint | null>(null);
+
+  const handleHoverPoint: (point: SparklinePoint | null) => void = useCallback(
+    (point: SparklinePoint | null): void => {
+      setHoveredPoint(point);
+    },
+    [],
+  );
 
   const rawMetricQueryConfig: MetricQueryConfigData | undefined =
     props.component.arguments.metricQueryConfig;
@@ -386,7 +396,8 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  // Sparkline data — preserve timestamp alongside value for hover tooltip
+  // Sparkline data — preserve timestamp alongside value so the parent
+  // can render it under the big number while the cursor is over the chart.
   const sparklineData: Array<SparklinePoint> = allDataPoints.map(
     (item: AggregatedModel) => {
       return {
@@ -419,15 +430,23 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
    * as percentages, and dimensionless counts (unit "1" with no fraction
    * suffix) lose the meaningless "1" suffix. The big-number font is
    * applied to the numeric portion and the unit suffix is rendered in a
-   * smaller gray span, so we split the formatted string here.
+   * smaller gray span, so we split the formatted string here. When the
+   * cursor is over the sparkline, format the hovered point's value
+   * instead so the big number tracks the chart.
    */
+  const displayValue: number = hoveredPoint
+    ? hoveredPoint.value
+    : aggregatedValue;
   const formattedString: string = ValueFormatter.formatValue(
-    aggregatedValue,
+    displayValue,
     rawUnit,
     { metricName },
   );
   const { value: formattedValue, unit: displayUnit } =
     splitFormattedValue(formattedString);
+  const hoveredTimestamp: string | null = hoveredPoint
+    ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.timestamp)
+    : null;
 
   /*
    * Threshold comparison uses the same scale as the displayed value.
@@ -556,11 +575,26 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
         </span>
       </div>
 
+      {/* Hovered timestamp \u2014 takes the trend indicator's slot while the
+          cursor is over the sparkline so the layout stays stable. */}
+      {hoveredTimestamp && (
+        <div
+          className="mt-0.5 text-gray-400 font-medium tabular-nums"
+          style={{
+            fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
+          }}
+        >
+          {hoveredTimestamp}
+        </div>
+      )}
+
       {/* Trend indicator \u2014 colour depends on whether a rising value is good
           or bad for this metric. The widget config takes precedence; when it
           says "Auto" (or is unset) we fall back to a metric-name heuristic
-          so legacy widgets get sensible defaults without re-saving. */}
-      {trendPercent !== null &&
+          so legacy widgets get sensible defaults without re-saving. Hidden
+          while hovering so the timestamp can take its slot. */}
+      {!hoveredTimestamp &&
+        trendPercent !== null &&
         trendDirection !== "flat" &&
         (() => {
           const configured: DashboardValueTrendDirection | undefined =
@@ -604,9 +638,7 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
             height={sparklineHeight}
             color={sparklineColor}
             fillColor={sparklineFill}
-            formatValue={(v: number) => {
-              return ValueFormatter.formatValue(v, rawUnit, { metricName });
-            }}
+            onHoverPoint={handleHoverPoint}
           />
         </div>
       )}

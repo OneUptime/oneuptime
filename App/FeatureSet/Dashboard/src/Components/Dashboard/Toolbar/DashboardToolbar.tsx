@@ -427,6 +427,11 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     >
                       <Icon icon={IconProp.Variable} className="w-3.5 h-3.5" />
                       <span>Variables</span>
+                      {props.variables && props.variables.length > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
+                          {props.variables.length}
+                        </span>
+                      )}
                     </button>
                   )}
                 </div>
