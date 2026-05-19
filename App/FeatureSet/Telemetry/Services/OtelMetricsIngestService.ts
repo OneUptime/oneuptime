@@ -34,6 +34,7 @@ import MetricPipelineRuleService, {
   MetricRulesForProject,
 } from "./MetricPipelineRuleService";
 import OneUptimeDate from "Common/Types/Date";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
@@ -516,20 +517,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           });
 
           if (!serviceDictionary[serviceName]) {
-            const service: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName: serviceName,
-              projectId: (req as TelemetryRequest).projectId,
-              resourceAttributes: resourceAttributes_raw,
-            });
-
-            serviceDictionary[serviceName] = {
-              serviceName: serviceName,
-              serviceId: service.serviceId,
-              dataRententionInDays: service.dataRententionInDays,
-            };
+            serviceDictionary[serviceName] =
+              await OTelIngestService.telemetryServiceFromName({
+                serviceName: serviceName,
+                projectId: (req as TelemetryRequest).projectId,
+                resourceAttributes: resourceAttributes_raw,
+              });
           }
 
           const serviceMetadata: TelemetryServiceMetadata =
@@ -605,7 +598,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
               metricName: heartbeatMetricName,
               metricPointType: MetricPointType.Gauge,
-              dataRententionInDays: serviceMetadata.dataRententionInDays,
+              serviceMetadata: serviceMetadata,
             });
             dbMetrics.push(heartbeatRow);
             totalMetricsProcessed++;
@@ -790,8 +783,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           metricName: metricName,
                           metricPointType: metricPointType,
                           aggregationTemporality: aggregationTemporality,
-                          dataRententionInDays:
-                            serviceMetadata.dataRententionInDays,
+                          serviceMetadata: serviceMetadata,
                           ...(typeof isMonotonic === "boolean"
                             ? { isMonotonic: isMonotonic }
                             : {}),
@@ -1410,7 +1402,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     metricPointType: MetricPointType;
     aggregationTemporality?: OtelAggregationTemporality;
     isMonotonic?: boolean;
-    dataRententionInDays: number;
+    serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
@@ -1560,9 +1552,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       spanId: string | null;
     } = this.extractExemplarIds(data.datapoint["exemplars"] as JSONArray);
 
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "metrics",
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+    });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
-      data.dataRententionInDays || 15,
+      retentionDays,
     );
 
     const row: JSONObject = {

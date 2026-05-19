@@ -3,6 +3,7 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -74,7 +75,7 @@ type ExceptionEventPayload = {
   release: string;
   environment: string;
   parsedFrames: string;
-  dataRententionInDays: number;
+  serviceMetadata: TelemetryServiceMetadata;
 };
 
 const SPAN_KIND_BY_OTEL_INT: Record<number, SpanKind> = {
@@ -262,20 +263,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           });
 
           if (!serviceDictionary[serviceName]) {
-            const service: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName: serviceName,
-              projectId: (req as TelemetryRequest).projectId,
-              resourceAttributes: resourceAttributes_raw,
-            });
-
-            serviceDictionary[serviceName] = {
-              serviceName: serviceName,
-              serviceId: service.serviceId,
-              dataRententionInDays: service.dataRententionInDays,
-            };
+            serviceDictionary[serviceName] =
+              await OTelIngestService.telemetryServiceFromName({
+                serviceName: serviceName,
+                projectId: (req as TelemetryRequest).projectId,
+                resourceAttributes: resourceAttributes_raw,
+              });
           }
 
           const resourceAttributes: Dictionary<
@@ -417,8 +410,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         spanStatusCode: statusCode,
                         spanName: spanName,
                         resourceAttributes: resourceAttributes,
-                        dataRententionInDays:
-                          serviceDictionary[serviceName]!.dataRententionInDays,
+                        serviceMetadata: serviceDictionary[serviceName]!,
                       },
                       dbExceptions,
                     );
@@ -461,8 +453,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     links: spanLinks,
                     hasException: hasException,
                     isRootSpan: !parentSpanId || parentSpanId === "",
-                    dataRententionInDays:
-                      serviceDictionary[serviceName]!.dataRententionInDays,
+                    serviceMetadata: serviceDictionary[serviceName]!,
                   });
 
                   /*
@@ -583,7 +574,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       spanStatusCode: SpanStatus;
       spanName: string;
       resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
-      dataRententionInDays: number;
+      serviceMetadata: TelemetryServiceMetadata;
     },
     dbExceptions: Array<JSONObject>,
   ): { events: Array<JSONObject>; hasException: boolean } {
@@ -683,7 +674,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 release: release,
                 environment: environment,
                 parsedFrames: parsedFramesJson,
-                dataRententionInDays: spanContext.dataRententionInDays,
+                serviceMetadata: spanContext.serviceMetadata,
               };
 
               dbExceptions.push(this.buildExceptionRow(exceptionData));
@@ -788,14 +779,22 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     links: Array<JSONObject>;
     hasException: boolean;
     isRootSpan: boolean;
-    dataRententionInDays: number;
+    serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "traces",
+      bucketKey: data.statusCode,
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+    });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
-      data.dataRententionInDays || 15,
+      retentionDays,
     );
 
     return {
@@ -831,9 +830,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "traces",
+      bucketKey: data.spanStatusCode,
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+    });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
-      data.dataRententionInDays || 15,
+      retentionDays,
     );
 
     return {

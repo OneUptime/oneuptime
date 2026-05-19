@@ -12,6 +12,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -165,19 +166,11 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           const serviceName: string = this.resolveServiceName(req, parsed);
 
           if (!serviceCache[serviceName]) {
-            const metadata: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName,
-              projectId,
-            });
-
-            serviceCache[serviceName] = {
-              serviceName,
-              serviceId: metadata.serviceId,
-              dataRententionInDays: metadata.dataRententionInDays,
-            } satisfies TelemetryServiceMetadata;
+            serviceCache[serviceName] =
+              await OTelIngestService.telemetryServiceFromName({
+                serviceName,
+                projectId,
+              });
           }
 
           const serviceMetadata: TelemetryServiceMetadata =
@@ -197,9 +190,17 @@ export default class SyslogIngestService extends OtelIngestBaseService {
               serviceName,
             });
 
+          const retentionDays: number = resolveTelemetryRetentionInDays({
+            pillar: "logs",
+            bucketKey: severityInfo.text,
+            serviceConfig: serviceMetadata.serviceRetentionConfig,
+            serviceUmbrellaInDays: serviceMetadata.serviceUmbrellaInDays,
+            projectConfig: serviceMetadata.projectRetentionConfig,
+            projectUmbrellaInDays: serviceMetadata.projectUmbrellaInDays,
+          });
           const retentionDate: Date = OneUptimeDate.addRemoveDays(
             ingestionDate,
-            serviceMetadata.dataRententionInDays || 15,
+            retentionDays,
           );
 
           const logRow: JSONObject = {

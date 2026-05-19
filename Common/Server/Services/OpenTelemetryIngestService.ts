@@ -15,6 +15,7 @@ import { extractOneuptimeLabelNames } from "../Utils/Telemetry/OneuptimeLabel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../Utils/Logger";
+import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -25,26 +26,38 @@ export interface TelemetryServiceMetadata {
   serviceName: string;
   serviceId: ObjectID;
   dataRententionInDays: number;
+  serviceRetentionConfig: TelemetryRetentionConfig | null;
+  serviceUmbrellaInDays: number | null;
+  projectRetentionConfig: TelemetryRetentionConfig | null;
+  projectUmbrellaInDays: number;
+}
+
+interface ProjectRetentionContext {
+  projectRetentionConfig: TelemetryRetentionConfig | null;
+  projectUmbrellaInDays: number;
 }
 
 export default class OTelIngestService {
   @CaptureSpan()
-  private static async getProjectDefaultRetentionInDays(
+  private static async getProjectRetentionContext(
     projectId: ObjectID,
-  ): Promise<number> {
+  ): Promise<ProjectRetentionContext> {
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
         defaultTelemetryRetentionInDays: true,
+        telemetryRetentionConfig: true,
       },
       props: {
         isRoot: true,
       },
     });
 
-    return (
-      project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS
-    );
+    return {
+      projectRetentionConfig: project?.telemetryRetentionConfig ?? null,
+      projectUmbrellaInDays:
+        project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS,
+    };
   }
 
   @CaptureSpan()
@@ -52,17 +65,12 @@ export default class OTelIngestService {
     serviceName: string;
     projectId: ObjectID;
     resourceAttributes?: JSONArray | undefined;
-  }): Promise<{
-    serviceId: ObjectID;
-    dataRententionInDays: number;
-  }> {
-    const result: {
-      serviceId: ObjectID;
-      dataRententionInDays: number;
-    } = await this.findOrCreateTelemetryService({
-      serviceName: data.serviceName,
-      projectId: data.projectId,
-    });
+  }): Promise<TelemetryServiceMetadata> {
+    const result: TelemetryServiceMetadata =
+      await this.findOrCreateTelemetryService({
+        serviceName: data.serviceName,
+        projectId: data.projectId,
+      });
 
     /*
      * Touch `lastSeenAt` on the service. Throttled per-service inside
@@ -119,10 +127,7 @@ export default class OTelIngestService {
   private static async findOrCreateTelemetryService(data: {
     serviceName: string;
     projectId: ObjectID;
-  }): Promise<{
-    serviceId: ObjectID;
-    dataRententionInDays: number;
-  }> {
+  }): Promise<TelemetryServiceMetadata> {
     /*
      * Sort by createdAt ASC for deterministic resolution if the
      * DB ever ends up with duplicates (defense in depth — the
@@ -140,6 +145,7 @@ export default class OTelIngestService {
       select: {
         _id: true,
         retainTelemetryDataForDays: true,
+        telemetryRetentionConfig: true,
       },
       sort: {
         createdAt: SortOrder.Ascending,
@@ -149,10 +155,27 @@ export default class OTelIngestService {
       },
     });
 
-    if (!service) {
-      const projectDefaultRetention: number =
-        await this.getProjectDefaultRetentionInDays(data.projectId);
+    const projectContext: ProjectRetentionContext =
+      await this.getProjectRetentionContext(data.projectId);
 
+    const buildMetadata: (svc: Service) => TelemetryServiceMetadata = (
+      svc: Service,
+    ): TelemetryServiceMetadata => {
+      const serviceUmbrella: number | null =
+        svc.retainTelemetryDataForDays ?? null;
+      return {
+        serviceName: data.serviceName,
+        serviceId: svc.id!,
+        dataRententionInDays:
+          serviceUmbrella || projectContext.projectUmbrellaInDays,
+        serviceRetentionConfig: svc.telemetryRetentionConfig ?? null,
+        serviceUmbrellaInDays: serviceUmbrella,
+        projectRetentionConfig: projectContext.projectRetentionConfig,
+        projectUmbrellaInDays: projectContext.projectUmbrellaInDays,
+      };
+    };
+
+    if (!service) {
       try {
         const newService: Service = new Service();
         newService.projectId = data.projectId;
@@ -166,10 +189,7 @@ export default class OTelIngestService {
           },
         });
 
-        return {
-          serviceId: createdService.id!,
-          dataRententionInDays: projectDefaultRetention,
-        };
+        return buildMetadata(createdService);
       } catch {
         /*
          * Race condition: another request created the service concurrently.
@@ -183,6 +203,7 @@ export default class OTelIngestService {
           select: {
             _id: true,
             retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
           },
           sort: {
             createdAt: SortOrder.Ascending,
@@ -193,12 +214,7 @@ export default class OTelIngestService {
         });
 
         if (existingService) {
-          return {
-            serviceId: existingService.id!,
-            dataRententionInDays:
-              existingService.retainTelemetryDataForDays ||
-              projectDefaultRetention,
-          };
+          return buildMetadata(existingService);
         }
 
         throw new Error(
@@ -207,19 +223,7 @@ export default class OTelIngestService {
       }
     }
 
-    if (service.retainTelemetryDataForDays) {
-      return {
-        serviceId: service.id!,
-        dataRententionInDays: service.retainTelemetryDataForDays,
-      };
-    }
-
-    return {
-      serviceId: service.id!,
-      dataRententionInDays: await this.getProjectDefaultRetentionInDays(
-        data.projectId,
-      ),
-    };
+    return buildMetadata(service);
   }
   @CaptureSpan()
   public static getMetricFromDatapoint(data: {

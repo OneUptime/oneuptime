@@ -14,6 +14,7 @@ import Response from "Common/Server/Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -238,20 +239,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           });
 
           if (!serviceDictionary[serviceName]) {
-            const service: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName: serviceName,
-              projectId: (req as TelemetryRequest).projectId,
-              resourceAttributes: resourceAttributes_raw,
-            });
-
-            serviceDictionary[serviceName] = {
-              serviceName: serviceName,
-              serviceId: service.serviceId,
-              dataRententionInDays: service.dataRententionInDays,
-            };
+            serviceDictionary[serviceName] =
+              await OTelIngestService.telemetryServiceFromName({
+                serviceName: serviceName,
+                projectId: (req as TelemetryRequest).projectId,
+                resourceAttributes: resourceAttributes_raw,
+              });
           }
 
           const resourceAttributes: Dictionary<
@@ -543,9 +536,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       timeUnixNanoNumeric,
                     );
 
+                  const serviceMetadata: TelemetryServiceMetadata =
+                    serviceDictionary[serviceName]!;
+                  const retentionDays: number = resolveTelemetryRetentionInDays(
+                    {
+                      pillar: "logs",
+                      bucketKey: severityText,
+                      serviceConfig: serviceMetadata.serviceRetentionConfig,
+                      serviceUmbrellaInDays:
+                        serviceMetadata.serviceUmbrellaInDays,
+                      projectConfig: serviceMetadata.projectRetentionConfig,
+                      projectUmbrellaInDays:
+                        serviceMetadata.projectUmbrellaInDays,
+                    },
+                  );
                   const retentionDate: Date = OneUptimeDate.addRemoveDays(
                     ingestionDate,
-                    serviceDictionary[serviceName]!.dataRententionInDays || 15,
+                    retentionDays,
                   );
 
                   let logRow: JSONObject = {

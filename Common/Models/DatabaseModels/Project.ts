@@ -1,4 +1,5 @@
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
+import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
@@ -2027,6 +2028,30 @@ export default class Project extends TenantModel {
     default: 15,
   })
   public defaultTelemetryRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Telemetry Data Retention Overrides",
+    description:
+      "Project-wide per-pillar retention overrides for telemetry data (logs by severity, traces by status, metrics, profiles). Falls back to defaultTelemetryRetentionInDays when a pillar or bucket is not set.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
 
   @ColumnAccessControl({
     create: [],

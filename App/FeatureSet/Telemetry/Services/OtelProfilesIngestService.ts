@@ -3,6 +3,7 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -204,20 +205,12 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           );
 
           if (!serviceDictionary[serviceName]) {
-            const service: {
-              serviceId: ObjectID;
-              dataRententionInDays: number;
-            } = await OTelIngestService.telemetryServiceFromName({
-              serviceName: serviceName,
-              projectId: (req as TelemetryRequest).projectId,
-              resourceAttributes: resourceAttributes_raw,
-            });
-
-            serviceDictionary[serviceName] = {
-              serviceName: serviceName,
-              serviceId: service.serviceId,
-              dataRententionInDays: service.dataRententionInDays,
-            };
+            serviceDictionary[serviceName] =
+              await OTelIngestService.telemetryServiceFromName({
+                serviceName: serviceName,
+                projectId: (req as TelemetryRequest).projectId,
+                resourceAttributes: resourceAttributes_raw,
+              });
           }
 
           const resourceAttributes: Dictionary<
@@ -271,10 +264,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
 
                   const projectId: ObjectID = (req as TelemetryRequest)
                     .projectId;
-                  const serviceId: ObjectID =
-                    serviceDictionary[serviceName]!.serviceId!;
-                  const dataRetentionInDays: number =
-                    serviceDictionary[serviceName]!.dataRententionInDays;
+                  const profileServiceMetadata: TelemetryServiceMetadata =
+                    serviceDictionary[serviceName]!;
+                  const serviceId: ObjectID = profileServiceMetadata.serviceId!;
 
                   const frame: NormalizedProfileFrame =
                     this.normalizeProfileItem(
@@ -562,7 +554,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         value: sampleValue,
                         profileType: profileType,
                         labels: sampleLabels,
-                        dataRetentionInDays: dataRetentionInDays,
+                        serviceMetadata: profileServiceMetadata,
                       });
 
                       dbSamples.push(sampleRow);
@@ -649,7 +641,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                     attributeKeys: attributeKeys,
                     sampleCount: sampleCount,
                     originalPayloadFormat: originalPayloadFormat,
-                    dataRetentionInDays: dataRetentionInDays,
+                    serviceMetadata: profileServiceMetadata,
                   });
 
                   dbProfiles.push(profileRow);
@@ -888,14 +880,21 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     attributeKeys: Array<string>;
     sampleCount: number;
     originalPayloadFormat: string;
-    dataRetentionInDays: number;
+    serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "profiles",
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+    });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
-      data.dataRetentionInDays || 15,
+      retentionDays,
     );
 
     return {
@@ -937,14 +936,21 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     value: number;
     profileType: string;
     labels: Dictionary<string>;
-    dataRetentionInDays: number;
+    serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "profiles",
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceUmbrellaInDays: data.serviceMetadata.serviceUmbrellaInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectUmbrellaInDays: data.serviceMetadata.projectUmbrellaInDays,
+    });
     const retentionDate: Date = OneUptimeDate.addRemoveDays(
       ingestionDate,
-      data.dataRetentionInDays || 15,
+      retentionDays,
     );
 
     return {
