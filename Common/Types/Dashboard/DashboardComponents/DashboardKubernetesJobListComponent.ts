@@ -9,6 +9,7 @@ export default interface DashboardKubernetesJobListComponent
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     kubernetesClusterIds?: Array<string> | undefined;
     namespaces?: string | undefined;
   };

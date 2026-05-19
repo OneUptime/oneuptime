@@ -290,6 +290,41 @@ export default class QueryHelper {
   }
 
   /**
+   * Matches owner rows that have no rows in the join table — i.e. the
+   * many-to-many collection is empty. Apply to the owner's primary id column.
+   */
+  @CaptureSpan()
+  public static noEntitiesInManyToMany(data: {
+    joinTableName: string;
+    ownerColumnName: string;
+  }): FindWhereProperty<any> {
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+
+    return Raw((alias: string) => {
+      return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${ownerCol}" IS NOT NULL))`;
+    }, {});
+  }
+
+  /**
+   * Matches owner rows that have at least one row in the join table — i.e.
+   * the many-to-many collection has at least one entry. Apply to the
+   * owner's primary id column.
+   */
+  @CaptureSpan()
+  public static anyEntitiesInManyToMany(data: {
+    joinTableName: string;
+    ownerColumnName: string;
+  }): FindWhereProperty<any> {
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+
+    return Raw((alias: string) => {
+      return `(${alias} IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${ownerCol}" IS NOT NULL))`;
+    }, {});
+  }
+
+  /**
    * Returns a filter that matches owner rows that are linked to *all* of the
    * provided related entity ids through a many-to-many join table. The
    * returned FindOperator is intended to be applied to the primary id column

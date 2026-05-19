@@ -9,7 +9,12 @@ import DashboardDockerHostListComponent from "Common/Types/Dashboard/DashboardCo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import API from "Common/UI/Utils/API/API";
@@ -38,6 +43,11 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "OS", widthPct: "20%" },
 ];
 
+const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Connected", color: "#10b981" },
+  { label: "Disconnected", color: "#9ca3af" },
+];
+
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "host.name": "name",
 };
@@ -53,6 +63,8 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     props.component.arguments;
   const maxRows: number = args.maxRows || 25;
   const statusFilter: string | undefined = args.statusFilter;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const fetchHosts: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -115,6 +127,47 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
   useEffect(() => {
     fetchHosts();
   }, [fetchHosts, props.refreshTick]);
+
+  const honeycombTiles: Array<HoneycombTile> = hosts.map(
+    (host: DockerHost): HoneycombTile => {
+      const id: string = (host._id as string) || "";
+      const name: string = (host.name as string) || "Unnamed";
+      const status: string =
+        (host.otelCollectorStatus as string) || "disconnected";
+      const isConnected: boolean = status === "connected";
+      const running: number = (host.containersRunning as number) || 0;
+      const stopped: number = (host.containersStopped as number) || 0;
+      const osType: string = (host.osType as string) || "—";
+      const osVersion: string = (host.osVersion as string) || "";
+
+      const route: Route | undefined = id
+        ? RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DOCKER_HOST_VIEW] as Route,
+            { modelId: new ObjectID(id) },
+          )
+        : undefined;
+
+      return {
+        id: id || name,
+        status: isConnected ? "Connected" : "Disconnected",
+        color: isConnected ? "#10b981" : "#9ca3af",
+        route: route,
+        tooltip: {
+          title: name,
+          details: [
+            {
+              label: "Containers",
+              value: `${running} running / ${stopped} stopped`,
+            },
+            {
+              label: "OS",
+              value: `${osType}${osVersion ? ` ${osVersion}` : ""}`,
+            },
+          ],
+        },
+      };
+    },
+  );
 
   const rows: Array<ReactElement> = hosts.map((host: DockerHost) => {
     const id: string = (host._id as string) || "";
@@ -192,6 +245,9 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
       isEmpty={hosts.length === 0}
       emptyMessage="No Docker hosts found"
       emptyIcon={IconProp.Server}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
+      honeycombLegend={HONEYCOMB_LEGEND}
     >
       {rows}
     </DashboardResourceListBase>

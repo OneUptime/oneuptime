@@ -1,7 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardKubernetesPodListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesPodListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { ResourceListColumn } from "./DashboardResourceListBase";
+import {
+  ResourceListColumn,
+  ResourceListViewMode,
+} from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
 import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -13,6 +16,10 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.pod.name": "name",
@@ -37,6 +44,47 @@ const PHASE_COLORS: Record<string, { dot: string; text: string }> = {
   Failed: { dot: "#ef4444", text: "#b91c1c" },
   Unknown: { dot: "#9ca3af", text: "#6b7280" },
 };
+
+const POD_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Running", color: "#10b981" },
+  { label: "Pending", color: "#f59e0b" },
+  { label: "Succeeded", color: "#3b82f6" },
+  { label: "Failed", color: "#ef4444" },
+  { label: "Unknown", color: "#9ca3af" },
+];
+
+function buildPodTile(r: KubernetesResource): HoneycombTile {
+  const id: string = (r._id as string) || "";
+  const name: string = (r.name as string) || "Unnamed";
+  const namespace: string = (r.namespaceKey as string) || "—";
+  const phase: string = (r.phase as string) || "Unknown";
+  const phaseStyle: { dot: string; text: string } =
+    PHASE_COLORS[phase] || PHASE_COLORS["Unknown"]!;
+  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
+
+  let route: Route | undefined = undefined;
+  if (clusterId && id) {
+    route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
+      { modelId: new ObjectID(clusterId), subModelId: new ObjectID(id) },
+    );
+  }
+
+  return {
+    id: id || name,
+    status: phase,
+    color: phaseStyle.dot,
+    route: route,
+    tooltip: {
+      title: name,
+      details: [
+        { label: "Namespace", value: namespace },
+        { label: "Cluster", value: clusterName },
+      ],
+    },
+  };
+}
 
 function renderPodRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
@@ -102,6 +150,9 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
       ? { phase: new Includes(podPhases) }
       : undefined;
 
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
+
   return (
     <DashboardKubernetesResourceListBase
       title={args.title}
@@ -118,6 +169,9 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderPodRow}
+      viewMode={viewMode}
+      renderHoneycombTile={buildPodTile}
+      honeycombLegend={POD_LEGEND}
     />
   );
 };

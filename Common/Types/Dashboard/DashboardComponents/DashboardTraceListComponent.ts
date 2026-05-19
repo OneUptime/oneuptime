@@ -9,5 +9,6 @@ export default interface DashboardTraceListComponent extends BaseComponent {
     title?: string | undefined;
     statusFilter?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
   };
 }

@@ -9,6 +9,7 @@ import {
   EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -66,6 +67,10 @@ export default class DashboardIncidentListComponentUtil extends DashboardBaseCom
       placeholder: "25",
       section: DisplaySection,
     });
+
+    componentArguments.push(
+      getViewModeArgument<DashboardIncidentListComponent>(DisplaySection),
+    );
 
     componentArguments.push({
       name: "Lifecycle State",

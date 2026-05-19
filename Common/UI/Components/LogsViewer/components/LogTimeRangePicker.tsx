@@ -22,6 +22,7 @@ export interface LogTimeRangePickerProps {
 
 // Preset options to show in the dropdown (ordered for log investigation use)
 const PRESET_OPTIONS: Array<{ range: TimeRange; label: string }> = [
+  { range: TimeRange.PAST_FIVE_MINS, label: "Past 5 Minutes" },
   { range: TimeRange.PAST_THIRTY_MINS, label: "Past 30 Minutes" },
   { range: TimeRange.PAST_ONE_HOUR, label: "Past 1 Hour" },
   { range: TimeRange.PAST_TWO_HOURS, label: "Past 2 Hours" },

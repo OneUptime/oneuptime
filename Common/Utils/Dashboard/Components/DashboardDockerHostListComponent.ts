@@ -8,6 +8,7 @@ import {
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -63,6 +64,10 @@ export default class DashboardDockerHostListComponentUtil extends DashboardBaseC
       placeholder: "25",
       section: DisplaySection,
     });
+
+    args.push(
+      getViewModeArgument<DashboardDockerHostListComponent>(DisplaySection),
+    );
 
     args.push({
       name: "Connection Status",

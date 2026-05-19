@@ -7,15 +7,16 @@ import React, {
 } from "react";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { APP_API_URL } from "Common/UI/Config";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 import TelemetryExceptionElement from "./ExceptionElement";
@@ -30,19 +31,17 @@ interface ServiceExceptionSummary {
   totalOccurrences: number;
 }
 
+interface DashboardData {
+  unresolvedCount: number;
+  resolvedCount: number;
+  archivedCount: number;
+  topExceptions: Array<TelemetryException>;
+  recentExceptions: Array<TelemetryException>;
+  serviceSummaries: Array<ServiceExceptionSummary>;
+}
+
 const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
-  const [unresolvedCount, setUnresolvedCount] = useState<number>(0);
-  const [resolvedCount, setResolvedCount] = useState<number>(0);
-  const [archivedCount, setArchivedCount] = useState<number>(0);
-  const [topExceptions, setTopExceptions] = useState<Array<TelemetryException>>(
-    [],
-  );
-  const [recentExceptions, setRecentExceptions] = useState<
-    Array<TelemetryException>
-  >([]);
-  const [serviceSummaries, setServiceSummaries] = useState<
-    Array<ServiceExceptionSummary>
-  >([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -51,166 +50,58 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
       setIsLoading(true);
       setError("");
 
-      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/telemetry-exception/dashboard-summary`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-      const [
-        unresolvedResult,
-        resolvedResult,
-        archivedResult,
-        topExceptionsResult,
-        recentExceptionsResult,
-        servicesResult,
-      ] = await Promise.all([
-        ModelAPI.count({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: false,
-            isArchived: false,
-          },
-        }),
-        ModelAPI.count({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: true,
-            isArchived: false,
-          },
-        }),
-        ModelAPI.count({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isArchived: true,
-          },
-        }),
-        ModelAPI.getList({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: false,
-            isArchived: false,
-          },
-          select: {
-            message: true,
-            exceptionType: true,
-            fingerprint: true,
-            isResolved: true,
-            isArchived: true,
-            occuranceCount: true,
-            lastSeenAt: true,
-            firstSeenAt: true,
-            environment: true,
-            service: {
-              name: true,
-              serviceColor: true,
-            } as any,
-          },
-          limit: 10,
-          skip: 0,
-          sort: {
-            occuranceCount: SortOrder.Descending,
-          },
-        }),
-        ModelAPI.getList({
-          modelType: TelemetryException,
-          query: {
-            projectId,
-            isResolved: false,
-            isArchived: false,
-          },
-          select: {
-            message: true,
-            exceptionType: true,
-            fingerprint: true,
-            isResolved: true,
-            isArchived: true,
-            occuranceCount: true,
-            lastSeenAt: true,
-            firstSeenAt: true,
-            environment: true,
-            service: {
-              name: true,
-              serviceColor: true,
-            } as any,
-          },
-          limit: 8,
-          skip: 0,
-          sort: {
-            lastSeenAt: SortOrder.Descending,
-          },
-        }),
-        ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        }),
-      ]);
-
-      setUnresolvedCount(unresolvedResult);
-      setResolvedCount(resolvedResult);
-      setArchivedCount(archivedResult);
-      setTopExceptions(topExceptionsResult.data || []);
-      setRecentExceptions(recentExceptionsResult.data || []);
-
-      const loadedServices: Array<Service> = servicesResult.data || [];
-
-      // Load unresolved exception counts per service
-      const serviceExceptionCounts: Array<ServiceExceptionSummary> = [];
-
-      for (const service of loadedServices) {
-        const serviceExceptions: ListResult<TelemetryException> =
-          await ModelAPI.getList({
-            modelType: TelemetryException,
-            query: {
-              projectId,
-              serviceId: service.id!,
-              isResolved: false,
-              isArchived: false,
-            },
-            select: {
-              occuranceCount: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              occuranceCount: SortOrder.Descending,
-            },
-          });
-
-        const exceptions: Array<TelemetryException> =
-          serviceExceptions.data || [];
-
-        if (exceptions.length > 0) {
-          let totalOccurrences: number = 0;
-          for (const ex of exceptions) {
-            totalOccurrences += ex.occuranceCount || 0;
-          }
-          serviceExceptionCounts.push({
-            service,
-            unresolvedCount: exceptions.length,
-            totalOccurrences,
-          });
-        }
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
       }
 
-      serviceExceptionCounts.sort(
-        (a: ServiceExceptionSummary, b: ServiceExceptionSummary) => {
-          return b.unresolvedCount - a.unresolvedCount;
+      const body: JSONObject = response.data || {};
+
+      const topExceptions: Array<TelemetryException> = BaseModel.fromJSONArray(
+        (body["topExceptions"] as JSONArray) || [],
+        TelemetryException,
+      );
+
+      const recentExceptions: Array<TelemetryException> =
+        BaseModel.fromJSONArray(
+          (body["recentExceptions"] as JSONArray) || [],
+          TelemetryException,
+        );
+
+      const rawSummaries: JSONArray =
+        (body["serviceSummaries"] as JSONArray) || [];
+
+      const serviceSummaries: Array<ServiceExceptionSummary> = rawSummaries.map(
+        (raw: JSONObject | unknown): ServiceExceptionSummary => {
+          const entry: JSONObject = (raw as JSONObject) || {};
+          const service: Service = BaseModel.fromJSONObject(
+            (entry["service"] as JSONObject) || {},
+            Service,
+          );
+          return {
+            service,
+            unresolvedCount: Number(entry["unresolvedCount"] || 0),
+            totalOccurrences: Number(entry["totalOccurrences"] || 0),
+          };
         },
       );
 
-      setServiceSummaries(serviceExceptionCounts);
+      setData({
+        unresolvedCount: Number(body["unresolvedCount"] || 0),
+        resolvedCount: Number(body["resolvedCount"] || 0),
+        archivedCount: Number(body["archivedCount"] || 0),
+        topExceptions,
+        recentExceptions,
+        serviceSummaries,
+      });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -236,6 +127,19 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
       />
     );
   }
+
+  if (!data) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  const {
+    unresolvedCount,
+    resolvedCount,
+    archivedCount,
+    topExceptions,
+    recentExceptions,
+    serviceSummaries,
+  } = data;
 
   const totalCount: number = unresolvedCount + resolvedCount + archivedCount;
 
@@ -674,9 +578,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
               </div>
               <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                 <div className="divide-y divide-gray-50">
-                  {recentExceptions
-                    .slice(0, 5)
-                    .map((exception: TelemetryException, index: number) => {
+                  {recentExceptions.map(
+                    (exception: TelemetryException, index: number) => {
                       return (
                         <AppLink
                           key={exception.id?.toString() || index.toString()}
@@ -723,7 +626,8 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                           </div>
                         </AppLink>
                       );
-                    })}
+                    },
+                  )}
                 </div>
               </div>
             </div>

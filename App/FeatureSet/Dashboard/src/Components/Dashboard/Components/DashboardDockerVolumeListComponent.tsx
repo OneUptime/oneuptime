@@ -9,7 +9,9 @@ import DashboardDockerVolumeListComponent from "Common/Types/Dashboard/Dashboard
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
@@ -41,6 +43,8 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
     props.component.arguments;
   const maxRows: number = args.maxRows || 25;
   const dockerHostIds: Array<string> | undefined = args.dockerHostIds;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
 
@@ -100,6 +104,28 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
     fetchVolumes();
   }, [fetchVolumes, props.refreshTick]);
 
+  const honeycombTiles: Array<HoneycombTile> = volumes.map(
+    (v: DockerResource): HoneycombTile => {
+      const id: string = (v._id as string) || "";
+      const name: string = (v.name as string) || "Unnamed";
+      const driverScope: string = (v.state as string) || "—";
+      const hostName: string = (v.dockerHost?.name as string) || "—";
+
+      return {
+        id: id || name,
+        status: "Volume",
+        color: "#06b6d4",
+        tooltip: {
+          title: name,
+          details: [
+            { label: "Driver / Scope", value: driverScope },
+            { label: "Host", value: hostName },
+          ],
+        },
+      };
+    },
+  );
+
   const rows: Array<ReactElement> = volumes.map((v: DockerResource) => {
     const id: string = (v._id as string) || "";
     const name: string = (v.name as string) || "Unnamed";
@@ -133,6 +159,8 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
       isEmpty={volumes.length === 0}
       emptyMessage="No volumes found"
       emptyIcon={IconProp.Database}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

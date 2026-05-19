@@ -9,6 +9,7 @@ export default interface DashboardKubernetesNodeListComponent
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     kubernetesClusterIds?: Array<string> | undefined;
     readinessFilter?: string | undefined;
   };

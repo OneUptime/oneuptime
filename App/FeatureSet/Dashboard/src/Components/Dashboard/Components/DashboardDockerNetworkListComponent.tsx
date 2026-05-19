@@ -9,7 +9,9 @@ import DashboardDockerNetworkListComponent from "Common/Types/Dashboard/Dashboar
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
@@ -41,6 +43,8 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
     props.component.arguments;
   const maxRows: number = args.maxRows || 25;
   const dockerHostIds: Array<string> | undefined = args.dockerHostIds;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
 
@@ -100,6 +104,28 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
     fetchNetworks();
   }, [fetchNetworks, props.refreshTick]);
 
+  const honeycombTiles: Array<HoneycombTile> = networks.map(
+    (n: DockerResource): HoneycombTile => {
+      const id: string = (n._id as string) || "";
+      const name: string = (n.name as string) || "Unnamed";
+      const driverScope: string = (n.state as string) || "—";
+      const hostName: string = (n.dockerHost?.name as string) || "—";
+
+      return {
+        id: id || name,
+        status: "Network",
+        color: "#8b5cf6",
+        tooltip: {
+          title: name,
+          details: [
+            { label: "Driver / Scope", value: driverScope },
+            { label: "Host", value: hostName },
+          ],
+        },
+      };
+    },
+  );
+
   const rows: Array<ReactElement> = networks.map((n: DockerResource) => {
     const id: string = (n._id as string) || "";
     const name: string = (n.name as string) || "Unnamed";
@@ -131,6 +157,8 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
       isEmpty={networks.length === 0}
       emptyMessage="No networks found"
       emptyIcon={IconProp.Globe}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

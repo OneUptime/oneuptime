@@ -8,6 +8,7 @@ export default interface DashboardAlertListComponent extends BaseComponent {
   arguments: {
     title?: string | undefined;
     maxRows?: number | undefined;
+    viewMode?: "list" | "honeycomb" | undefined;
     stateFilter?: string | undefined;
     severityIds?: Array<string> | undefined;
     stateIds?: Array<string> | undefined;

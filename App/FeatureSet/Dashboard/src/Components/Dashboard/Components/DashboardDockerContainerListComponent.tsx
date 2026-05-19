@@ -9,7 +9,12 @@ import DashboardDockerContainerListComponent from "Common/Types/Dashboard/Dashbo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
@@ -46,6 +51,37 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "Host", widthPct: "15%" },
 ];
 
+const CONTAINER_STATE_COLORS: Record<string, { color: string; label: string }> =
+  {
+    running: { color: "#10b981", label: "Running" },
+    restarting: { color: "#f59e0b", label: "Restarting" },
+    paused: { color: "#f59e0b", label: "Paused" },
+    exited: { color: "#9ca3af", label: "Exited" },
+    dead: { color: "#ef4444", label: "Dead" },
+    created: { color: "#3b82f6", label: "Created" },
+  };
+
+const CONTAINER_LEGEND: Array<HoneycombLegendItem> = [
+  { label: "Running", color: "#10b981" },
+  { label: "Restarting/Paused", color: "#f59e0b" },
+  { label: "Created", color: "#3b82f6" },
+  { label: "Exited", color: "#9ca3af" },
+  { label: "Dead", color: "#ef4444" },
+];
+
+function getContainerStateInfo(state: string | undefined): {
+  color: string;
+  label: string;
+} {
+  const key: string = (state || "").toLowerCase();
+  return (
+    CONTAINER_STATE_COLORS[key] || {
+      color: "#9ca3af",
+      label: state || "Unknown",
+    }
+  );
+}
+
 function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined) {
     return "—";
@@ -73,6 +109,8 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
   const maxRows: number = args.maxRows || 25;
   const dockerHostIds: Array<string> | undefined = args.dockerHostIds;
   const imageName: string | undefined = args.imageName;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
   const imageNameKey: string = (imageName || "").trim();
@@ -144,6 +182,44 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     fetchContainers();
   }, [fetchContainers, props.refreshTick]);
 
+  const honeycombTiles: Array<HoneycombTile> = containers.map(
+    (container: DockerResource): HoneycombTile => {
+      const id: string = (container._id as string) || "";
+      const name: string = (container.name as string) || "Unnamed";
+      const image: string = (container.imageName as string) || "—";
+      const stateRaw: string | undefined = container.state as
+        | string
+        | undefined;
+      const stateInfo: { color: string; label: string } =
+        getContainerStateInfo(stateRaw);
+      const hostName: string = (container.dockerHost?.name as string) || "—";
+      const hostId: string =
+        (container.dockerHostId?.toString() as string) || "";
+
+      let route: Route | undefined = undefined;
+      if (hostId && id) {
+        route = RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL] as Route,
+          { modelId: new ObjectID(hostId), subModelId: new ObjectID(id) },
+        );
+      }
+
+      return {
+        id: id || name,
+        status: stateInfo.label,
+        color: stateInfo.color,
+        route: route,
+        tooltip: {
+          title: name,
+          details: [
+            { label: "Image", value: image },
+            { label: "Host", value: hostName },
+          ],
+        },
+      };
+    },
+  );
+
   const rows: Array<ReactElement> = containers.map(
     (container: DockerResource) => {
       const id: string = (container._id as string) || "";
@@ -213,6 +289,9 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
       isEmpty={containers.length === 0}
       emptyMessage="No containers found"
       emptyIcon={IconProp.Cube}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
+      honeycombLegend={CONTAINER_LEGEND}
     >
       {rows}
     </DashboardResourceListBase>

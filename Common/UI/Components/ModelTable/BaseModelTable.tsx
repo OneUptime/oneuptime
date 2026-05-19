@@ -1807,17 +1807,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     (): BulkActionButtonSchema<TBaseModel> => {
       return {
         title: "Delete",
-        buttonStyleType: ButtonStyleType.NORMAL,
+        buttonStyleType: ButtonStyleType.DANGER,
         icon: IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          return `Are you sure you want to delete ${items.length} ${
-            props.pluralName || model.pluralName || "items"
-          }?`;
+          const itemLabel: string =
+            items.length === 1
+              ? props.singularName || model.singularName || "item"
+              : props.pluralName || model.pluralName || "items";
+          return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.`;
         },
         confirmTitle: (items: Array<TBaseModel>) => {
-          return `Delete ${items.length} ${
-            props.pluralName || model.pluralName || "items"
-          }`;
+          const itemLabel: string =
+            items.length === 1
+              ? props.singularName || model.singularName || "item"
+              : props.pluralName || model.pluralName || "items";
+          return `Delete ${items.length} ${itemLabel}`;
         },
         confirmButtonStyleType: ButtonStyleType.DANGER,
         onClick: async ({
@@ -1908,25 +1912,66 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterRefreshClick={async () => {
           await getFilterDropdownItems();
         }}
-        bulkActions={{
-          buttons: props.bulkActions?.buttons.map(
+        bulkActions={(() => {
+          const permissions: Array<Permission> =
+            PermissionUtil.getAllPermissions();
+          const userCanDelete: boolean =
+            model.hasDeletePermissions(permissions);
+
+          const sourceButtons: Array<
+            BulkActionButtonSchema<TBaseModel> | ModalTableBulkDefaultActions
+          > = [...(props.bulkActions?.buttons ?? [])];
+
+          /*
+           * Auto-include the default Delete bulk action whenever the table is
+           * deleteable and the user has permission, so every table that exposes
+           * row selection also exposes a way to delete the selected rows. The
+           * confirmation modal is wired up via the schema's confirmMessage /
+           * confirmTitle below. Skip if the table author has already added it.
+           */
+          const alreadyHasDeleteAction: boolean = sourceButtons.some(
             (
               action:
                 | BulkActionButtonSchema<TBaseModel>
                 | ModalTableBulkDefaultActions,
             ) => {
-              const permissions: Array<Permission> =
-                PermissionUtil.getAllPermissions();
-              if (
-                action === ModalTableBulkDefaultActions.Delete &&
-                model.hasDeletePermissions(permissions)
-              ) {
-                return getDeleteBulkAction();
+              if (action === ModalTableBulkDefaultActions.Delete) {
+                return true;
               }
-              return action;
+              if (
+                typeof action === "object" &&
+                action !== null &&
+                "title" in action &&
+                (action as BulkActionButtonSchema<TBaseModel>).title ===
+                  "Delete"
+              ) {
+                return true;
+              }
+              return false;
             },
-          ) as Array<BulkActionButtonSchema<TBaseModel>>,
-        }}
+          );
+          if (props.isDeleteable && userCanDelete && !alreadyHasDeleteAction) {
+            sourceButtons.push(ModalTableBulkDefaultActions.Delete);
+          }
+
+          return {
+            buttons: sourceButtons.map(
+              (
+                action:
+                  | BulkActionButtonSchema<TBaseModel>
+                  | ModalTableBulkDefaultActions,
+              ) => {
+                if (
+                  action === ModalTableBulkDefaultActions.Delete &&
+                  userCanDelete
+                ) {
+                  return getDeleteBulkAction();
+                }
+                return action;
+              },
+            ) as Array<BulkActionButtonSchema<TBaseModel>>,
+          };
+        })()}
         onBulkActionEnd={async () => {
           setBulkSelectedItems([]);
           await fetchItems();

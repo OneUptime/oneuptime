@@ -9,7 +9,9 @@ import DashboardDockerImageListComponent from "Common/Types/Dashboard/DashboardC
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
@@ -50,6 +52,8 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
   const maxRows: number = args.maxRows || 25;
   const dockerHostIds: Array<string> | undefined = args.dockerHostIds;
   const nameSearch: string | undefined = args.nameSearch;
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
   const nameSearchKey: string = (nameSearch || "").trim();
@@ -119,6 +123,28 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
     fetchImages();
   }, [fetchImages, props.refreshTick]);
 
+  const honeycombTiles: Array<HoneycombTile> = images.map(
+    (img: DockerResource): HoneycombTile => {
+      const id: string = (img._id as string) || "";
+      const name: string = (img.name as string) || "Unnamed";
+      const imageId: string = (img.containerId as string) || "—";
+      const hostName: string = (img.dockerHost?.name as string) || "—";
+
+      return {
+        id: id || name,
+        status: "Image",
+        color: "#3b82f6",
+        tooltip: {
+          title: name,
+          details: [
+            { label: "Image ID", value: imageId },
+            { label: "Host", value: hostName },
+          ],
+        },
+      };
+    },
+  );
+
   const rows: Array<ReactElement> = images.map((img: DockerResource) => {
     const id: string = (img._id as string) || "";
     const name: string = (img.name as string) || "Unnamed";
@@ -152,6 +178,8 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
       isEmpty={images.length === 0}
       emptyMessage="No images found"
       emptyIcon={IconProp.Cube}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
     >
       {rows}
     </DashboardResourceListBase>

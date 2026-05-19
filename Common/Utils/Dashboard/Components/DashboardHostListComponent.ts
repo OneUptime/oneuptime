@@ -8,6 +8,7 @@ import {
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { getViewModeArgument } from "./DashboardListSharedArgs";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -63,6 +64,8 @@ export default class DashboardHostListComponentUtil extends DashboardBaseCompone
       placeholder: "25",
       section: DisplaySection,
     });
+
+    args.push(getViewModeArgument<DashboardHostListComponent>(DisplaySection));
 
     args.push({
       name: "Connection Status",

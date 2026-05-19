@@ -1,7 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardKubernetesDeploymentListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDeploymentListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import { ResourceListColumn } from "./DashboardResourceListBase";
+import {
+  ResourceListColumn,
+  ResourceListViewMode,
+} from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
 import IconProp from "Common/Types/Icon/IconProp";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
@@ -12,6 +15,11 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import { HoneycombTile } from "./DashboardResourceHoneycomb";
+import {
+  buildReadinessTile,
+  READINESS_LEGEND,
+} from "./DashboardKubernetesTileHelpers";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.deployment.name": "name",
@@ -65,11 +73,27 @@ function renderRow(r: KubernetesResource): ReactElement {
   );
 }
 
+function buildTile(r: KubernetesResource): HoneycombTile {
+  const id: string = (r._id as string) || "";
+  const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
+  let route: Route | undefined = undefined;
+  if (clusterId && id) {
+    route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL] as Route,
+      { modelId: new ObjectID(clusterId), subModelId: new ObjectID(id) },
+    );
+  }
+  return buildReadinessTile({ resource: r, route: route });
+}
+
 const DashboardKubernetesDeploymentListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
   const args: DashboardKubernetesDeploymentListComponent["arguments"] =
     props.component.arguments;
+
+  const viewMode: ResourceListViewMode =
+    args.viewMode === "honeycomb" ? "honeycomb" : "list";
 
   return (
     <DashboardKubernetesResourceListBase
@@ -86,6 +110,9 @@ const DashboardKubernetesDeploymentListComponentElement: FunctionComponent<
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderRow}
+      viewMode={viewMode}
+      renderHoneycombTile={buildTile}
+      honeycombLegend={READINESS_LEGEND}
     />
   );
 };

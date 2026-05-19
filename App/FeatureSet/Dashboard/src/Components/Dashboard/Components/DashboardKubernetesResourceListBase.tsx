@@ -7,7 +7,12 @@ import React, {
 } from "react";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListViewMode,
 } from "./DashboardResourceListBase";
+import {
+  HoneycombLegendItem,
+  HoneycombTile,
+} from "./DashboardResourceHoneycomb";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import API from "Common/UI/Utils/API/API";
@@ -39,6 +44,11 @@ export interface KubernetesResourceListBaseProps {
   variables?: Array<DashboardVariable> | undefined;
   attributeToColumn?: AttributeToColumnMap | undefined;
   renderRow: (resource: KubernetesResource) => ReactElement;
+  viewMode?: ResourceListViewMode | undefined;
+  renderHoneycombTile?:
+    | ((resource: KubernetesResource) => HoneycombTile)
+    | undefined;
+  honeycombLegend?: Array<HoneycombLegendItem> | undefined;
 }
 
 const BASE_SELECT: Select<KubernetesResource> = {
@@ -176,11 +186,21 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
     fetchResources();
   }, [fetchResources, props.refreshTick]);
 
-  const rows: Array<ReactElement> = resources.map(
-    (r: KubernetesResource): ReactElement => {
-      return props.renderRow(r);
-    },
-  );
+  const viewMode: ResourceListViewMode = props.viewMode || "list";
+
+  const rows: Array<ReactElement> =
+    viewMode === "list"
+      ? resources.map((r: KubernetesResource): ReactElement => {
+          return props.renderRow(r);
+        })
+      : [];
+
+  const honeycombTiles: Array<HoneycombTile> | undefined =
+    viewMode === "honeycomb" && props.renderHoneycombTile
+      ? resources.map((r: KubernetesResource): HoneycombTile => {
+          return props.renderHoneycombTile!(r);
+        })
+      : undefined;
 
   return (
     <DashboardResourceListBase
@@ -193,6 +213,9 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
       isEmpty={resources.length === 0}
       emptyMessage={props.emptyMessage}
       emptyIcon={props.emptyIcon}
+      viewMode={viewMode}
+      honeycombTiles={honeycombTiles}
+      honeycombLegend={props.honeycombLegend}
     >
       {rows}
     </DashboardResourceListBase>
