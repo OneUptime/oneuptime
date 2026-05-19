@@ -27,6 +27,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostMetricChartComponent;
@@ -144,6 +145,21 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
     args.hostIdentifier && args.hostIdentifier.trim() !== ""
       ? args.hostIdentifier.trim()
       : undefined;
+  const selectedChartType: DashboardChartType =
+    args.chartType || DashboardChartType.Line;
+
+  const metricChartType: MetricChartType = useMemo(() => {
+    if (selectedChartType === DashboardChartType.Bar) {
+      return MetricChartType.BAR;
+    }
+    if (
+      selectedChartType === DashboardChartType.Area ||
+      selectedChartType === DashboardChartType.StackedArea
+    ) {
+      return MetricChartType.AREA;
+    }
+    return MetricChartType.LINE;
+  }, [selectedChartType]);
 
   const spec: MetricSpec = useMemo(() => {
     return getMetricSpec(metricKind);
@@ -204,12 +220,19 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
             },
         groupByAttributeKeys: isSingleHost ? undefined : [HOST_NAME_ATTRIBUTE],
       },
-      chartType: MetricChartType.LINE,
+      chartType: metricChartType,
       transformAsRate: spec.transformAsRate,
       yAxisValueFormatter: spec.yFormatter,
       getSeries: isSingleHost ? undefined : getHostSeries,
     };
-  }, [args.title, args.description, spec, hostIdentifier, props.variables]);
+  }, [
+    args.title,
+    args.description,
+    spec,
+    hostIdentifier,
+    props.variables,
+    metricChartType,
+  ]);
 
   const metricViewData: MetricViewData = useMemo(() => {
     return {

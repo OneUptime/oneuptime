@@ -10,6 +10,7 @@ import {
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
 
 const DataSection: ComponentArgumentSection = {
   name: "Data Source",
@@ -38,6 +39,7 @@ export default class DashboardHostMetricChartComponentUtil extends DashboardBase
       minWidthInDashboardUnits: 6,
       arguments: {
         metricKind: HostMetricKind.CpuUtilization,
+        chartType: DashboardChartType.Line,
       },
     };
   }
@@ -78,6 +80,33 @@ export default class DashboardHostMetricChartComponentUtil extends DashboardBase
       id: "hostIdentifier",
       placeholder: "production-host-1",
       section: DataSection,
+    });
+
+    args.push({
+      name: "Chart Type",
+      description: "How the data will be visualized",
+      required: false,
+      type: ComponentInputType.Dropdown,
+      id: "chartType",
+      section: DisplaySection,
+      dropdownOptions: [
+        {
+          label: "Line Chart",
+          value: DashboardChartType.Line,
+        },
+        {
+          label: "Bar Chart",
+          value: DashboardChartType.Bar,
+        },
+        {
+          label: "Area Chart",
+          value: DashboardChartType.Area,
+        },
+        {
+          label: "Stacked Area Chart",
+          value: DashboardChartType.StackedArea,
+        },
+      ],
     });
 
     args.push({

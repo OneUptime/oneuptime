@@ -1,4 +1,5 @@
 import ObjectID from "../../ObjectID";
+import DashboardChartType from "../Chart/ChartType";
 import DashboardComponentType from "../DashboardComponentType";
 import BaseComponent from "./DashboardBaseComponent";
 
@@ -21,5 +22,6 @@ export default interface DashboardHostMetricChartComponent
     description?: string | undefined;
     metricKind?: HostMetricKind | undefined;
     hostIdentifier?: string | undefined;
+    chartType?: DashboardChartType | undefined;
   };
 }
