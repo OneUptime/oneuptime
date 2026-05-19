@@ -91,7 +91,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * If the project has its own default Twilio config, OneUptime does not
+     * charge the project's Call/SMS balance, so the low-balance check does not apply.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        createBy.data.projectId!,
+      );
+
     if (
+      !projectTwilioConfig &&
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
@@ -161,7 +171,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * If the project has its own default Twilio config, OneUptime does not
+     * charge the project's Call/SMS balance, so the low-balance check does not apply.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        item.projectId!,
+      );
+
     if (
+      !projectTwilioConfig &&
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {

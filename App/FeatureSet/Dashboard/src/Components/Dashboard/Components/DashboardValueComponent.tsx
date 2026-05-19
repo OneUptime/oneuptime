@@ -396,8 +396,10 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  // Sparkline data — preserve timestamp alongside value so the parent
-  // can render it under the big number while the cursor is over the chart.
+  /*
+   * Sparkline data — preserve timestamp alongside value so the parent
+   * can render it under the big number while the cursor is over the chart.
+   */
   const sparklineData: Array<SparklinePoint> = allDataPoints.map(
     (item: AggregatedModel) => {
       return {
