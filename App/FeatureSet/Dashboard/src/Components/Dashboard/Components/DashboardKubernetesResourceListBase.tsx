@@ -18,6 +18,10 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Select from "Common/Types/BaseDatabase/Select";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ObjectID from "Common/Types/ObjectID";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 
 export interface KubernetesResourceListBaseProps {
   title?: string | undefined;
@@ -32,6 +36,8 @@ export interface KubernetesResourceListBaseProps {
   extraQuery?: Record<string, unknown> | undefined;
   extraSelect?: Record<string, unknown> | undefined;
   refreshTick?: number | undefined;
+  variables?: Array<DashboardVariable> | undefined;
+  attributeToColumn?: AttributeToColumnMap | undefined;
   renderRow: (resource: KubernetesResource) => ReactElement;
 }
 
@@ -69,6 +75,10 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
   const namespacesKey: string = (props.namespaces || "").trim();
   const extraQueryKey: string = JSON.stringify(props.extraQuery || {});
   const extraSelectKey: string = JSON.stringify(props.extraSelect || {});
+  const variablesKey: string = JSON.stringify(props.variables || []);
+  const attributeToColumnKey: string = JSON.stringify(
+    props.attributeToColumn || {},
+  );
 
   const fetchResources: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -114,6 +124,18 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
         }
       }
 
+      /*
+       * Layer dashboard variable selections on top so e.g. a
+       * `k8s.namespace.name = $ns` variable narrows this list to the
+       * selected namespace.
+       */
+      const queryWithVariables: Query<KubernetesResource> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          query as Record<string, unknown>,
+          props.variables,
+          props.attributeToColumn || {},
+        ) as Query<KubernetesResource>;
+
       const select: Select<KubernetesResource> = {
         ...BASE_SELECT,
         ...((props.extraSelect as Select<KubernetesResource>) || {}),
@@ -122,7 +144,7 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
       const listResult: ListResult<KubernetesResource> =
         await ModelAPI.getList<KubernetesResource>({
           modelType: KubernetesResource,
-          query: query,
+          query: queryWithVariables,
           limit: props.maxRows,
           skip: 0,
           select: select,
@@ -146,6 +168,8 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
     namespacesKey,
     extraQueryKey,
     extraSelectKey,
+    variablesKey,
+    attributeToColumnKey,
   ]);
 
   useEffect(() => {

@@ -24,6 +24,9 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostListComponent;
@@ -36,6 +39,11 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "CPU / Mem", widthPct: "15%" },
   { label: "Last Seen", widthPct: "15%" },
 ];
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "host.name": "name",
+  "host.id": "hostIdentifier",
+};
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) {
@@ -99,20 +107,25 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     try {
-      const query: Query<Host> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
-      } as Query<Host>;
+      };
 
       if (statusFilter === "connected") {
-        (query as Record<string, unknown>)["otelCollectorStatus"] = "connected";
+        baseQuery["otelCollectorStatus"] = "connected";
       } else if (statusFilter === "disconnected") {
-        (query as Record<string, unknown>)["otelCollectorStatus"] =
-          "disconnected";
+        baseQuery["otelCollectorStatus"] = "disconnected";
       }
 
       if (osTypeFilter && osTypeFilter.trim() !== "") {
-        (query as Record<string, unknown>)["osType"] = osTypeFilter;
+        baseQuery["osType"] = osTypeFilter;
       }
+
+      const query: Query<Host> = DashboardModelQueryInterpolation.applyToQuery(
+        baseQuery,
+        props.variables,
+        ATTRIBUTE_TO_COLUMN,
+      ) as Query<Host>;
 
       const listResult: ListResult<Host> = await ModelAPI.getList<Host>({
         modelType: Host,
@@ -142,7 +155,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, osTypeFilter]);
+  }, [maxRows, statusFilter, osTypeFilter, props.variables]);
 
   useEffect(() => {
     fetchHosts();
@@ -244,10 +257,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(DashboardHostListComponentElement, arePropsEqual);

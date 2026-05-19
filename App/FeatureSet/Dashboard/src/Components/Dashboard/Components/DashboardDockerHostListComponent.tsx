@@ -23,6 +23,9 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerHostListComponent;
@@ -34,6 +37,10 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "Containers", widthPct: "20%" },
   { label: "OS", widthPct: "20%" },
 ];
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "host.name": "name",
+};
 
 const DashboardDockerHostListComponentElement: FunctionComponent<
   ComponentProps
@@ -58,16 +65,22 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     }
 
     try {
-      const query: Query<DockerHost> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
-      } as Query<DockerHost>;
+      };
 
       if (statusFilter === "connected") {
-        (query as Record<string, unknown>)["otelCollectorStatus"] = "connected";
+        baseQuery["otelCollectorStatus"] = "connected";
       } else if (statusFilter === "disconnected") {
-        (query as Record<string, unknown>)["otelCollectorStatus"] =
-          "disconnected";
+        baseQuery["otelCollectorStatus"] = "disconnected";
       }
+
+      const query: Query<DockerHost> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          baseQuery,
+          props.variables,
+          ATTRIBUTE_TO_COLUMN,
+        ) as Query<DockerHost>;
 
       const listResult: ListResult<DockerHost> =
         await ModelAPI.getList<DockerHost>({
@@ -97,7 +110,7 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter]);
+  }, [maxRows, statusFilter, props.variables]);
 
   useEffect(() => {
     fetchHosts();
@@ -197,10 +210,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

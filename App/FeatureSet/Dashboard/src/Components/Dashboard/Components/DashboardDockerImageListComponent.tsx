@@ -20,6 +20,13 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "container.image.name": "name",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerImageListComponent;
@@ -59,20 +66,25 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
     }
 
     try {
-      const query: Query<DockerResource> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
         kind: "Image",
-      } as Query<DockerResource>;
+      };
 
       if (dockerHostIds && dockerHostIds.length > 0) {
-        (query as Record<string, unknown>)["dockerHostId"] = new Includes(
-          dockerHostIds,
-        );
+        baseQuery["dockerHostId"] = new Includes(dockerHostIds);
       }
 
       if (nameSearchKey) {
-        (query as Record<string, unknown>)["name"] = new Search(nameSearchKey);
+        baseQuery["name"] = new Search(nameSearchKey);
       }
+
+      const query: Query<DockerResource> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          baseQuery,
+          props.variables,
+          ATTRIBUTE_TO_COLUMN,
+        ) as Query<DockerResource>;
 
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
@@ -101,7 +113,7 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, nameSearchKey]);
+  }, [maxRows, dockerHostIdsKey, nameSearchKey, props.variables]);
 
   useEffect(() => {
     fetchImages();
@@ -158,10 +170,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

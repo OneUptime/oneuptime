@@ -26,6 +26,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostMetricChartComponent;
@@ -157,41 +158,58 @@ const DashboardHostMetricChartComponentElement: FunctionComponent<
   }, [props.dashboardStartAndEndDate]);
 
   const queryConfig: MetricQueryConfigData = useMemo(() => {
-    const attributes: Record<string, string> = {};
+    const baseAttributes: Record<string, unknown> = {};
     if (hostIdentifier) {
-      attributes[HOST_NAME_ATTRIBUTE] = hostIdentifier;
+      baseAttributes[HOST_NAME_ATTRIBUTE] = hostIdentifier;
     }
+
+    /*
+     * Layer dashboard variable selections on top so a host variable
+     * (e.g. `host.name = $host`) narrows the query to the selected
+     * host. A scalar selection produces a single series; an empty or
+     * multi-select selection keeps the per-host grouping below.
+     */
+    const attributes: Record<string, unknown> =
+      DashboardVariableInterpolation.applyToAttributes(
+        baseAttributes,
+        props.variables,
+      );
+
+    const hostFilter: unknown = attributes[HOST_NAME_ATTRIBUTE];
+    const isSingleHost: boolean =
+      typeof hostFilter === "string" && hostFilter.length > 0;
+    const singleHostLegend: string | undefined = isSingleHost
+      ? (hostFilter as string)
+      : undefined;
 
     return {
       metricAliasData: {
         metricVariable: "host_metric",
         title: args.title || spec.defaultTitle,
         description: args.description,
-        legend: hostIdentifier ? hostIdentifier : "Host",
+        legend: singleHostLegend || "Host",
         legendUnit: spec.legendUnit,
       },
       metricQueryData: {
         filterData: {
           metricName: spec.metricName,
-          attributes: attributes,
+          attributes: attributes as Record<string, string>,
           aggegationType: spec.aggregation,
           aggregateBy: {},
         },
-        groupBy: hostIdentifier
+        groupBy: isSingleHost
           ? undefined
           : {
               attributes: true,
             },
-        groupByAttributeKeys: hostIdentifier
-          ? undefined
-          : [HOST_NAME_ATTRIBUTE],
+        groupByAttributeKeys: isSingleHost ? undefined : [HOST_NAME_ATTRIBUTE],
       },
       chartType: MetricChartType.LINE,
       transformAsRate: spec.transformAsRate,
       yAxisValueFormatter: spec.yFormatter,
-      getSeries: hostIdentifier ? undefined : getHostSeries,
+      getSeries: isSingleHost ? undefined : getHostSeries,
     };
-  }, [args.title, args.description, spec, hostIdentifier]);
+  }, [args.title, args.description, spec, hostIdentifier, props.variables]);
 
   const metricViewData: MetricViewData = useMemo(() => {
     return {
@@ -333,10 +351,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

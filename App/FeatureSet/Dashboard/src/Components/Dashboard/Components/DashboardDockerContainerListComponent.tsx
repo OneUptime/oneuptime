@@ -25,6 +25,14 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import DashboardModelQueryInterpolation, {
+  AttributeToColumnMap,
+} from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "container.name": "name",
+  "container.image.name": "imageName",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerContainerListComponent;
@@ -80,22 +88,25 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     }
 
     try {
-      const query: Query<DockerResource> = {
+      const baseQuery: Record<string, unknown> = {
         projectId: projectId,
         kind: "Container",
-      } as Query<DockerResource>;
+      };
 
       if (dockerHostIds && dockerHostIds.length > 0) {
-        (query as Record<string, unknown>)["dockerHostId"] = new Includes(
-          dockerHostIds,
-        );
+        baseQuery["dockerHostId"] = new Includes(dockerHostIds);
       }
 
       if (imageNameKey) {
-        (query as Record<string, unknown>)["imageName"] = new Search(
-          imageNameKey,
-        );
+        baseQuery["imageName"] = new Search(imageNameKey);
       }
+
+      const query: Query<DockerResource> =
+        DashboardModelQueryInterpolation.applyToQuery(
+          baseQuery,
+          props.variables,
+          ATTRIBUTE_TO_COLUMN,
+        ) as Query<DockerResource>;
 
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
@@ -127,7 +138,7 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, imageNameKey]);
+  }, [maxRows, dockerHostIdsKey, imageNameKey, props.variables]);
 
   useEffect(() => {
     fetchContainers();
@@ -220,10 +231,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(

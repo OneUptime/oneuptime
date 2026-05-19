@@ -11,6 +11,11 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+
+const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "k8s.namespace.name": "name",
+};
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardKubernetesNamespaceListComponent;
@@ -73,6 +78,8 @@ const DashboardKubernetesNamespaceListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       kubernetesClusterIds={args.kubernetesClusterIds}
       refreshTick={props.refreshTick}
+      variables={props.variables}
+      attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderNamespaceRow}
     />
   );
@@ -90,10 +97,13 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(
