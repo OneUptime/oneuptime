@@ -27,21 +27,56 @@ export const OVERRIDE_META_KEY: string = "_override";
 
 export default class UserOverrideUtil {
   /**
-   * Returns true when this override should be applied on top of the schedule
-   * events. Global overrides always apply; policy-scoped overrides apply to
-   * any schedule, since a schedule's calendar shows coverage information for
-   * every user who could potentially be paged through it.
+   * Returns overrides that can apply in the supplied policy context.
+   * A missing policy context means the schedule is being rendered outside any
+   * policy, so only global overrides are valid.
    */
-  public static isOverrideApplicable(_override: UserOverrideRecord): boolean {
-    return true;
+  public static getOverridesForPolicy(data: {
+    overrides: Array<UserOverrideRecord>;
+    onCallDutyPolicyId?: string | null | undefined;
+  }): Array<UserOverrideRecord> {
+    const onCallDutyPolicyId: string | null = data.onCallDutyPolicyId || null;
+
+    return data.overrides
+      .filter((override: UserOverrideRecord) => {
+        const overridePolicyId: string | null =
+          override.onCallDutyPolicyId || null;
+
+        if (!onCallDutyPolicyId) {
+          return !overridePolicyId;
+        }
+
+        return !overridePolicyId || overridePolicyId === onCallDutyPolicyId;
+      })
+      .sort((a: UserOverrideRecord, b: UserOverrideRecord) => {
+        const specificityDiff: number =
+          UserOverrideUtil.getOverrideSpecificity(a) -
+          UserOverrideUtil.getOverrideSpecificity(b);
+
+        if (specificityDiff !== 0) {
+          return specificityDiff;
+        }
+
+        return a.startsAt.getTime() - b.startsAt.getTime();
+      });
   }
 
   public static applyOverridesToEvents(data: {
     events: Array<CalendarEvent>;
     overrides: Array<UserOverrideRecord>;
   }): Array<CalendarEvent> {
-    const applicable: Array<UserOverrideRecord> = data.overrides.filter(
-      UserOverrideUtil.isOverrideApplicable,
+    const applicable: Array<UserOverrideRecord> = [...data.overrides].sort(
+      (a: UserOverrideRecord, b: UserOverrideRecord) => {
+        const specificityDiff: number =
+          UserOverrideUtil.getOverrideSpecificity(a) -
+          UserOverrideUtil.getOverrideSpecificity(b);
+
+        if (specificityDiff !== 0) {
+          return specificityDiff;
+        }
+
+        return a.startsAt.getTime() - b.startsAt.getTime();
+      },
     );
 
     if (applicable.length === 0) {
@@ -65,7 +100,12 @@ export default class UserOverrideUtil {
     event: CalendarEvent,
     override: UserOverrideRecord,
   ): Array<CalendarEvent> {
-    if (event.title !== override.overrideUserId) {
+    const existingOverrideMeta: OverrideEventMeta | null =
+      UserOverrideUtil.getOverrideMeta(event);
+    const originalUserId: string =
+      existingOverrideMeta?.originalUserId || event.title;
+
+    if (originalUserId !== override.overrideUserId) {
       return [event];
     }
 
@@ -103,7 +143,7 @@ export default class UserOverrideUtil {
     // Override window — substitute user takes over.
     const meta: OverrideEventMeta = {
       isOverride: true,
-      originalUserId: override.overrideUserId,
+      originalUserId: originalUserId,
       overrideUserId: override.routeAlertsToUserId,
       overrideStartsAt: override.startsAt,
       overrideEndsAt: override.endsAt,
@@ -126,6 +166,10 @@ export default class UserOverrideUtil {
     }
 
     return segments;
+  }
+
+  private static getOverrideSpecificity(override: UserOverrideRecord): number {
+    return override.onCallDutyPolicyId ? 1 : 0;
   }
 
   private static reassignEventIds(

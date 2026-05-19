@@ -13,6 +13,7 @@ import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
+import ObjectID from "Common/Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Calendar from "Common/UI/Components/Calendar/Calendar";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -34,6 +35,7 @@ export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
   allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
   showFieldLabel?: boolean;
+  onCallDutyPolicyId?: ObjectID | undefined;
   id?: string | undefined;
 }
 
@@ -181,9 +183,38 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           return;
         }
 
+        const filteredOverrideRecords: Array<UserOverrideRecord> =
+          UserOverrideUtil.getOverridesForPolicy({
+            overrides: result.data.map(
+              (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
+                return {
+                  overrideUserId: o.overrideUserId?.toString() || "",
+                  routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
+                  startsAt: o.startsAt!,
+                  endsAt: o.endsAt!,
+                  onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
+                };
+              },
+            ),
+            onCallDutyPolicyId: props.onCallDutyPolicyId?.toString() || null,
+          }).filter((override: UserOverrideRecord) => {
+            return scheduleUserIds.has(override.overrideUserId);
+          });
+
         const filtered: Array<OnCallDutyPolicyUserOverride> =
           result.data.filter((o: OnCallDutyPolicyUserOverride) => {
-            return scheduleUserIds.has(o.overrideUserId?.toString() || "");
+            const overrideUserId: string = o.overrideUserId?.toString() || "";
+            const overridePolicyId: string | null =
+              o.onCallDutyPolicyId?.toString() || null;
+
+            return filteredOverrideRecords.some(
+              (override: UserOverrideRecord) => {
+                return (
+                  override.overrideUserId === overrideUserId &&
+                  override.onCallDutyPolicyId === overridePolicyId
+                );
+              },
+            );
           });
 
         const userMap: Dictionary<UserInfo> = {};
@@ -219,7 +250,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [startTime, endTime, scheduleUserIds]);
+  }, [startTime, endTime, scheduleUserIds, props.onCallDutyPolicyId]);
 
   const uniqueUsers: Array<UserColorAssignment> = useMemo(() => {
     const seen: Set<string> = new Set<string>();
@@ -286,17 +317,21 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     });
 
     if (overrides.length > 0) {
-      const overrideRecords: Array<UserOverrideRecord> = overrides.map(
-        (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
-          return {
-            overrideUserId: o.overrideUserId?.toString() || "",
-            routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
-            startsAt: o.startsAt!,
-            endsAt: o.endsAt!,
-            onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
-          };
-        },
-      );
+      const overrideRecords: Array<UserOverrideRecord> =
+        UserOverrideUtil.getOverridesForPolicy({
+          overrides: overrides.map(
+            (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
+              return {
+                overrideUserId: o.overrideUserId?.toString() || "",
+                routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
+                startsAt: o.startsAt!,
+                endsAt: o.endsAt!,
+                onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
+              };
+            },
+          ),
+          onCallDutyPolicyId: props.onCallDutyPolicyId?.toString() || null,
+        });
 
       events = UserOverrideUtil.applyOverridesToEvents({
         events,
@@ -340,6 +375,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     overrides,
     overrideUserInfo,
     scheduleUsersById,
+    props.onCallDutyPolicyId,
   ]);
 
   const hasActiveOverrides: boolean = overrides.length > 0;

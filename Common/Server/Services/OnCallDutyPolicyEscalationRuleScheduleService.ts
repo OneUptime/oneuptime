@@ -43,6 +43,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         projectId: true,
         onCallDutyPolicyScheduleId: true,
+        onCallDutyPolicyId: true,
         onCallDutyPolicySchedule: {
           name: true,
         },
@@ -77,6 +78,9 @@ export class Service extends DatabaseService<Model> {
     const userOnSchedule: ObjectID | null =
       await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
         createdModel.onCallDutyPolicyScheduleId,
+        {
+          onCallDutyPolicyId: createdModel.onCallDutyPolicyId,
+        },
       );
 
     if (!userOnSchedule) {
@@ -207,6 +211,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         projectId: true,
         onCallDutyPolicyScheduleId: true,
+        onCallDutyPolicyId: true,
         onCallDutyPolicySchedule: {
           name: true,
           _id: true,
@@ -277,6 +282,9 @@ export class Service extends DatabaseService<Model> {
       const userOnSchedule: ObjectID | null =
         await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
           deletedItem.onCallDutyPolicyScheduleId!,
+          {
+            onCallDutyPolicyId: deletedItem.onCallDutyPolicyId,
+          },
         );
 
       if (!userOnSchedule) {

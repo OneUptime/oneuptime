@@ -1052,6 +1052,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     scheduleUserIds: Array<ObjectID>;
     windowStart: Date;
     windowEnd: Date;
+    onCallDutyPolicyId?: ObjectID | undefined;
   }): Promise<Array<UserOverrideRecord>> {
     if (data.scheduleUserIds.length === 0) {
       return [];
@@ -1087,7 +1088,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       }),
     );
 
-    return overrides
+    const overrideRecords: Array<UserOverrideRecord> = overrides
       .filter((o: OnCallDutyPolicyUserOverride) => {
         const overrideUserId: string = o.overrideUserId?.toString() || "";
         return scheduleUserIdSet.has(overrideUserId);
@@ -1101,11 +1102,17 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
         };
       });
+
+    return UserOverrideUtil.getOverridesForPolicy({
+      overrides: overrideRecords,
+      onCallDutyPolicyId: data.onCallDutyPolicyId?.toString() || null,
+    });
   }
 
   public async getEventByIndexInSchedule(data: {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
+    onCallDutyPolicyId?: ObjectID | undefined;
   }): Promise<Array<CalendarEvent>> {
     logger.debug(
       "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
@@ -1169,6 +1176,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           scheduleUserIds,
           windowStart: currentStartTime,
           windowEnd: currentEndTime,
+          onCallDutyPolicyId: data.onCallDutyPolicyId,
         });
 
       if (overrides.length > 0) {
@@ -1189,6 +1197,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
+    options?: {
+      onCallDutyPolicyId?: ObjectID | undefined;
+    },
   ): Promise<ObjectID | null> {
     const { layerProps, projectId, scheduleUserIds } =
       await this.getScheduleLayerProps({
@@ -1223,6 +1234,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
           scheduleUserIds,
           windowStart: currentStartTime,
           windowEnd: currentEndTime,
+          onCallDutyPolicyId: options?.onCallDutyPolicyId,
         });
 
       if (overrides.length > 0) {
