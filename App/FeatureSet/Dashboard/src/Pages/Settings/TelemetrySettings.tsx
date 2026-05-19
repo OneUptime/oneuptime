@@ -4,6 +4,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -66,6 +67,7 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={true}
         editButtonText="Edit Overrides"
+        createEditModalWidth={ModalWidth.Large}
         formFields={[
           {
             field: { telemetryRetentionConfig: true },
