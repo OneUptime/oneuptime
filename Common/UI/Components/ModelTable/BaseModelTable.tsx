@@ -1923,11 +1923,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           > = [...(props.bulkActions?.buttons ?? [])];
 
           /*
-           * Auto-include the default Delete bulk action whenever the table is
-           * deleteable and the user has permission, so every table that exposes
-           * row selection also exposes a way to delete the selected rows. The
-           * confirmation modal is wired up via the schema's confirmMessage /
-           * confirmTitle below. Skip if the table author has already added it.
+           * Auto-include the default Delete bulk action whenever the user has
+           * model-level delete permission, so every table that exposes row
+           * selection also exposes a way to delete the selected rows. This is
+           * intentionally decoupled from `isDeleteable` — that flag governs the
+           * per-row Delete button in the Actions column, not bulk operations.
+           * The confirmation modal is wired up via the schema's confirmMessage
+           * / confirmTitle below. Skip if the table author already added it.
            */
           const alreadyHasDeleteAction: boolean = sourceButtons.some(
             (
@@ -1950,7 +1952,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               return false;
             },
           );
-          if (props.isDeleteable && userCanDelete && !alreadyHasDeleteAction) {
+          if (userCanDelete && !alreadyHasDeleteAction) {
             sourceButtons.push(ModalTableBulkDefaultActions.Delete);
           }
 
