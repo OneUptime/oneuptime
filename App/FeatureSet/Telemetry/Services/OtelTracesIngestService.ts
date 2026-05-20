@@ -242,17 +242,31 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          const kubernetesClusterId: ObjectID | null =
+            await this.autoDiscoverKubernetesCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const dockerHostId: ObjectID | null =
+            await this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
           /*
            * Generic Host auto-discovery from resource attributes.
            * Traces don't carry infra metrics; we gate on resource
-           * signals (host.id / host.arch / os.type / container.runtime /
-           * k8s.cluster.name) so app-only traces don't flood the Hosts
-           * list.
+           * signals (os.type / container.runtime) so app-only traces
+           * don't flood the Hosts list. K8s telemetry routes to the
+           * KubernetesCluster id instead.
            */
           const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
+            dockerHostId,
+            kubernetesClusterId,
           });
 
           const serviceMetadata: TelemetryServiceMetadata =
@@ -261,10 +275,22 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
               projectId,
               hostId,
+              dockerHostId,
+              kubernetesClusterId,
             });
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
@@ -273,6 +299,24 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",

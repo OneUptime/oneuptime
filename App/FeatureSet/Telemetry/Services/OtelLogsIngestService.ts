@@ -244,6 +244,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
           serviceDictionary[serviceName] = serviceMetadata;
 
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
+
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
@@ -251,6 +261,24 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",

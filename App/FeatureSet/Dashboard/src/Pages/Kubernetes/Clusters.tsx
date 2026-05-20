@@ -204,20 +204,6 @@ const KubernetesClusters: FunctionComponent<
           },
           {
             field: {
-              nodeCount: true,
-            },
-            title: "Nodes",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              podCount: true,
-            },
-            title: "Pods",
-            type: FieldType.Number,
-          },
-          {
-            field: {
               lastSeenAt: true,
             },
             title: "Last Seen",

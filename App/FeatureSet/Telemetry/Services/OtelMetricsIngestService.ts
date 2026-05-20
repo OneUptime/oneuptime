@@ -216,9 +216,31 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const rm: JSONObject = resourceMetric as JSONObject;
       const ras: JSONArray =
         ((rm["resource"] as JSONObject)?.["attributes"] as JSONArray) || [];
-      const hostName: string | null =
-        OtelIngestBaseService.getHostNameFromAttributes(ras);
+
+      /*
+       * Mirror the phantom-host gate from `autoDiscoverHost`: require
+       * explicit host.name and reject k8s telemetry. Application SDKs
+       * inside pods set host.name to the pod's container hostname (the
+       * pod name) and os.type=linux, which used to slip into the Host
+       * table from this batch-enrichment pass even after autoDiscoverHost
+       * rejected the same batch. k8s pods/nodes belong in
+       * KubernetesResource (kind=Pod / kind=Node), not Host.
+       */
+      const hostName: string | null = OtelIngestBaseService.getStringAttribute(
+        ras,
+        "host.name",
+      );
       if (!hostName) {
+        continue;
+      }
+
+      const k8sPodName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.pod.name");
+      const k8sNodeName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.node.name");
+      const k8sClusterName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.cluster.name");
+      if (k8sPodName || k8sNodeName || k8sClusterName) {
         continue;
       }
 
@@ -521,6 +543,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           serviceDictionary[serviceName] = serviceMetadata;
 
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
+
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
@@ -528,6 +560,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
