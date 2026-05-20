@@ -7,6 +7,9 @@ import {
 } from "../types";
 import FacetSection from "./FacetSection";
 import Service from "../../../../Models/DatabaseModels/Service";
+import Host from "../../../../Models/DatabaseModels/Host";
+import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import Dictionary from "../../../../Types/Dictionary";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import { getSeverityColor } from "./severityColors";
@@ -16,6 +19,9 @@ export interface LogsFacetSidebarProps {
   facetData: FacetData;
   isLoading: boolean;
   serviceMap: Dictionary<Service>;
+  hostMap?: Dictionary<Host>;
+  dockerHostMap?: Dictionary<DockerHost>;
+  kubernetesClusterMap?: Dictionary<KubernetesCluster>;
   onIncludeFilter: (facetKey: string, value: string) => void;
   onExcludeFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
@@ -72,10 +78,63 @@ function buildServiceColorMap(
   return map;
 }
 
+function buildHostDisplayMap(
+  hostMap: Dictionary<Host> | undefined,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!hostMap) {
+    return map;
+  }
+  for (const [id, host] of Object.entries(hostMap)) {
+    const label: string | undefined = host?.name || host?.hostIdentifier;
+    if (label) {
+      map[id] = label;
+    }
+  }
+  return map;
+}
+
+function buildDockerHostDisplayMap(
+  dockerHostMap: Dictionary<DockerHost> | undefined,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!dockerHostMap) {
+    return map;
+  }
+  for (const [id, dockerHost] of Object.entries(dockerHostMap)) {
+    const label: string | undefined =
+      dockerHost?.name || dockerHost?.hostIdentifier;
+    if (label) {
+      map[id] = label;
+    }
+  }
+  return map;
+}
+
+function buildClusterDisplayMap(
+  clusterMap: Dictionary<KubernetesCluster> | undefined,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!clusterMap) {
+    return map;
+  }
+  for (const [id, cluster] of Object.entries(clusterMap)) {
+    const label: string | undefined =
+      cluster?.name || cluster?.clusterIdentifier;
+    if (label) {
+      map[id] = label;
+    }
+  }
+  return map;
+}
+
 function getFacetTitle(key: string): string {
   const titleMap: Record<string, string> = {
     severityText: "Severity",
     serviceId: "Service",
+    hostId: "Host",
+    dockerHostId: "Docker Host",
+    kubernetesClusterId: "Kubernetes Cluster",
     traceId: "Trace ID",
     spanId: "Span ID",
   };
@@ -98,8 +157,26 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     return buildServiceColorMap(props.serviceMap);
   }, [props.serviceMap]);
 
+  const hostDisplayMap: Record<string, string> = useMemo(() => {
+    return buildHostDisplayMap(props.hostMap);
+  }, [props.hostMap]);
+
+  const dockerHostDisplayMap: Record<string, string> = useMemo(() => {
+    return buildDockerHostDisplayMap(props.dockerHostMap);
+  }, [props.dockerHostMap]);
+
+  const clusterDisplayMap: Record<string, string> = useMemo(() => {
+    return buildClusterDisplayMap(props.kubernetesClusterMap);
+  }, [props.kubernetesClusterMap]);
+
   const facetKeys: Array<string> = useMemo(() => {
-    const priorityKeys: Array<string> = ["severityText", "serviceId"];
+    const priorityKeys: Array<string> = [
+      "severityText",
+      "serviceId",
+      "hostId",
+      "dockerHostId",
+      "kubernetesClusterId",
+    ];
     const otherKeys: Array<string> = Object.keys(props.facetData).filter(
       (key: string) => {
         return !priorityKeys.includes(key);
@@ -191,6 +268,12 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
           if (key === "serviceId") {
             valueDisplayMap = serviceDisplayMap;
             valueColorMap = serviceColorMap;
+          } else if (key === "hostId") {
+            valueDisplayMap = hostDisplayMap;
+          } else if (key === "dockerHostId") {
+            valueDisplayMap = dockerHostDisplayMap;
+          } else if (key === "kubernetesClusterId") {
+            valueDisplayMap = clusterDisplayMap;
           } else if (key === "severityText") {
             valueColorMap = severityColorMap;
           }

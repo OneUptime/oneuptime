@@ -21,6 +21,9 @@ import { APP_API_URL } from "../../Config";
 import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Service from "../../../Models/DatabaseModels/Service";
+import Host from "../../../Models/DatabaseModels/Host";
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -210,6 +213,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [pageError, setPageError] = useState<string>("");
 
   const [serviceMap, setServiceMap] = useState<Dictionary<Service>>({});
+  const [hostMap, setHostMap] = useState<Dictionary<Host>>({});
+  const [dockerHostMap, setDockerHostMap] = useState<Dictionary<DockerHost>>(
+    {},
+  );
+  const [kubernetesClusterMap, setKubernetesClusterMap] = useState<
+    Dictionary<KubernetesCluster>
+  >({});
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
@@ -373,33 +383,110 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         setIsPageLoading(true);
         setPageError("");
 
-        const telemetryServices: ListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: {},
-          select: {
-            name: true,
-            serviceColor: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-        const services: Dictionary<Service> = {};
+        const [
+          telemetryServices,
+          hosts,
+          dockerHosts,
+          kubernetesClusters,
+        ]: [
+          ListResult<Service>,
+          ListResult<Host>,
+          ListResult<DockerHost>,
+          ListResult<KubernetesCluster>,
+        ] = await Promise.all([
+          ModelAPI.getList({
+            modelType: Service,
+            query: {},
+            select: {
+              name: true,
+              serviceColor: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: Host,
+            query: {},
+            select: {
+              name: true,
+              hostIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: DockerHost,
+            query: {},
+            select: {
+              name: true,
+              hostIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList({
+            modelType: KubernetesCluster,
+            query: {},
+            select: {
+              name: true,
+              clusterIdentifier: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          }),
+        ]);
 
+        const services: Dictionary<Service> = {};
         telemetryServices.data.forEach((service: Service) => {
           if (!service.id) {
             return;
           }
-
           services[service.id.toString()] = service;
         });
 
+        const hostsById: Dictionary<Host> = {};
+        hosts.data.forEach((host: Host) => {
+          if (!host.id) {
+            return;
+          }
+          hostsById[host.id.toString()] = host;
+        });
+
+        const dockerHostsById: Dictionary<DockerHost> = {};
+        dockerHosts.data.forEach((dockerHost: DockerHost) => {
+          if (!dockerHost.id) {
+            return;
+          }
+          dockerHostsById[dockerHost.id.toString()] = dockerHost;
+        });
+
+        const clustersById: Dictionary<KubernetesCluster> = {};
+        kubernetesClusters.data.forEach((cluster: KubernetesCluster) => {
+          if (!cluster.id) {
+            return;
+          }
+          clustersById[cluster.id.toString()] = cluster;
+        });
+
         setServiceMap(services);
+        setHostMap(hostsById);
+        setDockerHostMap(dockerHostsById);
+        setKubernetesClusterMap(clustersById);
       } catch (err) {
         setPageError(
-          `We couldn't load telemetry service metadata. ${API.getFriendlyErrorMessage(err as Error)}`,
+          `We couldn't load telemetry resource metadata. ${API.getFriendlyErrorMessage(err as Error)}`,
         );
       } finally {
         setIsPageLoading(false);
@@ -724,10 +811,49 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           displayValue: service?.name || filter.value,
         };
       }
+      if (filter.facetKey === "hostId" && hostMap[filter.value]) {
+        const host: Host | undefined = hostMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            host?.name || host?.hostIdentifier || filter.value,
+        };
+      }
+      if (filter.facetKey === "dockerHostId" && dockerHostMap[filter.value]) {
+        const dockerHost: DockerHost | undefined =
+          dockerHostMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            dockerHost?.name ||
+            dockerHost?.hostIdentifier ||
+            filter.value,
+        };
+      }
+      if (
+        filter.facetKey === "kubernetesClusterId" &&
+        kubernetesClusterMap[filter.value]
+      ) {
+        const cluster: KubernetesCluster | undefined =
+          kubernetesClusterMap[filter.value];
+        return {
+          ...filter,
+          displayValue:
+            cluster?.name ||
+            cluster?.clusterIdentifier ||
+            filter.value,
+        };
+      }
 
       return filter;
     });
-  }, [props.activeFilters, serviceMap]);
+  }, [
+    props.activeFilters,
+    serviceMap,
+    hostMap,
+    dockerHostMap,
+    kubernetesClusterMap,
+  ]);
 
   /*
    * Replace serviceId UUIDs with human-readable names in value suggestions,
@@ -939,6 +1065,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               facetData={props.facetData}
               isLoading={props.facetLoading || false}
               serviceMap={serviceMap}
+              hostMap={hostMap}
+              dockerHostMap={dockerHostMap}
+              kubernetesClusterMap={kubernetesClusterMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
               onExcludeFilter={props.onFacetExclude || (() => {})}
               activeFilters={props.activeFilters}
