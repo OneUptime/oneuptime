@@ -87,16 +87,20 @@ export default abstract class OtelIngestBaseService {
 
     /*
      * Host-level telemetry (OTel hostmetrics receiver, infrastructure
-     * agent over OTLP, k8s node, eBPF profiler) without an explicit
-     * service.name used to be folded into a synthetic `host/<name>`
-     * Service row, which duplicated the Host record we already create
-     * via `autoDiscoverHost`. Return null here so the caller routes
-     * the batch through the Host's own id with ServiceType.Host.
+     * agent over OTLP, eBPF profiler) without an explicit service.name
+     * used to be folded into a synthetic `host/<name>` Service row,
+     * which duplicated the Host record we already create via
+     * `autoDiscoverHost`. Return null here so the caller routes the
+     * batch through the resource's own id in `resolveTelemetryResource`
+     * — Host id when `autoDiscoverHost` accepted the batch, otherwise
+     * DockerHost / KubernetesCluster id.
      *
      * Phantom-host gating still lives in `autoDiscoverHost` — if the
      * batch only carries application-SDK-detected host.name (no
-     * os.type / container.runtime / k8s.cluster.name), no Host row
-     * is created and the caller falls back to "Unknown Service".
+     * os.type / container.runtime), no Host row is created. K8s
+     * batches (k8s.pod.name / k8s.node.name / k8s.cluster.name) are
+     * also rejected by `autoDiscoverHost` so they route via the
+     * KubernetesCluster id instead.
      */
     const hostName: string | null = this.getHostNameFromAttributes(attributes);
     if (hostName && this.hasHostResourceSignal(attributes)) {
@@ -684,13 +688,26 @@ export default abstract class OtelIngestBaseService {
    *
    * Phantom-host gate: only register a row when the batch carries a
    * strong signal that this is real host telemetry, not an application
-   * SDK auto-detecting hostname inside a pod. Any one of:
-   *   - os.type resource attribute (set by resourcedetection processor
-   *     with the system detector — needs native OS calls, app SDKs
-   *     typically don't include it)
-   *   - container.runtime resource attribute (Docker host)
-   *   - k8s.cluster.name resource attribute (k8s node — also a host)
-   *   - hasInfraSignal=true (caller saw system.* / process.* metrics)
+   * SDK auto-detecting hostname inside a pod and not a Kubernetes node
+   * or pod (those have their own KubernetesCluster home). Requires:
+   *
+   *   1. Explicit `host.name` resource attribute. The k8s.node.name
+   *      fallback used by `getHostNameFromAttributes` for service-name
+   *      synthesis is NOT accepted here — kubeletstats labels pod and
+   *      node metrics with k8s.node.name only, which would otherwise
+   *      flood the Hosts list with k8s node names.
+   *   2. No `k8s.pod.name` / `k8s.node.name` / `k8s.cluster.name`
+   *      resource attribute. If any of these is set the batch is
+   *      Kubernetes telemetry and belongs in the KubernetesCluster
+   *      record; routing happens in `resolveTelemetryResource` via the
+   *      kubernetesClusterId path.
+   *   3. One of:
+   *        - os.type resource attribute (set by the resourcedetection
+   *          system detector via native OS calls — app SDKs typically
+   *          don't include it)
+   *        - container.runtime resource attribute (Docker host)
+   *        - hasInfraSignal=true (caller saw system.* / process.*
+   *          metrics that only a host agent emits)
    *
    * Notably we DO NOT accept host.id or host.arch alone — both are
    * commonly auto-detected by application SDKs from inside a container,
@@ -710,11 +727,28 @@ export default abstract class OtelIngestBaseService {
     processCount?: number | undefined;
   }): Promise<ObjectID | null> {
     try {
-      const hostName: string | null = this.getHostNameFromAttributes(
+      const hostName: string | null = this.getStringAttribute(
         data.attributes,
+        "host.name",
       );
 
       if (!hostName) {
+        return null;
+      }
+
+      const k8sPodName: string | null = this.getStringAttribute(
+        data.attributes,
+        "k8s.pod.name",
+      );
+      const k8sNodeName: string | null = this.getStringAttribute(
+        data.attributes,
+        "k8s.node.name",
+      );
+      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      if (k8sPodName || k8sNodeName || k8sClusterName) {
         return null;
       }
 
@@ -747,13 +781,8 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "container.runtime",
       );
-      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
-        data.attributes,
-      );
 
-      const hasResourceSignal: boolean = Boolean(
-        osType || containerRuntime || k8sClusterName,
-      );
+      const hasResourceSignal: boolean = Boolean(osType || containerRuntime);
 
       if (!hasResourceSignal && !data.hasInfraSignal) {
         return null;
