@@ -17,6 +17,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -49,6 +50,39 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import ProjectUtil from "Common/UI/Utils/Project";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import {
+  XAxis as ChartXAxis,
+  XAxisAggregateType,
+} from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import YAxis, {
+  YAxisPrecision,
+} from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalInMs,
+  getAutoRefreshIntervalLabel,
+} from "Common/Types/Dashboard/DashboardViewConfig";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 
 interface ResourceLink {
   title: string;
@@ -59,6 +93,146 @@ interface ResourceLink {
   iconBgClass: string;
   iconTextClass: string;
 }
+
+interface GoldenStats {
+  cpuPercent: number | null;
+  memoryBytes: number | null;
+  filesystemPercent: number | null;
+  networkInBytesPerSec: number | null;
+  networkOutBytesPerSec: number | null;
+}
+
+const formatPercent: (value: number | null) => string = (
+  value: number | null,
+): string => {
+  if (value === null || !isFinite(value)) {
+    return "—";
+  }
+  return `${value.toFixed(1)}%`;
+};
+
+const formatMemoryBytes: (bytes: number | null | undefined) => string = (
+  bytes: number | null | undefined,
+): string => {
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
+    return "—";
+  }
+  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let v: number = bytes;
+  let i: number = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+};
+
+const formatBytesPerSec: (value: number | null) => string = (
+  value: number | null,
+): string => {
+  if (value === null || !isFinite(value)) {
+    return "—";
+  }
+  return ValueFormatter.formatValue(value, "By/s");
+};
+
+interface GoldenMetricTileProps {
+  title: string;
+  icon: IconProp;
+  iconColor: "blue" | "violet" | "amber" | "emerald" | "slate" | "sky";
+  value: string;
+  sublabel?: string | undefined;
+  percent?: number | null | undefined;
+  thresholds?: { warn: number; danger: number } | undefined;
+}
+
+const tileColorClasses: Record<
+  GoldenMetricTileProps["iconColor"],
+  { bg: string; ring: string; text: string }
+> = {
+  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
+  violet: {
+    bg: "bg-violet-50",
+    ring: "ring-violet-200",
+    text: "text-violet-600",
+  },
+  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
+  emerald: {
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
+    text: "text-emerald-600",
+  },
+  slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
+  sky: { bg: "bg-sky-50", ring: "ring-sky-200", text: "text-sky-600" },
+};
+
+const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
+  props: GoldenMetricTileProps,
+): ReactElement => {
+  const colors: { bg: string; ring: string; text: string } =
+    tileColorClasses[props.iconColor];
+
+  const barColor: string = (() => {
+    if (props.percent === null || props.percent === undefined) {
+      return "bg-gray-300";
+    }
+    const t: { warn: number; danger: number } = props.thresholds || {
+      warn: 70,
+      danger: 90,
+    };
+    if (props.percent >= t.danger) {
+      return "bg-red-500";
+    }
+    if (props.percent >= t.warn) {
+      return "bg-amber-500";
+    }
+    return "bg-emerald-500";
+  })();
+
+  const safePercent: number =
+    props.percent === null || props.percent === undefined
+      ? 0
+      : Math.min(100, Math.max(0, props.percent));
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {props.title}
+        </span>
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        >
+          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+        </div>
+      </div>
+      <div className="text-2xl font-semibold text-gray-900 leading-none">
+        {props.value}
+      </div>
+      {props.sublabel ? (
+        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
+      ) : (
+        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+      )}
+      {props.percent !== undefined && props.percent !== null && (
+        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+          <div
+            className={`${barColor} h-1.5 rounded-full transition-all`}
+            style={{ width: `${safePercent}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TILE_WINDOW_MINUTES: number = 5;
+
+const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.PAST_THIRTY_MINS,
+};
+
+const REFRESH_STORAGE_KEY: string = "kubernetes-overview-auto-refresh-interval";
 
 function formatRelativeTime(timestamp: string): string {
   try {
@@ -158,6 +332,44 @@ const KubernetesClusterOverview: FunctionComponent<
       message: string;
     }>
   >([]);
+
+  // Golden metrics state — independent of the inventory summary.
+  const [goldenStats, setGoldenStats] = useState<GoldenStats | null>(null);
+  const [isGoldenLoading, setIsGoldenLoading] = useState<boolean>(true);
+  const [goldenError, setGoldenError] = useState<string>("");
+  const [cpuSeries, setCpuSeries] = useState<Array<SeriesPoint>>([]);
+  const [memorySeries, setMemorySeries] = useState<Array<SeriesPoint>>([]);
+  const [filesystemSeries, setFilesystemSeries] = useState<Array<SeriesPoint>>(
+    [],
+  );
+  const [networkSeries, setNetworkSeries] = useState<Array<SeriesPoint>>([]);
+  const [availabilitySeries, setAvailabilitySeries] = useState<
+    Array<SeriesPoint>
+  >([]);
+  const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
+  const [chartWindow, setChartWindow] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
+  const [timeRange, setTimeRange] =
+    useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [autoRefreshInterval, setAutoRefreshInterval] =
+    useState<AutoRefreshInterval>(() => {
+      if (typeof window === "undefined") {
+        return AutoRefreshInterval.THIRTY_SECONDS;
+      }
+      const stored: string | null =
+        window.localStorage?.getItem(REFRESH_STORAGE_KEY) ?? null;
+      if (
+        stored &&
+        (Object.values(AutoRefreshInterval) as Array<string>).includes(stored)
+      ) {
+        return stored as AutoRefreshInterval;
+      }
+      return AutoRefreshInterval.THIRTY_SECONDS;
+    });
 
   const loadSummary: (clusterId: ObjectID) => Promise<void> = async (
     clusterId: ObjectID,
@@ -351,6 +563,560 @@ const KubernetesClusterOverview: FunctionComponent<
     }
   };
 
+  /*
+   * Golden cluster metrics — aggregate across all nodes for the
+   * selected time range. CPU is an OTel `.utilization` ratio so we
+   * multiply by 100. Memory and filesystem live in absolute bytes
+   * client-side. Filesystem turns into a percent because
+   * `k8s.node.filesystem.available` is also emitted, so
+   * usage / (usage + available) is a clean per-node fraction we can
+   * then average. Network counters are cumulative — we delta them
+   * client-side to get rates.
+   */
+  const loadGoldenMetrics: (
+    clusterIdentifier: string,
+  ) => Promise<void> = async (clusterIdentifier: string): Promise<void> => {
+    setIsRefreshing(true);
+    setGoldenError("");
+    try {
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const startDate: Date = dateRange.startValue;
+      const endDate: Date = dateRange.endValue;
+      const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -TILE_WINDOW_MINUTES,
+      );
+      const projectId: string = ProjectUtil.getCurrentProjectId()!.toString();
+
+      const baseAttributes: Record<string, string> = {
+        "resource.k8s.cluster.name": clusterIdentifier,
+      };
+
+      const buildAggregateBy: (
+        metricName: string,
+        aggType: AggregationType,
+      ) => AggregateBy<Metric> = (
+        metricName: string,
+        aggType: AggregationType,
+      ): AggregateBy<Metric> => {
+        return {
+          query: {
+            projectId: projectId,
+            time: new InBetween<Date>(startDate, endDate),
+            name: metricName,
+            attributes: { ...baseAttributes },
+          } as AggregateBy<Metric>["query"],
+          aggregationType: aggType,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            time: SortOrder.Descending,
+          },
+        };
+      };
+
+      const cpuAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.cpu.utilization",
+        AggregationType.Avg,
+      );
+      /*
+       * Grouping by attributes preserves the node dimension so we
+       * can average per-bucket across nodes client-side.
+       */
+      cpuAgg.groupBy = { attributes: true };
+
+      const memAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.memory.usage",
+        AggregationType.Avg,
+      );
+      memAgg.groupBy = { attributes: true };
+
+      const fsUsageAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.filesystem.usage",
+        AggregationType.Avg,
+      );
+      fsUsageAgg.groupBy = { attributes: true };
+
+      const fsAvailableAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.filesystem.available",
+        AggregationType.Avg,
+      );
+      fsAvailableAgg.groupBy = { attributes: true };
+
+      const netRxAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.network.io.receive",
+        AggregationType.Max,
+      );
+      netRxAgg.groupBy = { attributes: true };
+
+      const netTxAgg: AggregateBy<Metric> = buildAggregateBy(
+        "k8s.node.network.io.transmit",
+        AggregationType.Max,
+      );
+      netTxAgg.groupBy = { attributes: true };
+
+      const heartbeatAgg: AggregateBy<Metric> = buildAggregateBy(
+        "oneuptime.host.heartbeat",
+        AggregationType.Count,
+      );
+
+      const [
+        cpuResult,
+        memResult,
+        fsUsageResult,
+        fsAvailableResult,
+        netRxResult,
+        netTxResult,
+        heartbeatResult,
+      ]: [
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+        AggregatedResult,
+      ] = await Promise.all([
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: cpuAgg,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: memAgg,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: fsUsageAgg,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: fsAvailableAgg,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: netRxAgg,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: netTxAgg,
+        }),
+        AnalyticsModelAPI.aggregate<Metric>({
+          modelType: Metric,
+          aggregateBy: heartbeatAgg,
+        }),
+      ]);
+
+      const getBucketTimestamp: (p: AggregatedModel) => number = (
+        p: AggregatedModel,
+      ): number => {
+        const raw: unknown =
+          p["timestamp"] !== undefined ? p["timestamp"] : p["time"];
+        if (raw instanceof Date) {
+          return raw.getTime();
+        }
+        if (typeof raw === "string" || typeof raw === "number") {
+          return new Date(raw).getTime();
+        }
+        return NaN;
+      };
+
+      type TimeValuePoint = { x: Date; y: number };
+
+      /*
+       * Average per-bucket across nodes. A bucket's value is the
+       * mean of every (node, mount, device, ...) datapoint in it —
+       * for CPU and memory that collapses to "average node",
+       * which is the closest single number to "how busy is the
+       * cluster" without a true cluster-level metric.
+       */
+      const meanPerBucket: (
+        result: AggregatedResult,
+        scale: number,
+      ) => Array<TimeValuePoint> = (
+        result: AggregatedResult,
+        scale: number,
+      ): Array<TimeValuePoint> => {
+        const perBucket: Map<number, { sum: number; count: number }> =
+          new Map();
+        for (const p of (result.data || []) as Array<AggregatedModel>) {
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          let entry: { sum: number; count: number } | undefined =
+            perBucket.get(t);
+          if (!entry) {
+            entry = { sum: 0, count: 0 };
+            perBucket.set(t, entry);
+          }
+          entry.sum += v;
+          entry.count += 1;
+        }
+        const out: Array<TimeValuePoint> = [];
+        for (const [t, e] of perBucket.entries()) {
+          if (e.count === 0) {
+            continue;
+          }
+          out.push({ x: new Date(t), y: (e.sum / e.count) * scale });
+        }
+        out.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
+        return out;
+      };
+
+      /*
+       * Total per-bucket across nodes — sum of nodal values per
+       * bucket. Used by the memory series so the chart reflects
+       * total cluster memory consumption, not just per-node mean.
+       */
+      const sumPerBucket: (
+        result: AggregatedResult,
+      ) => Array<TimeValuePoint> = (
+        result: AggregatedResult,
+      ): Array<TimeValuePoint> => {
+        const perBucket: Map<number, number> = new Map();
+        for (const p of (result.data || []) as Array<AggregatedModel>) {
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          perBucket.set(t, (perBucket.get(t) || 0) + v);
+        }
+        return Array.from(perBucket.entries())
+          .map(([t, y]: [number, number]): TimeValuePoint => {
+            return { x: new Date(t), y: y };
+          })
+          .sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+            return a.x.getTime() - b.x.getTime();
+          });
+      };
+
+      const meanInRecentWindow: (
+        series: Array<TimeValuePoint>,
+      ) => number | null = (series: Array<TimeValuePoint>): number | null => {
+        if (series.length === 0) {
+          return null;
+        }
+        const tileWindowStartMs: number = tileWindowStart.getTime();
+        let sum: number = 0;
+        let count: number = 0;
+        for (const p of series) {
+          if (p.x.getTime() < tileWindowStartMs) {
+            continue;
+          }
+          sum += p.y;
+          count++;
+        }
+        if (count === 0) {
+          for (const p of series) {
+            sum += p.y;
+            count++;
+          }
+        }
+        return count > 0 ? sum / count : null;
+      };
+
+      const cpuPoints: Array<TimeValuePoint> = meanPerBucket(cpuResult, 100);
+      const memoryPoints: Array<TimeValuePoint> = sumPerBucket(memResult);
+
+      /*
+       * Filesystem utilization = used / (used + available) per
+       * (node, mount). We need the two metrics joined by their
+       * shared attributes before averaging across nodes — otherwise
+       * a node with two mounts double-counts. Join in a Map keyed
+       * by (timestamp, node, mount, device) and average per-bucket
+       * across the per-mount fractions.
+       */
+      const fsPoints: Array<TimeValuePoint> = (() => {
+        type FsKey = string;
+        const usageMap: Map<FsKey, number> = new Map();
+        const availableMap: Map<FsKey, number> = new Map();
+        const makeKey: (t: number, attrs: Record<string, unknown>) => FsKey = (
+          t: number,
+          attrs: Record<string, unknown>,
+        ): FsKey => {
+          const node: string =
+            (attrs["resource.k8s.node.name"] as string) || "";
+          const mount: string =
+            (attrs["mountpoint"] as string) ||
+            (attrs["resource.k8s.volume.name"] as string) ||
+            "";
+          const device: string = (attrs["device"] as string) || "";
+          return `${t}|${node}|${mount}|${device}`;
+        };
+        for (const p of (fsUsageResult.data || []) as Array<AggregatedModel>) {
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          const attrs: Record<string, unknown> =
+            (p["attributes"] as Record<string, unknown>) || {};
+          usageMap.set(makeKey(t, attrs), v);
+        }
+        for (const p of (fsAvailableResult.data ||
+          []) as Array<AggregatedModel>) {
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          const attrs: Record<string, unknown> =
+            (p["attributes"] as Record<string, unknown>) || {};
+          availableMap.set(makeKey(t, attrs), v);
+        }
+        // Group by bucket, average the per-mount fractions.
+        const perBucket: Map<number, { sum: number; count: number }> =
+          new Map();
+        for (const [key, used] of usageMap.entries()) {
+          const available: number | undefined = availableMap.get(key);
+          if (available === undefined) {
+            continue;
+          }
+          const total: number = used + available;
+          if (total <= 0) {
+            continue;
+          }
+          const t: number = Number(key.split("|")[0]);
+          const frac: number = (used / total) * 100;
+          let entry: { sum: number; count: number } | undefined =
+            perBucket.get(t);
+          if (!entry) {
+            entry = { sum: 0, count: 0 };
+            perBucket.set(t, entry);
+          }
+          entry.sum += frac;
+          entry.count += 1;
+        }
+        const out: Array<TimeValuePoint> = [];
+        for (const [t, e] of perBucket.entries()) {
+          if (e.count === 0) {
+            continue;
+          }
+          out.push({ x: new Date(t), y: e.sum / e.count });
+        }
+        out.sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+          return a.x.getTime() - b.x.getTime();
+        });
+        return out;
+      })();
+
+      /*
+       * Network — cumulative byte counters per (node, interface,
+       * direction). Convert to per-bucket rate by taking deltas
+       * between consecutive buckets per series, clamping negatives
+       * to 0, and summing rates across (node, interface) per
+       * bucket per direction.
+       */
+      const computeNetRate: (
+        result: AggregatedResult,
+      ) => Array<TimeValuePoint> = (
+        result: AggregatedResult,
+      ): Array<TimeValuePoint> => {
+        const perKey: Map<string, Array<{ t: number; v: number }>> = new Map();
+        for (const p of (result.data || []) as Array<AggregatedModel>) {
+          const attrs: Record<string, unknown> =
+            (p["attributes"] as Record<string, unknown>) || {};
+          const node: string =
+            (attrs["resource.k8s.node.name"] as string) || "";
+          const interfaceName: string =
+            (attrs["interface"] as string) ||
+            (attrs["network.interface"] as string) ||
+            "";
+          if (!node) {
+            continue;
+          }
+          const key: string = `${node}|${interfaceName}`;
+          const t: number = getBucketTimestamp(p);
+          const v: number = Number(p["value"]);
+          if (!Number.isFinite(t) || !Number.isFinite(v)) {
+            continue;
+          }
+          let arr: Array<{ t: number; v: number }> | undefined =
+            perKey.get(key);
+          if (!arr) {
+            arr = [];
+            perKey.set(key, arr);
+          }
+          arr.push({ t, v });
+        }
+        const perBucket: Map<number, number> = new Map();
+        for (const arr of perKey.values()) {
+          arr.sort(
+            (
+              a: { t: number; v: number },
+              b: { t: number; v: number },
+            ): number => {
+              return a.t - b.t;
+            },
+          );
+          for (let i: number = 1; i < arr.length; i++) {
+            const prev: { t: number; v: number } = arr[i - 1]!;
+            const cur: { t: number; v: number } = arr[i]!;
+            const dtSec: number = (cur.t - prev.t) / 1000;
+            if (dtSec <= 0) {
+              continue;
+            }
+            const dv: number = cur.v - prev.v;
+            if (!Number.isFinite(dv)) {
+              continue;
+            }
+            const rate: number = Math.max(0, dv) / dtSec;
+            perBucket.set(cur.t, (perBucket.get(cur.t) || 0) + rate);
+          }
+        }
+        return Array.from(perBucket.entries())
+          .map(([t, y]: [number, number]): TimeValuePoint => {
+            return { x: new Date(t), y: y };
+          })
+          .sort((a: TimeValuePoint, b: TimeValuePoint): number => {
+            return a.x.getTime() - b.x.getTime();
+          });
+      };
+
+      const networkInPoints: Array<TimeValuePoint> =
+        computeNetRate(netRxResult);
+      const networkOutPoints: Array<TimeValuePoint> =
+        computeNetRate(netTxResult);
+
+      setCpuSeries(
+        cpuPoints.length > 0 ? [{ seriesName: "CPU %", data: cpuPoints }] : [],
+      );
+      setMemorySeries(
+        memoryPoints.length > 0
+          ? [{ seriesName: "Memory", data: memoryPoints }]
+          : [],
+      );
+      setFilesystemSeries(
+        fsPoints.length > 0
+          ? [{ seriesName: "Filesystem %", data: fsPoints }]
+          : [],
+      );
+      setNetworkSeries(
+        [
+          networkInPoints.length > 0
+            ? { seriesName: "In", data: networkInPoints }
+            : null,
+          networkOutPoints.length > 0
+            ? { seriesName: "Out", data: networkOutPoints }
+            : null,
+        ].filter((s: SeriesPoint | null): s is SeriesPoint => {
+          return s !== null;
+        }),
+      );
+
+      /*
+       * Availability — synthesize zero buckets across the grid so
+       * silent periods explicitly render as Down.
+       */
+      const heartbeatRows: Array<{ t: number; count: number }> = [];
+      for (const p of heartbeatResult.data || []) {
+        const t: number = getBucketTimestamp(p);
+        const c: number = Number(p["value"]);
+        if (Number.isFinite(t) && Number.isFinite(c) && c > 0) {
+          heartbeatRows.push({ t, count: c });
+        }
+      }
+      heartbeatRows.sort(
+        (
+          a: { t: number; count: number },
+          b: { t: number; count: number },
+        ): number => {
+          return a.t - b.t;
+        },
+      );
+      let bucketMs: number = 60_000;
+      if (heartbeatRows.length >= 2) {
+        let smallest: number = Number.POSITIVE_INFINITY;
+        for (let i: number = 1; i < heartbeatRows.length; i++) {
+          const d: number = heartbeatRows[i]!.t - heartbeatRows[i - 1]!.t;
+          if (d > 0 && d < smallest) {
+            smallest = d;
+          }
+        }
+        if (Number.isFinite(smallest)) {
+          bucketMs = smallest;
+        }
+      }
+      const presentBuckets: Set<number> = new Set<number>(
+        heartbeatRows.map((r: { t: number; count: number }): number => {
+          return r.t;
+        }),
+      );
+      const windowStartMs: number = startDate.getTime();
+      const windowEndMs: number = endDate.getTime();
+      const anchorMs: number =
+        heartbeatRows.length > 0 ? heartbeatRows[0]!.t : windowStartMs;
+      const stepsBack: number = Math.ceil(
+        (anchorMs - windowStartMs) / bucketMs,
+      );
+      const gridStartMs: number = anchorMs - stepsBack * bucketMs;
+      const availabilityPoints: Array<TimeValuePoint> = [];
+      let presentCount: number = 0;
+      let totalCount: number = 0;
+      for (let t: number = gridStartMs; t <= windowEndMs; t += bucketMs) {
+        if (t < windowStartMs) {
+          continue;
+        }
+        const up: boolean = presentBuckets.has(t);
+        availabilityPoints.push({ x: new Date(t), y: up ? 100 : 0 });
+        if (up) {
+          presentCount++;
+        }
+        totalCount++;
+      }
+      setAvailabilitySeries(
+        availabilityPoints.length > 0
+          ? [{ seriesName: "Up", data: availabilityPoints }]
+          : [],
+      );
+      setAvailabilityPct(
+        totalCount > 0 ? (presentCount / totalCount) * 100 : null,
+      );
+
+      const cpuTile: number | null = meanInRecentWindow(cpuPoints);
+      const memTile: number | null = meanInRecentWindow(memoryPoints);
+      const fsTile: number | null = meanInRecentWindow(fsPoints);
+      const netInTile: number | null = meanInRecentWindow(networkInPoints);
+      const netOutTile: number | null = meanInRecentWindow(networkOutPoints);
+
+      setGoldenStats({
+        cpuPercent: cpuTile,
+        memoryBytes: memTile,
+        filesystemPercent: fsTile,
+        networkInBytesPerSec: netInTile,
+        networkOutBytesPerSec: netOutTile,
+      });
+
+      setChartWindow({ start: startDate, end: endDate });
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
+    } catch (err) {
+      setGoldenError(API.getFriendlyMessage(err));
+    } finally {
+      setIsRefreshing(false);
+      setIsGoldenLoading(false);
+    }
+  };
+
+  /*
+   * Ref pattern so the refresh interval picks up the latest
+   * closure (timeRange / cluster identifier) without tearing the
+   * timer down on every render.
+   */
+  const loadGoldenMetricsRef: React.MutableRefObject<
+    (clusterIdentifier: string) => Promise<void>
+  > = useRef<(clusterIdentifier: string) => Promise<void>>(loadGoldenMetrics);
+  loadGoldenMetricsRef.current = loadGoldenMetrics;
+
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -369,19 +1135,21 @@ const KubernetesClusterOverview: FunctionComponent<
 
       if (item?.clusterIdentifier) {
         /*
-         * Fire all three section fetches independently so each section
+         * Fire all four section fetches independently so each section
          * paints its data as soon as its own request resolves. No
          * Promise.all — we don't want the slowest request to hold back
-         * the other two sections.
+         * the other sections.
          */
         void loadSummary(modelId);
         void loadTopPods(item.clusterIdentifier);
         void loadWarnings(item.clusterIdentifier);
+        void loadGoldenMetricsRef.current(item.clusterIdentifier);
       } else {
         // No cluster identifier means nothing to load from downstream stores.
         setIsSummaryLoading(false);
         setIsTopPodsLoading(false);
         setIsWarningsLoading(false);
+        setIsGoldenLoading(false);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -389,6 +1157,7 @@ const KubernetesClusterOverview: FunctionComponent<
       setIsSummaryLoading(false);
       setIsTopPodsLoading(false);
       setIsWarningsLoading(false);
+      setIsGoldenLoading(false);
     }
   };
 
@@ -397,6 +1166,50 @@ const KubernetesClusterOverview: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  /*
+   * Re-fetch golden metrics whenever the user picks a different
+   * time range. Cluster metadata stays cached.
+   */
+  useEffect(() => {
+    if (cluster?.clusterIdentifier) {
+      void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
+    }
+    /*
+     * We deliberately do not depend on cluster — fetchCluster does
+     * the initial run; this effect handles user time-range changes.
+     */
+  }, [timeRange]);
+
+  useEffect(() => {
+    const ms: number | null = getAutoRefreshIntervalInMs(autoRefreshInterval);
+    if (ms === null) {
+      return undefined;
+    }
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      if (cluster?.clusterIdentifier) {
+        void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
+      }
+    }, ms);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [autoRefreshInterval, cluster?.clusterIdentifier]);
+
+  const onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void = (
+    interval: AutoRefreshInterval,
+  ): void => {
+    setAutoRefreshInterval(interval);
+    if (typeof window !== "undefined") {
+      window.localStorage?.setItem(REFRESH_STORAGE_KEY, interval);
+    }
+  };
+
+  const onManualRefresh: () => void = (): void => {
+    if (cluster?.clusterIdentifier) {
+      void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
+    }
+  };
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -559,6 +1372,420 @@ const KubernetesClusterOverview: FunctionComponent<
       label: "PID Pressure",
     });
   }
+
+  const renderRefreshControl: () => ReactElement = (): ReactElement => {
+    const intervals: Array<AutoRefreshInterval> = [
+      AutoRefreshInterval.OFF,
+      AutoRefreshInterval.THIRTY_SECONDS,
+      AutoRefreshInterval.ONE_MINUTE,
+      AutoRefreshInterval.FIVE_MINUTES,
+      AutoRefreshInterval.FIFTEEN_MINUTES,
+    ];
+
+    const lastRefreshedLabel: string = lastRefreshedAt
+      ? `Updated ${OneUptimeDate.fromNow(lastRefreshedAt)}`
+      : "Not refreshed yet";
+
+    const isOff: boolean = autoRefreshInterval === AutoRefreshInterval.OFF;
+
+    return (
+      <div className="flex flex-col items-end gap-1.5">
+        <div className="flex items-center gap-2">
+          <TelemetryTimeRangePicker
+            value={timeRange}
+            onChange={(value: RangeStartAndEndDateTime): void => {
+              setTimeRange(value);
+            }}
+          />
+          <button
+            type="button"
+            onClick={onManualRefresh}
+            disabled={isRefreshing}
+            title="Refresh now"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon
+              icon={IconProp.Refresh}
+              className={`h-3.5 w-3.5 ${
+                isRefreshing ? "animate-spin text-gray-400" : "text-gray-500"
+              }`}
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="hidden sm:inline">Auto-refresh</span>
+            <select
+              value={autoRefreshInterval}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
+                onAutoRefreshIntervalChange(
+                  e.target.value as AutoRefreshInterval,
+                );
+              }}
+              className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            >
+              {intervals.map((interval: AutoRefreshInterval): ReactElement => {
+                return (
+                  <option key={interval} value={interval}>
+                    {interval === AutoRefreshInterval.OFF
+                      ? "Off"
+                      : `Every ${getAutoRefreshIntervalLabel(interval)}`}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              isRefreshing
+                ? "bg-amber-500 animate-pulse"
+                : isOff
+                  ? "bg-gray-300"
+                  : "bg-emerald-500"
+            }`}
+          />
+          <span>{lastRefreshedLabel}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGoldenMetrics: () => ReactElement = (): ReactElement => {
+    if (isGoldenLoading && !goldenStats) {
+      return (
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }, (_: unknown, idx: number) => {
+            return (
+              <div
+                key={`golden-skeleton-${idx}`}
+                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
+                <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
+                <div className="mt-3 h-8 w-24 rounded bg-gray-100 animate-pulse" />
+                <div className="mt-2 h-3 w-20 rounded bg-gray-100 animate-pulse" />
+                <div className="mt-3 h-1.5 w-full rounded bg-gray-100 animate-pulse" />
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (goldenError) {
+      return (
+        <div className="mb-6">
+          <ErrorMessage message={goldenError} />
+        </div>
+      );
+    }
+
+    const s: GoldenStats | null = goldenStats;
+    if (!s) {
+      return <Fragment />;
+    }
+
+    const netTotal: number | null =
+      s.networkInBytesPerSec === null && s.networkOutBytesPerSec === null
+        ? null
+        : (s.networkInBytesPerSec ?? 0) + (s.networkOutBytesPerSec ?? 0);
+
+    const netSublabel: string | undefined = (() => {
+      if (s.networkInBytesPerSec === null && s.networkOutBytesPerSec === null) {
+        return undefined;
+      }
+      return `${formatBytesPerSec(s.networkInBytesPerSec)} in · ${formatBytesPerSec(
+        s.networkOutBytesPerSec,
+      )} out`;
+    })();
+
+    return (
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <GoldenMetricTile
+          title="CPU"
+          icon={IconProp.ChartBar}
+          iconColor="blue"
+          value={formatPercent(s.cpuPercent)}
+          sublabel={
+            nodeCount > 0
+              ? `across ${nodeCount} node${nodeCount === 1 ? "" : "s"}`
+              : "across nodes"
+          }
+          percent={s.cpuPercent}
+        />
+        <GoldenMetricTile
+          title="Memory"
+          icon={IconProp.SquareStack}
+          iconColor="violet"
+          value={formatMemoryBytes(s.memoryBytes)}
+          sublabel="total across nodes"
+        />
+        <GoldenMetricTile
+          title="Filesystem"
+          icon={IconProp.Cube}
+          iconColor="amber"
+          value={formatPercent(s.filesystemPercent)}
+          sublabel="avg across mounts"
+          percent={s.filesystemPercent}
+          thresholds={{ warn: 75, danger: 90 }}
+        />
+        <GoldenMetricTile
+          title="Network"
+          icon={IconProp.Wifi}
+          iconColor="sky"
+          value={
+            netTotal === null
+              ? "—"
+              : ValueFormatter.formatValue(netTotal, "By/s")
+          }
+          sublabel={netSublabel}
+        />
+        <GoldenMetricTile
+          title="Availability"
+          icon={IconProp.Heartbeat}
+          iconColor="emerald"
+          value={
+            availabilityPct === null
+              ? "—"
+              : `${availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}%`
+          }
+          sublabel="heartbeat presence"
+          percent={availabilityPct}
+          thresholds={{ warn: 99, danger: 95 }}
+        />
+      </div>
+    );
+  };
+
+  const renderChartCard: (params: {
+    title: string;
+    icon: IconProp;
+    iconColor: "blue" | "violet" | "amber" | "emerald" | "sky";
+    data: Array<SeriesPoint>;
+    yAxis?: YAxis;
+    showLegend?: boolean;
+    curve?: ChartCurve;
+    headerExtra?: ReactElement;
+  }) => ReactElement = (params: {
+    title: string;
+    icon: IconProp;
+    iconColor: "blue" | "violet" | "amber" | "emerald" | "sky";
+    data: Array<SeriesPoint>;
+    yAxis?: YAxis;
+    showLegend?: boolean;
+    curve?: ChartCurve;
+    headerExtra?: ReactElement;
+  }): ReactElement => {
+    const colors: { bg: string; ring: string; text: string } =
+      tileColorClasses[params.iconColor];
+
+    if (!chartWindow) {
+      return (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {params.title}
+            </span>
+            <div
+              className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+            >
+              <Icon
+                icon={params.icon}
+                className={`h-3.5 w-3.5 ${colors.text}`}
+              />
+            </div>
+          </div>
+          <div className="h-48 animate-pulse rounded-md bg-gray-50" />
+        </div>
+      );
+    }
+
+    const xAxis: ChartXAxis = {
+      legend: "Time",
+      options: {
+        type: XAxisType.Time,
+        min: chartWindow.start,
+        max: chartWindow.end,
+        aggregateType: XAxisAggregateType.Average,
+      },
+    };
+    const yAxis: YAxis = params.yAxis ?? {
+      legend: "%",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: 100,
+        formatter: (value: number): string => {
+          return `${Math.round(value)}%`;
+        },
+        precision: YAxisPrecision.NoDecimals,
+      },
+    };
+
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {params.title}
+            </span>
+            {params.headerExtra ?? null}
+          </div>
+          <div
+            className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+          >
+            <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+          </div>
+        </div>
+        <LineChartElement
+          data={params.data}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          curve={params.curve ?? ChartCurve.MONOTONE}
+          sync={true}
+          syncid={`kubernetes-overview-${modelId.toString()}`}
+          heightInPx={180}
+          showLegend={params.showLegend ?? false}
+        />
+      </div>
+    );
+  };
+
+  const renderGoldenCharts: () => ReactElement = (): ReactElement => {
+    if (goldenError) {
+      return <Fragment />;
+    }
+
+    const memoryYAxis: YAxis = {
+      legend: "Bytes",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: "auto",
+        precision: YAxisPrecision.NoDecimals,
+        formatter: (value: number): string => {
+          return ValueFormatter.formatValue(value, "By");
+        },
+      },
+    };
+
+    const networkYAxis: YAxis = {
+      legend: "B/s",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: "auto",
+        precision: YAxisPrecision.NoDecimals,
+        formatter: (value: number): string => {
+          return ValueFormatter.formatValue(value, "By/s");
+        },
+      },
+    };
+
+    const availabilityYAxis: YAxis = {
+      legend: "",
+      options: {
+        type: YAxisType.Number,
+        min: 0,
+        max: 100,
+        precision: YAxisPrecision.NoDecimals,
+        formatter: (value: number): string => {
+          if (value >= 100) {
+            return "Up";
+          }
+          if (value <= 0) {
+            return "Down";
+          }
+          return `${Math.round(value)}%`;
+        },
+      },
+    };
+
+    const availabilityBadge: ReactElement =
+      availabilityPct === null ? (
+        <Fragment />
+      ) : (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+            availabilityPct >= 99
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+              : availabilityPct >= 90
+                ? "bg-amber-50 text-amber-700 ring-amber-200"
+                : "bg-red-50 text-red-700 ring-red-200"
+          }`}
+        >
+          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+        </span>
+      );
+
+    return (
+      <Fragment>
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                Availability
+              </h2>
+              <p className="text-xs text-gray-500">
+                Per-bucket presence of cluster heartbeats over the selected time
+                range
+              </p>
+            </div>
+          </div>
+          {renderChartCard({
+            title: "Availability",
+            icon: IconProp.Heartbeat,
+            iconColor: "emerald",
+            data: availabilitySeries,
+            yAxis: availabilityYAxis,
+            curve: ChartCurve.STEP,
+            headerExtra: availabilityBadge,
+          })}
+        </div>
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                Cluster resource usage
+              </h2>
+              <p className="text-xs text-gray-500">
+                Aggregated across nodes over the selected time range
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {renderChartCard({
+              title: "CPU",
+              icon: IconProp.ChartBar,
+              iconColor: "blue",
+              data: cpuSeries,
+            })}
+            {renderChartCard({
+              title: "Memory",
+              icon: IconProp.SquareStack,
+              iconColor: "violet",
+              data: memorySeries,
+              yAxis: memoryYAxis,
+            })}
+            {renderChartCard({
+              title: "Filesystem",
+              icon: IconProp.Cube,
+              iconColor: "amber",
+              data: filesystemSeries,
+            })}
+            {renderChartCard({
+              title: "Network",
+              icon: IconProp.Wifi,
+              iconColor: "sky",
+              data: networkSeries,
+              yAxis: networkYAxis,
+              showLegend: networkSeries.length > 1,
+            })}
+          </div>
+        </div>
+      </Fragment>
+    );
+  };
 
   const renderResourceLinks: (links: Array<ResourceLink>) => ReactElement = (
     links: Array<ResourceLink>,
@@ -724,12 +1951,20 @@ const KubernetesClusterOverview: FunctionComponent<
     }
 
     return (
-      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="relative">
+      <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/*
+         * `overflow-hidden` belongs on the gradient layer, not the
+         * card itself — the time-range picker dropdown renders out
+         * of the hero and would otherwise get clipped by the card's
+         * rounded bounds.
+         */}
+        <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
           <div
             className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-violet-50 via-white to-white"
             aria-hidden="true"
           />
+        </div>
+        <div className="relative">
           <div className="relative px-6 py-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-4 min-w-0">
@@ -772,6 +2007,9 @@ const KubernetesClusterOverview: FunctionComponent<
                     Last seen {lastSeenText}
                   </div>
                 </div>
+              </div>
+              <div className="flex-shrink-0 md:self-start">
+                {renderRefreshControl()}
               </div>
             </div>
 
@@ -832,6 +2070,12 @@ const KubernetesClusterOverview: FunctionComponent<
   return (
     <Fragment>
       {renderHero()}
+
+      {/* Golden metrics — at-a-glance cluster health */}
+      {renderGoldenMetrics()}
+
+      {/* Golden charts — availability + cluster resource usage */}
+      {renderGoldenCharts()}
 
       {/* Why is this cluster degraded? */}
       {clusterHealth !== "Healthy" &&

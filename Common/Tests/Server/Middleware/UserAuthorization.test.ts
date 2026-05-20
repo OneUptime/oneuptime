@@ -423,7 +423,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         },
       );
       expect(next).not.toBeCalled();
@@ -454,7 +453,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         },
       );
     });
@@ -579,7 +577,6 @@ describe("UserMiddleware", () => {
           req: mockedRequest,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         },
       );
     });
@@ -609,7 +606,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         }),
       ).rejects.toThrowError(new BadDataException("Invalid tenantId"));
       expect(spyFindOneById).toHaveBeenCalledWith({
@@ -636,7 +632,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         }),
       ).rejects.toThrowError(new SsoAuthorizationException());
       expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
@@ -659,7 +654,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         });
 
       expect(result).toBeNull();
@@ -686,7 +680,6 @@ describe("UserMiddleware", () => {
           req,
           tenantId: projectId,
           userId,
-          isGlobalLogin: true,
         });
 
       expect(result).toEqual(mockedUserTenantAccessPermission);

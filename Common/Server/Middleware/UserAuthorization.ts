@@ -277,7 +277,6 @@ export default class UserMiddleware {
             req,
             tenantId,
             userId: new ObjectID(userId),
-            isGlobalLogin: oneuptimeRequest.userAuthorization.isGlobalLogin,
           });
 
         if (userTenantAccessPermission) {
@@ -466,9 +465,8 @@ export default class UserMiddleware {
     req: ExpressRequest;
     tenantId: ObjectID;
     userId: ObjectID;
-    isGlobalLogin: boolean;
   }): Promise<UserTenantAccessPermission | null> {
-    const { req, tenantId, userId, isGlobalLogin } = data;
+    const { req, tenantId, userId } = data;
 
     const project: Project | null = await ProjectService.findOneById({
       id: tenantId,
@@ -482,14 +480,6 @@ export default class UserMiddleware {
 
     if (!project) {
       throw new TenantNotFoundException("Invalid tenantId");
-    }
-
-    if (!isGlobalLogin) {
-      if (!UserMiddleware.doesSsoTokenForProjectExist(req, tenantId, userId)) {
-        throw new NotAuthenticatedException(
-          "This project requires OneUptime authentication. Please login to access this project.",
-        );
-      }
     }
 
     if (

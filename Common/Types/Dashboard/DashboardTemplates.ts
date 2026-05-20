@@ -5,6 +5,7 @@ import DashboardComponentType from "./DashboardComponentType";
 import DashboardChartType from "./Chart/ChartType";
 import ObjectID from "../ObjectID";
 import DashboardBaseComponent from "./DashboardComponents/DashboardBaseComponent";
+import DashboardVariable, { DashboardVariableType } from "./DashboardVariable";
 import IconProp from "../Icon/IconProp";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
@@ -397,6 +398,31 @@ function createKubernetesNodeListComponent(data: {
   };
 }
 
+/*
+ * Template variables are pre-built TelemetryAttribute variables that
+ * ship with the template — the toolbar renders a "Cluster" /
+ * "Namespace" / "Host" picker without the user having to open the
+ * Variables modal. Resource attributes from the OTel collector are
+ * stored in ClickHouse under the `resource.` prefix (see the comment
+ * in MonitorAlert.ts), so the binding keys here mirror what the
+ * Kubernetes / Host detail pages already filter on.
+ */
+function createTelemetryAttributeVariable(data: {
+  name: string;
+  label: string;
+  attributeKey: string;
+  isMultiSelect?: boolean;
+}): DashboardVariable {
+  return {
+    id: ObjectID.generate().toString(),
+    name: data.name,
+    label: data.label,
+    type: DashboardVariableType.TelemetryAttribute,
+    attributeKey: data.attributeKey,
+    isMultiSelect: data.isMultiSelect ?? false,
+  };
+}
+
 function createHostListComponent(data: {
   title: string;
   top: number;
@@ -617,9 +643,25 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Monitor metrics are stored with bare attribute keys (`monitorName`,
+   * `probeName`) rather than the OTel `resource.*` prefix — see
+   * MonitorMetricUtil.buildAttributes — so the variable binds to the
+   * bare key. Multi-select lets users pin a small group of monitors.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "monitor",
+      label: "Monitor",
+      attributeKey: "monitorName",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 13),
   };
 }
@@ -1109,9 +1151,31 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Pre-built variables let the user scope every widget on the dashboard
+   * to a single cluster / namespace from the toolbar. Multi-select is on
+   * for namespace so users can pick a couple of namespaces at once;
+   * cluster stays single-select since the typical "compare two clusters"
+   * workflow lives on the Compare page.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cluster",
+      label: "Cluster",
+      attributeKey: "resource.k8s.cluster.name",
+    }),
+    createTelemetryAttributeVariable({
+      name: "namespace",
+      label: "Namespace",
+      attributeKey: "resource.k8s.namespace.name",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 21),
   };
 }
@@ -1429,9 +1493,25 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Most HTTP / runtime metrics on this dashboard carry the standard
+   * OTel `resource.service.name` attribute, so scoping by service is
+   * the most useful default. Multi-select keeps the cross-service view
+   * available — e.g. compare API and worker on one chart.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "service",
+      label: "Service",
+      attributeKey: "resource.service.name",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 24),
   };
 }
@@ -1682,9 +1762,25 @@ function createHostDashboardConfig(): DashboardViewConfig {
     }),
   ];
 
+  /*
+   * Per-host scoping: the variable defaults to multi-select because the
+   * dashboard's by-host charts already split rendering per host; the
+   * selector lets users narrow to a subset (e.g. just two prod hosts)
+   * without losing the per-host breakdown.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "host",
+      label: "Host",
+      attributeKey: "resource.host.name",
+      isMultiSelect: true,
+    }),
+  ];
+
   return {
     _type: ObjectType.DashboardViewConfig,
     components,
+    variables,
     heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 22),
   };
 }

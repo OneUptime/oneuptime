@@ -99,10 +99,7 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.HOST_VIEW_PROCESS_VIEW,
-            2,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_PROCESS_VIEW, 2)}
           element={
             <HostProcessView
               {...props}

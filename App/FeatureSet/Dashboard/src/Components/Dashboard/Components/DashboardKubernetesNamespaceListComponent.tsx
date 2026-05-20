@@ -22,6 +22,7 @@ import {
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.namespace.name": "name",
+  "resource.k8s.namespace.name": "name",
 };
 
 export interface ComponentProps extends DashboardBaseComponentProps {

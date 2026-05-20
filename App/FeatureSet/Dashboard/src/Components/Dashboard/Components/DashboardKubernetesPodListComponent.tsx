@@ -21,9 +21,20 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 
+/*
+ * Both bare and `resource.*`-prefixed variants are mapped so widget
+ * filtering works regardless of which form the dashboard variable
+ * binds to. Templates ship variables under the `resource.*` form to
+ * match how OTel resource attributes are stored in ClickHouse for
+ * metric/log filtering; users who hand-author a variable against the
+ * bare key (the form the attribute-key autocomplete sometimes shows)
+ * still get list-level filtering.
+ */
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.pod.name": "name",
   "k8s.namespace.name": "namespaceKey",
+  "resource.k8s.pod.name": "name",
+  "resource.k8s.namespace.name": "namespaceKey",
 };
 
 export interface ComponentProps extends DashboardBaseComponentProps {

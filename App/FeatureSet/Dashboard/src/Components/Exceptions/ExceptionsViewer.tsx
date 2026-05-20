@@ -380,7 +380,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
     }
     if (resourceIds.size > 0) {
-      (q as Record<string, unknown>).serviceId =
+      (q as Record<string, unknown>)["serviceId"] =
         resourceIds.size === 1
           ? Array.from(resourceIds)[0]!
           : new Includes(Array.from(resourceIds));

@@ -375,7 +375,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
     if (resourceIds.size > 0) {
-      (query as Record<string, unknown>).serviceId =
+      (query as Record<string, unknown>)["serviceId"] =
         resourceIds.size === 1
           ? Array.from(resourceIds)[0]!
           : new Includes(Array.from(resourceIds));
