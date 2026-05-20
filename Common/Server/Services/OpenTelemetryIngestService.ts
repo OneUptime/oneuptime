@@ -17,6 +17,12 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../Utils/Logger";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import Host from "../../Models/DatabaseModels/Host";
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import HostService from "./HostService";
+import DockerHostService from "./DockerHostService";
+import KubernetesClusterService from "./KubernetesClusterService";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -240,9 +246,12 @@ export default class OTelIngestService {
    * Builds a TelemetryServiceMetadata for a non-Service resource —
    * Host, DockerHost, KubernetesCluster, Monitor. These resources
    * own telemetry directly via their own Postgres id (stamped into
-   * the analytics row's `serviceId` column) and do not have a
-   * paired Service row. Retention falls back to the project default
-   * since these resources don't carry per-row retention configs.
+   * the analytics row's `serviceId` column) and do not have a paired
+   * Service row. Per-resource retention overrides (when set on the
+   * Host / DockerHost / KubernetesCluster row) are honoured here so
+   * the resource owner can keep host telemetry longer/shorter than
+   * the project default. Monitor / unknown resource types fall back
+   * to the project retention.
    */
   @CaptureSpan()
   public static async buildResourceMetadataForNonService(data: {
@@ -253,15 +262,98 @@ export default class OTelIngestService {
   }): Promise<TelemetryServiceMetadata> {
     const projectContext: ProjectRetentionContext =
       await this.getProjectRetentionContext(data.projectId);
+
+    const resourceRetention: {
+      retainTelemetryDataForDays: number | null;
+      telemetryRetentionConfig: TelemetryRetentionConfig | null;
+    } = await this.getResourceRetention(data.resourceId, data.serviceType);
+
     return {
       serviceName: data.serviceName,
       serviceId: data.resourceId,
       serviceType: data.serviceType,
-      dataRententionInDays: projectContext.projectRetentionInDays,
-      serviceRetentionConfig: null,
-      serviceRetentionInDays: null,
+      dataRententionInDays:
+        resourceRetention.retainTelemetryDataForDays ||
+        projectContext.projectRetentionInDays,
+      serviceRetentionConfig: resourceRetention.telemetryRetentionConfig,
+      serviceRetentionInDays: resourceRetention.retainTelemetryDataForDays,
       projectRetentionConfig: projectContext.projectRetentionConfig,
       projectRetentionInDays: projectContext.projectRetentionInDays,
+    };
+  }
+
+  /*
+   * Look up per-resource retention overrides for non-Service telemetry.
+   * One small SELECT per batch — the caller caches the resulting
+   * TelemetryServiceMetadata under `serviceDictionary[serviceName]`
+   * so steady-state ingest skips this lookup after the first row.
+   */
+  @CaptureSpan()
+  private static async getResourceRetention(
+    resourceId: ObjectID,
+    serviceType: ServiceType,
+  ): Promise<{
+    retainTelemetryDataForDays: number | null;
+    telemetryRetentionConfig: TelemetryRetentionConfig | null;
+  }> {
+    try {
+      if (serviceType === ServiceType.Host) {
+        const host: Host | null = await HostService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+        return {
+          retainTelemetryDataForDays: host?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: host?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (serviceType === ServiceType.DockerHost) {
+        const dockerHost: DockerHost | null =
+          await DockerHostService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            dockerHost?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig:
+            dockerHost?.telemetryRetentionConfig ?? null,
+        };
+      }
+      if (serviceType === ServiceType.KubernetesCluster) {
+        const cluster: KubernetesCluster | null =
+          await KubernetesClusterService.findOneById({
+            id: resourceId,
+            select: {
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
+            props: { isRoot: true },
+          });
+        return {
+          retainTelemetryDataForDays:
+            cluster?.retainTelemetryDataForDays ?? null,
+          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        };
+      }
+    } catch (err) {
+      logger.warn(
+        `Per-resource retention lookup failed for ${serviceType} ${resourceId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    return {
+      retainTelemetryDataForDays: null,
+      telemetryRetentionConfig: null,
     };
   }
 
