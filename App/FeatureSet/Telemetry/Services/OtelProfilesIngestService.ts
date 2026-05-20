@@ -25,6 +25,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
 import ProfilesQueueService from "./Queue/ProfilesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   TELEMETRY_PROFILE_FLUSH_BATCH_SIZE,
   TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE,
@@ -250,10 +251,13 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: resolvedServiceMetadata.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(resolvedServiceMetadata.serviceType ===
+            ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: resolvedServiceMetadata.serviceId!,
+                  serviceName: serviceName,
+                })
+              : {}),
             ...(hostId && stampHostName
               ? TelemetryUtil.getAttributesForHostIdAndHostName({
                   hostId,

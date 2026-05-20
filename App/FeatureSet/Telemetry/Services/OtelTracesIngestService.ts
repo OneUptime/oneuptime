@@ -32,6 +32,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService from "./TraceDropFilterService";
 import TraceScrubRuleService from "./TraceScrubRuleService";
 import TracePipelineService, {
@@ -295,10 +296,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceMetadata.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.serviceId!,
+                  serviceName: serviceName,
+                })
+              : {}),
             ...(hostId && stampHostName
               ? TelemetryUtil.getAttributesForHostIdAndHostName({
                   hostId,

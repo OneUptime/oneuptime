@@ -41,7 +41,6 @@ import DashboardDockerImageListComponentUtil from "Common/Utils/Dashboard/Compon
 import DashboardDockerNetworkListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerNetworkListComponent";
 import DashboardDockerVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerVolumeListComponent";
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
-import DashboardHostMetricChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostMetricChartComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -630,11 +629,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.HostList) {
             newComponent = DashboardHostListComponentUtil.getDefaultComponent();
-          }
-
-          if (componentType === DashboardComponentType.HostMetricChart) {
-            newComponent =
-              DashboardHostMetricChartComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

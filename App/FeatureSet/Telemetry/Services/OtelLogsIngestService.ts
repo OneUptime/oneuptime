@@ -24,6 +24,7 @@ import logger, {
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import LogService from "Common/Server/Services/LogService";
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
@@ -257,10 +258,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceMetadata.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.serviceId!,
+                  serviceName: serviceName,
+                })
+              : {}),
             ...(hostId && stampHostName
               ? TelemetryUtil.getAttributesForHostIdAndHostName({
                   hostId,

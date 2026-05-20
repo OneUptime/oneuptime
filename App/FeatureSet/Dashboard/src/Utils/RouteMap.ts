@@ -129,6 +129,7 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
+  [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
   [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
@@ -2134,6 +2135,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_PROCESSES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_PROCESSES]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_PROCESS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_PROCESS_VIEW]
     }`,
   ),
 

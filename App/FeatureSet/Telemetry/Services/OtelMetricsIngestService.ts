@@ -26,6 +26,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
   MetricRulesForProject,
@@ -556,10 +557,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceMetadata.serviceId!,
-              serviceName: serviceName,
-            }),
+            ...(serviceMetadata.serviceType === ServiceType.OpenTelemetry
+              ? TelemetryUtil.getAttributesForServiceIdAndServiceName({
+                  serviceId: serviceMetadata.serviceId!,
+                  serviceName: serviceName,
+                })
+              : {}),
             ...(hostId && stampHostName
               ? TelemetryUtil.getAttributesForHostIdAndHostName({
                   hostId,

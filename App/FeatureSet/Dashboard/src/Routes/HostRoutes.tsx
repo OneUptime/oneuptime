@@ -14,6 +14,7 @@ import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostProcesses from "../Pages/Host/View/Processes";
+import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostLogs from "../Pages/Host/View/Logs";
 import HostIncidents from "../Pages/Host/View/Incidents";
 import HostAlerts from "../Pages/Host/View/Alerts";
@@ -93,6 +94,16 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostProcesses
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_PROCESSES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_PROCESS_VIEW)}
+          element={
+            <HostProcessView
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_PROCESS_VIEW] as Route}
             />
           }
         />
