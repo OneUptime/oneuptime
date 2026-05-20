@@ -192,6 +192,10 @@ Chart निम्नलिखित भी एकत्र कर सकता 
 | `<key>.enabled` | डिफ़ॉल्ट | यह क्या जोड़ता है |
 | --- | --- | --- |
 | `hostMetrics` | on | `/proc` और `/sys` से प्रति-नोड OS मेट्रिक्स — डिस्क I/O क्यू डेप्थ, फ़ाइलसिस्टम inode उपयोग, NIC एरर काउंटर्स, पेजिंग आँकड़े, लोड एवरेज। log-collector DaemonSet के अंदर रहता है (कोई अतिरिक्त पॉड्स नहीं)। |
+| `kubeletstats.utilizationMetrics` | on | सैचुरेशन मेट्रिक्स — कंटेनर और पॉड CPU/मेमोरी रिक्वेस्ट और लिमिट के प्रतिशत के रूप में व्यक्त। आठ व्युत्पन्न मेट्रिक परिवार जो "CPU/Memory vs Request" और "CPU/Memory vs Limit" मॉनिटर्स को सशक्त बनाते हैं। मौजूदा `kubeletstats` रिसीवर के समान स्क्रैप, कोई अतिरिक्त पॉड्स नहीं। हमेशा 0 जब किसी पॉड में कोई रिक्वेस्ट/लिमिट सेट नहीं होती। |
+| `kubeletstats.volumeMetrics` | on | प्रति-PVC डिस्क उपयोग (`k8s.volume.available`, `k8s.volume.capacity`)। "PVC Low Disk Space" मॉनिटर को सशक्त बनाता है। प्रति पॉड प्रति PVC एक श्रृंखला — अधिकांश क्लस्टर्स के लिए सीमित, हज़ारों PVCs वाले स्टेटफुल वर्कलोड्स पर भारी। |
+| `cadvisor` | on | प्रत्येक नोड के DaemonSet पॉड से कुबेलेट के `/metrics/cadvisor` एंडपॉइंट को उन कंटेनर मेट्रिक्स के लिए स्क्रैप करता है जिन्हें `kubeletstats` अनुवादित नहीं करता: CFS थ्रॉटलिंग (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) और OOM किल ईवेंट्स (`container_oom_events_total`)। एक रिलेबल ऐलोलिस्ट रिसीवर पर बाकी सब कुछ छोड़ देती है ताकि कार्डिनैलिटी सीमित बनी रहे। |
+| `kubeStateMetrics` | off | kube-state-metrics से क्लस्टर-स्टेट मेट्रिक्स खींचता है: पॉड फेज़ (Pending / Terminating), कंटेनर वेटिंग कारण (CrashLoopBackOff, ImagePullBackOff), और रिसोर्स कोटा उपयोग। `mode: bundled` (डिफ़ॉल्ट) आपके लिए एक छोटा KSM Deployment डिप्लॉय करता है; `mode: external` `endpoint` के माध्यम से एक मौजूदा KSM को स्क्रैप करता है। डिफ़ॉल्ट रूप से बंद क्योंकि bundled मोड chart के फ़ुटप्रिंट में एक Deployment जोड़ता है। |
 | `auditLogs` | off | होस्ट से `/var/log/kubernetes/audit.log` टेल करें। प्रत्येक Kubernetes API रिक्वेस्ट कैप्चर करता है — किसने किस संसाधन पर क्या किया। केवल सेल्फ-मैनेज्ड क्लस्टर्स — प्रबंधित K8s (EKS, GKE, AKS, DOKS) ऑडिट लॉग्स को क्लाउड प्रदाता के sink पर रूट करते हैं। |
 | `csi` | off | `app=csi-driver` (या `app.kubernetes.io/component=csi-driver`) के साथ लेबल किए गए पॉड्स को ऑटो-डिस्कवर करता है और उनके Prometheus `metrics` पोर्ट को स्क्रैप करता है — वॉल्यूम attach/detach लेटेंसी, प्रोविजनिंग विफलताएँ, IOPS। |
 | `coreDns` | off | `:9153/metrics` पर क्लस्टर CoreDNS सर्विस को स्क्रैप करता है। क्वेरी दर, लेटेंसी, कैश हिट दर, एरर काउंट को सामने लाता है — सामान्य P99 लेटेंसी अपराधी। |
@@ -212,6 +216,10 @@ Chart निम्नलिखित भी एकत्र कर सकता 
 | `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation के माध्यम से प्रत्येक पॉड से HTTP/gRPC ट्रेस ऑटो-कैप्चर करें। ऊपर का सेक्शन देखें। |
 | `profiling.enabled` | `false` | OpenTelemetry eBPF Profiler के माध्यम से निरंतर CPU फ्लेम ग्राफ़। डिफ़ॉल्ट रूप से बंद; अधिक टेलीमेट्री के लिए ऑप्ट इन करें। ऊपर का सेक्शन देखें। |
 | `hostMetrics.enabled` | `true` | प्रति-नोड OS मेट्रिक्स। |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | कंटेनर और पॉड CPU/मेमोरी सैचुरेशन (रिक्वेस्ट और लिमिट का %)। कोई अतिरिक्त स्क्रैप नहीं — kubeletstats डेटा से व्युत्पन्न। |
+| `kubeletstats.volumeMetrics.enabled` | `true` | प्रति-PVC डिस्क उपयोग (`k8s.volume.available`, `k8s.volume.capacity`)। |
+| `cadvisor.enabled` | `true` | CFS थ्रॉटलिंग + OOM किल काउंटर्स के लिए इस नोड के कुबेलेट `/metrics/cadvisor` को स्क्रैप करें। 3 मेट्रिक्स तक ऐलोलिस्टेड। |
+| `kubeStateMetrics.enabled` | `false` | kube-state-metrics से पॉड फेज़, कंटेनर वेटिंग कारण (CrashLoopBackOff / ImagePullBackOff), और ResourceQuota उपयोग खींचें। bundled बनाम external के लिए `kubeStateMetrics.mode` देखें। |
 | `auditLogs.enabled` | `false` | Kubernetes ऑडिट लॉग संग्रहण (सेल्फ-मैनेज्ड क्लस्टर्स)। |
 | `csi.enabled` | `false` | CSI ड्राइवर Prometheus मेट्रिक्स। |
 | `coreDns.enabled` | `false` | CoreDNS Prometheus मेट्रिक्स। |

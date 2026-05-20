@@ -192,6 +192,10 @@ Charten kan også indsamle:
 | `<key>.enabled` | Standard | Hvad det tilføjer |
 | --- | --- | --- |
 | `hostMetrics` | on | Pr.-node OS-metrikker fra `/proc` og `/sys` — disk-I/O-kø-dybde, filsystem-inode-forbrug, NIC-fejltællere, paging-statistik, load average. Lever inde i log-collector-DaemonSet'en (ingen ekstra pods). |
+| `kubeletstats.utilizationMetrics` | on | Mætningsmetrikker — container- og pod-CPU/hukommelse udtrykt som en procentdel af request og limit. Otte afledte metrikfamilier, der driver "CPU/Memory vs Request"- og "CPU/Memory vs Limit"-monitorerne. Samme scrape som den eksisterende `kubeletstats`-receiver, ingen ekstra pods. Altid 0, når en pod ikke har request/limit sat. |
+| `kubeletstats.volumeMetrics` | on | Pr.-PVC disk-forbrug (`k8s.volume.available`, `k8s.volume.capacity`). Driver "PVC Low Disk Space"-monitoren. Én serie pr. PVC pr. pod — afgrænset for de fleste klynger, tungere på stateful arbejdsbelastninger med tusindvis af PVC'er. |
+| `cadvisor` | on | Skraber kubeletens `/metrics/cadvisor`-endpoint fra hver nodes DaemonSet-pod for de container-metrikker, som `kubeletstats` ikke oversætter: CFS-throttling (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) og OOM-kill-events (`container_oom_events_total`). En relabel-allowlist dropper alt andet ved receiveren, så kardinaliteten forbliver afgrænset. |
+| `kubeStateMetrics` | off | Henter klyngetilstand-metrikker fra kube-state-metrics: pod-faser (Pending / Terminating), container waiting-årsager (CrashLoopBackOff, ImagePullBackOff) og resource quota-forbrug. `mode: bundled` (standard) deployer en lille KSM Deployment for dig; `mode: external` skraber en eksisterende KSM via `endpoint`. Slået fra som standard, fordi den bundlede tilstand tilføjer en Deployment til chartens fodaftryk. |
 | `auditLogs` | off | Læs `/var/log/kubernetes/audit.log` fra værten. Indfanger hver Kubernetes API-anmodning — hvem gjorde hvad mod hvilken ressource. Kun selvadministrerede klynger — administreret K8s (EKS, GKE, AKS, DOKS) ruter audit-logs til cloud-udbyderens sink. |
 | `csi` | off | Auto-opdager pods med label `app=csi-driver` (eller `app.kubernetes.io/component=csi-driver`) og skraber deres Prometheus `metrics`-port — volumen-tilknyt/-afkobl-latens, provisioneringsfejl, IOPS. |
 | `coreDns` | off | Skraber klyngens CoreDNS-service på `:9153/metrics`. Synliggør forespørgselsrate, latens, cache-hit-rate, fejltællinger — almindelige P99-latensbøller. |
@@ -212,6 +216,10 @@ Charten kan også indsamle:
 | `ebpf.enabled` | `true` | Auto-indfang HTTP/gRPC-traces fra hver pod via OpenTelemetry eBPF Instrumentation. Se afsnittet ovenfor. |
 | `profiling.enabled` | `false` | Kontinuerlige CPU-flammegrafer via OpenTelemetry eBPF Profiler. Deaktiveret som standard; tilvælg for mere telemetri. Se afsnittet ovenfor. |
 | `hostMetrics.enabled` | `true` | Pr.-node OS-metrikker. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Container- og pod-CPU/hukommelses-mætning (% af request og limit). Ingen ekstra scrape — afledt af kubeletstats-data. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Pr.-PVC disk-forbrug (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Skrab denne nodes kubelet `/metrics/cadvisor` for CFS-throttling- + OOM-kill-tællere. Allowlistet til 3 metrikker. |
+| `kubeStateMetrics.enabled` | `false` | Hent pod-faser, container waiting-årsager (CrashLoopBackOff / ImagePullBackOff) og ResourceQuota-forbrug fra kube-state-metrics. Se `kubeStateMetrics.mode` for bundled vs ekstern. |
 | `auditLogs.enabled` | `false` | Kubernetes audit-logindsamling (selvadministrerede klynger). |
 | `csi.enabled` | `false` | CSI driver Prometheus-metrikker. |
 | `coreDns.enabled` | `false` | CoreDNS Prometheus-metrikker. |

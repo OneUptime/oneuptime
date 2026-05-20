@@ -185,13 +185,17 @@ Trimning:
 | `profiling.tracers` | `""` *(alla runtimes)* | Kommaseparerad lista över språkspårare att ladda. |
 | `profiling.obiProcessContext` | `true` | Korrelera sampel med OBI:s spårningskontext för spår ↔ profil-länkning. |
 
-## Annan datainsamling (host-mätvärden, audit-loggar, CSI, CoreDNS)
+## Annan datainsamling (host-mätvärden, mättnad, cAdvisor, KSM, audit-loggar, CSI, CoreDNS)
 
 Diagrammet kan också samla in:
 
 | `<key>.enabled` | Standard | Vad det tillför |
 | --- | --- | --- |
 | `hostMetrics` | på | Per-nod OS-mätvärden från `/proc` och `/sys` — disk-I/O-ködjup, användning av filsystemsinoder, NIC-felräknare, paging-statistik, lastsnitt. Bor inuti log-collector-DaemonSet:en (inga extra poddar). |
+| `kubeletstats.utilizationMetrics` | på | Mättnadsmätvärden — container- och pod-CPU/minne uttryckta som en procentandel av request och limit. Åtta härledda mätvärdesfamiljer som driver monitorerna "CPU/Memory vs Request" och "CPU/Memory vs Limit". Samma skrapning som den befintliga `kubeletstats`-mottagaren, inga extra poddar. Alltid 0 när en pod inte har någon request/limit satt. |
+| `kubeletstats.volumeMetrics` | på | Per-PVC diskanvändning (`k8s.volume.available`, `k8s.volume.capacity`). Driver monitorn "PVC Low Disk Space". En serie per PVC per pod — begränsat för de flesta kluster, tyngre på stateful arbetsbelastningar med tusentals PVC:er. |
+| `cadvisor` | på | Skrapar kubeletets `/metrics/cadvisor`-endpoint från varje nods DaemonSet-pod för de containermätvärden som `kubeletstats` inte översätter: CFS-strypning (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) och OOM-kill-händelser (`container_oom_events_total`). En relabel-allowlist släpper allt annat vid mottagaren så att kardinalitet förblir begränsad. |
+| `kubeStateMetrics` | av | Hämtar klustertillståndsmätvärden från kube-state-metrics: pod-faser (Pending / Terminating), container-väntorsaker (CrashLoopBackOff, ImagePullBackOff) och användning av resurskvoter. `mode: bundled` (standard) distribuerar en liten KSM-Deployment åt dig; `mode: external` skrapar en befintlig KSM via `endpoint`. Av som standard eftersom det medföljande läget lägger till en Deployment till diagrammets avtryck. |
 | `auditLogs` | av | Läs `/var/log/kubernetes/audit.log` från värden. Fångar varje Kubernetes API-förfrågan — vem som gjorde vad mot vilken resurs. Enbart självhanterade kluster — hanterade K8s (EKS, GKE, AKS, DOKS) skickar audit-loggar till molnleverantörens sink. |
 | `csi` | av | Upptäcker automatiskt poddar märkta `app=csi-driver` (eller `app.kubernetes.io/component=csi-driver`) och skrapar deras Prometheus `metrics`-port — latens för volymanslutning/frånkoppling, provisioneringsfel, IOPS. |
 | `coreDns` | av | Skrapar klustrets CoreDNS-tjänst på `:9153/metrics`. Synliggör frågefrekvens, latens, cache-träffrekvens, antal fel — vanliga skyldiga till P99-latens. |
@@ -212,6 +216,10 @@ Diagrammet kan också samla in:
 | `ebpf.enabled` | `true` | Autoinsamla HTTP/gRPC-spårningar från varje pod via OpenTelemetry eBPF Instrumentation. Se sektionen ovan. |
 | `profiling.enabled` | `false` | Kontinuerliga CPU-flame graphs via OpenTelemetry eBPF Profiler. Av som standard; välj till för mer telemetri. Se sektionen ovan. |
 | `hostMetrics.enabled` | `true` | Per-nod OS-mätvärden. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Container- och pod-CPU/minnesmättnad (% av request och limit). Ingen extra skrapning — härlett från kubeletstats-data. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC diskanvändning (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Skrapa denna nods kubelet `/metrics/cadvisor` för CFS-strypning + OOM-kill-räknare. Allowlistad till 3 mätvärden. |
+| `kubeStateMetrics.enabled` | `false` | Hämta pod-faser, container-väntorsaker (CrashLoopBackOff / ImagePullBackOff) och ResourceQuota-användning från kube-state-metrics. Se `kubeStateMetrics.mode` för medföljande vs extern. |
 | `auditLogs.enabled` | `false` | Insamling av Kubernetes audit-loggar (självhanterade kluster). |
 | `csi.enabled` | `false` | Prometheus-mätvärden från CSI-drivrutin. |
 | `coreDns.enabled` | `false` | Prometheus-mätvärden från CoreDNS. |
