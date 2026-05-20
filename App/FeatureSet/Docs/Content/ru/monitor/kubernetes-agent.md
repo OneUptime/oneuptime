@@ -185,13 +185,17 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `profiling.tracers` | `""` *(все runtime)* | Список языковых трассировщиков через запятую для загрузки. |
 | `profiling.obiProcessContext` | `true` | Коррелировать сэмплы с контекстом трассировки OBI для связи trace ↔ профиль. |
 
-## Другой сбор данных (host metrics, audit logs, CSI, CoreDNS)
+## Другой сбор данных (host metrics, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
 
 Chart также может собирать:
 
 | `<key>.enabled` | По умолчанию | Что добавляет |
 | --- | --- | --- |
 | `hostMetrics` | вкл. | Метрики ОС каждого узла из `/proc` и `/sys` — глубина очереди дискового I/O, использование inode файловой системы, счётчики ошибок NIC, статистика подкачки, средняя нагрузка. Живут внутри DaemonSet сборщика логов (без дополнительных Pod). |
+| `kubeletstats.utilizationMetrics` | вкл. | Метрики saturation — CPU/память контейнеров и Pod, выраженные в процентах от request и limit. Восемь производных семейств метрик, которые питают мониторы «CPU/Memory vs Request» и «CPU/Memory vs Limit». Тот же scrape, что и существующий receiver `kubeletstats`, без дополнительных Pod. Всегда 0, когда у Pod не заданы request/limit. |
+| `kubeletstats.volumeMetrics` | вкл. | Использование диска для каждого PVC (`k8s.volume.available`, `k8s.volume.capacity`). Питает монитор «PVC Low Disk Space». Одна серия на PVC на Pod — ограничено для большинства кластеров, тяжелее на stateful-нагрузках с тысячами PVC. |
+| `cadvisor` | вкл. | Собирает данные с endpoint `/metrics/cadvisor` kubelet с DaemonSet Pod каждого узла для метрик контейнеров, которые `kubeletstats` не транслирует: CFS-троттлинг (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) и события OOM kill (`container_oom_events_total`). Allowlist relabel отбрасывает всё остальное на receiver, чтобы кардинальность оставалась ограниченной. |
+| `kubeStateMetrics` | выкл. | Получает метрики состояния кластера из kube-state-metrics: фазы Pod (Pending / Terminating), причины ожидания контейнеров (CrashLoopBackOff, ImagePullBackOff) и использование квот ресурсов. `mode: bundled` (по умолчанию) разворачивает для вас небольшой Deployment KSM; `mode: external` собирает данные с существующего KSM через `endpoint`. Выключено по умолчанию, потому что режим bundled добавляет Deployment в footprint chart. |
 | `auditLogs` | выкл. | Читает `/var/log/kubernetes/audit.log` с хоста. Захватывает каждый запрос к Kubernetes API — кто что сделал с каким ресурсом. Только самоуправляемые кластеры — управляемые K8s (EKS, GKE, AKS, DOKS) направляют audit logs в sink облачного провайдера. |
 | `csi` | выкл. | Автоматически обнаруживает Pod с меткой `app=csi-driver` (или `app.kubernetes.io/component=csi-driver`) и собирает Prometheus-порт `metrics` — задержка attach/detach томов, ошибки provisioning, IOPS. |
 | `coreDns` | выкл. | Собирает метрики CoreDNS кластера на `:9153/metrics`. Показывает частоту запросов, задержку, частоту попаданий в кэш, счётчики ошибок — частые причины P99-задержки. |
@@ -212,6 +216,10 @@ Chart также может собирать:
 | `ebpf.enabled` | `true` | Автозахват HTTP/gRPC-трассировок из каждого Pod через OpenTelemetry eBPF Instrumentation. См. раздел выше. |
 | `profiling.enabled` | `false` | Непрерывные flame graph CPU через OpenTelemetry eBPF Profiler. Выключен по умолчанию; подключите для большей телеметрии. См. раздел выше. |
 | `hostMetrics.enabled` | `true` | Метрики ОС каждого узла. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Saturation CPU/памяти контейнеров и Pod (% от request и limit). Без дополнительного scrape — производное от данных kubeletstats. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Использование диска для каждого PVC (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Собирает данные с `/metrics/cadvisor` kubelet этого узла для счётчиков CFS-троттлинга и OOM kill. Allowlist ограничен 3 метриками. |
+| `kubeStateMetrics.enabled` | `false` | Получает фазы Pod, причины ожидания контейнеров (CrashLoopBackOff / ImagePullBackOff) и использование ResourceQuota из kube-state-metrics. См. `kubeStateMetrics.mode` для bundled vs external. |
 | `auditLogs.enabled` | `false` | Сбор audit logs Kubernetes (самоуправляемые кластеры). |
 | `csi.enabled` | `false` | Prometheus-метрики CSI-драйвера. |
 | `coreDns.enabled` | `false` | Prometheus-метрики CoreDNS. |

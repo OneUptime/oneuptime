@@ -185,13 +185,17 @@ eBPF 自動計装も有効化されている場合(`ebpf.enabled: true`、デフ
 | `profiling.tracers` | `""` *(全ランタイム)* | ロードする言語トレーサーのカンマ区切りリスト。 |
 | `profiling.obiProcessContext` | `true` | トレースとプロファイルのリンクのために、サンプルを OBI のトレースコンテキストと相関付けます。 |
 
-## その他のデータ収集(ホストメトリクス、監査ログ、CSI、CoreDNS)
+## その他のデータ収集(ホストメトリクス、サチュレーション、cAdvisor、KSM、監査ログ、CSI、CoreDNS)
 
 chart は以下のデータも収集できます:
 
 | `<key>.enabled` | デフォルト | 追加される情報 |
 | --- | --- | --- |
 | `hostMetrics` | on | `/proc` および `/sys` からのノードごとの OS メトリクス — ディスク I/O キューの深さ、ファイルシステムの inode 使用量、NIC エラーカウンター、ページング統計、ロードアベレージ。ログコレクター DaemonSet 内に同居します(追加の pod はありません)。 |
+| `kubeletstats.utilizationMetrics` | on | サチュレーションメトリクス — コンテナおよび pod の CPU/メモリを request と limit に対するパーセンテージとして表現します。「CPU/Memory vs Request」および「CPU/Memory vs Limit」モニターを支える 8 つの派生メトリクスファミリーです。既存の `kubeletstats` レシーバーと同じスクレイプを使用するため、追加の pod はありません。pod に request/limit が設定されていない場合は常に 0 になります。 |
+| `kubeletstats.volumeMetrics` | on | PVC ごとのディスク使用量(`k8s.volume.available`、`k8s.volume.capacity`)。「PVC Low Disk Space」モニターを支える機能です。pod ごと、PVC ごとに 1 つのシリーズ — ほとんどのクラスターでは抑えられますが、数千個の PVC を持つステートフルワークロードでは重くなります。 |
+| `cadvisor` | on | 各ノードの DaemonSet pod から kubelet の `/metrics/cadvisor` エンドポイントをスクレイプし、`kubeletstats` が変換しないコンテナメトリクスを取得します: CFS スロットリング(`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`)と OOM kill イベント(`container_oom_events_total`)。relabel allowlist によりレシーバー側でその他すべてを破棄するため、カーディナリティは抑えられます。 |
+| `kubeStateMetrics` | off | kube-state-metrics からクラスター状態メトリクスを取得します: pod のフェーズ(Pending / Terminating)、コンテナの待機理由(CrashLoopBackOff、ImagePullBackOff)、リソースクォータの使用量。`mode: bundled`(デフォルト)では小さな KSM Deployment をデプロイします。`mode: external` では `endpoint` を介して既存の KSM をスクレイプします。バンドルモードでは chart のフットプリントに Deployment が追加されるため、デフォルトでは無効になっています。 |
 | `auditLogs` | off | ホストから `/var/log/kubernetes/audit.log` をテイルします。すべての Kubernetes API リクエストをキャプチャします — 誰がどのリソースに対して何を行ったかが記録されます。セルフマネージドクラスターのみ対応 — マネージド Kubernetes(EKS、GKE、AKS、DOKS)は監査ログをクラウドプロバイダーのシンクにルーティングします。 |
 | `csi` | off | `app=csi-driver`(または `app.kubernetes.io/component=csi-driver`)というラベルが付けられた pod を自動検出し、Prometheus の `metrics` ポートをスクレイプします — ボリュームのアタッチ/デタッチのレイテンシ、プロビジョニング失敗、IOPS など。 |
 | `coreDns` | off | クラスター CoreDNS サービスの `:9153/metrics` をスクレイプします。クエリレート、レイテンシ、キャッシュヒット率、エラー数を可視化します — P99 レイテンシの一般的な原因となる項目です。 |
@@ -212,6 +216,10 @@ chart は以下のデータも収集できます:
 | `ebpf.enabled` | `true` | OpenTelemetry eBPF Instrumentation により、すべての pod から HTTP/gRPC トレースを自動キャプチャします。上記のセクションを参照してください。 |
 | `profiling.enabled` | `false` | OpenTelemetry eBPF Profiler による連続的な CPU フレームグラフ。デフォルトで無効。より多くのテレメトリーが必要な場合はオプトインしてください。上記のセクションを参照してください。 |
 | `hostMetrics.enabled` | `true` | ノードごとの OS メトリクス。 |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | コンテナおよび pod の CPU/メモリのサチュレーション(request と limit に対する %)。追加のスクレイプはなく、kubeletstats のデータから派生します。 |
+| `kubeletstats.volumeMetrics.enabled` | `true` | PVC ごとのディスク使用量(`k8s.volume.available`、`k8s.volume.capacity`)。 |
+| `cadvisor.enabled` | `true` | このノードの kubelet の `/metrics/cadvisor` をスクレイプし、CFS スロットリングと OOM kill カウンターを取得します。3 つのメトリクスに allowlist で限定されています。 |
+| `kubeStateMetrics.enabled` | `false` | kube-state-metrics から pod のフェーズ、コンテナの待機理由(CrashLoopBackOff / ImagePullBackOff)、および ResourceQuota の使用量を取得します。バンドル版か外部版かについては `kubeStateMetrics.mode` を参照してください。 |
 | `auditLogs.enabled` | `false` | Kubernetes 監査ログ収集(セルフマネージドクラスター)。 |
 | `csi.enabled` | `false` | CSI ドライバーの Prometheus メトリクス。 |
 | `coreDns.enabled` | `false` | CoreDNS の Prometheus メトリクス。 |

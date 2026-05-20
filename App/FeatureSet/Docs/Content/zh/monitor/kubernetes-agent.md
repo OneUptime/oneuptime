@@ -185,13 +185,17 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `profiling.tracers` | `""` *(所有运行时)* | 要加载的语言追踪器的逗号分隔列表。 |
 | `profiling.obiProcessContext` | `true` | 将采样与 OBI 的追踪上下文相关联，以实现追踪 ↔ 性能分析的关联。 |
 
-## 其他数据采集（host metrics、审计日志、CSI、CoreDNS）
+## 其他数据采集（host metrics、饱和度指标、cAdvisor、KSM、审计日志、CSI、CoreDNS）
 
 chart 还可以采集：
 
 | `<key>.enabled` | 默认 | 增加的内容 |
 | --- | --- | --- |
 | `hostMetrics` | on | 来自 `/proc` 和 `/sys` 的每节点操作系统指标 —— 磁盘 I/O 队列深度、文件系统 inode 使用率、NIC 错误计数、分页统计、负载平均值。位于日志收集器 DaemonSet 内（不增加额外 Pod）。 |
+| `kubeletstats.utilizationMetrics` | on | 饱和度指标 —— 容器和 Pod 的 CPU/内存以占 request 和 limit 的百分比表示。八个派生指标家族，为 "CPU/Memory vs Request" 和 "CPU/Memory vs Limit" 监控器提供数据。与现有的 `kubeletstats` receiver 共用同一次抓取，不增加额外 Pod。当 Pod 未设置 request/limit 时始终为 0。 |
+| `kubeletstats.volumeMetrics` | on | 每个 PVC 的磁盘使用情况（`k8s.volume.available`、`k8s.volume.capacity`）。为 "PVC Low Disk Space" 监控器提供数据。每个 Pod 的每个 PVC 一条 series —— 对大多数集群是有界的，对拥有数千个 PVC 的有状态工作负载则更重。 |
+| `cadvisor` | on | 从每个节点的 DaemonSet Pod 抓取 kubelet 的 `/metrics/cadvisor` 端点，获取 `kubeletstats` 不会翻译的容器指标：CFS 节流（`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`）和 OOM 终止事件（`container_oom_events_total`）。一个 relabel 白名单会在 receiver 端丢弃其他所有内容，使基数保持有界。 |
+| `kubeStateMetrics` | off | 从 kube-state-metrics 拉取集群状态指标：Pod 阶段（Pending / Terminating）、容器等待原因（CrashLoopBackOff、ImagePullBackOff）以及资源配额使用情况。`mode: bundled`（默认）会为您部署一个小型 KSM Deployment；`mode: external` 则通过 `endpoint` 抓取已有的 KSM。默认关闭，因为 bundled 模式会为 chart 增加一个 Deployment 的占用。 |
 | `auditLogs` | off | 从主机读取 `/var/log/kubernetes/audit.log`。捕获每一个 Kubernetes API 请求 —— 谁对哪个资源执行了什么操作。仅适用于自管集群 —— 托管 K8s（EKS、GKE、AKS、DOKS）会将审计日志路由到云提供商的接收端。 |
 | `csi` | off | 自动发现带有标签 `app=csi-driver`（或 `app.kubernetes.io/component=csi-driver`）的 Pod，并抓取其 Prometheus `metrics` 端口 —— 卷挂载/卸载延迟、配置失败、IOPS。 |
 | `coreDns` | off | 在 `:9153/metrics` 上抓取集群的 CoreDNS 服务。展现查询速率、延迟、缓存命中率、错误数量 —— 这些是 P99 延迟的常见原因。 |
@@ -212,6 +216,10 @@ chart 还可以采集：
 | `ebpf.enabled` | `true` | 通过 OpenTelemetry eBPF Instrumentation 自动捕获每个 Pod 的 HTTP/gRPC 追踪。请参阅上文章节。 |
 | `profiling.enabled` | `false` | 通过 OpenTelemetry eBPF Profiler 持续生成 CPU 火焰图。默认禁用；如需更多遥测数据请选择启用。请参阅上文章节。 |
 | `hostMetrics.enabled` | `true` | 每个节点的操作系统指标。 |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | 容器和 Pod 的 CPU/内存饱和度（占 request 和 limit 的百分比）。不增加额外抓取 —— 从 kubeletstats 数据派生。 |
+| `kubeletstats.volumeMetrics.enabled` | `true` | 每个 PVC 的磁盘使用情况（`k8s.volume.available`、`k8s.volume.capacity`）。 |
+| `cadvisor.enabled` | `true` | 抓取本节点 kubelet 的 `/metrics/cadvisor`，获取 CFS 节流 + OOM 终止计数器。已通过白名单限定为 3 个指标。 |
+| `kubeStateMetrics.enabled` | `false` | 从 kube-state-metrics 拉取 Pod 阶段、容器等待原因（CrashLoopBackOff / ImagePullBackOff）以及 ResourceQuota 使用情况。bundled 与 external 模式的区别参见 `kubeStateMetrics.mode`。 |
 | `auditLogs.enabled` | `false` | Kubernetes 审计日志采集（自管集群）。 |
 | `csi.enabled` | `false` | CSI 驱动的 Prometheus 指标。 |
 | `coreDns.enabled` | `false` | CoreDNS 的 Prometheus 指标。 |

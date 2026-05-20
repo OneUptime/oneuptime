@@ -185,7 +185,7 @@ Tuning:
 | `profiling.tracers` | `""` *(alle runtimes)* | Komma-separeret liste over sprog-tracere, der skal indlæses. |
 | `profiling.obiProcessContext` | `true` | Korrelér samples med OBI's trace-kontekst til trace ↔ profil-linking. |
 
-## Anden dataindsamling (host-metrikker, audit-logs, CSI, CoreDNS)
+## Anden dataindsamling (host-metrikker, mætning, cAdvisor, KSM, audit-logs, CSI, CoreDNS)
 
 Charten kan også indsamle:
 

@@ -185,13 +185,17 @@ Ajuste fino:
 | `profiling.tracers` | `""` *(todos os runtimes)* | Lista separada por vírgulas de tracers de linguagem a carregar. |
 | `profiling.obiProcessContext` | `true` | Correlaciona as amostras com o contexto de trace do OBI para ligação trace ↔ profile. |
 
-## Outras recolhas de dados (host metrics, audit logs, CSI, CoreDNS)
+## Outras recolhas de dados (host metrics, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
 
 O chart também consegue recolher:
 
 | `<key>.enabled` | Omissão | O que adiciona |
 | --- | --- | --- |
 | `hostMetrics` | ativo | Métricas de SO por nó a partir de `/proc` e `/sys` — profundidade da fila de I/O de disco, utilização de inodes do sistema de ficheiros, contadores de erros da NIC, estatísticas de paging, load average. Reside dentro do DaemonSet do coletor de logs (sem pods adicionais). |
+| `kubeletstats.utilizationMetrics` | ativo | Métricas de saturação — CPU/memória de contentores e pods expressos como percentagem do request e do limit. Oito famílias de métricas derivadas que alimentam os monitores "CPU/Memory vs Request" e "CPU/Memory vs Limit". Mesmo scrape que o recetor `kubeletstats` existente, sem pods adicionais. Sempre 0 quando um pod não tem request/limit definidos. |
+| `kubeletstats.volumeMetrics` | ativo | Utilização de disco por PVC (`k8s.volume.available`, `k8s.volume.capacity`). Alimenta o monitor "PVC Low Disk Space". Uma série por PVC por pod — limitado para a maioria dos clusters, mais pesado em cargas de trabalho stateful com milhares de PVCs. |
+| `cadvisor` | ativo | Faz scrape do endpoint `/metrics/cadvisor` do kubelet a partir do pod DaemonSet de cada nó para as métricas de contentor que o `kubeletstats` não traduz: CFS throttling (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) e eventos de OOM kill (`container_oom_events_total`). Uma allowlist de relabel descarta tudo o resto no recetor, mantendo a cardinalidade limitada. |
+| `kubeStateMetrics` | inativo | Obtém métricas de estado do cluster a partir do kube-state-metrics: fases de pod (Pending / Terminating), razões de espera de contentores (CrashLoopBackOff, ImagePullBackOff) e utilização de resource quotas. `mode: bundled` (omissão) implanta por si um pequeno Deployment KSM; `mode: external` faz scrape de um KSM existente via `endpoint`. Inativo por omissão porque o modo bundled adiciona um Deployment à pegada do chart. |
 | `auditLogs` | inativo | Lê `/var/log/kubernetes/audit.log` a partir do host. Captura cada pedido à API do Kubernetes — quem fez o quê a que recurso. Apenas clusters self-managed — Kubernetes geridos (EKS, GKE, AKS, DOKS) encaminham os audit logs para o sink do fornecedor de nuvem. |
 | `csi` | inativo | Deteta automaticamente pods com a etiqueta `app=csi-driver` (ou `app.kubernetes.io/component=csi-driver`) e faz scrape da respetiva porta `metrics` Prometheus — latência de attach/detach de volumes, falhas de aprovisionamento, IOPS. |
 | `coreDns` | inativo | Faz scrape do serviço CoreDNS do cluster em `:9153/metrics`. Mostra a taxa de queries, latência, taxa de cache hit, contagens de erros — culpados frequentes de latência P99. |
@@ -212,6 +216,10 @@ O chart também consegue recolher:
 | `ebpf.enabled` | `true` | Captura automática de traces HTTP/gRPC de cada pod via OpenTelemetry eBPF Instrumentation. Veja a secção acima. |
 | `profiling.enabled` | `false` | Flame graphs contínuos de CPU via OpenTelemetry eBPF Profiler. Inativo por omissão; ative para mais telemetria. Veja a secção acima. |
 | `hostMetrics.enabled` | `true` | Métricas de SO por nó. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Saturação de CPU/memória de contentores e pods (% do request e do limit). Sem scrape adicional — derivada dos dados do kubeletstats. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Utilização de disco por PVC (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Faz scrape do `/metrics/cadvisor` do kubelet deste nó para contadores de CFS throttling + OOM kill. Allowlist limitada a 3 métricas. |
+| `kubeStateMetrics.enabled` | `false` | Obtém fases de pods, razões de espera de contentores (CrashLoopBackOff / ImagePullBackOff) e utilização de ResourceQuota a partir do kube-state-metrics. Veja `kubeStateMetrics.mode` para bundled vs external. |
 | `auditLogs.enabled` | `false` | Recolha de audit logs do Kubernetes (clusters self-managed). |
 | `csi.enabled` | `false` | Métricas Prometheus dos drivers CSI. |
 | `coreDns.enabled` | `false` | Métricas Prometheus do CoreDNS. |

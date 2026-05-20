@@ -337,6 +337,68 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Workflows",
+    links: [
+      {
+        title: "Workflows Overview",
+        url: "/docs/workflows/index",
+      },
+      {
+        title: "Authoring a Workflow",
+        url: "/docs/workflows/authoring",
+      },
+      {
+        title: "Workflow Triggers",
+        url: "/docs/workflows/triggers",
+      },
+      {
+        title: "Workflow Components",
+        url: "/docs/workflows/components",
+      },
+      {
+        title: "Workflow Variables",
+        url: "/docs/workflows/variables",
+      },
+      {
+        title: "Workflow Runs & Logs",
+        url: "/docs/workflows/runs-and-logs",
+      },
+      {
+        title: "Workflow Configuration & Safety",
+        url: "/docs/workflows/configuration",
+      },
+    ],
+  },
+  {
+    title: "Dashboards",
+    links: [
+      {
+        title: "Dashboards Overview",
+        url: "/docs/dashboards/index",
+      },
+      {
+        title: "Authoring a Dashboard",
+        url: "/docs/dashboards/authoring",
+      },
+      {
+        title: "Dashboard Widgets",
+        url: "/docs/dashboards/widgets",
+      },
+      {
+        title: "Dashboard Variables & Filters",
+        url: "/docs/dashboards/variables",
+      },
+      {
+        title: "Sharing & Public Dashboards",
+        url: "/docs/dashboards/sharing",
+      },
+      {
+        title: "Dashboard Configuration & Permissions",
+        url: "/docs/dashboards/configuration",
+      },
+    ],
+  },
+  {
     title: "Status Pages",
     links: [
       {

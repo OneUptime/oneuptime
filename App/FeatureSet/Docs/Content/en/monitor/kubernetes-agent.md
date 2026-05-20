@@ -225,13 +225,17 @@ Tuning:
 | `profiling.tracers` | `""` *(all runtimes)* | Comma-separated list of language tracers to load. |
 | `profiling.obiProcessContext` | `true` | Correlate samples with OBI's trace context for trace ↔ profile linking. |
 
-## Other data collection (host metrics, audit logs, CSI, CoreDNS)
+## Other data collection (host metrics, saturation, cAdvisor, KSM, audit logs, CSI, CoreDNS)
 
 The chart can also collect:
 
 | `<key>.enabled` | Default | What it adds |
 | --- | --- | --- |
 | `hostMetrics` | on | Per-node OS metrics from `/proc` and `/sys` — disk I/O queue depth, filesystem inode usage, NIC error counters, paging stats, load average. Lives inside the log-collector DaemonSet (no extra pods). |
+| `kubeletstats.utilizationMetrics` | on | Saturation metrics — container & pod CPU/memory expressed as a percentage of request and limit. Eight derived metric families that power the "CPU/Memory vs Request" and "CPU/Memory vs Limit" monitors. Same scrape as the existing `kubeletstats` receiver, no extra pods. Always 0 when a pod has no request/limit set. |
+| `kubeletstats.volumeMetrics` | on | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). Powers the "PVC Low Disk Space" monitor. One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
+| `cadvisor` | on | Scrapes the kubelet's `/metrics/cadvisor` endpoint from each node's DaemonSet pod for the container metrics that `kubeletstats` doesn't translate: CFS throttling (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) and OOM kill events (`container_oom_events_total`). A relabel allowlist drops everything else at the receiver so cardinality stays bounded. |
+| `kubeStateMetrics` | off | Pulls cluster-state metrics from kube-state-metrics: pod phases (Pending / Terminating), container waiting reasons (CrashLoopBackOff, ImagePullBackOff), and resource quota usage. `mode: bundled` (default) deploys a small KSM Deployment for you; `mode: external` scrapes an existing KSM via `endpoint`. Off by default because the bundled mode adds a Deployment to the chart's footprint. |
 | `auditLogs` | off | Tail `/var/log/kubernetes/audit.log` from the host. Captures every Kubernetes API request — who did what to which resource. Self-managed clusters only — managed K8s (EKS, GKE, AKS, DOKS) route audit logs to the cloud provider's sink. |
 | `csi` | off | Auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their Prometheus `metrics` port — volume attach/detach latency, provisioning failures, IOPS. |
 | `coreDns` | off | Scrapes the cluster CoreDNS service on `:9153/metrics`. Surfaces query rate, latency, cache hit rate, error counts — common P99 latency culprits. |
@@ -253,6 +257,10 @@ The chart can also collect:
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above. |
 | `profiling.enabled` | `false` | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. Off by default; opt in for more telemetry. See section above. |
 | `hostMetrics.enabled` | `true` | Per-node OS metrics. |
+| `kubeletstats.utilizationMetrics.enabled` | `true` | Container & pod CPU/memory saturation (% of request and limit). No extra scrape — derived from kubeletstats data. |
+| `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). |
+| `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` for CFS throttling + OOM kill counters. Allowlisted to 3 metrics. |
+| `kubeStateMetrics.enabled` | `false` | Pull pod phases, container waiting reasons (CrashLoopBackOff / ImagePullBackOff), and ResourceQuota usage from kube-state-metrics. See `kubeStateMetrics.mode` for bundled vs external. |
 | `auditLogs.enabled` | `false` | Kubernetes audit log collection (self-managed clusters). |
 | `csi.enabled` | `false` | CSI driver Prometheus metrics. |
 | `coreDns.enabled` | `false` | CoreDNS Prometheus metrics. |

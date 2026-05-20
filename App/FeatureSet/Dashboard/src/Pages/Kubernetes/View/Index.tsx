@@ -943,8 +943,7 @@ const KubernetesClusterOverview: FunctionComponent<
         for (const p of (result.data || []) as Array<AggregatedModel>) {
           const attrs: Record<string, unknown> =
             (p["attributes"] as Record<string, unknown>) || {};
-          const pointDirection: string =
-            (attrs["direction"] as string) || "";
+          const pointDirection: string = (attrs["direction"] as string) || "";
           if (pointDirection !== direction) {
             continue;
           }

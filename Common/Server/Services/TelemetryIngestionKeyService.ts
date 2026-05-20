@@ -9,12 +9,16 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import { createHash } from "crypto";
 
-// 60s is the worst-case staleness on any single API node after a key is
-// revoked from the dashboard. We invalidate in-process immediately on
-// delete/update; this TTL is the upper bound for *other* processes.
+/*
+ * 60s is the worst-case staleness on any single API node after a key is
+ * revoked from the dashboard. We invalidate in-process immediately on
+ * delete/update; this TTL is the upper bound for *other* processes.
+ */
 const POSITIVE_TTL_MS: number = 60 * 1000;
-// Short TTL on misses so an invalid-token flood can't pin entries in the
-// bounded cache for long while still absorbing repeat hits.
+/*
+ * Short TTL on misses so an invalid-token flood can't pin entries in the
+ * bounded cache for long while still absorbing repeat hits.
+ */
 const NEGATIVE_TTL_MS: number = 10 * 1000;
 
 export class Service extends DatabaseService<Model> {
@@ -40,8 +44,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    // We don't know which secretKey(s) are being deleted without an extra
-    // query; clear the whole cache. Key deletes are rare so this is cheap.
+    /*
+     * We don't know which secretKey(s) are being deleted without an extra
+     * query; clear the whole cache. Key deletes are rare so this is cheap.
+     */
     this.projectIdCache.clear();
     return { deleteBy, carryForward: null };
   }
@@ -50,8 +56,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    // Same reasoning as onBeforeDelete. secretKey is not user-editable today
-    // but projectId could change, so be conservative.
+    /*
+     * Same reasoning as onBeforeDelete. secretKey is not user-editable today
+     * but projectId could change, so be conservative.
+     */
     this.projectIdCache.clear();
     return { updateBy, carryForward: null };
   }
@@ -66,7 +74,9 @@ export class Service extends DatabaseService<Model> {
   public async getProjectIdFromSecretKey(
     secretKey: string,
   ): Promise<ObjectID | null> {
-    const cacheKey: string = createHash("sha256").update(secretKey).digest("hex");
+    const cacheKey: string = createHash("sha256")
+      .update(secretKey)
+      .digest("hex");
 
     const cached: string | null | undefined = this.projectIdCache.get(cacheKey);
     if (cached !== undefined) {

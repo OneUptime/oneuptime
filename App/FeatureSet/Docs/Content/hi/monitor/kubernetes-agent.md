@@ -185,7 +185,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `profiling.tracers` | `""` *(सभी रनटाइम)* | लोड करने के लिए भाषा ट्रेसर्स की अल्पविराम-अलग सूची। |
 | `profiling.obiProcessContext` | `true` | ट्रेस ↔ प्रोफ़ाइल लिंकिंग के लिए OBI के ट्रेस कॉन्टेक्स्ट के साथ सैंपल्स को सहसंबंधित करें। |
 
-## अन्य डेटा संग्रहण (होस्ट मेट्रिक्स, ऑडिट लॉग्स, CSI, CoreDNS)
+## अन्य डेटा संग्रहण (होस्ट मेट्रिक्स, सैचुरेशन, cAdvisor, KSM, ऑडिट लॉग्स, CSI, CoreDNS)
 
 Chart निम्नलिखित भी एकत्र कर सकता है:
 
