@@ -44,8 +44,8 @@ import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
 import Metric, {
   MetricPointType,
-  ServiceType,
 } from "../../Models/AnalyticsModels/Metric";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger, { LogAttributes } from "../Utils/Logger";

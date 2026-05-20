@@ -14,8 +14,6 @@ import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 
-export { ServiceType };
-
 export enum AggregationTemporality {
   Delta = "Delta",
   Cumulative = "Cumulative",
