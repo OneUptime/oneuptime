@@ -226,7 +226,6 @@ import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
 import RunbookRule from "./RunbookRule";
-import ServiceDependency from "./ServiceDependency";
 import ServiceMonitor from "./ServiceMonitor";
 
 import UserTotpAuth from "./UserTotpAuth";
@@ -618,7 +617,6 @@ const AllModelTypes: Array<{
   Service,
   ServiceOwnerTeam,
   ServiceOwnerUser,
-  ServiceDependency,
   ServiceMonitor,
   ServiceCodeRepository,
 

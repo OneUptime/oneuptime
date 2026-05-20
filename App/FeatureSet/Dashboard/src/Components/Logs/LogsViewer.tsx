@@ -563,12 +563,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["severityTexts"] = Array.from(severityValues);
         }
 
-        const serviceFilterValues: Set<string> | undefined =
-          appliedFacetFilters.get("serviceId");
+        /*
+         * serviceId and the virtual resource facets (hostId / dockerHostId /
+         * kubernetesClusterId) all read out of the same `serviceId` column —
+         * merge them into a single serviceIds list so the histogram applies
+         * the union of selected resources.
+         */
+        const resourceFilterIds: Set<string> = new Set<string>();
+        for (const facetKey of [
+          "serviceId",
+          "hostId",
+          "dockerHostId",
+          "kubernetesClusterId",
+        ]) {
+          const values: Set<string> | undefined =
+            appliedFacetFilters.get(facetKey);
+          if (values) {
+            for (const value of values) {
+              resourceFilterIds.add(value);
+            }
+          }
+        }
 
-        if (serviceFilterValues && serviceFilterValues.size > 0) {
-          // Merge with prop-level serviceIds (facet filter overrides/narrows)
-          (requestData as any)["serviceIds"] = Array.from(serviceFilterValues);
+        if (resourceFilterIds.size > 0) {
+          (requestData as any)["serviceIds"] = Array.from(resourceFilterIds);
         }
 
         const traceFilterValues: Set<string> | undefined =
@@ -627,7 +645,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         const requestData: JSONObject = {
           startTime: dateRange.startValue.toISOString(),
           endTime: dateRange.endValue.toISOString(),
-          facetKeys: ["severityText", "serviceId"],
+          facetKeys: [
+            "severityText",
+            "serviceId",
+            "hostId",
+            "dockerHostId",
+            "kubernetesClusterId",
+          ],
         } as JSONObject;
 
         if (serviceIdStrings) {
@@ -960,8 +984,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         dateRange.endValue,
       );
 
+      /*
+       * serviceId, hostId, dockerHostId and kubernetesClusterId facets
+       * all filter the same underlying `serviceId` column — the
+       * discriminator only matters at facet computation time. Coalesce
+       * any selected values across these facets into a single
+       * `serviceId IN (...)` predicate.
+       */
+      const resourceIds: Set<string> = new Set<string>();
+      const resourceFacetKeys: Set<string> = new Set<string>([
+        "serviceId",
+        "hostId",
+        "dockerHostId",
+        "kubernetesClusterId",
+      ]);
+
       for (const [key, values] of facets.entries()) {
         if (values.size === 0) {
+          continue;
+        }
+
+        if (resourceFacetKeys.has(key)) {
+          for (const value of values) {
+            resourceIds.add(value);
+          }
           continue;
         }
 
@@ -991,6 +1037,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           // Multiple values: use Includes
           (updatedFilter as any)[key] = new Includes(Array.from(values));
         }
+      }
+
+      if (resourceIds.size === 1) {
+        (updatedFilter as any).serviceId = Array.from(resourceIds)[0]!;
+      } else if (resourceIds.size > 1) {
+        (updatedFilter as any).serviceId = new Includes(
+          Array.from(resourceIds),
+        );
       }
 
       return updatedFilter;
@@ -1247,6 +1301,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     const facetKeyDisplayNames: Record<string, string> = {
       severityText: "Severity",
       serviceId: "Service",
+      hostId: "Host",
+      dockerHostId: "Docker Host",
+      kubernetesClusterId: "Kubernetes Cluster",
       traceId: "Trace",
       spanId: "Span",
     };

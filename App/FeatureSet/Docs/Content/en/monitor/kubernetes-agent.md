@@ -18,6 +18,46 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 Your cluster will appear in OneUptime within a few minutes.
 
+## Optional — Auto-tag this cluster with project labels
+
+Any resource attribute prefixed with `oneuptime.label.` is promoted to a project Label and attached to the cluster, services, and hosts emitted from this agent. Pattern: `oneuptime.label.<dimension>=<value>` becomes a label named `<dimension>:<value>`.
+
+Pass labels at install time with `--set oneuptime.labels.<key>=<value>`:
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent \
+  --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod \
+  --set oneuptime.labels.team=payments \
+  --set oneuptime.labels.env=production \
+  --set oneuptime.labels.region=us-east-1
+```
+
+Or keep them in a values file:
+
+```yaml
+# values.yaml
+oneuptime:
+  url: https://oneuptime.com
+  apiKey: <YOUR_API_KEY>
+  labels:
+    team: payments
+    env: production
+    region: us-east-1
+clusterName: prod
+```
+
+```bash
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --create-namespace \
+  -f values.yaml
+```
+
+Every record this agent ships — logs, metrics, traces, eBPF auto-instrumented spans, and CPU profiles — shows up tagged `team:payments`, `env:production`, and `region:us-east-1` in the OneUptime UI. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the agent.
+
 ## Pick the right preset for your cluster
 
 Different Kubernetes distributions have different constraints — most notably, whether workloads can mount `hostPath` volumes. Rather than make you read security docs, the chart exposes a single top-level option: `preset`.
@@ -203,6 +243,7 @@ The chart can also collect:
 | `preset` | (empty — treated as `standard`) | See the table above. |
 | `oneuptime.url` | *(required)* | URL of your OneUptime instance. |
 | `oneuptime.apiKey` | *(required)* | Project API key (Settings → API Keys). |
+| `oneuptime.labels` | `{}` | Project Labels to attach to every record from this agent. Each `<key>: <value>` becomes an `oneuptime.label.<key>=<value>` resource attribute. See the auto-tag section above. |
 | `clusterName` | *(required)* | Unique name for this cluster. Stamped as `k8s.cluster.name` on every record. |
 | `namespaceFilters.include` | `[]` | If set, only these namespaces are monitored. |
 | `namespaceFilters.exclude` | `["kube-system"]` | Namespaces to skip. |

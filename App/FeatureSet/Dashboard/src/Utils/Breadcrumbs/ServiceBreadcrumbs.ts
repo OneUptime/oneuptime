@@ -6,11 +6,6 @@ import Link from "Common/Types/Link";
 export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICES, ["Project", "Services"]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_DEPENDENCY_GRAPH, [
-      "Project",
-      "Services",
-      "Dependency Graph",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW, [
       "Project",
       "Services",
@@ -21,12 +16,6 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Services",
       "View Service",
       "Owners",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_DEPENDENCIES, [
-      "Project",
-      "Services",
-      "View Service",
-      "Dependencies",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_DELETE, [
       "Project",

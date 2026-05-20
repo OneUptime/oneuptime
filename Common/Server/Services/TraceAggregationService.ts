@@ -9,6 +9,7 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export interface HistogramBucket {
   time: string;
@@ -69,6 +70,17 @@ export class TraceAggregationService {
     "statusCode",
     "isRootSpan",
   ]);
+  /*
+   * Virtual facet keys — same scheme as LogAggregationService. The
+   * `serviceId` slot is reused for host / docker host / k8s cluster ids,
+   * disambiguated by the `serviceType` discriminator.
+   */
+  private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
+    new Map([
+      ["hostId", ServiceType.Host],
+      ["dockerHostId", ServiceType.DockerHost],
+      ["kubernetesClusterId", ServiceType.KubernetesCluster],
+    ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
 
@@ -156,20 +168,38 @@ export class TraceAggregationService {
       TraceAggregationService.validateFacetKey(facetKey);
     }
 
+    const resourceKeys: Array<string> = request.facetKeys.filter(
+      (key: string): boolean => {
+        return TraceAggregationService.RESOURCE_FACET_KEYS.has(key);
+      },
+    );
     const topLevelKeys: Array<string> = request.facetKeys.filter(
       (key: string): boolean => {
-        return TraceAggregationService.isTopLevelColumn(key);
+        return (
+          TraceAggregationService.isTopLevelColumn(key) &&
+          !TraceAggregationService.RESOURCE_FACET_KEYS.has(key)
+        );
       },
     );
     const attributeKeys: Array<string> = request.facetKeys.filter(
       (key: string): boolean => {
-        return !TraceAggregationService.isTopLevelColumn(key);
+        return (
+          !TraceAggregationService.isTopLevelColumn(key) &&
+          !TraceAggregationService.RESOURCE_FACET_KEYS.has(key)
+        );
       },
     );
 
     const selectColumns: Array<string> = [];
     if (topLevelKeys.length > 0) {
       selectColumns.push(...topLevelKeys);
+    }
+    if (resourceKeys.length > 0) {
+      // Virtual facets read out of serviceId disambiguated by serviceType.
+      if (!selectColumns.includes("serviceId")) {
+        selectColumns.push("serviceId");
+      }
+      selectColumns.push("serviceType");
     }
     if (attributeKeys.length > 0) {
       selectColumns.push("attributes");
@@ -242,6 +272,27 @@ export class TraceAggregationService {
         }
         const map: Map<string, number> = counts[key]!;
         map.set(value, (map.get(value) || 0) + 1);
+      }
+
+      if (resourceKeys.length > 0) {
+        const rowServiceType: string =
+          row["serviceType"] === undefined || row["serviceType"] === null
+            ? ""
+            : String(row["serviceType"]);
+        const rowServiceId: unknown = row["serviceId"];
+        if (rowServiceId !== undefined && rowServiceId !== null) {
+          const value: string = String(rowServiceId);
+          if (value.length > 0) {
+            for (const key of resourceKeys) {
+              const expected: ServiceType | undefined =
+                TraceAggregationService.RESOURCE_FACET_KEYS.get(key);
+              if (expected && rowServiceType === expected) {
+                const map: Map<string, number> = counts[key]!;
+                map.set(value, (map.get(value) || 0) + 1);
+              }
+            }
+          }
+        }
       }
 
       if (attributeKeys.length > 0) {
@@ -368,13 +419,20 @@ export class TraceAggregationService {
 
     TraceAggregationService.validateFacetKey(request.facetKey);
 
-    const isTopLevelColumn: boolean = TraceAggregationService.isTopLevelColumn(
-      request.facetKey,
-    );
+    const resourceServiceType: ServiceType | undefined =
+      TraceAggregationService.RESOURCE_FACET_KEYS.get(request.facetKey);
+    const isResourceFacet: boolean = resourceServiceType !== undefined;
+    const isTopLevelColumn: boolean =
+      isResourceFacet ||
+      TraceAggregationService.isTopLevelColumn(request.facetKey);
 
     const statement: Statement = new Statement();
 
-    if (isTopLevelColumn) {
+    if (isResourceFacet) {
+      statement.append(
+        SQL`SELECT toString(serviceId) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+      );
+    } else if (isTopLevelColumn) {
       statement.append(
         SQL`SELECT toString(${request.facetKey}) AS val, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
       );
@@ -400,7 +458,21 @@ export class TraceAggregationService {
       }}`,
     );
 
-    if (!isTopLevelColumn) {
+    if (isResourceFacet) {
+      statement.append(
+        SQL` AND serviceType = ${{
+          type: TableColumnType.Text,
+          value: resourceServiceType as string,
+        }}`,
+      );
+    } else if (request.facetKey === "serviceId") {
+      statement.append(
+        SQL` AND (serviceType = '' OR serviceType = ${{
+          type: TableColumnType.Text,
+          value: ServiceType.OpenTelemetry as string,
+        }})`,
+      );
+    } else if (!isTopLevelColumn) {
       statement.append(
         SQL` AND JSONHas(attributes, ${{
           type: TableColumnType.Text,
@@ -539,7 +611,10 @@ export class TraceAggregationService {
       throw new BadDataException("Invalid facetKey");
     }
 
-    if (TraceAggregationService.isTopLevelColumn(facetKey)) {
+    if (
+      TraceAggregationService.isTopLevelColumn(facetKey) ||
+      TraceAggregationService.RESOURCE_FACET_KEYS.has(facetKey)
+    ) {
       return;
     }
 

@@ -43,7 +43,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               minLength: 2,
               noSpaces: true,
               noSpecialCharacters: true,
-              noNumbers: true,
             },
           },
           {

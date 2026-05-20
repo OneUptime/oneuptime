@@ -161,7 +161,6 @@ import WorkflowLogService from "./WorkflowLogService";
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import ServiceDependencyService from "./ServiceDependencyService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
@@ -388,7 +387,6 @@ const services: Array<BaseService> = [
   ServiceService,
   ServiceOwnerTeamService,
   ServiceOwnerUserService,
-  ServiceDependencyService,
   ServiceMonitorService,
   ServiceCodeRepositoryService,
 

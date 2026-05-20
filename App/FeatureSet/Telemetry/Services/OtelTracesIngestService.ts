@@ -1,7 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
-  TelemetryServiceMetadata,
-} from "Common/Server/Services/OpenTelemetryIngestService";
+import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -244,40 +242,81 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
+          const kubernetesClusterId: ObjectID | null =
+            await this.autoDiscoverKubernetesCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const dockerHostId: ObjectID | null =
+            await this.autoDiscoverDockerHost({
+              projectId,
+              attributes: resourceAttributes_raw,
+            });
 
           /*
            * Generic Host auto-discovery from resource attributes.
            * Traces don't carry infra metrics; we gate on resource
-           * signals (host.id / host.arch / os.type / container.runtime /
-           * k8s.cluster.name) so app-only traces don't flood the Hosts
-           * list.
+           * signals (os.type / container.runtime) so app-only traces
+           * don't flood the Hosts list. K8s telemetry routes to the
+           * KubernetesCluster id instead.
            */
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
+            dockerHostId,
+            kubernetesClusterId,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
+          const serviceMetadata: TelemetryServiceMetadata =
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
             ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
@@ -803,6 +842,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
       startTime: OneUptimeDate.toClickhouseDateTime(data.startTime.date),
       endTime: OneUptimeDate.toClickhouseDateTime(data.endTime.date),
       startTimeUnixNano: data.startTime.nano,
@@ -849,6 +889,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
       time: OneUptimeDate.toClickhouseDateTime(data.time.date),
       timeUnixNano: data.time.nano,
       exceptionType: data.exceptionType || "",

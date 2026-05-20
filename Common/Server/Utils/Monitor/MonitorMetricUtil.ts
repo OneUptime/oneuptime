@@ -5,10 +5,8 @@ import MetricService from "../../Services/MetricService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import DataToProcess from "./DataToProcess";
-import {
-  MetricPointType,
-  ServiceType,
-} from "../../../Models/AnalyticsModels/Metric";
+import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import BasicInfrastructureMetrics, {
   NetworkInterfaceMetrics,

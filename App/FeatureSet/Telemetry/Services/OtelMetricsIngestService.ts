@@ -1,5 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
+import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
@@ -10,10 +10,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import {
-  MetricPointType,
-  ServiceType,
-} from "Common/Models/AnalyticsModels/Metric";
+import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
@@ -219,9 +216,31 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const rm: JSONObject = resourceMetric as JSONObject;
       const ras: JSONArray =
         ((rm["resource"] as JSONObject)?.["attributes"] as JSONArray) || [];
-      const hostName: string | null =
-        OtelIngestBaseService.getHostNameFromAttributes(ras);
+
+      /*
+       * Mirror the phantom-host gate from `autoDiscoverHost`: require
+       * explicit host.name and reject k8s telemetry. Application SDKs
+       * inside pods set host.name to the pod's container hostname (the
+       * pod name) and os.type=linux, which used to slip into the Host
+       * table from this batch-enrichment pass even after autoDiscoverHost
+       * rejected the same batch. k8s pods/nodes belong in
+       * KubernetesResource (kind=Pod / kind=Node), not Host.
+       */
+      const hostName: string | null = OtelIngestBaseService.getStringAttribute(
+        ras,
+        "host.name",
+      );
       if (!hostName) {
+        continue;
+      }
+
+      const k8sPodName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.pod.name");
+      const k8sNodeName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.node.name");
+      const k8sClusterName: string | null =
+        OtelIngestBaseService.getStringAttribute(ras, "k8s.cluster.name");
+      if (k8sPodName || k8sNodeName || k8sClusterName) {
         continue;
       }
 
@@ -469,11 +488,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
-
           // Auto-discover Kubernetes cluster from resource attributes
           const kubernetesClusterId: ObjectID | null =
             await this.autoDiscoverKubernetesCluster({
@@ -505,7 +519,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount?: number;
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
 
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: hostInfraStats.hasInfraSignal,
@@ -516,17 +530,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount: hostInfraStats.processCount,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
-
           const serviceMetadata: TelemetryServiceMetadata =
-            serviceDictionary[serviceName]!;
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
+
+          const stampHostName: string | null =
+            OtelIngestBaseService.getStringAttribute(
+              resourceAttributes_raw,
+              "host.name",
+            );
+          const stampClusterName: string | null =
+            OtelIngestBaseService.getClusterNameFromAttributes(
+              resourceAttributes_raw,
+            );
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
@@ -535,6 +560,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
+            ...(hostId && stampHostName
+              ? TelemetryUtil.getAttributesForHostIdAndHostName({
+                  hostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(dockerHostId && stampHostName
+              ? TelemetryUtil.getAttributesForDockerHostIdAndHostName({
+                  dockerHostId,
+                  hostName: stampHostName,
+                })
+              : {}),
+            ...(kubernetesClusterId && stampClusterName
+              ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
+                  kubernetesClusterId,
+                  clusterName: stampClusterName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
@@ -1570,7 +1613,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
-      serviceType: ServiceType.OpenTelemetry,
+      serviceType: data.serviceMetadata.serviceType,
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,

@@ -47,7 +47,6 @@ export const MonitorsRoutePath: Dictionary<string> = {
 export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
-  [PageMap.SERVICE_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
@@ -1670,11 +1669,6 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.SERVICES]: new Route(`/dashboard/${RouteParams.ProjectID}/service`),
 
-  // Root-level Service pages
-  [PageMap.SERVICE_DEPENDENCY_GRAPH]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/dependency-graph`,
-  ),
-
   // Service Settings Routes
   [PageMap.SERVICE_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
@@ -1696,12 +1690,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_OWNERS]
-    }`,
-  ),
-
-  [PageMap.SERVICE_VIEW_DEPENDENCIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_DEPENDENCIES]
     }`,
   ),
 

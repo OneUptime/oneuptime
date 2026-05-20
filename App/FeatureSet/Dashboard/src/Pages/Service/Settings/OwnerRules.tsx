@@ -1,5 +1,11 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -34,6 +40,31 @@ When a rule matches, every user and team listed on the rule is added as an owner
 const ServiceOwnerRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const navButtons: Array<CardButtonSchema> = [
+    {
+      title: "All Services",
+      icon: IconProp.List,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: () => {
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
+        );
+      },
+    },
+    {
+      title: "Label Rules",
+      icon: IconProp.Tag,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: () => {
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route,
+          ),
+        );
+      },
+    },
+  ];
+
   return (
     <ModelTable<ServiceOwnerRule>
       modelType={ServiceOwnerRule}
@@ -48,6 +79,7 @@ const ServiceOwnerRulesPage: FunctionComponent<
         title: "Service Owner Rules",
         description:
           "Auto-assign owner users and teams when matching services are created.",
+        buttons: navButtons,
       }}
       helpContent={{
         title: "How Service Owner Rules Work",

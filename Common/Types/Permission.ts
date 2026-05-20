@@ -1124,11 +1124,6 @@ enum Permission {
   EditService = "EditService",
   ReadService = "ReadService",
 
-  CreateServiceDependency = "CreateServiceDependency",
-  DeleteServiceDependency = "DeleteServiceDependency",
-  EditServiceDependency = "EditServiceDependency",
-  ReadServiceDependency = "ReadServiceDependency",
-
   CreateServiceMonitor = "CreateServiceMonitor",
   DeleteServiceMonitor = "DeleteServiceMonitor",
   EditServiceMonitor = "EditServiceMonitor",
@@ -7524,47 +7519,6 @@ export class PermissionHelper {
         description: "This permission can read Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-
-      {
-        permission: Permission.CreateServiceDependency,
-        title: "Create Service Dependency",
-        description:
-          "This permission can create Service Dependencies in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.DeleteServiceDependency,
-        title: "Delete Service Dependency",
-        description:
-          "This permission can delete Service Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.EditServiceDependency,
-        title: "Edit Service Dependency",
-        description:
-          "This permission can edit Service Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.ReadServiceDependency,
-        title: "Read Service Dependency",
-        description:
-          "This permission can read Service Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
       },

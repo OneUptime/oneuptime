@@ -1,5 +1,11 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -31,6 +37,31 @@ When a rule matches, every label listed in \`Labels to Add\` is attached to the 
 const ServiceLabelRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const navButtons: Array<CardButtonSchema> = [
+    {
+      title: "All Services",
+      icon: IconProp.List,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: () => {
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
+        );
+      },
+    },
+    {
+      title: "Owner Rules",
+      icon: IconProp.User,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: () => {
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SERVICE_SETTINGS_OWNER_RULES] as Route,
+          ),
+        );
+      },
+    },
+  ];
+
   return (
     <ModelTable<ServiceLabelRule>
       modelType={ServiceLabelRule}
@@ -44,6 +75,7 @@ const ServiceLabelRulesPage: FunctionComponent<
       cardProps={{
         title: "Service Label Rules",
         description: "Auto-attach labels when matching services are created.",
+        buttons: navButtons,
       }}
       helpContent={{
         title: "How Service Label Rules Work",

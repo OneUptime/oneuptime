@@ -2,6 +2,7 @@ import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
 import {
   ExpressRequest,
@@ -44,6 +45,7 @@ jest.mock("../../../Server/Services/UserService");
 jest.mock("../../../Server/Services/AccessTokenService");
 jest.mock("../../../Server/Utils/Response");
 jest.mock("../../../Server/Services/ProjectService");
+jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
 
@@ -290,6 +292,9 @@ describe("UserMiddleware", () => {
       ).mockReturnValue(mockedAccessToken);
       getJestSpyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
       getJestSpyOn(HashedString, "hashValue").mockResolvedValue(hashValue);
+      getJestSpyOn(TeamMemberService, "getTeamIdsForUser").mockResolvedValue(
+        [],
+      );
     });
 
     beforeEach(() => {
