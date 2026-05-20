@@ -12,6 +12,9 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
+
+export { ServiceType };
 
 export enum AggregationTemporality {
   Delta = "Delta",
@@ -24,13 +27,6 @@ export enum MetricPointType {
   Histogram = "Histogram",
   ExponentialHistogram = "ExponentialHistogram",
   Summary = "Summary",
-}
-
-export enum ServiceType {
-  OpenTelemetry = "OpenTelemetry",
-  Monitor = "Monitor",
-  Alert = "Alert",
-  Incident = "Incident",
 }
 
 @OperationalResource()

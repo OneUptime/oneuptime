@@ -12,6 +12,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export enum SpanKind {
   Server = "SPAN_KIND_SERVER",
@@ -81,9 +82,45 @@ export default class Span extends AnalyticsBaseModel {
     const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "serviceId",
       title: "Service ID",
-      description: "ID of the Service which created the log",
+      description:
+        "ID of the resource the span belongs to (Service / Host / DockerHost / KubernetesCluster / Monitor — disambiguated by serviceType)",
       required: true,
       type: TableColumnType.ObjectID,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceType",
+      title: "Service Type",
+      description:
+        "Discriminator for serviceId — tells the read side which resource table to dispatch to",
+      required: false,
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_service_type",
+        type: SkipIndexType.Set,
+        params: [10],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -766,6 +803,7 @@ export default class Span extends AnalyticsBaseModel {
       tableColumns: [
         projectIdColumn,
         serviceIdColumn,
+        serviceTypeColumn,
         startTimeColumn,
         endTimeColumn,
         startTimeUnixNanoColumn,
@@ -865,6 +903,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set serviceId(v: ObjectID | undefined) {
     this.setColumnValue("serviceId", v);
+  }
+
+  public get serviceType(): ServiceType | undefined {
+    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  }
+
+  public set serviceType(v: ServiceType | undefined) {
+    this.setColumnValue("serviceType", v);
   }
 
   public get startTime(): Date | undefined {
