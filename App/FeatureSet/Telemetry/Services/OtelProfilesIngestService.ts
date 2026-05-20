@@ -1,7 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
-  TelemetryServiceMetadata,
-} from "Common/Server/Services/OpenTelemetryIngestService";
+import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -199,25 +197,51 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
+          /*
+           * Auto-discover host / docker host / k8s cluster from
+           * resource attributes. The eBPF profiler is a host-level
+           * agent, so most batches without an explicit service.name
+           * carry a host signal and need to land on the Host row
+           * rather than synthesising a phantom `host/<name>` Service.
+           */
+          const kubernetesClusterId: ObjectID | null =
+            await this.autoDiscoverKubernetesCluster({
+              projectId: (req as TelemetryRequest).projectId,
+              attributes: resourceAttributes_raw,
+            });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
+          const dockerHostId: ObjectID | null =
+            await this.autoDiscoverDockerHost({
+              projectId: (req as TelemetryRequest).projectId,
+              attributes: resourceAttributes_raw,
+            });
+
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
+            projectId: (req as TelemetryRequest).projectId,
+            attributes: resourceAttributes_raw,
+            hasInfraSignal: false,
+            dockerHostId,
+            kubernetesClusterId,
+          });
+
+          const resolvedServiceMetadata: TelemetryServiceMetadata =
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId: (req as TelemetryRequest).projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = resolvedServiceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = resolvedServiceMetadata;
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
             ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceId: resolvedServiceMetadata.serviceId!,
               serviceName: serviceName,
             }),
             ...TelemetryUtil.getAttributes({
@@ -903,6 +927,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
       profileId: data.profileId,
       traceId: data.traceId || "",
       spanId: data.spanId || "",
@@ -959,6 +984,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
+      serviceType: data.serviceMetadata.serviceType,
       profileId: data.profileId,
       traceId: data.traceId || "",
       spanId: data.spanId || "",

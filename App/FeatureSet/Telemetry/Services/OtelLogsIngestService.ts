@@ -1,7 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
-  TelemetryServiceMetadata,
-} from "Common/Server/Services/OpenTelemetryIngestService";
+import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
@@ -186,11 +184,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
-
           /*
            * Auto-discover Kubernetes cluster from resource attributes.
            * Returns the cluster ID so the inventory hook can key its buffer.
@@ -230,7 +223,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
            * os.type, container.runtime, k8s.cluster.name) to gate row
            * creation.
            */
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: false,
@@ -238,20 +231,24 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             kubernetesClusterId,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
+          const serviceMetadata: TelemetryServiceMetadata =
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
             ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
             ...TelemetryUtil.getAttributes({
@@ -561,6 +558,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     updatedAt: ingestionTimestamp,
                     projectId: projectId.toString(),
                     serviceId: serviceId.toString(),
+                    serviceType: serviceMetadata.serviceType,
                     time: logTimestamp,
                     timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
                     severityNumber: logSeverityNumber,

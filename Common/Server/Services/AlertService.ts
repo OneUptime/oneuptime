@@ -38,9 +38,7 @@ import MetricService from "./MetricService";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../Types/Date";
-import Metric, {
-  MetricPointType,
-} from "../../Models/AnalyticsModels/Metric";
+import Metric, { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import AlertMetricType from "../../Types/Alerts/AlertMetricType";
 import AlertFeedService from "./AlertFeedService";

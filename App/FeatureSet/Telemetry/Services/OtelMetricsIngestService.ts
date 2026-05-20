@@ -1,5 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
-import OTelIngestService, {
+import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
@@ -11,7 +11,6 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
-import ServiceType from "Common/Types/Telemetry/ServiceType";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
@@ -467,11 +466,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
-          const serviceName: string = await this.getServiceNameFromAttributes(
-            req,
-            resourceAttributes_raw,
-          );
-
           // Auto-discover Kubernetes cluster from resource attributes
           const kubernetesClusterId: ObjectID | null =
             await this.autoDiscoverKubernetesCluster({
@@ -503,7 +497,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount?: number;
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
 
-          await this.autoDiscoverHost({
+          const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
             attributes: resourceAttributes_raw,
             hasInfraSignal: hostInfraStats.hasInfraSignal,
@@ -514,17 +508,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount: hostInfraStats.processCount,
           });
 
-          if (!serviceDictionary[serviceName]) {
-            serviceDictionary[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName: serviceName,
-                projectId: (req as TelemetryRequest).projectId,
-                resourceAttributes: resourceAttributes_raw,
-              });
-          }
-
           const serviceMetadata: TelemetryServiceMetadata =
-            serviceDictionary[serviceName]!;
+            await this.resolveTelemetryResource({
+              req,
+              attributes: resourceAttributes_raw,
+              projectId,
+              hostId,
+              dockerHostId,
+              kubernetesClusterId,
+            });
+          const serviceName: string = serviceMetadata.serviceName;
+
+          serviceDictionary[serviceName] = serviceMetadata;
 
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
@@ -1568,7 +1563,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
-      serviceType: ServiceType.OpenTelemetry,
+      serviceType: data.serviceMetadata.serviceType,
       name: data.metricName,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,

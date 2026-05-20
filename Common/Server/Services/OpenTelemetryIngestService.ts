@@ -16,6 +16,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../Utils/Logger";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -25,6 +26,14 @@ export enum OtelAggregationTemporality {
 export interface TelemetryServiceMetadata {
   serviceName: string;
   serviceId: ObjectID;
+  /*
+   * Discriminator stamped on every analytics row so the read side
+   * knows which Postgres table the `serviceId` actually points at
+   * (real Service, Host, DockerHost, KubernetesCluster, Monitor, …).
+   * Defaults to OpenTelemetry for legacy ingest paths that go through
+   * `telemetryServiceFromName`.
+   */
+  serviceType: ServiceType;
   dataRententionInDays: number;
   serviceRetentionConfig: TelemetryRetentionConfig | null;
   serviceRetentionInDays: number | null;
@@ -166,6 +175,7 @@ export default class OTelIngestService {
       return {
         serviceName: data.serviceName,
         serviceId: svc.id!,
+        serviceType: ServiceType.OpenTelemetry,
         dataRententionInDays:
           serviceLevelRetention || projectContext.projectRetentionInDays,
         serviceRetentionConfig: svc.telemetryRetentionConfig ?? null,
@@ -225,6 +235,36 @@ export default class OTelIngestService {
 
     return buildMetadata(service);
   }
+
+  /*
+   * Builds a TelemetryServiceMetadata for a non-Service resource —
+   * Host, DockerHost, KubernetesCluster, Monitor. These resources
+   * own telemetry directly via their own Postgres id (stamped into
+   * the analytics row's `serviceId` column) and do not have a
+   * paired Service row. Retention falls back to the project default
+   * since these resources don't carry per-row retention configs.
+   */
+  @CaptureSpan()
+  public static async buildResourceMetadataForNonService(data: {
+    serviceName: string;
+    resourceId: ObjectID;
+    serviceType: ServiceType;
+    projectId: ObjectID;
+  }): Promise<TelemetryServiceMetadata> {
+    const projectContext: ProjectRetentionContext =
+      await this.getProjectRetentionContext(data.projectId);
+    return {
+      serviceName: data.serviceName,
+      serviceId: data.resourceId,
+      serviceType: data.serviceType,
+      dataRententionInDays: projectContext.projectRetentionInDays,
+      serviceRetentionConfig: null,
+      serviceRetentionInDays: null,
+      projectRetentionConfig: projectContext.projectRetentionConfig,
+      projectRetentionInDays: projectContext.projectRetentionInDays,
+    };
+  }
+
   @CaptureSpan()
   public static getMetricFromDatapoint(data: {
     dbMetric: Metric;

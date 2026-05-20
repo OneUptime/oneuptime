@@ -12,6 +12,10 @@ import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import OTelIngestService, {
+  TelemetryServiceMetadata,
+} from "Common/Server/Services/OpenTelemetryIngestService";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
@@ -19,11 +23,25 @@ export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60; // 1 day
 
+  /*
+   * Resolves a real (user-facing) service name from OTel resource
+   * attributes. Returns null when the batch is host- / docker-host-
+   * level telemetry that should be routed to the matching Host or
+   * DockerHost record via `serviceId` instead of synthesising a
+   * phantom Service row. The caller (OTelIngestService.resolveTelemetryResource)
+   * is responsible for that routing decision and picks the right
+   * `ServiceType` discriminator for the analytics row.
+   *
+   * "Unknown Service" is still returned for batches with no signal
+   * at all (no service.name, no docker container, no host / k8s /
+   * docker resource signal) — those legitimately have nowhere else
+   * to land.
+   */
   @CaptureSpan()
   protected static async getServiceNameFromAttributes(
     req: ExpressRequest,
     attributes: JSONArray,
-  ): Promise<string> {
+  ): Promise<string | null> {
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -51,7 +69,11 @@ export default abstract class OtelIngestBaseService {
      * Agent (container.runtime == "docker"), there is no explicit
      * service.name. Synthesize a per-container service name so each
      * container shows up as its own service in the OneUptime UI instead of
-     * every Docker log collapsing into "Unknown Service".
+     * every Docker log collapsing into "Unknown Service". A container
+     * name is a meaningful logical service (e.g. "oneuptime-postgres")
+     * and is intentionally still backed by a Service row. Batches that
+     * only carry container.id with no resolvable name fall through to
+     * null and get routed to the DockerHost record instead.
      */
     if (this.isDockerRuntime(attributes)) {
       const dockerServiceName: string | null = await this.getDockerServiceName(
@@ -64,31 +86,109 @@ export default abstract class OtelIngestBaseService {
     }
 
     /*
-     * Host-aware fallback: when telemetry arrives from a host (OTel
-     * hostmetrics receiver, infrastructure agent over OTLP, a k8s
-     * node, or the eBPF profiler scanning per-process activity)
-     * without an explicit service.name, synthesize a per-host
-     * service name so every signal originating on that host — host
-     * metrics, syslog/journald lines, kernel threads, system
-     * daemons, per-process profiles — rolls up under a single
-     * `host/<name>` entry in the Telemetry Services list. The
-     * underlying `process.executable.name` is still preserved on
-     * each row as an attribute, so per-process drill-down inside
-     * the host is available without polluting the services list.
+     * Host-level telemetry (OTel hostmetrics receiver, infrastructure
+     * agent over OTLP, k8s node, eBPF profiler) without an explicit
+     * service.name used to be folded into a synthetic `host/<name>`
+     * Service row, which duplicated the Host record we already create
+     * via `autoDiscoverHost`. Return null here so the caller routes
+     * the batch through the Host's own id with ServiceType.Host.
      *
-     * Phantom-service gate: only synthesize when the resource
-     * carries a strong host signal (os.type from the system
-     * resourcedetector, a container runtime, or a k8s cluster
-     * name). host.name alone is not enough — application SDKs
-     * auto-detect hostname inside pods, and trusting that would
-     * create a phantom service per pod.
+     * Phantom-host gating still lives in `autoDiscoverHost` — if the
+     * batch only carries application-SDK-detected host.name (no
+     * os.type / container.runtime / k8s.cluster.name), no Host row
+     * is created and the caller falls back to "Unknown Service".
      */
     const hostName: string | null = this.getHostNameFromAttributes(attributes);
     if (hostName && this.hasHostResourceSignal(attributes)) {
-      return `host/${hostName}`;
+      return null;
     }
 
     return "Unknown Service";
+  }
+
+  /*
+   * One-stop resolver used by every OTel / syslog / fluent ingest
+   * path. Takes the already-discovered Host / DockerHost /
+   * KubernetesCluster ids for this batch and dispatches:
+   *
+   *   1. Explicit service.name / x-oneuptime-service-name header
+   *      / docker container name  →  ServiceType.OpenTelemetry,
+   *      serviceId = Service._id (created on first contact via
+   *      `telemetryServiceFromName`).
+   *   2. Else if a Host was auto-discovered for this batch →
+   *      ServiceType.Host, serviceId = Host._id. Avoids the old
+   *      `host/<name>` phantom-Service duplication.
+   *   3. Else if a DockerHost was discovered →
+   *      ServiceType.DockerHost, serviceId = DockerHost._id.
+   *      Catches docker batches that carry only container.id but
+   *      no resolvable container name.
+   *   4. Else if a KubernetesCluster was discovered →
+   *      ServiceType.KubernetesCluster, serviceId = Cluster._id.
+   *      Rare in practice — most k8s batches also carry host.name
+   *      and route via #2.
+   *   5. Fallback: "Unknown Service" Service row, ServiceType.OpenTelemetry.
+   */
+  @CaptureSpan()
+  protected static async resolveTelemetryResource(data: {
+    req: ExpressRequest;
+    attributes: JSONArray;
+    projectId: ObjectID;
+    hostId?: ObjectID | null;
+    dockerHostId?: ObjectID | null;
+    kubernetesClusterId?: ObjectID | null;
+  }): Promise<TelemetryServiceMetadata> {
+    const serviceName: string | null = await this.getServiceNameFromAttributes(
+      data.req,
+      data.attributes,
+    );
+
+    if (serviceName !== null) {
+      return await OTelIngestService.telemetryServiceFromName({
+        serviceName,
+        projectId: data.projectId,
+        resourceAttributes: data.attributes,
+      });
+    }
+
+    const hostName: string | null = this.getHostNameFromAttributes(
+      data.attributes,
+    );
+
+    if (data.hostId) {
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: hostName ? `host/${hostName}` : "Host",
+        resourceId: data.hostId,
+        serviceType: ServiceType.Host,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.dockerHostId) {
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: hostName ? `docker-host/${hostName}` : "Docker Host",
+        resourceId: data.dockerHostId,
+        serviceType: ServiceType.DockerHost,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.kubernetesClusterId) {
+      const clusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: clusterName ? `k8s/${clusterName}` : "Kubernetes Cluster",
+        resourceId: data.kubernetesClusterId,
+        serviceType: ServiceType.KubernetesCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    return await OTelIngestService.telemetryServiceFromName({
+      serviceName: "Unknown Service",
+      projectId: data.projectId,
+      resourceAttributes: data.attributes,
+    });
   }
 
   @CaptureSpan()
@@ -96,7 +196,6 @@ export default abstract class OtelIngestBaseService {
     req: ExpressRequest,
     attributes: JSONArray,
   ): Promise<string | null> {
-    const hostName: string | null = this.getHostNameFromAttributes(attributes);
     const containerName: string | null = this.getStringAttribute(
       attributes,
       "container.name",
@@ -161,28 +260,16 @@ export default abstract class OtelIngestBaseService {
             (err as Error).message,
         );
       }
-
-      /*
-       * No cache hit yet (metrics scrape every 30s so the first few log
-       * batches for a newly-started container can race ahead of the cache
-       * fill). Fall back to a stable synthetic name derived from the host
-       * and the short container id so logs are still grouped per container.
-       */
-      const shortId: string = containerId.substring(0, 12);
-      if (hostName) {
-        return `docker/${hostName}/${shortId}`;
-      }
-      return `docker/${shortId}`;
     }
 
     /*
-     * No container identity at all — group by host so at least docker logs
-     * from the same host stick together.
+     * No resolvable container identity. Used to synthesise
+     * `docker/<hostName>/<shortId>` / `docker/<hostName>` / `docker/<shortId>`
+     * service rows, which created a duplicate alongside the DockerHost
+     * record `autoDiscoverDockerHost` had just upserted from the same
+     * batch. The caller now routes the batch through the DockerHost id
+     * with ServiceType.DockerHost.
      */
-    if (hostName) {
-      return `docker/${hostName}`;
-    }
-
     return null;
   }
 
