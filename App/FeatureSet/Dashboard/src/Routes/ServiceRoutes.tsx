@@ -9,7 +9,6 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import Services from "../Pages/Service/Services";
-import ServiceDependencyGraph from "../Pages/Service/DependencyGraph";
 import ServiceView from "../Pages/Service/View/Index";
 
 import ServiceViewMonitors from "../Pages/Service/View/Monitors";
@@ -34,8 +33,6 @@ import ServiceViewSettings from "../Pages/Service/View/Settings";
 
 import ServiceViewOwners from "../Pages/Service/View/Owners";
 
-import ServiceViewDependencies from "../Pages/Service/View/Dependencies";
-
 import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
 
 import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
@@ -54,15 +51,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <Services
               {...props}
               pageRoute={RouteMap[PageMap.SERVICES] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_DEPENDENCY_GRAPH)}
-          element={
-            <ServiceDependencyGraph
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route}
             />
           }
         />
@@ -210,16 +198,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewOwners
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DEPENDENCIES)}
-          element={
-            <ServiceViewDependencies
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_VIEW_DEPENDENCIES] as Route}
             />
           }
         />

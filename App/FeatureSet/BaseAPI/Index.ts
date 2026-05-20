@@ -559,9 +559,6 @@ import ServiceOwnerUserService, {
 import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
-import ServiceDependencyService, {
-  Service as ServiceDependencyServiceType,
-} from "Common/Server/Services/ServiceDependencyService";
 import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
 import ServiceMonitorService, {
   Service as ServiceMonitorServiceType,
@@ -907,7 +904,6 @@ import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
-import ServiceDependency from "Common/Models/DatabaseModels/ServiceDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
@@ -2059,14 +2055,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ShortLink, ShortLinkServiceType>(
         ShortLink,
         ShortLinkService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceDependency, ServiceDependencyServiceType>(
-        ServiceDependency,
-        ServiceDependencyService,
       ).getRouter(),
     );
 

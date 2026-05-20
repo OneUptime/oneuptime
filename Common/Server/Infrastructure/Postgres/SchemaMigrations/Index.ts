@@ -338,6 +338,7 @@ import { AddOnCallDutyPolicyScheduleOwners1778929624633 } from "./1778929624633-
 import { AddOnCallIncomingCallOwnersAndRules1778931537020 } from "./1778931537020-AddOnCallIncomingCallOwnersAndRules";
 import { IncreaseSmtpUsernameLength1779125489830 } from "./1779125489830-IncreaseSmtpUsernameLength";
 import { AddTelemetryRetentionConfig1779199346010 } from "./1779199346010-AddTelemetryRetentionConfig";
+import { DropServiceDependencyTable1779277271302 } from "./1779277271302-DropServiceDependencyTable";
 export default [
   InitialMigration,
   MigrationName1717678334852,
@@ -679,4 +680,5 @@ export default [
   AddOnCallIncomingCallOwnersAndRules1778931537020,
   IncreaseSmtpUsernameLength1779125489830,
   AddTelemetryRetentionConfig1779199346010,
+  DropServiceDependencyTable1779277271302,
 ];
